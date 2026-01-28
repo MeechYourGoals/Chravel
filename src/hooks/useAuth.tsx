@@ -9,10 +9,9 @@ import {
 } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Trip } from '@/services/tripService';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import { useDemoModeStore } from '@/store/demoModeStore';
-import { isSessionTokenValid, logTokenDebug } from '@/utils/tokenValidation';
+import { isSessionTokenValid } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
 
 // Timeout utility to prevent indefinite hanging on database queries
@@ -401,7 +400,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           name: error.name,
           status: (error as unknown as { status?: number }).status,
         });
-        console.error('[Auth] Force refresh failed:', error);
         // Clear corrupted session
         await supabase.auth.signOut();
         return null;
@@ -410,7 +408,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Validate the refreshed token
       if (data.session && !isSessionTokenValid(data.session.access_token)) {
         authDebug('forceRefreshSession:refreshedTokenInvalid');
-        console.error('[Auth] Refreshed token still invalid - clearing session');
         await supabase.auth.signOut();
         return null;
       }
@@ -424,7 +421,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return data.session;
     } catch (err) {
       authDebug('forceRefreshSession:exception', { error: String(err) });
-      console.error('[Auth] Force refresh error:', err);
       await supabase.auth.signOut();
       return null;
     }
@@ -435,7 +431,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Safety timeout: force loading to false after 10 seconds to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
       if (isLoadingRef.current) {
-        console.error('[Auth] Loading timeout exceeded (10s), forcing completion');
         setIsLoading(false);
       }
     }, 10000);
@@ -484,7 +479,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             // Validate token before using
             if (!isSessionTokenValid(retry.data.session.access_token)) {
               authDebug('init:getSession:retryTokenInvalid');
-              console.warn('[Auth] Retry session has invalid token - forcing refresh');
               const refreshed = await forceRefreshSession();
               if (refreshed) {
                 setSession(refreshed);
@@ -515,8 +509,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // CRITICAL: Validate token has required claims before using
         if (session?.access_token && !isSessionTokenValid(session.access_token)) {
           authDebug('init:getSession:tokenInvalid');
-          console.warn('[Auth] Session token missing required claims (sub) - forcing refresh');
-          logTokenDebug('getSessionAndUser:invalid', session.access_token);
 
           const refreshedSession = await forceRefreshSession();
           if (refreshedSession) {
@@ -776,10 +768,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Build the redirect URL - after OAuth completes, Supabase will redirect here
       const redirectUrl = `${window.location.origin}/auth`;
 
-      console.log('[Auth] Starting Google OAuth...');
-      console.log('[Auth] Origin:', window.location.origin);
-      console.log('[Auth] RedirectTo:', redirectUrl);
-
       // Use skipBrowserRedirect to capture the exact authorization URL for debugging
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -794,8 +782,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        console.error('[Auth] Google OAuth error:', error);
-
         if (error.message.includes('not configured') || error.message.includes('OAuth')) {
           return {
             error:
@@ -812,24 +798,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      // Log the full authorization URL for debugging
       if (data?.url) {
-        console.log('[Auth] ========== GOOGLE OAUTH DEBUG ==========');
-        console.log('[Auth] Full authorization URL:', data.url);
-
-        // Parse and log key parameters
-        try {
-          const url = new URL(data.url);
-          console.log('[Auth] Client ID:', url.searchParams.get('client_id'));
-          console.log('[Auth] Redirect URI:', url.searchParams.get('redirect_uri'));
-          console.log('[Auth] Scope:', url.searchParams.get('scope'));
-          console.log('[Auth] Hosted Domain (hd):', url.searchParams.get('hd') || 'none');
-          console.log('[Auth] State:', url.searchParams.get('state')?.substring(0, 20) + '...');
-        } catch (parseErr) {
-          console.warn('[Auth] Could not parse URL params:', parseErr);
-        }
-        console.log('[Auth] ==========================================');
-
         // Navigate to Google - try multiple methods to handle iframe restrictions
         try {
           // First try window.top (for iframe scenarios)
@@ -838,19 +807,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           } else {
             window.location.href = data.url;
           }
-        } catch (navError) {
+        } catch {
           // Cross-origin iframe restriction - fallback to current window
-          console.warn('[Auth] window.top access blocked, using window.location:', navError);
           window.location.href = data.url;
         }
       } else {
-        console.error('[Auth] No URL returned from signInWithOAuth');
         return { error: 'Failed to initiate Google sign-in. Please try again.' };
       }
 
       return {};
-    } catch (error) {
-      console.error('[Auth] Unexpected Google sign in error:', error);
+    } catch {
       return { error: 'An unexpected error occurred. Please try again.' };
     }
   };
@@ -858,8 +824,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithApple = async (): Promise<{ error?: string }> => {
     try {
       const redirectUrl = `${window.location.origin}/auth`;
-
-      console.log('[Auth] Starting Apple OAuth with redirectTo:', redirectUrl);
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
@@ -869,8 +833,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
-        console.error('[Auth] Apple sign in error:', error);
-
         // Provide more specific error messages
         if (error.message.includes('not configured') || error.message.includes('OAuth')) {
           return {
@@ -883,8 +845,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       return {};
-    } catch (error) {
-      console.error('[Auth] Unexpected Apple sign in error:', error);
+    } catch {
       return { error: 'An unexpected error occurred. Please try again.' };
     }
   };

@@ -1,14 +1,23 @@
-
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, User, MoreHorizontal, Archive, Flame, TrendingUp, EyeOff, FileDown, Trash2, Crown } from 'lucide-react';
+import {
+  Calendar,
+  MapPin,
+  User,
+  MoreHorizontal,
+  Archive,
+  Flame,
+  TrendingUp,
+  EyeOff,
+  FileDown,
+  Trash2,
+} from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { TripExportModal } from './trip/TripExportModal';
-import { TravelerTooltip } from './ui/traveler-tooltip';
 import { archiveTrip, hideTrip, deleteTripForMe } from '../services/archiveService';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/use-toast';
@@ -39,7 +48,7 @@ interface Participant {
 }
 
 // Stable empty array reference - prevents infinite re-renders from Zustand selector
-const EMPTY_PARTICIPANTS: Array<{id: number | string; name: string; avatar?: string}> = [];
+const EMPTY_PARTICIPANTS: Array<{ id: number | string; name: string; avatar?: string }> = [];
 
 interface Trip {
   id: number | string;
@@ -60,7 +69,12 @@ interface TripCardProps {
   onDeleteSuccess?: () => void;
 }
 
-export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuccess }: TripCardProps) => {
+export const TripCard = ({
+  trip,
+  onArchiveSuccess,
+  onHideSuccess,
+  onDeleteSuccess,
+}: TripCardProps) => {
   const navigate = useNavigate();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -76,13 +90,15 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
 
   // Free users use archive-first (no hard delete) to preserve their trips
   const isFreeUser = tier === 'free';
-  
+
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const tripIdStr = trip.id.toString();
   const addedDemoMembers = useDemoTripMembersStore(
-    useShallow((state) => isDemoMode && state.addedMembers[tripIdStr] 
-      ? state.addedMembers[tripIdStr] 
-      : EMPTY_PARTICIPANTS)
+    useShallow(state =>
+      isDemoMode && state.addedMembers[tripIdStr]
+        ? state.addedMembers[tripIdStr]
+        : EMPTY_PARTICIPANTS,
+    ),
   );
 
   // ⚡ PERFORMANCE: Prefetch trip data on hover/focus to reduce perceived load time
@@ -94,13 +110,12 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     navigate(`/trip/${trip.id}`);
   };
 
-
   const handleArchiveTrip = async () => {
     // Demo mode: session-scoped, non-persistent archive
     if (isDemoMode) {
       demoModeService.archiveTripSession(trip.id.toString());
       toast({
-        title: "Trip archived",
+        title: 'Trip archived',
         description: `"${trip.title}" has been archived. View it in the Archived tab.`,
       });
       setShowArchiveDialog(false);
@@ -112,16 +127,16 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     try {
       await archiveTrip(trip.id.toString(), 'consumer');
       toast({
-        title: "Trip archived",
+        title: 'Trip archived',
         description: `"${trip.title}" has been archived. View it in the Archived tab.`,
       });
       setShowArchiveDialog(false);
       onArchiveSuccess?.();
-    } catch (error) {
+    } catch {
       toast({
-        title: "Failed to archive trip",
-        description: "There was an error archiving your trip. Please try again.",
-        variant: "destructive",
+        title: 'Failed to archive trip',
+        description: 'There was an error archiving your trip. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -131,7 +146,7 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     if (isDemoMode) {
       demoModeService.hideTripSession(trip.id.toString());
       toast({
-        title: "Trip hidden",
+        title: 'Trip hidden',
         description: `"${trip.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
       });
       onHideSuccess?.();
@@ -142,15 +157,15 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     try {
       await hideTrip(trip.id.toString());
       toast({
-        title: "Trip hidden",
+        title: 'Trip hidden',
         description: `"${trip.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
       });
       onHideSuccess?.();
-    } catch (error) {
+    } catch {
       toast({
-        title: "Failed to hide trip",
-        description: "There was an error hiding your trip. Please try again.",
-        variant: "destructive",
+        title: 'Failed to hide trip',
+        description: 'There was an error hiding your trip. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -162,8 +177,8 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     // Demo mode: block delete with toast - demo trips are deletion-proof
     if (isDemoMode) {
       toast({
-        title: "Demo trip",
-        description: "This is a demo trip and cannot be deleted.",
+        title: 'Demo trip',
+        description: 'This is a demo trip and cannot be deleted.',
       });
       setShowDeleteDialog(false);
       return;
@@ -171,9 +186,9 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
 
     if (!user?.id) {
       toast({
-        title: "Not logged in",
-        description: "You must be logged in to manage trips.",
-        variant: "destructive",
+        title: 'Not logged in',
+        description: 'You must be logged in to manage trips.',
+        variant: 'destructive',
       });
       return;
     }
@@ -183,21 +198,26 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
       try {
         await archiveTrip(trip.id.toString(), 'consumer');
         toast({
-          title: "Trip archived",
+          title: 'Trip archived',
           description: `"${trip.title}" has been archived. Upgrade to restore it anytime!`,
           action: (
-            <ToastAction altText="View Plans" onClick={() => { window.location.href = '/settings'; }}>
+            <ToastAction
+              altText="View Plans"
+              onClick={() => {
+                window.location.href = '/settings';
+              }}
+            >
               View Plans
             </ToastAction>
-          )
+          ),
         });
         setShowDeleteDialog(false);
         onArchiveSuccess?.();
-      } catch (archiveError) {
+      } catch {
         toast({
-          title: "Failed to archive trip",
-          description: "There was an error archiving your trip. Please try again.",
-          variant: "destructive",
+          title: 'Failed to archive trip',
+          description: 'There was an error archiving your trip. Please try again.',
+          variant: 'destructive',
         });
       }
       return;
@@ -208,16 +228,16 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     try {
       await deleteTripForMe(trip.id.toString(), user.id);
       toast({
-        title: "Trip removed",
+        title: 'Trip removed',
         description: `"${trip.title}" has been removed from your account.`,
       });
       setShowDeleteDialog(false);
       onDeleteSuccess?.();
-    } catch (error) {
+    } catch {
       toast({
-        title: "Failed to remove trip",
-        description: "There was an error removing the trip. Please try again.",
-        variant: "destructive",
+        title: 'Failed to remove trip',
+        description: 'There was an error removing the trip. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsDeleting(false);
@@ -225,115 +245,129 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
   };
 
   // Complete PDF export handler - same logic as in-trip export
-  const handleExportPdf = useCallback(async (sections: ExportSection[]) => {
-    const orderedSections = orderExportSections(sections);
-    const tripIdStr = trip.id.toString();
-    const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
-    
-    if (import.meta.env.DEV) {
-      console.log('[TripCard Export] Starting export', { tripId: tripIdStr, isNumericId, isDemoMode, sections });
-    }
+  const handleExportPdf = useCallback(
+    async (sections: ExportSection[]) => {
+      const orderedSections = orderExportSections(sections);
+      const tripIdStr = trip.id.toString();
+      const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
 
-    toast({
-      title: "Creating Recap",
-      description: `Building your trip memories for "${trip.title}"...`,
-    });
-
-    try {
-      let blob: Blob;
-
-      if (isDemoMode || isNumericId) {
-        const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
-        const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
-        // Demo mode - use mock data from services
-        if (import.meta.env.DEV) console.log('[TripCard Export] Using demo mode data');
-        
-        const mockPayments = demoModeService.getMockPayments(tripIdStr);
-        const mockPolls = demoModeService.getMockPolls(tripIdStr);
-        const mockTasks = demoModeService.getMockTasks(tripIdStr);
-        const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
-        
-        const { generateClientPDF } = await import('../utils/exportPdfClient');
-        blob = await generateClientPDF(
-          {
-            tripId: tripIdStr,
-            tripTitle: trip.title,
-            destination: trip.location,
-            dateRange: trip.dateRange,
-            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined, // Demo trips use in-trip calendar view
-            payments: orderedSections.includes('payments') && mockPayments.length > 0 ? {
-              items: mockPayments,
-              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
-              currency: mockPayments[0]?.currency || 'USD'
-            } : undefined,
-            polls: orderedSections.includes('polls') ? mockPolls : undefined,
-            tasks: orderedSections.includes('tasks') ? mockTasks.map(task => ({
-              title: task.title,
-              description: task.description,
-              completed: task.completed
-            })) : undefined,
-            places: orderedSections.includes('places') ? mockPlaces : undefined,
-            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
-          },
-          orderedSections,
-          { customization: { compress: true, maxItemsPerSection: 100 } }
-        );
-      } else {
-        // Authenticated mode - fetch real data from Supabase
-        if (import.meta.env.DEV) console.log('[TripCard Export] Fetching real data from Supabase');
-        
-        const { getExportData } = await import('../services/tripExportDataService');
-        const realData = await getExportData(tripIdStr, orderedSections);
-        
-        if (!realData) {
-          throw new Error('Could not fetch trip data for export');
-        }
-        
-        const { generateClientPDF } = await import('../utils/exportPdfClient');
-        blob = await generateClientPDF(
-          {
-            tripId: tripIdStr,
-            tripTitle: realData.trip.title,
-            destination: realData.trip.destination,
-            dateRange: realData.trip.dateRange,
-            description: realData.trip.description,
-            calendar: realData.calendar,
-            payments: realData.payments,
-            polls: realData.polls,
-            tasks: realData.tasks,
-            places: realData.places,
-            roster: realData.roster,
-            attachments: realData.attachments,
-
-          },
-          orderedSections,
-          { customization: { compress: true, maxItemsPerSection: 100 } }
-        );
+      if (import.meta.env.DEV) {
+        console.log('[TripCard Export] Starting export', {
+          tripId: tripIdStr,
+          isNumericId,
+          isDemoMode,
+          sections,
+        });
       }
 
-      if (import.meta.env.DEV) console.log('[TripCard Export] PDF generated, blob size:', blob.size);
-
-      // Generate filename
-      const sanitizedTitle = trip.title.replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `Trip_${sanitizedTitle}_${Date.now()}.pdf`;
-
-      // Download the blob
-      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
-
       toast({
-        title: "Recap ready",
-        description: `PDF downloaded: ${filename}`,
+        title: 'Creating Recap',
+        description: `Building your trip memories for "${trip.title}"...`,
       });
-    } catch (error) {
-      console.error('[TripCard Export] Error:', error);
-      toast({
-        title: "Recap failed",
-        description: error instanceof Error ? error.message : "Failed to generate PDF. Please try again.",
-        variant: "destructive",
-      });
-      throw error; // Re-throw so TripExportModal can show error state
-    }
-  }, [trip, isDemoMode, toast]);
+
+      try {
+        let blob: Blob;
+
+        if (isDemoMode || isNumericId) {
+          const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
+          const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
+          // Demo mode - use mock data from services
+          if (import.meta.env.DEV) console.log('[TripCard Export] Using demo mode data');
+
+          const mockPayments = demoModeService.getMockPayments(tripIdStr);
+          const mockPolls = demoModeService.getMockPolls(tripIdStr);
+          const mockTasks = demoModeService.getMockTasks(tripIdStr);
+          const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
+
+          const { generateClientPDF } = await import('../utils/exportPdfClient');
+          blob = await generateClientPDF(
+            {
+              tripId: tripIdStr,
+              tripTitle: trip.title,
+              destination: trip.location,
+              dateRange: trip.dateRange,
+              calendar: orderedSections.includes('calendar') ? mockCalendar : undefined, // Demo trips use in-trip calendar view
+              payments:
+                orderedSections.includes('payments') && mockPayments.length > 0
+                  ? {
+                      items: mockPayments,
+                      total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+                      currency: mockPayments[0]?.currency || 'USD',
+                    }
+                  : undefined,
+              polls: orderedSections.includes('polls') ? mockPolls : undefined,
+              tasks: orderedSections.includes('tasks')
+                ? mockTasks.map(task => ({
+                    title: task.title,
+                    description: task.description,
+                    completed: task.completed,
+                  }))
+                : undefined,
+              places: orderedSections.includes('places') ? mockPlaces : undefined,
+              attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
+            },
+            orderedSections,
+            { customization: { compress: true, maxItemsPerSection: 100 } },
+          );
+        } else {
+          // Authenticated mode - fetch real data from Supabase
+          if (import.meta.env.DEV)
+            console.log('[TripCard Export] Fetching real data from Supabase');
+
+          const { getExportData } = await import('../services/tripExportDataService');
+          const realData = await getExportData(tripIdStr, orderedSections);
+
+          if (!realData) {
+            throw new Error('Could not fetch trip data for export');
+          }
+
+          const { generateClientPDF } = await import('../utils/exportPdfClient');
+          blob = await generateClientPDF(
+            {
+              tripId: tripIdStr,
+              tripTitle: realData.trip.title,
+              destination: realData.trip.destination,
+              dateRange: realData.trip.dateRange,
+              description: realData.trip.description,
+              calendar: realData.calendar,
+              payments: realData.payments,
+              polls: realData.polls,
+              tasks: realData.tasks,
+              places: realData.places,
+              roster: realData.roster,
+              attachments: realData.attachments,
+            },
+            orderedSections,
+            { customization: { compress: true, maxItemsPerSection: 100 } },
+          );
+        }
+
+        if (import.meta.env.DEV)
+          console.log('[TripCard Export] PDF generated, blob size:', blob.size);
+
+        // Generate filename
+        const sanitizedTitle = trip.title.replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `Trip_${sanitizedTitle}_${Date.now()}.pdf`;
+
+        // Download the blob
+        await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
+
+        toast({
+          title: 'Recap ready',
+          description: `PDF downloaded: ${filename}`,
+        });
+      } catch (error) {
+        toast({
+          title: 'Recap failed',
+          description:
+            error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.',
+          variant: 'destructive',
+        });
+        throw error; // Re-throw so TripExportModal can show error state
+      }
+    },
+    [trip, isDemoMode, toast],
+  );
 
   // Merge base participants with added demo members
   const allParticipants = React.useMemo(() => {
@@ -344,9 +378,9 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
     const newMembers = addedDemoMembers
       .filter(m => !existingIds.has(m.id.toString()))
       .map(m => ({
-        id: typeof m.id === 'string' ? parseInt(m.id, 10) || 0 : m.id as number,
+        id: typeof m.id === 'string' ? parseInt(m.id, 10) || 0 : (m.id as number),
         name: m.name,
-        avatar: m.avatar || ''
+        avatar: m.avatar || '',
       }));
     return [...trip.participants, ...newMembers];
   }, [trip.participants, addedDemoMembers, isDemoMode]);
@@ -354,7 +388,9 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
   // Ensure all participants have proper avatar URLs
   const participantsWithAvatars = allParticipants.map((participant, index) => ({
     ...participant,
-    avatar: participant.avatar || `https://images.unsplash.com/photo-${1649972904349 + index}-6e44c42644a7?w=40&h=40&fit=crop&crop=face`
+    avatar:
+      participant.avatar ||
+      `https://images.unsplash.com/photo-${1649972904349 + index}-6e44c42644a7?w=40&h=40&fit=crop&crop=face`,
   }));
 
   // Gamification features for consumer trips only
@@ -363,17 +399,17 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
   const momentum = isConsumer ? gamificationService.getTripMomentum(trip.id.toString()) : 'cold';
 
   return (
-    <div 
+    <div
       className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
     >
       {/* Trip Image/Header - Responsive */}
       <div className="relative h-32 md:h-48 bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent p-4 md:p-6">
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center opacity-80"
           style={{
-            backgroundImage: `url('${trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop'}')`
+            backgroundImage: `url('${trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop'}')`,
           }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
@@ -381,26 +417,35 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-              <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-yellow-300 transition-colors line-clamp-2">
-                {trip.title}
-              </h3>
+                <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-yellow-300 transition-colors line-clamp-2">
+                  {trip.title}
+                </h3>
                 {/* Trip Status Badges - Hidden on mobile to save space */}
                 {isConsumer && (
                   <div className="hidden md:flex gap-2 mt-1 flex-wrap max-h-8 overflow-hidden">
                     {momentum === 'hot' && (
-                      <Badge variant="secondary" className="bg-red-500/20 text-red-300 border-red-500/30">
+                      <Badge
+                        variant="secondary"
+                        className="bg-red-500/20 text-red-300 border-red-500/30"
+                      >
                         <Flame size={12} className="mr-1" />
                         Hot
                       </Badge>
                     )}
                     {momentum === 'warm' && (
-                      <Badge variant="secondary" className="bg-orange-500/20 text-orange-300 border-orange-500/30">
+                      <Badge
+                        variant="secondary"
+                        className="bg-orange-500/20 text-orange-300 border-orange-500/30"
+                      >
                         <TrendingUp size={12} className="mr-1" />
                         Active
                       </Badge>
                     )}
                     {daysUntil > 0 && daysUntil <= 7 && (
-                      <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 animate-pulse">
+                      <Badge
+                        variant="secondary"
+                        className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 animate-pulse"
+                      >
                         {daysUntil} {daysUntil === 1 ? 'day' : 'days'} left
                       </Badge>
                     )}
@@ -516,20 +561,20 @@ export const TripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSucces
         </div>
       </div>
 
-      <InviteModal 
+      <InviteModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         tripName={trip.title}
         tripId={trip.id.toString()}
       />
 
-      <ShareTripModal 
+      <ShareTripModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         trip={{
           ...trip,
           participants: participantsWithAvatars,
-          peopleCount: trip.peopleCount ?? participantsWithAvatars.length
+          peopleCount: trip.peopleCount ?? participantsWithAvatars.length,
         }}
       />
 

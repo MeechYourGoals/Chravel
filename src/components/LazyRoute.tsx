@@ -41,27 +41,28 @@ const isNewVersion = (): boolean => {
 // Clear all caches including service workers - enhanced version
 const clearAllCaches = async (): Promise<void> => {
   try {
-    console.log('[LazyRoute] Starting comprehensive cache clear...');
-
     // Clear Cache Storage API
     if ('caches' in window) {
       const cacheNames = await caches.keys();
       await Promise.all(cacheNames.map(name => caches.delete(name)));
-      console.log('[LazyRoute] Cleared all caches:', cacheNames);
     }
 
     // Unregister all service workers
     if ('serviceWorker' in navigator) {
       const registrations = await navigator.serviceWorker.getRegistrations();
       await Promise.all(registrations.map(reg => reg.unregister()));
-      console.log('[LazyRoute] Unregistered service workers:', registrations.length);
     }
 
     // Clear localStorage cache markers and old chunk references
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key?.includes('chunk') || key?.includes('cache') || key?.includes('sw-') || key?.includes('vite')) {
+      if (
+        key?.includes('chunk') ||
+        key?.includes('cache') ||
+        key?.includes('sw-') ||
+        key?.includes('vite')
+      ) {
         keysToRemove.push(key);
       }
     }
@@ -75,10 +76,8 @@ const clearAllCaches = async (): Promise<void> => {
 
     // Mark when we last cleared cache
     localStorage.setItem(LAST_CACHE_CLEAR_KEY, Date.now().toString());
-
-    console.log('[LazyRoute] Cache clear complete');
-  } catch (error) {
-    console.error('[LazyRoute] Error clearing caches:', error);
+  } catch {
+    // Silent failure - cache clearing is best-effort
   }
 };
 
@@ -87,7 +86,7 @@ const ChunkErrorFallback = ({
   onRetry,
   onClearAndReload,
   retryCount = 0,
-  isAutoRetrying = false
+  isAutoRetrying = false,
 }: {
   onRetry: () => void;
   onClearAndReload: () => void;
@@ -111,13 +110,10 @@ const ChunkErrorFallback = ({
         <p className="text-muted-foreground">
           {isAutoRetrying
             ? 'A new version is available. Loading the latest version...'
-            : 'This usually happens after an app update. Clear your cache to load the latest version.'
-          }
+            : 'This usually happens after an app update. Clear your cache to load the latest version.'}
         </p>
         {retryCount > 0 && !isAutoRetrying && (
-          <p className="text-sm text-muted-foreground/80">
-            Retry attempts: {retryCount}/3
-          </p>
+          <p className="text-sm text-muted-foreground/80">Retry attempts: {retryCount}/3</p>
         )}
       </div>
 
@@ -146,8 +142,7 @@ const ChunkErrorFallback = ({
       <p className="text-xs text-muted-foreground/60">
         {isAutoRetrying
           ? 'This should only take a moment...'
-          : 'If the problem persists, try closing all browser tabs and reopening the app.'
-        }
+          : 'If the problem persists, try closing all browser tabs and reopening the app.'}
       </p>
     </div>
   </div>
@@ -158,10 +153,7 @@ const MAX_AUTO_RETRIES = 3;
 // Exponential backoff delays in ms (1s, 2s, 4s)
 const RETRY_DELAYS = [1000, 2000, 4000];
 
-export const LazyRoute: React.FC<LazyRouteProps> = ({
-  children,
-  fallback = <DefaultLoader />
-}) => {
+export const LazyRoute: React.FC<LazyRouteProps> = ({ children, fallback = <DefaultLoader /> }) => {
   const [retryKey, setRetryKey] = useState(0);
   const [hasChunkError, setHasChunkError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -186,13 +178,11 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({
   // Auto-retry with exponential backoff
   const attemptAutoRetry = useCallback(() => {
     if (retryCount >= MAX_AUTO_RETRIES) {
-      console.warn('[LazyRoute] Max auto-retries reached, showing error UI');
       setIsAutoRetrying(false);
       return;
     }
 
     const delay = RETRY_DELAYS[retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
-    console.log(`[LazyRoute] Auto-retry attempt ${retryCount + 1}/${MAX_AUTO_RETRIES} in ${delay}ms`);
 
     setIsAutoRetrying(true);
 
@@ -207,7 +197,6 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       if (isChunkError(event.message || String(event.error))) {
-        console.warn('[LazyRoute] Chunk error detected:', event.message);
         setHasChunkError(true);
         event.preventDefault(); // Prevent default error handling
       }
@@ -216,7 +205,6 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({
     const handleRejection = (event: PromiseRejectionEvent) => {
       const errorMessage = event.reason?.message || String(event.reason);
       if (isChunkError(errorMessage)) {
-        console.warn('[LazyRoute] Chunk rejection detected:', errorMessage);
         setHasChunkError(true);
         event.preventDefault(); // Prevent default error handling
       }
@@ -236,7 +224,6 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({
     if (hasChunkError && retryCount < MAX_AUTO_RETRIES) {
       // Check if this is a new version - if so, auto-clear and reload
       if (isNewVersion()) {
-        console.log('[LazyRoute] New version detected, auto-clearing cache');
         clearAllCaches().then(() => {
           window.location.reload();
         });
@@ -247,7 +234,6 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({
       attemptAutoRetry();
     } else if (hasChunkError && retryCount >= MAX_AUTO_RETRIES) {
       // Max retries exhausted - reset auto-retry flag to show manual recovery UI
-      console.warn('[LazyRoute] Max auto-retries exhausted, showing manual recovery UI');
       setIsAutoRetrying(false);
     }
   }, [hasChunkError, retryCount, attemptAutoRetry]);
@@ -301,10 +287,7 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({
 
   return (
     <ErrorBoundary>
-      <Suspense
-        key={retryKey}
-        fallback={fallback}
-      >
+      <Suspense key={retryKey} fallback={fallback}>
         {children}
       </Suspense>
     </ErrorBoundary>
