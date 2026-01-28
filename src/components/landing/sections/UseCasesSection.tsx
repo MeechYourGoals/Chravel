@@ -7,7 +7,7 @@ const scenarios = [
   {
     title: 'Family Trips & Year-Round Hubs',
     subtitle: 'Errands, Vacations, or Important Moments · One Household Hub for Fam or Roommates',
-    before: 'Multiple group chats. Buried emails. Someone always asking, "Where\'s the plan?"',
+    before: 'Missed practice pickups. Fridge notes ignored. Chores forgotten.',
     expandCTA: 'See how families stay coordinated',
     after:
       'One shared space for trips, birthdays, sports weekends, holidays, and everyday family logistics. Create a single trip that lasts all year—calendars, photos, plans, and updates stay in sync.',
