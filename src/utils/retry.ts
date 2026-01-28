@@ -39,15 +39,9 @@ export interface RetryOptions {
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
-  const {
-    maxRetries = 3,
-    initialDelay = 1000,
-    maxDelay = 10000,
-    onRetry,
-    onFailure
-  } = options;
+  const { maxRetries = 3, initialDelay = 1000, maxDelay = 10000, onRetry, onFailure } = options;
 
   let lastError: Error;
 
@@ -66,10 +60,7 @@ export async function retryWithBackoff<T>(
       }
 
       // Calculate exponential backoff delay
-      const delay = Math.min(
-        initialDelay * Math.pow(2, attempt),
-        maxDelay
-      );
+      const delay = Math.min(initialDelay * Math.pow(2, attempt), maxDelay);
 
       // Notify caller of retry attempt
       if (onRetry) {
@@ -90,20 +81,24 @@ export async function retryWithBackoff<T>(
  * Network errors, timeouts, and 5xx server errors are retryable
  * 4xx client errors are not retryable
  */
-export function isRetryableError(error: any): boolean {
+export function isRetryableError(error: unknown): boolean {
+  // Get error message if available
+  const errorMessage = error instanceof Error ? error.message : '';
+
   // Network errors
-  if (error.message?.includes('network') || error.message?.includes('fetch')) {
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
     return true;
   }
 
   // Timeout errors
-  if (error.message?.includes('timeout')) {
+  if (errorMessage.includes('timeout')) {
     return true;
   }
 
-  // HTTP status codes
-  if (error.status || error.code) {
-    const status = error.status || error.code;
+  // HTTP status codes (for API errors with status/code properties)
+  const errorWithStatus = error as { status?: number; code?: number };
+  if (errorWithStatus.status || errorWithStatus.code) {
+    const status = errorWithStatus.status || errorWithStatus.code || 0;
     // Retry on 5xx server errors and 429 (rate limit)
     if (status >= 500 || status === 429) {
       return true;
@@ -123,7 +118,7 @@ export function isRetryableError(error: any): boolean {
  */
 export async function retryIfRetryable<T>(
   fn: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
   return retryWithBackoff(fn, {
     ...options,
@@ -137,6 +132,6 @@ export async function retryIfRetryable<T>(
       if (options.onRetry) {
         options.onRetry(attempt, error);
       }
-    }
+    },
   });
 }

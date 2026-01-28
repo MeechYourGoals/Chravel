@@ -8,7 +8,7 @@ export interface VersionedData {
 
 export interface ConflictResolution {
   strategy: 'local' | 'remote' | 'merge' | 'manual';
-  resolvedData?: any;
+  resolvedData?: VersionedData;
 }
 
 /**
