@@ -1,3 +1,5 @@
+import { RichLinkPreview } from './chatAttachment';
+
 export interface TripChannel {
   id: string;
   trip_id: string;
@@ -46,7 +48,7 @@ export interface ChannelMessage {
   }>;
   media_type?: string;
   media_url?: string;
-  link_preview?: any;
+  link_preview?: RichLinkPreview | null;
   privacy_mode?: string;
   privacy_encrypted?: boolean;
   sentiment?: string;

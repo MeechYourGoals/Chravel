@@ -19,7 +19,7 @@ export const SwipeableNotificationRow: React.FC<SwipeableNotificationRowProps> =
   const deleteOpacity = useTransform(x, [-100, -50, 0], [1, 0.5, 0]);
   const deleteScale = useTransform(x, [-100, -50, 0], [1, 0.8, 0.5]);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // If swiped past threshold, delete
     if (info.offset.x < -100) {
       setIsDeleting(true);

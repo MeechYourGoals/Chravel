@@ -1,6 +1,6 @@
 /**
  * useMediaUpload Hook
- * 
+ *
  * Provides comprehensive media upload functionality with:
  * - Progress tracking per file
  * - Batch upload support
@@ -9,7 +9,6 @@
  */
 
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useDemoMode } from './useDemoMode';
@@ -56,7 +55,7 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
   const uploadSingleFile = async (
     file: File,
     fileId: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<UploadedFile> => {
     const mediaType = determineMediaType(file);
 
@@ -75,7 +74,7 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
         filename: file.name,
         type: mediaType,
         size: file.size,
-        mimeType: file.type
+        mimeType: file.type,
       };
     }
 
@@ -87,7 +86,7 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
       const mediaItem = await mediaService.uploadMedia({
         tripId,
         file,
-        media_type: mediaType
+        media_type: mediaType,
       });
 
       if (signal?.aborted) throw new Error('Upload cancelled');
@@ -101,10 +100,10 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
         filename: mediaItem.filename,
         type: mediaItem.media_type,
         size: mediaItem.file_size || file.size,
-        mimeType: mediaItem.mime_type || file.type
+        mimeType: mediaItem.mime_type || file.type,
       };
-    } catch (error: any) {
-      updateProgress(fileId, 0, 'error', error.message);
+    } catch (error) {
+      updateProgress(fileId, 0, 'error', error instanceof Error ? error.message : 'Upload failed');
       throw error;
     }
   };
@@ -114,13 +113,11 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
     progress: number,
     status: UploadProgress['status'],
     error?: string,
-    url?: string
+    url?: string,
   ) => {
-    setUploadQueue((prev) => {
-      const updated = prev.map((item) =>
-        item.fileId === fileId
-          ? { ...item, progress, status, error, url }
-          : item
+    setUploadQueue(prev => {
+      const updated = prev.map(item =>
+        item.fileId === fileId ? { ...item, progress, status, error, url } : item,
       );
       onProgress?.(updated);
       return updated;
@@ -135,22 +132,30 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
       // Check limits before uploading
       const photosToUpload = fileArray.filter(f => f.type.startsWith('image/')).length;
       const videosToUpload = fileArray.filter(f => f.type.startsWith('video/')).length;
-      const filesToUpload = fileArray.filter(f => !f.type.startsWith('image/') && !f.type.startsWith('video/')).length;
+      const filesToUpload = fileArray.filter(
+        f => !f.type.startsWith('image/') && !f.type.startsWith('video/'),
+      ).length;
 
       if (!mediaLimits.isLoading) {
         if (photosToUpload > 0 && !mediaLimits.photos.canUpload) {
           const limit = mediaLimits.photos.limit;
-          toast.error(`Photo limit reached (${mediaLimits.photos.used}/${limit} for this trip). Upgrade to Explorer for unlimited uploads.`);
+          toast.error(
+            `Photo limit reached (${mediaLimits.photos.used}/${limit} for this trip). Upgrade to Explorer for unlimited uploads.`,
+          );
           return [];
         }
         if (videosToUpload > 0 && !mediaLimits.videos.canUpload) {
           const limit = mediaLimits.videos.limit;
-          toast.error(`Video limit reached (${mediaLimits.videos.used}/${limit} for this trip). Upgrade to Explorer for unlimited uploads.`);
+          toast.error(
+            `Video limit reached (${mediaLimits.videos.used}/${limit} for this trip). Upgrade to Explorer for unlimited uploads.`,
+          );
           return [];
         }
         if (filesToUpload > 0 && !mediaLimits.files.canUpload) {
           const limit = mediaLimits.files.limit;
-          toast.error(`File limit reached (${mediaLimits.files.used}/${limit} for this trip). Upgrade to Explorer for unlimited uploads.`);
+          toast.error(
+            `File limit reached (${mediaLimits.files.used}/${limit} for this trip). Upgrade to Explorer for unlimited uploads.`,
+          );
           return [];
         }
 
@@ -158,21 +163,27 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
         if (photosToUpload > 0 && mediaLimits.photos.limit !== -1) {
           const remaining = mediaLimits.photos.limit - mediaLimits.photos.used;
           if (photosToUpload > remaining) {
-            toast.error(`Can only upload ${remaining} more photo${remaining === 1 ? '' : 's'} for this trip. Upgrade for unlimited.`);
+            toast.error(
+              `Can only upload ${remaining} more photo${remaining === 1 ? '' : 's'} for this trip. Upgrade for unlimited.`,
+            );
             return [];
           }
         }
         if (videosToUpload > 0 && mediaLimits.videos.limit !== -1) {
           const remaining = mediaLimits.videos.limit - mediaLimits.videos.used;
           if (videosToUpload > remaining) {
-            toast.error(`Can only upload ${remaining} more video${remaining === 1 ? '' : 's'} for this trip. Upgrade for unlimited.`);
+            toast.error(
+              `Can only upload ${remaining} more video${remaining === 1 ? '' : 's'} for this trip. Upgrade for unlimited.`,
+            );
             return [];
           }
         }
         if (filesToUpload > 0 && mediaLimits.files.limit !== -1) {
           const remaining = mediaLimits.files.limit - mediaLimits.files.used;
           if (filesToUpload > remaining) {
-            toast.error(`Can only upload ${remaining} more file${remaining === 1 ? '' : 's'} for this trip. Upgrade for unlimited.`);
+            toast.error(
+              `Can only upload ${remaining} more file${remaining === 1 ? '' : 's'} for this trip. Upgrade for unlimited.`,
+            );
             return [];
           }
         }
@@ -185,7 +196,7 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
         fileId: `${Date.now()}-${index}`,
         fileName: file.name,
         progress: 0,
-        status: 'pending' as const
+        status: 'pending' as const,
       }));
 
       setUploadQueue(initialQueue);
@@ -201,14 +212,17 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
       }
 
       for (const chunk of chunks) {
-        const promises = chunk.map(async (file, idx) => {
+        const promises = chunk.map(async (file, _idx) => {
           const fileId = initialQueue[fileArray.indexOf(file)].fileId;
           try {
             const result = await uploadSingleFile(file, fileId);
             results.push(result);
-          } catch (error: any) {
-            errors.push({ fileName: file.name, error });
-            onError?.(error, file.name);
+          } catch (error) {
+            errors.push({
+              fileName: file.name,
+              error: error instanceof Error ? error : new Error('Upload failed'),
+            });
+            onError?.(error instanceof Error ? error : new Error('Upload failed'), file.name);
           }
         });
 
@@ -220,7 +234,9 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
 
       // Show results
       if (results.length > 0) {
-        toast.success(`${results.length} file${results.length > 1 ? 's' : ''} uploaded successfully`);
+        toast.success(
+          `${results.length} file${results.length > 1 ? 's' : ''} uploaded successfully`,
+        );
         onComplete?.(results);
       }
 
@@ -229,13 +245,13 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
       }
 
       setIsUploading(false);
-      
+
       // Clear queue after 2 seconds
       setTimeout(() => setUploadQueue([]), 2000);
 
       return results;
     },
-    [tripId, queryClient, onProgress, onComplete, onError, isDemoMode, mediaLimits]
+    [tripId, queryClient, onProgress, onComplete, onError, isDemoMode, mediaLimits],
   );
 
   const clearQueue = useCallback(() => {
@@ -246,8 +262,10 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
     const failedItems = uploadQueue.filter(item => item.status === 'error');
     if (failedItems.length === 0) return;
 
-    toast.info(`Retrying ${failedItems.length} failed upload${failedItems.length > 1 ? 's' : ''}...`);
-    
+    toast.info(
+      `Retrying ${failedItems.length} failed upload${failedItems.length > 1 ? 's' : ''}...`,
+    );
+
     // Note: Would need original File objects to retry - simplified for now
     // In production, store File references temporarily
   }, [uploadQueue]);
@@ -258,6 +276,6 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
     isUploading,
     clearQueue,
     retryFailedUploads,
-    hasFailedUploads: uploadQueue.some(item => item.status === 'error')
+    hasFailedUploads: uploadQueue.some(item => item.status === 'error'),
   };
 };

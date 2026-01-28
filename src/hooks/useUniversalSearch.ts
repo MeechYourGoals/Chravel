@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { 
-  performUniversalSearch, 
-  ContentType, 
+import {
+  performUniversalSearch,
+  ContentType,
   SearchMode,
-  UniversalSearchResult 
+  UniversalSearchResult,
 } from '@/services/universalSearchService';
 
 interface UseUniversalSearchOptions {
@@ -14,21 +14,18 @@ interface UseUniversalSearchOptions {
   tripIds?: string[];
 }
 
-export const useUniversalSearch = (
-  query: string, 
-  options: UseUniversalSearchOptions = {}
-) => {
+export const useUniversalSearch = (query: string, options: UseUniversalSearchOptions = {}) => {
   const {
     contentTypes = ['trips', 'messages', 'calendar', 'tasks', 'polls', 'media'],
     searchMode = 'keyword',
-    tripIds
+    tripIds,
   } = options;
 
   const [results, setResults] = useState<UniversalSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
-  
+
   const activeRequestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -41,30 +38,32 @@ export const useUniversalSearch = (
       if (activeRequestRef.current) {
         activeRequestRef.current.abort();
       }
-      
+
       const abortController = new AbortController();
       activeRequestRef.current = abortController;
       setIsLoading(true);
-      
+
       try {
         const searchResults = await performUniversalSearch({
           query: query.trim(),
           contentTypes,
           filters: { tripIds },
           searchMode,
-          isDemoMode
+          isDemoMode,
         });
 
         if (!abortController.signal.aborted) {
           setResults(searchResults);
         }
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
+      } catch (error) {
+        // Check if this is an AbortError (user cancelled the search)
+        const isAbortError = error instanceof Error && error.name === 'AbortError';
+        if (!isAbortError) {
           console.error('Search error:', error);
           toast({
-            variant: "destructive",
-            title: "Search failed",
-            description: "Unable to search. Please try again."
+            variant: 'destructive',
+            title: 'Search failed',
+            description: 'Unable to search. Please try again.',
           });
           setResults([]);
         }

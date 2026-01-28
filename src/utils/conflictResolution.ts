@@ -1,6 +1,6 @@
 /**
  * Conflict Resolution Utilities
- * 
+ *
  * Implements last-write-wins with optimistic locking using version fields
  * for chat messages, tasks, and calendar events
  */
@@ -17,11 +17,15 @@ export interface VersionedEntity {
 /**
  * Check if an error indicates a version conflict
  */
-export function isVersionConflict(error: any): boolean {
+export function isVersionConflict(error: unknown): boolean {
   if (!error) return false;
 
-  const errorMessage = error.message?.toLowerCase() || '';
-  const errorCode = error.code || '';
+  // Check for OptimisticLockError first
+  if (error instanceof OptimisticLockError) return true;
+
+  // Type guard for error-like objects
+  const errorMessage = (error instanceof Error ? error.message : '').toLowerCase();
+  const errorCode = (error as { code?: string })?.code || '';
 
   return (
     errorMessage.includes('version') ||
@@ -29,22 +33,22 @@ export function isVersionConflict(error: any): boolean {
     errorMessage.includes('modified by another user') ||
     errorMessage.includes('concurrent modification') ||
     errorCode === 'P0001' || // PostgreSQL exception code
-    errorCode === '23505' || // Unique violation (can indicate conflict)
-    error instanceof OptimisticLockError
+    errorCode === '23505' // Unique violation (can indicate conflict)
   );
 }
 
 /**
  * Extract version from entity or error response
  */
-export function extractVersion(entity: VersionedEntity | null, error?: any): number {
+export function extractVersion(entity: VersionedEntity | null, error?: unknown): number {
   if (entity?.version !== null && entity?.version !== undefined) {
     return entity.version;
   }
 
   // Try to extract from error response
-  if (error?.data?.version !== null && error?.data?.version !== undefined) {
-    return error.data.version;
+  const errorData = (error as { data?: { version?: number } })?.data;
+  if (errorData?.version !== null && errorData?.version !== undefined) {
+    return errorData.version;
   }
 
   // Default to 1 if no version found
@@ -53,21 +57,17 @@ export function extractVersion(entity: VersionedEntity | null, error?: any): num
 
 /**
  * Resolve conflict using last-write-wins strategy
- * 
+ *
  * @param localEntity - Local version of the entity
  * @param serverEntity - Server version of the entity
  * @returns The resolved entity (server wins if timestamps are equal)
  */
 export function resolveConflict(
   localEntity: VersionedEntity,
-  serverEntity: VersionedEntity
+  serverEntity: VersionedEntity,
 ): VersionedEntity {
-  const localTime = localEntity.updated_at 
-    ? new Date(localEntity.updated_at).getTime() 
-    : 0;
-  const serverTime = serverEntity.updated_at 
-    ? new Date(serverEntity.updated_at).getTime() 
-    : 0;
+  const localTime = localEntity.updated_at ? new Date(localEntity.updated_at).getTime() : 0;
+  const serverTime = serverEntity.updated_at ? new Date(serverEntity.updated_at).getTime() : 0;
 
   // Last-write-wins: use the entity with the most recent updated_at
   if (serverTime >= localTime) {
@@ -82,7 +82,7 @@ export function resolveConflict(
  */
 export function createOptimisticUpdate<T extends VersionedEntity>(
   entity: T,
-  updates: Partial<T>
+  updates: Partial<T>,
 ): T {
   const currentVersion = entity.version || 1;
   return {
@@ -100,13 +100,13 @@ export function createOptimisticUpdate<T extends VersionedEntity>(
 export function validateVersion(
   localVersion: number,
   serverVersion: number | null | undefined,
-  entityId: string
+  entityId: string,
 ): void {
   const serverVer = serverVersion || 1;
 
   if (localVersion !== serverVer) {
     throw new OptimisticLockError(
-      `Entity ${entityId} has been modified by another user. Local version: ${localVersion}, Server version: ${serverVer}. Please refresh and try again.`
+      `Entity ${entityId} has been modified by another user. Local version: ${localVersion}, Server version: ${serverVer}. Please refresh and try again.`,
     );
   }
 }
@@ -117,15 +117,15 @@ export function validateVersion(
 export async function handleVersionConflict<T>(
   operation: () => Promise<T>,
   getCurrentVersion: () => Promise<number>,
-  maxRetries: number = 3
+  maxRetries: number = 3,
 ): Promise<T> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
-    } catch (error: any) {
-      lastError = error;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown error');
 
       if (!isVersionConflict(error)) {
         // Not a version conflict, re-throw immediately
@@ -139,16 +139,14 @@ export async function handleVersionConflict<T>(
 
       // Get current version and retry
       try {
-        const currentVersion = await getCurrentVersion();
+        const _currentVersion = await getCurrentVersion();
         // Wait a bit before retry (exponential backoff)
-        await new Promise(resolve => 
-          setTimeout(resolve, Math.pow(2, attempt) * 100)
-        );
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
         // Operation will be retried with updated version
-      } catch (versionError) {
+      } catch {
         // Can't get version, give up
         throw new OptimisticLockError(
-          'Unable to resolve version conflict. Please refresh and try again.'
+          'Unable to resolve version conflict. Please refresh and try again.',
         );
       }
     }
@@ -161,10 +159,7 @@ export async function handleVersionConflict<T>(
  * Merge local and server changes (simple last-write-wins)
  * For more complex scenarios, consider operational transformation
  */
-export function mergeChanges<T extends VersionedEntity>(
-  local: T,
-  server: T
-): T {
+export function mergeChanges<T extends VersionedEntity>(local: T, server: T): T {
   return resolveConflict(local, server) as T;
 }
 
@@ -173,7 +168,7 @@ export function mergeChanges<T extends VersionedEntity>(
  */
 export function needsSync(
   localEntity: VersionedEntity | null,
-  serverEntity: VersionedEntity
+  serverEntity: VersionedEntity,
 ): boolean {
   if (!localEntity) return true;
 

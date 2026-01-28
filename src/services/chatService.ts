@@ -7,7 +7,15 @@ type Row = Database['public']['Tables']['trip_chat_messages']['Row'];
 type Insert = Database['public']['Tables']['trip_chat_messages']['Insert'];
 
 export type AttachmentType = 'image' | 'video' | 'file' | 'link';
-export type RichMessageType = 'text' | 'image' | 'video' | 'file' | 'link' | 'broadcast' | 'payment' | 'system';
+export type RichMessageType =
+  | 'text'
+  | 'image'
+  | 'video'
+  | 'file'
+  | 'link'
+  | 'broadcast'
+  | 'payment'
+  | 'system';
 
 export interface ChatMessageInsert extends Omit<Insert, 'attachments'> {
   attachments?: {
@@ -75,7 +83,10 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
       if (error) {
         // Handle unique constraint violation (duplicate client_message_id)
         if (error.code === '23505' && error.message.includes('client_message_id')) {
-          console.warn('[chatService] Duplicate message detected, fetching existing:', clientMessageId);
+          console.warn(
+            '[chatService] Duplicate message detected, fetching existing:',
+            clientMessageId,
+          );
           // Fetch the existing message instead of failing
           const { data: existing } = await supabase
             .from('trip_chat_messages')
@@ -112,10 +123,13 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
       maxRetries: 3,
       onRetry: (attempt, error) => {
         if (import.meta.env.DEV) {
-          console.warn(`[chatService] Retry attempt ${attempt}/3 for sending chat message:`, error.message);
+          console.warn(
+            `[chatService] Retry attempt ${attempt}/3 for sending chat message:`,
+            error.message,
+          );
         }
-      }
-    }
+      },
+    },
   );
 }
 
@@ -133,7 +147,7 @@ export async function sendRichChatMessage(msg: RichChatMessageInsert) {
         privacy_mode: msg.privacy_mode || 'standard',
         message_type: msg.message_type || 'text',
       };
-      
+
       // Add optional fields only if present
       if (msg.client_message_id) {
         insertPayload.client_message_id = msg.client_message_id;
@@ -150,17 +164,20 @@ export async function sendRichChatMessage(msg: RichChatMessageInsert) {
       if (msg.link_preview) {
         insertPayload.link_preview = msg.link_preview;
       }
-      
+
       const { data, error } = await supabase
         .from('trip_chat_messages')
         .insert(insertPayload)
         .select()
         .single();
-        
+
       if (error) {
         // Handle unique constraint violation (duplicate client_message_id)
         if (error.code === '23505' && error.message.includes('client_message_id')) {
-          console.warn('[chatService] Duplicate message detected, fetching existing:', msg.client_message_id);
+          console.warn(
+            '[chatService] Duplicate message detected, fetching existing:',
+            msg.client_message_id,
+          );
           // Fetch the existing message instead
           const { data: existing } = await supabase
             .from('trip_chat_messages')
@@ -172,7 +189,7 @@ export async function sendRichChatMessage(msg: RichChatMessageInsert) {
         }
         throw error;
       }
-      
+
       // TODO: Trigger push notification after successful message creation
       // Fire and forget - don't block message return
       if (data && msg.user_id && msg.message_type !== 'system') {
@@ -184,7 +201,7 @@ export async function sendRichChatMessage(msg: RichChatMessageInsert) {
           messageId: data.id,
         });
       }
-      
+
       return data;
     },
     {
@@ -193,8 +210,8 @@ export async function sendRichChatMessage(msg: RichChatMessageInsert) {
         if (import.meta.env.DEV) {
           console.warn(`Retry attempt ${attempt}/3 for sending rich chat message:`, error.message);
         }
-      }
-    }
+      },
+    },
   );
 }
 
@@ -203,8 +220,13 @@ export function subscribeToChatMessages(tripId: string, onInsert: (row: Row) => 
     .channel(`chat:${tripId}`)
     .on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'trip_chat_messages', filter: `trip_id=eq.${tripId}` },
-      payload => onInsert(payload.new as Row)
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'trip_chat_messages',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      payload => onInsert(payload.new as Row),
     )
     .subscribe();
 }
@@ -212,17 +234,14 @@ export function subscribeToChatMessages(tripId: string, onInsert: (row: Row) => 
 /**
  * Edit a chat message
  */
-export async function editChatMessage(
-  messageId: string,
-  newContent: string
-): Promise<boolean> {
+export async function editChatMessage(messageId: string, newContent: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('trip_chat_messages')
       .update({
         content: newContent,
         edited_at: new Date().toISOString(),
-        is_edited: true
+        is_edited: true,
       })
       .eq('id', messageId);
 
@@ -241,16 +260,13 @@ export async function editChatMessage(
 /**
  * Edit a channel message
  */
-export async function editChannelMessage(
-  messageId: string,
-  newContent: string
-): Promise<boolean> {
+export async function editChannelMessage(messageId: string, newContent: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('channel_messages')
       .update({
         content: newContent,
-        edited_at: new Date().toISOString()
+        edited_at: new Date().toISOString(),
       })
       .eq('id', messageId);
 
@@ -275,7 +291,7 @@ export async function deleteChatMessage(messageId: string): Promise<boolean> {
       .from('trip_chat_messages')
       .update({
         deleted_at: new Date().toISOString(),
-        is_deleted: true
+        is_deleted: true,
       })
       .eq('id', messageId);
 
@@ -299,7 +315,7 @@ export async function deleteChannelMessage(messageId: string): Promise<boolean> 
     const { error } = await supabase
       .from('channel_messages')
       .update({
-        deleted_at: new Date().toISOString()
+        deleted_at: new Date().toISOString(),
       })
       .eq('id', messageId);
 
@@ -315,18 +331,26 @@ export async function deleteChannelMessage(messageId: string): Promise<boolean> 
   }
 }
 
-export function subscribeToMediaUpdates(tripId: string, handlers: {
-  onMediaInsert?: (row: Database['public']['Tables']['trip_media_index']['Row']) => void;
-  onFileInsert?: (row: Database['public']['Tables']['trip_files']['Row']) => void;
-  onLinkInsert?: (row: Database['public']['Tables']['trip_link_index']['Row']) => void;
-}) {
+export function subscribeToMediaUpdates(
+  tripId: string,
+  handlers: {
+    onMediaInsert?: (row: Database['public']['Tables']['trip_media_index']['Row']) => void;
+    onFileInsert?: (row: Database['public']['Tables']['trip_files']['Row']) => void;
+    onLinkInsert?: (row: Database['public']['Tables']['trip_link_index']['Row']) => void;
+  },
+) {
   const channel = supabase.channel(`media:${tripId}`);
 
   if (handlers.onMediaInsert) {
     channel.on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'trip_media_index', filter: `trip_id=eq.${tripId}` },
-      payload => handlers.onMediaInsert!(payload.new as any)
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'trip_media_index',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      payload => handlers.onMediaInsert!(payload.new as any),
     );
   }
 
@@ -334,15 +358,20 @@ export function subscribeToMediaUpdates(tripId: string, handlers: {
     channel.on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'trip_files', filter: `trip_id=eq.${tripId}` },
-      payload => handlers.onFileInsert!(payload.new as any)
+      payload => handlers.onFileInsert!(payload.new as any),
     );
   }
 
   if (handlers.onLinkInsert) {
     channel.on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'trip_link_index', filter: `trip_id=eq.${tripId}` },
-      payload => handlers.onLinkInsert!(payload.new as any)
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'trip_link_index',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      payload => handlers.onLinkInsert!(payload.new as any),
     );
   }
 
@@ -376,7 +405,7 @@ export interface ReactionCount {
 export async function toggleMessageReaction(
   messageId: string,
   userId: string,
-  reactionType: ReactionType
+  reactionType: ReactionType,
 ): Promise<{ added: boolean; error?: string }> {
   try {
     // Use direct query with type assertion since message_reactions isn't in generated types
@@ -392,27 +421,22 @@ export async function toggleMessageReaction(
 
     if (existing) {
       // Remove existing reaction
-      await (supabase as any)
-        .from('message_reactions')
-        .delete()
-        .eq('id', existing.id);
+      await (supabase as any).from('message_reactions').delete().eq('id', existing.id);
 
       return { added: false };
     } else {
       // Add new reaction
-      await (supabase as any)
-        .from('message_reactions')
-        .insert({
-          message_id: messageId,
-          user_id: userId,
-          reaction_type: reactionType,
-        });
+      await (supabase as any).from('message_reactions').insert({
+        message_id: messageId,
+        user_id: userId,
+        reaction_type: reactionType,
+      });
 
       return { added: true };
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('[chatService] Toggle reaction error:', error);
-    return { added: false, error: error.message };
+    return { added: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -455,7 +479,7 @@ export async function getMessageReactions(messageId: string): Promise<ReactionCo
  */
 export async function getMessagesReactions(
   messageIds: string[],
-  currentUserId?: string
+  currentUserId?: string,
 ): Promise<Record<string, Record<ReactionType, ReactionCount>>> {
   if (messageIds.length === 0) return {};
 
@@ -470,7 +494,11 @@ export async function getMessagesReactions(
     // Build reaction counts per message
     const result: Record<string, Record<ReactionType, ReactionCount>> = {};
 
-    for (const row of (data || []) as { message_id: string; reaction_type: string; user_id: string }[]) {
+    for (const row of (data || []) as {
+      message_id: string;
+      reaction_type: string;
+      user_id: string;
+    }[]) {
       const msgId = row.message_id;
       const type = row.reaction_type as ReactionType;
 
@@ -511,7 +539,7 @@ export function subscribeToReactions(
     messageId: string;
     userId: string;
     reactionType: ReactionType;
-  }) => void
+  }) => void,
 ) {
   // We need to join through messages to filter by trip_id
   // Since we can't filter reactions by trip directly, we subscribe to all and filter client-side
@@ -521,7 +549,7 @@ export function subscribeToReactions(
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'message_reactions' },
-      (payload) => {
+      payload => {
         const row = payload.new as MessageReaction;
         onReactionChange({
           eventType: 'INSERT',
@@ -529,12 +557,12 @@ export function subscribeToReactions(
           userId: row.user_id,
           reactionType: row.reaction_type as ReactionType,
         });
-      }
+      },
     )
     .on(
       'postgres_changes',
       { event: 'DELETE', schema: 'public', table: 'message_reactions' },
-      (payload) => {
+      payload => {
         const row = payload.old as MessageReaction;
         onReactionChange({
           eventType: 'DELETE',
@@ -542,7 +570,7 @@ export function subscribeToReactions(
           userId: row.user_id,
           reactionType: row.reaction_type as ReactionType,
         });
-      }
+      },
     )
     .subscribe();
 }
@@ -559,7 +587,7 @@ export async function sendThreadReply(
   parentMessageId: string,
   content: string,
   authorName: string,
-  userId?: string
+  userId?: string,
 ): Promise<Row | null> {
   try {
     const result = await sendChatMessage({
@@ -602,7 +630,7 @@ export async function getThreadReplies(parentMessageId: string): Promise<Row[]> 
 export function subscribeToThreadReplies(
   parentMessageId: string,
   onReply: (row: Row) => void,
-  onUpdate?: (row: Row) => void
+  onUpdate?: (row: Row) => void,
 ) {
   return supabase
     .channel(`thread:${parentMessageId}`)
@@ -614,7 +642,7 @@ export function subscribeToThreadReplies(
         table: 'trip_chat_messages',
         filter: `reply_to_id=eq.${parentMessageId}`,
       },
-      (payload) => onReply(payload.new as Row)
+      payload => onReply(payload.new as Row),
     )
     .on(
       'postgres_changes',
@@ -624,7 +652,7 @@ export function subscribeToThreadReplies(
         table: 'trip_chat_messages',
         filter: `reply_to_id=eq.${parentMessageId}`,
       },
-      (payload) => onUpdate?.(payload.new as Row)
+      payload => onUpdate?.(payload.new as Row),
     )
     .subscribe();
 }

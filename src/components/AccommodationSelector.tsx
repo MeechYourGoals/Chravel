@@ -4,7 +4,10 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { BasecampSelector } from './BasecampSelector';
-import { personalAccommodationService, PersonalAccommodation } from '../services/personalAccommodationService';
+import {
+  personalAccommodationService,
+  PersonalAccommodation,
+} from '../services/personalAccommodationService';
 import { useAuth } from '../hooks/useAuth';
 import { useBasecamp } from '../contexts/BasecampContext';
 
@@ -19,7 +22,7 @@ const accommodationTypeIcons = {
   hostel: Building,
   apartment: Building,
   resort: Hotel,
-  other: Bed
+  other: Bed,
 };
 
 // Note: accommodationTypeColors available for future enhanced styling
@@ -29,16 +32,18 @@ const _accommodationTypeColors = {
   hostel: 'bg-yellow-100 text-yellow-800',
   apartment: 'bg-purple-100 text-purple-800',
   resort: 'bg-pink-100 text-pink-800',
-  other: 'bg-gray-100 text-gray-800'
+  other: 'bg-gray-100 text-gray-800',
 };
 
 export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   tripId,
-  onLocationSet
+  onLocationSet,
 }) => {
   const { user } = useAuth();
   const { basecamp: tripBasecamp } = useBasecamp();
-  const [personalAccommodation, setPersonalAccommodation] = useState<PersonalAccommodation | null>(null);
+  const [personalAccommodation, setPersonalAccommodation] = useState<PersonalAccommodation | null>(
+    null,
+  );
   const [showPersonalSelector, setShowPersonalSelector] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +51,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
   const loadAccommodations = React.useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Handle unauthenticated users - show UI but no personal accommodation
       if (!user) {
@@ -58,9 +63,11 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
       // Load personal accommodation
       const personal = await personalAccommodationService.getUserAccommodation(tripId, user.id);
       setPersonalAccommodation(personal);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load accommodations:', err);
-      setError(err?.message || 'Failed to load accommodations. Please try again.');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load accommodations. Please try again.',
+      );
     } finally {
       setLoading(false);
     }
@@ -80,7 +87,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
         address: location.formatted_address || location.address,
         latitude: location.coordinates?.lat || location.latitude,
         longitude: location.coordinates?.lng || location.longitude,
-        accommodation_type: 'hotel' // Default, can be made configurable
+        accommodation_type: 'hotel', // Default, can be made configurable
       });
 
       if (accommodation) {
@@ -98,7 +105,9 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
     if (!personalAccommodation) return;
 
     try {
-      const success = await personalAccommodationService.deleteUserAccommodation(personalAccommodation.id);
+      const success = await personalAccommodationService.deleteUserAccommodation(
+        personalAccommodation.id,
+      );
       if (success) {
         setPersonalAccommodation(null);
       }
@@ -127,7 +136,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-red-700 mb-4">{error}</p>
-          <Button 
+          <Button
             onClick={loadAccommodations}
             variant="outline"
             className="border-red-300 text-red-700 hover:bg-red-100"
@@ -180,7 +189,11 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
             <CardTitle className="text-white flex items-center gap-2 flex-wrap">
               <Bed size={20} className="text-green-400 flex-shrink-0" />
               <span>Your Accommodation</span>
-              {!user && <Badge variant="outline" className="text-xs border-green-400/30 text-green-400">Private</Badge>}
+              {!user && (
+                <Badge variant="outline" className="text-xs border-green-400/30 text-green-400">
+                  Private
+                </Badge>
+              )}
             </CardTitle>
             {personalAccommodation && user ? (
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -218,7 +231,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
           <p className="text-sm text-gray-300 mt-2">
             {user
               ? "Where you're staying for personalized recommendations and local insights"
-              : "Sign in to save your private accommodation for personalized directions"}
+              : 'Sign in to save your private accommodation for personalized directions'}
           </p>
         </CardHeader>
         {personalAccommodation && (
@@ -226,8 +239,13 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {React.createElement(accommodationTypeIcons[personalAccommodation.accommodation_type], { size: 16, className: "text-green-400" })}
-                  <span className="font-medium text-white">{personalAccommodation.accommodation_name}</span>
+                  {React.createElement(
+                    accommodationTypeIcons[personalAccommodation.accommodation_type],
+                    { size: 16, className: 'text-green-400' },
+                  )}
+                  <span className="font-medium text-white">
+                    {personalAccommodation.accommodation_name}
+                  </span>
                 </div>
                 <Badge variant="outline" className="border-green-400/30 text-green-400 text-xs">
                   {personalAccommodation.accommodation_type}
@@ -239,10 +257,14 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
               {(personalAccommodation.check_in || personalAccommodation.check_out) && (
                 <div className="flex gap-4 text-sm text-gray-400">
                   {personalAccommodation.check_in && (
-                    <span>Check-in: {new Date(personalAccommodation.check_in).toLocaleDateString()}</span>
+                    <span>
+                      Check-in: {new Date(personalAccommodation.check_in).toLocaleDateString()}
+                    </span>
                   )}
                   {personalAccommodation.check_out && (
-                    <span>Check-out: {new Date(personalAccommodation.check_out).toLocaleDateString()}</span>
+                    <span>
+                      Check-out: {new Date(personalAccommodation.check_out).toLocaleDateString()}
+                    </span>
                   )}
                 </div>
               )}

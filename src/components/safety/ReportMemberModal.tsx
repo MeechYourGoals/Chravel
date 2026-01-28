@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../ui/use-toast';
 import { X } from 'lucide-react';
 
@@ -14,20 +13,32 @@ interface ReportMemberModalProps {
 }
 
 const REPORT_REASONS = [
-  { value: 'spam', label: 'Spam or Unwanted Content', description: 'Posting irrelevant or repetitive content' },
-  { value: 'harassment', label: 'Harassment or Bullying', description: 'Offensive or threatening behavior' },
-  { value: 'inappropriate_content', label: 'Inappropriate Content', description: 'Sharing inappropriate images or messages' },
-  { value: 'other', label: 'Other', description: 'Other reason not listed above' }
+  {
+    value: 'spam',
+    label: 'Spam or Unwanted Content',
+    description: 'Posting irrelevant or repetitive content',
+  },
+  {
+    value: 'harassment',
+    label: 'Harassment or Bullying',
+    description: 'Offensive or threatening behavior',
+  },
+  {
+    value: 'inappropriate_content',
+    label: 'Inappropriate Content',
+    description: 'Sharing inappropriate images or messages',
+  },
+  { value: 'other', label: 'Other', description: 'Other reason not listed above' },
 ];
 
 export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
-  tripId,
-  reportedUserId,
+  tripId: _tripId,
+  reportedUserId: _reportedUserId,
   reportedUserName,
-  reporterUserId,
+  reporterUserId: _reporterUserId,
   isOpen,
   onClose,
-  onReportSubmitted
+  onReportSubmitted,
 }) => {
   const [reason, setReason] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -41,7 +52,7 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
       toast({
         title: 'Error',
         description: 'Please select a reason for reporting',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -50,7 +61,7 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
       toast({
         title: 'Error',
         description: 'Please provide details for "Other" reason',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -60,13 +71,13 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
     try {
       // Submit report to database (using profiles table for now - reports table may need migration)
       // TODO: Create proper reports table via migration
-      
+
       // For now, just log the report - TODO: implement proper reporting system
       // if (error) throw error;
 
       toast({
         title: 'Report Submitted',
-        description: 'Thank you for reporting. Our team will review this shortly.'
+        description: 'Thank you for reporting. Our team will review this shortly.',
       });
 
       // Reset form
@@ -74,13 +85,13 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
       setDescription('');
       onReportSubmitted?.();
       onClose();
-
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error submitting report:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to submit report. Please try again.',
-        variant: 'destructive'
+        description:
+          error instanceof Error ? error.message : 'Failed to submit report. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setSubmitting(false);
@@ -94,9 +105,7 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Report Member
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Report Member</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -110,7 +119,8 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
           {/* User Info */}
           <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-md">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              You are reporting: <span className="font-medium text-gray-900 dark:text-white">{reportedUserName}</span>
+              You are reporting:{' '}
+              <span className="font-medium text-gray-900 dark:text-white">{reportedUserName}</span>
             </p>
           </div>
 
@@ -120,7 +130,7 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
               Reason for Report *
             </label>
             <div className="space-y-2">
-              {REPORT_REASONS.map((reasonOption) => (
+              {REPORT_REASONS.map(reasonOption => (
                 <label
                   key={reasonOption.value}
                   className={`flex items-start p-3 border rounded-md cursor-pointer transition-colors ${
@@ -134,7 +144,7 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
                     name="reason"
                     value={reasonOption.value}
                     checked={reason === reasonOption.value}
-                    onChange={(e) => setReason(e.target.value)}
+                    onChange={e => setReason(e.target.value)}
                     className="mt-1 mr-3"
                   />
                   <div>
@@ -157,7 +167,7 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={e => setDescription(e.target.value)}
               rows={4}
               maxLength={500}
               placeholder="Provide any additional context or specific examples..."
@@ -170,8 +180,18 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
 
           {/* Warning */}
           <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
-            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg
+              className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
               False reports may result in action against your account. Only submit genuine reports.

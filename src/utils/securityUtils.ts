@@ -3,7 +3,7 @@ export class InputValidator {
   // Sanitize string input to prevent XSS
   static sanitizeText(input: string): string {
     if (typeof input !== 'string') return '';
-    
+
     return input
       .replace(/[<>'"]/g, '') // Remove potentially dangerous characters
       .replace(/javascript:/gi, '') // Remove javascript: protocol
@@ -21,7 +21,7 @@ export class InputValidator {
   // Validate and sanitize search queries
   static sanitizeSearchQuery(query: string): string {
     if (typeof query !== 'string') return '';
-    
+
     return query
       .replace(/[<>'"]/g, '')
       .replace(/[;(){}[\]]/g, '') // Remove SQL injection characters
@@ -53,20 +53,24 @@ export class InputValidator {
 
   // Rate limiting check (simple client-side implementation)
   private static requestCounts: Map<string, { count: number; resetTime: number }> = new Map();
-  
-  static checkRateLimit(identifier: string, maxRequests: number = 100, windowMs: number = 60000): boolean {
+
+  static checkRateLimit(
+    identifier: string,
+    maxRequests: number = 100,
+    windowMs: number = 60000,
+  ): boolean {
     const now = Date.now();
     const existing = this.requestCounts.get(identifier);
-    
+
     if (!existing || now > existing.resetTime) {
       this.requestCounts.set(identifier, { count: 1, resetTime: now + windowMs });
       return true;
     }
-    
+
     if (existing.count >= maxRequests) {
       return false;
     }
-    
+
     existing.count++;
     return true;
   }
@@ -79,34 +83,49 @@ export class CSPHelper {
     style.textContent = css;
     return style;
   }
-  
+
   static sanitizeInlineStyles(styles: Record<string, string>): Record<string, string> {
     const safe: Record<string, string> = {};
-    
+
     for (const [key, value] of Object.entries(styles)) {
       // Only allow safe CSS properties
       if (this.isSafeCSSProperty(key) && this.isSafeCSSValue(value)) {
         safe[key] = value;
       }
     }
-    
+
     return safe;
   }
-  
+
   private static isSafeCSSProperty(property: string): boolean {
     const safeProperties = [
-      'color', 'background-color', 'font-size', 'font-weight', 'margin', 'padding',
-      'border', 'width', 'height', 'display', 'position', 'top', 'left', 'right', 'bottom'
+      'color',
+      'background-color',
+      'font-size',
+      'font-weight',
+      'margin',
+      'padding',
+      'border',
+      'width',
+      'height',
+      'display',
+      'position',
+      'top',
+      'left',
+      'right',
+      'bottom',
     ];
     return safeProperties.includes(property);
   }
-  
+
   private static isSafeCSSValue(value: string): boolean {
     // Block javascript and data URLs
-    return !value.toLowerCase().includes('javascript:') && 
-           !value.toLowerCase().includes('data:') &&
-           !value.includes('<') &&
-           !value.includes('>');
+    return (
+      !value.toLowerCase().includes('javascript:') &&
+      !value.toLowerCase().includes('data:') &&
+      !value.includes('<') &&
+      !value.includes('>')
+    );
   }
 }
 
@@ -118,7 +137,7 @@ export class SecureStorageHelper {
   /**
    * Creates a verification session after successful authentication
    * This must be called before accessing secure_storage to grant access for a limited time
-   * 
+   *
    * @param supabaseClient - Supabase client instance
    * @param verificationMethod - Method used for verification ('password', 'mfa', 'biometric')
    * @param sessionDurationMinutes - Duration of the verification session (default: 15, max: 60)
@@ -127,7 +146,7 @@ export class SecureStorageHelper {
   static async createVerificationSession(
     supabaseClient: any,
     verificationMethod: 'password' | 'mfa' | 'biometric' = 'password',
-    sessionDurationMinutes: number = 15
+    sessionDurationMinutes: number = 15,
   ): Promise<{ success: boolean; sessionId?: string; expiresAt?: string; error?: string }> {
     try {
       const { data, error } = await supabaseClient.functions.invoke('verify-identity', {
@@ -147,16 +166,16 @@ export class SecureStorageHelper {
         sessionId: data.session_id,
         expiresAt: data.expires_at,
       };
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error creating verification session:', err);
-      return { success: false, error: err.message || 'Unexpected error' };
+      return { success: false, error: err instanceof Error ? err.message : 'Unexpected error' };
     }
   }
 
   /**
    * Attempts to access secure_storage with automatic verification session creation if needed
    * If access fails due to missing recent authentication, prompts for re-authentication
-   * 
+   *
    * @param supabaseClient - Supabase client instance
    * @param operation - Function that performs the secure_storage operation
    * @param onReauthRequired - Callback to handle re-authentication requirement
@@ -165,16 +184,16 @@ export class SecureStorageHelper {
   static async withSecureStorageAccess<T>(
     supabaseClient: any,
     operation: () => Promise<T>,
-    onReauthRequired?: () => Promise<void>
+    onReauthRequired?: () => Promise<void>,
   ): Promise<{ success: boolean; data?: T; error?: string; requiresReauth?: boolean }> {
     try {
       // Attempt the operation first
       const result = await operation();
       return { success: true, data: result };
-    } catch (err: any) {
+    } catch (err) {
       // Check if error is due to missing recent authentication
-      const errorMessage = err.message || '';
-      const isAuthError = 
+      const errorMessage = err instanceof Error ? err.message : '';
+      const isAuthError =
         errorMessage.includes('permission denied') ||
         errorMessage.includes('row-level security') ||
         errorMessage.includes('policy violation');
@@ -182,27 +201,27 @@ export class SecureStorageHelper {
       if (isAuthError && onReauthRequired) {
         // Attempt to create verification session and retry
         const sessionResult = await this.createVerificationSession(supabaseClient, 'password');
-        
+
         if (sessionResult.success) {
           try {
             const retryResult = await operation();
             return { success: true, data: retryResult };
-          } catch (retryErr: any) {
+          } catch {
             // Still failing after verification session - require explicit re-auth
             await onReauthRequired();
-            return { 
-              success: false, 
-              error: 'Access denied. Please re-authenticate.', 
-              requiresReauth: true 
+            return {
+              success: false,
+              error: 'Access denied. Please re-authenticate.',
+              requiresReauth: true,
             };
           }
         } else {
           // Failed to create verification session - require explicit re-auth
           await onReauthRequired();
-          return { 
-            success: false, 
-            error: 'Access denied. Please re-authenticate.', 
-            requiresReauth: true 
+          return {
+            success: false,
+            error: 'Access denied. Please re-authenticate.',
+            requiresReauth: true,
           };
         }
       }

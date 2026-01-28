@@ -27,7 +27,7 @@ export function useMediaSync(tripId: string) {
     async function loadInitialData() {
       setIsLoading(true);
       setError(null);
-      
+
       try {
         // Fetch all media types in parallel
         const [mediaResult, filesResult, linksResult] = await Promise.all([
@@ -61,23 +61,23 @@ export function useMediaSync(tripId: string) {
 
         // Subscribe to real-time updates
         subscription = subscribeToMediaUpdates(tripId, {
-          onMediaInsert: (row) => {
+          onMediaInsert: row => {
             if (row.media_type === 'image') {
               setImages(prev => [row, ...prev]);
             } else if (row.media_type === 'video') {
               setVideos(prev => [row, ...prev]);
             }
           },
-          onFileInsert: (row) => {
+          onFileInsert: row => {
             setFiles(prev => [row, ...prev]);
           },
-          onLinkInsert: (row) => {
+          onLinkInsert: row => {
             setLinks(prev => [row, ...prev]);
           },
         });
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to load media:', err);
-        setError(err.message || 'Failed to load media');
+        setError(err instanceof Error ? err.message : 'Failed to load media');
       } finally {
         setIsLoading(false);
       }
@@ -151,8 +151,8 @@ export function useMediaSync(tripId: string) {
         await mediaService.deleteMedia(mediaId);
 
         // Optimistically remove from local state
-        setImages((prev) => prev.filter((item) => item.id !== mediaId));
-        setVideos((prev) => prev.filter((item) => item.id !== mediaId));
+        setImages(prev => prev.filter(item => item.id !== mediaId));
+        setVideos(prev => prev.filter(item => item.id !== mediaId));
 
         toast.success('Media deleted');
       } catch (err) {
@@ -164,7 +164,7 @@ export function useMediaSync(tripId: string) {
         setIsDeleting(false);
       }
     },
-    [tripId]
+    [tripId],
   );
 
   // Delete file from trip_files
@@ -177,7 +177,7 @@ export function useMediaSync(tripId: string) {
         await mediaService.deleteMedia(fileId);
 
         // Optimistically remove from local state
-        setFiles((prev) => prev.filter((item) => item.id !== fileId));
+        setFiles(prev => prev.filter(item => item.id !== fileId));
 
         toast.success('File deleted');
       } catch (err) {
@@ -188,7 +188,7 @@ export function useMediaSync(tripId: string) {
         setIsDeleting(false);
       }
     },
-    [tripId]
+    [tripId],
   );
 
   // Delete link from trip_link_index
@@ -206,7 +206,7 @@ export function useMediaSync(tripId: string) {
         if (deleteError) throw deleteError;
 
         // Optimistically remove from local state
-        setLinks((prev) => prev.filter((item) => item.id !== linkId));
+        setLinks(prev => prev.filter(item => item.id !== linkId));
 
         toast.success('Link deleted');
       } catch (err) {
@@ -217,7 +217,7 @@ export function useMediaSync(tripId: string) {
         setIsDeleting(false);
       }
     },
-    [tripId]
+    [tripId],
   );
 
   return {

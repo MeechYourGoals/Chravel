@@ -1,9 +1,9 @@
 /**
  * Global Sync Processor
- * 
+ *
  * Provides all handlers for processing the unified offline sync queue.
  * This ensures no operations are dropped due to missing handlers.
- * 
+ *
  * Call this from App.tsx or a dedicated sync hook to process all queued operations.
  */
 
@@ -13,7 +13,7 @@ import { calendarService } from './calendarService';
 
 /**
  * Process sync queue with all handlers
- * 
+ *
  * This should be called:
  * - When connection is restored (online event)
  * - Periodically when online
@@ -30,7 +30,7 @@ export async function processGlobalSyncQueue(): Promise<{
 
   // Get all operations before processing to check for skipped ones
   const allOperations = await offlineSyncService.getQueuedOperations({ status: 'pending' });
-  
+
   const result = await offlineSyncService.processSyncQueue({
     // Chat message handlers
     onChatMessageCreate: async (tripId, data) => {
@@ -49,7 +49,7 @@ export async function processGlobalSyncQueue(): Promise<{
         .eq('id', entityId)
         .select()
         .single();
-      
+
       if (error) throw error;
       return updated;
     },
@@ -57,7 +57,9 @@ export async function processGlobalSyncQueue(): Promise<{
     // Task handlers - delegate to task service
     onTaskCreate: async (tripId, data) => {
       const { supabase } = await import('@/integrations/supabase/client');
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const { data: newTask, error } = await supabase
@@ -90,7 +92,9 @@ export async function processGlobalSyncQueue(): Promise<{
     },
     onTaskToggle: async (entityId, data) => {
       const { supabase } = await import('@/integrations/supabase/client');
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // Fetch latest version so queued toggles don't conflict.
@@ -116,7 +120,9 @@ export async function processGlobalSyncQueue(): Promise<{
     // Poll handlers (MVP: votes only)
     onPollVote: async (pollId, data) => {
       const { supabase } = await import('@/integrations/supabase/client');
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const optionIds: string[] = Array.isArray((data as any)?.optionIds)
@@ -150,9 +156,10 @@ export async function processGlobalSyncQueue(): Promise<{
 
       try {
         await voteWithLatestVersion();
-      } catch (e: any) {
+      } catch (e) {
         // Retry once on optimistic-lock conflicts.
-        if (e?.message?.includes('modified by another user') || e?.message?.includes('version')) {
+        const errorMessage = e instanceof Error ? e.message : '';
+        if (errorMessage.includes('modified by another user') || errorMessage.includes('version')) {
           await voteWithLatestVersion();
           return { pollId, optionIds };
         }
@@ -173,7 +180,7 @@ export async function processGlobalSyncQueue(): Promise<{
       if (!success) throw new Error('Failed to update calendar event');
       return { id: entityId, ...data };
     },
-    onCalendarEventDelete: async (entityId) => {
+    onCalendarEventDelete: async entityId => {
       const success = await calendarService.deleteEvent(entityId);
       if (!success) throw new Error('Failed to delete calendar event');
       return { id: entityId };
@@ -200,7 +207,7 @@ export function setupGlobalSyncProcessor() {
   const handleOnline = async () => {
     try {
       const result = await processGlobalSyncQueue();
-      
+
       if (result.skipped > 0) {
         console.warn(`[Sync] ${result.skipped} operations skipped (no handlers)`);
       }
