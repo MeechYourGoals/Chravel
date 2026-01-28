@@ -6,6 +6,7 @@ import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { getTripById as getDemoTripById } from '@/data/tripsData';
 import { convertSupabaseTripToMock } from '@/utils/tripConverter';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
+import { errorTracking } from '@/utils/errorTracking';
 
 interface TripMember {
   id: string;
@@ -85,7 +86,24 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   const tripQuery = useQuery({
     queryKey: [...tripKeys.detail(tripId!), authUserId ?? 'anon'],
     queryFn: async () => {
+      const startTime = performance.now();
+      errorTracking.addBreadcrumb({
+        category: 'api-call',
+        message: 'Trip detail fetch started',
+        level: 'info',
+        data: { tripId },
+      });
+      
       const data = await tripService.getTripById(tripId!);
+      
+      const durationMs = Math.round(performance.now() - startTime);
+      errorTracking.addBreadcrumb({
+        category: 'api-call',
+        message: `Trip detail loaded in ${durationMs}ms`,
+        level: durationMs > 2000 ? 'warning' : 'info',
+        data: { tripId, durationMs, hasData: !!data },
+      });
+      
       return data;
     },
     enabled: isQueryEnabled,

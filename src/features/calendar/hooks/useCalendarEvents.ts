@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { withTimeout } from '@/utils/timeout';
+import { errorTracking } from '@/utils/errorTracking';
 
 /**
  * ⚡ PERFORMANCE: TanStack Query-based calendar events hook
@@ -30,11 +31,31 @@ export const useCalendarEvents = (tripId?: string) => {
     refetch,
   } = useQuery({
     queryKey: tripKeys.calendar(tripId || ''),
-    queryFn: () => withTimeout(
-      calendarService.getTripEvents(tripId!),
-      10000,
-      'Failed to load calendar events: Timeout'
-    ),
+    queryFn: async () => {
+      const startTime = performance.now();
+      errorTracking.addBreadcrumb({
+        category: 'api-call',
+        message: 'Calendar events fetch started',
+        level: 'info',
+        data: { tripId },
+      });
+      
+      const result = await withTimeout(
+        calendarService.getTripEvents(tripId!),
+        10000,
+        'Failed to load calendar events: Timeout'
+      );
+      
+      const durationMs = Math.round(performance.now() - startTime);
+      errorTracking.addBreadcrumb({
+        category: 'api-call',
+        message: `Calendar events loaded: ${result.length} events in ${durationMs}ms`,
+        level: durationMs > 3000 ? 'warning' : 'info',
+        data: { tripId, count: result.length, durationMs },
+      });
+      
+      return result;
+    },
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
