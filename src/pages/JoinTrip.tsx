@@ -21,7 +21,6 @@ import {
   UserX,
 } from 'lucide-react';
 import {
-  InviteErrorCode,
   InviteError,
   INVITE_ERROR_SPECS,
   normalizeErrorCode,
@@ -79,7 +78,6 @@ const JoinTrip = () => {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (loading) {
-        console.error('[JoinTrip] Loading timeout after 5s - forcing completion');
         setLoading(false);
         if (!inviteData && !error) {
           setError(createInviteError('NETWORK_ERROR'));
@@ -189,9 +187,12 @@ const JoinTrip = () => {
 
     // Validate Supabase client
     if (!supabase) {
-      console.error('[JoinTrip] Supabase client not initialized');
       setError(
-        createInviteError('NETWORK_ERROR', undefined, 'App initialization error. Please refresh the page.'),
+        createInviteError(
+          'NETWORK_ERROR',
+          undefined,
+          'App initialization error. Please refresh the page.',
+        ),
       );
       setLoading(false);
       return;
@@ -293,7 +294,6 @@ const JoinTrip = () => {
       });
 
       if (error) {
-        console.error('[JoinTrip] Edge function error:', error);
         // Try to extract a meaningful message from the error
         let errorMessage = 'Failed to join trip. Please try again.';
         if (error.message) {
@@ -350,8 +350,7 @@ const JoinTrip = () => {
           navigate(`/trip/${data.trip_id}`);
         }
       }, 1000);
-    } catch (err) {
-      console.error('Error joining trip:', err);
+    } catch {
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setJoining(false);
@@ -616,8 +615,7 @@ const JoinTrip = () => {
           {error.code === 'ACCOUNT_MISMATCH' && error.metadata?.invitedEmail && (
             <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
               <p className="text-sm text-yellow-400">
-                Invite sent to:{' '}
-                <span className="font-medium">{error.metadata.invitedEmail}</span>
+                Invite sent to: <span className="font-medium">{error.metadata.invitedEmail}</span>
               </p>
               {error.metadata.currentEmail && (
                 <p className="text-sm text-muted-foreground mt-1">
