@@ -38,25 +38,26 @@ export interface AssignmentOptions {
 
 const generateSeedTasks = (tripId: string): TripTask[] => {
   const consumerTripIds = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-  
+
   if (!consumerTripIds.includes(tripId)) {
     return []; // No seed tasks for pro trips
   }
 
   const taskTemplates: Record<string, TripTask[]> = {
-    '1': [ // Spring Break Cancun
+    '1': [
+      // Spring Break Cancun
       {
         id: 'seed-1-1',
         trip_id: tripId,
         creator_id: 'seed-user',
         title: 'Pack reef-safe sunscreen',
-        description: 'Make sure to bring sunscreen that won\'t damage the coral reefs',
+        description: "Make sure to bring sunscreen that won't damage the coral reefs",
         due_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         is_poll: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         creator: { id: 'seed-user', name: 'Trip Organizer' },
-        task_status: [{ task_id: 'seed-1-1', user_id: 'demo-user', completed: false }]
+        task_status: [{ task_id: 'seed-1-1', user_id: 'demo-user', completed: false }],
       },
       {
         id: 'seed-1-2',
@@ -69,10 +70,11 @@ const generateSeedTasks = (tripId: string): TripTask[] => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         creator: { id: 'seed-user', name: 'Trip Organizer' },
-        task_status: [{ task_id: 'seed-1-2', user_id: 'demo-user', completed: false }]
-      }
+        task_status: [{ task_id: 'seed-1-2', user_id: 'demo-user', completed: false }],
+      },
     ],
-    '4': [ // Bachelorette Party
+    '4': [
+      // Bachelorette Party
       {
         id: 'seed-4-1',
         trip_id: tripId,
@@ -84,10 +86,11 @@ const generateSeedTasks = (tripId: string): TripTask[] => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         creator: { id: 'seed-user', name: 'Ashley' },
-        task_status: [{ task_id: 'seed-4-1', user_id: 'demo-user', completed: false }]
-      }
+        task_status: [{ task_id: 'seed-4-1', user_id: 'demo-user', completed: false }],
+      },
     ],
-    '6': [ // Family Vacation
+    '6': [
+      // Family Vacation
       {
         id: 'seed-6-1',
         trip_id: tripId,
@@ -99,10 +102,11 @@ const generateSeedTasks = (tripId: string): TripTask[] => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         creator: { id: 'seed-user', name: 'Dad (Mike)' },
-        task_status: [{ task_id: 'seed-6-1', user_id: 'demo-user', completed: false }]
-      }
+        task_status: [{ task_id: 'seed-6-1', user_id: 'demo-user', completed: false }],
+      },
     ],
-    '7': [ // Golf Trip
+    '7': [
+      // Golf Trip
       {
         id: 'seed-7-1',
         trip_id: tripId,
@@ -114,24 +118,27 @@ const generateSeedTasks = (tripId: string): TripTask[] => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         creator: { id: 'seed-user', name: 'Commissioner Mike' },
-        task_status: [{ task_id: 'seed-7-1', user_id: 'demo-user', completed: false }]
-      }
-    ]
+        task_status: [{ task_id: 'seed-7-1', user_id: 'demo-user', completed: false }],
+      },
+    ],
   };
 
   return taskTemplates[tripId] || [];
 };
 
-export const useTripTasks = (tripId: string, options?: {
-  filters?: TaskFilters;
-  category?: string;
-  assignmentOptions?: AssignmentOptions;
-}) => {
+export const useTripTasks = (
+  tripId: string,
+  _options?: {
+    filters?: TaskFilters;
+    category?: string;
+    assignmentOptions?: AssignmentOptions;
+  },
+) => {
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   // Task form management state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -165,7 +172,7 @@ export const useTripTasks = (tripId: string, options?: {
       description: description.trim() || undefined,
       due_at: dueDate?.toISOString(),
       is_poll: taskMode === 'poll',
-      assignedTo: assignedMembers.length > 0 ? assignedMembers : undefined
+      assignedTo: assignedMembers.length > 0 ? assignedMembers : undefined,
     };
   }, [title, description, dueDate, taskMode, assignedMembers, validateTask]);
 
@@ -178,76 +185,86 @@ export const useTripTasks = (tripId: string, options?: {
   }, []);
 
   // Task assignment functions
-  const assignTask = useCallback(async (taskId: string, userId: string): Promise<boolean> => {
-    try {
-      return true;
-    } catch (error) {
-      console.error('Failed to assign task:', error);
-      toast({ title: 'Failed to assign task', variant: 'destructive' });
-      return false;
-    }
-  }, [toast]);
+  const assignTask = useCallback(
+    async (_taskId: string, _userId: string): Promise<boolean> => {
+      try {
+        return true;
+      } catch (error) {
+        console.error('Failed to assign task:', error);
+        toast({ title: 'Failed to assign task', variant: 'destructive' });
+        return false;
+      }
+    },
+    [toast],
+  );
 
-  const bulkAssign = useCallback(async (assignmentOptions: AssignmentOptions): Promise<boolean> => {
-    try {
-      const { taskId, userIds } = assignmentOptions;
-      toast({ title: `Assigned to ${userIds.length} members` });
-      return true;
-    } catch (error) {
-      console.error('Failed to bulk assign:', error);
-      toast({ title: 'Failed to assign task to members', variant: 'destructive' });
-      return false;
-    }
-  }, [toast]);
+  const bulkAssign = useCallback(
+    async (assignmentOptions: AssignmentOptions): Promise<boolean> => {
+      try {
+        const { taskId: _taskId, userIds } = assignmentOptions;
+        toast({ title: `Assigned to ${userIds.length} members` });
+        return true;
+      } catch (error) {
+        console.error('Failed to bulk assign:', error);
+        toast({ title: 'Failed to assign task to members', variant: 'destructive' });
+        return false;
+      }
+    },
+    [toast],
+  );
 
   // Task filtering functions
-  const applyFilters = useCallback((tasks: TripTask[]): TripTask[] => {
-    const filtered = tasks.filter(task => {
-      // Status filter
-      const isCompleted = task.is_poll 
-        ? (task.task_status?.filter(s => s.completed).length || 0) >= (task.task_status?.length || 1)
-        : task.task_status?.[0]?.completed || false;
+  const applyFilters = useCallback(
+    (tasks: TripTask[]): TripTask[] => {
+      const filtered = tasks.filter(task => {
+        // Status filter
+        const isCompleted = task.is_poll
+          ? (task.task_status?.filter(s => s.completed).length || 0) >=
+            (task.task_status?.length || 1)
+          : task.task_status?.[0]?.completed || false;
 
-      if (status === 'open' && isCompleted) return false;
-      if (status === 'completed' && !isCompleted) return false;
+        if (status === 'open' && isCompleted) return false;
+        if (status === 'completed' && !isCompleted) return false;
 
-      // Assignee filter
-      if (assignee) {
-        const hasAssignee = task.task_status?.some(s => s.user_id === assignee);
-        if (!hasAssignee) return false;
-      }
-
-      // Date range filter
-      if (task.due_at) {
-        const dueDate = new Date(task.due_at);
-        if (dateRange.start && dueDate < dateRange.start) return false;
-        if (dateRange.end && dueDate > dateRange.end) return false;
-      }
-
-      return true;
-    });
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'dueDate':
-          if (!a.due_at) return 1;
-          if (!b.due_at) return -1;
-          return new Date(a.due_at).getTime() - new Date(b.due_at).getTime();
-        case 'created':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'priority': {
-          const aPriority = a.due_at ? 1 : 0;
-          const bPriority = b.due_at ? 1 : 0;
-          return bPriority - aPriority;
+        // Assignee filter
+        if (assignee) {
+          const hasAssignee = task.task_status?.some(s => s.user_id === assignee);
+          if (!hasAssignee) return false;
         }
-        default:
-          return 0;
-      }
-    });
 
-    return filtered;
-  }, [status, assignee, dateRange, sortBy]);
+        // Date range filter
+        if (task.due_at) {
+          const dueDate = new Date(task.due_at);
+          if (dateRange.start && dueDate < dateRange.start) return false;
+          if (dateRange.end && dueDate > dateRange.end) return false;
+        }
+
+        return true;
+      });
+
+      // Apply sorting
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'dueDate':
+            if (!a.due_at) return 1;
+            if (!b.due_at) return -1;
+            return new Date(a.due_at).getTime() - new Date(b.due_at).getTime();
+          case 'created':
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          case 'priority': {
+            const aPriority = a.due_at ? 1 : 0;
+            const bPriority = b.due_at ? 1 : 0;
+            return bPriority - aPriority;
+          }
+          default:
+            return 0;
+        }
+      });
+
+      return filtered;
+    },
+    [status, assignee, dateRange, sortBy],
+  );
 
   const clearFilters = useCallback(() => {
     setStatus('all');
@@ -257,10 +274,12 @@ export const useTripTasks = (tripId: string, options?: {
   }, []);
 
   const hasActiveFilters = useMemo(() => {
-    return status !== 'all' || 
-           assignee !== undefined ||
-           dateRange.start !== undefined ||
-           dateRange.end !== undefined;
+    return (
+      status !== 'all' ||
+      assignee !== undefined ||
+      dateRange.start !== undefined ||
+      dateRange.end !== undefined
+    );
   }, [status, assignee, dateRange]);
 
   // Pagination state - for large lists, we'll limit initial load
@@ -281,15 +300,15 @@ export const useTripTasks = (tripId: string, options?: {
           table: 'trip_tasks',
           filter: `trip_id=eq.${tripId}`,
         },
-        (payload) => {
+        payload => {
           queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-          
+
           toast({
             title: 'New Task Added',
             description: `${(payload.new as any).title} was added.`,
-            duration: 3000
+            duration: 3000,
           });
-        }
+        },
       )
       .on(
         'postgres_changes',
@@ -299,9 +318,9 @@ export const useTripTasks = (tripId: string, options?: {
           table: 'trip_tasks',
           filter: `trip_id=eq.${tripId}`,
         },
-        (payload) => {
+        _payload => {
           queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-        }
+        },
       )
       .on(
         'postgres_changes',
@@ -310,9 +329,9 @@ export const useTripTasks = (tripId: string, options?: {
           schema: 'public',
           table: 'task_status',
         },
-        (payload) => {
+        _payload => {
           queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-        }
+        },
       )
       .subscribe();
 
@@ -339,7 +358,7 @@ export const useTripTasks = (tripId: string, options?: {
               description: task.description || undefined,
               due_at: task.due_at,
               is_poll: task.is_poll || false,
-              assignedTo: ['demo-user']
+              assignedTo: ['demo-user'],
             });
           }
           // Return the persisted tasks (they now have proper IDs in storage)
@@ -411,9 +430,9 @@ export const useTripTasks = (tripId: string, options?: {
           creator: {
             id: task.creator_id,
             name: task.creator?.display_name || 'Unknown User',
-            avatar: task.creator?.avatar_url
+            avatar: task.creator?.avatar_url,
           },
-          task_status: (task.task_status || []) as any[]
+          task_status: (task.task_status || []) as any[],
         }));
 
         // Cache tasks for offline access (best-effort).
@@ -452,7 +471,7 @@ export const useTripTasks = (tripId: string, options?: {
         return [];
       }
     },
-    enabled: !!tripId
+    enabled: !!tripId,
   });
 
   // Task mutations
@@ -463,7 +482,7 @@ export const useTripTasks = (tripId: string, options?: {
         const assignedTo = task.assignedTo || ['demo-user'];
         return await taskStorageService.createTask(tripId, {
           ...task,
-          assignedTo
+          assignedTo,
         });
       }
 
@@ -474,7 +493,9 @@ export const useTripTasks = (tripId: string, options?: {
       }
 
       // Authenticated mode: use Supabase
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
       if (!authUser) {
         throw new Error('Please sign in to create tasks');
       }
@@ -482,7 +503,7 @@ export const useTripTasks = (tripId: string, options?: {
       // Ensure user is a member of the trip (auto-join for consumer trips)
       const { error: membershipError } = await supabase.rpc('ensure_trip_membership', {
         p_trip_id: tripId,
-        p_user_id: authUser.id
+        p_user_id: authUser.id,
       });
 
       if (membershipError) {
@@ -506,7 +527,7 @@ export const useTripTasks = (tripId: string, options?: {
           title: task.title,
           description: task.description,
           due_at: task.due_at,
-          is_poll: task.is_poll
+          is_poll: task.is_poll,
         })
         .select()
         .single();
@@ -520,13 +541,11 @@ export const useTripTasks = (tripId: string, options?: {
       }
 
       // Create initial task status for creator
-      await supabase
-        .from('task_status')
-        .insert({
-          task_id: newTask.id,
-          user_id: authUser.id,
-          completed: false
-        });
+      await supabase.from('task_status').insert({
+        task_id: newTask.id,
+        user_id: authUser.id,
+        completed: false,
+      });
 
       // Transform to TripTask format
       return {
@@ -542,25 +561,27 @@ export const useTripTasks = (tripId: string, options?: {
         creator: {
           id: authUser.id,
           name: userProfile?.display_name || 'Unknown User',
-          avatar: userProfile?.avatar_url
+          avatar: userProfile?.avatar_url,
         },
-        task_status: [{
-          task_id: newTask.id,
-          user_id: authUser.id,
-          completed: false
-        }]
+        task_status: [
+          {
+            task_id: newTask.id,
+            user_id: authUser.id,
+            completed: false,
+          },
+        ],
       } as TripTask;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       toast({
         title: 'Task created',
-        description: 'Your task has been added to the list.'
+        description: 'Your task has been added to the list.',
       });
     },
     onError: (error: any) => {
       console.error('Create task mutation error:', error);
-      
+
       // Provide specific error messages
       let errorTitle = 'Error Creating Task';
       let errorDescription = 'Failed to create task. Please try again.';
@@ -568,7 +589,7 @@ export const useTripTasks = (tripId: string, options?: {
 
       if (error.message?.includes('OFFLINE:')) {
         errorTitle = 'Task Queued';
-        errorDescription = 'Task will be created when you\'re back online.';
+        errorDescription = "Task will be created when you're back online.";
         variant = 'default';
       } else if (error.message?.includes('Access denied') || error.code === 'PGRST116') {
         errorTitle = 'Access Denied';
@@ -586,16 +607,16 @@ export const useTripTasks = (tripId: string, options?: {
       toast({
         title: errorTitle,
         description: errorDescription,
-        variant
+        variant,
       });
-    }
+    },
   });
 
   // Helper function for retry logic with exponential backoff
   const toggleTaskWithRetry = async (
     taskId: string,
     completed: boolean,
-    retryCount = 0
+    retryCount = 0,
   ): Promise<{ taskId: string; completed: boolean }> => {
     const MAX_RETRIES = 3;
     const RETRY_DELAY = 1000; // 1 second
@@ -610,8 +631,10 @@ export const useTripTasks = (tripId: string, options?: {
     }
 
     // Authenticated mode: use atomic function with optimistic locking
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser)       throw new Error('User not authenticated');
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    if (!authUser) throw new Error('User not authenticated');
 
     // Check if offline - queue the operation
     if (!navigator.onLine) {
@@ -634,19 +657,19 @@ export const useTripTasks = (tripId: string, options?: {
       const currentVersion = taskData?.version || 1;
 
       // Use atomic function to toggle task status
-      const { error } = await supabase
-        .rpc('toggle_task_status', {
-          p_task_id: taskId,
-          p_user_id: authUser.id,
-          p_current_version: currentVersion,
-          p_completed: completed
-        } as any);
+      const { error } = await supabase.rpc('toggle_task_status', {
+        p_task_id: taskId,
+        p_user_id: authUser.id,
+        p_current_version: currentVersion,
+        p_completed: completed,
+      } as any);
 
       if (error) {
         // Check for version conflict (concurrency error)
-        const isVersionConflict = error.message?.includes('modified by another user') || 
-                                 error.message?.includes('version') ||
-                                 error.code === 'P0001'; // PostgreSQL exception code
+        const isVersionConflict =
+          error.message?.includes('modified by another user') ||
+          error.message?.includes('version') ||
+          error.code === 'P0001'; // PostgreSQL exception code
 
         if (isVersionConflict && retryCount < MAX_RETRIES) {
           // Wait before retry with exponential backoff
@@ -657,7 +680,9 @@ export const useTripTasks = (tripId: string, options?: {
 
         // Map specific error messages
         if (isVersionConflict) {
-          throw new Error('CONFLICT: This task was modified by another user. Please refresh and try again.');
+          throw new Error(
+            'CONFLICT: This task was modified by another user. Please refresh and try again.',
+          );
         }
 
         if (error.code === 'PGRST116') {
@@ -668,14 +693,15 @@ export const useTripTasks = (tripId: string, options?: {
       }
 
       return { taskId, completed };
-    } catch (error: any) {
+    } catch (error) {
       // Re-throw with enhanced error message
-      if (error.message?.includes('CONFLICT:')) {
+      const errorMessage = error instanceof Error ? error.message : '';
+      if (errorMessage.includes('CONFLICT:')) {
         throw error; // Already formatted
       }
-      
+
       // Handle network errors
-      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+      if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
         throw new Error('Network error. Please check your connection and try again.');
       }
 
@@ -690,12 +716,12 @@ export const useTripTasks = (tripId: string, options?: {
     onMutate: async ({ taskId, completed }) => {
       // Optimistic update - use correct query key with isDemoMode
       await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-      
+
       const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
-      
-      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], (old) => {
+
+      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], old => {
         if (!old) return old;
-        
+
         return old.map(task => {
           if (task.id === taskId) {
             // Must match the logic in TaskRow.tsx - check isDemoMode first
@@ -705,15 +731,15 @@ export const useTripTasks = (tripId: string, options?: {
                 return {
                   ...status,
                   completed,
-                  completed_at: completed ? new Date().toISOString() : undefined
+                  completed_at: completed ? new Date().toISOString() : undefined,
                 };
               }
               return status;
             });
-            
+
             return {
               ...task,
-              task_status: updatedStatus
+              task_status: updatedStatus,
             };
           }
           return task;
@@ -727,7 +753,7 @@ export const useTripTasks = (tripId: string, options?: {
       if (context?.previousTasks && !err?.message?.includes('OFFLINE:')) {
         queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
       }
-      
+
       // Provide specific error messages
       let errorTitle = 'Error Updating Task';
       let errorDescription = 'Failed to update task. Please try again.';
@@ -735,7 +761,7 @@ export const useTripTasks = (tripId: string, options?: {
 
       if (err?.message?.includes('OFFLINE:')) {
         errorTitle = 'Task Update Queued';
-        errorDescription = 'Update will be synced when you\'re back online.';
+        errorDescription = "Update will be synced when you're back online.";
         variant = 'default';
       } else if (err?.message?.includes('CONFLICT:')) {
         errorTitle = 'Conflict Detected';
@@ -753,12 +779,12 @@ export const useTripTasks = (tripId: string, options?: {
       toast({
         title: errorTitle,
         description: errorDescription,
-        variant
+        variant,
       });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-    }
+    },
   });
 
   // Offline sync is handled globally in `App.tsx` via `setupGlobalSyncProcessor()`.
@@ -772,10 +798,7 @@ export const useTripTasks = (tripId: string, options?: {
         return taskId;
       }
 
-      const { error } = await supabase
-        .from('trip_tasks')
-        .delete()
-        .eq('id', taskId);
+      const { error } = await supabase.from('trip_tasks').delete().eq('id', taskId);
 
       if (error) throw error;
       return taskId;
@@ -784,16 +807,16 @@ export const useTripTasks = (tripId: string, options?: {
       queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       toast({
         title: 'Task deleted',
-        description: 'The task has been removed.'
+        description: 'The task has been removed.',
       });
     },
     onError: (error: any) => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to delete task.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Pagination helpers
@@ -810,11 +833,11 @@ export const useTripTasks = (tripId: string, options?: {
     tasks: tasksQuery.data || [],
     isLoading: tasksQuery.isLoading,
     error: tasksQuery.error,
-    
+
     // Pagination
     hasMoreTasks,
     loadAllTasks,
-    
+
     // Task form management
     title,
     description,
@@ -830,16 +853,14 @@ export const useTripTasks = (tripId: string, options?: {
     setTaskMode,
     updateAssignedMembers: setAssignedMembers,
     toggleMember: (memberId: string) => {
-      setAssignedMembers(prev => 
-        prev.includes(memberId) 
-          ? prev.filter(id => id !== memberId)
-          : [...prev, memberId]
+      setAssignedMembers(prev =>
+        prev.includes(memberId) ? prev.filter(id => id !== memberId) : [...prev, memberId],
       );
     },
     validateTask,
     getTaskData,
     resetForm,
-    
+
     // Task filtering
     status,
     assignee,
@@ -852,21 +873,21 @@ export const useTripTasks = (tripId: string, options?: {
     setSortBy,
     applyFilters,
     clearFilters,
-    
+
     // Task assignment
     assignTask,
     bulkAssign,
-    autoAssignByRole: async (taskId: string, role: string) => {
+    autoAssignByRole: async (_taskId: string, _role: string) => {
       // TODO: Get participants from trip roster
       // const roleUsers = participants.filter(p => p.role === role).map(p => p.id);
       // if (roleUsers.length > 0) {
       //   await bulkAssign({ taskId, userIds: roleUsers });
       // }
     },
-    
+
     // Mutations
     createTaskMutation,
     toggleTaskMutation,
-    deleteTaskMutation
+    deleteTaskMutation,
   };
 };

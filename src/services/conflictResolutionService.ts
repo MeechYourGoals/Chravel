@@ -14,10 +14,7 @@ export interface ConflictResolution {
 /**
  * Detect version conflicts
  */
-export function detectConflict(
-  localVersion: number,
-  remoteVersion: number
-): boolean {
+export function detectConflict(localVersion: number, remoteVersion: number): boolean {
   return remoteVersion > localVersion;
 }
 
@@ -27,7 +24,7 @@ export function detectConflict(
 export function resolveConflict(
   localData: VersionedData,
   remoteData: VersionedData,
-  strategy: ConflictResolution['strategy'] = 'remote'
+  strategy: ConflictResolution['strategy'] = 'remote',
 ): ConflictResolution {
   console.log('[Conflict] Resolving conflict', {
     localVersion: localData.version,
@@ -58,13 +55,12 @@ export function resolveConflict(
     case 'merge': {
       // Attempt to merge both changes (simple field-level merge)
       const merged = { ...localData };
-      
+
       // Take newer values for each field
       Object.keys(remoteData).forEach(key => {
         if (key !== 'version' && key !== 'updated_at') {
           // If local doesn't have this field or remote is newer, take remote
-          if (!localData[key] || 
-              new Date(remoteData.updated_at) > new Date(localData.updated_at)) {
+          if (!localData[key] || new Date(remoteData.updated_at) > new Date(localData.updated_at)) {
             merged[key] = remoteData[key];
           }
         }
@@ -114,7 +110,7 @@ export async function handleOptimisticUpdateConflict<T extends VersionedData>(
   optimisticData: T,
   serverFetch: () => Promise<T>,
   onConflict: (resolution: ConflictResolution) => void,
-  strategy: ConflictResolution['strategy'] = 'remote'
+  strategy: ConflictResolution['strategy'] = 'remote',
 ): Promise<T> {
   try {
     // Fetch latest from server
@@ -123,7 +119,7 @@ export async function handleOptimisticUpdateConflict<T extends VersionedData>(
     // Check for conflict
     if (detectConflict(optimisticData.version, serverData.version)) {
       console.log('[Conflict] Version mismatch detected');
-      
+
       // Resolve conflict
       const resolution = resolveConflict(optimisticData, serverData, strategy);
       onConflict(resolution);
@@ -146,16 +142,18 @@ export async function handleOptimisticUpdateConflict<T extends VersionedData>(
 export async function withConflictDetection<T extends VersionedData>(
   currentData: T,
   mutation: () => Promise<T>,
-  strategy: ConflictResolution['strategy'] = 'remote'
+  _strategy: ConflictResolution['strategy'] = 'remote',
 ): Promise<T> {
   try {
     const result = await mutation();
     return result;
-  } catch (error: any) {
+  } catch (error) {
     // Check if error is a version conflict
-    if (error?.message?.includes('modified by another user') ||
-        error?.message?.includes('version mismatch')) {
-      
+    const errorMessage = error instanceof Error ? error.message : '';
+    if (
+      errorMessage.includes('modified by another user') ||
+      errorMessage.includes('version mismatch')
+    ) {
       toast({
         title: 'Conflict Detected',
         description: 'This item was modified by another user. Please refresh and try again.',

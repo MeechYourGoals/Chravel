@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Crown, Star, Globe, Sparkles } from 'lucide-react';
+import { Crown, Globe, Sparkles } from 'lucide-react';
 import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 import { CONSUMER_PRICING } from '../../types/consumer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
@@ -21,19 +20,21 @@ export const ConsumerBillingSection = () => {
       } else {
         toast.error('No portal URL received');
       }
-    } catch (error: any) {
-      toast.error(`Failed to open customer portal: ${error.message}`);
+    } catch (error) {
+      toast.error(
+        `Failed to open customer portal: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       console.error(error);
     }
   };
 
   const handleCancelSubscription = async () => {
     const confirmed = window.confirm(
-      'Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.'
+      'Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.',
     );
-    
+
     if (!confirmed) return;
-    
+
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
@@ -42,8 +43,10 @@ export const ConsumerBillingSection = () => {
       } else {
         toast.error('No portal URL received');
       }
-    } catch (error: any) {
-      toast.error(`Failed to open cancellation page: ${error.message}`);
+    } catch (error) {
+      toast.error(
+        `Failed to open cancellation page: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       console.error(error);
     }
   };
@@ -63,8 +66,8 @@ export const ConsumerBillingSection = () => {
         'Expense tracking',
         'AI Trip Assistant (5 queries per user per trip)',
         '1 PDF export per trip',
-        'ICS calendar download'
-      ]
+        'ICS calendar download',
+      ],
     },
     explorer: {
       name: 'Explorer',
@@ -79,8 +82,8 @@ export const ConsumerBillingSection = () => {
         'Smart notifications',
         'Search past trips',
         'Priority support',
-        'Custom trip categories & tagging'
-      ]
+        'Custom trip categories & tagging',
+      ],
     },
     'frequent-chraveler': {
       name: 'Frequent Chraveler',
@@ -95,21 +98,23 @@ export const ConsumerBillingSection = () => {
         'Create 1 Chravel Pro trip per month (50-seat limit)',
         'Role-based channels on Pro trips',
         'Custom trip categories & tagging',
-        'Early feature access'
-      ]
-    }
+        'Early feature access',
+      ],
+    },
   } as const;
 
   return (
     <div className="space-y-3">
       <h3 className="text-2xl font-bold text-white">Subscriptions</h3>
-      
+
       {/* Current Plan */}
-      <div className={`rounded-xl p-4 ${
-        isSubscribed
-          ? 'bg-gradient-to-r from-glass-orange/10 to-glass-yellow/10 border border-glass-orange/20'
-          : 'bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-500/20'
-      }`}>
+      <div
+        className={`rounded-xl p-4 ${
+          isSubscribed
+            ? 'bg-gradient-to-r from-glass-orange/10 to-glass-yellow/10 border border-glass-orange/20'
+            : 'bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-500/20'
+        }`}
+      >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div>
@@ -131,15 +136,17 @@ export const ConsumerBillingSection = () => {
             )}
           </div>
         </div>
-        
+
         <div className="mb-4">
           <h5 className="font-semibold text-white mb-2">Current Plan Features</h5>
           <ul className="space-y-1.5 text-sm text-gray-300">
             {plans[tier as keyof typeof plans].features.map((feature, index) => (
               <li key={index} className="flex items-start gap-2">
-                <div className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 ${
-                  isSubscribed ? 'bg-glass-orange' : 'bg-blue-400'
-                }`}></div>
+                <div
+                  className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 ${
+                    isSubscribed ? 'bg-glass-orange' : 'bg-blue-400'
+                  }`}
+                ></div>
                 {feature}
               </li>
             ))}
@@ -147,7 +154,7 @@ export const ConsumerBillingSection = () => {
         </div>
 
         {!isSubscribed && (
-          <button 
+          <button
             onClick={() => upgradeToTier('explorer', billingCycle)}
             disabled={isLoading}
             className="bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
@@ -158,13 +165,13 @@ export const ConsumerBillingSection = () => {
 
         {isSubscribed && (
           <div className="flex gap-3">
-            <button 
+            <button
               onClick={handleManageSubscription}
               className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Manage Subscription
             </button>
-            <button 
+            <button
               onClick={handleCancelSubscription}
               className="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-lg font-medium transition-colors"
             >
@@ -215,16 +222,25 @@ export const ConsumerBillingSection = () => {
           {Object.entries(plans).map(([key, plan]) => {
             const PlanIcon = plan.icon;
             return (
-              <Collapsible key={key} open={expandedPlan === key} onOpenChange={() => setExpandedPlan(expandedPlan === key ? null : key)}>
+              <Collapsible
+                key={key}
+                open={expandedPlan === key}
+                onOpenChange={() => setExpandedPlan(expandedPlan === key ? null : key)}
+              >
                 <CollapsibleTrigger className="w-full">
-                  <div className={`border rounded-lg p-3 transition-colors hover:bg-white/5 ${
-                    key === tier
-                      ? 'border-glass-orange/50 bg-glass-orange/10'
-                      : 'border-white/10 bg-white/5'
-                  }`}>
+                  <div
+                    className={`border rounded-lg p-3 transition-colors hover:bg-white/5 ${
+                      key === tier
+                        ? 'border-glass-orange/50 bg-glass-orange/10'
+                        : 'border-white/10 bg-white/5'
+                    }`}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="text-left flex items-center gap-3">
-                        <PlanIcon size={20} className={key === tier ? 'text-glass-orange' : 'text-gray-400'} />
+                        <PlanIcon
+                          size={20}
+                          className={key === tier ? 'text-glass-orange' : 'text-gray-400'}
+                        />
                         <div>
                           <h5 className="font-semibold text-white flex items-center gap-2 capitalize">
                             {plan.name}
@@ -236,9 +252,7 @@ export const ConsumerBillingSection = () => {
                         {key === tier && (
                           <div className="text-sm text-glass-orange font-medium">Current Plan</div>
                         )}
-                        <div className="text-gray-400">
-                          {expandedPlan === key ? '−' : '+'}
-                        </div>
+                        <div className="text-gray-400">{expandedPlan === key ? '−' : '+'}</div>
                       </div>
                     </div>
                   </div>
@@ -255,8 +269,10 @@ export const ConsumerBillingSection = () => {
                       ))}
                     </ul>
                     {key !== 'free' && key !== tier && (
-                      <button 
-                        onClick={() => upgradeToTier(key as 'explorer' | 'frequent-chraveler', billingCycle)}
+                      <button
+                        onClick={() =>
+                          upgradeToTier(key as 'explorer' | 'frequent-chraveler', billingCycle)
+                        }
                         disabled={isLoading}
                         className="mt-4 bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                       >

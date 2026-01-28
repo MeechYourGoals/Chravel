@@ -11,38 +11,39 @@ interface GoogleMapsEmbedProps {
   onSaveAsBasecamp?: (location: { lat: number; lng: number; address: string }) => void;
 }
 
-export const GoogleMapsEmbed = ({ 
-  className, 
+export const GoogleMapsEmbed = ({
+  className,
   searchLocation,
-  onSaveAsBasecamp 
+  onSaveAsBasecamp,
 }: GoogleMapsEmbedProps) => {
   const { basecamp, isBasecampSet } = useBasecamp();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [embedUrl, setEmbedUrl] = useState('');
   const [retryCount, setRetryCount] = useState(0);
-  
+
   // Default keyless embed URL (free, no API required)
-  const DEFAULT_EMBED_URL = 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus';
+  const DEFAULT_EMBED_URL =
+    'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d25211418.31451683!2d-95.665!3d37.6!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus';
 
   useEffect(() => {
     setIsLoading(true);
     setHasError(false);
-    
+
     try {
       let url: string;
-      
+
       // Priority 1: External search location (from search bar)
       if (searchLocation?.lat && searchLocation?.lng) {
-        url = GoogleMapsService.buildEmbeddableUrl(
-          searchLocation.address,
-          { lat: searchLocation.lat, lng: searchLocation.lng }
-        );
+        url = GoogleMapsService.buildEmbeddableUrl(searchLocation.address, {
+          lat: searchLocation.lat,
+          lng: searchLocation.lng,
+        });
       }
       // Priority 2: Trip basecamp from context
       else if (isBasecampSet && basecamp?.address) {
         url = GoogleMapsService.buildEmbeddableUrl(basecamp.address, basecamp.coordinates);
-      } 
+      }
       // Priority 3: Default world map
       else {
         url = DEFAULT_EMBED_URL;
@@ -53,11 +54,11 @@ export const GoogleMapsEmbed = ({
       console.error('[GoogleMapsEmbed] Error building URL:', error);
       setEmbedUrl(DEFAULT_EMBED_URL);
     }
-    
+
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, [isBasecampSet, basecamp, retryCount, searchLocation]);
 
@@ -66,12 +67,12 @@ export const GoogleMapsEmbed = ({
     setHasError(false);
   };
 
-  const handleIframeError = (e: any) => {
+  const handleIframeError = (e: React.SyntheticEvent<HTMLIFrameElement>) => {
     console.error('[GoogleMapsEmbed] ❌ Iframe load error:', e);
     setIsLoading(false);
     setHasError(true);
   };
-  
+
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
     setHasError(false);
@@ -97,7 +98,7 @@ export const GoogleMapsEmbed = ({
             <MapPin size={48} className="text-gray-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-300 mb-2">Map unavailable</h3>
             <p className="text-gray-500 text-sm mb-4">Unable to load Google Maps</p>
-            <button 
+            <button
               onClick={handleRetry}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
             >
@@ -111,11 +112,13 @@ export const GoogleMapsEmbed = ({
       {searchLocation && onSaveAsBasecamp && searchLocation.address && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
           <button
-            onClick={() => onSaveAsBasecamp({
-              lat: searchLocation.lat,
-              lng: searchLocation.lng,
-              address: searchLocation.address || ''
-            })}
+            onClick={() =>
+              onSaveAsBasecamp({
+                lat: searchLocation.lat,
+                lng: searchLocation.lng,
+                address: searchLocation.address || '',
+              })
+            }
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg transition-colors flex items-center gap-2"
           >
             <MapPin size={16} />

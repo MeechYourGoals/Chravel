@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { uploadToStorage, insertMediaIndex, insertFileIndex } from '@/services/uploadService';
 import { insertLinkIndex, fetchOpenGraphData } from '@/services/linkService';
-import { sendChatMessage, AttachmentType } from '@/services/chatService';
+import { sendChatMessage } from '@/services/chatService';
 import { autoParseContent, ParsedContent } from '@/services/chatContentParser';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -27,7 +27,7 @@ export function useShareAsset(tripId: string) {
     const fileId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     setUploading(true);
     setError(null);
-    
+
     // Initialize progress tracking
     setUploadProgress(prev => ({
       ...prev,
@@ -54,12 +54,12 @@ export function useShareAsset(tripId: string) {
         return prev;
       });
     }, 200);
-    
+
     try {
       // 1) Upload to storage
       const subdir = kind === 'image' ? 'images' : kind === 'video' ? 'videos' : 'files';
       const { publicUrl, key } = await uploadToStorage(file, tripId, subdir);
-      
+
       // Mark as completed
       clearInterval(progressInterval);
       setUploadProgress(prev => ({
@@ -85,7 +85,7 @@ export function useShareAsset(tripId: string) {
           mimeType: file.type,
           uploadedBy: userId,
         });
-        
+
         // Create chat message with attachment
         const messageResult = await sendChatMessage({
           trip_id: tripId,
@@ -95,13 +95,15 @@ export function useShareAsset(tripId: string) {
           privacy_mode: 'standard',
           media_type: kind,
           media_url: publicUrl,
-          attachments: [{
-            type: kind,
-            ref_id: row.id,
-            url: publicUrl,
-          }],
+          attachments: [
+            {
+              type: kind,
+              ref_id: row.id,
+              url: publicUrl,
+            },
+          ],
         });
-        
+
         // 🆕 Auto-parse content for receipts and itineraries
         if (kind === 'image') {
           try {
@@ -110,7 +112,7 @@ export function useShareAsset(tripId: string) {
               'image',
               file.type,
               tripId,
-              messageResult?.id?.toString()
+              messageResult?.id?.toString(),
             );
             if (parsed && parsed.suggestions && parsed.suggestions.length > 0) {
               setParsedContent(parsed);
@@ -130,7 +132,7 @@ export function useShareAsset(tripId: string) {
             console.warn('[useShareAsset] Content parsing failed:', parseError);
           }
         }
-        
+
         toast.success(`${kind === 'image' ? 'Photo' : 'Video'} uploaded successfully`);
         return { type: kind, ref: row };
       } else {
@@ -141,20 +143,22 @@ export function useShareAsset(tripId: string) {
           fileType: file.type || 'application/octet-stream',
           uploadedBy: userId,
         });
-        
+
         const messageResult = await sendChatMessage({
           trip_id: tripId,
           user_id: userId,
           author_name: user?.email?.split('@')[0] || 'Unknown User',
           content: file.name,
           privacy_mode: 'standard',
-          attachments: [{
-            type: 'file',
-            ref_id: row.id,
-            url: publicUrl,
-          }],
+          attachments: [
+            {
+              type: 'file',
+              ref_id: row.id,
+              url: publicUrl,
+            },
+          ],
         });
-        
+
         // 🆕 Auto-parse documents for itineraries (PDFs, etc.)
         if (file.type === 'application/pdf' || file.name.toLowerCase().includes('itinerary')) {
           try {
@@ -163,7 +167,7 @@ export function useShareAsset(tripId: string) {
               'document',
               file.type,
               tripId,
-              messageResult?.id?.toString()
+              messageResult?.id?.toString(),
             );
             if (parsed && parsed.suggestions && parsed.suggestions.length > 0) {
               setParsedContent(parsed);
@@ -175,13 +179,13 @@ export function useShareAsset(tripId: string) {
             console.warn('[useShareAsset] Document parsing failed:', parseError);
           }
         }
-        
+
         toast.success('File uploaded successfully');
         return { type: 'file', ref: row };
       }
-    } catch (e: any) {
+    } catch (e) {
       clearInterval(progressInterval);
-      const errorMsg = e.message ?? 'Upload failed';
+      const errorMsg = e instanceof Error ? e.message : 'Upload failed';
       setError(errorMsg);
       setUploadProgress(prev => ({
         ...prev,
@@ -210,7 +214,7 @@ export function useShareAsset(tripId: string) {
   async function shareLink(url: string) {
     setUploading(true);
     setError(null);
-    
+
     try {
       // Validate URL
       try {
@@ -218,10 +222,10 @@ export function useShareAsset(tripId: string) {
       } catch {
         throw new Error('Invalid URL format');
       }
-      
+
       // Fetch Open Graph data
       const ogData = await fetchOpenGraphData(url);
-      
+
       // Insert link index
       const row = await insertLinkIndex({
         tripId,
@@ -232,7 +236,7 @@ export function useShareAsset(tripId: string) {
         domain: ogData.domain,
         submittedBy: userId,
       });
-      
+
       // Create chat message
       await sendChatMessage({
         trip_id: tripId,
@@ -247,17 +251,19 @@ export function useShareAsset(tripId: string) {
           description: ogData.description,
           domain: ogData.domain,
         },
-        attachments: [{
-          type: 'link',
-          ref_id: row.id,
-          url,
-        }],
+        attachments: [
+          {
+            type: 'link',
+            ref_id: row.id,
+            url,
+          },
+        ],
       });
-      
+
       toast.success('Link shared successfully');
       return { type: 'link', ref: row };
-    } catch (e: any) {
-      const errorMsg = e.message ?? 'Link share failed';
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Link share failed';
       setError(errorMsg);
       toast.error(errorMsg);
       throw e;
@@ -268,7 +274,7 @@ export function useShareAsset(tripId: string) {
 
   async function shareMultipleFiles(files: FileList, type: 'image' | 'video' | 'document') {
     const results = [];
-    
+
     for (const file of Array.from(files)) {
       try {
         const kind: ShareKind = type === 'document' ? 'file' : type;
@@ -278,15 +284,15 @@ export function useShareAsset(tripId: string) {
         console.error(`Failed to upload ${file.name}:`, error);
       }
     }
-    
+
     return results;
   }
 
-  return { 
-    shareFile, 
-    shareLink, 
-    shareMultipleFiles, 
-    isUploading, 
+  return {
+    shareFile,
+    shareLink,
+    shareMultipleFiles,
+    isUploading,
     uploadProgress,
     error,
     parsedContent, // 🆕 Return parsed content for UI to display suggestions

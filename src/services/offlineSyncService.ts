@@ -1,11 +1,11 @@
 /**
  * Unified Offline Sync Service
- * 
+ *
  * Provides optimistic UI with sync queue for:
  * - Chat messages (High priority)
  * - Tasks (Medium priority)
  * - Calendar events (Medium priority)
- * 
+ *
  * Features:
  * - Read caching (last 30 days)
  * - Write queue for offline operations
@@ -73,7 +73,7 @@ class OfflineSyncService {
     tripId: string,
     data: any,
     entityId?: string,
-    version?: number
+    version?: number,
   ): Promise<string> {
     // Guardrail: never allow basecamp writes via offline queue.
     if (entityType === ('basecamp' as any)) {
@@ -103,18 +103,20 @@ class OfflineSyncService {
   /**
    * Get all queued operations
    */
-  async getQueuedOperations(
-    filters?: {
-      status?: QueuedSyncOperation['status'];
-      tripId?: string;
-      entityType?: SyncEntityType;
-    }
-  ): Promise<QueuedSyncOperation[]> {
+  async getQueuedOperations(filters?: {
+    status?: QueuedSyncOperation['status'];
+    tripId?: string;
+    entityType?: SyncEntityType;
+  }): Promise<QueuedSyncOperation[]> {
     const db = await getDB();
     let operations: QueuedSyncOperation[];
 
     if (filters?.status) {
-      operations = (await db.getAllFromIndex('syncQueue', 'by-status', filters.status)) as QueuedSyncOperation[];
+      operations = (await db.getAllFromIndex(
+        'syncQueue',
+        'by-status',
+        filters.status,
+      )) as QueuedSyncOperation[];
     } else {
       operations = (await db.getAll('syncQueue')) as QueuedSyncOperation[];
     }
@@ -149,7 +151,7 @@ class OfflineSyncService {
   async updateOperationStatus(
     operationId: string,
     status: QueuedSyncOperation['status'],
-    incrementRetry = false
+    incrementRetry = false,
   ): Promise<QueuedSyncOperation | null> {
     const db = await getDB();
     const operation = await db.get('syncQueue', operationId);
@@ -201,7 +203,7 @@ class OfflineSyncService {
     entityId: string,
     tripId: string,
     data: any,
-    version?: number
+    version?: number,
   ): Promise<void> {
     const db = await getDB();
     const cacheKey = `${entityType}:${entityId}`;
@@ -221,16 +223,13 @@ class OfflineSyncService {
   /**
    * Get cached entities for a trip
    */
-  async getCachedEntities(
-    tripId: string,
-    entityType?: SyncEntityType
-  ): Promise<CachedEntity[]> {
+  async getCachedEntities(tripId: string, entityType?: SyncEntityType): Promise<CachedEntity[]> {
     const db = await getDB();
     let cached: CachedEntity[];
 
     if (entityType) {
       const allCached = await db.getAllFromIndex('cache', 'by-entity-type', entityType);
-      cached = (allCached.filter(c => c.tripId === tripId)) as CachedEntity[];
+      cached = allCached.filter(c => c.tripId === tripId) as CachedEntity[];
     } else {
       const allCached = await db.getAllFromIndex('cache', 'by-trip', tripId);
       cached = allCached as CachedEntity[];
@@ -246,7 +245,7 @@ class OfflineSyncService {
    */
   async getCachedEntity(
     entityType: SyncEntityType,
-    entityId: string
+    entityId: string,
   ): Promise<CachedEntity | null> {
     const db = await getDB();
     const cacheKey = `${entityType}:${entityId}`;
@@ -312,19 +311,17 @@ class OfflineSyncService {
    * Process sync queue when connection is restored
    * Returns count of successful and failed operations
    */
-  async processSyncQueue(
-    handlers: {
-      onChatMessageCreate?: (tripId: string, data: any) => Promise<any>;
-      onChatMessageUpdate?: (entityId: string, data: any) => Promise<any>;
-      onTaskCreate?: (tripId: string, data: any) => Promise<any>;
-      onTaskUpdate?: (entityId: string, data: any) => Promise<any>;
-      onTaskToggle?: (entityId: string, data: any) => Promise<any>;
-      onPollVote?: (pollId: string, data: any) => Promise<any>;
-      onCalendarEventCreate?: (tripId: string, data: any) => Promise<any>;
-      onCalendarEventUpdate?: (entityId: string, data: any) => Promise<any>;
-      onCalendarEventDelete?: (entityId: string) => Promise<any>;
-    }
-  ): Promise<{ processed: number; failed: number }> {
+  async processSyncQueue(handlers: {
+    onChatMessageCreate?: (tripId: string, data: any) => Promise<any>;
+    onChatMessageUpdate?: (entityId: string, data: any) => Promise<any>;
+    onTaskCreate?: (tripId: string, data: any) => Promise<any>;
+    onTaskUpdate?: (entityId: string, data: any) => Promise<any>;
+    onTaskToggle?: (entityId: string, data: any) => Promise<any>;
+    onPollVote?: (pollId: string, data: any) => Promise<any>;
+    onCalendarEventCreate?: (tripId: string, data: any) => Promise<any>;
+    onCalendarEventUpdate?: (entityId: string, data: any) => Promise<any>;
+    onCalendarEventDelete?: (entityId: string) => Promise<any>;
+  }): Promise<{ processed: number; failed: number }> {
     if (!navigator.onLine) {
       return { processed: 0, failed: 0 };
     }
@@ -343,24 +340,24 @@ class OfflineSyncService {
           continue;
         }
 
-        let result: any;
+        let _result: unknown;
         let handlerRan = false;
 
         // Route to appropriate handler
         switch (operation.entityType) {
           case 'chat_message':
             if (operation.operationType === 'create' && handlers.onChatMessageCreate) {
-              result = await handlers.onChatMessageCreate(operation.tripId, operation.data);
+              _result = await handlers.onChatMessageCreate(operation.tripId, operation.data);
               handlerRan = true;
             } else if (operation.operationType === 'update' && handlers.onChatMessageUpdate) {
-              result = await handlers.onChatMessageUpdate(operation.entityId!, operation.data);
+              _result = await handlers.onChatMessageUpdate(operation.entityId!, operation.data);
               handlerRan = true;
             }
             break;
 
           case 'task':
             if (operation.operationType === 'create' && handlers.onTaskCreate) {
-              result = await handlers.onTaskCreate(operation.tripId, operation.data);
+              _result = await handlers.onTaskCreate(operation.tripId, operation.data);
               handlerRan = true;
               break;
             }
@@ -369,10 +366,10 @@ class OfflineSyncService {
               // IMPORTANT: Prioritize toggles over generic updates.
               // Task completion is stored in `task_status` via `toggle_task_status` RPC, not on `trip_tasks`.
               if (operation.data?.completed !== undefined && handlers.onTaskToggle) {
-                result = await handlers.onTaskToggle(operation.entityId!, operation.data);
+                _result = await handlers.onTaskToggle(operation.entityId!, operation.data);
                 handlerRan = true;
               } else if (handlers.onTaskUpdate) {
-                result = await handlers.onTaskUpdate(operation.entityId!, operation.data);
+                _result = await handlers.onTaskUpdate(operation.entityId!, operation.data);
                 handlerRan = true;
               }
             }
@@ -380,20 +377,20 @@ class OfflineSyncService {
 
           case 'poll_vote':
             if (operation.operationType === 'create' && handlers.onPollVote) {
-              result = await handlers.onPollVote(operation.entityId!, operation.data);
+              _result = await handlers.onPollVote(operation.entityId!, operation.data);
               handlerRan = true;
             }
             break;
 
           case 'calendar_event':
             if (operation.operationType === 'create' && handlers.onCalendarEventCreate) {
-              result = await handlers.onCalendarEventCreate(operation.tripId, operation.data);
+              _result = await handlers.onCalendarEventCreate(operation.tripId, operation.data);
               handlerRan = true;
             } else if (operation.operationType === 'update' && handlers.onCalendarEventUpdate) {
-              result = await handlers.onCalendarEventUpdate(operation.entityId!, operation.data);
+              _result = await handlers.onCalendarEventUpdate(operation.entityId!, operation.data);
               handlerRan = true;
             } else if (operation.operationType === 'delete' && handlers.onCalendarEventDelete) {
-              result = await handlers.onCalendarEventDelete(operation.entityId!);
+              _result = await handlers.onCalendarEventDelete(operation.entityId!);
               handlerRan = true;
             }
             break;
@@ -405,7 +402,7 @@ class OfflineSyncService {
           // No handler for this operation type - skip it (don't remove, don't fail)
           console.warn(
             `[OfflineSync] No handler provided for ${operation.entityType}:${operation.operationType} operation ${operation.id}. ` +
-            `Operation preserved in queue for later processing.`
+              `Operation preserved in queue for later processing.`,
           );
           // Reset status back to pending so it can be processed later with proper handlers
           // DO NOT remove from queue - this would cause permanent data loss
@@ -417,7 +414,7 @@ class OfflineSyncService {
         // Only reached if handlerRan === true
         await this.removeOperation(operation.id);
         processed++;
-      } catch (error: any) {
+      } catch (error) {
         console.error(`Failed to sync operation ${operation.id}:`, error);
 
         const updated = await this.updateOperationStatus(operation.id, 'pending', true);

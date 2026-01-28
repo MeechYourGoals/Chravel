@@ -139,8 +139,8 @@ export const TripGrid = React.memo(
           else if (viewMode === 'events') combined = data.events;
           setArchivedTrips(combined);
         }
-      } catch (error: any) {
-        if (error.message === 'TRIP_LIMIT_REACHED') {
+      } catch (error) {
+        if (error instanceof Error && error.message === 'TRIP_LIMIT_REACHED') {
           setShowUpgradeModal(true);
         } else {
           toast({
@@ -163,7 +163,7 @@ export const TripGrid = React.memo(
           title: 'Trip unhidden',
           description: 'Your trip is now visible in the main list.',
         });
-      } catch (error) {
+      } catch {
         toast({
           title: 'Failed to unhide trip',
           description: 'There was an error. Please try again.',
@@ -243,7 +243,7 @@ export const TripGrid = React.memo(
 
             // Invalidate cache to sync with server
             queryClient.invalidateQueries({ queryKey: ['trips'] });
-          } catch (error) {
+          } catch {
             // Revert on error
             setPendingDeleteIds(prev => {
               const next = new Set(prev);

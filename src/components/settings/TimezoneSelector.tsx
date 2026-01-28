@@ -55,7 +55,7 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
   currentTimezone,
   onTimezoneChange,
   showAutoDetect = true,
-  className = ''
+  className = '',
 }) => {
   const [selectedTimezone, setSelectedTimezone] = useState<string>(currentTimezone || 'UTC');
   const [detectedTimezone, setDetectedTimezone] = useState<string | null>(null);
@@ -85,7 +85,7 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
       toast({
         title: 'Error',
         description: 'User ID is required to save timezone',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -102,16 +102,16 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
 
       toast({
         title: 'Success',
-        description: 'Timezone updated successfully'
+        description: 'Timezone updated successfully',
       });
 
       onTimezoneChange?.(selectedTimezone);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating timezone:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update timezone',
-        variant: 'destructive'
+        description: error instanceof Error ? error.message : 'Failed to update timezone',
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
@@ -126,9 +126,8 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
 
   const regions = ['All', ...Array.from(new Set(TIMEZONES.map(tz => tz.region)))];
 
-  const filteredTimezones = filterRegion === 'All'
-    ? TIMEZONES
-    : TIMEZONES.filter(tz => tz.region === filterRegion);
+  const filteredTimezones =
+    filterRegion === 'All' ? TIMEZONES : TIMEZONES.filter(tz => tz.region === filterRegion);
 
   // Format current time in selected timezone
   const getCurrentTimePreview = () => {
@@ -137,10 +136,10 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
       const formatter = new Intl.DateTimeFormat('en-US', {
         timeZone: selectedTimezone,
         dateStyle: 'medium',
-        timeStyle: 'long'
+        timeStyle: 'long',
       });
       return formatter.format(now);
-    } catch (error) {
+    } catch {
       return 'Invalid timezone';
     }
   };
@@ -153,16 +152,20 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
 
       const janOffset = new Intl.DateTimeFormat('en-US', {
         timeZone: selectedTimezone,
-        timeZoneName: 'short'
-      }).formatToParts(jan).find(p => p.type === 'timeZoneName')?.value;
+        timeZoneName: 'short',
+      })
+        .formatToParts(jan)
+        .find(p => p.type === 'timeZoneName')?.value;
 
       const julOffset = new Intl.DateTimeFormat('en-US', {
         timeZone: selectedTimezone,
-        timeZoneName: 'short'
-      }).formatToParts(jul).find(p => p.type === 'timeZoneName')?.value;
+        timeZoneName: 'short',
+      })
+        .formatToParts(jul)
+        .find(p => p.type === 'timeZoneName')?.value;
 
       return janOffset !== julOffset;
-    } catch (error) {
+    } catch {
       return false;
     }
   };
@@ -207,7 +210,7 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
         {/* Timezone Dropdown */}
         <select
           value={selectedTimezone}
-          onChange={(e) => setSelectedTimezone(e.target.value)}
+          onChange={e => setSelectedTimezone(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
         >
           {filteredTimezones.map(tz => (
@@ -226,11 +229,22 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
         {/* DST Warning */}
         {hasDSTTransition() && (
           <div className="flex items-start gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
-            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg
+              className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              This timezone observes Daylight Saving Time (DST). Times will automatically adjust during DST transitions.
+              This timezone observes Daylight Saving Time (DST). Times will automatically adjust
+              during DST transitions.
             </p>
           </div>
         )}
@@ -249,8 +263,14 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
 
       {/* Info */}
       <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-        <p>Your timezone is used to display dates and times in trip itineraries, calendar events, and notifications.</p>
-        <p>For multi-timezone trips, you can set different timezones for different locations in the trip settings.</p>
+        <p>
+          Your timezone is used to display dates and times in trip itineraries, calendar events, and
+          notifications.
+        </p>
+        <p>
+          For multi-timezone trips, you can set different timezones for different locations in the
+          trip settings.
+        </p>
       </div>
     </div>
   );
