@@ -58,8 +58,8 @@ export const useUniversalSearch = (
         if (!abortController.signal.aborted) {
           setResults(searchResults);
         }
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
           console.error('Search error:', error);
           toast({
             variant: "destructive",

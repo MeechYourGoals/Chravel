@@ -151,10 +151,11 @@ export async function withConflictDetection<T extends VersionedData>(
   try {
     const result = await mutation();
     return result;
-  } catch (error: any) {
+  } catch (error) {
     // Check if error is a version conflict
-    if (error?.message?.includes('modified by another user') ||
-        error?.message?.includes('version mismatch')) {
+    const errorMessage = error instanceof Error ? error.message : '';
+    if (errorMessage.includes('modified by another user') ||
+        errorMessage.includes('version mismatch')) {
       
       toast({
         title: 'Conflict Detected',

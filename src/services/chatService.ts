@@ -410,9 +410,9 @@ export async function toggleMessageReaction(
 
       return { added: true };
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('[chatService] Toggle reaction error:', error);
-    return { added: false, error: error.message };
+    return { added: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 

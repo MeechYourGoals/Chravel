@@ -417,7 +417,7 @@ class OfflineSyncService {
         // Only reached if handlerRan === true
         await this.removeOperation(operation.id);
         processed++;
-      } catch (error: any) {
+      } catch (error) {
         console.error(`Failed to sync operation ${operation.id}:`, error);
 
         const updated = await this.updateOperationStatus(operation.id, 'pending', true);

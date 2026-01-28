@@ -150,9 +150,10 @@ export async function processGlobalSyncQueue(): Promise<{
 
       try {
         await voteWithLatestVersion();
-      } catch (e: any) {
+      } catch (e) {
         // Retry once on optimistic-lock conflicts.
-        if (e?.message?.includes('modified by another user') || e?.message?.includes('version')) {
+        const eMsg = e instanceof Error ? e.message : '';
+        if (eMsg.includes('modified by another user') || eMsg.includes('version')) {
           await voteWithLatestVersion();
           return { pollId, optionIds };
         }

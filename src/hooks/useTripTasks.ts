@@ -668,14 +668,15 @@ export const useTripTasks = (tripId: string, options?: {
       }
 
       return { taskId, completed };
-    } catch (error: any) {
+    } catch (error) {
       // Re-throw with enhanced error message
-      if (error.message?.includes('CONFLICT:')) {
+      const message = error instanceof Error ? error.message : '';
+      if (message.includes('CONFLICT:')) {
         throw error; // Already formatted
       }
-      
+
       // Handle network errors
-      if (error.message?.includes('fetch') || error.message?.includes('network')) {
+      if (message.includes('fetch') || message.includes('network')) {
         throw new Error('Network error. Please check your connection and try again.');
       }
 

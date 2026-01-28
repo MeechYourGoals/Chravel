@@ -124,8 +124,8 @@ export async function handleVersionConflict<T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
-    } catch (error: any) {
-      lastError = error;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
 
       if (!isVersionConflict(error)) {
         // Not a version conflict, re-throw immediately

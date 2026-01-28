@@ -206,7 +206,7 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
           try {
             const result = await uploadSingleFile(file, fileId);
             results.push(result);
-          } catch (error: any) {
+          } catch (error) {
             errors.push({ fileName: file.name, error });
             onError?.(error, file.name);
           }

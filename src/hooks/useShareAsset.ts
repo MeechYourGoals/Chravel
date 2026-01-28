@@ -179,9 +179,9 @@ export function useShareAsset(tripId: string) {
         toast.success('File uploaded successfully');
         return { type: 'file', ref: row };
       }
-    } catch (e: any) {
+    } catch (e) {
       clearInterval(progressInterval);
-      const errorMsg = e.message ?? 'Upload failed';
+      const errorMsg = e instanceof Error ? e.message : 'Upload failed';
       setError(errorMsg);
       setUploadProgress(prev => ({
         ...prev,
@@ -256,8 +256,8 @@ export function useShareAsset(tripId: string) {
       
       toast.success('Link shared successfully');
       return { type: 'link', ref: row };
-    } catch (e: any) {
-      const errorMsg = e.message ?? 'Link share failed';
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Link share failed';
       setError(errorMsg);
       toast.error(errorMsg);
       throw e;

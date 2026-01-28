@@ -147,9 +147,9 @@ export class SecureStorageHelper {
         sessionId: data.session_id,
         expiresAt: data.expires_at,
       };
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error creating verification session:', err);
-      return { success: false, error: err.message || 'Unexpected error' };
+      return { success: false, error: err instanceof Error ? err.message : 'Unexpected error' };
     }
   }
 
@@ -171,9 +171,9 @@ export class SecureStorageHelper {
       // Attempt the operation first
       const result = await operation();
       return { success: true, data: result };
-    } catch (err: any) {
+    } catch (err) {
       // Check if error is due to missing recent authentication
-      const errorMessage = err.message || '';
+      const errorMessage = err instanceof Error ? err.message : '';
       const isAuthError = 
         errorMessage.includes('permission denied') ||
         errorMessage.includes('row-level security') ||
@@ -187,7 +187,7 @@ export class SecureStorageHelper {
           try {
             const retryResult = await operation();
             return { success: true, data: retryResult };
-          } catch (retryErr: any) {
+          } catch (retryErr) {
             // Still failing after verification session - require explicit re-auth
             await onReauthRequired();
             return { 
