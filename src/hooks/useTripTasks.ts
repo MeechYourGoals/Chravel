@@ -579,7 +579,7 @@ export const useTripTasks = (
         description: 'Your task has been added to the list.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error('Create task mutation error:', error);
 
       // Provide specific error messages
@@ -587,21 +587,24 @@ export const useTripTasks = (
       let errorDescription = 'Failed to create task. Please try again.';
       let variant: 'default' | 'destructive' = 'destructive';
 
-      if (error.message?.includes('OFFLINE:')) {
+      const errorMessage = error.message || '';
+      const errorCode = (error as Error & { code?: string }).code;
+
+      if (errorMessage.includes('OFFLINE:')) {
         errorTitle = 'Task Queued';
         errorDescription = "Task will be created when you're back online.";
         variant = 'default';
-      } else if (error.message?.includes('Access denied') || error.code === 'PGRST116') {
+      } else if (errorMessage.includes('Access denied') || errorCode === 'PGRST116') {
         errorTitle = 'Access Denied';
         errorDescription = 'You must be a trip member to create tasks.';
-      } else if (error.message?.includes('Network error') || error.message?.includes('fetch')) {
+      } else if (errorMessage.includes('Network error') || errorMessage.includes('fetch')) {
         errorTitle = 'Connection Error';
         errorDescription = 'Please check your internet connection and try again.';
-      } else if (error.message?.includes('validation') || error.message?.includes('required')) {
+      } else if (errorMessage.includes('validation') || errorMessage.includes('required')) {
         errorTitle = 'Validation Error';
-        errorDescription = error.message;
-      } else if (error.message) {
-        errorDescription = error.message;
+        errorDescription = errorMessage;
+      } else if (errorMessage) {
+        errorDescription = errorMessage;
       }
 
       toast({
@@ -748,9 +751,11 @@ export const useTripTasks = (
 
       return { previousTasks };
     },
-    onError: (err: any, variables, context) => {
+    onError: (err: Error, variables, context) => {
+      const errMessage = err.message || '';
+
       // Rollback on error (unless it's an offline queue operation)
-      if (context?.previousTasks && !err?.message?.includes('OFFLINE:')) {
+      if (context?.previousTasks && !errMessage.includes('OFFLINE:')) {
         queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
       }
 
@@ -759,21 +764,21 @@ export const useTripTasks = (
       let errorDescription = 'Failed to update task. Please try again.';
       let variant: 'default' | 'destructive' = 'destructive';
 
-      if (err?.message?.includes('OFFLINE:')) {
+      if (errMessage.includes('OFFLINE:')) {
         errorTitle = 'Task Update Queued';
         errorDescription = "Update will be synced when you're back online.";
         variant = 'default';
-      } else if (err?.message?.includes('CONFLICT:')) {
+      } else if (errMessage.includes('CONFLICT:')) {
         errorTitle = 'Conflict Detected';
-        errorDescription = err.message.replace('CONFLICT: ', '');
-      } else if (err?.message?.includes('Access denied')) {
+        errorDescription = errMessage.replace('CONFLICT: ', '');
+      } else if (errMessage.includes('Access denied')) {
         errorTitle = 'Access Denied';
-        errorDescription = err.message;
-      } else if (err?.message?.includes('Network error')) {
+        errorDescription = errMessage;
+      } else if (errMessage.includes('Network error')) {
         errorTitle = 'Connection Error';
-        errorDescription = err.message;
-      } else if (err?.message) {
-        errorDescription = err.message;
+        errorDescription = errMessage;
+      } else if (errMessage) {
+        errorDescription = errMessage;
       }
 
       toast({
@@ -810,7 +815,7 @@ export const useTripTasks = (
         description: 'The task has been removed.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to delete task.',
