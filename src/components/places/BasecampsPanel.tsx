@@ -13,7 +13,11 @@ export interface BasecampsPanelProps {
   tripId: string;
   tripBasecamp: BasecampLocation | null;
   onTripBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
-  /** @deprecated Map centering is now disconnected from basecamp saving */
+  /**
+   * @deprecated Map centering is now disconnected from basecamp saving.
+   * Basecamps are stored as text-only references without coordinates.
+   * TODO: Remove in v2.0 after all consumers migrated
+   */
   onCenterMap?: (coords: { lat: number; lng: number }, type: 'trip' | 'personal') => void;
   activeContext: 'trip' | 'personal';
   onContextChange: (context: 'trip' | 'personal') => void;

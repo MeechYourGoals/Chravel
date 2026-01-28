@@ -12,10 +12,29 @@
 - Before returning code, mentally simulate: `npm run build`
 - If uncertain about bracket balance → simplify the structure
 
-### 2. TypeScript Strict Mode
-- `"strict": true` in `tsconfig.json` enforced
-- All function parameters and return types explicitly typed
+### 2. TypeScript Settings
+- Strict mode is NOT enabled (legacy codebase with `"strict": false` in tsconfig)
+- All function parameters and return types should be explicitly typed when possible
+- Avoid new `any` types; prefer `unknown` for truly dynamic data
 - No `any` types unless interfacing with untyped third-party libs (comment why)
+
+### 3. Feature-Based Architecture
+Chravel uses feature-based folders for domain logic:
+
+```
+src/features/
+├── broadcasts/    # Broadcast announcements
+│   ├── components/
+│   └── hooks/
+├── calendar/      # Calendar & scheduling
+│   ├── components/
+│   └── hooks/
+└── chat/          # Messaging & channels
+    ├── components/
+    └── hooks/
+```
+
+When adding new domain features, create a folder under `src/features/` with `components/` and `hooks/` subdirectories.
 
 ### 3. Vercel Production Environment
 - Code must compile in fresh Node 18+ environment
