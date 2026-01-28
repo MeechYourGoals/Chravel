@@ -1,77 +1,75 @@
 
 
-# Fix "How It Works" Section Layout & Remove Redundant Labels
+# Fix Build Errors from Incomplete Feature Migration
 
 ## Problem Summary
-Looking at the current desktop layout, there are two issues:
-1. **Redundant text labels** ("Create Trip", "Trip Invite", "One Hub") appear above each screenshot, duplicating the step box titles ("Create a trip", "Invite your group", "Everything syncs")
-2. **Screenshot alignment is off** - the screenshots container uses `max-w-4xl` while the steps use `max-w-6xl`, plus the flex layout doesn't properly center each screenshot under its corresponding step box
+The codebase has **3 build errors** resulting from an incomplete migration of chat hooks to the feature-based folder structure. This is consistent with the Perplexity report noting "Duplicate Hook Locations" and incomplete feature migration.
 
-## Solution
+| Error | File | Root Cause |
+|-------|------|------------|
+| TS2307 | `MessageItem.tsx:2` | Import path `@/hooks/useChatComposer` doesn't exist - hook moved to `@/features/chat/hooks/` |
+| TS2307 | `MessageList.tsx:4` | Same broken import path |
+| TS2322 | `conflictResolutionService.ts:127` | Generic type constraint issue with `VersionedData` return type |
 
-### Changes to `src/components/landing/sections/ProblemSolutionSection.tsx`
+## Solution Overview
 
-**1. Remove redundant text labels (desktop)**
-- Delete the `<span>` elements containing "Create Trip", "Trip Invite", "One Hub" from lines 174-179, 197-202, 219-225
-- This eliminates visual redundancy since the step boxes above already convey the same information
+### Fix 1: Update Chat Component Imports (MessageItem.tsx & MessageList.tsx)
 
-**2. Remove redundant text labels (mobile)**
-- Delete the `<span>` elements from the mobile section as well (lines 246-251, 269-274, 292-297)
-- Keeps mobile consistent with desktop
-
-**3. Fix screenshot container alignment**
-- Change the screenshots wrapper from `max-w-4xl` to `max-w-6xl` to match the steps container width
-- This ensures the three columns span the same width as the three step boxes above
-
-**4. Adjust column sizing for proper centering**
-- Remove `max-w-[300px]` constraint from each column
-- Use equal `flex-1` distribution so each screenshot column takes exactly 1/3 of the container
-- Add `justify-between` to ensure even spacing that matches the step boxes
-
-## Visual Result
-
-```text
-BEFORE:
-┌─────────────────────────────────────────────────────────────┐
-│  [Step 1]           [Step 2]           [Step 3]             │ ← max-w-6xl
-└─────────────────────────────────────────────────────────────┘
-    Create Trip       Trip Invite         One Hub              ← REDUNDANT
-┌───────────────────────────────────────────┐
-│  [Screenshot 1]  [Screenshot 2]  [Screenshot 3]             │ ← max-w-4xl (narrower!)
-└───────────────────────────────────────────┘
-
-AFTER:
-┌─────────────────────────────────────────────────────────────┐
-│  [Step 1]           [Step 2]           [Step 3]             │ ← max-w-6xl
-└─────────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────────┐
-│  [Screenshot 1]     [Screenshot 2]     [Screenshot 3]       │ ← max-w-6xl (matches!)
-└─────────────────────────────────────────────────────────────┘
-         ↓                  ↓                  ↓
-     Centered           Centered           Centered
+**Current (broken):**
+```typescript
+import { ChatMessage } from '@/hooks/useChatComposer';
 ```
 
-## Technical Implementation
+**Fixed:**
+```typescript
+import { ChatMessage } from '@/features/chat/hooks/useChatComposer';
+```
 
-| Line Range | Current | Change |
-|------------|---------|--------|
-| 158 | `max-w-4xl` | Change to `max-w-6xl` |
-| 165 | `justify-center items-start gap-6` | Change to `justify-between items-start gap-4` |
-| 168 | `flex-1 max-w-[300px]` | Change to `flex-1` (remove max-width) |
-| 174-179 | `<span>Create Trip</span>` + margin | Delete entirely |
-| 191 | `flex-1 max-w-[300px]` | Change to `flex-1` |
-| 197-202 | `<span>Trip Invite</span>` + margin | Delete entirely |
-| 214 | `flex-1 max-w-[300px]` | Change to `flex-1` |
-| 219-225 | `<span>One Hub</span>` + margin | Delete entirely |
-| 246-251 | Mobile `<span>Create Trip</span>` | Delete entirely |
-| 269-274 | Mobile `<span>Trip Invite</span>` | Delete entirely |
-| 292-297 | Mobile `<span>One Hub</span>` | Delete entirely |
+Both files are already in `src/features/chat/components/`, so these can use a relative import for cleaner organization:
+```typescript
+import { ChatMessage } from '../hooks/useChatComposer';
+```
 
-## Files Modified
-- `src/components/landing/sections/ProblemSolutionSection.tsx`
+### Fix 2: TypeScript Generic Constraint (conflictResolutionService.ts)
 
-## Result
-- Cleaner visual hierarchy without redundant labels
-- Screenshots perfectly centered under their corresponding step boxes
-- Symmetrical layout across all three columns
+**Problem:** Line 127 returns `resolution.resolvedData || serverData`, but `resolvedData` is typed as `VersionedData | undefined`. When the function declares it returns `T extends VersionedData`, TypeScript correctly complains that `VersionedData` is not necessarily assignable to `T`.
+
+**Fix:** Cast the return to `T` since we know the data structure is maintained:
+```typescript
+// Line 127
+return (resolution.resolvedData || serverData) as T;
+```
+
+This is type-safe because:
+- `serverData` is already typed as `T`
+- `resolvedData` comes from either `optimisticData` or `serverData` (both `T`)
+- The merge operation preserves the structure
+
+## Files to Modify
+
+| File | Line(s) | Change |
+|------|---------|--------|
+| `src/features/chat/components/MessageItem.tsx` | 2 | Update import path to `../hooks/useChatComposer` |
+| `src/features/chat/components/MessageList.tsx` | 4 | Update import path to `../hooks/useChatComposer` |
+| `src/services/conflictResolutionService.ts` | 127 | Add `as T` type assertion |
+
+## Risk Assessment
+
+| Change | Risk Level | Rationale |
+|--------|------------|-----------|
+| Import path updates | **Zero** | Just fixing broken paths to where the hook actually exists |
+| Type assertion | **Low** | The assertion is logically correct - we're returning data of the same shape that was passed in |
+
+**No functionality changes** - these are purely path corrections and type fixes to restore the build.
+
+## Verification
+
+After these fixes:
+- `npm run typecheck` will pass
+- `npm run build` will succeed
+- All chat functionality remains intact (same code, just corrected imports)
+
+## Notes on Perplexity Report
+
+This fix addresses the "Duplicate Hook Locations" issue by ensuring the feature-based components correctly reference their co-located hooks. The Perplexity report correctly identified this as incomplete migration work.
 
