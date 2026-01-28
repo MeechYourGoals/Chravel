@@ -1,5 +1,7 @@
 // Unified Messaging Types
 
+import { RichLinkPreview } from './chatAttachment';
+
 // Simple Message interface for backward compatibility
 export interface Message {
   id: string;
@@ -23,7 +25,7 @@ export interface Message {
   }>;
   media_type?: string;
   media_url?: string;
-  link_preview?: any;
+  link_preview?: RichLinkPreview | null;
   privacy_mode?: string;
   privacy_encrypted?: boolean;
 }
@@ -65,28 +67,28 @@ export interface UnifiedMessage {
   editedAt?: string;
   deleted?: boolean;
   deletedAt?: string;
-  
+
   // Message types
   type: 'text' | 'broadcast' | 'payment' | 'system';
-  
+
   // Attachments & media
   attachments?: MessageAttachment[];
-  
+
   // Interactions
   reactions?: Record<string, MessageReaction>;
   mentions?: MessageMention[];
-  
+
   // Reply context
   replyTo?: {
     messageId: string;
     content: string;
     senderName: string;
   };
-  
+
   // Broadcast specific
   priority?: 'fyi' | 'urgent';
   broadcastId?: string;
-  
+
   // Payment specific
   paymentId?: string;
   paymentData?: {
@@ -96,11 +98,11 @@ export interface UnifiedMessage {
     splitCount: number;
     settled?: boolean;
   };
-  
+
   // System message specific
   systemAction?: string;
   systemData?: Record<string, unknown>;
-  
+
   // Metadata
   metadata?: Record<string, unknown>;
 }
