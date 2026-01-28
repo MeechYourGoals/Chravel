@@ -145,8 +145,6 @@ export function useNativePush() {
 
     // Handle foreground notifications - show toast
     const unsubReceived = NativePush.onNotificationReceived((notification) => {
-      console.log('[useNativePush] Foreground notification:', notification);
-      
       const payload = NativePush.parsePayload(notification.data || {});
       
       toast(notification.title || 'New notification', {

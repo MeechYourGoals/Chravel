@@ -50,23 +50,11 @@ class BasecampService {
    * It fetches from the database and caches for offline access.
    */
   async getTripBasecamp(tripId: string): Promise<BasecampLocation | null> {
-    console.log(this.LOG_PREFIX, 'getTripBasecamp called:', {
-      tripId,
-      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
-      timestamp: new Date().toISOString(),
-    });
-
     try {
       // Offline-first: use cached basecamp when offline.
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        console.log(this.LOG_PREFIX, 'getTripBasecamp: Offline, using cache');
         const cached = await getCachedEntity({ entityType: 'trip_basecamp', entityId: tripId });
         const cachedResult = (cached?.data as BasecampLocation | null | undefined) ?? null;
-        console.log(this.LOG_PREFIX, 'getTripBasecamp: Cache result:', {
-          tripId,
-          found: !!cachedResult,
-          address: cachedResult?.address,
-        });
         return cachedResult;
       }
 
@@ -87,7 +75,6 @@ class BasecampService {
         try {
           const cached = await getCachedEntity({ entityType: 'trip_basecamp', entityId: tripId });
           if (cached?.data) {
-            console.log(this.LOG_PREFIX, 'getTripBasecamp: Using cached fallback due to DB error');
             return cached.data as BasecampLocation;
           }
         } catch {
@@ -102,12 +89,6 @@ class BasecampService {
       }
 
       if (!data.basecamp_address) {
-        console.log(this.LOG_PREFIX, 'getTripBasecamp: No basecamp set for trip', {
-          tripId,
-          hasName: !!data.basecamp_name,
-          hasLat: !!data.basecamp_latitude,
-          hasLng: !!data.basecamp_longitude,
-        });
         return null;
       }
 
@@ -120,13 +101,6 @@ class BasecampService {
             ? { lat: data.basecamp_latitude, lng: data.basecamp_longitude }
             : undefined,
       };
-
-      console.log(this.LOG_PREFIX, 'getTripBasecamp SUCCESS:', {
-        tripId,
-        address: result.address,
-        name: result.name,
-        hasCoordinates: !!result.coordinates,
-      });
 
       // Cache for offline access (best-effort).
       try {

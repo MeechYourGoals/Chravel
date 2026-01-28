@@ -776,10 +776,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Build the redirect URL - after OAuth completes, Supabase will redirect here
       const redirectUrl = `${window.location.origin}/auth`;
 
-      console.log('[Auth] Starting Google OAuth...');
-      console.log('[Auth] Origin:', window.location.origin);
-      console.log('[Auth] RedirectTo:', redirectUrl);
-
       // Use skipBrowserRedirect to capture the exact authorization URL for debugging
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -812,24 +808,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
-      // Log the full authorization URL for debugging
       if (data?.url) {
-        console.log('[Auth] ========== GOOGLE OAUTH DEBUG ==========');
-        console.log('[Auth] Full authorization URL:', data.url);
-
-        // Parse and log key parameters
-        try {
-          const url = new URL(data.url);
-          console.log('[Auth] Client ID:', url.searchParams.get('client_id'));
-          console.log('[Auth] Redirect URI:', url.searchParams.get('redirect_uri'));
-          console.log('[Auth] Scope:', url.searchParams.get('scope'));
-          console.log('[Auth] Hosted Domain (hd):', url.searchParams.get('hd') || 'none');
-          console.log('[Auth] State:', url.searchParams.get('state')?.substring(0, 20) + '...');
-        } catch (parseErr) {
-          console.warn('[Auth] Could not parse URL params:', parseErr);
-        }
-        console.log('[Auth] ==========================================');
-
         // Navigate to Google - try multiple methods to handle iframe restrictions
         try {
           // First try window.top (for iframe scenarios)
@@ -858,8 +837,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithApple = async (): Promise<{ error?: string }> => {
     try {
       const redirectUrl = `${window.location.origin}/auth`;
-
-      console.log('[Auth] Starting Apple OAuth with redirectTo:', redirectUrl);
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',

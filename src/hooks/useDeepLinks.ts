@@ -78,11 +78,8 @@ export function useDeepLinks(): void {
 
     // Handle deep links when app is opened with URL
     const handleAppUrlOpen = (event: URLOpenListenerEvent) => {
-      console.log('[DeepLinks] App opened with URL:', event.url);
-      
       const path = parseDeepLinkUrl(event.url);
       if (path) {
-        console.log('[DeepLinks] Navigating to:', path);
         navigate(path);
       } else {
         console.warn('[DeepLinks] Could not parse URL:', event.url);
@@ -102,7 +99,6 @@ export function useDeepLinks(): void {
     App.getLaunchUrl()
       .then(result => {
         if (result?.url) {
-          console.log('[DeepLinks] App launched with URL:', result.url);
           const path = parseDeepLinkUrl(result.url);
           if (path) {
             // Delay slightly to ensure router is ready
