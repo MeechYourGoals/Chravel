@@ -18,6 +18,7 @@ import { ShareTripModal } from './share/ShareTripModal';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { TripExportModal } from './trip/TripExportModal';
+import { OptimizedImage } from './OptimizedImage';
 import { archiveTrip, hideTrip, deleteTripForMe } from '../services/archiveService';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/use-toast';
@@ -404,14 +405,17 @@ export const TripCard = ({
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
     >
-      {/* Trip Image/Header - Responsive */}
+      {/* Trip Image/Header - Responsive with lazy loading */}
       <div className="relative h-32 md:h-48 bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent p-4 md:p-6">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-80"
-          style={{
-            backgroundImage: `url('${trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop'}')`,
-          }}
-        ></div>
+        <OptimizedImage
+          src={
+            trip.coverPhoto ||
+            'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop'
+          }
+          alt={`${trip.title} cover`}
+          lazy={true}
+          className="absolute inset-0 opacity-80"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
         <div className="relative z-10 flex justify-between items-start h-full">
           <div className="flex-1 min-h-0 overflow-hidden">
