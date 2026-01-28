@@ -10,6 +10,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { SwipeableListItem } from './SwipeableListItem';
+import { TripTask } from '../../types/tasks';
 
 interface MobileTripTasksProps {
   tripId: string;
@@ -27,14 +28,14 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
   const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
       await queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-    }
+    },
   });
 
   // Helper to check if task is completed by current user
-  const isTaskCompleted = (task: any) => {
-    if (!user) return task.completed || false;
+  const isTaskCompleted = (task: TripTask) => {
+    if (!user) return false;
     const statusArray = task.task_status || [];
-    const userStatus = statusArray.find((s: any) => s.user_id === user.id);
+    const userStatus = statusArray.find(s => s.user_id === user.id);
     return userStatus?.completed || false;
   };
 
@@ -42,11 +43,11 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
     await hapticService.success();
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-    
+
     const isCompleted = isTaskCompleted(task);
     toggleTaskMutation.mutate({
       taskId,
-      completed: !isCompleted
+      completed: !isCompleted,
     });
   };
 
@@ -96,7 +97,7 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                 <p>No tasks yet. Tap + to add one!</p>
               </div>
             )}
-            {activeTasks.map((task) => (
+            {activeTasks.map(task => (
               <SwipeableListItem
                 key={task.id}
                 onDelete={() => handleDeleteTask(task.id)}
@@ -114,7 +115,9 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                       <h4 className="text-white font-medium truncate">{task.title}</h4>
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
                         {task.description && (
-                          <span className="text-xs text-gray-400 line-clamp-1 break-words min-w-0">{task.description}</span>
+                          <span className="text-xs text-gray-400 line-clamp-1 break-words min-w-0">
+                            {task.description}
+                          </span>
                         )}
                         {task.due_at && (
                           <span className="text-xs text-orange-400 flex-shrink-0">
@@ -145,14 +148,11 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
               </h3>
               <span className="text-gray-400">{showCompleted ? '−' : '+'}</span>
             </button>
-            
+
             {showCompleted && (
               <div className="space-y-3">
-                {completedTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="bg-white/5 rounded-xl p-4 opacity-60"
-                  >
+                {completedTasks.map(task => (
+                  <div key={task.id} className="bg-white/5 rounded-xl p-4 opacity-60">
                     <div className="flex items-start gap-3">
                       <button
                         onClick={() => handleToggleTask(task.id)}
@@ -163,7 +163,9 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                       <div className="flex-1 min-w-0">
                         <h4 className="text-gray-300 line-through break-words">{task.title}</h4>
                         {task.description && (
-                          <span className="text-xs text-gray-500 line-clamp-1 break-words min-w-0">{task.description}</span>
+                          <span className="text-xs text-gray-500 line-clamp-1 break-words min-w-0">
+                            {task.description}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -176,12 +178,7 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
       </div>
 
       {/* Create Task Modal - Full-featured version */}
-      {isModalOpen && (
-        <TaskCreateModal
-          tripId={tripId}
-          onClose={() => setIsModalOpen(false)}
-        />
-      )}
+      {isModalOpen && <TaskCreateModal tripId={tripId} onClose={() => setIsModalOpen(false)} />}
     </div>
   );
 };
