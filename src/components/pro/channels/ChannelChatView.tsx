@@ -3,9 +3,9 @@ import { TripChannel, ChannelMessage } from '../../../types/roleChannels';
 import { channelService } from '../../../services/channelService';
 import { useToast } from '../../../hooks/use-toast';
 import { getDemoChannelsForTrip } from '../../../data/demoChannelData';
-import { VirtualizedMessageContainer } from '../../chat/VirtualizedMessageContainer';
-import { MessageItem } from '../../chat/MessageItem';
-import { ChatInput } from '../../chat/ChatInput';
+import { VirtualizedMessageContainer } from '@/features/chat/components/VirtualizedMessageContainer';
+import { MessageItem } from '@/features/chat/components/MessageItem';
+import { ChatInput } from '@/features/chat/components/ChatInput';
 import { useAuth } from '@/hooks/useAuth';
 import { getMockAvatar } from '@/utils/mockAvatars';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Calendar as CalendarIcon, List, Download, Upload, Grid3x3 } from 'lucide-react';
-import { ViewMode } from '@/hooks/useCalendarManagement';
+import { ViewMode } from '../hooks/useCalendarManagement';
 
 interface CalendarHeaderProps {
   viewMode: ViewMode;

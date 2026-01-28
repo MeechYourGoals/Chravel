@@ -4,7 +4,7 @@ import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { ChannelWithStats } from '../../../types/channels';
 import { useChannelMessages } from '../../../hooks/useChannels';
-import { VirtualizedMessageContainer } from '../../chat/VirtualizedMessageContainer';
+import { VirtualizedMessageContainer } from '@/features/chat/components/VirtualizedMessageContainer';
 import { format } from 'date-fns';
 
 interface ChannelMessagePaneProps {

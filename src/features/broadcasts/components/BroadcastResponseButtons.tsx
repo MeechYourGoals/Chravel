@@ -1,5 +1,5 @@
 import React from 'react';
-import { ReactionType, ReactionCounts } from '../../hooks/useBroadcastReactions';
+import { ReactionType, ReactionCounts } from '../hooks/useBroadcastReactions';
 
 interface BroadcastResponseButtonsProps {
   responses: ReactionCounts;

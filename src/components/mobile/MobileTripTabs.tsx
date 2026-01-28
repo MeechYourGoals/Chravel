@@ -23,7 +23,7 @@ import type { EventData } from '../../types/events';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
 // This significantly reduces initial bundle size - tabs load on demand
-const TripChat = lazy(() => import('../TripChat').then(m => ({ default: m.TripChat })));
+const TripChat = lazy(() => import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })));
 const MobileGroupCalendar = lazy(() =>
   import('./MobileGroupCalendar').then(m => ({ default: m.MobileGroupCalendar })),
 );

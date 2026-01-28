@@ -2,7 +2,7 @@
 import React from 'react';
 import { Clock, MapPin, Users } from 'lucide-react';
 import { useBroadcastReactions, ReactionType, ReactionCounts } from '../hooks/useBroadcastReactions';
-import { BroadcastResponseButtons } from './broadcast/BroadcastResponseButtons';
+import { BroadcastResponseButtons } from './BroadcastResponseButtons';
 
 interface BroadcastProps {
   id: string;

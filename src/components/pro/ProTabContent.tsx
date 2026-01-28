@@ -15,7 +15,7 @@ import { useSuperAdmin } from '../../hooks/useSuperAdmin';
 const TripTabs = lazy(() => import('../TripTabs').then(m => ({ default: m.TripTabs })));
 const PlacesSection = lazy(() => import('../PlacesSection').then(m => ({ default: m.PlacesSection })));
 const CommentsWall = lazy(() => import('../CommentsWall').then(m => ({ default: m.CommentsWall })));
-const TripChat = lazy(() => import('../TripChat').then(m => ({ default: m.TripChat })));
+const TripChat = lazy(() => import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })));
 const AIConciergeChat = lazy(() => import('../AIConciergeChat').then(m => ({ default: m.AIConciergeChat })));
 const GroupCalendar = lazy(() => import('../GroupCalendar').then(m => ({ default: m.GroupCalendar })));
 const UnifiedMediaHub = lazy(() => import('../UnifiedMediaHub').then(m => ({ default: m.UnifiedMediaHub })));

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Plus, Megaphone, Link, Camera, Video, FileText, Loader2, Upload, Image, Film, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { PaymentInput } from '../payments/PaymentInput';
+import { PaymentInput } from '@/components/payments/PaymentInput';
 import { useShareAsset } from '@/hooks/useShareAsset';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { ParsedContentSuggestions } from './ParsedContentSuggestions';

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Button } from '../ui/button';
-import { Switch } from '../ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, ExternalLink, Settings, Download, Crown, Lock } from 'lucide-react';
-import { Badge } from '../ui/badge';
-import { CalendarEvent } from '../../types/calendar';
-import { calendarExporter } from '../../utils/calendarExport';
-import { useToast } from '../../hooks/use-toast';
-import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
+import { Badge } from '@/components/ui/badge';
+import { CalendarEvent } from '@/types/calendar';
+import { calendarExporter } from '@/utils/calendarExport';
+import { useToast } from '@/hooks/use-toast';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 
 interface CalendarSyncModalProps {
   isOpen: boolean;

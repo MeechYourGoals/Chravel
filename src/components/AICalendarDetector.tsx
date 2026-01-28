@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
-import { CalendarEventModal } from './CalendarEventModal';
+import { CalendarEventModal } from '@/features/calendar/components/CalendarEventModal';
 import { AddToCalendarData } from '../types/calendar';
 
 interface DetectedEvent {

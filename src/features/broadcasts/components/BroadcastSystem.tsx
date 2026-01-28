@@ -1,8 +1,8 @@
 import React from 'react';
 import { Radio } from 'lucide-react';
 import { BroadcastComposer } from './BroadcastComposer';
-import { BroadcastList } from './broadcast/BroadcastList';
-import { BroadcastFilters } from './broadcast/BroadcastFilters';
+import { BroadcastList } from './BroadcastList';
+import { BroadcastFilters } from './BroadcastFilters';
 import { useBroadcastFilters } from '../hooks/useBroadcastFilters';
 
 interface BroadcastSystemProps {

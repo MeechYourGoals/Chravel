@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useChatMessageParser } from './useChatMessageParser';
-import { getMockAvatar } from '../utils/mockAvatars';
-import { useAuth } from './useAuth';
+import { getMockAvatar } from '@/utils/mockAvatars';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface ChatMessage {
   id: string;

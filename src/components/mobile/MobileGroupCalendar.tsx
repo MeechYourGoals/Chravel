@@ -27,8 +27,8 @@ import {
   isSameMonth,
 } from 'date-fns';
 import { CreateEventModal } from './CreateEventModal';
-import { ICSImportModal } from '../calendar/ICSImportModal';
-import { useCalendarEvents } from '../../hooks/useCalendarEvents';
+import { ICSImportModal } from '@/features/calendar/components/ICSImportModal';
+import { useCalendarEvents } from '@/features/calendar/hooks/useCalendarEvents';
 import { toast } from 'sonner';
 import { calendarExporter } from '../../utils/calendarExport';
 import { openOrDownloadBlob } from '../../utils/download';

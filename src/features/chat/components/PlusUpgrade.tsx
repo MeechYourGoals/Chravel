@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Crown, Sparkles, Send, MessageCircle } from 'lucide-react';
-import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
-import { useTripVariant } from '../../contexts/TripVariantContext';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
+import { useTripVariant } from '@/contexts/TripVariantContext';
 
 export const PlusUpgrade = () => {
   const { upgradeToPlus } = useConsumerSubscription();

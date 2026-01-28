@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CalendarEvent, AddToCalendarData } from '@/types/calendar';
 import { calendarService, TripEvent } from '@/services/calendarService';
 import { demoModeService } from '@/services/demoModeService';
-import { useDemoMode } from './useDemoMode';
-import { useToast } from './use-toast';
+import { useDemoMode } from '@/hooks/useDemoMode';
+import { useToast } from '@/hooks/use-toast';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { withTimeout } from '@/utils/timeout';
 

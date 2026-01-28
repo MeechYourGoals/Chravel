@@ -3,7 +3,7 @@ import { MessageCircle, Users, Calendar, Camera, Radio, Link, BarChart3, FileTex
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 // 🚀 Lazy load tab components for faster initial render
-const TripChat = lazy(() => import('./TripChat').then(m => ({ default: m.TripChat })));
+const TripChat = lazy(() => import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })));
 const GroupCalendar = lazy(() => import('./GroupCalendar').then(m => ({ default: m.GroupCalendar })));
 const CommentsWall = lazy(() => import('./CommentsWall').then(m => ({ default: m.CommentsWall })));
 const TripTasksTab = lazy(() => import('./todo/TripTasksTab').then(m => ({ default: m.TripTasksTab })));

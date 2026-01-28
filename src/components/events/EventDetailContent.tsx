@@ -9,7 +9,7 @@ import { useTripVariant } from '../../contexts/TripVariantContext';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
 // This significantly reduces initial bundle size - tabs load on demand
-const TripChat = lazy(() => import('../TripChat').then(m => ({ default: m.TripChat })));
+const TripChat = lazy(() => import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })));
 const GroupCalendar = lazy(() => import('../GroupCalendar').then(m => ({ default: m.GroupCalendar })));
 const UnifiedMediaHub = lazy(() => import('../UnifiedMediaHub').then(m => ({ default: m.UnifiedMediaHub })));
 const CommentsWall = lazy(() => import('../CommentsWall').then(m => ({ default: m.CommentsWall })));
