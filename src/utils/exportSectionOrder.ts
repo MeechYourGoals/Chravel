@@ -1,14 +1,14 @@
 import type { ExportSection } from '@/types/tripExport';
 
 export const DEFAULT_EXPORT_SECTION_ORDER: ExportSection[] = [
+  'attachments',
+  'broadcasts',
   'calendar',
   'payments',
-  'polls',
   'places',
-  'attachments',
-  'tasks',
-  'broadcasts',
+  'polls',
   'roster',
+  'tasks',
 ];
 
 export const orderExportSections = (sections: ExportSection[]): ExportSection[] => {

@@ -59,8 +59,8 @@ export async function getTripData(
   // Fetch sections based on request
   console.log('[EXPORT-DATA] Fetching sections:', sections);
   
-  if (sections.includes('roster') && layout === 'pro') {
-    console.log('[EXPORT-DATA] Fetching roster (Pro only)');
+  if (sections.includes('roster')) {
+    console.log('[EXPORT-DATA] Fetching roster');
     data.roster = await fetchRoster(supabase, tripId, privacyRedaction);
   }
 
@@ -92,8 +92,8 @@ export async function getTripData(
     data.places = await fetchPlaces(supabase, tripId, user?.id);
   }
 
-  if (sections.includes('broadcasts') && layout === 'pro') {
-    console.log('[EXPORT-DATA] Fetching broadcasts (Pro only)');
+  if (sections.includes('broadcasts')) {
+    console.log('[EXPORT-DATA] Fetching broadcasts');
     data.broadcasts = await fetchBroadcasts(supabase, tripId);
   }
 
@@ -465,18 +465,40 @@ async function fetchPlaces(
 }
 
 async function fetchBroadcasts(supabase: SupabaseClient, tripId: string) {
-  const { data: broadcasts } = await supabase
+  const { data: broadcasts, error } = await supabase
     .from('broadcasts')
-    .select('created_at, priority, message, read_rate')
+    .select(`
+      id,
+      created_at,
+      priority,
+      message,
+      sender:profiles!created_by(display_name)
+    `)
     .eq('trip_id', tripId)
+    .eq('is_sent', true)
     .order('created_at', { ascending: false });
 
-  return (broadcasts || []).map(b => ({
+  if (error) {
+    console.error('[EXPORT-DATA] Error fetching broadcasts:', error);
+    return [];
+  }
+
+  console.log('[EXPORT-DATA] Found', (broadcasts || []).length, 'broadcasts');
+
+  return (broadcasts || []).map((b: any) => ({
+    sender: b.sender?.display_name || 'Unknown',
     ts: formatDateTime(b.created_at),
-    priority: b.priority as 'Low' | 'Normal' | 'High',
+    priority: mapPriority(b.priority),
     message: b.message || '',
-    readRate: b.read_rate || undefined,
   }));
+}
+
+function mapPriority(priority: string | null): 'Low' | 'Normal' | 'High' {
+  if (!priority) return 'Normal';
+  const p = priority.toLowerCase();
+  if (p === 'high' || p === 'urgent') return 'High';
+  if (p === 'low') return 'Low';
+  return 'Normal';
 }
 
 function classifyAttachmentType(opts: { filename?: string; mimeType?: string; rawType?: string }): string {

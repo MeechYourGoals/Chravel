@@ -73,10 +73,10 @@ export interface PollItem {
 }
 
 export interface BroadcastItem {
+  sender: string;
   ts: string;
   priority?: 'Low' | 'Normal' | 'High';
   message: string;
-  readRate?: string;
 }
 
 export interface AttachmentItem {
