@@ -17,11 +17,15 @@ export interface VersionedEntity {
 /**
  * Check if an error indicates a version conflict
  */
-export function isVersionConflict(error: any): boolean {
+export function isVersionConflict(error: unknown): boolean {
   if (!error) return false;
 
-  const errorMessage = error.message?.toLowerCase() || '';
-  const errorCode = error.code || '';
+  // Check for OptimisticLockError first
+  if (error instanceof OptimisticLockError) return true;
+
+  // Type guard for error-like objects
+  const errorMessage = (error instanceof Error ? error.message : '').toLowerCase();
+  const errorCode = (error as { code?: string })?.code || '';
 
   return (
     errorMessage.includes('version') ||
@@ -29,22 +33,22 @@ export function isVersionConflict(error: any): boolean {
     errorMessage.includes('modified by another user') ||
     errorMessage.includes('concurrent modification') ||
     errorCode === 'P0001' || // PostgreSQL exception code
-    errorCode === '23505' || // Unique violation (can indicate conflict)
-    error instanceof OptimisticLockError
+    errorCode === '23505' // Unique violation (can indicate conflict)
   );
 }
 
 /**
  * Extract version from entity or error response
  */
-export function extractVersion(entity: VersionedEntity | null, error?: any): number {
+export function extractVersion(entity: VersionedEntity | null, error?: unknown): number {
   if (entity?.version !== null && entity?.version !== undefined) {
     return entity.version;
   }
 
   // Try to extract from error response
-  if (error?.data?.version !== null && error?.data?.version !== undefined) {
-    return error.data.version;
+  const errorData = (error as { data?: { version?: number } })?.data;
+  if (errorData?.version !== null && errorData?.version !== undefined) {
+    return errorData.version;
   }
 
   // Default to 1 if no version found
