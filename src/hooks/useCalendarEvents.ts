@@ -9,7 +9,7 @@ import { withTimeout } from '@/utils/timeout';
 
 /**
  * ⚡ PERFORMANCE: TanStack Query-based calendar events hook
- * 
+ *
  * Benefits over previous useState/useEffect approach:
  * - Automatic caching across tab switches (instant re-renders)
  * - Deduplication of identical requests
@@ -30,11 +30,12 @@ export const useCalendarEvents = (tripId?: string) => {
     refetch,
   } = useQuery({
     queryKey: tripKeys.calendar(tripId || ''),
-    queryFn: () => withTimeout(
-      calendarService.getTripEvents(tripId!),
-      10000,
-      'Failed to load calendar events: Timeout'
-    ),
+    queryFn: () =>
+      withTimeout(
+        calendarService.getTripEvents(tripId!),
+        10000,
+        'Failed to load calendar events: Timeout',
+      ),
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
@@ -55,24 +56,21 @@ export const useCalendarEvents = (tripId?: string) => {
           table: 'trip_events',
           filter: `trip_id=eq.${tripId}`,
         },
-        (payload) => {
+        payload => {
           // Update cache directly for instant UI updates
-          queryClient.setQueryData<TripEvent[]>(
-            tripKeys.calendar(tripId),
-            (oldEvents = []) => {
-              if (payload.eventType === 'INSERT') {
-                return [...oldEvents, payload.new as TripEvent];
-              } else if (payload.eventType === 'UPDATE') {
-                return oldEvents.map(event =>
-                  event.id === payload.new.id ? (payload.new as TripEvent) : event
-                );
-              } else if (payload.eventType === 'DELETE') {
-                return oldEvents.filter(event => event.id !== payload.old.id);
-              }
-              return oldEvents;
+          queryClient.setQueryData<TripEvent[]>(tripKeys.calendar(tripId), (oldEvents = []) => {
+            if (payload.eventType === 'INSERT') {
+              return [...oldEvents, payload.new as TripEvent];
+            } else if (payload.eventType === 'UPDATE') {
+              return oldEvents.map(event =>
+                event.id === payload.new.id ? (payload.new as TripEvent) : event,
+              );
+            } else if (payload.eventType === 'DELETE') {
+              return oldEvents.filter(event => event.id !== payload.old.id);
             }
-          );
-        }
+            return oldEvents;
+          });
+        },
       )
       .subscribe();
 
@@ -87,7 +85,7 @@ export const useCalendarEvents = (tripId?: string) => {
       const result = await calendarService.createEvent(eventData);
       return result.event;
     },
-    onMutate: async (newEvent) => {
+    onMutate: async newEvent => {
       await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId || '') });
       const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId || ''));
 
@@ -108,10 +106,10 @@ export const useCalendarEvents = (tripId?: string) => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        queryClient.setQueryData<TripEvent[]>(
-          tripKeys.calendar(tripId),
-          [...previousEvents, optimisticEvent]
-        );
+        queryClient.setQueryData<TripEvent[]>(tripKeys.calendar(tripId), [
+          ...previousEvents,
+          optimisticEvent,
+        ]);
       }
       return { previousEvents };
     },
@@ -140,9 +138,7 @@ export const useCalendarEvents = (tripId?: string) => {
       if (previousEvents && tripId) {
         queryClient.setQueryData<TripEvent[]>(
           tripKeys.calendar(tripId),
-          previousEvents.map(event =>
-            event.id === eventId ? { ...event, ...updates } : event
-          )
+          previousEvents.map(event => (event.id === eventId ? { ...event, ...updates } : event)),
         );
       }
       return { previousEvents };
@@ -160,14 +156,14 @@ export const useCalendarEvents = (tripId?: string) => {
       await calendarService.deleteEvent(eventId, tripId);
       return eventId;
     },
-    onMutate: async (eventId) => {
+    onMutate: async eventId => {
       await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId || '') });
       const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId || ''));
 
       if (previousEvents && tripId) {
         queryClient.setQueryData<TripEvent[]>(
           tripKeys.calendar(tripId),
-          previousEvents.filter(event => event.id !== eventId)
+          previousEvents.filter(event => event.id !== eventId),
         );
       }
       return { previousEvents };
@@ -189,7 +185,9 @@ export const useCalendarEvents = (tripId?: string) => {
     }
   };
 
-  const createEventFromCalendar = async (calendarEvent: CalendarEvent): Promise<TripEvent | null> => {
+  const createEventFromCalendar = async (
+    calendarEvent: CalendarEvent,
+  ): Promise<TripEvent | null> => {
     if (!tripId) return null;
     const eventData = calendarService.convertFromCalendarEvent(calendarEvent, tripId);
     return createEvent(eventData);
@@ -224,6 +222,7 @@ export const useCalendarEvents = (tripId?: string) => {
   return {
     events,
     loading,
+    error,
     createEvent,
     createEventFromCalendar,
     updateEvent,

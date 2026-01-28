@@ -32,6 +32,7 @@ import { useCalendarEvents } from '../../hooks/useCalendarEvents';
 import { toast } from 'sonner';
 import { calendarExporter } from '../../utils/calendarExport';
 import { openOrDownloadBlob } from '../../utils/download';
+import { useLoadingTimeout } from '@/hooks/useLoadingTimeout';
 
 interface CalendarEvent {
   id: string;
@@ -112,10 +113,12 @@ export const MobileGroupCalendar = ({
   const {
     events: tripEvents,
     loading,
+    error,
     refreshEvents,
     deleteEvent,
     updateEvent,
   } = useCalendarEvents(tripId);
+  const loadingTimedOut = useLoadingTimeout(loading, 10000);
 
   // Convert TripEvent[] to CalendarEvent[] format for UI
   const events = useMemo(() => {
@@ -259,6 +262,33 @@ export const MobileGroupCalendar = ({
   const handleCloseEventDetail = useCallback(() => {
     setSelectedEvent(null);
   }, []);
+
+  if (loadingTimedOut || error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unable to load calendar events.';
+    return (
+      <div className="flex flex-col h-full bg-black relative">
+        <div className="flex-1 flex items-center justify-center px-6 text-center">
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold text-white">Calendar unavailable</h3>
+            <p className="text-sm text-gray-400">
+              {loadingTimedOut
+                ? 'Loading is taking longer than expected. Please try again.'
+                : errorMessage}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                void refreshEvents();
+              }}
+              className="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-black relative">

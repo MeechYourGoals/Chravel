@@ -22,6 +22,7 @@ import { getTripById, generateTripMockData } from '@/data/tripsData';
 import { toast } from 'sonner';
 import { cacheEntity, getCachedEntity } from '@/offline/cache';
 import { withTimeout } from '@/utils/timeout';
+import { useLoadingTimeout } from '@/hooks/useLoadingTimeout';
 
 interface PlacesSectionProps {
   tripId?: string;
@@ -52,6 +53,8 @@ export const PlacesSection = ({
   const [linkedPlaceIds, setLinkedPlaceIds] = useState<Set<string>>(new Set());
   const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
+  const [isPlacesLoading, setIsPlacesLoading] = useState(true);
+  const [placesError, setPlacesError] = useState<string | null>(null);
   // Reserved for personal basecamp modal
   const [_showPersonalBasecampSelector, setShowPersonalBasecampSelector] = useState(false);
 
@@ -67,6 +70,8 @@ export const PlacesSection = ({
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isMapLoading, setIsMapLoading] = useState(true);
+  const placesLoadingTimedOut = useLoadingTimeout(isPlacesLoading, 10000);
+  const mapLoadingTimedOut = useLoadingTimeout(isMapLoading, 10000);
   // Distance settings for display purposes (basecamp distances are no longer calculated)
   const distanceSettings: DistanceCalculationSettings = {
     preferredMode: 'driving',
@@ -123,7 +128,13 @@ export const PlacesSection = ({
 
   // Load places data on mount
   useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+    const isActive = () => mounted && !controller.signal.aborted;
+
     const loadPlaces = async () => {
+      setIsPlacesLoading(true);
+      setPlacesError(null);
       const cacheKey = `${tripId}:places`;
       const cached = await getCachedEntity({ entityType: 'trip_links', entityId: cacheKey });
       const cachedPlaces = (cached?.data as PlaceWithDistance[] | undefined) ?? [];
@@ -152,88 +163,102 @@ export const PlacesSection = ({
         }));
       };
 
-      if (isDemoMode) {
-        // Load city-specific links from tripsData for demo mode
-        try {
+      try {
+        if (isDemoMode) {
+          // Load city-specific links from tripsData for demo mode
           const demoPlaces = await loadDemoPlacesFromTripsData();
-          setPlaces(demoPlaces);
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('Failed to load demo places:', error);
+          if (isActive()) {
+            setPlaces(demoPlaces);
           }
-        }
-      } else {
-        // If offline, prefer cached.
-        if (navigator.onLine === false && cachedPlaces.length > 0) {
-          setPlaces(cachedPlaces);
-          return;
-        }
-
-        // Load real data for authenticated users
-        const { data, error } = await withTimeout(
-          supabase
-            .from('trip_link_index')
-            .select('*')
-            .eq('trip_id', tripId),
-          10000,
-          'Failed to load places: Timeout'
-        ).catch(err => ({ data: null, error: err }));
-
-        if (error) {
-          if (import.meta.env.DEV) {
-            console.error('Failed to load places:', error);
+        } else {
+          // If offline, prefer cached.
+          if (navigator.onLine === false && cachedPlaces.length > 0) {
+            if (isActive()) {
+              setPlaces(cachedPlaces);
+            }
+            return;
           }
-          if (cachedPlaces.length > 0) {
-            setPlaces(cachedPlaces);
+
+          // Load real data for authenticated users
+          const { data, error } = await withTimeout(
+            supabase.from('trip_link_index').select('*').eq('trip_id', tripId),
+            10000,
+            'Failed to load places: Timeout',
+          ).catch(err => ({ data: null, error: err }));
+
+          if (error) {
+            if (isActive()) {
+              setPlacesError(error instanceof Error ? error.message : 'Failed to load places.');
+            }
+            if (cachedPlaces.length > 0 && isActive()) {
+              setPlaces(cachedPlaces);
+            }
+            return;
           }
-          return;
+
+          // If DB is empty, fallback to tripsData for mock trips
+          if (!data || data.length === 0) {
+            const fallbackPlaces = await loadDemoPlacesFromTripsData();
+            if (isActive()) {
+              setPlaces(fallbackPlaces);
+            }
+            return;
+          }
+
+          const placesWithDistance: PlaceWithDistance[] = data.map(link => {
+            const placeIdMatch = link.og_description?.match(/place_id:([^ |]+)/);
+            const placeId = placeIdMatch ? placeIdMatch[1] : link.id.toString();
+
+            const coordsMatch = link.og_description?.match(/coords:([^,]+),([^ |]+)/);
+            const coordinates = coordsMatch
+              ? { lat: parseFloat(coordsMatch[1]), lng: parseFloat(coordsMatch[2]) }
+              : undefined;
+
+            const categoryMatch = link.og_description?.match(/category:([^ |]+)/);
+            const category = categoryMatch ? categoryMatch[1] : 'other';
+
+            const addressMatch = link.og_description?.match(/Saved from Places: ([^|]+)/);
+            const address = addressMatch ? addressMatch[1].trim() : '';
+
+            return {
+              id: placeId,
+              name: link.og_title || 'Unnamed Place',
+              address: address,
+              coordinates: coordinates,
+              category: category as any,
+              rating: 0,
+              url: link.url || '',
+            };
+          });
+          if (isActive()) {
+            setPlaces(placesWithDistance);
+          }
+
+          // Cache for offline access (best-effort).
+          await cacheEntity({
+            entityType: 'trip_links',
+            entityId: cacheKey,
+            tripId,
+            data: placesWithDistance,
+          });
         }
-
-        // If DB is empty, fallback to tripsData for mock trips
-        if (!data || data.length === 0) {
-          const fallbackPlaces = await loadDemoPlacesFromTripsData();
-          setPlaces(fallbackPlaces);
-          return;
+      } catch (error) {
+        if (isActive()) {
+          setPlacesError(error instanceof Error ? error.message : 'Failed to load places.');
         }
-
-        const placesWithDistance: PlaceWithDistance[] = data.map(link => {
-          const placeIdMatch = link.og_description?.match(/place_id:([^ |]+)/);
-          const placeId = placeIdMatch ? placeIdMatch[1] : link.id.toString();
-
-          const coordsMatch = link.og_description?.match(/coords:([^,]+),([^ |]+)/);
-          const coordinates = coordsMatch
-            ? { lat: parseFloat(coordsMatch[1]), lng: parseFloat(coordsMatch[2]) }
-            : undefined;
-
-          const categoryMatch = link.og_description?.match(/category:([^ |]+)/);
-          const category = categoryMatch ? categoryMatch[1] : 'other';
-
-          const addressMatch = link.og_description?.match(/Saved from Places: ([^|]+)/);
-          const address = addressMatch ? addressMatch[1].trim() : '';
-
-          return {
-            id: placeId,
-            name: link.og_title || 'Unnamed Place',
-            address: address,
-            coordinates: coordinates,
-            category: category as any,
-            rating: 0,
-            url: link.url || '',
-          };
-        });
-        setPlaces(placesWithDistance);
-
-        // Cache for offline access (best-effort).
-        await cacheEntity({
-          entityType: 'trip_links',
-          entityId: cacheKey,
-          tripId,
-          data: placesWithDistance,
-        });
+      } finally {
+        if (mounted) {
+          setIsPlacesLoading(false);
+        }
       }
     };
 
     loadPlaces();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
   }, [tripId, isDemoMode]);
 
   // Trip basecamp is now loaded by useTripBasecamp hook - no manual loading needed
@@ -493,6 +518,25 @@ export const PlacesSection = ({
 
       {/* Tab Content - ABOVE map */}
       <div className="w-full px-0 mb-2 md:mb-6">
+        {(placesError || placesLoadingTimedOut || mapLoadingTimedOut) && (
+          <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
+            <p className="font-semibold text-amber-100">Places may be unavailable</p>
+            <p className="mt-1 text-amber-100/80">
+              {placesError
+                ? placesError
+                : placesLoadingTimedOut
+                  ? 'Places data is taking longer than expected. Please try again.'
+                  : 'Map is taking longer than expected. Please try again.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-2 inline-flex items-center justify-center rounded-md bg-amber-500/20 px-2.5 py-1 text-[11px] font-medium text-amber-100 hover:bg-amber-500/30"
+            >
+              Reload
+            </button>
+          </div>
+        )}
         {activeTab === 'basecamps' && (
           <BasecampsPanel
             tripId={tripId}

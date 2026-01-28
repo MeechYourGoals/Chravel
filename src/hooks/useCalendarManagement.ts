@@ -43,14 +43,16 @@ export const useCalendarManagement = (tripId: string) => {
   const {
     data: tripEvents = [],
     isLoading,
+    error,
     refetch: refreshEvents,
   } = useQuery({
     queryKey: tripKeys.calendar(tripId),
-    queryFn: () => withTimeout(
-      calendarService.getTripEvents(tripId),
-      10000,
-      'Failed to load calendar events: Timeout'
-    ),
+    queryFn: () =>
+      withTimeout(
+        calendarService.getTripEvents(tripId),
+        10000,
+        'Failed to load calendar events: Timeout',
+      ),
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
@@ -433,6 +435,7 @@ export const useCalendarManagement = (tripId: string) => {
     deleteEvent,
     resetForm,
     isLoading,
+    error,
     isSaving,
     // Expose refresh function
     refreshEvents,

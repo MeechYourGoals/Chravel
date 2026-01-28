@@ -12,6 +12,7 @@ import { exportTripEventsToICal } from '@/services/calendarSync';
 import { useToast } from '@/hooks/use-toast';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useLoadingTimeout } from '@/hooks/useLoadingTimeout';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -39,6 +40,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     deleteEvent,
     resetForm,
     isLoading,
+    error,
     isSaving,
     refreshEvents,
   } = useCalendarManagement(tripId);
@@ -46,6 +48,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   const { canPerformAction } = useRolePermissions(tripId);
   // Demo mode available for future conditional rendering
   const { isDemoMode: _isDemoMode } = useDemoMode();
+  const loadingTimedOut = useLoadingTimeout(isLoading, 10000);
 
   // ICS Import modal state
   const [showImportModal, setShowImportModal] = useState(false);
@@ -136,6 +139,31 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       <div className="p-6">
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6 text-center text-muted-foreground">
           Trip calendar is unavailable without a valid trip.
+        </div>
+      </div>
+    );
+  }
+
+  if (loadingTimedOut || error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unable to load calendar events.';
+    return (
+      <div className="p-6">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-6 text-center text-muted-foreground space-y-3">
+          <h3 className="text-base font-semibold text-foreground">Calendar unavailable</h3>
+          <p className="text-sm">
+            {loadingTimedOut
+              ? 'Loading is taking longer than expected. Please try again.'
+              : errorMessage}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              void refreshEvents();
+            }}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Try again
+          </button>
         </div>
       </div>
     );
