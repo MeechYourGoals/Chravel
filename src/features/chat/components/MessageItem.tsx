@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from 'react';
-import { ChatMessage } from '@/hooks/useChatComposer';
+import { ChatMessage } from '../hooks/useChatComposer';
 import { ChatMessageWithGrounding } from '@/types/grounding';
 import { MessageBubble } from './MessageBubble';
 import { SystemMessageBubble } from './SystemMessageBubble';
