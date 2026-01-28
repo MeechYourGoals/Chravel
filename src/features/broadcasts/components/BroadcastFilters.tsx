@@ -1,7 +1,7 @@
 import React from 'react';
 import { Filter, X } from 'lucide-react';
-import { Button } from '../ui/button';
-import { BroadcastPriority } from '../../hooks/useBroadcastFilters';
+import { Button } from '@/components/ui/button';
+import { BroadcastPriority } from '../hooks/useBroadcastFilters';
 
 interface BroadcastFiltersProps {
   priority: BroadcastPriority;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Plus } from 'lucide-react';
 import { Button } from './ui/button';
-import { CalendarEventModal } from './CalendarEventModal';
+import { CalendarEventModal } from '@/features/calendar/components/CalendarEventModal';
 import { AddToCalendarData } from '../types/calendar';
 
 interface AddToCalendarButtonProps {

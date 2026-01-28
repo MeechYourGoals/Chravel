@@ -5,9 +5,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '../ui/select';
+} from '@/components/ui/select';
 import { Hash, Lock, Users, MessageSquare } from 'lucide-react';
-import { RoleChannel } from '../../services/roleChannelService';
+import { RoleChannel } from '@/services/roleChannelService';
 
 interface ChannelSwitcherProps {
   activeChannel: 'main' | string; // 'main' or channel ID

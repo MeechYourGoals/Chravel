@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, X } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 
 interface BroadcastSchedulerProps {
   scheduledFor: Date | null;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, Plus } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { useTripVariant } from '@/contexts/TripVariantContext';
 
 interface CalendarEmptyStateProps {

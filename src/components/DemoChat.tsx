@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { MessageCircle } from 'lucide-react';
-import { MessageItem } from './chat/MessageItem';
-import { VirtualizedMessageContainer } from './chat/VirtualizedMessageContainer';
-import { useUnifiedMessages } from '@/hooks/useUnifiedMessages';
-import { ChatInput } from './chat/ChatInput';
-import { ChatMessage } from '@/hooks/useChatComposer';
+import { MessageItem } from '@/features/chat/components/MessageItem';
+import { VirtualizedMessageContainer } from '@/features/chat/components/VirtualizedMessageContainer';
+import { useUnifiedMessages } from '@/features/chat/hooks/useUnifiedMessages';
+import { ChatInput } from '@/features/chat/components/ChatInput';
+import { ChatMessage } from '@/features/chat/hooks/useChatComposer';
 import { useShareAsset } from '@/hooks/useShareAsset';
 
 interface DemoChatProps {

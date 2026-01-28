@@ -1,12 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { Send, MapPin, Languages, Calendar, Image, X } from 'lucide-react';
-import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { RecipientSelector } from './broadcast/RecipientSelector';
-import { BroadcastScheduler } from './broadcast/BroadcastScheduler';
-import { broadcastService } from '../services/broadcastService';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RecipientSelector } from './RecipientSelector';
+import { BroadcastScheduler } from './BroadcastScheduler';
+import { broadcastService } from '@/services/broadcastService';
 import { toast } from 'sonner';
-import { useBroadcastComposer } from '@/hooks/useBroadcastComposer';
+import { useBroadcastComposer } from '../hooks/useBroadcastComposer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BroadcastComposer } from './BroadcastComposer';
-import { BroadcastList } from './broadcast/BroadcastList';
-import { BroadcastFilters } from './broadcast/BroadcastFilters';
+import { BroadcastList } from './BroadcastList';
+import { BroadcastFilters } from './BroadcastFilters';
 import { Radio, Clock } from 'lucide-react';
-import { beyonceCowboyCarterTour } from '../data/pro-trips/beyonceCowboyCarterTour';
+import { beyonceCowboyCarterTour } from '@/data/pro-trips/beyonceCowboyCarterTour';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useParams } from 'react-router-dom';
 import { detectTripTier } from '@/utils/tripTierDetector';
-import { useBroadcastFilters } from '@/hooks/useBroadcastFilters';
+import { useBroadcastFilters } from '../hooks/useBroadcastFilters';
 
 const participants = beyonceCowboyCarterTour.participants;
 

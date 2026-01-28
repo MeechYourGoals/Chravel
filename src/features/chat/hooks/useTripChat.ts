@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from './use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { rateLimiter } from '@/utils/concurrencyUtils';
 import { InputValidator } from '@/utils/securityUtils';
 import { processQueue } from '@/services/offlineMessageQueue';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
-import { useOfflineStatus } from './useOfflineStatus';
+import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { sendChatMessage } from '@/services/chatService';
 
 interface TripChatMessage {
