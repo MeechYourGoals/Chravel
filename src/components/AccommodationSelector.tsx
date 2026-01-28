@@ -58,9 +58,9 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
       // Load personal accommodation
       const personal = await personalAccommodationService.getUserAccommodation(tripId, user.id);
       setPersonalAccommodation(personal);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load accommodations:', err);
-      setError(err?.message || 'Failed to load accommodations. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to load accommodations. Please try again.');
     } finally {
       setLoading(false);
     }

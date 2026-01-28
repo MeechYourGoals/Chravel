@@ -106,11 +106,11 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
       });
 
       onTimezoneChange?.(selectedTimezone);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating timezone:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update timezone',
+        description: error instanceof Error ? error.message : 'Failed to update timezone',
         variant: 'destructive'
       });
     } finally {

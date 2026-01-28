@@ -75,11 +75,11 @@ export const ReportMemberModal: React.FC<ReportMemberModalProps> = ({
       onReportSubmitted?.();
       onClose();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error submitting report:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to submit report. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to submit report. Please try again.',
         variant: 'destructive'
       });
     } finally {

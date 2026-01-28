@@ -75,9 +75,9 @@ export function useMediaSync(tripId: string) {
             setLinks(prev => [row, ...prev]);
           },
         });
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to load media:', err);
-        setError(err.message || 'Failed to load media');
+        setError(err instanceof Error ? err.message : 'Failed to load media');
       } finally {
         setIsLoading(false);
       }

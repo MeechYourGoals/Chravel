@@ -103,8 +103,8 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
         size: mediaItem.file_size || file.size,
         mimeType: mediaItem.mime_type || file.type
       };
-    } catch (error: any) {
-      updateProgress(fileId, 0, 'error', error.message);
+    } catch (error) {
+      updateProgress(fileId, 0, 'error', error instanceof Error ? error.message : 'Upload failed');
       throw error;
     }
   };

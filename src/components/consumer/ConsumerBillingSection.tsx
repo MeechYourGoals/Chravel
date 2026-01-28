@@ -21,8 +21,8 @@ export const ConsumerBillingSection = () => {
       } else {
         toast.error('No portal URL received');
       }
-    } catch (error: any) {
-      toast.error(`Failed to open customer portal: ${error.message}`);
+    } catch (error) {
+      toast.error(`Failed to open customer portal: ${error instanceof Error ? error.message : 'Unknown error'}`);
       console.error(error);
     }
   };
@@ -42,8 +42,8 @@ export const ConsumerBillingSection = () => {
       } else {
         toast.error('No portal URL received');
       }
-    } catch (error: any) {
-      toast.error(`Failed to open cancellation page: ${error.message}`);
+    } catch (error) {
+      toast.error(`Failed to open cancellation page: ${error instanceof Error ? error.message : 'Unknown error'}`);
       console.error(error);
     }
   };

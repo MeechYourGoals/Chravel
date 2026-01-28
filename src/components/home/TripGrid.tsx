@@ -139,8 +139,8 @@ export const TripGrid = React.memo(
           else if (viewMode === 'events') combined = data.events;
           setArchivedTrips(combined);
         }
-      } catch (error: any) {
-        if (error.message === 'TRIP_LIMIT_REACHED') {
+      } catch (error) {
+        if (error instanceof Error && error.message === 'TRIP_LIMIT_REACHED') {
           setShowUpgradeModal(true);
         } else {
           toast({
