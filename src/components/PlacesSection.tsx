@@ -170,14 +170,10 @@ export const PlacesSection = ({
         }
 
         // Load real data for authenticated users
-        const { data, error } = await withTimeout(
-          supabase
-            .from('trip_link_index')
-            .select('*')
-            .eq('trip_id', tripId),
-          10000,
-          'Failed to load places: Timeout'
-        ).catch(err => ({ data: null, error: err }));
+        const { data, error } = await supabase
+          .from('trip_link_index')
+          .select('*')
+          .eq('trip_id', tripId);
 
         if (error) {
           if (import.meta.env.DEV) {
