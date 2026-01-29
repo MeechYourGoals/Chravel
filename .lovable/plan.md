@@ -1,218 +1,213 @@
 
-# PDF Recap Export Fixes
+# Trip Tab Performance & Bounce-Back Fix Plan
 
-## Issues to Fix
+## Root Cause Analysis
 
-| Issue | Current State | Fix Required |
-|-------|---------------|--------------|
-| Broadcasts missing from PDF | Query selects non-existent `read_rate` column; doesn't fetch sender name | Fix query to join `profiles` for sender; remove `read_rate` |
-| Broadcasts restricted to Pro only | Both `data.ts` and `template.ts` check `layout === 'pro'` | Remove layout restriction - broadcasts work for all trips |
-| Section order not alphabetical | calendar, payments, polls, places, attachments, tasks, broadcasts, roster | Alphabetical: attachments, broadcasts, calendar, payments, places, polls, roster, tasks |
-| "Roster" should say "Trip Members" | PDF says "Roster & Contacts" for all trip types | Change to "Trip Members" universally |
-| Empty sections look bland | No section wrapper when section is empty | Always render section wrapper with "No X available" message in proper styled container |
+After extensive codebase analysis, I've identified the **primary cause** of the symptoms:
+
+### Why Tabs "Bounce Back to Chat"
+
+When a tab component (Concierge, Media, Payments, Places) **throws an error during render**, the `ErrorBoundary` catches it and displays an error UI. However, the error boundary is placed **inside** `MobileTripTabs` wrapping ALL tab content at once (line 337), not around each individual tab. When a tab throws:
+
+1. User clicks "Concierge"
+2. Concierge component starts loading
+3. Concierge throws an error (API failure, missing data, etc.)
+4. ErrorBoundary catches the error and re-renders
+5. **On reset**, `errorBoundaryKey` increments but **`activeTab` stays as the last tab that worked** (often 'chat')
+6. User appears to "bounce back" to chat
+
+### Why You See White Flashes
+
+The `Suspense` fallback shows a spinner, but there's a race condition:
+- Tab content starts loading (shows spinner)
+- Component throws an error before suspense resolves
+- Error boundary catches it → brief white/blank state
+- Recovery sets state back to working tab
+
+### Why Payments Gets Stuck
+
+The `MobileTripPayments` component calls `paymentService.getTripPaymentMessages(tripId)` which makes a Supabase query. If the query times out or fails silently (no error thrown, just hangs), the spinner never goes away.
 
 ---
 
-## File Changes
+## The Fixes
 
-### 1. Fix Section Order (`src/utils/exportSectionOrder.ts`)
+### Fix 1: Per-Tab Error Boundaries (Critical)
 
-**Change:** Reorder to alphabetical
-```typescript
-export const DEFAULT_EXPORT_SECTION_ORDER: ExportSection[] = [
-  'attachments',
-  'broadcasts',
-  'calendar', 
-  'payments',
-  'places',
-  'polls',
-  'roster',
-  'tasks',
-];
+**Problem**: Single ErrorBoundary around all tabs causes one failing tab to affect navigation.
+
+**Solution**: Wrap each tab's content in its own `FeatureErrorBoundary` so failures are isolated.
+
+**File**: `src/components/mobile/MobileTripTabs.tsx`
+
+**Current** (line 337):
+```tsx
+<ErrorBoundary key={`${activeTab}-${errorBoundaryKey}`} compact onRetry={handleErrorRetry}>
+  {tabs.filter(t => t.enabled !== false).map(tab => { ... })}
+</ErrorBoundary>
 ```
 
+**Change to**: Move ErrorBoundary inside each tab's render:
+```tsx
+{tabs.filter(t => t.enabled !== false).map(tab => {
+  const isActive = activeTab === tab.id;
+  const hasBeenVisited = visitedTabs.has(tab.id);
+  if (!hasBeenVisited) return null;
+  
+  return (
+    <div key={tab.id} style={{ display: isActive ? 'flex' : 'none', ... }}>
+      <Suspense fallback={<TabSkeleton />}>
+        <FeatureErrorBoundary featureName={tab.label}>
+          {renderTabContent(tab.id)}
+        </FeatureErrorBoundary>
+      </Suspense>
+    </div>
+  );
+})}
+```
+
+This ensures:
+- If Concierge fails, you stay on Concierge tab and see "Something went wrong in AI Concierge" with a retry button
+- Other tabs remain functional
+- No "bounce back to chat"
+
 ---
 
-### 2. Fix Broadcast Data Fetching (`supabase/functions/export-trip/data.ts`)
+### Fix 2: Add Timeout Safety to Payments Tab (High Priority)
 
-**Changes:**
-1. Remove `layout === 'pro'` check on broadcasts (line 95)
-2. Remove `layout === 'pro'` check on roster (line 62) - all trips can have members
-3. Update `fetchBroadcasts` to:
-   - Join `profiles` to get sender name via `created_by`
-   - Remove invalid `read_rate` column selection
-   - Add sender name to output
+**Problem**: `MobileTripPayments` can hang indefinitely if the Supabase query times out.
 
-**Updated query:**
-```typescript
-async function fetchBroadcasts(supabase: SupabaseClient, tripId: string) {
-  const { data: broadcasts } = await supabase
-    .from('broadcasts')
-    .select(`
-      id, 
-      created_at, 
-      priority, 
-      message,
-      sender:profiles!created_by(display_name)
-    `)
-    .eq('trip_id', tripId)
-    .eq('is_sent', true)
-    .order('created_at', { ascending: false });
+**Solution**: Add a 10-second timeout with fallback UI.
 
-  return (broadcasts || []).map(b => ({
-    sender: b.sender?.display_name || 'Unknown',
-    ts: formatDateTime(b.created_at),
-    priority: mapPriority(b.priority),
-    message: b.message || '',
-  }));
+**File**: `src/components/mobile/MobileTripPayments.tsx`
+
+**Add**:
+```tsx
+const [timedOut, setTimedOut] = useState(false);
+
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    if (isLoading) {
+      setTimedOut(true);
+      console.warn('[MobileTripPayments] Query timeout - showing fallback');
+    }
+  }, 10000);
+  
+  return () => clearTimeout(timeout);
+}, [isLoading]);
+
+if (timedOut && isLoading) {
+  return (
+    <div className="p-4 text-center">
+      <p className="text-gray-400 mb-4">Payments are taking longer than expected.</p>
+      <button onClick={() => { setTimedOut(false); refetch(); }} className="...">
+        Retry
+      </button>
+    </div>
+  );
 }
 ```
 
 ---
 
-### 3. Update BroadcastItem Type (`supabase/functions/export-trip/types.ts`)
+### Fix 3: Add Timeout to Concierge API Health Check (Medium Priority)
 
-**Change:** Add sender, remove readRate
-```typescript
-export interface BroadcastItem {
-  sender: string;        // NEW - who sent it
-  ts: string;
-  priority?: 'Low' | 'Normal' | 'High';
-  message: string;
-  // Removed: readRate (doesn't exist in DB)
-}
+**Problem**: AI Concierge may wait indefinitely for API health check.
+
+**File**: `src/components/AIConciergeChat.tsx`
+
+**Add** timeout to initialization:
+```tsx
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    if (!isInitialized) {
+      setError('Concierge initialization timed out');
+    }
+  }, 8000);
+  
+  return () => clearTimeout(timeout);
+}, [isInitialized]);
 ```
 
 ---
 
-### 4. Fix Template Rendering (`supabase/functions/export-trip/template.ts`)
+### Fix 4: Improve Tab Skeleton Visibility (Low Risk, High UX Impact)
 
-**Changes:**
+**Problem**: Current skeleton is a small spinner that's easy to miss; contributes to "white flash" perception.
 
-#### 4a. Remove layout restrictions (line 62, 68)
-```typescript
-// Before
-${roster && roster.length > 0 && layout === 'pro' ? renderRoster(roster) : ''}
-${broadcasts && broadcasts.length > 0 && layout === 'pro' ? renderBroadcasts(broadcasts) : ''}
+**Solution**: Use the new CalendarSkeleton/ChatSkeleton/PlacesSkeleton we just created.
 
-// After
-${renderMembersSection(roster, layout)}
-${renderBroadcastsSection(broadcasts)}
+**File**: `src/components/mobile/MobileTripTabs.tsx`
+
+**Change** `TabSkeleton` to be content-aware:
+```tsx
+const getSkeletonForTab = (tabId: string) => {
+  switch (tabId) {
+    case 'calendar':
+      return <CalendarSkeleton />;
+    case 'chat':
+      return <ChatSkeleton />;
+    case 'places':
+      return <PlacesSkeleton />;
+    default:
+      return <TabSkeleton />;
+  }
+};
 ```
 
-#### 4b. Rename "Roster & Contacts" to "Trip Members"
-```typescript
-function renderMembersSection(roster: any[], layout: ExportLayout): string {
-  return `
-  <section class="section">
-    <h2>Trip Members</h2>
-    ${roster && roster.length > 0 ? `
-      <table class="table">...</table>
-    ` : `<p class="empty-message">No members available</p>`}
-  </section>`;
-}
-```
-
-#### 4c. Update broadcasts table with sender column
-```typescript
-function renderBroadcastsSection(broadcasts: any[]): string {
-  return `
-  <section class="section">
-    <h2>Broadcasts</h2>
-    ${broadcasts && broadcasts.length > 0 ? `
-      <table class="table">
-        <thead>
-          <tr>
-            <th>From</th>
-            <th>Message</th>
-            <th>Date & Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${broadcasts.map(b => `
-            <tr>
-              <td>${escapeHtml(b.sender)}</td>
-              <td>${escapeHtml(b.message)}</td>
-              <td>${escapeHtml(b.ts)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    ` : `<p class="empty-message">No broadcasts available</p>`}
-  </section>`;
-}
+And use in Suspense:
+```tsx
+<Suspense fallback={getSkeletonForTab(tab.id)}>
 ```
 
 ---
 
-### 5. Add Empty Section Styling
+### Fix 5: Same Pattern for Desktop (Consistency)
 
-**Changes to all render functions:**
-- Always render the section wrapper with `<h2>` header
-- Show styled "No X available" message when data is empty
-- Maintains visual consistency with blue/gray header styling
-
-**Pattern for all sections:**
-```typescript
-function renderCalendarSection(calendar: any[]): string {
-  return `
-  <section class="section">
-    <h2>Calendar</h2>
-    ${calendar && calendar.length > 0 ? `
-      // ... existing calendar content ...
-    ` : `<p class="empty-message">No calendar events available</p>`}
-  </section>`;
-}
-```
+Apply the same per-tab error boundary pattern to:
+- `src/components/TripTabs.tsx` (desktop consumer)
+- `src/components/pro/ProTabContent.tsx` (desktop pro)
 
 ---
 
-### 6. Add Empty Message Style (`supabase/functions/export-trip/styles.css`)
+## Files to Modify
 
-```css
-.empty-message {
-  font-size: 10pt;
-  color: var(--muted);
-  font-style: italic;
-  padding: 12pt 0;
-  text-align: center;
-  background: #FAFAFB;
-  border-radius: 4pt;
-  margin: 8pt 0;
-}
-```
-
----
-
-## Summary of Files Modified
-
-| File | Changes |
-|------|---------|
-| `src/utils/exportSectionOrder.ts` | Reorder to alphabetical |
-| `supabase/functions/export-trip/types.ts` | Add `sender` field, remove `readRate` |
-| `supabase/functions/export-trip/data.ts` | Fix broadcast query, remove layout restrictions |
-| `supabase/functions/export-trip/template.ts` | Rename roster to "Trip Members", always show section headers, add sender to broadcasts |
-| `supabase/functions/export-trip/styles.css` | Add `.empty-message` styling |
+| File | Change |
+|------|--------|
+| `src/components/mobile/MobileTripTabs.tsx` | Per-tab ErrorBoundary, tab-specific skeletons |
+| `src/components/mobile/MobileTripPayments.tsx` | Add 10s timeout with retry UI |
+| `src/components/AIConciergeChat.tsx` | Add initialization timeout |
+| `src/components/TripTabs.tsx` | Per-tab ErrorBoundary (desktop parity) |
+| `src/components/pro/ProTabContent.tsx` | Per-tab ErrorBoundary (pro trips) |
 
 ---
 
 ## Risk Assessment
 
-| Change | Risk | Mitigation |
-|--------|------|------------|
-| Section order change | None | Pure cosmetic, no logic change |
-| Broadcast query fix | Low | Adding fields that exist; removing invalid column |
-| Remove layout restrictions | Low | Makes features available to more users, no breaking change |
-| Template label changes | None | Pure text change |
-| Empty section styling | None | Additive CSS, doesn't break existing styles |
+| Change | Risk | Why |
+|--------|------|-----|
+| Per-tab ErrorBoundary | Low | Restructures existing pattern, no logic change |
+| Payments timeout | Low | Adds fallback, doesn't remove existing functionality |
+| Concierge timeout | Low | Adds user-facing feedback, doesn't break API |
+| Tab skeletons | None | Uses components already created |
+
+---
+
+## Expected Outcome
+
+After these fixes:
+
+1. **No more "bounce back to chat"** - errors stay on the tab that failed
+2. **No more indefinite spinners** - 10s timeout shows retry UI
+3. **Better perceived performance** - content-aware skeletons reduce "white flash" 
+4. **Clear error feedback** - users see which feature failed and can retry
 
 ---
 
 ## Verification Steps
 
-After implementation:
-1. Create a test Pro trip with broadcasts
-2. Export with "Broadcast Log" selected → verify broadcasts appear with sender names
-3. Export an empty Pro trip → verify sections show styled headers with "No X available"
-4. Export a regular consumer trip with roster selected → verify shows "Trip Members" header
-5. Verify alphabetical section ordering: Attachments → Broadcasts → Calendar → Payments → Places → Polls → Roster (Trip Members) → Tasks
+1. Click Concierge → if API fails, should see "Something went wrong in AI Concierge" **on the Concierge tab**
+2. Click Payments → if slow, should show retry after 10s, not infinite spinner
+3. Click Places → should show PlacesSkeleton (map-like grid) instead of generic spinner
+4. Switch between tabs rapidly → no white flashes, smooth transitions
+5. Test on mobile viewport → same behavior as desktop
