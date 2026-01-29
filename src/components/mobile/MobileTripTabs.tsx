@@ -17,8 +17,9 @@ import { hapticService } from '../../services/hapticService';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { usePrefetchTrip } from '../../hooks/usePrefetchTrip';
-import { ErrorBoundary } from '../ErrorBoundary';
+import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
+import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
 import type { EventData } from '../../types/events';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
@@ -92,16 +93,8 @@ export const MobileTripTabs = ({
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const features = useFeatureToggle(tripData || {});
 
-  // Track error boundary reset key to force re-render on retry
-  const [errorBoundaryKey, setErrorBoundaryKey] = useState(0);
-  
   // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
-
-  // Callback for ErrorBoundary retry
-  const handleErrorRetry = useCallback(() => {
-    setErrorBoundaryKey(prev => prev + 1);
-  }, []);
 
   // Get event admin status for event variant
   const { isAdmin: isEventAdmin } = useEventPermissions(variant === 'event' ? tripId : '');
@@ -199,8 +192,8 @@ export const MobileTripTabs = ({
     prefetchTab(tripId, tabId);
   }, [tripId, prefetchTab]);
 
-  // ⚡ PERFORMANCE: Skeleton loader for lazy-loaded tabs
-  const TabSkeleton = () => (
+  // ⚡ PERFORMANCE: Content-aware skeletons for lazy-loaded tabs
+  const DefaultTabSkeleton = () => (
     <div className="flex items-center justify-center h-full min-h-[300px]">
       <div className="flex flex-col items-center gap-3">
         <div className="w-10 h-10 border-3 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
@@ -208,6 +201,21 @@ export const MobileTripTabs = ({
       </div>
     </div>
   );
+
+  // ⚡ PERFORMANCE: Get content-aware skeleton for each tab type
+  const getSkeletonForTab = useCallback((tabId: string) => {
+    switch (tabId) {
+      case 'calendar':
+      case 'agenda':
+        return <CalendarSkeleton />;
+      case 'chat':
+        return <ChatSkeleton />;
+      case 'places':
+        return <PlacesSkeleton />;
+      default:
+        return <DefaultTabSkeleton />;
+    }
+  }, []);
 
   const renderTabContent = useCallback((tabId: string) => {
     switch (tabId) {
@@ -325,7 +333,7 @@ export const MobileTripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content - ⚡ PERFORMANCE: Keep visited tabs mounted */}
+      {/* Tab Content - ⚡ PERFORMANCE: Per-tab error boundaries prevent bounce-back */}
       <div
         ref={contentRef}
         className="bg-background flex flex-col min-h-0 flex-1"
@@ -334,32 +342,33 @@ export const MobileTripTabs = ({
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        <ErrorBoundary key={`${activeTab}-${errorBoundaryKey}`} compact onRetry={handleErrorRetry}>
-          {tabs.filter(t => t.enabled !== false).map(tab => {
-            const isActive = activeTab === tab.id;
-            const hasBeenVisited = visitedTabs.has(tab.id);
-            
-            // Don't mount tabs that haven't been visited
-            if (!hasBeenVisited) return null;
-            
-            return (
-              <div
-                key={tab.id}
-                style={{ 
-                  display: isActive ? 'flex' : 'none',
-                  flexDirection: 'column',
-                  minHeight: isActive ? '100%' : 0,
-                  overflow: isActive ? undefined : 'hidden'
-                }}
-                className={isActive ? 'h-full flex-1' : ''}
-              >
-                <Suspense fallback={<TabSkeleton />}>
+        {tabs.filter(t => t.enabled !== false).map(tab => {
+          const isActive = activeTab === tab.id;
+          const hasBeenVisited = visitedTabs.has(tab.id);
+          
+          // Don't mount tabs that haven't been visited
+          if (!hasBeenVisited) return null;
+          
+          return (
+            <div
+              key={tab.id}
+              style={{ 
+                display: isActive ? 'flex' : 'none',
+                flexDirection: 'column',
+                minHeight: isActive ? '100%' : 0,
+                overflow: isActive ? undefined : 'hidden'
+              }}
+              className={isActive ? 'h-full flex-1' : ''}
+            >
+              {/* ⚡ Per-tab error boundary: errors stay on failing tab, no bounce-back */}
+              <Suspense fallback={getSkeletonForTab(tab.id)}>
+                <FeatureErrorBoundary featureName={tab.label}>
                   {renderTabContent(tab.id)}
-                </Suspense>
-              </div>
-            );
-          })}
-        </ErrorBoundary>
+                </FeatureErrorBoundary>
+              </Suspense>
+            </div>
+          );
+        })}
       </div>
     </>
   );

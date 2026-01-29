@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, DollarSign, CheckCircle, Clock, AlertCircle, Lock, Loader2, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Plus, DollarSign, CheckCircle, Clock, AlertCircle, Lock, Loader2, ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
 import { hapticService } from '@/services/hapticService';
 import { CreatePaymentModal } from './CreatePaymentModal';
 import { demoModeService } from '@/services/demoModeService';
@@ -50,6 +50,10 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const [membersLoading, setMembersLoading] = useState(true);
   const { isDemoMode, isLoading: demoLoading } = useDemoMode();
   const { tier, upgradeToTier } = useConsumerSubscription();
+  
+  // ⚡ PERFORMANCE: Timeout state to prevent indefinite spinners
+  const [hasTimedOut, setHasTimedOut] = useState(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // CRITICAL: Match desktop logic exactly for demo mode detection
   const isNumericOnly = /^\d+$/.test(tripId);
@@ -69,6 +73,37 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   // Split payments into outstanding and completed
   const outstandingPayments = useMemo(() => payments.filter(p => !p.isSettled), [payments]);
   const completedPayments = useMemo(() => payments.filter(p => p.isSettled), [payments]);
+
+  // ⚡ PERFORMANCE: 10-second timeout to prevent indefinite spinners
+  useEffect(() => {
+    if (isLoading && !hasTimedOut) {
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.warn('[MobileTripPayments] Query timeout - showing fallback UI');
+        setHasTimedOut(true);
+      }, 10000);
+    }
+    
+    // Clear timeout when loading completes
+    if (!isLoading && loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+      setHasTimedOut(false);
+    }
+    
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [isLoading, hasTimedOut]);
+
+  // Retry function for timeout state
+  const handleRetryAfterTimeout = useCallback(() => {
+    setHasTimedOut(false);
+    setIsLoading(true);
+    // Re-trigger the useEffect fetch by changing a dependency (not ideal but works)
+    window.location.reload();
+  }, []);
 
   // Load trip members and payments - matching desktop PaymentsTab logic
   useEffect(() => {
@@ -410,6 +445,26 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
       minimumFractionDigits: 2
     }).format(amount);
   };
+
+  // ⚡ PERFORMANCE: Show timeout UI instead of indefinite spinner
+  if (hasTimedOut && isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-black py-12 px-4">
+        <AlertCircle className="w-10 h-10 text-yellow-500 mb-3" />
+        <h3 className="text-lg font-semibold text-white mb-2">Taking longer than expected</h3>
+        <p className="text-sm text-muted-foreground text-center mb-4">
+          Payments are slow to load. This might be a connection issue.
+        </p>
+        <button
+          onClick={handleRetryAfterTimeout}
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+        >
+          <RefreshCw size={16} />
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading || demoLoading) {
     return (

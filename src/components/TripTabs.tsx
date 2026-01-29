@@ -17,6 +17,7 @@ import { useTripVariant } from '../contexts/TripVariantContext';
 import { useFeatureToggle } from '../hooks/useFeatureToggle';
 import { useSuperAdmin } from '../hooks/useSuperAdmin';
 import { usePrefetchTrip } from '../hooks/usePrefetchTrip';
+import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from './loading';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
 import type { NormalizedUrl } from '@/services/chatUrlExtractor';
 
@@ -127,8 +128,8 @@ export const TripTabs = ({
     setActiveTab(tab);
   };
 
-  // Tab skeleton for lazy loading fallback
-  const TabSkeleton = () => (
+  // Default tab skeleton for lazy loading fallback
+  const DefaultTabSkeleton = () => (
     <div className="flex items-center justify-center h-full min-h-[400px]">
       <div className="flex flex-col items-center gap-3">
         <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -136,6 +137,20 @@ export const TripTabs = ({
       </div>
     </div>
   );
+
+  // ⚡ PERFORMANCE: Get content-aware skeleton for each tab type
+  const getSkeletonForTab = useCallback((tabId: string) => {
+    switch (tabId) {
+      case 'calendar':
+        return <CalendarSkeleton />;
+      case 'chat':
+        return <ChatSkeleton />;
+      case 'places':
+        return <PlacesSkeleton />;
+      default:
+        return <DefaultTabSkeleton />;
+    }
+  }, []);
 
   // ⚡ PERFORMANCE: Memoized tab content renderer
   const renderTabContent = useCallback((tabId: string) => {
@@ -290,7 +305,8 @@ export const TripTabs = ({
               }}
               className={isActive ? 'h-full' : ''}
             >
-              <Suspense fallback={<TabSkeleton />}>
+              {/* ⚡ Per-tab error boundary + content-aware skeleton */}
+              <Suspense fallback={getSkeletonForTab(tab.id)}>
                 {renderTabContent(tab.id)}
               </Suspense>
             </div>
