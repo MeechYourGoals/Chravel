@@ -538,6 +538,67 @@ Every AI assistant must guarantee:
 
 ---
 
+## 🤖 RALPH METHOD (Autonomous Development)
+
+> **"Ship features while you sleep"** — Autonomous AI agent loop
+
+### What is Ralph?
+
+Ralph is an autonomous development workflow where AI agents implement features iteratively without human intervention. Each iteration is a fresh context that reads state from git, `prd.json`, and `progress.txt`.
+
+**Location:** `scripts/ralph/`
+
+### When to Use Ralph
+
+Use the Ralph method when:
+- Implementing a multi-story feature autonomously
+- User says "follow the Ralph method" or "use Ralph"
+- Running overnight/unattended development
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `scripts/ralph/ralph.sh` | Main loop — run with `./scripts/ralph/ralph.sh [iterations]` |
+| `scripts/ralph/prompt.md` | Instructions for each iteration |
+| `scripts/ralph/prd.json` | Task list with `passes: true/false` status |
+| `scripts/ralph/progress.txt` | Learnings log across iterations |
+| `scripts/ralph/ralph-status.sh` | Check current progress |
+| `scripts/ralph/skills/prd/` | PRD generation skill |
+| `scripts/ralph/skills/ralph/` | PRD → JSON conversion skill |
+
+### Quick Start
+
+```bash
+# 1. Create PRD interactively
+claude → "Load the prd skill and create a PRD for [feature]"
+
+# 2. Convert to Ralph format
+claude → "Load the ralph skill and convert tasks/prd-[name].md to prd.json"
+
+# 3. Run autonomously
+./scripts/ralph/ralph.sh 10
+
+# 4. Check status
+./scripts/ralph/ralph-status.sh
+```
+
+### Ralph Rules for AI Agents
+
+When following the Ralph method:
+1. **ONE story per iteration** — don't try to do multiple
+2. **Quality gates MUST pass** — `npm run lint && npm run typecheck && npm run build`
+3. **Update prd.json** — mark `passes: true` when story complete
+4. **Log learnings** — append to `progress.txt` for future iterations
+5. **NEVER modify mock data** — demo mode stays pristine
+6. **Trust git** — previous work is in commit history
+
+### More Details
+
+See `scripts/ralph/INSTALL.md` for complete documentation.
+
+---
+
 ## 📚 REFERENCE
 
 ### Key Files
