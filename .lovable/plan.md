@@ -1,218 +1,340 @@
 
-# PDF Recap Export Fixes
+# Optimized Implementation Prompts for Chravel
 
-## Issues to Fix
-
-| Issue | Current State | Fix Required |
-|-------|---------------|--------------|
-| Broadcasts missing from PDF | Query selects non-existent `read_rate` column; doesn't fetch sender name | Fix query to join `profiles` for sender; remove `read_rate` |
-| Broadcasts restricted to Pro only | Both `data.ts` and `template.ts` check `layout === 'pro'` | Remove layout restriction - broadcasts work for all trips |
-| Section order not alphabetical | calendar, payments, polls, places, attachments, tasks, broadcasts, roster | Alphabetical: attachments, broadcasts, calendar, payments, places, polls, roster, tasks |
-| "Roster" should say "Trip Members" | PDF says "Roster & Contacts" for all trip types | Change to "Trip Members" universally |
-| Empty sections look bland | No section wrapper when section is empty | Always render section wrapper with "No X available" message in proper styled container |
+Based on my analysis of your codebase, I've created two battle-tested prompts that are optimized for Lovable, Claude Code, or Cursor. Each prompt is self-contained with all the technical context needed for a clean implementation.
 
 ---
 
-## File Changes
+## PROMPT 1: Google OAuth Authentication
 
-### 1. Fix Section Order (`src/utils/exportSectionOrder.ts`)
+### Current State Analysis
+- **Auth Infrastructure**: Already implemented in `src/hooks/useAuth.tsx` with `signInWithGoogle()` method (lines 766-821)
+- **OAuth UI**: Button component exists at `src/components/auth/OAuthButtons.tsx` but is **disabled** via `isOAuthEnabled()` returning `false`
+- **Root Cause**: The backend Supabase project needs Google OAuth provider configured in the dashboard
+- **Redirect Logic**: Already handles iframe scenarios, uses `skipBrowserRedirect: true` for debugging
 
-**Change:** Reorder to alphabetical
+### Optimized Prompt (Copy This to Lovable)
+
+```text
+Enable Google OAuth authentication for Chravel. The frontend code already exists but is disabled.
+
+## CONTEXT
+- Supabase Project ID: jmjiyekmxwsxkfnqwyaa
+- Current auth hook: src/hooks/useAuth.tsx already has signInWithGoogle() implemented
+- OAuth button: src/components/auth/OAuthButtons.tsx exists but isOAuthEnabled() returns false
+- Redirect URL pattern: ${window.location.origin}/auth
+
+## REQUIRED CHANGES
+
+### 1. Enable the OAuth button (src/components/auth/OAuthButtons.tsx)
+Change line 8-10:
 ```typescript
-export const DEFAULT_EXPORT_SECTION_ORDER: ExportSection[] = [
-  'attachments',
-  'broadcasts',
-  'calendar', 
-  'payments',
-  'places',
-  'polls',
-  'roster',
-  'tasks',
-];
+export const isOAuthEnabled = (): boolean => {
+  return true; // Was false
+};
+```
+
+### 2. Add Google OAuth button to AuthModal
+In src/components/AuthModal.tsx, add after the email form:
+
+```tsx
+import { OAuthButtons, isOAuthEnabled } from './auth/OAuthButtons';
+
+// Inside the component, after the email form and before close:
+{isOAuthEnabled() && (
+  <>
+    <div className="relative my-4">
+      <div className="absolute inset-0 flex items-center">
+        <span className="w-full border-t border-white/20" />
+      </div>
+      <div className="relative flex justify-center text-xs uppercase">
+        <span className="bg-black/60 px-2 text-white/60">Or continue with</span>
+      </div>
+    </div>
+    <OAuthButtons mode={isSignUp ? 'signup' : 'signin'} disabled={isLoading} />
+  </>
+)}
+```
+
+### 3. Handle OAuth callback in Auth page
+In src/pages/Auth.tsx, add useEffect to detect OAuth returns:
+
+```tsx
+useEffect(() => {
+  // Handle OAuth callback - check for tokens in URL hash
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const accessToken = hashParams.get('access_token');
+  
+  if (accessToken) {
+    // OAuth callback detected - session will be set by onAuthStateChange
+    console.log('[Auth] OAuth callback detected');
+  }
+}, []);
+```
+
+## SUPABASE CONFIGURATION REQUIRED
+The user must configure these in Supabase Dashboard → Authentication → Providers → Google:
+1. Enable Google provider
+2. Add Google Client ID and Client Secret from Google Cloud Console
+3. Add authorized redirect URL: https://jmjiyekmxwsxkfnqwyaa.supabase.co/auth/v1/callback
+
+## DO NOT MODIFY
+- src/hooks/useAuth.tsx (signInWithGoogle is already correct)
+- supabase/config.toml (no edge function changes needed)
+- Any RLS policies
+
+## VERIFICATION
+After implementation, test:
+1. Click "Sign up with Google" on /auth page
+2. Verify redirect to Google consent screen
+3. After consent, verify redirect back to /auth
+4. Verify user session is created and redirects to dashboard
 ```
 
 ---
 
-### 2. Fix Broadcast Data Fetching (`supabase/functions/export-trip/data.ts`)
+## PROMPT 2: Voice AI Concierge (ElevenLabs Integration)
 
-**Changes:**
-1. Remove `layout === 'pro'` check on broadcasts (line 95)
-2. Remove `layout === 'pro'` check on roster (line 62) - all trips can have members
-3. Update `fetchBroadcasts` to:
-   - Join `profiles` to get sender name via `created_by`
-   - Remove invalid `read_rate` column selection
-   - Add sender name to output
+### Current State Analysis
+- **AI Concierge Edge Function**: `supabase/functions/lovable-concierge/index.ts` - fully functional text-based
+- **Chat UI**: `src/components/AIConciergeChat.tsx` - handles text input/output with markdown rendering
+- **Chat Input**: `src/features/chat/components/AiChatInput.tsx` - textarea-based input
+- **Lovable has ElevenLabs integration** per the useful-context instructions for conversational AI
 
-**Updated query:**
+### Optimized Prompt (Copy This to Lovable)
+
+```text
+Add voice input/output capability to the AI Concierge using ElevenLabs Conversational AI. Users should be able to tap a microphone button to speak their query and hear the AI response.
+
+## CONTEXT
+- Existing AI Concierge: src/components/AIConciergeChat.tsx
+- Edge function: supabase/functions/lovable-concierge/index.ts
+- This is a travel app - voice is natural for "concierge" interactions
+- Must work on mobile (70% of users are on mobile)
+
+## ARCHITECTURE
+
+### Option A: ElevenLabs Conversational Agent (Recommended)
+Use @elevenlabs/react hook `useConversation` for real-time voice-to-voice.
+
+### Option B: ElevenLabs STT + Lovable Concierge + ElevenLabs TTS
+- Speech-to-Text: ElevenLabs Scribe
+- AI Processing: Existing lovable-concierge function
+- Text-to-Speech: ElevenLabs TTS
+
+I recommend Option A for seamless voice interaction.
+
+## IMPLEMENTATION STEPS
+
+### Step 1: Add ElevenLabs API key secret
+Create Supabase secret: ELEVENLABS_API_KEY
+
+### Step 2: Create token generation edge function
+Create supabase/functions/elevenlabs-conversation-token/index.ts:
+
 ```typescript
-async function fetchBroadcasts(supabase: SupabaseClient, tripId: string) {
-  const { data: broadcasts } = await supabase
-    .from('broadcasts')
-    .select(`
-      id, 
-      created_at, 
-      priority, 
-      message,
-      sender:profiles!created_by(display_name)
-    `)
-    .eq('trip_id', tripId)
-    .eq('is_sent', true)
-    .order('created_at', { ascending: false });
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { getCorsHeaders } from '../_shared/cors.ts'
 
-  return (broadcasts || []).map(b => ({
-    sender: b.sender?.display_name || 'Unknown',
-    ts: formatDateTime(b.created_at),
-    priority: mapPriority(b.priority),
-    message: b.message || '',
-  }));
+const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY')
+const ELEVENLABS_AGENT_ID = Deno.env.get('ELEVENLABS_AGENT_ID')
+
+serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req)
+  
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  if (!ELEVENLABS_API_KEY || !ELEVENLABS_AGENT_ID) {
+    return new Response(JSON.stringify({ error: 'ElevenLabs not configured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${ELEVENLABS_AGENT_ID}`,
+    {
+      headers: { 'xi-api-key': ELEVENLABS_API_KEY }
+    }
+  )
+
+  const { token } = await response.json()
+
+  return new Response(JSON.stringify({ token }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  })
+})
+```
+
+### Step 3: Create VoiceConcierge component
+Create src/components/VoiceConcierge.tsx:
+
+```tsx
+import { useConversation } from '@elevenlabs/react';
+import { useState, useCallback } from 'react';
+import { Mic, MicOff, Volume2 } from 'lucide-react';
+import { Button } from './ui/button';
+import { supabase } from '@/integrations/supabase/client';
+
+interface VoiceConciergeProps {
+  tripId: string;
+  onTranscript?: (text: string) => void;
+}
+
+export function VoiceConcierge({ tripId, onTranscript }: VoiceConciergeProps) {
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const conversation = useConversation({
+    onConnect: () => console.log('Voice connected'),
+    onDisconnect: () => console.log('Voice disconnected'),
+    onMessage: (message) => {
+      if (message.type === 'user_transcript') {
+        onTranscript?.(message.user_transcription_event.user_transcript);
+      }
+    },
+    onError: (error) => {
+      console.error('Voice error:', error);
+      setError('Voice connection failed');
+    },
+  });
+
+  const startVoice = useCallback(async () => {
+    setIsConnecting(true);
+    setError(null);
+    
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      const { data, error } = await supabase.functions.invoke(
+        'elevenlabs-conversation-token'
+      );
+
+      if (error || !data?.token) {
+        throw new Error('Failed to get voice token');
+      }
+
+      await conversation.startSession({
+        conversationToken: data.token,
+        connectionType: 'webrtc',
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start voice');
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [conversation]);
+
+  const stopVoice = useCallback(async () => {
+    await conversation.endSession();
+  }, [conversation]);
+
+  return (
+    <div className="flex items-center gap-2">
+      {conversation.status === 'disconnected' ? (
+        <Button
+          onClick={startVoice}
+          disabled={isConnecting}
+          variant="outline"
+          size="icon"
+          className="rounded-full"
+          aria-label="Start voice"
+        >
+          <Mic className={isConnecting ? 'animate-pulse' : ''} size={20} />
+        </Button>
+      ) : (
+        <Button
+          onClick={stopVoice}
+          variant="destructive"
+          size="icon"
+          className="rounded-full animate-pulse"
+          aria-label="Stop voice"
+        >
+          <MicOff size={20} />
+        </Button>
+      )}
+
+      {conversation.isSpeaking && (
+        <Volume2 className="text-primary animate-pulse" size={20} />
+      )}
+
+      {error && (
+        <span className="text-red-400 text-xs">{error}</span>
+      )}
+    </div>
+  );
 }
 ```
 
----
+### Step 4: Integrate into AIConciergeChat
+In src/components/AIConciergeChat.tsx, add voice button next to input:
 
-### 3. Update BroadcastItem Type (`supabase/functions/export-trip/types.ts`)
+```tsx
+import { VoiceConcierge } from './VoiceConcierge';
 
-**Change:** Add sender, remove readRate
-```typescript
-export interface BroadcastItem {
-  sender: string;        // NEW - who sent it
-  ts: string;
-  priority?: 'Low' | 'Normal' | 'High';
-  message: string;
-  // Removed: readRate (doesn't exist in DB)
-}
+// In the input area (around line 590), add:
+<div className="flex items-center gap-2">
+  <VoiceConcierge 
+    tripId={tripId}
+    onTranscript={(text) => {
+      setInputMessage(text);
+      // Optionally auto-send
+      // handleSendMessage();
+    }}
+  />
+  <AiChatInput ... />
+</div>
+```
+
+### Step 5: Install dependency
+Add to package.json: "@elevenlabs/react": "^latest"
+
+## SUPABASE CONFIG
+Add to supabase/config.toml:
+```toml
+[functions.elevenlabs-conversation-token]
+verify_jwt = false
+```
+
+## ELEVENLABS SETUP (User Must Do)
+1. Create ElevenLabs account at elevenlabs.io
+2. Create a Conversational AI Agent in their dashboard
+3. Configure agent personality: "You are Chravel Concierge, a helpful AI travel assistant"
+4. Copy Agent ID and API Key
+5. Add as Supabase secrets: ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID
+
+## MOBILE CONSIDERATIONS
+- Use larger tap targets for mic button (min 48x48px)
+- Show visual feedback during recording (pulse animation)
+- Handle permission denial gracefully
+- Test on iOS Safari (requires user gesture for audio)
+
+## DO NOT MODIFY
+- supabase/functions/lovable-concierge/index.ts (keep text AI working)
+- Existing text chat flow
+
+## VERIFICATION
+1. Open AI Concierge tab on a trip
+2. Tap microphone button
+3. Grant microphone permission
+4. Speak a query like "What's the weather like?"
+5. Verify AI speaks the response
+6. Verify transcript appears in chat
 ```
 
 ---
 
-### 4. Fix Template Rendering (`supabase/functions/export-trip/template.ts`)
+## Summary
 
-**Changes:**
+| Feature | Complexity | Dependencies | Risk Level |
+|---------|------------|--------------|------------|
+| Google OAuth | Low | None (frontend only) | Very Low |
+| Voice Concierge | Medium | @elevenlabs/react + secrets | Low |
 
-#### 4a. Remove layout restrictions (line 62, 68)
-```typescript
-// Before
-${roster && roster.length > 0 && layout === 'pro' ? renderRoster(roster) : ''}
-${broadcasts && broadcasts.length > 0 && layout === 'pro' ? renderBroadcasts(broadcasts) : ''}
+### Recommended Order
+1. **Google OAuth first** - 15 min implementation, enables social login immediately
+2. **Voice Concierge second** - 45 min implementation, requires ElevenLabs account setup
 
-// After
-${renderMembersSection(roster, layout)}
-${renderBroadcastsSection(broadcasts)}
-```
-
-#### 4b. Rename "Roster & Contacts" to "Trip Members"
-```typescript
-function renderMembersSection(roster: any[], layout: ExportLayout): string {
-  return `
-  <section class="section">
-    <h2>Trip Members</h2>
-    ${roster && roster.length > 0 ? `
-      <table class="table">...</table>
-    ` : `<p class="empty-message">No members available</p>`}
-  </section>`;
-}
-```
-
-#### 4c. Update broadcasts table with sender column
-```typescript
-function renderBroadcastsSection(broadcasts: any[]): string {
-  return `
-  <section class="section">
-    <h2>Broadcasts</h2>
-    ${broadcasts && broadcasts.length > 0 ? `
-      <table class="table">
-        <thead>
-          <tr>
-            <th>From</th>
-            <th>Message</th>
-            <th>Date & Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${broadcasts.map(b => `
-            <tr>
-              <td>${escapeHtml(b.sender)}</td>
-              <td>${escapeHtml(b.message)}</td>
-              <td>${escapeHtml(b.ts)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    ` : `<p class="empty-message">No broadcasts available</p>`}
-  </section>`;
-}
-```
-
----
-
-### 5. Add Empty Section Styling
-
-**Changes to all render functions:**
-- Always render the section wrapper with `<h2>` header
-- Show styled "No X available" message when data is empty
-- Maintains visual consistency with blue/gray header styling
-
-**Pattern for all sections:**
-```typescript
-function renderCalendarSection(calendar: any[]): string {
-  return `
-  <section class="section">
-    <h2>Calendar</h2>
-    ${calendar && calendar.length > 0 ? `
-      // ... existing calendar content ...
-    ` : `<p class="empty-message">No calendar events available</p>`}
-  </section>`;
-}
-```
-
----
-
-### 6. Add Empty Message Style (`supabase/functions/export-trip/styles.css`)
-
-```css
-.empty-message {
-  font-size: 10pt;
-  color: var(--muted);
-  font-style: italic;
-  padding: 12pt 0;
-  text-align: center;
-  background: #FAFAFB;
-  border-radius: 4pt;
-  margin: 8pt 0;
-}
-```
-
----
-
-## Summary of Files Modified
-
-| File | Changes |
-|------|---------|
-| `src/utils/exportSectionOrder.ts` | Reorder to alphabetical |
-| `supabase/functions/export-trip/types.ts` | Add `sender` field, remove `readRate` |
-| `supabase/functions/export-trip/data.ts` | Fix broadcast query, remove layout restrictions |
-| `supabase/functions/export-trip/template.ts` | Rename roster to "Trip Members", always show section headers, add sender to broadcasts |
-| `supabase/functions/export-trip/styles.css` | Add `.empty-message` styling |
-
----
-
-## Risk Assessment
-
-| Change | Risk | Mitigation |
-|--------|------|------------|
-| Section order change | None | Pure cosmetic, no logic change |
-| Broadcast query fix | Low | Adding fields that exist; removing invalid column |
-| Remove layout restrictions | Low | Makes features available to more users, no breaking change |
-| Template label changes | None | Pure text change |
-| Empty section styling | None | Additive CSS, doesn't break existing styles |
-
----
-
-## Verification Steps
-
-After implementation:
-1. Create a test Pro trip with broadcasts
-2. Export with "Broadcast Log" selected → verify broadcasts appear with sender names
-3. Export an empty Pro trip → verify sections show styled headers with "No X available"
-4. Export a regular consumer trip with roster selected → verify shows "Trip Members" header
-5. Verify alphabetical section ordering: Attachments → Broadcasts → Calendar → Payments → Places → Polls → Roster (Trip Members) → Tasks
+Both prompts are designed to be copy-pasted directly into Lovable with minimal modification needed.
