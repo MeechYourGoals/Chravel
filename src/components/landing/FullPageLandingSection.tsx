@@ -50,18 +50,34 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
       : `linear-gradient(135deg, ${start} 0%, ${end} 100%)`;
   };
 
-  // Build accent glow overlay
+  // Build accent glow overlay with dramatic gold sweeps
   const getAccentGlowStyle = () => {
     if (!accentGlow) return null;
     
     const { color, position, opacity = 0.15 } = accentGlow;
-    const positionMap = {
-      top: 'at center top',
-      bottom: 'at center bottom', 
-      center: 'at center center'
-    };
+    const hexOpacity = Math.round(opacity * 255).toString(16).padStart(2, '0');
     
-    return `radial-gradient(ellipse ${positionMap[position]}, ${color}${Math.round(opacity * 255).toString(16).padStart(2, '0')} 0%, transparent 60%)`;
+    // Create more dramatic curved gold gradients inspired by the reference
+    if (position === 'top') {
+      return `
+        radial-gradient(ellipse 120% 50% at 50% 0%, ${color}${hexOpacity} 0%, transparent 50%),
+        radial-gradient(ellipse 80% 30% at 20% 10%, rgba(244,178,58,0.08) 0%, transparent 40%),
+        radial-gradient(ellipse 60% 25% at 80% 5%, rgba(255,215,0,0.06) 0%, transparent 35%)
+      `;
+    }
+    
+    if (position === 'bottom') {
+      return `
+        radial-gradient(ellipse 120% 50% at 50% 100%, ${color}${hexOpacity} 0%, transparent 50%),
+        radial-gradient(ellipse 80% 30% at 80% 90%, rgba(244,178,58,0.08) 0%, transparent 40%)
+      `;
+    }
+    
+    // Center position - subtle ambient glow
+    return `
+      radial-gradient(ellipse 100% 60% at 50% 50%, ${color}${hexOpacity} 0%, transparent 55%),
+      radial-gradient(ellipse 60% 40% at 30% 40%, rgba(244,178,58,0.05) 0%, transparent 40%)
+    `;
   };
 
   const accentStyle = getAccentGlowStyle();

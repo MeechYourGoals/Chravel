@@ -12,51 +12,54 @@ const FAQSection = lazy(() => import('./sections/FAQSection').then(module => ({ 
 const PricingLandingSection = lazy(() => import('./sections/PricingLandingSection').then(module => ({ default: module.PricingLandingSection })));
 const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
 
-// Enterprise gradient color palette using brand tokens
-// Navy-Gold Design Tokens
+// Premium Black & Gold Design System
 const DESIGN_TOKENS = {
-  navyBase: '#070B1A',
-  deepNavy: '#0B1230',
-  goldAccent: '#F4B23A',
-  softGoldGlow: 'rgba(244,178,58,0.18)',
-  blueGlow: 'rgba(79,140,255,0.14)'
+  pureBlack: '#000000',
+  richBlack: '#0a0a0a',
+  darkCharcoal: '#121212',
+  goldPrimary: '#F4B23A',
+  goldLight: '#FFD700',
+  goldDark: '#C4912F',
+  goldGlow: 'rgba(244,178,58,0.25)',
+  goldSoftGlow: 'rgba(244,178,58,0.12)',
+  goldAccentGlow: 'rgba(255,215,0,0.15)'
 };
 
 const GRADIENTS = {
   hero: {
-    colors: [DESIGN_TOKENS.navyBase, DESIGN_TOKENS.deepNavy] as [string, string],
+    colors: [DESIGN_TOKENS.pureBlack, DESIGN_TOKENS.richBlack, DESIGN_TOKENS.darkCharcoal] as [string, string, string],
     direction: 'vertical' as const,
-    accentGlow: { color: DESIGN_TOKENS.blueGlow, position: 'bottom' as const, opacity: 0.14 }
+    accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'top' as const, opacity: 0.30 }
   },
   replaces: {
-    colors: [DESIGN_TOKENS.deepNavy, DESIGN_TOKENS.navyBase] as [string, string],
+    colors: [DESIGN_TOKENS.richBlack, DESIGN_TOKENS.pureBlack] as [string, string],
     direction: 'diagonal' as const,
-    accentGlow: { color: DESIGN_TOKENS.softGoldGlow, position: 'center' as const, opacity: 0.08 }
+    accentGlow: { color: DESIGN_TOKENS.goldSoftGlow, position: 'center' as const, opacity: 0.20 }
   },
   howItWorks: {
-    colors: [DESIGN_TOKENS.navyBase, DESIGN_TOKENS.deepNavy] as [string, string],
+    colors: [DESIGN_TOKENS.pureBlack, DESIGN_TOKENS.darkCharcoal] as [string, string],
     direction: 'vertical' as const,
-    accentGlow: { color: DESIGN_TOKENS.blueGlow, position: 'center' as const, opacity: 0.10 }
+    accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'bottom' as const, opacity: 0.18 }
   },
   useCases: {
-    colors: [DESIGN_TOKENS.deepNavy, DESIGN_TOKENS.navyBase] as [string, string],
+    colors: [DESIGN_TOKENS.darkCharcoal, DESIGN_TOKENS.pureBlack] as [string, string],
     direction: 'diagonal' as const,
-    accentGlow: { color: DESIGN_TOKENS.softGoldGlow, position: 'bottom' as const, opacity: 0.10 }
+    accentGlow: { color: DESIGN_TOKENS.goldAccentGlow, position: 'top' as const, opacity: 0.22 }
   },
   aiFeatures: {
-    colors: [DESIGN_TOKENS.navyBase, DESIGN_TOKENS.deepNavy] as [string, string],
+    colors: [DESIGN_TOKENS.pureBlack, DESIGN_TOKENS.richBlack] as [string, string],
     direction: 'vertical' as const,
-    accentGlow: { color: DESIGN_TOKENS.softGoldGlow, position: 'bottom' as const, opacity: 0.12 }
+    accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'center' as const, opacity: 0.20 }
   },
   pricing: {
-    colors: [DESIGN_TOKENS.deepNavy, DESIGN_TOKENS.navyBase] as [string, string],
+    colors: [DESIGN_TOKENS.richBlack, DESIGN_TOKENS.darkCharcoal] as [string, string],
     direction: 'diagonal' as const,
-    accentGlow: { color: DESIGN_TOKENS.blueGlow, position: 'top' as const, opacity: 0.10 }
+    accentGlow: { color: DESIGN_TOKENS.goldSoftGlow, position: 'top' as const, opacity: 0.25 }
   },
   faq: {
-    colors: [DESIGN_TOKENS.navyBase, DESIGN_TOKENS.deepNavy] as [string, string],
+    colors: [DESIGN_TOKENS.pureBlack, DESIGN_TOKENS.richBlack] as [string, string],
     direction: 'vertical' as const,
-    accentGlow: { color: DESIGN_TOKENS.softGoldGlow, position: 'center' as const, opacity: 0.06 }
+    accentGlow: { color: DESIGN_TOKENS.goldAccentGlow, position: 'bottom' as const, opacity: 0.15 }
   }
 };
 
