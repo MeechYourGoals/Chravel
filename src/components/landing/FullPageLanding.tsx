@@ -109,6 +109,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           id="section-replaces"
           gradientColors={GRADIENTS.replaces.colors}
           gradientDirection={GRADIENTS.replaces.direction}
+          goldOverlay="waves"
         >
           <Suspense fallback={<SectionLoader />}>
             <ReplacesSection />
@@ -121,6 +122,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           gradientColors={GRADIENTS.howItWorks.colors}
           gradientDirection={GRADIENTS.howItWorks.direction}
           accentGlow={GRADIENTS.howItWorks.accentGlow}
+          goldOverlay="triangles"
         >
           <ProblemSolutionSection />
         </FullPageLandingSection>
@@ -132,6 +134,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           gradientDirection={GRADIENTS.useCases.direction}
           accentGlow={GRADIENTS.useCases.accentGlow}
           minHeight="120vh"
+          goldOverlay="diamonds"
         >
           <Suspense fallback={<SectionLoader />}>
             <UseCasesSection />
@@ -144,6 +147,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           gradientColors={GRADIENTS.aiFeatures.colors}
           gradientDirection={GRADIENTS.aiFeatures.direction}
           accentGlow={GRADIENTS.aiFeatures.accentGlow}
+          goldOverlay="circles"
         >
           <Suspense fallback={<SectionLoader />}>
             <AiFeaturesSection />
@@ -157,6 +161,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           gradientDirection={GRADIENTS.pricing.direction}
           accentGlow={GRADIENTS.pricing.accentGlow}
           minHeight="110vh"
+          goldOverlay="mesh"
         >
           <Suspense fallback={<SectionLoader />}>
             <PricingLandingSection onSignUp={onSignUp} />
@@ -169,6 +174,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           gradientColors={GRADIENTS.faq.colors}
           gradientDirection={GRADIENTS.faq.direction}
           accentGlow={GRADIENTS.faq.accentGlow}
+          goldOverlay="aurora"
         >
           <Suspense fallback={<SectionLoader />}>
             <FAQSection />
