@@ -26,7 +26,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         <Button
           size="sm"
           onClick={onSignUp}
-          className="text-xs px-3 py-1 bg-primary hover:bg-primary/90 backdrop-blur-md border border-white/10 text-primary-foreground shadow-lg h-7"
+          className="text-xs px-3 py-1 bg-gradient-to-r from-[#F4B23A] to-[#FFD700] hover:from-[#FFD700] hover:to-[#F4B23A] backdrop-blur-md border border-[#F4B23A]/30 text-black font-semibold shadow-lg shadow-[#F4B23A]/25 h-7"
         >
           Login or Signup
         </Button>
@@ -97,7 +97,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         {/* Mobile CTA - centered below preview */}
         <Button
           onClick={onSignUp}
-          className="mt-4 px-6 py-3 bg-primary hover:bg-primary/90 backdrop-blur-md border border-border/50 text-primary-foreground rounded-lg text-base font-semibold shadow-xl shadow-black/30 animate-fade-in lg:hidden"
+          className="mt-4 px-6 py-3 bg-gradient-to-r from-[#F4B23A] to-[#FFD700] hover:from-[#FFD700] hover:to-[#F4B23A] backdrop-blur-md border border-[#F4B23A]/30 text-black rounded-lg text-base font-semibold shadow-xl shadow-[#F4B23A]/30 animate-fade-in lg:hidden"
           style={{ animationDelay: '0.2s' }}
         >
           Login or Signup
