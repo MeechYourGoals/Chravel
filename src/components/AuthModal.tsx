@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { OAuthButtons, isOAuthEnabled } from './auth/OAuthButtons';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -376,6 +377,24 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
         )}
 
         {mode === 'forgot' ? renderForgotPassword() : renderEmailForm()}
+
+        {/* Google OAuth */}
+        {mode !== 'forgot' && isOAuthEnabled() && (
+          <>
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-white/20" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white/10 backdrop-blur-sm px-3 text-white/60">Or continue with</span>
+              </div>
+            </div>
+            <OAuthButtons 
+              mode={mode === 'signup' ? 'signup' : 'signin'} 
+              disabled={isLoading || awaitingAuth || googleLoading} 
+            />
+          </>
+        )}
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
  * TODO: Re-enable once Google OAuth is properly configured in Supabase.
  */
 export const isOAuthEnabled = (): boolean => {
-  return false;
+  return true;
 };
 
 interface OAuthButtonsProps {
