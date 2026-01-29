@@ -292,8 +292,9 @@ export const TripTabs = ({
           const isActive = activeTab === tab.id;
           const hasBeenVisited = visitedTabs.has(tab.id);
           
-          // Don't mount tabs that haven't been visited
-          if (!hasBeenVisited) return null;
+          // ⚡ CRITICAL FIX: Always mount the active tab immediately, even on first visit
+          // This prevents the "click away and back" race condition
+          if (!hasBeenVisited && !isActive) return null;
           
           return (
             <div
