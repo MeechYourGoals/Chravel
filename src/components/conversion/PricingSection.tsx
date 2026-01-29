@@ -514,7 +514,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
               <Button
                 onClick={tier.ctaAction || (() => handlePlanSelect(tier.id))}
                 className={`w-full h-10 md:h-12 font-medium text-sm sm:text-base ${
-                  tier.popular || tier.recommended
+                  tier.category === 'consumer'
                     ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
                     : tier.enterprise 
                     ? 'bg-accent hover:bg-accent/90 text-accent-foreground' 
