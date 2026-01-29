@@ -1,51 +1,77 @@
 
-# Tab Loading Race Condition & Google Maps Fix Plan
 
-## ✅ COMPLETED
+# Gold Accent Visibility Fix
 
-All fixes have been implemented:
+## Problem Diagnosis
+The gold accent patterns ARE being rendered, but they're nearly invisible because:
+- SVG container opacity is too low (10-20% via Tailwind classes like `opacity-15`)
+- Stroke widths are too thin (1-2px on full viewport SVGs)
+- Gradient `stopOpacity` values fade to 0 too quickly
+- Relying on strokes rather than filled shapes
 
-### Fix 1: Synchronous Tab Mounting ✅
-Changed `if (!hasBeenVisited) return null;` to `if (!hasBeenVisited && !isActive) return null;` in:
-- `src/components/mobile/MobileTripTabs.tsx` (line 352)
-- `src/components/TripTabs.tsx` (line 297)
-- `src/components/trip/MountedTabs.tsx` (line 52)
+## Solution
 
-This ensures the **currently active tab always mounts immediately** on first click, eliminating the "click away and back" race condition.
+### 1. Increase Base Opacity on All Variants
+Update `GoldAccentOverlay.tsx` to use stronger visibility:
 
-### Fix 2: Always-Show Google Maps Embed ✅ (NEW)
-Updated `src/components/places/MapCanvas.tsx`:
-- **Immediate embed**: Keyless Google Maps iframe renders INSTANTLY on mount
-- **Background JS API**: Interactive Google Maps JS API loads in background
-- **Seamless swap**: If JS API succeeds, swaps to interactive map; if fails, embed stays visible
-- **Never broken**: Users NEVER see "Oops! Something went wrong" - embed is always working
-- **Small banner**: If JS API unavailable after 8s, shows discrete "Interactive map unavailable" with retry option
-- **MutationObserver**: Uses efficient observer instead of polling interval for error detection
+| Current | Target |
+|---------|--------|
+| `opacity-10` | `opacity-40` to `opacity-60` |
+| `opacity-15` | `opacity-50` |
+| `opacity-20` | `opacity-60` |
 
-Key changes:
-- Added `jsApiReady` state to track when JS API is ready
-- Render condition now `!jsApiReady || useFallbackEmbed || forceIframeFallback`
-- No loading spinner on initial mount - embed shows immediately
-- Error modal removed - embed handles all failure cases gracefully
+### 2. Thicken Strokes and Add Fill Elements
+- Increase `strokeWidth` from 1-2 to 3-6 for waves/aurora paths
+- Add filled gradient shapes behind the stroke elements
+- Increase blur radii on glow orbs from `blur-3xl` to `blur-2xl` (less blur = more visible)
 
----
+### 3. Strengthen Gradient Stop Opacities
+Change gradient definitions from subtle to prominent:
 
-## Root Cause Summary
+```text
+Current:  stopOpacity="0.3" -> "0.6" -> "0"
+Target:   stopOpacity="0.7" -> "0.5" -> "0.1"
+```
 
-| Issue | Cause | Fix Applied |
-|-------|-------|-------------|
-| "Click away and back" to load | `useEffect` updates `visitedTabs` after first render | Active tab always mounts: `!hasBeenVisited && !isActive` |
-| Google Maps "Oops!" error | API key/billing/quota issues | Always-show embed pattern with background JS API loading |
-| Blank/loading map | JS API blocking render | Embed renders instantly, JS API loads async |
+### 4. Variant-Specific Enhancements
 
----
+| Variant | Current Issue | Fix |
+|---------|--------------|-----|
+| **waves** | Thin 2px strokes at 20% opacity | 4-6px strokes, add filled wave shapes, 50% opacity |
+| **triangles** | 15% opacity, small polygons | 40% opacity, larger corner triangles with solid fill |
+| **diamonds** | 12% opacity, tiny shapes | 50% opacity, larger diamonds with radial glow fills |
+| **circles** | 15% opacity circles | 45% opacity, add soft filled circles with stronger gradients |
+| **mesh** | 10% opacity thin lines | 35% opacity, thicker grid lines, add glow behind intersections |
+| **aurora** | Faint 40px strokes | 80px strokes with stronger gradient, 55% opacity |
 
-## Verification Checklist
+### 5. Add Animated Glow Layers (Optional Enhancement)
+For extra polish, add CSS keyframe animations for subtle gold pulse on glow orbs.
 
-1. ✅ Click any tab for the first time → loads immediately (no skeleton delay)
-2. ✅ Places tab shows Google Maps embed IMMEDIATELY on first render
-3. ✅ If JS API loads successfully → seamlessly swaps to interactive map
-4. ✅ If JS API fails → embed stays visible with small "unavailable" banner
-5. ✅ NEVER shows "Oops! Something went wrong" error
-6. ✅ All tabs remain fast on subsequent visits (already mounted)
-7. ✅ Error boundaries isolate failures per-tab (from previous fix)
+## Files to Modify
+
+```text
+src/components/landing/GoldAccentOverlay.tsx
+```
+
+## Technical Details
+
+The fix involves rewriting each variant's SVG structure in `GoldAccentOverlay.tsx`:
+
+1. **Container opacity**: Change Tailwind classes from `opacity-10`/`opacity-15`/`opacity-20` to `opacity-40`/`opacity-50`/`opacity-60`
+
+2. **SVG gradient definitions**: Update `<stop>` elements to have higher `stopOpacity` values that don't fade to zero
+
+3. **Stroke elements**: Increase `strokeWidth` attributes and add matching filled paths beneath for depth
+
+4. **Blur glows**: Use stronger glow intensities (`opacity-25` instead of `opacity-10`) and less blur for sharper gold presence
+
+## Expected Result
+Each landing page section will display clearly visible, distinct gold accent patterns:
+- Hero: Curved sweeps with prominent orbs
+- Replaces: Flowing horizontal waves
+- How It Works: Bold corner triangles  
+- Use Cases: Scattered diamonds with glow halos
+- AI Features: Floating bubble circles
+- Pricing: Interconnected mesh grid
+- FAQ: Flowing aurora bands
+
