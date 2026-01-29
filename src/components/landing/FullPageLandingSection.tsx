@@ -16,7 +16,7 @@ interface FullPageLandingSectionProps {
     position: 'top' | 'bottom' | 'center';
     opacity?: number;
   };
-  goldOverlay?: 'hero' | 'section' | 'footer' | 'none';
+  goldOverlay?: 'hero' | 'waves' | 'triangles' | 'diamonds' | 'circles' | 'mesh' | 'aurora' | 'footer' | 'none';
 }
 
 export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
@@ -29,7 +29,7 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
   gradientColors = ['#000000', '#0a0a0a'],
   gradientDirection = 'diagonal',
   accentGlow,
-  goldOverlay = 'section'
+  goldOverlay = 'waves'
 }) => {
   // Build the gradient based on direction and colors
   const getGradientStyle = () => {
