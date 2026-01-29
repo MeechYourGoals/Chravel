@@ -53,9 +53,10 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [aiStatus, setAiStatus] = useState<'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded'>('connected');
+  const [aiStatus, setAiStatus] = useState<'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'>('connected');
   const [remainingQueries, setRemainingQueries] = useState<number>(Infinity);
   const [isUsingCachedResponse, setIsUsingCachedResponse] = useState(false);
+  const [initTimedOut, setInitTimedOut] = useState(false);
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
@@ -74,6 +75,25 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       isMounted.current = false;
     };
   }, []);
+
+  // ⚡ PERFORMANCE: 8-second initialization timeout to prevent indefinite loading
+  useEffect(() => {
+    // If we're already connected or have messages, no need for timeout
+    if (aiStatus === 'connected' || messages.length > 0) {
+      setInitTimedOut(false);
+      return;
+    }
+    
+    const timeout = setTimeout(() => {
+      if (isMounted.current && aiStatus === 'checking') {
+        console.warn('[AIConciergeChat] Initialization timeout - showing fallback');
+        setAiStatus('timeout');
+        setInitTimedOut(true);
+      }
+    }, 8000);
+    
+    return () => clearTimeout(timeout);
+  }, [aiStatus, messages.length]);
 
   // Initialize remaining queries for events and load cached messages
   useEffect(() => {

@@ -1,7 +1,8 @@
 
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useCallback } from 'react';
 import { CalendarIcon, DollarSign, Shield, FileCheck, Award } from 'lucide-react';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
+import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
 
 import { ProTripData } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
@@ -35,8 +36,8 @@ interface ProTabContentProps {
   tripCreatorId?: string;
 }
 
-// ⚡ PERFORMANCE: Skeleton loader for lazy-loaded tabs
-const TabSkeleton = () => (
+// ⚡ PERFORMANCE: Default skeleton loader for lazy-loaded tabs
+const DefaultTabSkeleton = () => (
   <div className="flex items-center justify-center h-full min-h-[400px]">
     <div className="flex flex-col items-center gap-3">
       <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -44,6 +45,20 @@ const TabSkeleton = () => (
     </div>
   </div>
 );
+
+// ⚡ PERFORMANCE: Get content-aware skeleton for each tab type
+const getSkeletonForTab = (tabId: string) => {
+  switch (tabId) {
+    case 'calendar':
+      return <CalendarSkeleton />;
+    case 'chat':
+      return <ChatSkeleton />;
+    case 'places':
+      return <PlacesSkeleton />;
+    default:
+      return <DefaultTabSkeleton />;
+  }
+};
 
 export const ProTabContent = ({ 
   activeTab, 
@@ -236,8 +251,8 @@ export const ProTabContent = ({
 
   return (
     <div className="h-[calc(100vh-320px)] max-h-[1000px] min-h-[500px] overflow-y-auto flex flex-col">
-      {/* ⚡ PERFORMANCE: Suspense boundary for lazy-loaded tab components */}
-      <Suspense fallback={<TabSkeleton />}>
+      {/* ⚡ PERFORMANCE: Suspense boundary with content-aware skeleton */}
+      <Suspense fallback={getSkeletonForTab(activeTab)}>
         {renderTabContent()}
       </Suspense>
     </div>
