@@ -48,8 +48,9 @@ export const MountedTabs = memo(({ activeTab, tabs, renderTab }: MountedTabsProp
         const isActive = activeTab === tabId;
         const hasBeenVisited = visitedTabs.has(tabId);
 
-        // Don't mount tabs that haven't been visited yet
-        if (!hasBeenVisited) {
+        // ⚡ CRITICAL FIX: Always mount the active tab immediately, even on first visit
+        // This prevents the "click away and back" race condition
+        if (!hasBeenVisited && !isActive) {
           return null;
         }
 
