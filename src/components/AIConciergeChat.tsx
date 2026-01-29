@@ -16,7 +16,6 @@ import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { conciergeCacheService } from '../services/conciergeCacheService';
-import { VoiceConcierge } from './VoiceConcierge';
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -579,45 +578,20 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           )}
         </div>
 
-        {/* Input with Voice and privacy indicator */}
+        {/* Input with privacy indicator */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
-          <div className="flex items-end gap-2">
-            {/* Voice input button */}
-            <VoiceConcierge
-              tripId={tripId}
-              onTranscript={(text) => {
-                // Set transcript as input message
-                setInputMessage(text);
-              }}
-              onAgentResponse={(text) => {
-                // Add agent's voice response to chat
-                const agentMessage: ChatMessage = {
-                  id: Date.now().toString(),
-                  type: 'assistant',
-                  content: text,
-                  timestamp: new Date().toISOString()
-                };
-                setMessages(prev => [...prev, agentMessage]);
-              }}
-              disabled={aiStatus === 'error' || (isFreeUser && usage?.isLimitReached)}
-            />
-            
-            {/* Text input */}
-            <div className="flex-1">
-              <AiChatInput
-                inputMessage={inputMessage}
-                onInputChange={setInputMessage}
-                onSendMessage={handleSendMessage}
-                onKeyPress={handleKeyPress}
-                isTyping={isTyping}
-                disabled={aiStatus === 'error' || (isFreeUser && usage?.isLimitReached)}
-                usageStatus={getUsageStatus()}
-                onUpgradeClick={() => window.location.href = upgradeUrl}
-              />
-            </div>
-          </div>
+          <AiChatInput
+            inputMessage={inputMessage}
+            onInputChange={setInputMessage}
+            onSendMessage={handleSendMessage}
+            onKeyPress={handleKeyPress}
+            isTyping={isTyping}
+            disabled={aiStatus === 'error' || (isFreeUser && usage?.isLimitReached)}
+            usageStatus={getUsageStatus()}
+            onUpgradeClick={() => window.location.href = upgradeUrl}
+          />
           <div className="text-center mt-1">
-            <span className="text-xs text-gray-500">🔒 This conversation is private to you • 🎤 Tap mic to speak</span>
+            <span className="text-xs text-gray-500">🔒 This conversation is private to you</span>
           </div>
         </div>
       </div>
