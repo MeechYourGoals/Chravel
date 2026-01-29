@@ -72,6 +72,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       lng: number;
       address?: string;
     } | null>(null);
+    
+    // ⚡ CRITICAL: Track if JS API loaded successfully - show embed until it does
+    const [jsApiReady, setJsApiReady] = useState(false);
+    
     // Custom hooks for state management
     const mapState = useMapState();
     const mapSearch = useMapSearch();
@@ -314,28 +318,26 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       isInFallbackMode: () => useFallbackEmbed || forceIframeFallback,
     }), [useFallbackEmbed, forceIframeFallback, sessionToken, searchOrigin, markers]);
 
-    // Initialize map
+    // Initialize map - attempt JS API in background while showing embed
     useEffect(() => {
       let mounted = true;
       
-      // Emergency timeout: if map doesn't load in 8 seconds, force iframe fallback
+      // ⚡ ALWAYS-SHOW EMBED PATTERN: Immediately mark as ready with embed shown
+      // The JS API loads in background and swaps in when successful
+      setIsMapLoading(false);
+      onMapReady?.();
+      
+      // Emergency timeout: if map doesn't load in 8 seconds, stay on embed
       loadingTimeoutRef.current = setTimeout(() => {
-        if (mounted && isMapLoading) {
-          toast.warning('Using simplified map view. Interactive search requires API access.', {
-            duration: 5000
-          });
+        if (mounted && !jsApiReady) {
+          // Don't show warning - embed is already visible and working
           setForceIframeFallback(true);
           setUseFallbackEmbed(true);
-          setIsMapLoading(false);
-          onMapReady?.(); // Notify parent that loading is complete (even with fallback)
         }
-      }, 8000); // Reduced from 15s to 8s
+      }, 8000);
 
       const initMap = async () => {
         try {
-          setIsMapLoading(true);
-          setMapError(null);
-
           const maps = await loadMaps();
 
           if (!mounted || !mapContainerRef.current) {
@@ -382,22 +384,26 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
           mapRef.current = map;
 
-          // Monitor for Google Maps error overlay
-          const errorCheckInterval = setInterval(() => {
+          // Monitor for Google Maps error overlay using MutationObserver
+          const observer = new MutationObserver((mutations) => {
             const hasGmError = !!mapContainerRef.current?.querySelector('.gm-err-container');
             if (hasGmError) {
-              clearInterval(errorCheckInterval);
+              observer.disconnect();
               if (import.meta.env.DEV) {
-                console.error('[MapCanvas] Detected Google Maps error overlay – likely API key or billing issue');
+                console.error('[MapCanvas] Detected Google Maps error overlay – staying on embed');
               }
+              // Stay on embed, don't show error modal - just keep the working embed
+              setJsApiReady(false);
               setUseFallbackEmbed(true);
-              setMapError('Google Maps API Error: Please check your API key, enabled APIs, and billing status in Google Cloud Console.');
-              setIsMapLoading(false);
             }
-          }, 500);
+          });
+          
+          if (mapContainerRef.current) {
+            observer.observe(mapContainerRef.current, { childList: true, subtree: true });
+          }
 
-          // Stop checking after 3 seconds
-          setTimeout(() => clearInterval(errorCheckInterval), 3000);
+          // Stop observing after 5 seconds
+          setTimeout(() => observer.disconnect(), 5000);
 
           // Generate initial session token for New API
           setSessionToken(generateSessionToken());
@@ -408,11 +414,14 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             loadingTimeoutRef.current = null;
           }
 
-          setIsMapLoading(false);
-          onMapReady?.();
+          // ⚡ JS API loaded successfully - swap from embed to interactive map
+          setJsApiReady(true);
+          setUseFallbackEmbed(false);
+          setForceIframeFallback(false);
+          setMapError(null);
         } catch (error) {
           if (import.meta.env.DEV) {
-            console.error('[MapCanvas] Map initialization error:', error);
+            console.error('[MapCanvas] Map initialization error - staying on embed:', error);
           }
           if (mounted) {
             // Clear emergency timeout
@@ -421,31 +430,21 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
               loadingTimeoutRef.current = null;
             }
 
-            // Graceful fallback to embed if JS API fails to load/auth
+            // Stay on embed - don't show error, embed is already working
+            setJsApiReady(false);
             setUseFallbackEmbed(true);
             setForceIframeFallback(true);
-            const errorMessage = error instanceof Error
-              ? error.message
-              : 'Failed to load Google Maps JavaScript API.';
-            setMapError(errorMessage);
-            setIsMapLoading(false);
-            onMapReady?.(); // Notify parent that loading is complete (even with error)
+            // Don't set mapError - we don't want to show the error modal since embed works
           }
         }
       };
 
-      // Try to init map, but if it fails immediately, force iframe fallback
-      try {
-        initMap();
-      } catch (syncError) {
-        if (import.meta.env.DEV) {
-          console.error('[MapCanvas] Synchronous error during init:', syncError);
-        }
+      // Try to init map in background
+      initMap().catch(() => {
+        // Silently fail - embed is showing
         setForceIframeFallback(true);
         setUseFallbackEmbed(true);
-        setIsMapLoading(false);
-        onMapReady?.(); // Notify parent that loading is complete (even with sync error)
-      }
+      });
 
       return () => {
         mounted = false;
@@ -786,8 +785,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       await renderRoute(activeBasecamp.coordinates, selectedPlace.coordinates);
     };
 
-    // If fallback embed mode is enabled, show the iframe with retry option
-    if (useFallbackEmbed || forceIframeFallback) {
+    // ⚡ ALWAYS-SHOW EMBED PATTERN: Show embed until JS API is confirmed ready
+    // This ensures users NEVER see "Oops! Something went wrong" - they always see a working map
+    if (!jsApiReady || useFallbackEmbed || forceIframeFallback) {
       return (
         <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
           <GoogleMapsEmbed 
@@ -795,28 +795,20 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             searchLocation={iframeSearchLocation}
             onSaveAsBasecamp={onSaveSearchAsBasecamp}
           />
-          {/* Retry with full Maps API */}
-          <div className="absolute top-4 right-4 z-20">
-            <button
-              onClick={() => {
-                setUseFallbackEmbed(false);
-                setForceIframeFallback(false);
-                setMapError(null);
-                setIsMapLoading(true);
-                // Trigger re-init by forcing a state update
-                window.location.reload();
-              }}
-              className="bg-white/90 hover:bg-white text-gray-800 px-3 py-1.5 rounded-lg text-xs font-medium shadow-lg transition-colors flex items-center gap-1.5"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                <path d="M3 3v5h5"/>
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                <path d="M16 21h5v-5"/>
-              </svg>
-              Retry Full Map
-            </button>
-          </div>
+          {/* Small banner if interactive map unavailable (only show after timeout) */}
+          {forceIframeFallback && (
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+              <div className="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-2">
+                <span>Interactive map unavailable</span>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="underline hover:no-underline"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
