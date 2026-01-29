@@ -346,10 +346,10 @@ export const MessageBubble = memo(({
           </div>
           <div
             className={cn(
-              'px-3 py-2 md:px-4 md:py-2.5 rounded-2xl break-words',
+            'px-3 py-2 md:px-4 md:py-2.5 rounded-2xl break-words',
             'text-sm md:text-base',
             isOwnMessage
-              ? 'bg-primary text-primary-foreground'
+              ? 'bg-chat-own text-chat-own-foreground'
               : 'bg-muted/80 text-white',
             isBroadcast && 'border-2 border-red-500/50 bg-gray-800',
             isPayment && 'border-2 border-green-500/50',

@@ -253,6 +253,10 @@
     /* Midnight blue for maximum contrast on images */
     --midnight-blue: 220 70% 15%;
     --dark-navy: 220 50% 20%;
+
+    /* iMessage-style chat colors - isolated from landing page theme */
+    --chat-bubble-own: 210 100% 52%;        /* iMessage blue #007AFF */
+    --chat-bubble-own-foreground: 0 0% 100%; /* White text */
   }
 
   .light {

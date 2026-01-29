@@ -163,7 +163,10 @@ export default {
 				midnight: {
 					DEFAULT: 'hsl(var(--midnight-blue))',
 					navy: 'hsl(var(--dark-navy))',
-				}
+				},
+				// iMessage-style chat bubble colors (isolated from global theme)
+				'chat-own': 'hsl(var(--chat-bubble-own))',
+				'chat-own-foreground': 'hsl(var(--chat-bubble-own-foreground))'
 			},
 		spacing: {
 			// Modern spacing scale with generous breathing room
