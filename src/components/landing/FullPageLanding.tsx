@@ -99,6 +99,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
           gradientDirection={GRADIENTS.hero.direction}
           accentGlow={GRADIENTS.hero.accentGlow}
           minHeight="90vh"
+          goldOverlay="hero"
         >
           <HeroSection onSignUp={onSignUp} />
         </FullPageLandingSection>

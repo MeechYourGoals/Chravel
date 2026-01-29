@@ -190,34 +190,41 @@
   }
 
   :root {
-    /* Modern Dark Theme - Pure Black with Enhanced Contrast */
-    --background: 0 0% 3%; /* Near-black with slight warmth */
+    /* Premium Black & Gold Theme */
+    --background: 0 0% 0%; /* Pure black */
     --foreground: 0 0% 100%; /* Pure white text */
 
-    --card: 223 20% 10%; /* Darker cards with blue tint */
+    --card: 0 0% 6%; /* Near-black cards */
     --card-foreground: 0 0% 100%;
 
-    --popover: 223 20% 8%; /* Even darker for depth */
+    --popover: 0 0% 4%; /* Even darker for depth */
     --popover-foreground: 0 0% 100%;
 
-    --primary: 223 80% 60%; /* Brighter blue for contrast */
-    --primary-foreground: 0 0% 100%;
+    /* Gold Primary - replaces blue */
+    --primary: 42 92% 56%; /* Rich gold #F4B23A */
+    --primary-foreground: 0 0% 0%; /* Black text on gold */
 
-    --secondary: 223 20% 15%; /* Subtle secondary bg */
+    --secondary: 0 0% 10%; /* Dark gray secondary */
     --secondary-foreground: 0 0% 95%;
 
-    --muted: 223 10% 20%; /* Muted elements */
+    --muted: 0 0% 15%; /* Muted elements */
     --muted-foreground: 0 0% 60%; /* Gray text */
 
-    --accent: 32 100% 55%; /* Vibrant orange accent */
-    --accent-foreground: 0 0% 100%;
+    --accent: 42 100% 60%; /* Bright gold accent */
+    --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 223 15% 18%; /* More visible borders */
-    --input: 223 20% 12%; /* Darker inputs */
-    --ring: 223 80% 60%; /* Bright focus rings */
+    --border: 42 30% 20%; /* Gold-tinted borders */
+    --input: 0 0% 8%; /* Dark inputs */
+    --ring: 42 92% 56%; /* Gold focus rings */
+
+    /* Gold design tokens for landing page */
+    --gold-primary: 42 92% 56%;
+    --gold-light: 48 100% 50%;
+    --gold-dark: 38 80% 45%;
+    --gold-glow: 42 92% 56%;
 
     /* Payment system colors */
     --payment-primary: 155 80% 25%; /* Forest green */
@@ -229,19 +236,19 @@
 
     --radius: 1.25rem; /* Increased from 0.5rem (8px → 20px) */
 
-    --sidebar-background: 223 25% 15%;
-    --sidebar-foreground: 223 25% 90%;
-    --sidebar-primary: 223 56% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 223 25% 20%;
-    --sidebar-accent-foreground: 223 25% 90%;
-    --sidebar-border: 223 15% 25%;
-    --sidebar-ring: 223 56% 53%;
+    --sidebar-background: 0 0% 8%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 42 92% 56%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 42 20% 20%;
+    --sidebar-ring: 42 92% 56%;
     
     /* On-image text tokens for guaranteed contrast */
-    --on-image-title: 223 60% 25%;
-    --on-image-body: 223 50% 30%;
-    --on-image-muted: 223 40% 40%;
+    --on-image-title: 42 60% 25%;
+    --on-image-body: 42 50% 30%;
+    --on-image-muted: 42 40% 40%;
     
     /* Midnight blue for maximum contrast on images */
     --midnight-blue: 220 70% 15%;

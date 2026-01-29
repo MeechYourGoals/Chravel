@@ -72,24 +72,29 @@ export default {
 			'hero-desktop': ['64px', { lineHeight: '1.05', fontWeight: '900', letterSpacing: '-0.03em' }],
 		},
 			colors: {
-				// Enterprise color system
+				// Premium Black & Gold color system
 				glass: {
-					// Updated enterprise colors
-					'enterprise-blue': 'hsl(223, 56%, 53%)', // #3A60D0
-					'enterprise-blue-light': 'hsl(223, 50%, 60%)', // Lighter variant
-					'accent-orange': 'hsl(32, 95%, 48%)', // #F57C00
-					'accent-orange-light': 'hsl(32, 85%, 58%)', // #FFA726
-					'slate-bg': 'hsl(223, 25%, 12%)', // #181A21
-					'slate-card': 'hsl(223, 25%, 18%)', // #232B3B
-					'slate-border': 'hsl(223, 15%, 25%)', // #383C4A
-					'light-bg': 'hsl(223, 25%, 97%)', // #F7F8FA
-					'light-border': 'hsl(223, 15%, 90%)', // #E3E7ED
-					'text-primary': 'hsl(223, 35%, 20%)', // #252F4A
+					// Gold-focused enterprise colors
+					'enterprise-gold': 'hsl(42, 92%, 56%)', // #F4B23A
+					'enterprise-gold-light': 'hsl(48, 100%, 60%)', // Lighter gold
+					'accent-gold': 'hsl(42, 100%, 50%)', // Pure gold
+					'accent-gold-dark': 'hsl(38, 80%, 45%)', // Dark gold
+					'slate-bg': 'hsl(0, 0%, 4%)', // Pure black bg
+					'slate-card': 'hsl(0, 0%, 8%)', // Dark card
+					'slate-border': 'hsl(42, 20%, 15%)', // Gold-tinted border
+					'light-bg': 'hsl(42, 25%, 97%)', // Light gold-tinted bg
+					'light-border': 'hsl(42, 15%, 90%)', // Light gold border
+					'text-primary': 'hsl(0, 0%, 100%)', // White text
 					green: '#62D621',
 				},
-				// Cinematic hero colors
-				'cinematic-blue': 'hsl(217, 79%, 60%)', // #2563eb
-				'cinematic-purple': 'hsl(258, 74%, 63%)', // #8b5cf6
+				// Gold accent colors
+				'gold-primary': 'hsl(42, 92%, 56%)',
+				'gold-light': 'hsl(48, 100%, 60%)',
+				'gold-dark': 'hsl(38, 80%, 45%)',
+				'gold-glow': 'hsla(42, 92%, 56%, 0.3)',
+				// Legacy cinematic colors (keeping for compatibility)
+				'cinematic-blue': 'hsl(217, 79%, 60%)',
+				'cinematic-purple': 'hsl(258, 74%, 63%)',
 				// Existing color system
 				glass2: {
 					// Payment system colors
@@ -102,8 +107,8 @@ export default {
 					dark: '#000000',
 					light: '#FFFFFF',
 					// Events theme colors
-					'navy-blue': 'hsl(217, 91%, 25%)', // Deep navy for Events
-					'navy-blue-light': 'hsl(217, 80%, 35%)', // Lighter navy
+					'navy-blue': 'hsl(217, 91%, 25%)',
+					'navy-blue-light': 'hsl(217, 80%, 35%)',
 				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -200,12 +205,13 @@ export default {
 			'enterprise': '0 4px 16px rgba(0, 0, 0, 0.5)',
 			'enterprise-md': '0 8px 24px rgba(0, 0, 0, 0.6)',
 			'enterprise-lg': '0 12px 32px rgba(0, 0, 0, 0.7)',
-			// Colored shadows for CTAs
-			'primary-glow': '0 8px 32px rgba(58, 96, 208, 0.4), 0 4px 16px rgba(58, 96, 208, 0.3)',
-			'accent-glow': '0 8px 32px rgba(245, 124, 0, 0.4), 0 4px 16px rgba(245, 124, 0, 0.3)',
-			// Mobile shadows
-			'mobile-nav': '0 -4px 16px rgba(0, 0, 0, 0.4)',
-			'mobile-sheet': '0 -12px 32px rgba(0, 0, 0, 0.6)',
+				// Colored shadows for CTAs
+				'primary-glow': '0 8px 32px rgba(244, 178, 58, 0.4), 0 4px 16px rgba(244, 178, 58, 0.3)',
+				'accent-glow': '0 8px 32px rgba(244, 178, 58, 0.4), 0 4px 16px rgba(244, 178, 58, 0.3)',
+				'gold-glow': '0 8px 32px rgba(244, 178, 58, 0.5), 0 4px 16px rgba(244, 178, 58, 0.4)',
+				// Mobile shadows
+				'mobile-nav': '0 -4px 16px rgba(0, 0, 0, 0.4)',
+				'mobile-sheet': '0 -12px 32px rgba(0, 0, 0, 0.6)',
 		},
 			keyframes: {
 				'accordion-down': {

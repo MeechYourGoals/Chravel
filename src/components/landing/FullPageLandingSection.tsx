@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { GoldAccentOverlay } from './GoldAccentOverlay';
 
 interface FullPageLandingSectionProps {
   id: string;
@@ -15,6 +16,7 @@ interface FullPageLandingSectionProps {
     position: 'top' | 'bottom' | 'center';
     opacity?: number;
   };
+  goldOverlay?: 'hero' | 'section' | 'footer' | 'none';
 }
 
 export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
@@ -24,9 +26,10 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
   children,
   className,
   backgroundStyle = 'gradient',
-  gradientColors = ['#0a0a14', '#1a1a2e'],
+  gradientColors = ['#000000', '#0a0a0a'],
   gradientDirection = 'diagonal',
-  accentGlow
+  accentGlow,
+  goldOverlay = 'section'
 }) => {
   // Build the gradient based on direction and colors
   const getGradientStyle = () => {
@@ -107,6 +110,9 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
           style={{ background: accentStyle }}
         />
       )}
+
+      {/* Gold decorative overlay */}
+      {goldOverlay !== 'none' && <GoldAccentOverlay variant={goldOverlay} />}
 
       {/* Subtle noise texture overlay */}
       <div 
