@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { DataExportSection } from '../settings/DataExportSection';
@@ -11,45 +10,24 @@ export const ConsumerPrivacySection = () => {
   const { showDemoContent } = useDemoMode();
 
   const [settings, setSettings] = useState({
-    useRealName: false,
-    useDisplayNameOnly: true,
+    shareEmail: false,
     sharePhoneNumber: false,
   });
 
   // Load settings from profile
   useEffect(() => {
     if (user) {
-      // show_phone from profiles table indicates sharing preference
       setSettings(prev => ({
         ...prev,
+        shareEmail: user.showEmail || false,
         sharePhoneNumber: user.showPhone || false,
-        useDisplayNameOnly: !user.showEmail,
-        useRealName: user.showEmail || false,
       }));
     }
   }, [user]);
 
   const handleToggle = async (setting: keyof typeof settings) => {
     const newValue = !settings[setting];
-
-    // Handle mutually exclusive toggles for display name
-    let updatedSettings = { ...settings };
-
-    if (setting === 'useRealName') {
-      updatedSettings = {
-        ...settings,
-        useRealName: newValue,
-        useDisplayNameOnly: !newValue,
-      };
-    } else if (setting === 'useDisplayNameOnly') {
-      updatedSettings = {
-        ...settings,
-        useDisplayNameOnly: newValue,
-        useRealName: !newValue,
-      };
-    } else {
-      updatedSettings[setting] = newValue;
-    }
+    const updatedSettings = { ...settings, [setting]: newValue };
 
     setSettings(updatedSettings);
 
@@ -61,10 +39,10 @@ export const ConsumerPrivacySection = () => {
     // Persist to database
     if (user?.id) {
       try {
-        const updates: any = {};
+        const updates: { show_email?: boolean; show_phone?: boolean } = {};
 
-        if (setting === 'useRealName' || setting === 'useDisplayNameOnly') {
-          updates.show_email = updatedSettings.useRealName;
+        if (setting === 'shareEmail') {
+          updates.show_email = newValue;
         }
         if (setting === 'sharePhoneNumber') {
           updates.show_phone = newValue;
@@ -95,53 +73,30 @@ export const ConsumerPrivacySection = () => {
     <div className="space-y-3">
       <h3 className="text-2xl font-bold text-white">Privacy & Security</h3>
 
-      {/* Display Name Privacy */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-        <h4 className="text-base font-semibold text-white mb-3">Display Name Settings</h4>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-            <div>
-              <div className="text-white font-medium">Use Real Name</div>
-              <div className="text-sm text-gray-400">Show your real name to other users</div>
-            </div>
-            <button
-              onClick={() => handleToggle('useRealName')}
-              className={`relative w-12 h-6 rounded-full transition-colors ${
-                settings.useRealName ? 'bg-glass-orange' : 'bg-gray-600'
-              }`}
-            >
-              <div
-                className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
-                  settings.useRealName ? 'translate-x-6' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-            <div>
-              <div className="text-white font-medium">Use Display Name Only</div>
-              <div className="text-sm text-gray-400">Show only your chosen display name</div>
-            </div>
-            <button
-              onClick={() => handleToggle('useDisplayNameOnly')}
-              className={`relative w-12 h-6 rounded-full transition-colors ${
-                settings.useDisplayNameOnly ? 'bg-glass-orange' : 'bg-gray-600'
-              }`}
-            >
-              <div
-                className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
-                  settings.useDisplayNameOnly ? 'translate-x-6' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Contact Information Privacy */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Contact Information</h4>
         <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+            <div>
+              <div className="text-white font-medium">Share Email with Trip Members</div>
+              <div className="text-sm text-gray-400">
+                Allow trip members to see your email address for direct contact
+              </div>
+            </div>
+            <button
+              onClick={() => handleToggle('shareEmail')}
+              className={`relative w-12 h-6 rounded-full transition-colors ${
+                settings.shareEmail ? 'bg-glass-orange' : 'bg-gray-600'
+              }`}
+            >
+              <div
+                className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${
+                  settings.shareEmail ? 'translate-x-6' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+          </div>
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div>
               <div className="text-white font-medium">Share Phone Number with Trip Members</div>
