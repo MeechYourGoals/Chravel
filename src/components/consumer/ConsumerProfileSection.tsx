@@ -14,7 +14,6 @@ export const ConsumerProfileSection = () => {
 
   // Local state for form fields
   const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [bio, setBio] = useState(user?.bio || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -23,7 +22,6 @@ export const ConsumerProfileSection = () => {
   useEffect(() => {
     if (user) {
       setDisplayName(user.displayName || '');
-      setBio(user.bio || '');
       setPhone(user.phone || '');
     }
   }, [user]);
@@ -55,7 +53,6 @@ export const ConsumerProfileSection = () => {
       // Canonical identity lives in `profiles` (via useAuth.updateProfile upsert).
       const { error } = await updateProfile({
         display_name: displayName,
-        bio: bio,
         phone: phone || null,
       });
 
@@ -277,15 +274,11 @@ export const ConsumerProfileSection = () => {
           </p>
         </div>
 
-        <div className="mt-3">
-          <label className="block text-sm text-gray-300 mb-1">Bio</label>
-          <textarea
-            value={bio}
-            onChange={e => setBio(e.target.value)}
-            placeholder="Tell people a bit about yourself..."
-            className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 resize-none"
-            rows={3}
-          />
+        {/* Bio field hidden until Member Profile Cards ship */}
+        <div className="mt-3 p-3 bg-white/5 border border-dashed border-white/20 rounded-lg">
+          <p className="text-sm text-gray-400 text-center">
+            ✨ Member profile cards coming soon — you'll be able to share a bio with trip members
+          </p>
         </div>
 
         {/* Save Button */}
