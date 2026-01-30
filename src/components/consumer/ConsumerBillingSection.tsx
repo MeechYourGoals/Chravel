@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, Globe, Sparkles } from 'lucide-react';
+import { Crown, Globe, Sparkles, Building, TrendingUp, Shield } from 'lucide-react';
 import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 import { CONSUMER_PRICING } from '../../types/consumer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
@@ -9,16 +9,24 @@ import { toast } from 'sonner';
 export const ConsumerBillingSection = () => {
   const { subscription, tier, isSubscribed, upgradeToTier, isLoading } = useConsumerSubscription();
   const [expandedPlan, setExpandedPlan] = useState<string | null>(tier);
+  const [expandedProPlan, setExpandedProPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
   const handleManageSubscription = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
+      
+      // Handle case where user has no Stripe subscription history
+      if (data?.error === 'no_subscription') {
+        toast.info(data.message || "You don't have an active subscription yet. Choose a plan below to get started!");
+        return;
+      }
+      
       if (data?.url) {
         window.open(data.url, '_blank');
       } else {
-        toast.error('No portal URL received');
+        toast.error('Unable to open subscription portal. Please try again.');
       }
     } catch (error) {
       toast.error(
@@ -38,15 +46,41 @@ export const ConsumerBillingSection = () => {
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
+      
+      // Handle case where user has no Stripe subscription history
+      if (data?.error === 'no_subscription') {
+        toast.info("You don't have an active subscription to cancel.");
+        return;
+      }
+      
       if (data?.url) {
         window.open(data.url, '_blank');
       } else {
-        toast.error('No portal URL received');
+        toast.error('Unable to open cancellation page. Please try again.');
       }
     } catch (error) {
       toast.error(
         `Failed to open cancellation page: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+      console.error(error);
+    }
+  };
+  
+  const handleUpgradeToProPlan = async (planKey: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { tier: planKey }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      } else {
+        toast.error('Failed to create checkout session');
+      }
+    } catch (error) {
+      toast.error(`Failed to start checkout: ${error instanceof Error ? error.message : 'Unknown error'}`);
       console.error(error);
     }
   };
@@ -286,6 +320,113 @@ export const ConsumerBillingSection = () => {
           })}
         </div>
       </div>
+
+      {/* Pro Organization Plans Section */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-2">Organization Plans (ChravelApp Pro)</h4>
+        <p className="text-sm text-muted-foreground mb-4">
+          For teams, sports organizations, tours, and enterprises. Pro subscribers get all Frequent Chraveler benefits included.
+        </p>
+        
+        <div className="space-y-3">
+          {Object.entries(proPlans).map(([key, plan]) => {
+            const PlanIcon = plan.icon;
+            return (
+              <Collapsible
+                key={key}
+                open={expandedProPlan === key}
+                onOpenChange={() => setExpandedProPlan(expandedProPlan === key ? null : key)}
+              >
+                <CollapsibleTrigger className="w-full">
+                  <div className="border border-white/10 bg-white/5 rounded-lg p-3 transition-colors hover:bg-white/10">
+                    <div className="flex items-center justify-between">
+                      <div className="text-left flex items-center gap-3">
+                        <PlanIcon size={20} className="text-primary" />
+                        <div>
+                          <h5 className="font-semibold text-foreground flex items-center gap-2">
+                            {plan.name}
+                          </h5>
+                          <div className="text-xl font-bold text-foreground">${plan.price}/month</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-muted-foreground">{expandedProPlan === key ? '−' : '+'}</div>
+                      </div>
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <div className="bg-white/5 rounded-lg p-3 ml-4">
+                    <h6 className="font-medium text-foreground mb-2">Features Included:</h6>
+                    <ul className="space-y-1.5 text-sm text-muted-foreground">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => handleUpgradeToProPlan(key)}
+                      disabled={isLoading}
+                      className="mt-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                    >
+                      {isLoading ? 'Processing...' : `Upgrade to ${plan.name}`}
+                    </button>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };
+
+const proPlans = {
+  'pro-starter': {
+    name: 'Starter Pro',
+    price: 49,
+    icon: Building,
+    features: [
+      'Up to 50 team members',
+      'Advanced permissions',
+      'Team management dashboard',
+      'Basic integrations',
+      'Email support',
+      '🎉 Unlimited Events for your team',
+      '🎁 Your first Pro Trip + Event included free',
+      '✅ Includes all Frequent Chraveler benefits',
+    ],
+  },
+  'pro-growth': {
+    name: 'Growth Pro',
+    price: 99,
+    icon: TrendingUp,
+    features: [
+      'Up to 100 team members',
+      'Multi-language support (coming soon)',
+      'Priority support',
+      'Advanced integrations (coming soon)',
+      'Custom workflows',
+      '🎉 Unlimited Events for your team',
+      '🎁 Your first Pro Trip + Event included free',
+      '✅ Includes all Frequent Chraveler benefits',
+    ],
+  },
+  'pro-enterprise': {
+    name: 'Enterprise',
+    price: 199,
+    icon: Shield,
+    features: [
+      'Up to 250 team members',
+      'Custom integrations',
+      'Dedicated success manager',
+      '24/7 premium support',
+      '🎉 Unlimited Events for your team',
+      '🎁 Your first Pro Trip + Event included free',
+      '✅ Includes all Frequent Chraveler benefits',
+    ],
+  },
+} as const;
