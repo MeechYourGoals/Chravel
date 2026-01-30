@@ -65,8 +65,8 @@ export function useEmbeddingGeneration(tripId: string | undefined) {
         lastGenerated: new Date(),
       });
 
-      // Only show toast if user initiated or if there were errors
-      if (forceRefresh || data.totalProcessed === 0) {
+      // Only show toast if user explicitly initiated a refresh AND embeddings were generated
+      if (forceRefresh && data.totalProcessed > 0) {
         toast({
           title: 'AI Context Updated',
           description: `Generated ${data.totalProcessed} embeddings for better AI responses.`,
