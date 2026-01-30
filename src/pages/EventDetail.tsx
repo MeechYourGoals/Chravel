@@ -78,10 +78,21 @@ const EventDetail = () => {
     }
   }, [eventData?.description, tripDescription]);
 
-  // Generate initial embeddings for RAG when event loads
+  // Generate initial embeddings for RAG after event renders (non-blocking)
   React.useEffect(() => {
-    if (eventId && user) {
+    if (!eventId || !user) return;
+
+    const scheduleEmbeddings = () => {
       generateInitialEmbeddings();
+    };
+
+    // Run off the critical path so it doesn't delay first render
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(scheduleEmbeddings);
+      return () => cancelIdleCallback(id);
+    } else {
+      const id = setTimeout(scheduleEmbeddings, 2000);
+      return () => clearTimeout(id);
     }
   }, [eventId, user, generateInitialEmbeddings]);
 
