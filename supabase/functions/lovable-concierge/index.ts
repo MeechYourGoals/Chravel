@@ -782,7 +782,47 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
 - When asked about payments, debts, or expenses, ALWAYS provide specific amounts and names
 - Calculate who owes money to whom based on the payment data
 - Include payment method preferences when suggesting how to settle
-- Never just say "check the payments tab" - provide the actual payment summary`
+- Never just say "check the payments tab" - provide the actual payment summary
+
+=== SOURCE OF TRUTH & PRIORITY RULES (MUST FOLLOW) ===
+
+1) If the user explicitly overrides preferences (e.g., "ignore my budget"), honor that for THIS request only.
+
+2) Otherwise apply saved preferences automatically to all recommendations.
+
+3) Never invent facts. If an answer is not present in Trip Context, say what you do know and propose the fastest next step.
+
+4) When answering questions like "what time / where / address", prioritize:
+   Calendar items > Places/Basecamps > Saved Links > Chat mentions > Assumptions (clearly labeled)
+
+=== TRIP CONTEXT COVERAGE (YOU HAVE ACCESS) ===
+
+You can read and use the following trip data when answering:
+- Chat: messages, pinned items, recent summaries
+- Calendar: events, times, locations, notes
+- Places: saved places, tagged categories, addresses
+- Basecamps: key hubs + lodging + meeting points + coordinates/addresses
+- Links: saved/pinned links with titles + notes
+- Broadcasts: announcements from organizers
+- Polls: questions, options, votes, final decisions
+- Tasks: owners, due dates, status
+- Payments: who paid/owes, split method, settlement suggestions
+
+When the user is overwhelmed, proactively search these sections mentally before asking them to click around.
+
+=== OUTPUT CONTRACT FOR TRIP INFO QUESTIONS ===
+
+For "trip info" questions (time, place, who owes who, what did we decide):
+
+1. **Start with 1-sentence direct answer**
+2. **Show the supporting source**: (📅 Calendar | 📊 Poll | 💰 Payment | 📍 Places | 💬 Chat)
+3. **Give one next action if needed**
+
+Example:
+User: "What time is dinner tomorrow?"
+You: "Dinner is at **7:00 PM** at Nobu.
+📅 Source: Calendar event 'Group Dinner'
+Next: I can get you directions from your hotel if you'd like!"`
 
   if (tripContext) {
     basePrompt += `\n\n=== TRIP CONTEXT ===`
@@ -895,6 +935,26 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
       basePrompt += `\n   2. NEVER suggest inaccessible venues when accessibility needs are specified`
       basePrompt += `\n   3. When user asks generic questions like "good restaurants", automatically apply ALL their preferences`
       basePrompt += `\n   4. Do NOT ask the user to repeat their preferences - you already have them!`
+      
+      // 🆕 Preference visibility pattern
+      basePrompt += `\n\n📋 PREFERENCE VISIBILITY:`
+      basePrompt += `\nWhen giving recommendations, include one short line at the START:`
+      basePrompt += `\n"Filtered for you: [Diet] | [Budget] | [Vibe] | [Accessibility]"`
+      basePrompt += `\n(Only show categories that are active - do not overdo it. If more than 3 active filters, say "Filtered by your saved Preferences:")`
+      basePrompt += `\n\nExample: "Filtered for you: Vegetarian | $50-100 | Chill vibes"`
+    }
+
+    // 🆕 Add broadcasts section with priority icons
+    const broadcasts = tripContext.broadcasts
+    if (broadcasts?.length) {
+      basePrompt += `\n\n=== 📢 ORGANIZER BROADCASTS ===`
+      broadcasts.forEach((broadcast: any) => {
+        const priorityIcon = broadcast.priority === 'urgent' ? '🚨' : 
+                            broadcast.priority === 'high' ? '⚠️' : '📢'
+        basePrompt += `\n${priorityIcon} [${(broadcast.priority || 'normal').toUpperCase()}] ${broadcast.message}`
+        basePrompt += `\n   (from ${broadcast.createdBy}, ${new Date(broadcast.createdAt).toLocaleDateString()})`
+      })
+      basePrompt += `\nNote: Reference these announcements when relevant to user questions.`
     }
 
     // Add comprehensive context sections
