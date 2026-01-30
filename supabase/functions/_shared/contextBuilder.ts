@@ -252,29 +252,55 @@ export class TripContextBuilder {
     }
   }
 
-  // 🆕 Optimized: Limit to last 15 messages from last 72 hours to prevent AI degradation
+  // 🆕 Optimized: Get "50 messages OR 72 hours" - whichever provides MORE context
   private static async fetchMessages(supabase: any, tripId: string) {
     try {
       const threeDaysAgo = new Date();
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
       
+      // Strategy: Fetch last 50 messages, then extend if they're all within 72h
       const { data, error } = await supabase
         .from('trip_chat_messages')
         .select('id, content, author_name, created_at, message_type')
         .eq('trip_id', tripId)
-        .gte('created_at', threeDaysAgo.toISOString())
         .order('created_at', { ascending: false })
-        .limit(15); // Reduced from 50 to prevent context degradation
+        .limit(50); // Base: last 50 messages
 
       if (error) throw error;
+      
+      let messages = data || [];
+      
+      // If we got 50 messages and the oldest is within 72h, 
+      // there might be more recent messages - fetch by time instead
+      if (messages.length === 50) {
+        const oldestTimestamp = new Date(messages[messages.length - 1]?.created_at);
+        
+        if (oldestTimestamp > threeDaysAgo) {
+          // All 50 messages are within 72h - fetch ALL from 72h (capped at 100)
+          const { data: timeData } = await supabase
+            .from('trip_chat_messages')
+            .select('id, content, author_name, created_at, message_type')
+            .eq('trip_id', tripId)
+            .gte('created_at', threeDaysAgo.toISOString())
+            .order('created_at', { ascending: false })
+            .limit(100); // Safety cap to prevent token overflow
+          
+          if (timeData && timeData.length > messages.length) {
+            messages = timeData;
+            console.log(`[Context] Extended to ${messages.length} messages (72h window)`);
+          }
+        }
+      }
 
-      return data?.map((m: any) => ({
+      console.log(`[Context] Fetched ${messages.length} messages for AI context`);
+
+      return messages.map((m: any) => ({
         id: m.id,
         content: m.content,
         authorName: m.author_name,
         timestamp: m.created_at,
         type: m.message_type === 'broadcast' ? 'broadcast' : 'message'
-      })).reverse() || [];
+      })).reverse();
     } catch (error) {
       console.error('Error fetching messages:', error);
       return [];
