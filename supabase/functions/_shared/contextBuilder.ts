@@ -66,6 +66,14 @@ export interface ComprehensiveTripContext {
     options: Array<{ text: string; votes: number }>;
     status: 'active' | 'closed';
   }>;
+  // 🆕 Organizer broadcasts for announcements
+  broadcasts: Array<{
+    id: string;
+    message: string;
+    priority: string;
+    createdBy: string;
+    createdAt: string;
+  }>;
   places: {
     tripBasecamp?: {
       name: string;
@@ -112,7 +120,7 @@ export class TripContextBuilder {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
     try {
-      // Parallel fetch all data sources including user preferences
+      // Parallel fetch all data sources including user preferences and broadcasts
       const [
         tripMetadata,
         collaborators,
@@ -121,6 +129,7 @@ export class TripContextBuilder {
         tasks,
         payments,
         polls,
+        broadcasts,
         places,
         files,
         links,
@@ -133,7 +142,8 @@ export class TripContextBuilder {
         this.fetchTasks(supabase, tripId),
         this.fetchPayments(supabase, tripId),
         this.fetchPolls(supabase, tripId),
-        this.fetchPlaces(supabase, tripId, userId), // 🆕 Pass userId for personal basecamp
+        this.fetchBroadcasts(supabase, tripId), // 🆕 Fetch organizer broadcasts
+        this.fetchPlaces(supabase, tripId, userId),
         this.fetchFiles(supabase, tripId),
         this.fetchLinks(supabase, tripId),
         userId ? this.fetchUserPreferences(supabase, userId) : Promise.resolve(undefined)
@@ -147,9 +157,10 @@ export class TripContextBuilder {
         tasks,
         payments,
         polls,
+        broadcasts, // 🆕 Include broadcasts
         places,
         media: { files, links },
-        userPreferences // 🆕 Include user preferences
+        userPreferences
       };
     } catch (error) {
       console.error('Error building trip context:', error);
@@ -241,14 +252,19 @@ export class TripContextBuilder {
     }
   }
 
+  // 🆕 Optimized: Limit to last 15 messages from last 72 hours to prevent AI degradation
   private static async fetchMessages(supabase: any, tripId: string) {
     try {
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      
       const { data, error } = await supabase
         .from('trip_chat_messages')
         .select('id, content, author_name, created_at, message_type')
         .eq('trip_id', tripId)
+        .gte('created_at', threeDaysAgo.toISOString())
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(15); // Reduced from 50 to prevent context degradation
 
       if (error) throw error;
 
@@ -261,6 +277,50 @@ export class TripContextBuilder {
       })).reverse() || [];
     } catch (error) {
       console.error('Error fetching messages:', error);
+      return [];
+    }
+  }
+
+  // 🆕 Fetch organizer broadcasts with priority levels
+  private static async fetchBroadcasts(supabase: any, tripId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .select('id, message, priority, created_by, created_at')
+        .eq('trip_id', tripId)
+        .eq('is_sent', true)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      // Fetch creator names separately to avoid FK issues
+      const creatorIds = [...new Set((data || []).map((b: any) => b.created_by))];
+      let profilesMap = new Map<string, string>();
+      
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles_public')
+          .select('user_id, display_name, first_name, last_name')
+          .in('user_id', creatorIds);
+        
+        (profiles || []).forEach((p: any) => {
+          const name = p.display_name || 
+            [p.first_name, p.last_name].filter(Boolean).join(' ') || 
+            'Organizer';
+          profilesMap.set(p.user_id, name);
+        });
+      }
+
+      return data?.map((b: any) => ({
+        id: b.id,
+        message: b.message,
+        priority: b.priority || 'normal',
+        createdBy: profilesMap.get(b.created_by) || 'Organizer',
+        createdAt: b.created_at
+      })) || [];
+    } catch (error) {
+      console.error('Error fetching broadcasts:', error);
       return [];
     }
   }
