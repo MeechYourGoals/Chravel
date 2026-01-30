@@ -64,6 +64,19 @@ serve(async (req) => {
     const user = userData.user;
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Super admin bypass - return max tier without Stripe check
+    const SUPER_ADMIN_EMAILS = ['ccamechi@gmail.com'];
+    if (user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      logStep("Super admin detected - bypassing Stripe check", { email: user.email });
+      return createSecureResponse({
+        subscribed: true,
+        tier: 'pro-enterprise',
+        product_id: 'super_admin_bypass',
+        subscription_end: null, // Never expires
+        is_super_admin: true
+      });
+    }
+
     // Initialize Stripe
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     

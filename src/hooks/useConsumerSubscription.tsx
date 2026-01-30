@@ -120,7 +120,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   const isPlus = isSuperAdmin || (subscription?.status === 'active' && currentTier !== 'free');
   const isSubscribed = isSuperAdmin || (subscription?.status === 'active' && currentTier !== 'free');
   const canCreateProTrip = isSuperAdmin || currentTier === 'frequent-chraveler';
-  const proTripQuota = isSuperAdmin ? 999 : (currentTier === 'frequent-chraveler' ? 1 : 0);
+  const proTripQuota = isSuperAdmin ? -1 : (currentTier === 'frequent-chraveler' ? 1 : 0); // -1 = unlimited for super admins
 
   return (
     <ConsumerSubscriptionContext.Provider value={{
