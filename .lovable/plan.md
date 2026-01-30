@@ -1,202 +1,126 @@
 
-# Update AI Concierge Base Prompt & Context Builder
+
+# Optimize Message Context: "50 Messages OR 72 Hours" Strategy
 
 ## Overview
 
-This plan adds comprehensive prompt improvements to make the AI Concierge more accurate, source-aware, and user-friendly. It also fixes a critical gap where **broadcasts are not being fetched** from the database.
+Revert the message limit from 15 back to 50, and implement a "whichever is MORE" strategy that ensures users get sufficient context without risking AI degradation from unbounded message counts.
 
 ---
 
-## Files to Modify
+## Strategy: UNION of Time + Count
+
+Instead of the current approach (15 messages AND 72 hours), we'll use:
+
+**"50 most recent messages OR all messages from last 72 hours - whichever gives MORE context"**
+
+This ensures:
+- **Quiet trips**: Get full 72-hour history even if only 5 messages
+- **Active trips**: Get at least 50 most recent messages even if they're only hours old
+- **Bounded**: Never exceeds ~100 messages (safeguard against token overflow)
+
+---
+
+## File to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/_shared/contextBuilder.ts` | Add `fetchBroadcasts()` method, add broadcasts to interface + parallel fetch |
-| `supabase/functions/lovable-concierge/index.ts` | Update `buildSystemPrompt()` with new prompt sections |
+| `supabase/functions/_shared/contextBuilder.ts` | Update `fetchMessages()` with hybrid strategy |
 
 ---
 
-## Implementation Details
-
-### Step 1: Add Broadcasts to Context Builder
+## Implementation
 
 **File:** `supabase/functions/_shared/contextBuilder.ts`
 
-Add `broadcasts` to the `ComprehensiveTripContext` interface:
-```typescript
-broadcasts: Array<{
-  id: string;
-  message: string;
-  priority: string;
-  createdBy: string;
-  createdAt: string;
-}>;
-```
+Update `fetchMessages` (lines 256-282):
 
-Add new method:
 ```typescript
-private static async fetchBroadcasts(supabase: any, tripId: string) {
+// Optimized: Get "50 messages OR 72 hours" - whichever provides MORE context
+private static async fetchMessages(supabase: any, tripId: string) {
   try {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    
+    // Strategy: Fetch last 50 messages, then extend if they're all within 72h
     const { data, error } = await supabase
-      .from('broadcasts')
-      .select('id, message, priority, created_by, created_at, profiles:created_by(full_name)')
+      .from('trip_chat_messages')
+      .select('id, content, author_name, created_at, message_type')
       .eq('trip_id', tripId)
-      .eq('is_sent', true)
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(50); // Base: last 50 messages
 
     if (error) throw error;
+    
+    let messages = data || [];
+    
+    // If we got 50 messages and the oldest is within 72h, 
+    // there might be more recent messages - fetch by time instead
+    if (messages.length === 50) {
+      const oldestTimestamp = new Date(messages[messages.length - 1]?.created_at);
+      
+      if (oldestTimestamp > threeDaysAgo) {
+        // All 50 messages are within 72h - fetch ALL from 72h (capped at 100)
+        const { data: timeData } = await supabase
+          .from('trip_chat_messages')
+          .select('id, content, author_name, created_at, message_type')
+          .eq('trip_id', tripId)
+          .gte('created_at', threeDaysAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(100); // Safety cap to prevent token overflow
+        
+        if (timeData && timeData.length > messages.length) {
+          messages = timeData;
+          console.log(`[Context] Extended to ${messages.length} messages (72h window)`);
+        }
+      }
+    }
 
-    return data?.map((b: any) => ({
-      id: b.id,
-      message: b.message,
-      priority: b.priority || 'normal',
-      createdBy: b.profiles?.full_name || 'Organizer',
-      createdAt: b.created_at
-    })) || [];
+    console.log(`[Context] Fetched ${messages.length} messages for AI context`);
+
+    return messages.map((m: any) => ({
+      id: m.id,
+      content: m.content,
+      authorName: m.author_name,
+      timestamp: m.created_at,
+      type: m.message_type === 'broadcast' ? 'broadcast' : 'message'
+    })).reverse();
   } catch (error) {
-    console.error('Error fetching broadcasts:', error);
+    console.error('Error fetching messages:', error);
     return [];
   }
 }
 ```
 
-Update parallel fetch to include broadcasts.
+---
+
+## Latency Considerations
+
+| Context Size | Estimated Extra Tokens | Latency Impact |
+|--------------|------------------------|----------------|
+| 15 messages | ~500 tokens | Baseline |
+| 50 messages | ~1,500 tokens | +200-300ms |
+| 100 messages | ~3,000 tokens | +400-600ms |
+
+The 100-message safety cap keeps worst-case latency under 3 seconds for AI response.
 
 ---
 
-### Step 2: Update System Prompt with New Sections
+## Summary
 
-**File:** `supabase/functions/lovable-concierge/index.ts`
-
-Add the following sections to `buildSystemPrompt()`:
-
-#### A) Source of Truth & Priority Rules (after base prompt intro)
-```typescript
-basePrompt += `
-
-=== SOURCE OF TRUTH & PRIORITY RULES (MUST FOLLOW) ===
-
-1) If the user explicitly overrides preferences (e.g., "ignore my budget"), honor that for THIS request only.
-
-2) Otherwise apply saved preferences automatically to all recommendations.
-
-3) Never invent facts. If an answer is not present in Trip Context, say what you do know and propose the fastest next step.
-
-4) When answering questions like "what time / where / address", prioritize:
-   Calendar items > Places/Basecamps > Saved Links > Chat mentions > Assumptions (clearly labeled)
-
-=== TRIP CONTEXT COVERAGE (YOU HAVE ACCESS) ===
-
-You can read and use the following trip data when answering:
-- Chat: messages, pinned items, recent summaries
-- Calendar: events, times, locations, notes
-- Places: saved places, tagged categories, addresses
-- Basecamps: key hubs + lodging + meeting points + coordinates/addresses
-- Links: saved/pinned links with titles + notes
-- Broadcasts: announcements from organizers
-- Polls: questions, options, votes, final decisions
-- Tasks: owners, due dates, status
-- Payments: who paid/owes, split method, settlement suggestions
-
- Proactively search these sections mentally before asking them to click around.
-`
-```
-
-#### B) Update Preferences Section with Visibility Pattern
-```typescript
-// After listing all preferences, add visibility pattern
-basePrompt += `
-
-📋 PREFERENCE VISIBILITY:
-When giving recommendations, include one short line at the START:
-"Filtered for you: [Diet] | [Budget] | [Vibe] | [Accessibility]"
-(Only show categories that are active - do not overdo it. if more than 3 active filter you can just say "Filtered by your saved Preferences:")
-
-Example: "Filtered for you: Vegetarian | $50-100 | Chill vibes"
-`
-```
-
-#### C) Output Contract for Trip Questions
-```typescript
-basePrompt += `
-
-=== OUTPUT CONTRACT FOR TRIP INFO QUESTIONS ===
-
-For "trip info" questions (time, place, who owes who, what did we decide):
-
-1. **Start with 1-sentence direct answer**
-2. **Show the supporting source**: (📅 Calendar | 📊 Poll | 💰 Payment | 📍 Places | 💬 Chat)
-3. **Give one next action if needed**
-
-Example:
-User: "What time is dinner tomorrow?"
-You: "Dinner is at **7:00 PM** at Nobu.
-📅 Source: Calendar event 'Group Dinner'
-Next: I can get you directions from your hotel if you'd like!"
-`
-```
-
-#### D) Add Broadcasts Section to Prompt
-```typescript
-if (broadcasts?.length) {
-  basePrompt += `\n\n=== 📢 ORGANIZER BROADCASTS ===`
-  broadcasts.forEach((broadcast: any) => {
-    const priorityIcon = broadcast.priority === 'urgent' ? '🚨' : 
-                         broadcast.priority === 'high' ? '⚠️' : '📢'
-    basePrompt += `\n${priorityIcon} [${broadcast.priority.toUpperCase()}] ${broadcast.message}`
-    basePrompt += `\n   (from ${broadcast.createdBy}, ${broadcast.createdAt})`
-  })
-  basePrompt += `\nNote: Reference these announcements when relevant to user questions.`
-}
-```
+| Before | After |
+|--------|-------|
+| 15 messages AND 72 hours | 50 messages OR 72 hours (max 100) |
+| Could miss recent context | Always gets sufficient context |
+| Fixed 15 message cap | Adaptive: 50-100 based on activity |
 
 ---
 
-### Step 3: Optimize Message Context (Prevent Degradation)
+## Verification
 
-Update `fetchMessages` to:
-- Limit to last 50 messages 
-- Prioritize broadcast-type messages
-- Include only messages from last 72 hours for context freshness
+After deployment:
+- [ ] Check edge function logs for message count: `[Context] Fetched X messages`
+- [ ] Test on quiet trip (< 50 messages in 72h) → Should get all messages
+- [ ] Test on active trip (> 50 messages in 72h) → Should cap at 100
+- [ ] Verify AI response latency stays under 4 seconds
 
-```typescript
-private static async fetchMessages(supabase: any, tripId: string) {
-  const threeDaysAgo = new Date();
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  
-  const { data, error } = await supabase
-    .from('trip_chat_messages')
-    .select('id, content, author_name, created_at, message_type')
-    .eq('trip_id', tripId)
-    .gte('created_at', threeDaysAgo.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(15); // Reduced from 50
-
-  // ... rest of implementation
-}
-```
-
----
-
-## Summary of Changes
-
-| Section | Current | After |
-|---------|---------|-------|
-| Source Priority | Not defined | Calendar > Places > Links > Chat > Assumptions |
-| Broadcasts | ❌ Not fetched | ✅ Fetched & displayed with priority icons |
-| Preference Visibility | Silent filtering | Shows "Filtered for you: X \| Y \| Z" |
-| Output Format | Rambling answers | Direct answer + Source + Next action |
-| Message Limit | 50 messages | 15 messages (last 72h) |
-| Override Handling | Not supported | Explicit override honored per-request |
-
----
-
-## Verification Checklist
-
-After implementation:
-- [ ] Ask "What time is dinner?" → Should get direct answer + source citation
-- [ ] Ask for restaurant recommendations → Should see "Filtered for you: [preferences]"
-- [ ] Ask about broadcasts → Should reference organizer announcements
-- [ ] Override with "ignore my budget" → Should temporarily bypass budget filter
-- [ ] Check edge function logs for broadcasts being fetched
