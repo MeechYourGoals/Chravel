@@ -42,6 +42,7 @@ export interface Campaign {
   budget_daily?: number;
   impressions: number;
   clicks: number;
+  saves: number;
   conversions: number;
   created_at: string;
   updated_at: string;

@@ -6,11 +6,10 @@ import {
   Eye, 
   Edit2, 
   Trash2, 
-  BarChart2, 
   Calendar,
   DollarSign,
   MousePointer,
-  TrendingUp,
+  Bookmark,
   Pause,
   Play
 } from 'lucide-react';
@@ -32,10 +31,10 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-500';
-      case 'paused': return 'bg-yellow-500';
-      case 'draft': return 'bg-gray-500';
+      case 'paused': return 'bg-amber-500';
+      case 'draft': return 'bg-muted-foreground';
       case 'ended': return 'bg-red-500';
-      default: return 'bg-gray-500';
+      default: return 'bg-muted-foreground';
     }
   };
 
@@ -80,10 +79,10 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
 
   if (campaigns.length === 0) {
     return (
-      <Card className="text-center py-12 bg-white/5 border-gray-700">
+      <Card className="text-center py-12 bg-white/5 border-white/10">
         <CardContent>
-          <p className="text-gray-400 mb-4">No campaigns yet</p>
-          <p className="text-sm text-gray-500">
+          <p className="text-muted-foreground mb-4">No campaigns yet</p>
+          <p className="text-sm text-muted-foreground">
             Create your first campaign to start advertising on Chravel
           </p>
         </CardContent>
@@ -94,7 +93,7 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
   return (
     <div className="grid gap-6">
       {campaigns.map((campaign) => (
-        <Card key={campaign.id} className="bg-white/5 border-gray-700 hover:bg-white/10 transition-all">
+        <Card key={campaign.id} className="bg-white/5 border-white/10 hover:border-primary/30 transition-all">
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
@@ -104,7 +103,7 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
                     {campaign.status}
                   </Badge>
                   {campaign.discount_details && (
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="border-primary/50 text-primary">
                       {campaign.discount_details}
                     </Badge>
                   )}
@@ -116,6 +115,7 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
                     size="sm"
                     variant="outline"
                     onClick={() => handleStatusToggle(campaign)}
+                    className="border-white/10 hover:bg-white/5"
                   >
                     <Play className="h-4 w-4" />
                   </Button>
@@ -124,6 +124,7 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
                     size="sm"
                     variant="outline"
                     onClick={() => handleStatusToggle(campaign)}
+                    className="border-white/10 hover:bg-white/5"
                   >
                     <Pause className="h-4 w-4" />
                   </Button>
@@ -132,7 +133,7 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
                   size="sm" 
                   variant="outline"
                   onClick={() => setEditingCampaign(campaign)}
-                  className="border-gray-600 hover:bg-white/10"
+                  className="border-white/10 hover:bg-white/5"
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
@@ -140,6 +141,7 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
                   size="sm"
                   variant="outline"
                   onClick={() => handleDelete(campaign.id, campaign.name)}
+                  className="border-white/10 hover:bg-white/5 hover:border-red-500/50 hover:text-red-400"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -151,7 +153,7 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
             
             {/* Campaign Dates */}
             {(campaign.start_date || campaign.end_date) && (
-              <div className="flex items-center gap-4 text-sm text-gray-400 mb-4">
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                 <Calendar className="h-4 w-4" />
                 <span>
                   {campaign.start_date 
@@ -165,10 +167,10 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
               </div>
             )}
 
-            {/* Campaign Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
+            {/* Campaign Stats - Updated to show Saves instead of CTR */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-white/5 border border-white/10 rounded-lg">
               <div className="text-center">
-                <div className="flex items-center justify-center text-gray-400 mb-1">
+                <div className="flex items-center justify-center text-muted-foreground mb-1">
                   <Eye className="h-4 w-4 mr-1" />
                   <span className="text-xs">Impressions</span>
                 </div>
@@ -176,7 +178,7 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
               </div>
               
               <div className="text-center">
-                <div className="flex items-center justify-center text-gray-400 mb-1">
+                <div className="flex items-center justify-center text-muted-foreground mb-1">
                   <MousePointer className="h-4 w-4 mr-1" />
                   <span className="text-xs">Clicks</span>
                 </div>
@@ -184,20 +186,17 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
               </div>
               
               <div className="text-center">
-                <div className="flex items-center justify-center text-gray-400 mb-1">
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  <span className="text-xs">CTR</span>
+                <div className="flex items-center justify-center text-muted-foreground mb-1">
+                  <Bookmark className="h-4 w-4 mr-1" />
+                  <span className="text-xs">Saves</span>
                 </div>
                 <p className="text-2xl font-semibold text-white">
-                  {campaign.impressions > 0 
-                    ? ((campaign.clicks / campaign.impressions) * 100).toFixed(2)
-                    : '0.00'
-                  }%
+                  {(campaign.saves || 0).toLocaleString()}
                 </p>
               </div>
               
               <div className="text-center">
-                <div className="flex items-center justify-center text-gray-400 mb-1">
+                <div className="flex items-center justify-center text-muted-foreground mb-1">
                   <DollarSign className="h-4 w-4 mr-1" />
                   <span className="text-xs">Conversions</span>
                 </div>
@@ -207,16 +206,16 @@ export const CampaignList = ({ campaigns, onRefresh }: CampaignListProps) => {
 
             {/* Targeting Info */}
             {campaign.targeting && (
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <p className="text-sm text-gray-400 mb-2">Targeting:</p>
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <p className="text-sm text-muted-foreground mb-2">Targeting:</p>
                 <div className="flex flex-wrap gap-2">
                   {campaign.targeting.interests?.map((interest) => (
-                    <Badge key={interest} variant="secondary">
+                    <Badge key={interest} variant="secondary" className="bg-white/10 text-gray-300">
                       {interest.replace('_', ' ')}
                     </Badge>
                   ))}
                   {campaign.targeting.locations?.map((location) => (
-                    <Badge key={location} variant="secondary">
+                    <Badge key={location} variant="secondary" className="bg-white/10 text-gray-300">
                       📍 {location}
                     </Badge>
                   ))}

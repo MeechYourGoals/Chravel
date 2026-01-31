@@ -72,6 +72,7 @@ export const AdvertiserDashboard = () => {
       status: 'active',
       impressions: 15234,
       clicks: 1203,
+      saves: 342,
       conversions: 89,
       start_date: new Date('2024-01-01').toISOString(),
       end_date: new Date('2024-12-31').toISOString(),
@@ -116,6 +117,7 @@ export const AdvertiserDashboard = () => {
       status: 'active',
       impressions: 12876,
       clicks: 945,
+      saves: 287,
       conversions: 67,
       start_date: new Date('2024-02-01').toISOString(),
       end_date: new Date('2024-11-30').toISOString(),
@@ -165,6 +167,7 @@ export const AdvertiserDashboard = () => {
       status: 'active',
       impressions: 18765,
       clicks: 1456,
+      saves: 523,
       conversions: 134,
       start_date: new Date('2024-01-15').toISOString(),
       end_date: new Date('2024-12-31').toISOString(),
@@ -237,8 +240,8 @@ export const AdvertiserDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -271,10 +274,10 @@ export const AdvertiserDashboard = () => {
   const activeCampaigns = isDemoMode ? mockCampaigns : campaigns;
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-black">
       {/* Preview Mode Banner */}
       {isPreviewMode && (
-        <div className="bg-gradient-to-r from-yellow-600 to-amber-600 text-white py-2 px-4 text-center">
+        <div className="bg-gradient-to-r from-primary to-amber-500 text-primary-foreground py-2 px-4 text-center">
           <p className="text-sm font-medium">
             {isDemoMode
               ? '🎭 Demo Mode Active - This is a preview of the Chravel Advertiser Hub'
@@ -284,13 +287,13 @@ export const AdvertiserDashboard = () => {
       )}
 
       {/* Header - Mobile Optimized */}
-      <header className="bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700">
+      <header className="bg-black border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 tablet:px-6 lg:px-8 py-4 tablet:py-0">
           <div className="flex flex-col tablet:flex-row tablet:justify-between tablet:items-center gap-3 tablet:h-16">
             {/* Title and company name - stacked on mobile */}
             <div className="flex flex-col tablet:flex-row tablet:items-center gap-1 tablet:gap-4">
               <h1 className="text-xl tablet:text-2xl font-bold text-white">Advertiser Hub</h1>
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-muted-foreground">
                 {activeAdvertiser?.company_name || 'Loading...'}
               </span>
             </div>
@@ -300,7 +303,7 @@ export const AdvertiserDashboard = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/')}
-                className="border-gray-600 text-gray-300 hover:bg-white/10 flex-1 tablet:flex-none text-xs tablet:text-sm"
+                className="border-white/10 text-gray-300 hover:bg-white/5 flex-1 tablet:flex-none text-xs tablet:text-sm"
               >
                 Back to Chravel
               </Button>
@@ -309,7 +312,7 @@ export const AdvertiserDashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={handleSignOut}
-                  className="text-gray-300 hover:bg-white/10 flex-1 tablet:flex-none text-xs tablet:text-sm"
+                  className="text-gray-300 hover:bg-white/5 flex-1 tablet:flex-none text-xs tablet:text-sm"
                 >
                   <LogOut className="h-4 w-4 mr-1 tablet:mr-2" />
                   <span className="tablet:inline">Sign Out</span>
@@ -323,29 +326,32 @@ export const AdvertiserDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="mb-8 bg-gray-800 border-gray-700">
-            <TabsTrigger
-              value="campaigns"
-              className="flex items-center gap-2 data-[state=active]:bg-yellow-600"
-            >
-              <Plus className="h-4 w-4" />
-              Campaigns
-            </TabsTrigger>
-            <TabsTrigger
-              value="analytics"
-              className="flex items-center gap-2 data-[state=active]:bg-yellow-600"
-            >
-              <BarChart3 className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger
-              value="settings"
-              className="flex items-center gap-2 data-[state=active]:bg-yellow-600"
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </TabsTrigger>
-          </TabsList>
+          {/* Centered Tabs */}
+          <div className="flex justify-center mb-8">
+            <TabsList className="bg-white/5 border border-white/10 p-1">
+              <TabsTrigger
+                value="campaigns"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                <Plus className="h-4 w-4" />
+                Campaigns
+              </TabsTrigger>
+              <TabsTrigger
+                value="analytics"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                <BarChart3 className="h-4 w-4" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger
+                value="settings"
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="campaigns" className="space-y-6 mobile-safe-scroll overflow-y-auto">
             <div className="space-y-4">
@@ -353,7 +359,7 @@ export const AdvertiserDashboard = () => {
               <div className="flex justify-start">
                 <Button
                   onClick={() => setShowCampaignCreator(true)}
-                  className="bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 w-full sm:w-auto"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Campaign

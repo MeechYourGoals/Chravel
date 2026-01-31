@@ -185,6 +185,7 @@ export class AdvertiserService {
           duration: formData.duration,
           impressions: 0,
           clicks: 0,
+          saves: 0,
           conversions: 0,
           start_date: formData.start_date,
           end_date: formData.end_date,

@@ -8,7 +8,7 @@ import {
   TrendingDown, 
   Eye, 
   MousePointer, 
-  Target,
+  Bookmark,
   Calendar,
   DollarSign
 } from 'lucide-react';
@@ -28,8 +28,8 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
   const activeCampaigns = campaigns.filter(c => c.status === 'active');
   const totalImpressions = campaigns.reduce((sum, c) => sum + c.impressions, 0);
   const totalClicks = campaigns.reduce((sum, c) => sum + c.clicks, 0);
+  const totalSaves = campaigns.reduce((sum, c) => sum + (c.saves || 0), 0);
   const totalConversions = campaigns.reduce((sum, c) => sum + c.conversions, 0);
-  const overallCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
 
   useEffect(() => {
     if (selectedCampaign !== 'all') {
@@ -44,13 +44,13 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
 
   // Mock data for charts - in production, this would come from the API
   const performanceData = [
-    { date: 'Mon', impressions: 1200, clicks: 45, conversions: 3 },
-    { date: 'Tue', impressions: 1800, clicks: 72, conversions: 5 },
-    { date: 'Wed', impressions: 2400, clicks: 98, conversions: 8 },
-    { date: 'Thu', impressions: 2100, clicks: 85, conversions: 6 },
-    { date: 'Fri', impressions: 3200, clicks: 142, conversions: 12 },
-    { date: 'Sat', impressions: 3800, clicks: 178, conversions: 15 },
-    { date: 'Sun', impressions: 3500, clicks: 165, conversions: 14 }
+    { date: 'Mon', impressions: 1200, clicks: 45, saves: 12, conversions: 3 },
+    { date: 'Tue', impressions: 1800, clicks: 72, saves: 18, conversions: 5 },
+    { date: 'Wed', impressions: 2400, clicks: 98, saves: 25, conversions: 8 },
+    { date: 'Thu', impressions: 2100, clicks: 85, saves: 22, conversions: 6 },
+    { date: 'Fri', impressions: 3200, clicks: 142, saves: 38, conversions: 12 },
+    { date: 'Sat', impressions: 3800, clicks: 178, saves: 48, conversions: 15 },
+    { date: 'Sun', impressions: 3500, clicks: 165, saves: 42, conversions: 14 }
   ];
 
   const topPerformingCampaigns = [...campaigns]
@@ -64,7 +64,7 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
         <h2 className="text-xl font-semibold text-white">Campaign Analytics</h2>
         <div className="flex flex-col tablet:flex-row gap-3">
           <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-            <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px] bg-white/5 border-white/10">
               <SelectValue placeholder="Select campaign" />
             </SelectTrigger>
             <SelectContent>
@@ -78,7 +78,7 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
           </Select>
 
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-full sm:w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px] bg-white/5 border-white/10">
               <SelectValue placeholder="Time range" />
             </SelectTrigger>
             <SelectContent>
@@ -92,90 +92,104 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
 
       {/* Overview Cards - 2x2 on mobile, 4-across on tablet+ */}
       <div className="grid grid-cols-2 tablet:grid-cols-4 gap-3 tablet:gap-4">
-        <Card className="bg-white/5 border-gray-700">
+        <Card className="bg-white/5 border-white/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 tablet:pb-2 px-3 tablet:px-6 pt-3 tablet:pt-6">
             <CardTitle className="text-xs tablet:text-sm font-medium text-white">
               <span className="tablet:hidden">Impressions</span>
               <span className="hidden tablet:inline">Total Impressions</span>
             </CardTitle>
-            <Eye className="h-3 w-3 tablet:h-4 tablet:w-4 text-gray-400" />
+            <Eye className="h-3 w-3 tablet:h-4 tablet:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
             <div className="text-lg tablet:text-2xl font-bold text-white">{totalImpressions.toLocaleString()}</div>
-            <p className="text-xs text-gray-400 whitespace-nowrap">
+            <p className="text-xs text-muted-foreground whitespace-nowrap">
               <TrendingUp className="h-3 w-3 inline text-green-500" /> +15.3%<span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/5 border-gray-700">
+        <Card className="bg-white/5 border-white/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 tablet:pb-2 px-3 tablet:px-6 pt-3 tablet:pt-6">
             <CardTitle className="text-xs tablet:text-sm font-medium text-white">
               <span className="tablet:hidden">Clicks</span>
               <span className="hidden tablet:inline">Total Clicks</span>
             </CardTitle>
-            <MousePointer className="h-3 w-3 tablet:h-4 tablet:w-4 text-gray-400" />
+            <MousePointer className="h-3 w-3 tablet:h-4 tablet:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
             <div className="text-lg tablet:text-2xl font-bold text-white">{totalClicks.toLocaleString()}</div>
-            <p className="text-xs text-gray-400 whitespace-nowrap">
+            <p className="text-xs text-muted-foreground whitespace-nowrap">
               <TrendingUp className="h-3 w-3 inline text-green-500" /> +8.2%<span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/5 border-gray-700">
+        <Card className="bg-white/5 border-white/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 tablet:pb-2 px-3 tablet:px-6 pt-3 tablet:pt-6">
-            <CardTitle className="text-xs tablet:text-sm font-medium text-white">CTR</CardTitle>
-            <Target className="h-3 w-3 tablet:h-4 tablet:w-4 text-gray-400" />
+            <CardTitle className="text-xs tablet:text-sm font-medium text-white">Saves</CardTitle>
+            <Bookmark className="h-3 w-3 tablet:h-4 tablet:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
-            <div className="text-lg tablet:text-2xl font-bold text-white">{overallCTR.toFixed(2)}%</div>
-            <p className="text-xs text-gray-400 whitespace-nowrap">
-              <TrendingDown className="h-3 w-3 inline text-red-500" /> -0.8%<span className="hidden tablet:inline"> from last week</span>
+            <div className="text-lg tablet:text-2xl font-bold text-white">{totalSaves.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground whitespace-nowrap">
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +12.4%<span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/5 border-gray-700">
+        <Card className="bg-white/5 border-white/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 tablet:pb-2 px-3 tablet:px-6 pt-3 tablet:pt-6">
             <CardTitle className="text-xs tablet:text-sm font-medium text-white">Conversions</CardTitle>
-            <DollarSign className="h-3 w-3 tablet:h-4 tablet:w-4 text-gray-400" />
+            <DollarSign className="h-3 w-3 tablet:h-4 tablet:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
             <div className="text-lg tablet:text-2xl font-bold text-white">{totalConversions.toLocaleString()}</div>
-            <p className="text-xs text-gray-400 whitespace-nowrap">
+            <p className="text-xs text-muted-foreground whitespace-nowrap">
               <TrendingUp className="h-3 w-3 inline text-green-500" /> +5%<span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
+      {/* Charts - Centered Tabs */}
       <Tabs defaultValue="performance" className="space-y-4">
-        <TabsList className="bg-gray-800 border-gray-700">
-          <TabsTrigger value="performance" className="data-[state=active]:bg-yellow-600">Performance</TabsTrigger>
-          <TabsTrigger value="engagement" className="data-[state=active]:bg-yellow-600">Engagement</TabsTrigger>
-          <TabsTrigger value="campaigns" className="data-[state=active]:bg-yellow-600">Top Campaigns</TabsTrigger>
-        </TabsList>
+        <div className="flex justify-center">
+          <TabsList className="bg-white/5 border border-white/10 p-1">
+            <TabsTrigger value="performance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Performance
+            </TabsTrigger>
+            <TabsTrigger value="engagement" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Engagement
+            </TabsTrigger>
+            <TabsTrigger value="campaigns" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Top Campaigns
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="performance" className="space-y-4">
-          <Card className="bg-white/5 border-gray-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Performance Trends</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={performanceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis dataKey="date" stroke="#9ca3af" />
+                  <YAxis stroke="#9ca3af" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(0,0,0,0.8)', 
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px'
+                    }} 
+                  />
                   <Legend />
                   <Line 
                     type="monotone" 
                     dataKey="impressions" 
-                    stroke="#8b5cf6" 
+                    stroke="hsl(42, 92%, 56%)" 
                     name="Impressions"
                   />
                   <Line 
@@ -191,18 +205,25 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
         </TabsContent>
 
         <TabsContent value="engagement" className="space-y-4">
-          <Card className="bg-white/5 border-gray-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Engagement Metrics</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={performanceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis dataKey="date" stroke="#9ca3af" />
+                  <YAxis stroke="#9ca3af" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(0,0,0,0.8)', 
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px'
+                    }} 
+                  />
                   <Legend />
+                  <Bar dataKey="saves" fill="hsl(42, 92%, 56%)" name="Saves" />
                   <Bar dataKey="conversions" fill="#10b981" name="Conversions" />
                 </BarChart>
               </ResponsiveContainer>
@@ -211,32 +232,29 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
         </TabsContent>
 
         <TabsContent value="campaigns" className="space-y-4">
-          <Card className="bg-white/5 border-gray-700">
+          <Card className="bg-white/5 border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Top Performing Campaigns</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {topPerformingCampaigns.map((campaign, index) => (
-                  <div key={campaign.id} className="flex items-center justify-between">
+                  <div key={campaign.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                     <div className="flex items-center gap-3">
-                      <div className="text-lg font-semibold text-gray-400">
+                      <div className="text-lg font-semibold text-muted-foreground">
                         #{index + 1}
                       </div>
                       <div>
                         <p className="font-medium text-white">{campaign.name}</p>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           {campaign.impressions.toLocaleString()} impressions
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-white">{campaign.clicks} clicks</p>
-                      <p className="text-sm text-gray-400">
-                        {campaign.impressions > 0 
-                          ? ((campaign.clicks / campaign.impressions) * 100).toFixed(2)
-                          : '0.00'
-                        }% CTR
+                      <p className="text-sm text-muted-foreground">
+                        {(campaign.saves || 0).toLocaleString()} saves
                       </p>
                     </div>
                   </div>
@@ -248,23 +266,23 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
       </Tabs>
 
       {/* Active Campaigns Summary */}
-      <Card className="bg-white/5 border-gray-700">
+      <Card className="bg-white/5 border-white/10">
         <CardHeader>
           <CardTitle className="text-white">Active Campaigns Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-2 tablet:gap-4">
-            <div className="text-center p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
-              <BarChart3 className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
+            <div className="text-center p-4 bg-white/5 border border-white/10 rounded-lg">
+              <BarChart3 className="h-8 w-8 mx-auto mb-2 text-primary" />
               <p className="text-2xl font-bold text-white">{activeCampaigns.length}</p>
-              <p className="text-sm text-gray-400">Active Campaigns</p>
+              <p className="text-sm text-muted-foreground">Active Campaigns</p>
             </div>
-            <div className="text-center p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
+            <div className="text-center p-4 bg-white/5 border border-white/10 rounded-lg">
               <Calendar className="h-8 w-8 mx-auto mb-2 text-blue-500" />
               <p className="text-2xl font-bold text-white">{campaigns.length}</p>
-              <p className="text-sm text-gray-400">Total Campaigns</p>
+              <p className="text-sm text-muted-foreground">Total Campaigns</p>
             </div>
-            <div className="text-center p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
+            <div className="text-center p-4 bg-white/5 border border-white/10 rounded-lg">
               <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-500" />
               <p className="text-2xl font-bold text-white">
                 {totalClicks > 0 
@@ -272,7 +290,7 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
                   : '0.0'
                 }%
               </p>
-              <p className="text-sm text-gray-400">Conversion Rate</p>
+              <p className="text-sm text-muted-foreground">Conversion Rate</p>
             </div>
           </div>
         </CardContent>

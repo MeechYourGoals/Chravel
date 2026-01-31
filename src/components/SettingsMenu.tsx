@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, User, LogOut, LogIn } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { useIsMobile } from '../hooks/use-mobile';
 import { Button } from './ui/button';
@@ -10,6 +9,7 @@ import { ProUpgradeModal } from './ProUpgradeModal';
 import { EnterpriseSettings } from './EnterpriseSettings';
 import { ConsumerSettings } from './ConsumerSettings';
 import { EventsSettings } from './EventsSettings';
+import { AdvertiserSettingsPanel } from './advertiser/AdvertiserSettingsPanel';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { AuthModal } from './AuthModal';
@@ -21,7 +21,7 @@ interface SettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
   initialConsumerSection?: string;
-  initialSettingsType?: 'consumer' | 'enterprise' | 'events';
+  initialSettingsType?: 'consumer' | 'enterprise' | 'events' | 'advertiser';
   // Callback when a trip is restored/unhidden (for parent component to refresh)
   onTripStateChange?: () => void;
 }
@@ -34,11 +34,10 @@ export const SettingsMenu = ({
   onTripStateChange,
 }: SettingsMenuProps) => {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [showProModal, setShowProModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events'>(
+  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>(
     initialSettingsType || 'consumer',
   );
   const _tripVariant = useTripVariant();
@@ -166,12 +165,14 @@ export const SettingsMenu = ({
                   Events
                 </button>
                 <button
-                  onClick={() => canAccessAdvertiser && navigate('/advertiser')}
+                  onClick={() => canAccessAdvertiser && setSettingsType('advertiser')}
                   disabled={!canAccessAdvertiser}
                   className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap flex items-center gap-1 transition-all ${
-                    canAccessAdvertiser
-                      ? 'text-gray-400 hover:text-white hover:bg-white/5'
-                      : 'text-gray-500 cursor-not-allowed opacity-60'
+                    settingsType === 'advertiser'
+                      ? 'bg-primary text-white shadow-lg'
+                      : canAccessAdvertiser
+                        ? 'text-gray-400 hover:text-white hover:bg-white/5'
+                        : 'text-gray-500 cursor-not-allowed opacity-60'
                   }`}
                 >
                   Advertiser
@@ -239,6 +240,12 @@ export const SettingsMenu = ({
               <div className="flex-1 min-h-0">
                 <ErrorBoundary compact>
                   <EventsSettings currentUserId={currentUser?.id || ''} />
+                </ErrorBoundary>
+              </div>
+            ) : settingsType === 'advertiser' ? (
+              <div className="flex-1 min-h-0">
+                <ErrorBoundary compact>
+                  <AdvertiserSettingsPanel currentUserId={currentUser?.id || ''} />
                 </ErrorBoundary>
               </div>
             ) : null}
