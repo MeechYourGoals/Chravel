@@ -154,7 +154,7 @@ const Index = () => {
       setSearchQuery('');
       navigate(`/trip/${tripId}`);
     },
-    [navigate]
+    [navigate],
   );
 
   // Clear stale demo mode for unauthenticated users visiting root (not from /demo redirect)
@@ -964,7 +964,10 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
+    <div
+      data-testid="home-page"
+      className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay"
+    >
       {/* Enhanced animated background elements (disabled on mobile portrait) */}
       {!isMobilePortrait && (
         <div className="fixed inset-0 overflow-hidden pointer-events-none animated-bg">

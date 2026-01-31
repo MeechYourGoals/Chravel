@@ -14,7 +14,7 @@ import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTripDetailData } from '../hooks/useTripDetailData';
-import { generateTripMockData, Trip as MockTrip } from '../data/tripsData';
+import { generateTripMockData } from '../data/tripsData';
 import { ExportSection } from '../types/tripExport';
 import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
@@ -31,15 +31,15 @@ export const MobileTripDetail = () => {
 
   // ⚡ PERFORMANCE: Use unified hook for parallel data fetching with TanStack Query cache
   // 🔒 FIX: Get tripError/membersError/isAuthLoading to distinguish errors from not-found
-  const { 
-    trip, 
-    tripMembers, 
-    tripCreatorId, 
+  const {
+    trip,
+    tripMembers,
+    tripCreatorId: _tripCreatorId,
     isLoading: loading,
-    isMembersLoading,
+    isMembersLoading: _isMembersLoading,
     isAuthLoading,
     tripError,
-    membersError,
+    membersError: _membersError,
   } = useTripDetailData(tripId);
 
   // Persist activeTab in sessionStorage to survive orientation changes
@@ -360,9 +360,7 @@ export const MobileTripDetail = () => {
         <div className="text-center max-w-md">
           <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-4">Please Log In</h1>
-          <p className="text-gray-400 mb-6">
-            You need to be signed in to view this trip.
-          </p>
+          <p className="text-gray-400 mb-6">You need to be signed in to view this trip.</p>
           <div className="flex flex-col gap-3">
             <button
               onClick={() => {
@@ -431,16 +429,16 @@ export const MobileTripDetail = () => {
     // Check if user is not logged in - if so, show login prompt instead of "Trip Not Found"
     if (!user) {
       if (import.meta.env.DEV) {
-        console.warn('[MobileTripDetail] No trip AND no user - showing login prompt instead of Trip Not Found');
+        console.warn(
+          '[MobileTripDetail] No trip AND no user - showing login prompt instead of Trip Not Found',
+        );
       }
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-white mb-4">Please Log In</h1>
-            <p className="text-gray-400 mb-6">
-              You need to be signed in to view this trip.
-            </p>
+            <p className="text-gray-400 mb-6">You need to be signed in to view this trip.</p>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => {
@@ -500,7 +498,7 @@ export const MobileTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="flex flex-col min-h-screen bg-black">
+      <div data-testid="trip-detail-page" className="flex flex-col min-h-screen bg-black">
         {/* Mobile Header - Sticky with iOS safe area */}
         <div
           ref={headerRef}

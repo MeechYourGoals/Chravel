@@ -39,22 +39,26 @@ const AuthPage = () => {
     const accessToken = hashParams.get('access_token');
     const errorCode = hashParams.get('error');
     const errorDescription = hashParams.get('error_description');
-    
+
     // Also check URL params for error (some OAuth flows use query params)
     const urlError = searchParams.get('error');
     const urlErrorDescription = searchParams.get('error_description');
-    
+
     if (errorCode || urlError) {
-      console.error('[AuthPage] OAuth error:', errorCode || urlError, errorDescription || urlErrorDescription);
+      console.error(
+        '[AuthPage] OAuth error:',
+        errorCode || urlError,
+        errorDescription || urlErrorDescription,
+      );
       // Clear the hash/params to prevent re-processing
       window.history.replaceState(null, '', '/auth');
       return;
     }
-    
+
     if (accessToken) {
       console.log('[AuthPage] OAuth callback detected, processing session...');
       setIsProcessingOAuth(true);
-      
+
       // The hash contains session tokens - Supabase client should automatically pick these up
       // Just wait for the auth state to update
       supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -91,7 +95,7 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div data-testid="auth-page" className="min-h-screen bg-background">
       <AuthModal
         isOpen={true}
         initialMode={mode}
@@ -102,4 +106,3 @@ const AuthPage = () => {
 };
 
 export default AuthPage;
-

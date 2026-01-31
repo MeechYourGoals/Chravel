@@ -19,6 +19,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 
 import { ExitDemoButton } from './components/demo';
 import { attachNavigator, onNativeResume, setNativeBadgeCount } from '@/native/lifecycle';
+import { attachRouterNavigate } from '@/platform/navigation';
 import { useDeepLinks } from '@/hooks/useDeepLinks';
 
 import { toast } from '@/hooks/use-toast';
@@ -155,6 +156,11 @@ const NativeLifecycleBridge = ({ client }: { client: QueryClient }) => {
   // Allow native lifecycle module to route notification taps (including cold start).
   useEffect(() => {
     return attachNavigator(navigate);
+  }, [navigate]);
+
+  // Wire React Router navigate into platform/navigation for non-React contexts
+  useEffect(() => {
+    attachRouterNavigate(navigate);
   }, [navigate]);
 
   const refreshCriticalData = useCallback(async (): Promise<void> => {

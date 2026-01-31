@@ -13,6 +13,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
+import { navigateInApp } from '@/platform/navigation';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
@@ -205,7 +206,7 @@ export const TripCard = ({
             <ToastAction
               altText="View Plans"
               onClick={() => {
-                window.location.href = '/settings';
+                navigateInApp('/settings');
               }}
             >
               View Plans
@@ -401,6 +402,7 @@ export const TripCard = ({
 
   return (
     <div
+      data-testid={`trip-card-${trip.id}`}
       className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}

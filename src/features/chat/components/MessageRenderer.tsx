@@ -1,7 +1,8 @@
 import React from 'react';
-import { FileText, Link, Download, Play, Maximize2 } from 'lucide-react';
+import { FileText, Link, Download, Maximize2 } from 'lucide-react';
 import { ChatMessage } from './types';
 import { cn } from '@/lib/utils';
+import { openExternalUrl } from '@/platform/navigation';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface MessageRendererProps {
@@ -14,10 +15,14 @@ interface MessageRendererProps {
   showMapWidgets?: boolean;
 }
 
-export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showMapWidgets = false }) => {
+export const MessageRenderer: React.FC<MessageRendererProps> = ({
+  message,
+  showMapWidgets: _showMapWidgets = false,
+}) => {
   const hasMedia = message.media_type && message.media_url;
   const hasLinkPreview = message.link_preview;
-  const hasAttachments = message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0;
+  const hasAttachments =
+    message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0;
   const resolvedMediaUrl = useResolvedTripMediaUrl({ url: message.media_url ?? null });
 
   // Render media content based on type
@@ -33,10 +38,14 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
               alt="Shared image"
               className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
               style={{ maxHeight: '400px' }}
-              onClick={() => window.open((resolvedMediaUrl ?? message.media_url) as string, '_blank')}
+              onClick={() =>
+                void openExternalUrl((resolvedMediaUrl ?? message.media_url) as string)
+              }
             />
             <button
-              onClick={() => window.open((resolvedMediaUrl ?? message.media_url) as string, '_blank')}
+              onClick={() =>
+                void openExternalUrl((resolvedMediaUrl ?? message.media_url) as string)
+              }
               className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
               aria-label="View full size"
             >
@@ -82,7 +91,9 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
                 className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
               >
                 <FileText size={16} className="text-gray-400" />
-                <span className="text-sm truncate flex-1">{message.content || 'File attachment'}</span>
+                <span className="text-sm truncate flex-1">
+                  {message.content || 'File attachment'}
+                </span>
                 <Download size={14} className="text-gray-400" />
               </a>
             );
@@ -120,9 +131,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
                 {preview.title || preview.domain || 'Link'}
               </h4>
               {preview.description && (
-                <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                  {preview.description}
-                </p>
+                <p className="text-xs text-gray-400 mt-1 line-clamp-2">{preview.description}</p>
               )}
               <p className="text-xs text-gray-500 mt-1">{preview.domain}</p>
             </div>
@@ -133,54 +142,53 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
   };
 
   const isOwnMessage = message.type === 'user';
-  
+
   return (
-    <div className={cn(
-      "flex w-full gap-2",
-      isOwnMessage ? 'justify-end' : 'justify-start'
-    )}>
+    <div className={cn('flex w-full gap-2', isOwnMessage ? 'justify-end' : 'justify-start')}>
       {/* AI Avatar for assistant messages */}
       {!isOwnMessage && (
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
           <span className="text-xs text-white">AI</span>
         </div>
       )}
-      
-      <div className={cn(
-        "flex flex-col",
-        isOwnMessage ? 'items-end' : 'items-start',
-        "max-w-[78%]"
-      )}>
-        <div className={cn(
-          "px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border transition-all",
-          isOwnMessage
-            ? 'bg-blue-600 text-white border-blue-600/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
-            : 'bg-muted/80 text-white border-border shadow-sm rounded-bl-sm'
-        )}>
+
+      <div
+        className={cn('flex flex-col', isOwnMessage ? 'items-end' : 'items-start', 'max-w-[78%]')}
+      >
+        <div
+          className={cn(
+            'px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border transition-all',
+            isOwnMessage
+              ? 'bg-blue-600 text-white border-blue-600/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
+              : 'bg-muted/80 text-white border-border shadow-sm rounded-bl-sm',
+          )}
+        >
           {/* Message content - only show if not a pure media message */}
           {message.content && (
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
           )}
-          
+
           {/* Render media content inline */}
           {renderMediaContent()}
-          
+
           {/* Render file attachments */}
           {renderFileAttachments()}
-          
+
           {/* Render link preview */}
           {renderLinkPreview()}
         </div>
 
         {/* Message metadata */}
         {message.timestamp && (
-          <span className={cn(
-            "text-[10px] text-muted-foreground/70 mt-1 px-1",
-            isOwnMessage ? 'text-right' : 'text-left'
-          )}>
-            {new Date(message.timestamp).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
+          <span
+            className={cn(
+              'text-[10px] text-muted-foreground/70 mt-1 px-1',
+              isOwnMessage ? 'text-right' : 'text-left',
+            )}
+          >
+            {new Date(message.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
             })}
           </span>
         )}

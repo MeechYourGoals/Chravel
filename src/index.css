@@ -1,5 +1,3 @@
-
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,7 +23,8 @@
 
   /* Search Highlight Flash Animation */
   @keyframes searchHighlightFlash {
-    0%, 100% {
+    0%,
+    100% {
       background-color: transparent;
     }
     50% {
@@ -55,13 +54,15 @@
     }
   }
 
-  .channel-dropdown[data-state="open"] {
+  .channel-dropdown[data-state='open'] {
     animation: channelDropdownFade 0.18s ease-out;
   }
 
   /* Mode Row Smooth Transitions */
   .mode-row-transition {
-    transition: height 200ms ease-in-out, opacity 200ms ease-in-out;
+    transition:
+      height 200ms ease-in-out,
+      opacity 200ms ease-in-out;
   }
 
   /* Full-page landing scroll utilities */
@@ -92,8 +93,10 @@
   /* PWA Standalone Mode - Safe Area Handling */
   @media (display-mode: standalone) {
     /* Ensure root fills available space */
-    html, body {
+    html,
+    body {
       min-height: 100vh;
+      min-height: 100dvh;
       min-height: -webkit-fill-available;
       /* Use background color that extends under status bar */
       background-color: hsl(0 0% 3%);
@@ -101,6 +104,7 @@
 
     #root {
       min-height: 100vh;
+      min-height: 100dvh;
       min-height: -webkit-fill-available;
     }
 
@@ -244,18 +248,18 @@
     --sidebar-accent-foreground: 0 0% 90%;
     --sidebar-border: 42 20% 20%;
     --sidebar-ring: 42 92% 56%;
-    
+
     /* On-image text tokens for guaranteed contrast */
     --on-image-title: 42 60% 25%;
     --on-image-body: 42 50% 30%;
     --on-image-muted: 42 40% 40%;
-    
+
     /* Midnight blue for maximum contrast on images */
     --midnight-blue: 220 70% 15%;
     --dark-navy: 220 50% 20%;
 
     /* iMessage-style chat colors - isolated from landing page theme */
-    --chat-bubble-own: 210 100% 52%;        /* iMessage blue #007AFF */
+    --chat-bubble-own: 210 100% 52%; /* iMessage blue #007AFF */
     --chat-bubble-own-foreground: 0 0% 100%; /* White text */
   }
 
@@ -305,12 +309,12 @@
     --sidebar-accent-foreground: 223 35% 20%;
     --sidebar-border: 223 15% 90%;
     --sidebar-ring: 223 56% 53%;
-    
+
     /* On-image text tokens for guaranteed contrast */
     --on-image-title: 223 60% 20%;
     --on-image-body: 223 50% 25%;
     --on-image-muted: 223 40% 35%;
-    
+
     /* Midnight blue for maximum contrast on images */
     --midnight-blue: 220 70% 15%;
     --dark-navy: 220 50% 20%;
@@ -326,15 +330,15 @@
     @apply bg-background text-foreground font-sans;
     font-size: 16px; /* Updated to match body typography */
     line-height: 1.6;
-    
+
     /* Mobile optimizations */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    
+
     /* Disable iOS zoom on input focus */
     -webkit-text-size-adjust: 100%;
-    
+
     /* Disable webkit highlights on touch */
     -webkit-tap-highlight-color: transparent;
   }
@@ -362,7 +366,7 @@
       font-size: 16px;
     }
   }
-  
+
   @media (min-width: 600px) {
     body {
       font-size: 17px;
@@ -375,7 +379,7 @@
   ::-webkit-scrollbar {
     display: none;
   }
-  
+
   * {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -393,16 +397,18 @@
     /* Improve touch responsiveness */
     touch-action: manipulation;
   }
-  
+
   /* iOS input styling */
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     /* Prevent zoom on focus */
     font-size: 16px !important;
     /* Remove iOS input shadows */
     -webkit-appearance: none;
     /* Respect component-specific rounding (e.g., rounded-full) */
   }
-  
+
   /* iOS button styling */
   button {
     /* Remove iOS button styling */
@@ -410,20 +416,20 @@
     /* Prevent highlight on tap */
     -webkit-tap-highlight-color: transparent;
   }
-  
+
   /* iOS safe area handling */
   .ios-safe-top {
     padding-top: env(safe-area-inset-top);
   }
-  
+
   .ios-safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
-  
+
   .ios-safe-left {
     padding-left: env(safe-area-inset-left);
   }
-  
+
   .ios-safe-right {
     padding-right: env(safe-area-inset-right);
   }
@@ -433,6 +439,7 @@
 .keyboard-visible {
   /* Adjust layout when keyboard is visible */
   height: calc(100vh - var(--keyboard-height, 0px));
+  height: calc(100dvh - var(--keyboard-height, 0px));
 }
 
 /* Improved iOS animations */
@@ -440,36 +447,61 @@
   .ios-bounce {
     animation: ios-bounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
-  
+
   .ios-slide-up {
     animation: ios-slide-up 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  
+
   .ios-fade-in {
     animation: ios-fade-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 }
 
 @keyframes ios-bounce {
-  0% { transform: scale(0.9) translateY(20px); opacity: 0; }
-  60% { transform: scale(1.05) translateY(-5px); opacity: 0.8; }
-  100% { transform: scale(1) translateY(0); opacity: 1; }
+  0% {
+    transform: scale(0.9) translateY(20px);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05) translateY(-5px);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes ios-slide-up {
-  0% { transform: translateY(100%); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes ios-fade-in {
-  0% { opacity: 0; transform: scale(0.95); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Search highlight flash animation */
 @keyframes search-flash {
-  0% { background-color: rgba(6, 182, 212, 0.3); }
-  100% { background-color: transparent; }
+  0% {
+    background-color: rgba(6, 182, 212, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 
 .search-highlight-flash {
@@ -537,19 +569,19 @@
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   .mobile-safe-area-top {
     padding-top: env(safe-area-inset-top);
   }
-  
+
   .mobile-safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
-  
+
   .mobile-safe-area-left {
     padding-left: env(safe-area-inset-left);
   }
-  
+
   .mobile-safe-area-right {
     padding-right: env(safe-area-inset-right);
   }
@@ -557,7 +589,11 @@
   /* Modern card variants */
   .card-modern {
     @apply bg-card/80 backdrop-blur-xl rounded-2xl shadow-lg border border-white/10;
-    background-image: linear-gradient(135deg, rgba(58, 96, 208, 0.08) 0%, rgba(58, 96, 208, 0.01) 100%);
+    background-image: linear-gradient(
+      135deg,
+      rgba(58, 96, 208, 0.08) 0%,
+      rgba(58, 96, 208, 0.01) 100%
+    );
     padding: 2rem;
   }
 
@@ -566,10 +602,14 @@
       padding: 2.5rem;
     }
   }
-  
+
   .card-premium {
     @apply bg-card/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20;
-    background-image: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.02) 100%);
+    background-image: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.12) 0%,
+      rgba(139, 92, 246, 0.02) 100%
+    );
     padding: 2.5rem;
   }
 
@@ -578,10 +618,14 @@
       padding: 3rem;
     }
   }
-  
+
   .card-hero {
     @apply bg-card/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/30;
-    background-image: linear-gradient(135deg, rgba(58, 96, 208, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%);
+    background-image: linear-gradient(
+      135deg,
+      rgba(58, 96, 208, 0.15) 0%,
+      rgba(139, 92, 246, 0.08) 100%
+    );
     padding: 3rem;
   }
 
@@ -597,12 +641,12 @@
   .touch-feedback {
     @apply active:scale-95 active:bg-muted/70 transition-transform duration-100;
   }
-  
+
   button:not(:disabled) {
     @apply touch-feedback;
   }
-  
-  [role="button"]:not(:disabled) {
+
+  [role='button']:not(:disabled) {
     @apply touch-feedback;
   }
 }
@@ -614,10 +658,10 @@
     display: none;
   }
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
-  
+
   /* Smooth momentum scrolling on iOS */
   .scroll-touch {
     -webkit-overflow-scrolling: touch;
@@ -629,14 +673,14 @@
     overscroll-behavior: contain;
     scroll-behavior: smooth;
   }
-  
+
   /* Instagram-like media grid */
   .media-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1px; /* Tight gaps like Instagram */
   }
-  
+
   /* Media grid item with native touch feel */
   .media-grid-item {
     aspect-ratio: 1;
@@ -646,11 +690,11 @@
     will-change: transform;
     transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   .media-grid-item:active {
     transform: scale(0.97);
   }
-  
+
   /* Button with native iOS feel */
   .native-button {
     -webkit-tap-highlight-color: transparent;
@@ -660,22 +704,22 @@
     will-change: transform;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   .native-button:active {
     transform: scale(0.96);
     opacity: 0.85;
   }
-  
+
   /* Smooth tab transitions */
   .native-tab {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform, background-color;
   }
-  
+
   .native-tab:active {
     transform: scale(0.95);
   }
-  
+
   /* Loading skeleton with shimmer */
   @keyframes shimmer {
     0% {
@@ -685,7 +729,7 @@
       background-position: 1000px 0;
     }
   }
-  
+
   .skeleton-shimmer {
     background: linear-gradient(
       90deg,
@@ -696,22 +740,22 @@
     background-size: 1000px 100%;
     animation: shimmer 2s infinite;
   }
-  
+
   /* Pull-to-refresh indicator */
   .pull-to-refresh {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   /* Safe area aware containers */
   .safe-container {
     padding-left: max(1rem, env(safe-area-inset-left));
     padding-right: max(1rem, env(safe-area-inset-right));
   }
-  
+
   .safe-container-top {
     padding-top: max(1rem, env(safe-area-inset-top));
   }
-  
+
   .safe-container-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -810,7 +854,7 @@
 
   /* Wireframe grid overlay */
   .wireframe-overlay {
-    background-image: 
+    background-image:
       linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
     background-size: 50px 50px;
@@ -831,7 +875,7 @@
     height: 480px;
     max-height: 480px;
   }
-  
+
   /* iPad and tablet portrait - slightly taller */
   @media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
     .mobile-portrait-chat-container {
@@ -839,7 +883,7 @@
       max-height: 520px !important;
     }
   }
-  
+
   /* iPad and tablet landscape - more width available */
   @media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
     .mobile-portrait-chat-container {
@@ -847,7 +891,7 @@
       max-height: 400px !important;
     }
   }
-  
+
   /* Mobile portrait */
   @media screen and (max-width: 767px) and (orientation: portrait) {
     .mobile-portrait-chat-container {
@@ -855,7 +899,7 @@
       max-height: 480px !important;
     }
   }
-  
+
   /* Mobile landscape - smallest height due to limited screen real estate */
   @media screen and (max-width: 767px) and (orientation: landscape) {
     .mobile-portrait-chat-container {
@@ -865,15 +909,15 @@
   }
 }
 
-
 /* Desktop chat container heights */
 @media screen and (min-width: 1025px) {
   .desktop-chat-full {
     height: calc(100vh - 320px);
+    height: calc(100dvh - 320px);
     max-height: 1000px;
     min-height: 500px;
   }
-  
+
   .desktop-chat-messages {
     min-height: 500px;
   }
@@ -893,9 +937,9 @@
   .scrollable-mobile {
     padding-bottom: 6rem; /* ensures text box visible above nav bar */
   }
-  
+
   /* ✅ Universal Mobile Scroll Framework - Bottom Safe Area */
-  
+
   /* General scroll containers under the fixed nav (6rem = 96px for nav + buffer) */
   .mobile-safe-scroll {
     padding-bottom: calc(6rem + env(safe-area-inset-bottom));
@@ -931,4 +975,3 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
