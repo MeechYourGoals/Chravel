@@ -12,7 +12,6 @@ const config: CapacitorConfig = {
   appId: process.env.IOS_BUNDLE_ID ?? 'com.chravel.app',
   appName: process.env.IOS_APP_NAME ?? 'Chravel',
   webDir: 'dist',
-  bundledWebRuntime: false,
   plugins: {
     /**
      * iOS native shell UX polish:
@@ -44,4 +43,3 @@ const config: CapacitorConfig = {
 };
 
 export default config;
-

@@ -1,0 +1,159 @@
+[
+  {
+    "id": "ISSUE-0002",
+    "title": "Replace window.location.href with React Router navigation",
+    "severity": "Blocker",
+    "files": [
+      "src/components/ArchivedTripsSection.tsx",
+      "src/components/AIConciergeChat.tsx",
+      "src/components/TripCard.tsx",
+      "src/components/CreateTripModal.tsx",
+      "src/components/SmartTripDiscovery.tsx",
+      "src/components/payments/PaymentsTab.tsx",
+      "src/components/conversion/PricingSection.tsx"
+    ],
+    "commands_to_verify": [
+      "grep -r 'window.location.href' src/components/ --include='*.tsx' --include='*.ts'",
+      "npm run typecheck",
+      "npm run build"
+    ],
+    "definition_of_done": [
+      "No window.location.href for in-app routes (OAuth redirect is OK)",
+      "All navigation uses useNavigate() or <Link>",
+      "Typecheck passes",
+      "Build passes"
+    ]
+  },
+  {
+    "id": "ISSUE-0003",
+    "title": "Replace window.open with Capacitor Browser plugin",
+    "severity": "Blocker",
+    "files": [
+      "src/billing/providers/stripe.ts",
+      "src/features/chat/components/MessageRenderer.tsx",
+      "src/components/FilesTab.tsx",
+      "src/components/MediaSubTabs.tsx",
+      "src/components/SetBasecampSquare.tsx",
+      "src/components/AIConciergeChat.tsx"
+    ],
+    "commands_to_verify": [
+      "grep -r 'window.open' src/ --include='*.tsx' --include='*.ts'",
+      "npm run typecheck",
+      "npm run build"
+    ],
+    "definition_of_done": [
+      "All window.open calls use platform-aware helper",
+      "On native: uses @capacitor/browser",
+      "On web: falls back to window.open",
+      "Install @capacitor/browser if not present"
+    ]
+  },
+  {
+    "id": "ISSUE-0007",
+    "title": "Update CSP meta tag for Capacitor scheme",
+    "severity": "Major",
+    "files": ["index.html"],
+    "commands_to_verify": ["grep 'capacitor:' index.html", "npm run build"],
+    "definition_of_done": ["CSP default-src includes capacitor: and ionic: schemes", "Build passes"]
+  },
+  {
+    "id": "ISSUE-0008",
+    "title": "Verify SPA fallback routing in Capacitor webview",
+    "severity": "Major",
+    "files": ["capacitor.config.ts"],
+    "commands_to_verify": ["npm run cap:sync", "npx cap open ios"],
+    "definition_of_done": [
+      "Cold start to /trip/:id works in simulator",
+      "Deep link navigation works"
+    ]
+  },
+  {
+    "id": "ISSUE-0001",
+    "title": "Code-split main bundle below 500kB",
+    "severity": "Blocker",
+    "files": ["vite.config.ts"],
+    "commands_to_verify": ["npm run build 2>&1 | grep 'index-'", "npm run build"],
+    "definition_of_done": [
+      "Main index chunk < 500kB uncompressed",
+      "No single chunk > 1MB",
+      "Build passes"
+    ]
+  },
+  {
+    "id": "ISSUE-0004",
+    "title": "Replace 100vh with dvh + fallback for mobile Safari",
+    "severity": "Major",
+    "files": ["src/index.css"],
+    "commands_to_verify": ["grep '100vh' src/index.css", "npm run build"],
+    "definition_of_done": [
+      "No bare 100vh in index.css",
+      "Uses min-height: 100dvh with 100vh fallback",
+      "Build passes"
+    ]
+  },
+  {
+    "id": "ISSUE-0005",
+    "title": "Add Capacitor intent handling for mailto/sms links",
+    "severity": "Major",
+    "files": ["src/hooks/useInviteLink.ts"],
+    "commands_to_verify": ["npm run typecheck"],
+    "definition_of_done": [
+      "mailto: and sms: links work on native via App plugin",
+      "Web fallback preserved"
+    ]
+  },
+  {
+    "id": "ISSUE-0006",
+    "title": "Use Capacitor InAppBrowser for Stripe checkout",
+    "severity": "Major",
+    "files": ["src/billing/providers/stripe.ts"],
+    "commands_to_verify": ["npm run typecheck", "npm run build"],
+    "definition_of_done": [
+      "Stripe checkout opens in in-app browser on native",
+      "Callback URL routes back to app"
+    ]
+  },
+  {
+    "id": "ISSUE-0009",
+    "title": "Remove duplicate apple-mobile-web-app-capable meta tag",
+    "severity": "Minor",
+    "files": ["index.html"],
+    "commands_to_verify": ["grep -c 'apple-mobile-web-app-capable' index.html"],
+    "definition_of_done": ["Only one apple-mobile-web-app-capable meta tag in index.html"]
+  },
+  {
+    "id": "ISSUE-0010",
+    "title": "Remove deprecated bundledWebRuntime from Capacitor config",
+    "severity": "Minor",
+    "files": ["capacitor.config.ts"],
+    "commands_to_verify": ["grep 'bundledWebRuntime' capacitor.config.ts"],
+    "definition_of_done": ["bundledWebRuntime property removed", "npm run cap:sync still works"]
+  },
+  {
+    "id": "ISSUE-0011",
+    "title": "Enable mobile viewport projects in Playwright config",
+    "severity": "Minor",
+    "files": ["playwright.config.ts"],
+    "commands_to_verify": ["grep 'Mobile Chrome' playwright.config.ts"],
+    "definition_of_done": [
+      "Mobile Chrome and Mobile Safari projects uncommented",
+      "Mobile viewport E2E specs exist"
+    ]
+  },
+  {
+    "id": "ISSUE-0012",
+    "title": "Add data-testid attributes to critical UI elements",
+    "severity": "Minor",
+    "files": [
+      "src/components/TripCard.tsx",
+      "src/components/TripTabs.tsx",
+      "src/pages/TripDetail.tsx",
+      "src/pages/Index.tsx"
+    ],
+    "commands_to_verify": ["grep -r 'data-testid' src/ --include='*.tsx' | wc -l"],
+    "definition_of_done": [
+      "Key interactive elements have data-testid",
+      "E2E tests can target elements without fragile CSS selectors"
+    ]
+  }
+]
