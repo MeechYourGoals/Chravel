@@ -17,6 +17,8 @@ interface ConsumerSubscriptionContextType {
   upgradeToTier: (tier: 'explorer' | 'frequent-chraveler', billingCycle: 'monthly' | 'annual') => Promise<void>;
   canCreateProTrip: boolean;
   proTripQuota: number;
+  isSuperAdmin: boolean;
+  proTier: string | null;
 }
 
 const ConsumerSubscriptionContext = createContext<ConsumerSubscriptionContextType | undefined>(undefined);
@@ -133,7 +135,9 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
       upgradeToPlus,
       upgradeToTier,
       canCreateProTrip,
-      proTripQuota
+      proTripQuota,
+      isSuperAdmin,
+      proTier: isSuperAdmin ? 'pro-enterprise' : null,
     }}>
       {children}
     </ConsumerSubscriptionContext.Provider>

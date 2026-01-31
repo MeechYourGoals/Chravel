@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const ConsumerBillingSection = () => {
-  const { subscription, tier, isSubscribed, upgradeToTier, isLoading } = useConsumerSubscription();
+  const { subscription, tier, isSubscribed, upgradeToTier, isLoading, isSuperAdmin, proTier } = useConsumerSubscription();
   const [expandedPlan, setExpandedPlan] = useState<string | null>(tier);
   const [expandedProPlan, setExpandedProPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
@@ -199,18 +199,26 @@ export const ConsumerBillingSection = () => {
 
         {isSubscribed && (
           <div className="flex gap-3">
-            <button
-              onClick={handleManageSubscription}
-              className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Manage Subscription
-            </button>
-            <button
-              onClick={handleCancelSubscription}
-              className="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Cancel Subscription
-            </button>
+            {isSuperAdmin ? (
+              <div className="text-sm text-amber-400 bg-amber-400/10 px-4 py-2 rounded-lg border border-amber-400/20">
+                ✨ Founder Access — All features unlocked
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleManageSubscription}
+                  className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Manage Subscription
+                </button>
+                <button
+                  onClick={handleCancelSubscription}
+                  className="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Cancel Subscription
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -331,6 +339,7 @@ export const ConsumerBillingSection = () => {
         <div className="space-y-3">
           {Object.entries(proPlans).map(([key, plan]) => {
             const PlanIcon = plan.icon;
+            const isCurrentProPlan = isSuperAdmin && key === proTier;
             return (
               <Collapsible
                 key={key}
@@ -338,10 +347,14 @@ export const ConsumerBillingSection = () => {
                 onOpenChange={() => setExpandedProPlan(expandedProPlan === key ? null : key)}
               >
                 <CollapsibleTrigger className="w-full">
-                  <div className="border border-white/10 bg-white/5 rounded-lg p-3 transition-colors hover:bg-white/10">
+                  <div className={`border rounded-lg p-3 transition-colors hover:bg-white/10 ${
+                    isCurrentProPlan 
+                      ? 'border-amber-500/50 bg-amber-500/10' 
+                      : 'border-white/10 bg-white/5'
+                  }`}>
                     <div className="flex items-center justify-between">
                       <div className="text-left flex items-center gap-3">
-                        <PlanIcon size={20} className="text-primary" />
+                        <PlanIcon size={20} className={isCurrentProPlan ? 'text-amber-400' : 'text-primary'} />
                         <div>
                           <h5 className="font-semibold text-foreground flex items-center gap-2">
                             {plan.name}
@@ -350,6 +363,9 @@ export const ConsumerBillingSection = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {isCurrentProPlan && (
+                          <div className="text-sm text-amber-400 font-medium">Current Plan</div>
+                        )}
                         <div className="text-muted-foreground">{expandedProPlan === key ? '−' : '+'}</div>
                       </div>
                     </div>
@@ -366,13 +382,15 @@ export const ConsumerBillingSection = () => {
                         </li>
                       ))}
                     </ul>
-                    <button
-                      onClick={() => handleUpgradeToProPlan(key)}
-                      disabled={isLoading}
-                      className="mt-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                    >
-                      {isLoading ? 'Processing...' : `Upgrade to ${plan.name}`}
-                    </button>
+                    {!isCurrentProPlan && (
+                      <button
+                        onClick={() => handleUpgradeToProPlan(key)}
+                        disabled={isLoading}
+                        className="mt-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                      >
+                        {isLoading ? 'Processing...' : `Upgrade to ${plan.name}`}
+                      </button>
+                    )}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
