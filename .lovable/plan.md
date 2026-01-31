@@ -1,143 +1,153 @@
 
-# MVP Decision: Hide Bio Field Until Profile Surface Exists
+# Fix Super Admin Full Access in Billing UI
 
-## Overview
+## Problem Summary
 
-The Bio field currently exists in Settings but has **no surface where other users can see it**. This is "dead UI" that makes the app feel unfinished. We'll take the minimal MVP approach: hide the Bio field (and note it's coming soon) while keeping the database schema intact for future use.
+The super admin account (`ccamechi@gmail.com`) is correctly identified in `useConsumerSubscription` for consumer features, but the billing UI has gaps:
 
-## Current State Audit
+1. **"Manage Subscription" button fails** - Calls Stripe customer-portal, but super admin has no Stripe record → shows error toast
+2. **Pro plans show "Upgrade" buttons** - Should show Enterprise as "Current Plan" for super admin
+3. **No indication of super admin status** - UI should reflect that this is a master/founder account
 
-| Component | Bio Usage |
-|-----------|-----------|
-| Database (`profiles` table) | ✅ Column exists, stores data |
-| `profiles_public` view | ✅ Exposed (always visible to co-members) |
-| Settings > Profile UI | ✅ Editable textarea |
-| Trip Members List | ❌ Not fetched, not displayed |
-| Member Profile Modal | ❌ Does not exist |
-| Click-to-view profile | ❌ No interaction implemented |
+## Root Cause
 
-**Verdict**: Bio is editable but never shown to anyone else → dead UI.
+The `useConsumerSubscription` hook exposes `isSuperAdmin` status internally (line 117) but does NOT expose it to the consuming components. The `ConsumerBillingSection` cannot know if the user is a super admin and thus cannot:
+- Hide/disable the Manage/Cancel buttons
+- Mark Enterprise as current plan
 
----
+## Solution
 
-## Chosen Path: A (Minimal - Hide Bio)
+### 1. Expose `isSuperAdmin` from useConsumerSubscription Hook
 
-Hide the Bio field from the Consumer Profile Settings. Keep the database column intact for future use. Add a subtle "coming soon" indicator.
+**File:** `src/hooks/useConsumerSubscription.tsx`
 
----
+Add `isSuperAdmin` to the context type and provider return value so components can check super admin status:
+
+```typescript
+// Add to interface (line 9-20)
+interface ConsumerSubscriptionContextType {
+  // ... existing fields
+  isSuperAdmin: boolean;  // NEW
+  proTier: string | null; // NEW - for super admin, this is 'pro-enterprise'
+}
+
+// Expose in return (line 126)
+return (
+  <ConsumerSubscriptionContext.Provider value={{
+    // ... existing values
+    isSuperAdmin,
+    proTier: isSuperAdmin ? 'pro-enterprise' : null,
+  }}>
+```
+
+### 2. Update ConsumerBillingSection to Handle Super Admin
+
+**File:** `src/components/consumer/ConsumerBillingSection.tsx`
+
+**A) Get super admin status from hook:**
+```typescript
+const { 
+  subscription, tier, isSubscribed, upgradeToTier, isLoading,
+  isSuperAdmin, proTier  // NEW
+} = useConsumerSubscription();
+```
+
+**B) Disable Manage/Cancel buttons for super admin (lines 200-215):**
+```typescript
+{isSubscribed && (
+  <div className="flex gap-3">
+    {isSuperAdmin ? (
+      // Super admin doesn't need Stripe portal
+      <div className="text-sm text-amber-400 bg-amber-400/10 px-4 py-2 rounded-lg">
+        ✨ Founder Access - All features unlocked
+      </div>
+    ) : (
+      <>
+        <button onClick={handleManageSubscription} ...>
+          Manage Subscription
+        </button>
+        <button onClick={handleCancelSubscription} ...>
+          Cancel Subscription
+        </button>
+      </>
+    )}
+  </div>
+)}
+```
+
+**C) Mark Pro plans correctly for super admin (lines 331-380):**
+
+For the Pro plans section, check if the plan matches the super admin's proTier:
+
+```typescript
+{Object.entries(proPlans).map(([key, plan]) => {
+  const isCurrentProPlan = isSuperAdmin && key === 'pro-enterprise';
+  const PlanIcon = plan.icon;
+  
+  return (
+    <Collapsible ...>
+      <CollapsibleTrigger className="w-full">
+        <div className={`border rounded-lg p-3 ... ${
+          isCurrentProPlan 
+            ? 'border-amber-500/50 bg-amber-500/10'  // Highlight current plan
+            : 'border-white/10 bg-white/5'
+        }`}>
+          <div className="flex items-center justify-between">
+            {/* ... plan info ... */}
+            <div className="flex items-center gap-2">
+              {isCurrentProPlan && (
+                <div className="text-sm text-amber-400 font-medium">
+                  Current Plan
+                </div>
+              )}
+              <div className="text-muted-foreground">...</div>
+            </div>
+          </div>
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-2">
+        {/* ... features list ... */}
+        {!isCurrentProPlan && (
+          <button onClick={() => handleUpgradeToProPlan(key)} ...>
+            Upgrade to {plan.name}
+          </button>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+})}
+```
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/components/consumer/ConsumerProfileSection.tsx` | Remove Bio textarea, remove bio state handling, add "Profile sharing coming soon" teaser |
+| File | Changes |
+|------|---------|
+| `src/hooks/useConsumerSubscription.tsx` | Export `isSuperAdmin` and `proTier` in context |
+| `src/components/consumer/ConsumerBillingSection.tsx` | Consume `isSuperAdmin`/`proTier`, conditionally render buttons and plan indicators |
 
----
+## Expected UI After Fix
 
-## Implementation Details
+For super admin (`ccamechi@gmail.com`):
 
-### Remove Bio from ConsumerProfileSection
+**Current Plan Section:**
+- Shows "Frequent-Chraveler" with crown icon (consumer tier)
+- Shows "✨ Founder Access - All features unlocked" instead of Manage/Cancel buttons
 
-**Before (lines 280-289):**
-```tsx
-<div className="mt-3">
-  <label className="block text-sm text-gray-300 mb-1">Bio</label>
-  <textarea
-    value={bio}
-    onChange={e => setBio(e.target.value)}
-    placeholder="Tell people a bit about yourself..."
-    className="..."
-    rows={3}
-  />
-</div>
-```
+**Consumer Plans Section:**
+- "Frequent Chraveler" marked as "Current Plan" ✓
 
-**After:**
-```tsx
-{/* Bio field hidden until Member Profile Cards ship */}
-<div className="mt-3 p-3 bg-white/5 border border-dashed border-white/20 rounded-lg">
-  <p className="text-sm text-gray-400 text-center">
-    ✨ Member profile cards coming soon — you'll be able to share a bio with trip members
-  </p>
-</div>
-```
-
-### Remove bio state and save logic
-
-**Remove from state initialization:**
-```tsx
-// Remove: const [bio, setBio] = useState(user?.bio || '');
-```
-
-**Remove from useEffect sync:**
-```tsx
-// Remove: setBio(user.bio || '');
-```
-
-**Remove from handleSave:**
-```tsx
-// Change this:
-const { error } = await updateProfile({
-  display_name: displayName,
-  bio: bio,         // ← Remove this line
-  phone: phone || null,
-});
-
-// To this:
-const { error } = await updateProfile({
-  display_name: displayName,
-  phone: phone || null,
-});
-```
-
----
-
-## What We're NOT Doing (to avoid scope creep)
-
-- ❌ Not removing `bio` column from database (data preservation)
-- ❌ Not adding `show_bio` privacy toggle yet (no surface to show bio)
-- ❌ Not building Member Profile Card modal (future feature)
-- ❌ Not modifying Enterprise or Pro profile sections (different contexts)
-- ❌ Not touching `profiles_public` view (bio is harmless there since no UI consumes it)
-
----
-
-## Future Roadmap (Not This PR)
-
-When ready to ship profile visibility:
-
-1. Add `show_bio` boolean to profiles table (default: true)
-2. Create minimal `<MemberProfileCard>` modal component
-3. Add click handler to member avatars in Trip Members list
-4. Modal shows: Avatar, Display Name, Bio (if show_bio=true)
-5. Add "View Profile" option to member context menus
-
----
-
-## Why This Approach
-
-| Consideration | Decision |
-|---------------|----------|
-| **Dead fields confuse users** | Hide until functional |
-| **Database migration** | Not needed - keep schema for future |
-| **Scope creep risk** | Zero - just hide one textarea |
-| **Privacy risk** | None - bio isn't displayed anywhere |
-| **Reversibility** | Easy - just unhide when profile cards ship |
-| **User expectation** | Clear "coming soon" signal instead of broken feature |
-
----
+**Pro Plans Section:**
+- "Enterprise" marked as "Current Plan" with amber highlight
+- No "Upgrade to Enterprise" button for Enterprise tier
+- Starter Pro and Growth Pro still show upgrade buttons (user could theoretically downgrade in future)
 
 ## Test Plan
 
-1. Go to Settings → Profile
-2. Verify Bio textarea is gone
-3. Verify "coming soon" placeholder is visible
-4. Verify Display Name and Phone still editable
-5. Verify Save Changes still works
-6. Verify existing bio data is NOT deleted from database
-
----
-
-## Summary
-
-Single-file change to hide the Bio field with a friendly "coming soon" message. No database changes, no RLS updates, no new components. Clean MVP that removes dead UI while preserving the foundation for future profile sharing features.
+1. Log in as `ccamechi@gmail.com`
+2. Go to Settings → Billing
+3. Verify:
+   - Consumer section shows "Frequent-Chraveler" as current
+   - No error toast appears
+   - "Founder Access" badge shown instead of Manage/Cancel buttons
+   - Enterprise in Pro section shows "Current Plan" badge
+   - No "Upgrade to Enterprise" button visible
