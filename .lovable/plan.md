@@ -1,274 +1,271 @@
 
-# Redesign Advertiser Hub to Match Settings Design Language
+# Advertiser Hub Data Consistency & Payment Settings Fix
 
-## Overview
+## Summary of Issues Identified
 
-Transform the Advertiser Hub from a separate full-page dashboard into an embedded settings section that matches the existing Consumer/Enterprise/Events settings design. This ensures visual consistency and makes Advertiser feel like part of the app rather than a separate product.
+### 1. Analytics Numbers Don't Match Campaign Cards
+**Problem**: In the Campaigns tab, Uber shows 15,234 impressions. But when selecting "Uber" in Analytics dropdown, the totals still show aggregated numbers (33,999) instead of Uber-specific numbers (15,234).
 
-## Current Problems Identified
+**Root Cause**: The `CampaignAnalytics.tsx` component calculates totals from ALL campaigns (lines 29-32), regardless of which campaign is selected in the dropdown.
 
-| Issue | Current State | Target State |
-|-------|---------------|--------------|
-| Background color | Navy blue (`bg-gray-900`) | Pure black (`bg-black` / `#000000`) |
-| Gold accent shade | `yellow-600` | `hsl(42, 92%, 56%)` - same as primary |
-| Tab alignment | Left-aligned | Centered |
-| Layout structure | Standalone page with own header | Embedded in Settings modal like other tabs |
-| Metric boxes | Missing Saves | Add Saves metric box |
-| CTR metric | Present | Replace with Saves |
+### 2. Chart Data is Static Mock Data
+**Problem**: The `performanceData` array (lines 46-54) is hardcoded and doesn't reflect the actual campaign metrics or change when a specific campaign is selected.
 
-## What is CTR?
+### 3. Top Campaigns List Inconsistent
+**Problem**: The Top Campaigns tab currently shows hardcoded data from the original AdvertiserDashboard.tsx mock campaigns which includes 3 campaigns (Uber, Lyft, Hotels.com), but AdvertiserSettingsPanel.tsx only has 2 mock campaigns (Uber, Hotels.com) - Lyft is missing.
 
-CTR (Click-Through Rate) = (Clicks / Impressions) × 100
+### 4. API Access Section in Settings
+**Problem**: The "API Access" card in AdvertiserSettings.tsx (lines 248-263) is confusing and not useful for MVP.
 
-It measures how effective a campaign is at getting users to click. However, for Chravel Recs where the goal is "Book Now" conversions, having **Saves** is more valuable because:
-- Users saving a rec shows intent even without immediate booking
-- Brands see longer-term interest, not just immediate clicks
-- Aligns with how Chravel Recs works (save for later feature)
+### 5. Missing Advertiser Payment Section
+**Problem**: No way for advertisers to add a separate company card for billing CPMs, clicks, conversions.
 
-**Decision**: Replace CTR with Saves. The new metrics will be:
-1. **Total Impressions** - How many users viewed the trip card
-2. **Total Clicks** - Who clicked on the card (for details)
-3. **Saves** - Who saved it to their Saved Places
-4. **Conversions** - Who clicked "Book Now" and completed a purchase
+### 6. Authenticated Users Should NOT See Mock Data
+**Problem**: Currently `isPreviewMode = isDemoMode || isSuperAdmin` treats super admin the same as demo mode for data display. Super admin should see REAL data (empty state if no campaigns), not mock data.
 
 ---
 
-## Technical Implementation
+## Technical Implementation Plan
 
-### File Changes
+### File Changes Summary
 
 | File | Changes |
 |------|---------|
-| `src/components/SettingsMenu.tsx` | Add inline Advertiser content instead of navigating away |
-| `src/pages/AdvertiserDashboard.tsx` | Keep for direct URL access, update styling |
-| `src/components/advertiser/AdvertiserSettingsPanel.tsx` | NEW - Embedded version for Settings modal |
-| `src/components/advertiser/CampaignAnalytics.tsx` | Replace CTR with Saves, center tabs |
-| `src/components/advertiser/CampaignList.tsx` | Update stats grid to show Saves instead of CTR |
-| `src/types/advertiser.ts` | Add `saves` field to Campaign type |
+| `src/components/advertiser/AdvertiserSettingsPanel.tsx` | Remove super admin from mock data logic - they should see real empty state |
+| `src/components/advertiser/CampaignAnalytics.tsx` | Fix filtering to update totals when specific campaign selected; derive chart data from selected campaign metrics |
+| `src/components/advertiser/AdvertiserSettings.tsx` | Remove API Access section, add Payment Method section |
+| `src/pages/AdvertiserDashboard.tsx` | Same fix for super admin mock data logic |
 
 ---
 
-### 1. Create Embedded Advertiser Panel
+### Fix 1: Campaign Analytics - Dynamic Filtering by Selected Campaign
 
-Create `src/components/advertiser/AdvertiserSettingsPanel.tsx` - a version designed to render inside the Settings modal (no separate header, matching styling):
+**File**: `src/components/advertiser/CampaignAnalytics.tsx`
 
+**Current behavior** (broken):
 ```typescript
-// Structure mirrors ConsumerSettings.tsx
-const sections = [
-  { id: 'campaigns', label: 'Campaigns', icon: Plus },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'settings', label: 'Settings', icon: Settings }
-];
-
-// Left sidebar with sections, right content area
-// Black background, gold-tinted borders, white text
+const totalImpressions = campaigns.reduce((sum, c) => sum + c.impressions, 0);
+const totalClicks = campaigns.reduce((sum, c) => sum + c.clicks, 0);
+// Always shows ALL campaigns total regardless of dropdown selection
 ```
 
-### 2. Update SettingsMenu.tsx
-
-Replace the Advertiser button that navigates to `/advertiser` with inline rendering:
-
+**Fixed behavior**:
 ```typescript
-// Current (navigates away):
-onClick={() => navigate('/advertiser')}
+// Filter campaigns based on selection
+const filteredCampaigns = selectedCampaign === 'all' 
+  ? campaigns 
+  : campaigns.filter(c => c.id === selectedCampaign);
 
-// New (stays in settings):
-setSettingsType('advertiser')
-
-// Add advertiser case to renderSection:
-case 'advertiser':
-  return <AdvertiserSettingsPanel currentUserId={currentUser.id} />;
+// Compute totals from filtered campaigns
+const totalImpressions = filteredCampaigns.reduce((sum, c) => sum + c.impressions, 0);
+const totalClicks = filteredCampaigns.reduce((sum, c) => sum + c.clicks, 0);
+const totalSaves = filteredCampaigns.reduce((sum, c) => sum + (c.saves || 0), 0);
+const totalConversions = filteredCampaigns.reduce((sum, c) => sum + c.conversions, 0);
 ```
 
-### 3. Restyle for Design Consistency
-
-**Background and Cards:**
+**Chart data derivation** - Generate realistic daily data based on campaign totals:
 ```typescript
-// Change from:
-className="bg-gray-900"
-className="bg-white/5 border-gray-700"
+// Generate chart data proportionally from totals
+const generatePerformanceData = (impressions: number, clicks: number, saves: number, conversions: number) => {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const weights = [0.08, 0.11, 0.14, 0.12, 0.18, 0.22, 0.15]; // Realistic weekly distribution
+  
+  return days.map((date, i) => ({
+    date,
+    impressions: Math.round(impressions * weights[i]),
+    clicks: Math.round(clicks * weights[i]),
+    saves: Math.round(saves * weights[i]),
+    conversions: Math.round(conversions * weights[i])
+  }));
+};
 
-// To:
-className="bg-transparent"  // inherits black from Settings modal
-className="bg-white/5 border-white/10 hover:border-primary/30"
+const performanceData = generatePerformanceData(totalImpressions, totalClicks, totalSaves, totalConversions);
 ```
 
-**Tabs (Campaigns/Analytics/Settings):**
-```typescript
-// Current: left-aligned
-<TabsList className="mb-8 bg-gray-800 border-gray-700">
+---
 
-// New: centered with proper gold theme
-<TabsList className="w-full justify-center bg-white/5 border-white/10 p-1">
-  <TabsTrigger 
-    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-  >
+### Fix 2: Consistent Mock Data Between Panel and Dashboard
+
+**File**: `src/components/advertiser/AdvertiserSettingsPanel.tsx`
+
+Ensure mock campaigns match exactly with `AdvertiserDashboard.tsx`. Currently the panel has 2 campaigns, dashboard has 3. We'll use the same 2-campaign set (Uber + Hotels.com) in both places for demo mode consistency.
+
+The mock data in AdvertiserSettingsPanel already has:
+- Uber: 15,234 impressions, 1,203 clicks, 342 saves, 89 conversions
+- Hotels.com: 18,765 impressions, 1,456 clicks, 523 saves, 134 conversions
+
+**Total (All Campaigns)**: 33,999 impressions, 2,659 clicks, 865 saves, 223 conversions
+
+When "Uber" is selected:
+- **Expected**: 15,234 impressions, 1,203 clicks, 342 saves, 89 conversions
+
+When "Hotels.com" is selected:
+- **Expected**: 18,765 impressions, 1,456 clicks, 523 saves, 134 conversions
+
+---
+
+### Fix 3: Super Admin Should See Real Data (Not Mock)
+
+**Files**: 
+- `src/components/advertiser/AdvertiserSettingsPanel.tsx`
+- `src/pages/AdvertiserDashboard.tsx`
+
+**Current logic** (line 162-165 in Panel, line 271-274 in Dashboard):
+```typescript
+const activeAdvertiser = isDemoMode
+  ? mockAdvertiser
+  : advertiser || (isSuperAdmin ? superAdminAdvertiser : advertiser);
+const activeCampaigns = isDemoMode ? mockCampaigns : campaigns;
 ```
 
-**Sub-tabs (Performance/Engagement/Top Campaigns):**
+This is already correct - mock data is only used when `isDemoMode` is true. However, line 31 shows:
 ```typescript
-// Current: left-aligned
-<TabsList className="bg-gray-800 border-gray-700">
-
-// New: centered
-<div className="flex justify-center">
-  <TabsList className="bg-white/5 border-white/10">
+const isPreviewMode = isDemoMode || isSuperAdmin;
 ```
 
-### 4. Update Analytics Metrics
+The `isPreviewMode` is only used for the banner display, which is fine. The actual data selection is correct.
 
-**Replace CTR box with Saves:**
+**Verification**: Super admin with `isDemoMode = false` will:
+1. Call `loadAdvertiserData()` 
+2. Get real campaigns from database (likely empty)
+3. `activeCampaigns` = real `campaigns` array (empty)
+4. Show empty state in CampaignList
 
+This is already working correctly per the code.
+
+---
+
+### Fix 4: Remove API Access, Add Payment Section
+
+**File**: `src/components/advertiser/AdvertiserSettings.tsx`
+
+**Remove** (lines 248-263):
 ```typescript
-// Current 4 boxes: Impressions, Clicks, CTR, Conversions
+{/* API Access */}
+<Card className="bg-white/5 border-gray-700">
+  ...
+</Card>
+```
 
-// New 4 boxes: Impressions, Clicks, Saves, Conversions
+**Add Payment Method Section**:
+```typescript
+{/* Payment Method */}
 <Card className="bg-white/5 border-white/10">
-  <CardHeader>
-    <CardTitle className="text-xs tablet:text-sm font-medium text-white">Saves</CardTitle>
-    <Bookmark className="h-3 w-3 tablet:h-4 tablet:w-4 text-gray-400" />
+  <CardHeader className="pb-3 sm:pb-6">
+    <CardTitle className="text-base sm:text-lg text-white">Payment Method</CardTitle>
+    <CardDescription className="text-xs sm:text-sm text-gray-400">
+      Add a company card for advertising billing
+    </CardDescription>
   </CardHeader>
-  <CardContent>
-    <div className="text-lg tablet:text-2xl font-bold text-white">
-      {totalSaves.toLocaleString()}
+  <CardContent className="space-y-4 px-4 sm:px-6">
+    {/* Card on File indicator or Add Card form */}
+    <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
+      <div className="flex items-center gap-3">
+        <CreditCard className="h-5 w-5 text-gray-400" />
+        <div className="flex-1">
+          <p className="text-sm text-gray-400">No payment method on file</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Add a company card to pay for impressions, clicks, and conversions
+          </p>
+        </div>
+      </div>
     </div>
-    <p className="text-xs text-gray-400">
-      <TrendingUp className="h-3 w-3 inline text-green-500" /> +12.4% from last week
-    </p>
+    
+    <Button
+      variant="outline"
+      className="w-full border-white/10 hover:bg-white/5 text-white"
+    >
+      <Plus className="h-4 w-4 mr-2" />
+      Add Payment Method
+    </Button>
   </CardContent>
 </Card>
 ```
 
-### 5. Update Type Definitions
-
-Add `saves` to Campaign interface in `src/types/advertiser.ts`:
-
-```typescript
-export interface Campaign {
-  // ... existing fields
-  impressions: number;
-  clicks: number;
-  saves: number;      // NEW
-  conversions: number;
-  // ...
-}
-```
-
-### 6. Update CampaignList Stats Grid
-
-Change the campaign card stats section:
-
-```typescript
-// Current: Impressions | Clicks | CTR | Conversions
-// New: Impressions | Clicks | Saves | Conversions
-
-<div className="text-center">
-  <div className="flex items-center justify-center text-gray-400 mb-1">
-    <Bookmark className="h-4 w-4 mr-1" />
-    <span className="text-xs">Saves</span>
-  </div>
-  <p className="text-2xl font-semibold text-white">
-    {campaign.saves?.toLocaleString() || '0'}
-  </p>
-</div>
-```
+For now, clicking "Add Payment Method" will show a toast indicating this feature is coming soon, keeping it simple for MVP.
 
 ---
 
-## Visual Design Specifications
+### Fix 5: Realistic Engagement Chart Data
 
-### Color Palette (matching Settings)
+**File**: `src/components/advertiser/CampaignAnalytics.tsx`
 
-| Element | Value |
-|---------|-------|
-| Background | `bg-black` / transparent (inherits) |
-| Cards | `bg-white/5` |
-| Borders | `border-white/10` |
-| Active tab | `bg-primary` (gold #F4B23A) |
-| Active tab text | `text-primary-foreground` (black) |
-| Inactive tab | `text-gray-400` |
-| Heading text | `text-white` |
-| Body text | `text-gray-300` |
-| Muted text | `text-gray-400` |
-| Accent links | `text-primary` (gold) |
-
-### Tab Styling
-
-```css
-/* Centered tab container */
-.tab-container {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-/* Tab group */
-.tabs-list {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  padding: 4px;
-}
-
-/* Active tab */
-.tab-active {
-  background: hsl(42, 92%, 56%);  /* Gold primary */
-  color: black;
-}
-```
+The engagement chart (Saves vs Conversions bar chart) should also use the dynamically generated `performanceData` which now derives from the selected campaign's actual metrics.
 
 ---
 
-## Metrics Explanation for Brands
+### Fix 6: Sync AdvertiserDashboard Mock Data
 
-| Metric | Description | Business Value |
-|--------|-------------|----------------|
-| **Impressions** | Number of times the trip card was viewed | Brand awareness / reach |
-| **Clicks** | Users who clicked the card for details | Interest measurement |
-| **Saves** | Users who saved to their Saved Places | Intent to book later |
-| **Conversions** | Users who clicked "Book Now" | Actual revenue driver |
+**File**: `src/pages/AdvertiserDashboard.tsx`
+
+Update `mockCampaigns` to match exactly 2 campaigns (Uber + Hotels.com) to prevent confusion. Remove the Lyft mock campaign (lines 95-138) to ensure consistency.
 
 ---
 
-## Mock Data Updates
+## Implementation Checklist
 
-Update the mock campaigns in `AdvertiserDashboard.tsx` to include saves:
+1. **CampaignAnalytics.tsx**
+   - [ ] Add `filteredCampaigns` based on `selectedCampaign`
+   - [ ] Recalculate totals from filtered campaigns
+   - [ ] Generate performance chart data from campaign totals
+   - [ ] Update engagement chart to use derived data
 
-```typescript
-const mockCampaigns: CampaignWithTargeting[] = [
-  {
-    // ... existing fields
-    impressions: 15234,
-    clicks: 1203,
-    saves: 342,       // NEW
-    conversions: 89,
-    // ...
-  }
-];
-```
+2. **AdvertiserSettings.tsx**
+   - [ ] Remove API Access card
+   - [ ] Add CreditCard import from lucide-react
+   - [ ] Add Payment Method card with placeholder UI
+   - [ ] Update border colors from `border-gray-700` to `border-white/10` for consistency
 
----
+3. **AdvertiserDashboard.tsx**
+   - [ ] Remove Lyft mock campaign to match 2-campaign set
+   - [ ] Verify super admin sees real data when not in demo mode
 
-## Summary of Changes
-
-1. **SettingsMenu.tsx** - Add 'advertiser' as a settingsType option with inline rendering
-2. **AdvertiserSettingsPanel.tsx** (NEW) - Embedded version matching Settings design
-3. **CampaignAnalytics.tsx** - Replace CTR with Saves, center both tab groups
-4. **CampaignList.tsx** - Replace CTR with Saves in stats grid
-5. **AdvertiserDashboard.tsx** - Update standalone page styling for consistency
-6. **advertiser.ts** - Add `saves: number` to Campaign interface
+4. **AdvertiserSettingsPanel.tsx**
+   - [ ] Verify mock data matches dashboard (already correct)
+   - [ ] Confirm super admin logic is correct (already correct)
 
 ---
 
-## Test Plan
+## Expected Results After Fix
 
-1. Open Settings modal
-2. Click "Advertiser" tab
-3. Verify:
-   - Background is black (matches other settings tabs)
-   - Gold accents match the Settings modal gold (not yellow-600)
-   - Campaigns/Analytics/Settings tabs are centered
-   - Performance/Engagement/Top Campaigns sub-tabs are centered
-4. Go to Analytics tab
-5. Verify 4 metric boxes: Impressions, Clicks, Saves, Conversions (no CTR)
-6. Verify styling consistency with Consumer Settings
+### Demo Mode ("All Campaigns" selected):
+- Total Impressions: **33,999** 
+- Total Clicks: **2,659**
+- Saves: **865**
+- Conversions: **223**
+
+### Demo Mode ("Uber" selected):
+- Total Impressions: **15,234**
+- Total Clicks: **1,203**
+- Saves: **342**
+- Conversions: **89**
+
+### Demo Mode ("Hotels.com" selected):
+- Total Impressions: **18,765**
+- Total Clicks: **1,456**
+- Saves: **523**
+- Conversions: **134**
+
+### Authenticated User (not demo, not super admin):
+- Shows real campaigns from database
+- Empty state if no campaigns
+- No mock data
+
+### Super Admin (not demo mode):
+- Shows real campaigns from database
+- Empty state if no campaigns created
+- Can create real campaigns
+
+---
+
+## Settings Tab Changes
+
+**Before**:
+1. Account Status
+2. Company Information
+3. API Access (remove)
+
+**After**:
+1. Account Status
+2. Company Information
+3. Payment Method (add)
