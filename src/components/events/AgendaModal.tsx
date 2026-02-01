@@ -202,7 +202,7 @@ export const AgendaModal = ({
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <Calendar size={24} className="text-orange-400" />
+          <Calendar size={24} className="text-yellow-500" />
           <div>
             <h2 className="text-xl font-semibold text-white">Event Agenda</h2>
             <p className="text-gray-400 text-sm">
@@ -230,7 +230,7 @@ export const AgendaModal = ({
               <Button
                 onClick={() => setIsAddingSession(true)}
                 size="sm"
-                className="bg-orange-600 hover:bg-orange-700"
+                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
               >
                 <Plus size={16} className="mr-1" />
                 Add Session
@@ -326,7 +326,7 @@ export const AgendaModal = ({
                         {newSession.speakers.map((speaker, index) => (
                           <span
                             key={index}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-orange-600/20 text-orange-300 rounded-full text-xs"
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-xs"
                           >
                             <User size={12} />
                             {speaker}
@@ -358,7 +358,7 @@ export const AgendaModal = ({
 
                 <Button
                   onClick={handleSaveSession}
-                  className="w-full bg-orange-600 hover:bg-orange-700"
+                  className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
                   disabled={!newSession.title || !newSession.start_time}
                 >
                   <Save size={16} className="mr-2" />
@@ -378,7 +378,7 @@ export const AgendaModal = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {session.track && (
-                            <span className="px-2 py-0.5 bg-orange-600/20 text-orange-300 rounded text-xs">
+                            <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded text-xs">
                               {session.track}
                             </span>
                           )}
@@ -400,7 +400,7 @@ export const AgendaModal = ({
                         {session.speakers && session.speakers.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {session.speakers.map((speaker, i) => (
-                              <span key={i} className="text-xs text-orange-300 flex items-center gap-1">
+                              <span key={i} className="text-xs text-yellow-300 flex items-center gap-1">
                                 <User size={12} />
                                 {speaker}
                               </span>
@@ -554,7 +554,7 @@ export const AgendaModal = ({
                       onChange={handleFileUpload}
                       className="hidden"
                     />
-                    <Button className="bg-orange-600 hover:bg-orange-700 cursor-pointer" asChild>
+                    <Button className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold cursor-pointer" asChild>
                       <span>
                         <Upload size={16} className="mr-2" />
                         Upload Agenda
@@ -568,8 +568,8 @@ export const AgendaModal = ({
 
           {/* Demo Mode Indicator */}
           {isDemoMode && (
-            <div className="mt-4 p-3 bg-orange-600/10 border border-orange-500/20 rounded-lg">
-              <p className="text-orange-300 text-xs text-center">
+            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <p className="text-yellow-300 text-xs text-center">
                 🎭 Demo Mode: All admin controls are enabled for demonstration
               </p>
             </div>

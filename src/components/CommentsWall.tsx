@@ -23,7 +23,7 @@ export const CommentsWall = ({ tripId }: CommentsWallProps) => {
         <Button
           onClick={() => setShowCreatePoll(true)}
           size="sm"
-          className={`inline-flex items-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300 hover:scale-105 shadow-lg h-9`}
+          className={`inline-flex items-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-lg h-9`}
         >
           <Plus size={14} />
           Create Poll

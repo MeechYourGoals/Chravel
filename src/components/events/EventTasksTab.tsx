@@ -87,7 +87,7 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <ClipboardList size={24} className="text-orange-400" />
+          <ClipboardList size={24} className="text-yellow-500" />
           <div>
             <h2 className="text-xl font-semibold text-white">Event Tasks</h2>
             <p className="text-gray-400 text-sm">
@@ -99,7 +99,7 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
         {isAdmin && !isAddingTask && (
           <Button
             onClick={() => setIsAddingTask(true)}
-            className="bg-orange-600 hover:bg-orange-700"
+            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
           >
             <Plus size={16} className="mr-2" />
             Add Task
@@ -134,7 +134,7 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
               >
                 Cancel
               </Button>
-              <Button onClick={handleAddTask} className="bg-orange-600 hover:bg-orange-700">
+              <Button onClick={handleAddTask} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold">
                 Add Task
               </Button>
             </div>
@@ -188,8 +188,8 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
                         <GripVertical size={16} />
                       </div>
                     )}
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-600/20 border border-orange-500/50 flex items-center justify-center mt-0.5">
-                      <span className="text-orange-400 text-xs font-medium">{index + 1}</span>
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center mt-0.5">
+                      <span className="text-yellow-500 text-xs font-medium">{index + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-medium">{task.title}</h3>
@@ -236,7 +236,7 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
             {isAdmin && (
               <Button
                 onClick={() => setIsAddingTask(true)}
-                className="bg-orange-600 hover:bg-orange-700"
+                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
               >
                 <Plus size={16} className="mr-2" />
                 Add First Task
