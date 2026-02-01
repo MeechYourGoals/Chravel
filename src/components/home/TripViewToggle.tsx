@@ -46,7 +46,7 @@ export const TripViewToggle = ({
           <ToggleGroupItem
             value="myTrips"
             aria-label="My Trips"
-            className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center overflow-hidden text-ellipsis min-w-0"
+            className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-yellow-500 data-[state=on]:to-yellow-600 data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-yellow-500/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center overflow-hidden text-ellipsis min-w-0"
           >
             <span className="inline lg:hidden truncate">Trips</span>
             <span className="hidden lg:inline truncate">My Trips</span>
@@ -54,14 +54,14 @@ export const TripViewToggle = ({
           <ToggleGroupItem
             value="tripsPro"
             aria-label="Pro"
-            className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center"
+            className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-yellow-500 data-[state=on]:to-yellow-600 data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-yellow-500/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center"
           >
             Pro
           </ToggleGroupItem>
           <ToggleGroupItem
             value="events"
             aria-label="Events"
-            className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center"
+            className="justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-yellow-500 data-[state=on]:to-yellow-600 data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-yellow-500/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center"
           >
             Events
           </ToggleGroupItem>
@@ -71,7 +71,7 @@ export const TripViewToggle = ({
               aria-label="Recs"
               disabled={recsTabDisabled}
               title={recsTabDisabled ? "Enable Demo Mode to access Travel Recommendations" : undefined}
-              className={`justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-[hsl(45,95%,58%)] data-[state=on]:to-[hsl(45,90%,65%)] data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-primary/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center ${recsTabDisabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
+              className={`justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-yellow-500 data-[state=on]:to-yellow-600 data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-yellow-500/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center ${recsTabDisabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
               onClick={(e) => {
                 if (recsTabDisabled) {
                   e.preventDefault();
