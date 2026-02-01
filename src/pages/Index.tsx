@@ -178,16 +178,19 @@ const Index = () => {
   // Counter to force re-renders when demo session state changes (archive/hide)
   const [demoRefreshCounter, setDemoRefreshCounter] = useState(0);
 
-  // Callback to refresh trip list when a trip is archived/hidden in demo mode
+  // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
+  // The hook handles demo mode internally, returning empty arrays when in demo mode
+  const { trips: userTripsRaw, loading: tripsLoading, refreshTrips } = useTrips();
+
+  // Callback to refresh trip list when a trip is archived/hidden/deleted
   const handleTripStateChange = useCallback(() => {
     if (isDemoMode) {
       setDemoRefreshCounter(prev => prev + 1);
+    } else {
+      // Refresh the trips query so hidden/archived/deleted trips disappear immediately
+      refreshTrips();
     }
-  }, [isDemoMode]);
-
-  // ✅ FIXED: Always call useTrips hook (Rules of Hooks requirement)
-  // The hook handles demo mode internally, returning empty arrays when in demo mode
-  const { trips: userTripsRaw, loading: tripsLoading } = useTrips();
+  }, [isDemoMode, refreshTrips]);
 
   // Fetch pending join requests for the current user (for "Requests" counter)
   const { pendingTrips: myPendingRequests } = useMyPendingTrips();
