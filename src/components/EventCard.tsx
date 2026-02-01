@@ -263,13 +263,13 @@ export const EventCard = ({ event, onArchiveSuccess, onHideSuccess, onDeleteSucc
         <div className="grid grid-cols-2 gap-2 md:gap-3">
           <button
             onClick={handleViewEvent}
-            className="bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white font-medium py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 text-xs md:text-sm"
+            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-300 text-xs md:text-sm border border-white/10 shadow-lg shadow-yellow-500/25"
           >
             View Event
           </button>
           <button
             onClick={() => setShowInviteModal(true)}
-            className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-300 shadow-lg hover:shadow-lg flex items-center justify-center gap-2 text-xs md:text-sm`}
+            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm flex items-center justify-center gap-2"
           >
             <UserPlus size={16} />
             Invite
