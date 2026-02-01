@@ -1,7 +1,14 @@
 /// <reference types="@types/google.maps" />
 
-import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
-import { Search, X, Loader2 } from 'lucide-react';
+import React, {
+  useEffect,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useCallback,
+  useMemo,
+} from 'react';
 import { BasecampLocation } from '@/types/basecamp';
 import { PlaceInfoOverlay, PlaceInfo } from './PlaceInfoOverlay';
 import {
@@ -14,11 +21,10 @@ import {
   generateSessionToken,
 } from '@/services/googlePlacesNew';
 import { GoogleMapsEmbed } from '@/components/GoogleMapsEmbed';
-import { useDebouncedCallback } from '@/hooks/useDebounce';
 import { useMapState } from '@/hooks/map/useMapState';
 import { useMapSearch } from '@/hooks/map/useMapSearch';
 import { useMapRouting } from '@/hooks/map/useMapRouting';
-import { toast } from 'sonner';
+import { getGoogleMapsApiKeyStatus } from '@/config/maps';
 
 export interface MapMarker {
   id: string;
@@ -47,7 +53,10 @@ export interface MapCanvasRef {
   getMap: () => google.maps.Map | null;
   search: (query: string) => Promise<void>;
   clearSearch: () => void;
-  showRoute: (origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => Promise<void>;
+  showRoute: (
+    origin: { lat: number; lng: number },
+    destination: { lat: number; lng: number },
+  ) => Promise<void>;
   clearRoute: () => void;
   getAutocomplete: (query: string, origin?: SearchOrigin) => Promise<any[]>;
   isInFallbackMode?: () => boolean;
@@ -64,7 +73,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       onMapReady,
       onSaveSearchAsBasecamp,
     },
-    ref
+    ref,
   ) => {
     // State for iframe fallback search
     const [iframeSearchLocation, setIframeSearchLocation] = useState<{
@@ -72,10 +81,15 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       lng: number;
       address?: string;
     } | null>(null);
-    
+
     // ⚡ CRITICAL: Track if JS API loaded successfully - show embed until it does
     const [jsApiReady, setJsApiReady] = useState(false);
-    
+    const [interactiveMapError, setInteractiveMapError] = useState<string | null>(null);
+    const [isRetryingInteractiveMap, setIsRetryingInteractiveMap] = useState(false);
+    const mapsApiRef = useRef<typeof google.maps | null>(null);
+    const initAttemptRef = useRef(0);
+    const mapKeyStatus = useMemo(() => getGoogleMapsApiKeyStatus(), []);
+
     // Custom hooks for state management
     const mapState = useMapState();
     const mapSearch = useMapSearch();
@@ -99,23 +113,15 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     } = mapState;
 
     const {
-      searchQuery,
-      isSearching,
-      searchError,
       selectedPlace,
-      showSuggestions,
-      suggestions,
       sessionToken,
       searchOrigin,
-      activeAutocompleteRequestRef,
       searchMarkerRef,
       overlayObserverRef,
-      setSearchQuery,
       setIsSearching,
       setSearchError,
       setSelectedPlace,
       setShowSuggestions,
-      setSuggestions,
       setSessionToken,
       setSearchOrigin,
       clearSearch: clearSearchFromHook,
@@ -134,16 +140,10 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       clearRoute: clearRouteFromHook,
     } = mapRouting;
 
-    // Configurable debounce delay (default: 300ms, can be adjusted via env or config)
-    const AUTOCOMPLETE_DEBOUNCE_MS = parseInt(
-      import.meta.env.VITE_AUTOCOMPLETE_DEBOUNCE_MS || '300',
-      10
-    );
-
     // Route rendering function
     const renderRoute = async (
       origin: { lat: number; lng: number },
-      destination: { lat: number; lng: number }
+      destination: { lat: number; lng: number },
     ) => {
       if (!mapRef.current || !window.google) {
         return;
@@ -201,6 +201,44 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // Use clearRoute from mapRouting hook
     const clearRoute = clearRouteFromHook;
 
+    const buildInteractiveMapErrorMessage = useCallback(
+      (error: unknown): string => {
+        const message = error instanceof Error ? error.message : 'Failed to load Google Maps';
+
+        if (message.includes('RefererNotAllowedMapError')) {
+          return 'Domain not authorized for this API key.';
+        }
+        if (message.includes('InvalidKeyMapError')) {
+          return 'Invalid Google Maps API key.';
+        }
+        if (message.includes('ApiNotActivatedMapError')) {
+          return 'Maps JavaScript API is not enabled.';
+        }
+        if (message.includes('BillingNotEnabledMapError')) {
+          return 'Billing is not enabled for this API key.';
+        }
+        if (message.includes('timed out')) {
+          return 'Timed out while loading interactive map.';
+        }
+        if (!mapKeyStatus.isEnvKeyValid) {
+          return 'VITE_GOOGLE_MAPS_API_KEY is missing or invalid (fallback key may be restricted).';
+        }
+
+        return 'Google Maps failed to load. Check API key, billing, and network.';
+      },
+      [mapKeyStatus.isEnvKeyValid],
+    );
+
+    const resetInteractiveMapState = useCallback(() => {
+      clearRoute();
+      clearSearchFromHook();
+
+      markersRef.current.forEach(marker => marker.setMap(null));
+      markersRef.current = [];
+
+      mapRef.current = null;
+    }, [clearRoute, clearSearchFromHook, markersRef, mapRef]);
+
     // Fallback search handler for iframe mode using Nominatim geocoding
     const handleFallbackSearch = async (query: string): Promise<void> => {
       const { GoogleMapsService } = await import('@/services/googleMapsService');
@@ -209,7 +247,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         setIframeSearchLocation({
           lat: coords.lat,
           lng: coords.lng,
-          address: coords.displayName || query
+          address: coords.displayName || query,
         });
       } else {
         throw new Error('Location not found');
@@ -224,262 +262,344 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
     // Expose methods via ref
     // IMPORTANT: The dependency array ensures these methods update when fallback mode changes
-    useImperativeHandle(ref, () => ({
-      centerOn: (latLng: { lat: number; lng: number }, zoom = 15) => {
-        // Handle iframe fallback mode
-        if (useFallbackEmbed || forceIframeFallback) {
-          setIframeSearchLocation({
-            lat: latLng.lat,
-            lng: latLng.lng,
-            address: undefined
-          });
-          return;
-        }
-
-        if (mapRef.current && window.google && latLng) {
-          mapRef.current.panTo(latLng);
-          mapRef.current.setZoom(zoom);
-
-          // Add a temporary marker for visual feedback
-          const tempMarker = new window.google.maps.Marker({
-            position: latLng,
-            map: mapRef.current,
-            icon: {
-              path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 8,
-              fillColor: '#fde047', // yellow-300
-              fillOpacity: 1,
-              strokeColor: '#f97316', // orange-500
-              strokeWeight: 2,
-            },
-            animation: window.google.maps.Animation.DROP,
-            zIndex: 300,
-          });
-
-          // Remove the marker after a short delay
-          setTimeout(() => {
-            tempMarker.setMap(null);
-          }, 2500);
-        } else {
-          console.warn('[MapCanvas] Cannot center - map not ready or invalid coords');
-        }
-      },
-      fitBounds: (bounds: { north: number; south: number; east: number; west: number }) => {
-        if (mapRef.current) {
-          mapRef.current.fitBounds(bounds);
-        }
-      },
-      highlight: (markerId: string) => {
-        const marker = markers.find(m => m.id === markerId);
-        if (marker && mapRef.current) {
-          mapRef.current.setCenter(marker.position);
-          mapRef.current.setZoom(15);
-        }
-      },
-      getMap: () => mapRef.current,
-      search: async (query: string) => {
-        // Handle iframe fallback mode
-        if (useFallbackEmbed || forceIframeFallback) {
-          await handleFallbackSearch(query);
-          return;
-        }
-        await handleSearch(query);
-      },
-      clearSearch: () => {
-        // Clear iframe search location
-        setIframeSearchLocation(null);
-        handleClearSearch();
-      },
-      showRoute: async (origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => {
-        await renderRoute(origin, destination);
-      },
-      clearRoute: () => {
-        clearRoute();
-      },
-      getAutocomplete: async (query: string, origin?: SearchOrigin) => {
-        // Handle iframe fallback mode
-        if (useFallbackEmbed || forceIframeFallback) {
-          return handleFallbackAutocomplete(query);
-        }
-
-        if (!sessionToken) {
-          console.warn('[MapCanvas] No session token for autocomplete');
-          return [];
-        }
-        try {
-          const predictions = await autocomplete(query, sessionToken, origin || searchOrigin);
-          return predictions;
-        } catch (error) {
-          console.error('[MapCanvas] Autocomplete error:', error);
-          return [];
-        }
-      },
-      // New: Check if in fallback mode
-      isInFallbackMode: () => useFallbackEmbed || forceIframeFallback,
-    }), [useFallbackEmbed, forceIframeFallback, sessionToken, searchOrigin, markers]);
-
-    // Initialize map - attempt JS API in background while showing embed
-    useEffect(() => {
-      let mounted = true;
-      
-      // ⚡ ALWAYS-SHOW EMBED PATTERN: Immediately mark as ready with embed shown
-      // The JS API loads in background and swaps in when successful
-      setIsMapLoading(false);
-      onMapReady?.();
-      
-      // Emergency timeout: if map doesn't load in 8 seconds, stay on embed
-      loadingTimeoutRef.current = setTimeout(() => {
-        if (mounted && !jsApiReady) {
-          // Don't show warning - embed is already visible and working
-          setForceIframeFallback(true);
-          setUseFallbackEmbed(true);
-        }
-      }, 8000);
-
-      const initMap = async () => {
-        try {
-          const maps = await loadMaps();
-
-          if (!mounted || !mapContainerRef.current) {
+    useImperativeHandle(
+      ref,
+      () => ({
+        centerOn: (latLng: { lat: number; lng: number }, zoom = 15) => {
+          // Handle iframe fallback mode
+          if (useFallbackEmbed || forceIframeFallback) {
+            setIframeSearchLocation({
+              lat: latLng.lat,
+              lng: latLng.lng,
+              address: undefined,
+            });
             return;
           }
 
-          // Determine initial center based on hierarchy
-          let center = { lat: 40.7580, lng: -73.9855 }; // NYC fallback
-          let zoom = 12;
+          if (mapRef.current && window.google && latLng) {
+            mapRef.current.panTo(latLng);
+            mapRef.current.setZoom(zoom);
 
-          // Priority 1: Trip Basecamp
-          if (tripBasecamp?.coordinates) {
-            center = tripBasecamp.coordinates;
-            zoom = 12;
+            // Add a temporary marker for visual feedback
+            const tempMarker = new window.google.maps.Marker({
+              position: latLng,
+              map: mapRef.current,
+              icon: {
+                path: window.google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: '#fde047', // yellow-300
+                fillOpacity: 1,
+                strokeColor: '#f97316', // orange-500
+                strokeWeight: 2,
+              },
+              animation: window.google.maps.Animation.DROP,
+              zIndex: 300,
+            });
+
+            // Remove the marker after a short delay
+            setTimeout(() => {
+              tempMarker.setMap(null);
+            }, 2500);
+          } else {
+            console.warn('[MapCanvas] Cannot center - map not ready or invalid coords');
           }
-          // Priority 2: Personal Basecamp
-          else if (personalBasecamp?.coordinates) {
-            center = personalBasecamp.coordinates;
-            zoom = 12;
+        },
+        fitBounds: (bounds: { north: number; south: number; east: number; west: number }) => {
+          if (mapRef.current) {
+            mapRef.current.fitBounds(bounds);
           }
-          // Priority 3: User Geolocation
-          else if (userGeolocation) {
-            center = userGeolocation;
-            zoom = 13;
+        },
+        highlight: (markerId: string) => {
+          const marker = markers.find(m => m.id === markerId);
+          if (marker && mapRef.current) {
+            mapRef.current.setCenter(marker.position);
+            mapRef.current.setZoom(15);
           }
-
-          // Create map instance
-          const map = new maps.Map(mapContainerRef.current, {
-            center,
-            zoom,
-            mapTypeControl: true,
-            streetViewControl: true,
-            fullscreenControl: true,
-            zoomControl: true,
-            gestureHandling: 'greedy',
-            styles: [
-              {
-                featureType: 'poi',
-                elementType: 'labels',
-                stylers: [{ visibility: 'on' }]
-              }
-            ]
-          });
-
-          mapRef.current = map;
-
-          // Monitor for Google Maps error overlay using MutationObserver
-          const observer = new MutationObserver((mutations) => {
-            const hasGmError = !!mapContainerRef.current?.querySelector('.gm-err-container');
-            if (hasGmError) {
-              observer.disconnect();
-              if (import.meta.env.DEV) {
-                console.error('[MapCanvas] Detected Google Maps error overlay – staying on embed');
-              }
-              // Stay on embed, don't show error modal - just keep the working embed
-              setJsApiReady(false);
-              setUseFallbackEmbed(true);
-            }
-          });
-          
-          if (mapContainerRef.current) {
-            observer.observe(mapContainerRef.current, { childList: true, subtree: true });
+        },
+        getMap: () => mapRef.current,
+        search: async (query: string) => {
+          // Handle iframe fallback mode
+          if (useFallbackEmbed || forceIframeFallback) {
+            await handleFallbackSearch(query);
+            return;
+          }
+          await handleSearch(query);
+        },
+        clearSearch: () => {
+          // Clear iframe search location
+          setIframeSearchLocation(null);
+          handleClearSearch();
+        },
+        showRoute: async (
+          origin: { lat: number; lng: number },
+          destination: { lat: number; lng: number },
+        ) => {
+          await renderRoute(origin, destination);
+        },
+        clearRoute: () => {
+          clearRoute();
+        },
+        getAutocomplete: async (query: string, origin?: SearchOrigin) => {
+          // Handle iframe fallback mode
+          if (useFallbackEmbed || forceIframeFallback) {
+            return handleFallbackAutocomplete(query);
           }
 
-          // Stop observing after 5 seconds
-          setTimeout(() => observer.disconnect(), 5000);
+          if (!sessionToken) {
+            console.warn('[MapCanvas] No session token for autocomplete');
+            return [];
+          }
+          try {
+            const predictions = await autocomplete(query, sessionToken, origin || searchOrigin);
+            return predictions;
+          } catch (error) {
+            console.error('[MapCanvas] Autocomplete error:', error);
+            return [];
+          }
+        },
+        // New: Check if in fallback mode
+        isInFallbackMode: () => useFallbackEmbed || forceIframeFallback,
+      }),
+      [useFallbackEmbed, forceIframeFallback, sessionToken, searchOrigin, markers],
+    );
 
-          // Generate initial session token for New API
-          setSessionToken(generateSessionToken());
+    const loadInteractiveMapsApi = useCallback(
+      async (reason: 'initial' | 'retry') => {
+        const attemptId = ++initAttemptRef.current;
 
-          // Clear emergency timeout - map loaded successfully
+        if (reason === 'retry') {
+          setIsRetryingInteractiveMap(true);
+        }
+
+        setInteractiveMapError(null);
+        setMapError(null);
+        setJsApiReady(false);
+        setForceIframeFallback(false);
+        setUseFallbackEmbed(true);
+
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+        }
+
+        // Emergency timeout: if JS API doesn't load in 8 seconds, stay on embed
+        loadingTimeoutRef.current = setTimeout(() => {
+          if (attemptId !== initAttemptRef.current) return;
+          if (!mapsApiRef.current) {
+            setForceIframeFallback(true);
+            setUseFallbackEmbed(true);
+            setInteractiveMapError('Interactive map timed out while loading.');
+          }
+        }, 8000);
+
+        try {
+          const maps = await loadMaps();
+          if (attemptId !== initAttemptRef.current) return;
+
+          mapsApiRef.current = maps;
+          setJsApiReady(true);
+          setUseFallbackEmbed(false);
+          setForceIframeFallback(false);
+          setInteractiveMapError(null);
+        } catch (error) {
+          if (attemptId !== initAttemptRef.current) return;
+          if (import.meta.env.DEV) {
+            console.error('[MapCanvas] Map JS API load error - staying on embed:', error);
+          }
+          mapsApiRef.current = null;
+          setJsApiReady(false);
+          setUseFallbackEmbed(true);
+          setForceIframeFallback(true);
+          setInteractiveMapError(buildInteractiveMapErrorMessage(error));
+        } finally {
           if (loadingTimeoutRef.current) {
             clearTimeout(loadingTimeoutRef.current);
             loadingTimeoutRef.current = null;
           }
-
-          // ⚡ JS API loaded successfully - swap from embed to interactive map
-          setJsApiReady(true);
-          setUseFallbackEmbed(false);
-          setForceIframeFallback(false);
-          setMapError(null);
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('[MapCanvas] Map initialization error - staying on embed:', error);
-          }
-          if (mounted) {
-            // Clear emergency timeout
-            if (loadingTimeoutRef.current) {
-              clearTimeout(loadingTimeoutRef.current);
-              loadingTimeoutRef.current = null;
-            }
-
-            // Stay on embed - don't show error, embed is already working
-            setJsApiReady(false);
-            setUseFallbackEmbed(true);
-            setForceIframeFallback(true);
-            // Don't set mapError - we don't want to show the error modal since embed works
+          if (attemptId === initAttemptRef.current) {
+            setIsRetryingInteractiveMap(false);
           }
         }
-      };
+      },
+      [
+        buildInteractiveMapErrorMessage,
+        loadingTimeoutRef,
+        setForceIframeFallback,
+        setMapError,
+        setUseFallbackEmbed,
+      ],
+    );
 
-      // Try to init map in background
-      initMap().catch(() => {
-        // Silently fail - embed is showing
-        setForceIframeFallback(true);
-        setUseFallbackEmbed(true);
-      });
+    // Initialize map - load JS API in background while showing embed
+    useEffect(() => {
+      void loadInteractiveMapsApi('initial');
 
       return () => {
-        mounted = false;
+        initAttemptRef.current += 1;
         if (loadingTimeoutRef.current) {
           clearTimeout(loadingTimeoutRef.current);
           loadingTimeoutRef.current = null;
         }
       };
-    }, []);
+    }, [loadInteractiveMapsApi, loadingTimeoutRef]);
+
+    // Create map instance once JS API is loaded and container is mounted
+    useEffect(() => {
+      if (!jsApiReady || useFallbackEmbed || forceIframeFallback) return;
+      if (!mapContainerRef.current || mapRef.current) return;
+
+      const maps = mapsApiRef.current || window.google?.maps;
+      if (!maps) {
+        setUseFallbackEmbed(true);
+        setForceIframeFallback(true);
+        setInteractiveMapError('Google Maps API not available after load.');
+        return;
+      }
+
+      setIsMapLoading(true);
+
+      try {
+        // Determine initial center based on hierarchy
+        let center = { lat: 40.758, lng: -73.9855 }; // NYC fallback
+        let zoom = 12;
+
+        // Priority 1: Trip Basecamp
+        if (tripBasecamp?.coordinates) {
+          center = tripBasecamp.coordinates;
+          zoom = 12;
+        }
+        // Priority 2: Personal Basecamp
+        else if (personalBasecamp?.coordinates) {
+          center = personalBasecamp.coordinates;
+          zoom = 12;
+        }
+        // Priority 3: User Geolocation
+        else if (userGeolocation) {
+          center = userGeolocation;
+          zoom = 13;
+        }
+
+        // Create map instance
+        const map = new maps.Map(mapContainerRef.current, {
+          center,
+          zoom,
+          mapTypeControl: true,
+          streetViewControl: true,
+          fullscreenControl: true,
+          zoomControl: true,
+          gestureHandling: 'greedy',
+          styles: [
+            {
+              featureType: 'poi',
+              elementType: 'labels',
+              stylers: [{ visibility: 'on' }],
+            },
+          ],
+        });
+
+        mapRef.current = map;
+
+        // Monitor for Google Maps error overlay using MutationObserver
+        if (overlayObserverRef.current) {
+          overlayObserverRef.current.disconnect();
+        }
+        const observer = new MutationObserver(() => {
+          const errorContainer = mapContainerRef.current?.querySelector('.gm-err-container');
+          if (!errorContainer) return;
+
+          observer.disconnect();
+          if (import.meta.env.DEV) {
+            console.error('[MapCanvas] Detected Google Maps error overlay – staying on embed');
+          }
+
+          const overlayText = errorContainer.textContent?.replace(/\s+/g, ' ').trim();
+          setInteractiveMapError(
+            overlayText || 'Google Maps reported an error. Check API key and billing.',
+          );
+          resetInteractiveMapState();
+          setJsApiReady(false);
+          setUseFallbackEmbed(true);
+          setForceIframeFallback(true);
+        });
+
+        overlayObserverRef.current = observer;
+        observer.observe(mapContainerRef.current, { childList: true, subtree: true });
+
+        // Stop observing after 5 seconds
+        const observerTimeout = window.setTimeout(() => observer.disconnect(), 5000);
+
+        // Generate initial session token for New API
+        setSessionToken(generateSessionToken());
+        setMapError(null);
+        setInteractiveMapError(null);
+        setIsMapLoading(false);
+        onMapReady?.();
+
+        return () => {
+          clearTimeout(observerTimeout);
+          observer.disconnect();
+          if (overlayObserverRef.current === observer) {
+            overlayObserverRef.current = null;
+          }
+        };
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('[MapCanvas] Map initialization error - staying on embed:', error);
+        }
+        setIsMapLoading(false);
+        setInteractiveMapError(buildInteractiveMapErrorMessage(error));
+        resetInteractiveMapState();
+        setJsApiReady(false);
+        setUseFallbackEmbed(true);
+        setForceIframeFallback(true);
+      }
+    }, [
+      buildInteractiveMapErrorMessage,
+      forceIframeFallback,
+      jsApiReady,
+      mapContainerRef,
+      mapRef,
+      onMapReady,
+      overlayObserverRef,
+      personalBasecamp?.coordinates,
+      resetInteractiveMapState,
+      setForceIframeFallback,
+      setIsMapLoading,
+      setMapError,
+      setSessionToken,
+      setUseFallbackEmbed,
+      tripBasecamp?.coordinates,
+      useFallbackEmbed,
+      userGeolocation,
+    ]);
 
     // Get user geolocation as fallback
     useEffect(() => {
       // Only request geolocation if no basecamps are set
       if (!tripBasecamp && !personalBasecamp && 'geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
-          (position) => {
+          position => {
             setUserGeolocation({
               lat: position.coords.latitude,
-              lng: position.coords.longitude
+              lng: position.coords.longitude,
             });
           },
-          (error) => {
+          error => {
             if (import.meta.env.DEV) {
               console.warn('[MapCanvas] Geolocation error:', error);
             }
             // Fallback to NYC
-            setUserGeolocation({ lat: 40.7580, lng: -73.9855 });
-            
+            setUserGeolocation({ lat: 40.758, lng: -73.9855 });
+
             // Notify user about geolocation failure
             import('sonner').then(({ toast }) => {
-              toast.info('Location access denied. Defaulting to New York City. Set a Base Camp for better results.', {
-                duration: 5000,
-              });
+              toast.info(
+                'Location access denied. Defaulting to New York City. Set a Base Camp for better results.',
+                {
+                  duration: 5000,
+                },
+              );
             });
-          }
+          },
         );
       }
     }, [tripBasecamp, personalBasecamp]);
@@ -490,7 +610,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
 
       // Determine which basecamp to use for search biasing
       let targetBasecamp: BasecampLocation | null = null;
-      
+
       if (activeContext === 'trip') {
         targetBasecamp = tripBasecamp || null;
       } else if (activeContext === 'personal') {
@@ -516,9 +636,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // ** PHASE 1 & 6: Non-blocking distance calculation with caching **
     useEffect(() => {
       if (!selectedPlace?.coordinates) return;
-      
-      const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
 
+      const activeBasecamp = activeContext === 'trip' ? tripBasecamp : personalBasecamp;
 
       // Early exit if no basecamp coordinates
       if (!activeBasecamp?.coordinates) {
@@ -529,26 +648,27 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         try {
           const origin = `${activeBasecamp.coordinates.lat},${activeBasecamp.coordinates.lng}`;
           const destination = `${selectedPlace.coordinates.lat},${selectedPlace.coordinates.lng}`;
-          
+
           // ** PHASE 6: Check cache first **
           const cached = getCachedDistance(origin, destination);
           if (cached) {
-            setSelectedPlace(prev => prev?.placeId === selectedPlace.placeId
-              ? { ...prev, distance: { ...cached, mode: 'driving' } }
-              : prev
+            setSelectedPlace(prev =>
+              prev?.placeId === selectedPlace.placeId
+                ? { ...prev, distance: { ...cached, mode: 'driving' } }
+                : prev,
             );
             return;
           }
 
           // Cache miss - fetch from API
           const { GoogleMapsService } = await import('@/services/googleMapsService');
-          
+
           const distanceData = await withTimeout(
             GoogleMapsService.getDistanceMatrix(origin, destination, 'DRIVING'),
             5000,
-            'Distance calculation timed out'
+            'Distance calculation timed out',
           );
-          
+
           if (distanceData.status === 'OK' && distanceData.rows[0]?.elements[0]?.status === 'OK') {
             const element = distanceData.rows[0].elements[0];
             const distanceInfo = {
@@ -556,13 +676,13 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
               duration: element.duration.text,
             };
 
-
             // ** PHASE 6: Store in cache **
             setCachedDistance(origin, destination, distanceInfo);
 
-            setSelectedPlace(prev => prev?.placeId === selectedPlace.placeId
-              ? { ...prev, distance: { ...distanceInfo, mode: 'driving' } }
-              : prev
+            setSelectedPlace(prev =>
+              prev?.placeId === selectedPlace.placeId
+                ? { ...prev, distance: { ...distanceInfo, mode: 'driving' } }
+                : prev,
             );
           }
         } catch (error) {
@@ -573,7 +693,12 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       };
 
       calculateDistance();
-    }, [selectedPlace?.placeId, activeContext, tripBasecamp?.coordinates, personalBasecamp?.coordinates]);
+    }, [
+      selectedPlace?.placeId,
+      activeContext,
+      tripBasecamp?.coordinates,
+      personalBasecamp?.coordinates,
+    ]);
 
     // Update basecamp markers
     useEffect(() => {
@@ -591,7 +716,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         coords: { lat: number; lng: number },
         title: string,
         color: string,
-        isActive: boolean
+        isActive: boolean,
       ) => {
         return new google.maps.Marker({
           position: coords,
@@ -606,7 +731,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
             strokeWeight: isActive ? 3 : 1,
           },
           zIndex: isActive ? 150 : 100,
-          opacity: isActive ? 1 : 0.6
+          opacity: isActive ? 1 : 0.6,
         });
       };
 
@@ -616,7 +741,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           tripBasecamp.coordinates,
           tripBasecamp.name || 'Trip Base Camp',
           '#3b82f6', // blue
-          activeContext === 'trip'
+          activeContext === 'trip',
         );
         markersRef.current.push(marker);
       }
@@ -627,62 +752,11 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           personalBasecamp.coordinates,
           personalBasecamp.name || 'Personal Base Camp',
           '#10b981', // emerald
-          activeContext === 'personal'
+          activeContext === 'personal',
         );
         markersRef.current.push(marker);
       }
     }, [tripBasecamp, personalBasecamp, activeContext]);
-
-    // Debounced autocomplete handler with configurable delay
-    const debouncedAutocomplete = useDebouncedCallback(
-      async (value: string) => {
-        if (!value.trim() || !sessionToken) {
-          setSuggestions([]);
-          setShowSuggestions(false);
-          return;
-        }
-
-        // Phase A: Increment request ID to invalidate previous requests
-        const currentRequestId = ++activeAutocompleteRequestRef.current;
-        
-        try {
-          const predictions = await autocomplete(value, sessionToken, searchOrigin);
-          
-          // Phase A: Only update if this is still the latest request
-          if (currentRequestId === activeAutocompleteRequestRef.current) {
-            setSuggestions(predictions);
-            setShowSuggestions(predictions.length > 0);
-          }
-        } catch (error) {
-          // Phase A: Only show error if this is still the latest request
-          if (currentRequestId === activeAutocompleteRequestRef.current) {
-            if (import.meta.env.DEV) {
-              console.error('[MapCanvas] Autocomplete error:', error);
-            }
-            setSuggestions([]);
-            setShowSuggestions(false);
-            // Reset session token on error to prevent billing issues
-            setSessionToken(generateSessionToken());
-          }
-        }
-      },
-      AUTOCOMPLETE_DEBOUNCE_MS
-    );
-
-    // Autocomplete handler (New API) with debounce and deduplication
-    const handleSearchInput = (value: string) => {
-      setSearchQuery(value);
-      setSearchError(null);
-
-      if (!value.trim() || !sessionToken) {
-        setSuggestions([]);
-        setShowSuggestions(false);
-        return;
-      }
-
-      // Trigger debounced autocomplete
-      debouncedAutocomplete(value);
-    };
 
     // Search submission handler (New API)
     const handleSearch = async (query: string, overrideOrigin?: SearchOrigin) => {
@@ -700,7 +774,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         const place = await withTimeout(
           resolveQuery(trimmedQuery, effectiveOrigin, sessionToken),
           10000,
-          'Search timed out after 10 seconds'
+          'Search timed out after 10 seconds',
         );
 
         if (!place) {
@@ -738,7 +812,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           rating: place.rating,
           website: place.website,
           distance: null,
-          photos: place.photos
+          photos: place.photos,
         };
 
         setSelectedPlace(placeInfo);
@@ -749,7 +823,8 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         if (import.meta.env.DEV) {
           console.error('[MapCanvas] Search error:', error);
         }
-        const errorMsg = error instanceof Error ? error.message : 'Search failed. Please try again.';
+        const errorMsg =
+          error instanceof Error ? error.message : 'Search failed. Please try again.';
         setSearchError(errorMsg);
         // Reset session token on error
         setSessionToken(generateSessionToken());
@@ -757,17 +832,6 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         // GUARANTEED to run - always reset searching state
         setIsSearching(false);
       }
-    };
-
-    const handleSearchSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      handleSearch(searchQuery);
-    };
-
-    const handleSuggestionClick = (prediction: any) => {
-      setSearchQuery(prediction.description);
-      setShowSuggestions(false);
-      handleSearch(prediction.description);
     };
 
     const handleClearSearch = () => {
@@ -785,13 +849,24 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
       await renderRoute(activeBasecamp.coordinates, selectedPlace.coordinates);
     };
 
+    const handleRetryInteractiveMap = () => {
+      resetInteractiveMapState();
+      setInteractiveMapError(null);
+      setJsApiReady(false);
+      setForceIframeFallback(false);
+      setUseFallbackEmbed(true);
+      void loadInteractiveMapsApi('retry');
+    };
+
     // ⚡ ALWAYS-SHOW EMBED PATTERN: Show embed until JS API is confirmed ready
     // This ensures users NEVER see "Oops! Something went wrong" - they always see a working map
     if (!jsApiReady || useFallbackEmbed || forceIframeFallback) {
       return (
-        <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
-          <GoogleMapsEmbed 
-            className="w-full h-full" 
+        <div
+          className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}
+        >
+          <GoogleMapsEmbed
+            className="w-full h-full"
             searchLocation={iframeSearchLocation}
             onSaveAsBasecamp={onSaveSearchAsBasecamp}
           />
@@ -799,12 +874,17 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           {forceIframeFallback && (
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
               <div className="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-2">
-                <span>Interactive map unavailable</span>
+                <span className="max-w-[280px] truncate" title={interactiveMapError || undefined}>
+                  Interactive map unavailable
+                  {interactiveMapError ? `: ${interactiveMapError}` : ''}
+                </span>
                 <button
-                  onClick={() => window.location.reload()}
-                  className="underline hover:no-underline"
+                  type="button"
+                  onClick={handleRetryInteractiveMap}
+                  disabled={isRetryingInteractiveMap}
+                  className="underline hover:no-underline disabled:opacity-60"
                 >
-                  Retry
+                  {isRetryingInteractiveMap ? 'Retrying...' : 'Retry'}
                 </button>
               </div>
             </div>
@@ -814,16 +894,28 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     }
 
     return (
-      <div className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}>
+      <div
+        className={`relative w-full h-full bg-gray-900 rounded-2xl overflow-hidden ${className}`}
+      >
         {/* Route Info Overlay - Phase 4 */}
         {routeInfo && showRoute && (
           <div className="absolute top-20 left-4 z-20 bg-blue-600 text-white rounded-lg px-4 py-3 shadow-xl">
             <div className="flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
-                <circle cx="7" cy="17" r="2"/>
-                <path d="M9 17h6"/>
-                <circle cx="17" cy="17" r="2"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                <circle cx="7" cy="17" r="2" />
+                <path d="M9 17h6" />
+                <circle cx="17" cy="17" r="2" />
               </svg>
               <div>
                 <div className="text-sm font-bold">{routeInfo.distance}</div>
@@ -859,15 +951,28 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         {mapError && (
           <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm flex items-center justify-center z-10 p-4">
             <div className="bg-white rounded-xl p-6 shadow-2xl max-w-lg w-full">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">🗺️ Google Maps Setup Required</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                🗺️ Google Maps Setup Required
+              </h3>
               <p className="text-red-700 text-sm mb-4">{mapError}</p>
-              
+
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <p className="text-xs text-blue-900 font-semibold mb-3">Quick Setup Guide:</p>
                 <ol className="text-xs text-blue-800 space-y-2 list-decimal list-inside">
-                  <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline font-medium">Google Cloud Console</a></li>
+                  <li>
+                    Go to{' '}
+                    <a
+                      href="https://console.cloud.google.com/apis/credentials"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline font-medium"
+                    >
+                      Google Cloud Console
+                    </a>
+                  </li>
                   <li>Create a new API key (or use existing)</li>
-                  <li>Enable these APIs:
+                  <li>
+                    Enable these APIs:
                     <ul className="ml-5 mt-1 space-y-0.5 list-disc list-inside">
                       <li>Maps JavaScript API</li>
                       <li>Places API (New)</li>
@@ -875,19 +980,30 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
                     </ul>
                   </li>
                   <li>Enable billing on your Google Cloud project</li>
-                  <li>Add key to <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">.env</code> as <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">VITE_GOOGLE_MAPS_API_KEY</code></li>
-                  <li>Restart your dev server: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">npm run dev</code></li>
+                  <li>
+                    Add key to{' '}
+                    <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">.env</code> as{' '}
+                    <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
+                      VITE_GOOGLE_MAPS_API_KEY
+                    </code>
+                  </li>
+                  <li>
+                    Restart your dev server:{' '}
+                    <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">npm run dev</code>
+                  </li>
                 </ol>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                 <p className="text-xs text-amber-900">
-                  <strong>Note:</strong> Google Maps requires an active billing account. You'll get $200/month free credit.
+                  <strong>Note:</strong> Google Maps requires an active billing account. You'll get
+                  $200/month free credit.
                 </p>
               </div>
-              
+
               <button
-                onClick={() => window.location.reload()}
+                type="button"
+                onClick={handleRetryInteractiveMap}
                 className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
               >
                 Reload After Setup
@@ -900,7 +1016,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
         <div ref={mapContainerRef} className="w-full h-full" />
       </div>
     );
-  }
+  },
 );
 
 MapCanvas.displayName = 'MapCanvas';
