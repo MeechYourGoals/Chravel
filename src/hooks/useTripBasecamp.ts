@@ -187,6 +187,7 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
     // On success: confirm the optimistic value is correct, then schedule a delayed refetch
     onSuccess: (data, _variables, context) => {
       console.log(LOG_PREFIX, 'Update successful, confirming cache value');
+      toast.success('Basecamp saved!');
 
       if (tripId && context?.optimisticValue) {
         // The optimistic update should already have the correct value
