@@ -12,7 +12,9 @@ import {
   Save,
   AlertCircle,
   CheckCircle,
-  User
+  User,
+  CreditCard,
+  Plus
 } from 'lucide-react';
 import { Advertiser } from '@/types/advertiser';
 import { useToast } from '@/hooks/use-toast';
@@ -80,7 +82,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
   return (
     <div className="space-y-3 sm:space-y-6">
       {/* Account Status */}
-      <Card className="bg-white/5 border-gray-700">
+      <Card className="bg-white/5 border-white/10">
         <CardHeader className="pb-3 sm:pb-6">
           <CardTitle className="text-base sm:text-lg text-white">Account Status</CardTitle>
           <CardDescription className="text-xs sm:text-sm text-gray-400">
@@ -96,7 +98,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
             {getStatusBadge(advertiser.status)}
           </div>
           
-          <Separator className="bg-gray-700" />
+          <Separator className="bg-white/10" />
           
           <div className="grid grid-cols-2 gap-2 sm:gap-4 text-sm">
             <div>
@@ -112,7 +114,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
       </Card>
 
       {/* Company Information */}
-      <Card className="bg-white/5 border-gray-700">
+      <Card className="bg-white/5 border-white/10">
         <CardHeader className="pb-3 sm:pb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
             <div>
@@ -126,7 +128,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditing(true)}
-                className="border-gray-600 text-gray-300 hover:bg-white/10 w-full sm:w-auto"
+                className="border-white/10 text-gray-300 hover:bg-white/10 w-full sm:w-auto"
               >
                 Edit
               </Button>
@@ -196,7 +198,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                       website: advertiser.website || ''
                     });
                   }}
-                  className="border-gray-600 text-gray-300 hover:bg-white/10 w-full sm:w-auto"
+                  className="border-white/10 text-gray-300 hover:bg-white/10 w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
@@ -245,20 +247,40 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
         </CardContent>
       </Card>
 
-      {/* API Access */}
-      <Card className="bg-white/5 border-gray-700">
+      {/* Payment Method */}
+      <Card className="bg-white/5 border-white/10">
         <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-base sm:text-lg text-white">API Access</CardTitle>
+          <CardTitle className="text-base sm:text-lg text-white">Payment Method</CardTitle>
           <CardDescription className="text-xs sm:text-sm text-gray-400">
-            Programmatic access for campaign management (Coming Soon)
+            Add a company card for advertising billing
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg text-center">
-            <p className="text-sm text-gray-400">
-              API access will be available in a future update
-            </p>
+        <CardContent className="space-y-4 px-4 sm:px-6">
+          <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
+            <div className="flex items-center gap-3">
+              <CreditCard className="h-5 w-5 text-gray-400" />
+              <div className="flex-1">
+                <p className="text-sm text-gray-400">No payment method on file</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Add a company card to pay for impressions, clicks, and conversions
+                </p>
+              </div>
+            </div>
           </div>
+          
+          <Button
+            variant="outline"
+            className="w-full border-white/10 hover:bg-white/5 text-white"
+            onClick={() => {
+              toast({
+                title: "Coming Soon",
+                description: "Payment method setup will be available in a future update."
+              });
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Payment Method
+          </Button>
         </CardContent>
       </Card>
     </div>

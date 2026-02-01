@@ -40,34 +40,20 @@ export const AdvertiserDashboard = () => {
     updated_at: new Date().toISOString(),
   };
 
+  // Mock campaigns - only Uber and Hotels.com for consistency with AdvertiserSettingsPanel
   const mockCampaigns: CampaignWithTargeting[] = [
     {
       id: 'demo-campaign-uber',
       advertiser_id: 'demo-advertiser-1',
       name: 'Uber - Premium Airport Rides',
-      description:
-        'Flat $10 off airport rides for Chravel users. Choose from Uber Comfort or Uber Black for luxury travel.',
+      description: 'Flat $10 off airport rides for Chravel users. Choose from Uber Comfort or Uber Black for luxury travel.',
       discount_details: '$10 off airport rides',
       images: [
-        {
-          url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
-          alt: 'Airport terminal',
-          order: 0,
-        },
-        {
-          url: 'https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=800',
-          alt: 'Luxury car interior',
-          order: 1,
-        },
-        {
-          url: 'https://images.unsplash.com/photo-1606768666853-403c90a981ad?w=800',
-          alt: 'City skyline',
-          order: 2,
-        },
+        { url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800', alt: 'Airport terminal', order: 0 },
+        { url: 'https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=800', alt: 'Luxury car interior', order: 1 },
+        { url: 'https://images.unsplash.com/photo-1606768666853-403c90a981ad?w=800', alt: 'City skyline', order: 2 },
       ],
-      destination_info: {
-        location: 'Miami, FL',
-      },
+      destination_info: { location: 'Miami, FL' },
       tags: ['rideshare', 'airport-transfer', 'premium-service', 'city-travel'],
       status: 'active',
       impressions: 15234,
@@ -92,77 +78,17 @@ export const AdvertiserDashboard = () => {
       },
     },
     {
-      id: 'demo-campaign-lyft',
-      advertiser_id: 'demo-advertiser-1',
-      name: 'Lyft - Reliable City Rides',
-      description:
-        'Safe, friendly rides when you need them. New user discount for Chravel members available citywide.',
-      discount_details: 'New user discount for Chravel',
-      images: [
-        {
-          url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
-          alt: 'City street view',
-          order: 0,
-        },
-        {
-          url: 'https://images.unsplash.com/photo-1502489597346-dad15683d4c2?w=800',
-          alt: 'Happy passenger',
-          order: 1,
-        },
-      ],
-      destination_info: {
-        location: 'Major Cities Nationwide',
-      },
-      tags: ['rideshare', 'city-travel', 'new-user-offer', 'budget-friendly'],
-      status: 'active',
-      impressions: 12876,
-      clicks: 945,
-      saves: 287,
-      conversions: 67,
-      start_date: new Date('2024-02-01').toISOString(),
-      end_date: new Date('2024-11-30').toISOString(),
-      created_at: new Date('2024-02-01').toISOString(),
-      updated_at: new Date('2024-02-01').toISOString(),
-      targeting: {
-        id: 'demo-targeting-lyft',
-        campaign_id: 'demo-campaign-lyft',
-        age_min: 18,
-        age_max: 55,
-        genders: ['all'],
-        interests: ['city-exploration', 'nightlife', 'dining'],
-        locations: ['United States', 'Canada'],
-        trip_types: ['leisure', 'group', 'solo'],
-        created_at: new Date('2024-02-01').toISOString(),
-        updated_at: new Date('2024-02-01').toISOString(),
-      },
-    },
-    {
       id: 'demo-campaign-hotels',
       advertiser_id: 'demo-advertiser-1',
       name: 'Hotels.com - Compare & Save',
-      description:
-        'Compare hotel prices and earn rewards. Get one night free for every 10 nights booked.',
+      description: 'Compare hotel prices and earn rewards. Get one night free for every 10 nights booked.',
       discount_details: 'Collect 10 nights, get 1 free',
       images: [
-        {
-          url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
-          alt: 'Luxury hotel exterior',
-          order: 0,
-        },
-        {
-          url: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800',
-          alt: 'Hotel pool view',
-          order: 1,
-        },
-        {
-          url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800',
-          alt: 'Comfortable hotel room',
-          order: 2,
-        },
+        { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800', alt: 'Luxury hotel exterior', order: 0 },
+        { url: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800', alt: 'Hotel pool view', order: 1 },
+        { url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800', alt: 'Comfortable hotel room', order: 2 },
       ],
-      destination_info: {
-        location: 'Global Hotel Network',
-      },
+      destination_info: { location: 'Global Hotel Network' },
       tags: ['lodging', 'price-comparison', 'rewards-program', 'travel-booking'],
       status: 'active',
       impressions: 18765,
