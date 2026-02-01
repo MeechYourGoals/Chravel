@@ -169,7 +169,10 @@ const EventDetail = () => {
     dateRange: eventData.dateRange,
     description: tripDescription || eventData.description || `Professional ${eventData.category.toLowerCase()} event in ${eventData.location}`,
     created_by: actualCreatorId,
-    participants: isDemoMode 
+    trip_type: 'event' as const,
+    card_color: (eventData as any).card_color,
+    coverPhoto: eventData.coverPhoto,
+    participants: isDemoMode
       ? eventData.participants.map((p: any) => ({
           id: p.id,
           name: p.name,

@@ -347,6 +347,9 @@ export const MobileEventDetail = () => {
     location: eventData.location,
     dateRange: eventData.dateRange,
     description: tripDescription || eventData.description || '',
+    trip_type: 'event' as const,
+    card_color: (eventData as any).card_color,
+    coverPhoto: eventData.coverPhoto,
     // Merge real trip members for authenticated trips instead of empty array
     participants: isDemoMode
       ? eventData.participants.map(p => ({
