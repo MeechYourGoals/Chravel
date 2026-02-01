@@ -138,14 +138,40 @@ export const EventCard = ({ event, onArchiveSuccess, onHideSuccess, onDeleteSucc
 
   return (
     <div className={`bg-gradient-to-br ${eventColor.cardGradient} backdrop-blur-xl border border-white/20 hover:border-white/40 rounded-3xl overflow-hidden transition-all duration-300 shadow-lg hover:scale-[1.02] relative group`}>
-      {/* Menu */}
-      <div className="absolute top-4 right-4 z-10">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="text-white/60 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-xl">
-              <MoreHorizontal size={16} />
-            </button>
-          </DropdownMenuTrigger>
+      {/* Header */}
+      <div className={`relative h-48 bg-gradient-to-br from-${accentColors.primary}/20 to-${accentColors.secondary}/20 p-6`}>
+        {/* Cover photo overlay if available */}
+        {(event as any).coverPhoto ? (
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-25"
+            style={{ backgroundImage: `url(${(event as any).coverPhoto})` }}
+          />
+        ) : null}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
+        <div className="relative z-10 flex justify-between items-start h-full">
+          {/* Event Info */}
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end">
+            <h3 className="text-2xl font-bold text-white mb-2 line-clamp-2">
+              {event.title}
+            </h3>
+            <div className="flex items-center gap-2 text-white/80 mb-2">
+              <MapPin size={16} className={`text-${accentColors.primary}`} />
+              <span className="font-medium">{event.location}</span>
+            </div>
+            <div className="flex items-center gap-2 text-white/80">
+              <Calendar size={16} className={`text-${accentColors.primary}`} />
+              <span className="font-medium">{event.dateRange}</span>
+            </div>
+          </div>
+
+          {/* Menu Button - inline in header flex layout */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-xl shrink-0">
+                <MoreHorizontal size={16} />
+              </button>
+            </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border">
               <DropdownMenuItem
                 onClick={() => setShowArchiveDialog(true)}
@@ -171,32 +197,7 @@ export const EventCard = ({ event, onArchiveSuccess, onHideSuccess, onDeleteSucc
                 Delete for me
               </DropdownMenuItem>
             </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Header */}
-      <div className={`relative h-48 bg-gradient-to-br from-${accentColors.primary}/20 to-${accentColors.secondary}/20 p-6`}>
-        {/* Cover photo overlay if available */}
-        {(event as any).coverPhoto ? (
-          <div 
-            className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={{ backgroundImage: `url(${(event as any).coverPhoto})` }}
-          />
-        ) : null}
-        <div className="relative z-10 h-full flex flex-col justify-between">
-          <div>
-            <h3 className="text-2xl font-bold text-white mb-2 line-clamp-2">
-              {event.title}
-            </h3>
-            <div className="flex items-center gap-2 text-white/80 mb-2">
-              <MapPin size={16} className={`text-${accentColors.primary}`} />
-              <span className="font-medium">{event.location}</span>
-            </div>
-            <div className="flex items-center gap-2 text-white/80">
-              <Calendar size={16} className={`text-${accentColors.primary}`} />
-              <span className="font-medium">{event.dateRange}</span>
-            </div>
-          </div>
+          </DropdownMenu>
         </div>
       </div>
 
