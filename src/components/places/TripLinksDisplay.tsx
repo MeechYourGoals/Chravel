@@ -387,7 +387,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                   <DialogTrigger asChild>
                     <button
                       onClick={() => resetForm()}
-                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all font-medium text-sm md:text-base flex items-center shadow-lg shadow-green-500/25"
+                      className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all font-medium text-sm md:text-base flex items-center shadow-lg shadow-yellow-500/25"
                     >
                       <Plus className="w-4 h-4 md:w-5 md:h-5 mr-1" />
                       Add Link
