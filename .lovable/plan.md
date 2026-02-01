@@ -1,294 +1,176 @@
 
-# Event Permissions: Role-Based Access Control Implementation
 
-## Overview
+# Use Cases Grid: Consolidate Cards + Add Greek Life
 
-Implement proper permission checks for Event trips so that **attendees have restricted access** while **organizers/admins maintain full control**. This ensures event integrity while allowing collaborative features like Chat and Media sharing.
+## Summary
 
----
-
-## Permission Matrix
-
-| Feature | Attendee | Organizer/Admin |
-|---------|----------|-----------------|
-| **Agenda** | View only | Create, Edit, Delete, Upload |
-| **Calendar** | View only | Create, Edit, Delete |
-| **Chat** | Full access (send/receive) | Full access + moderation |
-| **Media** | Upload, Download, Delete own | Upload, Download, Delete any |
-| **Line-up** | View only | Create, Edit, Delete |
-| **Polls** | Vote only | Create, Close, Delete + Vote |
-| **Tasks** | View only | Create, Edit, Delete |
+Merge "Family Trips & Year-Round Hubs" and "Schedules, Pickups & Carpools" into one card, then add a new "Fraternities & Sororities (Greek Life)" card with verified privacy claims.
 
 ---
 
-## Technical Implementation
+## Current State (6 Cards)
 
-### Phase 1: Extend `useEventPermissions` Hook
+| Position | Current Card |
+|----------|--------------|
+| 1 (Hero) | Family Trips & Year-Round Hubs |
+| 2 | Touring Artists & Crews |
+| 3 | Bach Parties → Wedding Weekends |
+| 4 | Schedules, Pickups & Carpools |
+| 5 | Collegiate & Pro Sports Programs |
+| 6 | Local Community Groups |
 
-**File**: `src/hooks/useEventPermissions.ts`
+## Target State (6 Cards)
 
-Add event-specific feature permissions that distinguish between organizer and attendee roles:
-
-```typescript
-export interface EventFeaturePermissions {
-  agenda: { canView: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean; canUpload: boolean };
-  calendar: { canView: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean };
-  chat: { canView: boolean; canSend: boolean; canDeleteOwn: boolean; canDeleteAny: boolean };
-  media: { canView: boolean; canUpload: boolean; canDeleteOwn: boolean; canDeleteAny: boolean };
-  lineup: { canView: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean };
-  polls: { canView: boolean; canVote: boolean; canCreate: boolean; canClose: boolean; canDelete: boolean };
-  tasks: { canView: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean };
-}
-```
-
-Add logic to determine if user is the **trip creator** by querying `trips.created_by` in addition to checking `trip_admins` table.
-
-### Phase 2: Update EventDetailContent
-
-**File**: `src/components/events/EventDetailContent.tsx`
-
-Pass granular permissions to each tab component instead of just `isAdmin` boolean:
-
-```typescript
-// Current
-<EventTasksTab eventId={tripId} isAdmin={showAsAdmin} />
-
-// Updated
-<EventTasksTab 
-  eventId={tripId} 
-  permissions={eventPermissions.tasks}
-/>
-```
-
-### Phase 3: Update Individual Tab Components
-
-#### 3a. AgendaModal
-
-**File**: `src/components/events/AgendaModal.tsx`
-
-**Current**: Uses `isAdmin` prop to show/hide controls
-**Change**: Accept `permissions` prop with granular access
-
-```typescript
-interface AgendaModalProps {
-  eventId: string;
-  permissions: {
-    canCreate: boolean;
-    canEdit: boolean;
-    canDelete: boolean;
-    canUpload: boolean;
-  };
-  // ... existing props
-}
-```
-
-- Hide "Add Session" button if `!permissions.canCreate`
-- Hide "Upload" button if `!permissions.canUpload`  
-- Hide Edit/Delete icons on sessions if `!permissions.canEdit/canDelete`
-- Show read-only message for attendees: "The organizer manages this schedule"
-
-#### 3b. GroupCalendar
-
-**File**: `src/components/GroupCalendar.tsx`
-
-**Current**: Uses `canPerformAction('calendar', 'can_edit_events')` from `useRolePermissions`
-**Change**: Accept permissions prop for Events variant
-
-- Hide "Add Event", "Import" buttons for attendees
-- Hide Edit/Delete buttons on events for attendees
-- Keep Export visible for all (read operation)
-
-#### 3c. LineupTab
-
-**File**: `src/components/events/LineupTab.tsx`
-
-**Current**: Checks `userRole === 'organizer'`
-**Change**: Accept permissions prop
-
-```typescript
-interface LineupTabProps {
-  speakers: Speaker[];
-  permissions: {
-    canView: boolean;
-    canCreate: boolean;
-    canEdit: boolean;
-    canDelete: boolean;
-  };
-}
-```
-
-- Hide "Add to Line-up" button if `!permissions.canCreate`
-- Hide edit/delete controls if `!permissions.canEdit/canDelete`
-
-#### 3d. EventTasksTab
-
-**File**: `src/components/events/EventTasksTab.tsx`
-
-**Current**: Uses `isAdmin` prop
-**Change**: Accept permissions prop
-
-- Hide "Add Task" button if `!permissions.canCreate`
-- Hide Edit/Delete buttons if `!permissions.canEdit/canDelete`
-- Show message for attendees: "The organizer manages tasks for this event"
-
-#### 3e. CommentsWall (Polls)
-
-**File**: `src/components/CommentsWall.tsx`
-
-**Change**: Accept permissions prop to control poll creation
-
-```typescript
-interface CommentsWallProps {
-  tripId: string;
-  permissions?: {
-    canView: boolean;
-    canVote: boolean;
-    canCreate: boolean;
-    canClose: boolean;
-    canDelete: boolean;
-  };
-}
-```
-
-- Hide "Create Poll" button if `!permissions?.canCreate`
-- Pass voting permissions to PollComponent
-- Attendees can still vote on existing polls
-
-#### 3f. PollComponent
-
-**File**: `src/components/PollComponent.tsx`
-
-**Change**: Accept permissions to control close/delete actions
-
-- Pass `canClose` and `canDelete` to Poll component
-- Hide close/delete buttons for attendees
-- Keep voting enabled for all with `canVote`
-
-#### 3g. UnifiedMediaHub
-
-**File**: `src/components/UnifiedMediaHub.tsx`
-
-**Change**: Accept permissions prop
-
-```typescript
-interface UnifiedMediaHubProps {
-  tripId: string;
-  permissions?: {
-    canView: boolean;
-    canUpload: boolean;
-    canDeleteOwn: boolean;
-    canDeleteAny: boolean;
-  };
-}
-```
-
-- Upload enabled for all (attendees encouraged to share photos)
-- Delete own media enabled for all
-- Delete any media (moderation) only for organizer/admin
+| Position | New Card |
+|----------|----------|
+| 1 (Hero) | **Family Hubs, Schedules & Carpools** (consolidated) |
+| 2 | Touring Artists & Crews (unchanged) |
+| 3 | Bachelor(ette) Parties → Wedding Weekends (updating) |
+| 4 | Fraternity/Sororities & Organizations (new) |
+| 5 | Youth, Amateur, & Pro Sports Programs (updating) |
+| 6 | Local Community Groups (unchanged) |
 
 ---
 
-## Permission Determination Logic
+## New Card Content
 
-In `useEventPermissions`, determine organizer status by:
+### Consolidated Card (Position 1)
 
-1. Check `trip_admins` table for explicit admin assignment
-2. Check `trips.created_by === user.id` for trip creator
-3. Check `trip_members.role === 'admin'` for legacy role assignment
-4. Check `user_trip_roles` for 'Organizer' role assignment
+**Title**: Family Hubs, Schedules & Carpools
+
+**Subtitle**: Practices · pickups · errands · roomies · year-round planning
+
+**Before: Chaos**
+Last-minute texts. Missed pickups. Fridge notes ignored. Confusion over who's doing what — and when.
+
+**After: Coordinated**
+One shared space for year-round family logistics and recurring routines. Keep calendars, chat updates, tasks, and photos in sync — so everyone knows where to be, and when.
+
+**Badge**: Fewer drop-offs missed · more time together
+
+**Expand CTA**: See how families stay organized
+
+---
+
+### New Greek Life Card (Position 4)
+
+**Title**: Fraternity/Sororities & Similar Organizations
+
+**Subtitle**: Rush · formals · philanthropy · chapter events
+
+**Before: Chaos**
+One giant group chat becomes a permanent archive — endless scrollback, mixed events, and sensitive moments living forever in one thread.
+
+**After: Coordinated**
+Create separate Trip vaults per event (Rush Week, Formals, etc) so chat + media stay compartmentalized. Membership is explicit, access is controlled, and your private moments don't end up as one searchable liability.
+
+**Badge**: Event isolation · end-to-end encryption available
+
+**Expand CTA**: See how chapters stay private
+
+---
+
+## Privacy Claims Verification
+
+ChravelApp **does not currently have E2EE implemented but it's coming soon** (`src/services/privacyService.ts`):
+- AES-GCM 256-bit encryption for High Privacy trips
+- Per-trip key generation and caching
+- Separate trip vaults with isolated content
+- Role-based access controls via `useEventPermissions`
+
+The Greek Life card can authentically claim:
+- ✅ "Separate Trip vaults per event" — each trip is isolated
+- ✅ "End-to-end encryption available" — High Privacy mode uses E2EE. 
+- ✅ "Membership is explicit, access is controlled" — verified via permission system
+*in theory they would just be using a paid Pro Trip subscription as pro trips offer higher security
+---
+
+## Technical Changes
+
+### File: `src/components/landing/sections/UseCasesSection.tsx`
+
+**Lines 6-64**: Replace `scenarios` array with updated content
 
 ```typescript
-const isOrganizer = isAdmin || isCreator || hasOrganizerRole;
-
-const eventPermissions: EventFeaturePermissions = {
-  agenda: {
-    canView: true,
-    canCreate: isOrganizer,
-    canEdit: isOrganizer,
-    canDelete: isOrganizer,
-    canUpload: isOrganizer
+const scenarios = [
+  {
+    title: 'Family Hubs, Schedules & Carpools',
+    subtitle: 'Practices · pickups · errands · roomies · year-round planning',
+    before: "Last-minute texts. Missed pickups. Fridge notes ignored. Confusion over who's doing what — and when.",
+    expandCTA: 'See how families stay organized',
+    after:
+      'One shared space for year-round family logistics and recurring routines. Keep calendars, chat updates, tasks, and photos in sync — so everyone knows where to be, and when.',
+    badge: 'Fewer drop-offs missed · more time together',
+    isHero: true,
   },
-  calendar: {
-    canView: true,
-    canCreate: isOrganizer,
-    canEdit: isOrganizer,
-    canDelete: isOrganizer
+  {
+    title: 'Touring Artists & Crews',
+    subtitle: 'Musicians · comedians · podcasts · managers · production',
+    before:
+      'Spreadsheets, countless texts, last-minute changes, and missed details. Overwhelmed Tour Managers & Annoyed Artists.',
+    expandCTA: 'See how tours stay in sync',
+    after:
+      'Show days, off days, crew channels, logistics, and payments—all in one place. Everyone aligned, every city.',
+    badge: 'Fewer mistakes · smoother tours',
   },
-  chat: {
-    canView: true,
-    canSend: true,
-    canDeleteOwn: true,
-    canDeleteAny: isOrganizer
+  {
+    title: 'Bach Parties → Wedding Weekends',
+    subtitle: 'Bachelor & bachelorette trips · guests · families · vendors',
+    before:
+      'Dozens of chats between families, guests, planners, and vendors. Guests constantly asking where to be and when.',
+    expandCTA: 'See how celebrations run smoothly',
+    after:
+      'One shared itinerary with pinned locations, real-time updates, and live photo sharing—no confusion, just celebration.',
+    badge: 'Fewer questions · more memories',
   },
-  media: {
-    canView: true,
-    canUpload: true,
-    canDeleteOwn: true,
-    canDeleteAny: isOrganizer
+  {
+    title: 'Fraternities & Sororities (Greek Life)',
+    subtitle: 'Rush · formals · retreats · philanthropy · chapter ops',
+    before:
+      "One giant group chat becomes a permanent archive — endless scrollback, mixed events, and sensitive moments living forever in one thread.",
+    expandCTA: 'See how chapters stay private',
+    after:
+      "Create separate Trip vaults per event (Rush Week, Formal, Retreat) so chat + media stay compartmentalized. Membership is explicit, access is controlled, and your private moments don't end up as one searchable liability.",
+    badge: 'Event isolation · end-to-end encryption available',
   },
-  lineup: {
-    canView: true,
-    canCreate: isOrganizer,
-    canEdit: isOrganizer,
-    canDelete: isOrganizer
+  {
+    title: 'Collegiate & Pro Sports Programs',
+    subtitle: 'Players · coaches · coordinators · operations staff',
+    before: 'Staff juggling travel, practices, academics, and logistics across multiple tools.',
+    expandCTA: 'See how programs stay aligned',
+    after:
+      'Role-based access, team schedules, and instant updates—built to scale from college to the pros.',
+    badge: 'Fewer errors · faster decisions',
   },
-  polls: {
-    canView: true,
-    canVote: true,
-    canCreate: isOrganizer,
-    canClose: isOrganizer,
-    canDelete: isOrganizer
+  {
+    title: 'Local Community Groups',
+    subtitle: 'Run clubs · dog park crews · faith groups · recurring meetups',
+    before: 'Plans scattered across DMs, texts, and random calendar invites.',
+    expandCTA: 'See how groups stay connected',
+    after:
+      'One shared home for meetups, locations, notes, and photos—your group finally stays connected.',
+    badge: 'Consistency · better turnout',
   },
-  tasks: {
-    canView: true,
-    canCreate: isOrganizer,
-    canEdit: isOrganizer,
-    canDelete: isOrganizer
-  }
-};
+];
 ```
 
 ---
 
-## Files to Modify
+## Visual Impact
 
-| File | Changes |
-|------|---------|
-| `src/hooks/useEventPermissions.ts` | Add `EventFeaturePermissions` interface, `isCreator` check, export permissions object |
-| `src/components/events/EventDetailContent.tsx` | Pass granular permissions to each tab |
-| `src/components/events/AgendaModal.tsx` | Accept permissions prop, hide admin controls for attendees |
-| `src/components/GroupCalendar.tsx` | Accept permissions prop for Events variant |
-| `src/components/events/EventTasksTab.tsx` | Accept permissions prop, hide admin controls |
-| `src/components/events/LineupTab.tsx` | Accept permissions prop instead of userRole |
-| `src/components/CommentsWall.tsx` | Accept permissions prop, conditionally show Create Poll |
-| `src/components/PollComponent.tsx` | Accept permissions for close/delete visibility |
-| `src/components/UnifiedMediaHub.tsx` | Accept permissions for delete-any moderation |
-| `src/types/roleChannels.ts` | Add EventFeaturePermissions type |
+- **Card 1 (Hero)**: Combines both family/logistics use cases with enhanced copy
+- **Card 4 (New)**: Greek Life wedge with privacy-focused messaging and verified E2EE claim
+- **Grid balance**: Maintained 3x2 layout on desktop, single column on mobile
+- **No layout changes**: Same card styling, borders, animations, and responsive behavior
 
 ---
 
-## Demo Mode Behavior
+## Mobile Responsiveness
 
-When `isDemoMode === true`:
-- All users get full organizer permissions
-- This allows investors to see all features during demos
+No changes needed to grid structure:
+- `grid-cols-1` on mobile (single column)
+- `md:grid-cols-2` on tablet (2 columns)
+- `lg:grid-cols-3` on desktop (3 columns)
 
----
+Copy lengths are comparable to existing cards, so no overflow issues expected.
 
-## Test Scenarios
-
-1. **As Trip Creator** (authenticated, created the event):
-   - Can see all admin buttons (Add Session, Add Task, Create Poll, etc.)
-   - Can edit/delete any content
-
-2. **As Attendee** (authenticated, joined via invite):
-   - Agenda: View sessions only, no Add/Edit/Delete buttons
-   - Calendar: View events only, no Add button
-   - Chat: Full send/receive access
-   - Media: Can upload, can delete own, cannot delete others'
-   - Line-up: View only, no Add button
-   - Polls: Can vote, cannot create/close/delete
-   - Tasks: View only, no Add button
-
-3. **In Demo Mode**:
-   - Full organizer access regardless of actual role
