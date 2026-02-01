@@ -117,43 +117,21 @@ export const MobileEventCard = ({ event, onArchiveSuccess, onHideSuccess, onDele
 
   return (
     <div className={`bg-gradient-to-br ${eventColor.cardGradient} backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden transition-all duration-300 shadow-lg hover:scale-[1.02] group relative`}>
-      {/* Menu */}
-      <div className="absolute top-2 right-2 z-10">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="text-white/60 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-xl">
-              <MoreHorizontal size={16} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-background border-border">
-            <DropdownMenuItem onClick={() => setShowArchiveDialog(true)}>
-              <Archive className="mr-2 h-4 w-4" />
-              Archive
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleHideEvent}>
-              <EyeOff className="mr-2 h-4 w-4" />
-              Hide
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete for me
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
       {/* Mobile Header */}
       <div className={`relative h-36 bg-gradient-to-br from-${accentColors.primary}/10 to-${accentColors.secondary}/10 p-4`}>
         {/* Cover photo overlay if available */}
         {(event as any).coverPhoto ? (
-          <div 
+          <div
             className="absolute inset-0 bg-cover bg-center opacity-15"
             style={{ backgroundImage: `url(${(event as any).coverPhoto})` }}
           />
         ) : null}
-        <div className="relative z-10 h-full flex flex-col justify-between">
-          <div className="flex-1">
-            <div className="inline-block bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg mb-2">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+        <div className="relative z-10 flex justify-between items-start h-full">
+          {/* Event Info */}
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end">
+            <div className="inline-block bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg mb-2 self-start">
               <span className="text-xs font-medium text-white">{event.category}</span>
             </div>
             <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">
@@ -168,6 +146,29 @@ export const MobileEventCard = ({ event, onArchiveSuccess, onHideSuccess, onDele
               <span className="font-medium">{event.dateRange}</span>
             </div>
           </div>
+
+          {/* Menu Button - inline in header flex layout */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-xl shrink-0">
+                <MoreHorizontal size={16} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-background border-border">
+              <DropdownMenuItem onClick={() => setShowArchiveDialog(true)}>
+                <Archive className="mr-2 h-4 w-4" />
+                Archive
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleHideEvent}>
+                <EyeOff className="mr-2 h-4 w-4" />
+                Hide
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete for me
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

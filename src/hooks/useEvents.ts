@@ -42,6 +42,7 @@ export const useEvents = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [EVENTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
   });
 
@@ -60,6 +61,7 @@ export const useEvents = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [EVENTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
   });
 
@@ -79,6 +81,7 @@ export const useEvents = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [EVENTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
   });
 
