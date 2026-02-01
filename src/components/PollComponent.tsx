@@ -10,19 +10,37 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { toast } from 'sonner';
 
+interface PollPermissions {
+  canView: boolean;
+  canVote: boolean;
+  canCreate: boolean;
+  canClose: boolean;
+  canDelete: boolean;
+}
+
 interface PollComponentProps {
   tripId: string;
   showCreatePoll?: boolean;
   onShowCreatePollChange?: (show: boolean) => void;
   hideCreateButton?: boolean;
+  permissions?: PollPermissions;
 }
 
 export const PollComponent = ({ 
   tripId, 
   showCreatePoll: controlledShowCreatePoll,
   onShowCreatePollChange,
-  hideCreateButton = false
+  hideCreateButton = false,
+  permissions
 }: PollComponentProps) => {
+  const { isDemoMode } = useDemoMode();
+  
+  // Default permissions for non-Event trips (full access)
+  // In demo mode, all permissions are enabled
+  const effectivePermissions: PollPermissions = isDemoMode 
+    ? { canView: true, canVote: true, canCreate: true, canClose: true, canDelete: true }
+    : (permissions ?? { canView: true, canVote: true, canCreate: true, canClose: true, canDelete: true });
+  
   // Use controlled state if provided, otherwise use internal state
   const isControlled = controlledShowCreatePoll !== undefined && onShowCreatePollChange !== undefined;
   const [internalShowCreatePoll, setInternalShowCreatePoll] = React.useState(false);
@@ -31,7 +49,6 @@ export const PollComponent = ({
   const setShowCreatePoll = isControlled ? onShowCreatePollChange : setInternalShowCreatePoll;
 
   const { user } = useAuth();
-  const { isDemoMode } = useDemoMode();
   const {
     polls,
     isLoading,
@@ -81,6 +98,10 @@ export const PollComponent = ({
   }, [polls, userId]);
 
   const handleVote = async (pollId: string, optionIds: string | string[]) => {
+    if (!effectivePermissions.canVote) {
+      toast.error('You don\'t have permission to vote');
+      return;
+    }
     try {
       await votePollAsync({ pollId, optionIds });
     } catch (error) {
@@ -89,6 +110,10 @@ export const PollComponent = ({
   };
 
   const handleCreatePoll = async (question: string, options: string[], settings: PollSettings) => {
+    if (!effectivePermissions.canCreate) {
+      toast.error('You don\'t have permission to create polls');
+      return;
+    }
     try {
       await createPollAsync({ question, options, settings });
       setShowCreatePoll(false);
@@ -98,6 +123,10 @@ export const PollComponent = ({
   };
 
   const handleClosePoll = async (pollId: string) => {
+    if (!effectivePermissions.canClose) {
+      toast.error('You don\'t have permission to close polls');
+      return;
+    }
     try {
       await closePollAsync({ pollId });
     } catch (error) {
@@ -110,6 +139,10 @@ export const PollComponent = ({
   };
 
   const handleDeletePoll = async (pollId: string) => {
+    if (!effectivePermissions.canDelete) {
+      toast.error('You don\'t have permission to delete polls');
+      return;
+    }
     try {
       await deletePollAsync(pollId);
     } catch (error) {
@@ -157,8 +190,8 @@ export const PollComponent = ({
 
   return (
     <div className="space-y-3">
-      {/* Show create button only if not hidden and not showing form */}
-      {!hideCreateButton && !showCreatePoll && (
+      {/* Show create button only if not hidden, user can create, and not showing form */}
+      {!hideCreateButton && effectivePermissions.canCreate && !showCreatePoll && (
         <Button
           onClick={() => setShowCreatePoll(true)}
           className="w-full h-10 rounded-xl bg-gradient-to-r from-glass-enterprise-blue to-glass-enterprise-blue-light hover:from-glass-enterprise-blue-light hover:to-glass-enterprise-blue font-semibold shadow-enterprise border border-glass-enterprise-blue/50 text-white text-sm"
@@ -168,7 +201,7 @@ export const PollComponent = ({
         </Button>
       )}
 
-      {showCreatePoll && (
+      {showCreatePoll && effectivePermissions.canCreate && (
         <CreatePollForm
           onCreatePoll={handleCreatePoll}
           onCancel={() => setShowCreatePoll(false)}
@@ -187,12 +220,12 @@ export const PollComponent = ({
           <Poll
             key={poll.id}
             poll={poll}
-            onVote={handleVote}
+            onVote={effectivePermissions.canVote ? handleVote : undefined}
             onRemoveVote={handleRemoveVote}
-            onClose={handleClosePoll}
-            onDelete={handleDeletePoll}
+            onClose={effectivePermissions.canClose ? handleClosePoll : undefined}
+            onDelete={effectivePermissions.canDelete ? handleDeletePoll : undefined}
             onExport={handleExportPoll}
-            disabled={poll.status === 'closed' || !userId}
+            disabled={poll.status === 'closed' || !userId || !effectivePermissions.canVote}
             isVoting={isVoting}
             isRemovingVote={isRemovingVote}
             isClosing={isClosing}

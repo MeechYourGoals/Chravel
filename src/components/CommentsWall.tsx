@@ -4,13 +4,31 @@ import { Button } from './ui/button';
 import { PollComponent } from './PollComponent';
 import { useTripVariant } from '@/contexts/TripVariantContext';
 
-interface CommentsWallProps {
-  tripId: string;
+interface PollPermissions {
+  canView: boolean;
+  canVote: boolean;
+  canCreate: boolean;
+  canClose: boolean;
+  canDelete: boolean;
 }
 
-export const CommentsWall = ({ tripId }: CommentsWallProps) => {
+interface CommentsWallProps {
+  tripId: string;
+  permissions?: PollPermissions;
+}
+
+export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
   const [showCreatePoll, setShowCreatePoll] = useState(false);
   const { accentColors } = useTripVariant();
+  
+  // Default permissions for non-Event trips (full access)
+  const effectivePermissions: PollPermissions = permissions ?? {
+    canView: true,
+    canVote: true,
+    canCreate: true,
+    canClose: true,
+    canDelete: true
+  };
 
   return (
     <div className="p-4 space-y-3">
@@ -20,20 +38,24 @@ export const CommentsWall = ({ tripId }: CommentsWallProps) => {
           <MessageCircle size={18} className="text-glass-enterprise-blue" />
           Group Polls
         </h3>
-        <Button
-          onClick={() => setShowCreatePoll(true)}
-          size="sm"
-          className={`inline-flex items-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-lg h-9`}
-        >
-          <Plus size={14} />
-          Create Poll
-        </Button>
+        {effectivePermissions.canCreate && (
+          <Button
+            onClick={() => setShowCreatePoll(true)}
+            size="sm"
+            className={`inline-flex items-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 hover:scale-105 shadow-lg h-9`}
+          >
+            <Plus size={14} />
+            Create Poll
+          </Button>
+        )}
       </div>
 
       {/* Row 2: Description + Feature Badges */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <p className="text-gray-400 text-sm">
-          Create polls to get everyone's input on destinations, activities, and more.
+          {effectivePermissions.canCreate 
+            ? 'Create polls to get everyone\'s input on destinations, activities, and more.'
+            : 'Vote on polls to share your preferences with the group.'}
         </p>
         <div className="flex gap-2 flex-shrink-0">
           <div className="flex items-center gap-1 px-2 py-1 bg-white/5 rounded-lg border border-white/10">
@@ -57,6 +79,7 @@ export const CommentsWall = ({ tripId }: CommentsWallProps) => {
         showCreatePoll={showCreatePoll}
         onShowCreatePollChange={setShowCreatePoll}
         hideCreateButton
+        permissions={effectivePermissions}
       />
     </div>
   );

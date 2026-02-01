@@ -136,3 +136,51 @@ export interface SendMessageRequest {
   metadata?: Record<string, any>;
   broadcastCategory?: 'chill' | 'logistics' | 'urgent';
 }
+
+// Event-specific granular permissions for role-based access control
+export interface EventFeaturePermissions {
+  agenda: {
+    canView: boolean;
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+    canUpload: boolean;
+  };
+  calendar: {
+    canView: boolean;
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+  };
+  chat: {
+    canView: boolean;
+    canSend: boolean;
+    canDeleteOwn: boolean;
+    canDeleteAny: boolean;
+  };
+  media: {
+    canView: boolean;
+    canUpload: boolean;
+    canDeleteOwn: boolean;
+    canDeleteAny: boolean;
+  };
+  lineup: {
+    canView: boolean;
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+  };
+  polls: {
+    canView: boolean;
+    canVote: boolean;
+    canCreate: boolean;
+    canClose: boolean;
+    canDelete: boolean;
+  };
+  tasks: {
+    canView: boolean;
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+  };
+}

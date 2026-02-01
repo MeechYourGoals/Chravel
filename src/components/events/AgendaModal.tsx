@@ -10,9 +10,17 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { eventsMockData } from '@/data/eventsMockData';
 import { EventAgendaItem } from '@/types/events';
 
+interface AgendaPermissions {
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canUpload: boolean;
+}
+
 interface AgendaModalProps {
   eventId: string;
-  isAdmin: boolean;
+  permissions: AgendaPermissions;
   initialSessions?: EventAgendaItem[];
   initialPdfUrl?: string;
   onClose?: () => void;
@@ -23,7 +31,7 @@ const DEMO_PDF_URL = 'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-wor
 
 export const AgendaModal = ({
   eventId,
-  isAdmin,
+  permissions,
   initialSessions = [],
   initialPdfUrl,
   onClose
@@ -32,7 +40,10 @@ export const AgendaModal = ({
   const { toast } = useToast();
   
   // In demo mode, always show admin controls
-  const showAdminControls = isDemoMode || isAdmin;
+  const showAdminControls = isDemoMode || permissions.canCreate;
+  const canEdit = isDemoMode || permissions.canEdit;
+  const canDelete = isDemoMode || permissions.canDelete;
+  const canUpload = isDemoMode || permissions.canUpload;
   
   // Get demo data if in demo mode
   const demoEventData = isDemoMode ? eventsMockData[eventId] : null;
@@ -157,6 +168,7 @@ export const AgendaModal = ({
   };
 
   const handleEditSession = (session: EventAgendaItem) => {
+    if (!canEdit) return;
     setEditingSession(session);
     setNewSession({
       title: session.title,
@@ -171,11 +183,13 @@ export const AgendaModal = ({
   };
 
   const handleDeleteSession = (sessionId: string) => {
+    if (!canDelete) return;
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     toast({ title: 'Session removed' });
   };
 
   const handleDeleteFile = () => {
+    if (!canDelete) return;
     setPdfUrl(undefined);
     toast({ title: 'Agenda file removed' });
   };
@@ -411,24 +425,28 @@ export const AgendaModal = ({
                           <p className="text-sm text-gray-500 mt-2 line-clamp-2">{session.description}</p>
                         )}
                       </div>
-                      {showAdminControls && (
+                      {(canEdit || canDelete) && (
                         <div className="flex gap-1">
-                          <Button
-                            onClick={() => handleEditSession(session)}
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-gray-400 hover:text-white"
-                          >
-                            <Edit2 size={14} />
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteSession(session.id)}
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-gray-400 hover:text-red-400"
-                          >
-                            <Trash2 size={14} />
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              onClick={() => handleEditSession(session)}
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-white"
+                            >
+                              <Edit2 size={14} />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              onClick={() => handleDeleteSession(session.id)}
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-red-400"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -458,103 +476,97 @@ export const AgendaModal = ({
               <FileText size={18} />
               Agenda File
             </h3>
-            {showAdminControls && (
-              <label>
-                <input
-                  type="file"
-                  accept=".pdf,image/jpeg,image/png,image/jpg"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  disabled={isUploadingFile}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="cursor-pointer border-white/20"
-                  disabled={isUploadingFile}
-                  asChild
-                >
-                  <span>
-                    <Upload size={16} className="mr-1" />
-                    {isUploadingFile ? 'Uploading...' : pdfUrl ? 'Replace' : 'Upload'}
-                  </span>
-                </Button>
-              </label>
-            )}
-          </div>
-
-          {pdfUrl ? (
-            <div className="space-y-3">
-              {/* File Preview */}
-              <Card className="bg-white/5 border-white/10 overflow-hidden">
-                <CardContent className="p-0">
-                  {isPdfFile ? (
-                    <div className="aspect-[8.5/11] bg-white">
-                      <iframe
-                        src={pdfUrl}
-                        className="w-full h-full"
-                        title="Agenda PDF"
-                      />
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <img
-                        src={pdfUrl}
-                        alt="Agenda"
-                        className="w-full h-auto"
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* File Actions */}
+            {canUpload && (
               <div className="flex gap-2">
-                <a
-                  href={pdfUrl}
-                  download="Event_Agenda"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1"
-                >
-                  <Button variant="outline" className="w-full border-white/20">
-                    <Download size={16} className="mr-2" />
-                    Download
+                <label>
+                  <input
+                    type="file"
+                    accept=".pdf,image/jpeg,image/png,image/jpg"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    disabled={isUploadingFile}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="cursor-pointer"
+                    asChild
+                    disabled={isUploadingFile}
+                  >
+                    <span>
+                      <Upload size={16} className="mr-1" />
+                      {isUploadingFile ? 'Uploading...' : 'Upload'}
+                    </span>
                   </Button>
-                </a>
-                {showAdminControls && (
+                </label>
+                {pdfUrl && canDelete && (
                   <Button
                     onClick={handleDeleteFile}
-                    variant="outline"
-                    className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-400 hover:text-red-300"
                   >
                     <Trash2 size={16} />
                   </Button>
                 )}
               </div>
+            )}
+          </div>
+
+          {pdfUrl ? (
+            <div className="rounded-lg overflow-hidden border border-white/10 bg-white">
+              {isPdfFile ? (
+                <iframe
+                  src={pdfUrl}
+                  className="w-full h-[500px]"
+                  title="Agenda PDF"
+                />
+              ) : (
+                <div className="relative">
+                  <img
+                    src={pdfUrl}
+                    alt="Agenda"
+                    className="w-full h-auto object-contain max-h-[500px]"
+                  />
+                  <a
+                    href={pdfUrl}
+                    download="agenda"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-4 right-4"
+                  >
+                    <Button size="sm" variant="secondary">
+                      <Download size={16} className="mr-1" />
+                      Download
+                    </Button>
+                  </a>
+                </div>
+              )}
             </div>
           ) : (
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-white/5 border-white/10 border-dashed">
               <CardContent className="p-8 text-center">
-                <div className="flex justify-center gap-4 mb-4">
-                  <FileText size={40} className="text-gray-600" />
-                  <Image size={40} className="text-gray-600" />
-                </div>
+                <Image size={48} className="text-gray-600 mx-auto mb-3" />
                 <h4 className="text-white font-medium mb-1">No Agenda File</h4>
                 <p className="text-gray-400 text-sm mb-4">
-                  {showAdminControls
+                  {canUpload
                     ? 'Upload a PDF or image of your event agenda'
-                    : 'No agenda file has been uploaded yet'}
+                    : 'The organizer hasn\'t uploaded an agenda file yet'}
                 </p>
-                {showAdminControls && (
+                {canUpload && (
                   <label>
                     <input
                       type="file"
                       accept=".pdf,image/jpeg,image/png,image/jpg"
                       onChange={handleFileUpload}
                       className="hidden"
+                      disabled={isUploadingFile}
                     />
-                    <Button className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold cursor-pointer" asChild>
+                    <Button
+                      className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold cursor-pointer"
+                      asChild
+                      disabled={isUploadingFile}
+                    >
                       <span>
                         <Upload size={16} className="mr-2" />
                         Upload Agenda
@@ -566,11 +578,11 @@ export const AgendaModal = ({
             </Card>
           )}
 
-          {/* Demo Mode Indicator */}
+          {/* Demo mode indicator */}
           {isDemoMode && (
-            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-              <p className="text-yellow-300 text-xs text-center">
-                🎭 Demo Mode: All admin controls are enabled for demonstration
+            <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+              <p className="text-yellow-300 text-sm text-center">
+                📝 Demo Mode: All changes are temporary
               </p>
             </div>
           )}
