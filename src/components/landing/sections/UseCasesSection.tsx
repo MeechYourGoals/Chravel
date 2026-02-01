@@ -7,7 +7,8 @@ const scenarios = [
   {
     title: 'Family Hubs, Schedules & Carpools',
     subtitle: 'Practices · pickups · errands · roomies · year-round planning',
-    before: "Last-minute texts. Missed pickups. Fridge notes ignored. Confusion over who's doing what — and when.",
+    before:
+      "Last-minute texts. Missed pickups. Fridge notes ignored. Confusion over who's doing what — and when.",
     expandCTA: 'See how families stay organized',
     after:
       'One shared space for year-round family logistics and recurring routines. Keep calendars, chat updates, tasks, and photos in sync — so everyone knows where to be, and when.',
@@ -35,17 +36,17 @@ const scenarios = [
     badge: 'Fewer questions · more memories',
   },
   {
-    title: 'Fraternities & Sororities (Greek Life)',
+    title: 'Fraternities/Sororities & Similar Organization',
     subtitle: 'Rush · formals · retreats · philanthropy · chapter ops',
     before:
-      "One giant group chat becomes a permanent archive — endless scrollback, mixed events, and sensitive moments living forever in one thread.",
+      'One giant group chat becomes a permanent archive — endless scrollback, mixed events, and sensitive moments living forever in one thread.',
     expandCTA: 'See how chapters stay private',
     after:
       "Create separate Trip vaults per event (Rush Week, Formal, Retreat) so chat + media stay compartmentalized. Membership is explicit, access is controlled, and your private moments don't end up as one searchable liability.",
     badge: 'Private trip vaults with access controls',
   },
   {
-    title: 'Collegiate & Pro Sports Programs',
+    title: 'Youth, Amateur, & Pro sports programs.',
     subtitle: 'Players · coaches · coordinators · operations staff',
     before: 'Staff juggling travel, practices, academics, and logistics across multiple tools.',
     expandCTA: 'See how programs stay aligned',
