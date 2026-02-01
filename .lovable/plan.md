@@ -1,81 +1,93 @@
 
-# Google Maps "Interactive map unavailable. Retry" Fix
+# Event Card Button Styling Fix
 
-## Problem Summary
-The "Retry" button on the interactive map warning banner currently triggers `window.location.reload()`, which reloads the entire page. However, because the underlying issue persists (e.g., API key restrictions, network issues, timeout), the map simply fails again in the same way.
+## Summary
 
-## Root Cause
-The map initialization logic runs in a `useEffect` on component mount. There's no mechanism to re-trigger this initialization without a full page reload—and a full reload doesn't help if the transient issue (like a timeout or network hiccup) has already resolved.
+Update Event cards so the **View Event** button is highlighted with a golden shadow effect (matching Pro trip pattern), while the **Invite** button uses the card's native color scheme (not gold).
 
 ---
 
-## Simple Fix (3 Changes)
+## Current vs Desired State
 
-### 1. Create a retry trigger state
-
-Add a simple state variable that, when changed, re-runs the map initialization effect.
-
-```typescript
-const [retryAttempt, setRetryAttempt] = useState(0);
-```
-
-### 2. Update the Retry button handler
-
-Instead of reloading the page, reset the fallback flags and increment the retry counter:
-
-```typescript
-onClick={() => {
-  setForceIframeFallback(false);
-  setUseFallbackEmbed(false);
-  setRetryAttempt(prev => prev + 1);
-}}
-```
-
-### 3. Add retry trigger to the useEffect dependencies
-
-The map initialization `useEffect` currently has an empty dependency array (`[]`). Add `retryAttempt` so it re-runs when retry is clicked:
-
-```typescript
-useEffect(() => {
-  // ... existing initMap logic
-}, [retryAttempt]); // Add retryAttempt as dependency
-```
+| Button | Current (Events) | Desired (Events) | Reference |
+|--------|------------------|------------------|-----------|
+| **View Event** | Neutral (`bg-white/10`) | Card color + golden shadow | Pro trips pattern |
+| **Invite** | Gold gradient | Card color (neutral) | Pro trips pattern |
 
 ---
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/components/places/MapCanvas.tsx` | Add `retryAttempt` state, update Retry button handler, add dependency to useEffect |
+| File | Purpose |
+|------|---------|
+| `src/components/EventCard.tsx` | Desktop event card buttons |
+| `src/components/MobileEventCard.tsx` | Mobile event card buttons |
 
 ---
 
-## Why This Works
+## Technical Changes
 
-1. User clicks "Retry" → state flags reset + `retryAttempt` increments
-2. The `useEffect` with `[retryAttempt]` dependency detects the change and re-runs
-3. `initMap()` attempts to load the Google Maps JS API again
-4. If successful → interactive map appears
-5. If still failing → fallback flags get set again, embed remains visible
+### EventCard.tsx (Desktop)
+
+**Lines 264-276** - Swap the button styles:
+
+**View Event button** (currently neutral → add golden shadow):
+```tsx
+// FROM:
+className="bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 text-white font-medium py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 text-xs md:text-sm"
+
+// TO:
+className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-300 text-xs md:text-sm border border-white/10 shadow-lg shadow-yellow-500/25"
+```
+
+**Invite button** (currently gold → neutral like card):
+```tsx
+// FROM:
+className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-300 shadow-lg hover:shadow-lg flex items-center justify-center gap-2 text-xs md:text-sm`}
+
+// TO:
+className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm flex items-center justify-center gap-2"
+```
 
 ---
 
-## Benefits Over ChatGPT Codex Solution
+### MobileEventCard.tsx (Mobile)
 
-| Aspect | Codex Solution | This Solution |
-|--------|---------------|---------------|
-| Lines of code | ~200+ lines | ~10 lines |
-| New files | Modified `maps.ts` exports | None |
-| Complexity | New refs, callbacks, helpers | Single state variable |
-| Risk | Higher (more moving parts) | Lower (minimal change) |
-| Same outcome | Yes | Yes |
+**Lines 259-273** - Same pattern swap:
+
+**View Event button** (add golden shadow):
+```tsx
+// FROM:
+className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 text-sm"
+
+// TO:
+className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 text-sm border border-white/10 shadow-lg shadow-yellow-500/25"
+```
+
+**Invite button** (remove gold, use neutral):
+```tsx
+// FROM:
+className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-white font-semibold py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm`}
+
+// TO:
+className="bg-black/30 hover:bg-black/40 text-white py-3 rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-sm flex items-center justify-center gap-2"
+```
 
 ---
 
-## Technical Summary
+## Visual Result
 
-**Changes:**
-1. Add `const [retryAttempt, setRetryAttempt] = useState(0);` near line 77
-2. Change line 804 from `onClick={() => window.location.reload()}` to `onClick={() => { setForceIframeFallback(false); setUseFallbackEmbed(false); setRetryAttempt(prev => prev + 1); }}`
-3. Change line 456 from `}, []);` to `}, [retryAttempt]);`
+After this change, Event cards will match the Pro trip pattern:
+- **View Event**: Same color as card background + subtle golden glow/shadow
+- **Invite**: Neutral dark style matching Recap/Share buttons
+- **Consistency**: All three card types now follow the same principle where "View" is the highlighted action
+
+---
+
+## Button Styling Reference
+
+| Trip Type | View Button | Effect |
+|-----------|-------------|--------|
+| Regular (My Trips) | Full gold gradient | High contrast gold |
+| Pro | Card color + golden shadow | Subtle golden glow |
+| Events | Card color + golden shadow | Subtle golden glow (after fix) |
