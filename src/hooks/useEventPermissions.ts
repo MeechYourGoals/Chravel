@@ -4,13 +4,23 @@
  * Provides role-based access control utilities for Events (Pro/Enterprise feature).
  * Integrates with Supabase trip_roles, user_trip_roles, and trip_channels tables.
  * 
- * @see supabase/migrations/20251020230349_cd211f58-bbb7-459f-ae36-cde00d588038.sql
- * @see supabase/migrations/20251021041326_eed793d7-6939-4ef1-9e29-4c700f62074e.sql
+ * Permission Matrix:
+ * | Feature   | Attendee                    | Organizer/Admin             |
+ * |-----------|-----------------------------|-----------------------------|
+ * | Agenda    | View only                   | Create, Edit, Delete, Upload|
+ * | Calendar  | View only                   | Create, Edit, Delete        |
+ * | Chat      | Full access (send/receive)  | Full access + moderation    |
+ * | Media     | Upload, Download, Delete own| Upload, Download, Delete any|
+ * | Line-up   | View only                   | Create, Edit, Delete        |
+ * | Polls     | Vote only                   | Create, Close, Delete + Vote|
+ * | Tasks     | View only                   | Create, Edit, Delete        |
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useDemoMode } from '@/hooks/useDemoMode';
+import type { EventFeaturePermissions } from '@/types/roleChannels';
 
 export interface ChannelPermission {
   channelId: string;
@@ -26,17 +36,78 @@ export interface UserRole {
 }
 
 /**
- * Hook to check if user can access a channel
+ * Hook to check if user can access a channel and get event-specific permissions
  * Uses Supabase function can_access_channel(user_id, channel_id)
  */
 export const useEventPermissions = (tripId: string) => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [channelPermissions, setChannelPermissions] = useState<Map<string, ChannelPermission>>(new Map());
 
-  // Load user's roles for this event
+  // Determine if user is an organizer (admin, creator, or has organizer role)
+  const isOrganizer = useMemo(() => {
+    if (isDemoMode) return true; // Demo mode = full access
+    if (isAdmin || isCreator) return true;
+    // Check for 'Organizer' role in userRoles
+    return userRoles.some(r => 
+      r.roleName.toLowerCase() === 'organizer' || 
+      r.roleName.toLowerCase() === 'admin'
+    );
+  }, [isDemoMode, isAdmin, isCreator, userRoles]);
+
+  // Generate event-specific permissions based on organizer status
+  const eventPermissions: EventFeaturePermissions = useMemo(() => ({
+    agenda: {
+      canView: true,
+      canCreate: isOrganizer,
+      canEdit: isOrganizer,
+      canDelete: isOrganizer,
+      canUpload: isOrganizer
+    },
+    calendar: {
+      canView: true,
+      canCreate: isOrganizer,
+      canEdit: isOrganizer,
+      canDelete: isOrganizer
+    },
+    chat: {
+      canView: true,
+      canSend: true, // All members can send
+      canDeleteOwn: true, // All can delete their own
+      canDeleteAny: isOrganizer // Only organizers can moderate
+    },
+    media: {
+      canView: true,
+      canUpload: true, // All members can upload (encouraged for photo sharing)
+      canDeleteOwn: true, // All can delete their own
+      canDeleteAny: isOrganizer // Only organizers can moderate
+    },
+    lineup: {
+      canView: true,
+      canCreate: isOrganizer,
+      canEdit: isOrganizer,
+      canDelete: isOrganizer
+    },
+    polls: {
+      canView: true,
+      canVote: true, // All members can vote
+      canCreate: isOrganizer,
+      canClose: isOrganizer,
+      canDelete: isOrganizer
+    },
+    tasks: {
+      canView: true,
+      canCreate: isOrganizer,
+      canEdit: isOrganizer,
+      canDelete: isOrganizer
+    }
+  }), [isOrganizer]);
+
+  // Load user's roles and determine organizer status
   const loadUserRoles = useCallback(async () => {
     if (!user?.id || !tripId) {
       setIsLoading(false);
@@ -45,6 +116,17 @@ export const useEventPermissions = (tripId: string) => {
 
     try {
       setIsLoading(true);
+
+      // Check if user is trip creator
+      const { data: tripData, error: tripError } = await supabase
+        .from('trips')
+        .select('created_by')
+        .eq('id', tripId)
+        .single();
+
+      if (!tripError && tripData) {
+        setIsCreator(tripData.created_by === user.id);
+      }
 
       // Get user's roles for this trip
       const { data: roleAssignments, error: rolesError } = await supabase
@@ -128,8 +210,6 @@ export const useEventPermissions = (tripId: string) => {
         const hasAccess = userRoleIds.some(roleId => channelRoleIds.includes(roleId)) || isAdmin;
 
         if (hasAccess) {
-          // For now, if user has access, they can view, edit, and post
-          // TODO: Implement granular permissions (view-only vs edit) based on channel_role_access metadata
           permissionsMap.set(channel.id, {
             channelId: channel.id,
             canView: true,
@@ -151,7 +231,6 @@ export const useEventPermissions = (tripId: string) => {
     if (isAdmin) return true;
 
     try {
-      // Use Supabase function to check access
       const { data, error } = await supabase.rpc('can_access_channel', {
         _user_id: user.id,
         _channel_id: channelId
@@ -199,8 +278,11 @@ export const useEventPermissions = (tripId: string) => {
   return {
     userRoles,
     isAdmin,
+    isCreator,
+    isOrganizer,
     isLoading,
     channelPermissions,
+    eventPermissions,
     canAccessChannel,
     hasAdminPermission,
     refreshPermissions: loadUserRoles

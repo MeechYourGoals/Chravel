@@ -47,11 +47,8 @@ export const EventDetailContent = ({
   tripContext,
 }: EventDetailContentProps) => {
   const { accentColors } = useTripVariant();
-  const { isAdmin, isLoading: permissionsLoading } = useEventPermissions(tripId);
+  const { eventPermissions, isOrganizer, isLoading: permissionsLoading } = useEventPermissions(tripId);
   const { isDemoMode } = useDemoMode();
-
-  // In demo mode, always show admin controls
-  const showAsAdmin = isDemoMode || isAdmin;
 
   // Updated Event tabs: Agenda, Calendar, Chat, Media, Line-up, Polls, Tasks
   const tabs = [
@@ -73,7 +70,7 @@ export const EventDetailContent = ({
         return (
           <AgendaModal
             eventId={tripId}
-            isAdmin={showAsAdmin}
+            permissions={eventPermissions.agenda}
             initialSessions={eventData.agenda}
             initialPdfUrl={eventData.pdfScheduleUrl}
           />
@@ -90,18 +87,18 @@ export const EventDetailContent = ({
         return (
           <LineupTab
             speakers={eventData.speakers || []}
-            userRole={showAsAdmin ? 'organizer' : eventData.userRole || 'attendee'}
+            permissions={eventPermissions.lineup}
           />
         );
       case 'polls':
-        return <CommentsWall tripId={tripId} />;
+        return <CommentsWall tripId={tripId} permissions={eventPermissions.polls} />;
       case 'tasks':
-        return <EventTasksTab eventId={tripId} isAdmin={showAsAdmin} />;
+        return <EventTasksTab eventId={tripId} permissions={eventPermissions.tasks} />;
       default:
         return (
           <AgendaModal
             eventId={tripId}
-            isAdmin={showAsAdmin}
+            permissions={eventPermissions.agenda}
             initialSessions={eventData.agenda}
             initialPdfUrl={eventData.pdfScheduleUrl}
           />

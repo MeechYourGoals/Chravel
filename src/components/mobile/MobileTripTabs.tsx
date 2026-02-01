@@ -225,11 +225,11 @@ export const MobileTripTabs = ({
           <EnhancedAgendaTab eventId={tripId} userRole={isEventAdmin ? 'organizer' : 'attendee'} />
         );
       case 'lineup':
-        return <LineupTab speakers={eventData?.speakers || []} userRole="attendee" />;
+        return <LineupTab speakers={eventData?.speakers || []} permissions={{ canView: true, canCreate: isEventAdmin, canEdit: isEventAdmin, canDelete: isEventAdmin }} />;
       case 'tasks':
         // For events, use EventTasksTab; for other trips, use MobileTripTasks
         if (variant === 'event') {
-          return <EventTasksTab eventId={tripId} isAdmin={isEventAdmin} />;
+          return <EventTasksTab eventId={tripId} permissions={{ canView: true, canCreate: isEventAdmin, canEdit: isEventAdmin, canDelete: isEventAdmin }} />;
         }
         return <MobileTripTasks tripId={tripId} />;
       // Pro-specific tabs

@@ -14,9 +14,16 @@ interface EventTask {
   sort_order: number;
 }
 
+interface TaskPermissions {
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
 interface EventTasksTabProps {
   eventId: string;
-  isAdmin: boolean;
+  permissions: TaskPermissions;
 }
 
 // Demo mode mock tasks
@@ -28,9 +35,14 @@ const DEMO_TASKS: EventTask[] = [
   { id: '5', title: 'Complete the feedback survey after each session', description: 'Help us improve future events', sort_order: 4 }
 ];
 
-export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
+export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
   const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
+  
+  // In demo mode, enable all permissions
+  const canCreate = isDemoMode || permissions.canCreate;
+  const canEdit = isDemoMode || permissions.canEdit;
+  const canDelete = isDemoMode || permissions.canDelete;
   
   const [tasks, setTasks] = useState<EventTask[]>(isDemoMode ? DEMO_TASKS : []);
   const [isAddingTask, setIsAddingTask] = useState(false);
@@ -73,11 +85,13 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
   };
 
   const handleDeleteTask = (taskId: string) => {
+    if (!canDelete) return;
     setTasks(prev => prev.filter(t => t.id !== taskId));
     toast({ title: 'Task removed' });
   };
 
   const startEditing = (task: EventTask) => {
+    if (!canEdit) return;
     setEditingTaskId(task.id);
     setEditTask({ title: task.title, description: task.description || '' });
   };
@@ -91,12 +105,12 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
           <div>
             <h2 className="text-xl font-semibold text-white">Event Tasks</h2>
             <p className="text-gray-400 text-sm">
-              {isAdmin ? 'Manage attendee action items' : 'Things to do at this event'}
+              {canCreate ? 'Manage attendee action items' : 'Things to do at this event'}
             </p>
           </div>
         </div>
         
-        {isAdmin && !isAddingTask && (
+        {canCreate && !isAddingTask && (
           <Button
             onClick={() => setIsAddingTask(true)}
             className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
@@ -108,7 +122,7 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
       </div>
 
       {/* Add Task Form */}
-      {isAddingTask && isAdmin && (
+      {isAddingTask && canCreate && (
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4 space-y-3">
             <Input
@@ -151,7 +165,7 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
               className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors"
             >
               <CardContent className="p-4">
-                {editingTaskId === task.id && isAdmin ? (
+                {editingTaskId === task.id && canEdit ? (
                   <div className="space-y-3">
                     <Input
                       value={editTask.title}
@@ -183,7 +197,7 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
                   </div>
                 ) : (
                   <div className="flex items-start gap-3">
-                    {isAdmin && (
+                    {canEdit && (
                       <div className="text-gray-500 cursor-grab mt-1">
                         <GripVertical size={16} />
                       </div>
@@ -197,24 +211,28 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
                         <p className="text-gray-400 text-sm mt-1">{task.description}</p>
                       )}
                     </div>
-                    {isAdmin && (
+                    {(canEdit || canDelete) && (
                       <div className="flex gap-1">
-                        <Button
-                          onClick={() => startEditing(task)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-gray-400 hover:text-white"
-                        >
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button
-                          onClick={() => handleDeleteTask(task.id)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-400 hover:text-red-300"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            onClick={() => startEditing(task)}
+                            variant="ghost"
+                            size="sm"
+                            className="text-gray-400 hover:text-white"
+                          >
+                            <Edit2 size={14} />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            onClick={() => handleDeleteTask(task.id)}
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -229,11 +247,11 @@ export const EventTasksTab = ({ eventId, isAdmin }: EventTasksTabProps) => {
             <ClipboardList size={48} className="text-gray-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">No Tasks Yet</h3>
             <p className="text-gray-400 mb-4">
-              {isAdmin 
+              {canCreate 
                 ? 'Add tasks for attendees to complete during the event'
                 : 'The organizer hasn\'t added any tasks yet'}
             </p>
-            {isAdmin && (
+            {canCreate && (
               <Button
                 onClick={() => setIsAddingTask(true)}
                 className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"

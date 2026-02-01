@@ -1,24 +1,41 @@
 import React, { useState } from 'react';
-import { Search, Users, X, Mic, Calendar, Plus } from 'lucide-react';
+import { Search, Users, X, Mic, Calendar, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '../../hooks/use-toast';
+import { useDemoMode } from '../../hooks/useDemoMode';
 import type { Speaker } from '../../types/events';
+
+interface LineupPermissions {
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
 
 interface LineupTabProps {
   speakers: Speaker[];
-  userRole: string;
+  permissions: LineupPermissions;
 }
 
-export const LineupTab = ({ speakers: initialSpeakers, userRole }: LineupTabProps) => {
+export const LineupTab = ({ speakers: initialSpeakers, permissions }: LineupTabProps) => {
+  const { isDemoMode } = useDemoMode();
+  const { toast } = useToast();
+  
+  // In demo mode, enable all permissions
+  const canCreate = isDemoMode || permissions.canCreate;
+  const canEdit = isDemoMode || permissions.canEdit;
+  const canDelete = isDemoMode || permissions.canDelete;
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpeaker, setSelectedSpeaker] = useState<Speaker | null>(null);
   const [speakers, setSpeakers] = useState<Speaker[]>(initialSpeakers);
   const [isAddingMember, setIsAddingMember] = useState(false);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [newMember, setNewMember] = useState({ name: '', title: '', company: '', bio: '' });
-  const { toast } = useToast();
+  const [editMember, setEditMember] = useState({ name: '', title: '', company: '', bio: '' });
 
   const filteredSpeakers = speakers.filter(speaker =>
     speaker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -48,7 +65,43 @@ export const LineupTab = ({ speakers: initialSpeakers, userRole }: LineupTabProp
     toast({ title: 'Added to line-up successfully' });
   };
 
-  const isOrganizer = userRole === 'organizer';
+  const handleEditMember = (speaker: Speaker) => {
+    if (!canEdit) return;
+    setEditingMemberId(speaker.id);
+    setEditMember({
+      name: speaker.name,
+      title: speaker.title || '',
+      company: speaker.company || '',
+      bio: speaker.bio || ''
+    });
+  };
+
+  const handleUpdateMember = (speakerId: string) => {
+    if (!editMember.name.trim()) {
+      toast({ title: 'Name is required', variant: 'destructive' });
+      return;
+    }
+
+    setSpeakers(prev => prev.map(s => 
+      s.id === speakerId 
+        ? {
+            ...s,
+            name: editMember.name.trim(),
+            title: editMember.title.trim() || undefined,
+            company: editMember.company.trim() || undefined,
+            bio: editMember.bio.trim() || undefined
+          }
+        : s
+    ));
+    setEditingMemberId(null);
+    toast({ title: 'Line-up member updated' });
+  };
+
+  const handleDeleteMember = (speakerId: string) => {
+    if (!canDelete) return;
+    setSpeakers(prev => prev.filter(s => s.id !== speakerId));
+    toast({ title: 'Removed from line-up' });
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -58,10 +111,14 @@ export const LineupTab = ({ speakers: initialSpeakers, userRole }: LineupTabProp
           <Users size={24} className="text-yellow-500" />
           <div>
             <h2 className="text-xl font-semibold text-white">Line-up</h2>
-            <p className="text-gray-400 text-sm">Speakers, artists, and presenters at this event</p>
+            <p className="text-gray-400 text-sm">
+              {canCreate 
+                ? 'Manage speakers, artists, and presenters' 
+                : 'Speakers, artists, and presenters at this event'}
+            </p>
           </div>
         </div>
-        {isOrganizer && !isAddingMember && (
+        {canCreate && !isAddingMember && (
           <Button
             onClick={() => setIsAddingMember(true)}
             className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
@@ -73,7 +130,7 @@ export const LineupTab = ({ speakers: initialSpeakers, userRole }: LineupTabProp
       </div>
 
       {/* Add Member Form */}
-      {isAddingMember && isOrganizer && (
+      {isAddingMember && canCreate && (
         <Card className="bg-gray-800/50 border-gray-700">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between mb-2">
@@ -154,7 +211,7 @@ export const LineupTab = ({ speakers: initialSpeakers, userRole }: LineupTabProp
           {filteredSpeakers.map(speaker => (
             <Card 
               key={speaker.id} 
-              className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors cursor-pointer"
+              className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors cursor-pointer relative group"
               onClick={() => setSelectedSpeaker(speaker)}
             >
               <CardContent className="p-4">
@@ -176,6 +233,37 @@ export const LineupTab = ({ speakers: initialSpeakers, userRole }: LineupTabProp
                     )}
                   </div>
                 </div>
+                {/* Admin controls overlay */}
+                {(canEdit || canDelete) && (
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {canEdit && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditMember(speaker);
+                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 bg-gray-900/80 text-gray-400 hover:text-white"
+                      >
+                        <Edit2 size={12} />
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteMember(speaker.id);
+                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 bg-gray-900/80 text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 size={12} />
+                      </Button>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -186,11 +274,11 @@ export const LineupTab = ({ speakers: initialSpeakers, userRole }: LineupTabProp
             <Users size={48} className="text-gray-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">No Line-up Yet</h3>
             <p className="text-gray-400 mb-4">
-              {isOrganizer 
+              {canCreate 
                 ? 'Add speakers, artists, or presenters to your event line-up'
                 : 'Speakers and performers will be announced soon'}
             </p>
-            {isOrganizer && (
+            {canCreate && (
               <Button
                 onClick={() => setIsAddingMember(true)}
                 className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
@@ -210,8 +298,75 @@ export const LineupTab = ({ speakers: initialSpeakers, userRole }: LineupTabProp
         </Card>
       )}
 
+      {/* Edit Member Modal */}
+      {editingMemberId && canEdit && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setEditingMemberId(null)}
+        >
+          <Card 
+            className="bg-gray-900 border-gray-700 max-w-lg w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Edit Line-up Member</h3>
+                <Button
+                  onClick={() => setEditingMemberId(null)}
+                  variant="ghost"
+                  size="sm"
+                >
+                  <X size={20} />
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  value={editMember.name}
+                  onChange={(e) => setEditMember(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Name *"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
+                <Input
+                  value={editMember.title}
+                  onChange={(e) => setEditMember(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Title"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
+                <Input
+                  value={editMember.company}
+                  onChange={(e) => setEditMember(prev => ({ ...prev, company: e.target.value }))}
+                  placeholder="Company/Organization"
+                  className="bg-gray-800 border-gray-700 text-white md:col-span-2"
+                />
+              </div>
+              <Textarea
+                value={editMember.bio}
+                onChange={(e) => setEditMember(prev => ({ ...prev, bio: e.target.value }))}
+                placeholder="Bio (optional)"
+                className="bg-gray-800 border-gray-700 text-white"
+                rows={3}
+              />
+              <div className="flex gap-2 justify-end">
+                <Button
+                  onClick={() => setEditingMemberId(null)}
+                  variant="ghost"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleUpdateMember(editingMemberId)}
+                  className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Speaker Detail Modal */}
-      {selectedSpeaker && (
+      {selectedSpeaker && !editingMemberId && (
         <div 
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedSpeaker(null)}
