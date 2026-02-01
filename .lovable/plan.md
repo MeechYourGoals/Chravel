@@ -1,176 +1,282 @@
 
-
-# Use Cases Grid: Consolidate Cards + Add Greek Life
+# End-to-End Encryption Integration + Marketing Update
 
 ## Summary
 
-Merge "Family Trips & Year-Round Hubs" and "Schedules, Pickups & Carpools" into one card, then add a new "Fraternities & Sororities (Greek Life)" card with verified privacy claims.
+Integrate the existing `privacyService` (AES-GCM 256-bit E2EE) into the chat flow so that **High Privacy** trips actually encrypt/decrypt messages, and update the Greek Life marketing badge to accurately reflect current capabilities.
 
 ---
 
-## Current State (6 Cards)
+## Current State Analysis
 
-| Position | Current Card |
-|----------|--------------|
-| 1 (Hero) | Family Trips & Year-Round Hubs |
-| 2 | Touring Artists & Crews |
-| 3 | Bach Parties → Wedding Weekends |
-| 4 | Schedules, Pickups & Carpools |
-| 5 | Collegiate & Pro Sports Programs |
-| 6 | Local Community Groups |
+### What Exists (Ready)
 
-## Target State (6 Cards)
+| Component | Status | Location |
+|-----------|--------|----------|
+| AES-GCM 256-bit encryption | ✅ Implemented | `src/services/privacyService.ts` |
+| Per-trip key generation | ✅ Implemented | `privacyService.generateTripKey()` |
+| Encrypt/decrypt methods | ✅ Implemented | `privacyService.encryptMessage()` / `decryptMessage()` |
+| Database columns | ✅ Exist | `privacy_mode`, `privacy_encrypted` on `trip_chat_messages` |
+| Privacy config table | ✅ Exists | `trip_privacy_configs` with auto-init trigger |
+| Privacy config auto-init | ✅ Trigger exists | `initialize_trip_privacy_config()` |
+| UI Privacy Settings | ✅ Exists | `TripPrivacySettings.tsx` |
 
-| Position | New Card |
-|----------|----------|
-| 1 (Hero) | **Family Hubs, Schedules & Carpools** (consolidated) |
-| 2 | Touring Artists & Crews (unchanged) |
-| 3 | Bachelor(ette) Parties → Wedding Weekends (updating) |
-| 4 | Fraternity/Sororities & Organizations (new) |
-| 5 | Youth, Amateur, & Pro Sports Programs (updating) |
-| 6 | Local Community Groups (unchanged) |
+### What's Missing (Integration Gap)
 
----
-
-## New Card Content
-
-### Consolidated Card (Position 1)
-
-**Title**: Family Hubs, Schedules & Carpools
-
-**Subtitle**: Practices · pickups · errands · roomies · year-round planning
-
-**Before: Chaos**
-Last-minute texts. Missed pickups. Fridge notes ignored. Confusion over who's doing what — and when.
-
-**After: Coordinated**
-One shared space for year-round family logistics and recurring routines. Keep calendars, chat updates, tasks, and photos in sync — so everyone knows where to be, and when.
-
-**Badge**: Fewer drop-offs missed · more time together
-
-**Expand CTA**: See how families stay organized
+| Gap | Impact |
+|-----|--------|
+| Chat service doesn't call `privacyService` before insert | Messages stored as plaintext |
+| Chat hooks don't decrypt on read | Encrypted messages would display as gibberish |
+| No hook to fetch trip's privacy config | Can't determine if trip is High Privacy |
+| Trip creation defaults to 'standard' | Pro/Event trips should default to 'high' |
 
 ---
 
-### New Greek Life Card (Position 4)
+## Implementation Plan
 
-**Title**: Fraternity/Sororities & Similar Organizations
+### Phase 1: Create Privacy Config Hook
 
-**Subtitle**: Rush · formals · philanthropy · chapter events
+**New File**: `src/hooks/useTripPrivacyConfig.ts`
 
-**Before: Chaos**
-One giant group chat becomes a permanent archive — endless scrollback, mixed events, and sensitive moments living forever in one thread.
-
-**After: Coordinated**
-Create separate Trip vaults per event (Rush Week, Formals, etc) so chat + media stay compartmentalized. Membership is explicit, access is controlled, and your private moments don't end up as one searchable liability.
-
-**Badge**: Event isolation · end-to-end encryption available
-
-**Expand CTA**: See how chapters stay private
-
----
-
-## Privacy Claims Verification
-
-ChravelApp **does not currently have E2EE implemented but it's coming soon** (`src/services/privacyService.ts`):
-- AES-GCM 256-bit encryption for High Privacy trips
-- Per-trip key generation and caching
-- Separate trip vaults with isolated content
-- Role-based access controls via `useEventPermissions`
-
-The Greek Life card can authentically claim:
-- ✅ "Separate Trip vaults per event" — each trip is isolated
-- ✅ "End-to-end encryption available" — High Privacy mode uses E2EE. 
-- ✅ "Membership is explicit, access is controlled" — verified via permission system
-*in theory they would just be using a paid Pro Trip subscription as pro trips offer higher security
----
-
-## Technical Changes
-
-### File: `src/components/landing/sections/UseCasesSection.tsx`
-
-**Lines 6-64**: Replace `scenarios` array with updated content
+Hook to fetch a trip's privacy configuration from `trip_privacy_configs` table:
 
 ```typescript
-const scenarios = [
-  {
-    title: 'Family Hubs, Schedules & Carpools',
-    subtitle: 'Practices · pickups · errands · roomies · year-round planning',
-    before: "Last-minute texts. Missed pickups. Fridge notes ignored. Confusion over who's doing what — and when.",
-    expandCTA: 'See how families stay organized',
-    after:
-      'One shared space for year-round family logistics and recurring routines. Keep calendars, chat updates, tasks, and photos in sync — so everyone knows where to be, and when.',
-    badge: 'Fewer drop-offs missed · more time together',
-    isHero: true,
-  },
-  {
-    title: 'Touring Artists & Crews',
-    subtitle: 'Musicians · comedians · podcasts · managers · production',
-    before:
-      'Spreadsheets, countless texts, last-minute changes, and missed details. Overwhelmed Tour Managers & Annoyed Artists.',
-    expandCTA: 'See how tours stay in sync',
-    after:
-      'Show days, off days, crew channels, logistics, and payments—all in one place. Everyone aligned, every city.',
-    badge: 'Fewer mistakes · smoother tours',
-  },
-  {
-    title: 'Bach Parties → Wedding Weekends',
-    subtitle: 'Bachelor & bachelorette trips · guests · families · vendors',
-    before:
-      'Dozens of chats between families, guests, planners, and vendors. Guests constantly asking where to be and when.',
-    expandCTA: 'See how celebrations run smoothly',
-    after:
-      'One shared itinerary with pinned locations, real-time updates, and live photo sharing—no confusion, just celebration.',
-    badge: 'Fewer questions · more memories',
-  },
-  {
-    title: 'Fraternities & Sororities (Greek Life)',
-    subtitle: 'Rush · formals · retreats · philanthropy · chapter ops',
-    before:
-      "One giant group chat becomes a permanent archive — endless scrollback, mixed events, and sensitive moments living forever in one thread.",
-    expandCTA: 'See how chapters stay private',
-    after:
-      "Create separate Trip vaults per event (Rush Week, Formal, Retreat) so chat + media stay compartmentalized. Membership is explicit, access is controlled, and your private moments don't end up as one searchable liability.",
-    badge: 'Event isolation · end-to-end encryption available',
-  },
-  {
-    title: 'Collegiate & Pro Sports Programs',
-    subtitle: 'Players · coaches · coordinators · operations staff',
-    before: 'Staff juggling travel, practices, academics, and logistics across multiple tools.',
-    expandCTA: 'See how programs stay aligned',
-    after:
-      'Role-based access, team schedules, and instant updates—built to scale from college to the pros.',
-    badge: 'Fewer errors · faster decisions',
-  },
-  {
-    title: 'Local Community Groups',
-    subtitle: 'Run clubs · dog park crews · faith groups · recurring meetups',
-    before: 'Plans scattered across DMs, texts, and random calendar invites.',
-    expandCTA: 'See how groups stay connected',
-    after:
-      'One shared home for meetups, locations, notes, and photos—your group finally stays connected.',
-    badge: 'Consistency · better turnout',
-  },
-];
+export const useTripPrivacyConfig = (tripId: string | undefined) => {
+  return useQuery({
+    queryKey: ['tripPrivacyConfig', tripId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('trip_privacy_configs')
+        .select('*')
+        .eq('trip_id', tripId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tripId,
+    staleTime: 60000, // Cache for 1 minute
+  });
+};
 ```
 
 ---
 
-## Visual Impact
+### Phase 2: Update Chat Service for Encryption
 
-- **Card 1 (Hero)**: Combines both family/logistics use cases with enhanced copy
-- **Card 4 (New)**: Greek Life wedge with privacy-focused messaging and verified E2EE claim
-- **Grid balance**: Maintained 3x2 layout on desktop, single column on mobile
-- **No layout changes**: Same card styling, borders, animations, and responsive behavior
+**File**: `src/services/chatService.ts`
+
+Add encryption before database insert:
+
+```typescript
+import { privacyService } from './privacyService';
+
+export async function sendChatMessage(msg: ChatMessageInsert) {
+  let contentToSend = msg.content;
+  let isEncrypted = false;
+  
+  // Encrypt if High Privacy mode
+  if (msg.privacy_mode === 'high') {
+    const result = await privacyService.prepareMessageForSending(
+      msg.content,
+      msg.trip_id,
+      'high'
+    );
+    contentToSend = result.content;
+    isEncrypted = result.encrypted;
+  }
+  
+  const insertPayload = {
+    ...msg,
+    content: contentToSend,
+    privacy_encrypted: isEncrypted,
+    // ... rest of payload
+  };
+  
+  // ... existing insert logic
+}
+```
 
 ---
 
-## Mobile Responsiveness
+### Phase 3: Update Chat Hook for Decryption
 
-No changes needed to grid structure:
-- `grid-cols-1` on mobile (single column)
-- `md:grid-cols-2` on tablet (2 columns)
-- `lg:grid-cols-3` on desktop (3 columns)
+**File**: `src/features/chat/hooks/useTripChat.ts`
 
-Copy lengths are comparable to existing cards, so no overflow issues expected.
+Add privacy config fetch and decrypt on message load:
 
+```typescript
+import { privacyService } from '@/services/privacyService';
+
+// In useQuery for messages:
+const decryptedMessages = await Promise.all(
+  (data || []).map(async (msg) => {
+    if (msg.privacy_encrypted && msg.content) {
+      try {
+        const decrypted = await privacyService.prepareMessageForDisplay(
+          msg.content,
+          tripId,
+          true
+        );
+        return { ...msg, content: decrypted };
+      } catch (error) {
+        console.error('Decryption failed for message:', msg.id);
+        return { ...msg, content: '[Unable to decrypt message]' };
+      }
+    }
+    return msg;
+  })
+);
+```
+
+Also decrypt incoming realtime messages in the subscription handler.
+
+---
+
+### Phase 4: Pass Privacy Mode to Chat Operations
+
+**File**: `src/features/chat/components/TripChat.tsx`
+
+Fetch privacy config and pass to sendMessage:
+
+```typescript
+import { useTripPrivacyConfig } from '@/hooks/useTripPrivacyConfig';
+
+// Inside TripChat component:
+const { data: privacyConfig } = useTripPrivacyConfig(resolvedTripId);
+
+// In handleSendMessage:
+await sendTripMessage(
+  message.text, 
+  authorName, 
+  undefined, 
+  undefined, 
+  user?.id, 
+  privacyConfig?.privacy_mode || 'standard',  // Use actual privacy mode
+  messageType
+);
+```
+
+---
+
+### Phase 5: Default Pro/Event Trips to High Privacy
+
+**File**: `supabase/functions/create-trip/index.ts`
+
+Update trip creation to set privacy_mode based on trip_type:
+
+```typescript
+// In create-trip edge function, before insert:
+const privacyMode = (trip_type === 'pro' || trip_type === 'event') 
+  ? 'high' 
+  : 'standard';
+
+// Include in trips insert or ensure trigger uses this default
+```
+
+The database trigger `initialize_trip_privacy_config` already reads from `NEW.privacy_mode`, but trips table doesn't have this column. We need to:
+1. Either add `privacy_mode` column to trips table, OR
+2. Update the trigger to default based on `trip_type`
+
+**Option B (recommended)**: Modify the trigger to check `trip_type`:
+
+```sql
+-- Migration to update trigger
+CREATE OR REPLACE FUNCTION public.initialize_trip_privacy_config()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  INSERT INTO public.trip_privacy_configs (
+    trip_id, 
+    privacy_mode, 
+    ai_access_enabled, 
+    created_by
+  ) VALUES (
+    NEW.id,
+    CASE WHEN NEW.trip_type IN ('pro', 'event') THEN 'high' ELSE 'standard' END,
+    CASE WHEN NEW.trip_type IN ('pro', 'event') THEN false ELSE true END,
+    NEW.created_by
+  );
+  RETURN NEW;
+END;
+$function$;
+```
+
+---
+
+### Phase 6: Update Marketing Badge
+
+**File**: `src/components/landing/sections/UseCasesSection.tsx`
+
+Change the Greek Life card badge from:
+```
+'Event isolation · end-to-end encryption available'
+```
+
+To:
+```
+'Private trip vaults with access controls'
+```
+
+This is accurate for current state and doesn't require E2EE to be fully integrated.
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useTripPrivacyConfig.ts` | **NEW** - Hook to fetch trip privacy config |
+| `src/services/chatService.ts` | Add encryption call before insert |
+| `src/features/chat/hooks/useTripChat.ts` | Add decryption on message fetch + realtime |
+| `src/features/chat/components/TripChat.tsx` | Pass privacy mode from config |
+| `src/components/landing/sections/UseCasesSection.tsx` | Update Greek Life badge text |
+| Database Migration | Update `initialize_trip_privacy_config` trigger |
+
+---
+
+## Security Considerations
+
+1. **Key Storage**: Keys are cached in-memory only (`privacyService.keyCache`). New page load = new keys generated. This is a limitation of client-side E2EE.
+
+2. **Key Distribution**: Current implementation generates keys per-session. For true multi-device E2EE, we'd need secure key exchange (future enhancement).
+
+3. **Graceful Degradation**: If decryption fails, show `[Unable to decrypt message]` rather than crash.
+
+4. **AI Concierge**: When `privacy_mode === 'high'`, AI features are automatically disabled via `canAIAccessMessages()`.
+
+---
+
+## Test Scenarios
+
+1. **Standard Privacy Trip**:
+   - Messages sent/stored as plaintext
+   - AI Concierge has access
+   - `privacy_encrypted = false`
+
+2. **High Privacy Trip**:
+   - Messages encrypted before send
+   - Stored as base64 ciphertext
+   - Decrypted on display
+   - AI Concierge disabled
+   - `privacy_encrypted = true`
+
+3. **Mixed Mode** (privacy changed mid-trip):
+   - Old messages retain their encryption state
+   - New messages use current privacy mode
+   - Both display correctly
+
+---
+
+## Implementation Order
+
+1. Create `useTripPrivacyConfig` hook
+2. Update `chatService.ts` for encryption
+3. Update `useTripChat.ts` for decryption
+4. Update `TripChat.tsx` to pass privacy mode
+5. Database migration for trigger update
+6. Update marketing badge
+7. Test end-to-end flow
