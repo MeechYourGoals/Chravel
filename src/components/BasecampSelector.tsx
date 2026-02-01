@@ -69,11 +69,13 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
       
       await Promise.resolve(onBasecampSet(basecamp));
       clearTimeout(safetyTimeout);
-      toast.success('Basecamp saved!');
+      // Success toast is handled by the caller (mutation hook or BasecampsPanel)
+      // to avoid duplicate toasts and ensure accuracy
       onClose();
     } catch {
       clearTimeout(safetyTimeout);
-      toast.error('Failed to set basecamp. Please try again.');
+      // Error toast is also handled by mutation onError, but we close the dialog
+      // No duplicate toast here - the mutation hook already shows the error
     } finally {
       setIsLoading(false);
     }

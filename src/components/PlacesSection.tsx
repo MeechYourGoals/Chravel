@@ -321,22 +321,17 @@ export const PlacesSection = ({
     };
 
     // Use the mutation hook which handles optimistic updates, rollback, and cache invalidation
-    try {
-      await updateBasecampMutation.mutateAsync({
-        name: newBasecamp.name,
-        address: newBasecamp.address,
-        latitude: newBasecamp.coordinates?.lat,
-        longitude: newBasecamp.coordinates?.lng,
-      });
+    // CRITICAL: Do NOT catch errors here - let them propagate to BasecampSelector
+    // so it can show the correct toast (success vs error)
+    await updateBasecampMutation.mutateAsync({
+      name: newBasecamp.name,
+      address: newBasecamp.address,
+      latitude: newBasecamp.coordinates?.lat,
+      longitude: newBasecamp.coordinates?.lng,
+    });
 
-      if (import.meta.env.DEV) {
-        console.log('[PlacesSection] Trip basecamp persisted:', newBasecamp.address);
-      }
-    } catch (error) {
-      // Error handling is done in the mutation hook
-      if (import.meta.env.DEV) {
-        console.error('[PlacesSection] Error saving trip basecamp:', error);
-      }
+    if (import.meta.env.DEV) {
+      console.log('[PlacesSection] Trip basecamp persisted:', newBasecamp.address);
     }
   };
 
