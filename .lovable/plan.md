@@ -1,271 +1,188 @@
 
-# Advertiser Hub Data Consistency & Payment Settings Fix
+# Fix Color Inconsistency: Standardize to Gold Theme Across App
 
-## Summary of Issues Identified
+## Problem Summary
 
-### 1. Analytics Numbers Don't Match Campaign Cards
-**Problem**: In the Campaigns tab, Uber shows 15,234 impressions. But when selecting "Uber" in Analytics dropdown, the totals still show aggregated numbers (33,999) instead of Uber-specific numbers (15,234).
+The app has inconsistent button and accent colors across different tabs:
 
-**Root Cause**: The `CampaignAnalytics.tsx` component calculates totals from ALL campaigns (lines 29-32), regardless of which campaign is selected in the dropdown.
+| Location | Current Color | Target Color |
+|----------|---------------|--------------|
+| Trip Card "View" button | ✅ `from-yellow-500 to-yellow-600` + black text | Keep as-is (reference) |
+| Polls "Create Poll" button | `accentColors.gradient` + white text | Gold gradient + **black text** |
+| Tasks "Add Task" / "Add First Task" | `bg-orange-600` (orange) | Gold gradient + black text |
+| Agenda "Add Session" / "Upload Agenda" | `bg-orange-600` (orange) | Gold gradient + black text |
+| Line-up icon | `text-orange-400` (orange) | Gold icon color |
+| EventTasksTab icon | `text-orange-400` (orange) | Gold icon color |
 
-### 2. Chart Data is Static Mock Data
-**Problem**: The `performanceData` array (lines 46-54) is hardcoded and doesn't reflect the actual campaign metrics or change when a specific campaign is selected.
+**Reference**: The "View" button on trip cards (`TripCard.tsx` line 554):
+```
+bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-semibold
+```
 
-### 3. Top Campaigns List Inconsistent
-**Problem**: The Top Campaigns tab currently shows hardcoded data from the original AdvertiserDashboard.tsx mock campaigns which includes 3 campaigns (Uber, Lyft, Hotels.com), but AdvertiserSettingsPanel.tsx only has 2 mock campaigns (Uber, Hotels.com) - Lyft is missing.
-
-### 4. API Access Section in Settings
-**Problem**: The "API Access" card in AdvertiserSettings.tsx (lines 248-263) is confusing and not useful for MVP.
-
-### 5. Missing Advertiser Payment Section
-**Problem**: No way for advertisers to add a separate company card for billing CPMs, clicks, conversions.
-
-### 6. Authenticated Users Should NOT See Mock Data
-**Problem**: Currently `isPreviewMode = isDemoMode || isSuperAdmin` treats super admin the same as demo mode for data display. Super admin should see REAL data (empty state if no campaigns), not mock data.
+This is the standard gold button styling to apply everywhere.
 
 ---
 
-## Technical Implementation Plan
+## Root Cause
 
-### File Changes Summary
+1. **TripVariantContext.tsx** uses `glass-orange` and `glass-yellow` color tokens that **don't exist** in `tailwind.config.ts`
+2. Event-specific components hardcode `bg-orange-600` instead of using the design system gold
+3. Polls button uses white text on gold background (low contrast)
+
+---
+
+## Implementation Plan
+
+### 1. Update TripVariantContext.tsx - Fix Consumer Accent Colors
+
+**File**: `src/contexts/TripVariantContext.tsx`
+
+Change the consumer variant from non-existent `glass-orange/glass-yellow` to actual gold colors:
+
+```typescript
+// Line 48-53: Change consumer accentColors
+: {
+    primary: 'yellow-500',
+    secondary: 'yellow-600',
+    gradient: 'from-yellow-500 to-yellow-600', 
+    badge: 'from-yellow-500 to-yellow-600'
+  };
+```
+
+This makes `accentColors.gradient` resolve to the same gold as the View button.
+
+### 2. Fix Polls "Create Poll" Button Text Color
+
+**File**: `src/components/CommentsWall.tsx`
+
+Line 26-27: Change `text-white` to `text-black`:
+
+```typescript
+// Before
+className={`...bg-gradient-to-r ${accentColors.gradient} ...text-white...`}
+
+// After
+className={`...bg-gradient-to-r ${accentColors.gradient} ...text-black font-semibold...`}
+```
+
+### 3. Fix EventTasksTab - Orange to Gold
+
+**File**: `src/components/events/EventTasksTab.tsx`
+
+**Changes**:
+- Line 90: Icon color `text-orange-400` → `text-yellow-500`
+- Line 102: Button `bg-orange-600 hover:bg-orange-700` → `bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold`
+- Line 137: Same button fix for "Add Task" in form
+- Line 191: Task number badge `bg-orange-600/20 border-orange-500/50` → `bg-yellow-500/20 border-yellow-500/50`
+- Line 192: Task number text `text-orange-400` → `text-yellow-500`
+- Line 239: "Add First Task" button - same gold gradient
+
+### 4. Fix AgendaModal - Orange to Gold
+
+**File**: `src/components/events/AgendaModal.tsx`
+
+**Changes**:
+- Line 233: "Add Session" button `bg-orange-600 hover:bg-orange-700` → Gold gradient + black text
+- Line 557: "Upload Agenda" button `bg-orange-600 hover:bg-orange-700` → Gold gradient + black text
+- Line 571: Demo mode indicator `bg-orange-600/10 border-orange-500/20` → `bg-yellow-500/10 border-yellow-500/20`
+- Line 572: Demo mode text `text-orange-300` → `text-yellow-300`
+
+### 5. Fix LineupTab - Orange to Gold Icons
+
+**File**: `src/components/events/LineupTab.tsx`
+
+**Changes**:
+- Line 27: Header icon `text-orange-400` → `text-yellow-500`
+- Line 56: Avatar gradient `from-orange-500 to-pink-500` → `from-yellow-500 to-yellow-600`
+- Line 69: Company text `text-orange-400` → `text-yellow-500`
+- Line 109: Modal avatar gradient - same gold gradient
+- Line 122: Modal company text - same gold color
+
+### 6. Add Lineup Member Creation (for Event Organizers)
+
+**File**: `src/components/events/LineupTab.tsx`
+
+Currently the LineupTab only displays speakers but has no way for organizers to add them. Adding a button and form:
+
+```typescript
+// Add after search input (around line 43)
+{userRole === 'organizer' && (
+  <Button
+    onClick={() => setIsAddingMember(true)}
+    className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
+  >
+    <Plus size={16} className="mr-2" />
+    Add to Line-up
+  </Button>
+)}
+
+// Add form state and handler for adding lineup members
+const [isAddingMember, setIsAddingMember] = useState(false);
+const [newMember, setNewMember] = useState({ name: '', title: '', company: '', bio: '' });
+```
+
+Add a simple form card that appears when the button is clicked, allowing the organizer to enter name, title, company, and bio.
+
+### 7. Fix EnhancedAgendaTab Button Styling  
+
+**File**: `src/components/events/EnhancedAgendaTab.tsx`
+
+Line 148: Button uses `bg-primary` which should already be gold, but ensure consistency:
+- Line 291: "Add Session" submit button - verify gold styling
+
+---
+
+## Standardized Button Class
+
+Create a consistent gold button class to use everywhere:
+
+```css
+/* Gold CTA Button - matches Trip Card "View" button */
+bg-gradient-to-r from-yellow-500 to-yellow-600 
+hover:from-yellow-600 hover:to-yellow-700 
+text-black font-semibold 
+shadow-lg hover:shadow-yellow-500/25
+```
+
+---
+
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/advertiser/AdvertiserSettingsPanel.tsx` | Remove super admin from mock data logic - they should see real empty state |
-| `src/components/advertiser/CampaignAnalytics.tsx` | Fix filtering to update totals when specific campaign selected; derive chart data from selected campaign metrics |
-| `src/components/advertiser/AdvertiserSettings.tsx` | Remove API Access section, add Payment Method section |
-| `src/pages/AdvertiserDashboard.tsx` | Same fix for super admin mock data logic |
+| `src/contexts/TripVariantContext.tsx` | Update consumer gradient to use yellow-500/600 |
+| `src/components/CommentsWall.tsx` | Change poll button text from white to black |
+| `src/components/events/EventTasksTab.tsx` | Replace all orange-600 with gold gradient, fix icons |
+| `src/components/events/AgendaModal.tsx` | Replace all orange-600 with gold gradient |
+| `src/components/events/LineupTab.tsx` | Fix icon/text colors, add "Add to Line-up" button + form |
+| `src/components/events/EnhancedAgendaTab.tsx` | Verify button uses consistent gold styling |
 
 ---
 
-### Fix 1: Campaign Analytics - Dynamic Filtering by Selected Campaign
+## Expected Visual Result
 
-**File**: `src/components/advertiser/CampaignAnalytics.tsx`
-
-**Current behavior** (broken):
-```typescript
-const totalImpressions = campaigns.reduce((sum, c) => sum + c.impressions, 0);
-const totalClicks = campaigns.reduce((sum, c) => sum + c.clicks, 0);
-// Always shows ALL campaigns total regardless of dropdown selection
-```
-
-**Fixed behavior**:
-```typescript
-// Filter campaigns based on selection
-const filteredCampaigns = selectedCampaign === 'all' 
-  ? campaigns 
-  : campaigns.filter(c => c.id === selectedCampaign);
-
-// Compute totals from filtered campaigns
-const totalImpressions = filteredCampaigns.reduce((sum, c) => sum + c.impressions, 0);
-const totalClicks = filteredCampaigns.reduce((sum, c) => sum + c.clicks, 0);
-const totalSaves = filteredCampaigns.reduce((sum, c) => sum + (c.saves || 0), 0);
-const totalConversions = filteredCampaigns.reduce((sum, c) => sum + c.conversions, 0);
-```
-
-**Chart data derivation** - Generate realistic daily data based on campaign totals:
-```typescript
-// Generate chart data proportionally from totals
-const generatePerformanceData = (impressions: number, clicks: number, saves: number, conversions: number) => {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const weights = [0.08, 0.11, 0.14, 0.12, 0.18, 0.22, 0.15]; // Realistic weekly distribution
-  
-  return days.map((date, i) => ({
-    date,
-    impressions: Math.round(impressions * weights[i]),
-    clicks: Math.round(clicks * weights[i]),
-    saves: Math.round(saves * weights[i]),
-    conversions: Math.round(conversions * weights[i])
-  }));
-};
-
-const performanceData = generatePerformanceData(totalImpressions, totalClicks, totalSaves, totalConversions);
-```
+After these changes:
+- **All primary action buttons** will use the same gold gradient (`from-yellow-500 to-yellow-600`) with black text
+- **All accent icons** will use `text-yellow-500` instead of `text-orange-400`
+- **Polls, Tasks, Agenda, Line-up** will all match the visual language of the Trip Card "View" button
+- **Line-up tab** will allow organizers to add members to the lineup
 
 ---
 
-### Fix 2: Consistent Mock Data Between Panel and Dashboard
+## Test Checklist
 
-**File**: `src/components/advertiser/AdvertiserSettingsPanel.tsx`
-
-Ensure mock campaigns match exactly with `AdvertiserDashboard.tsx`. Currently the panel has 2 campaigns, dashboard has 3. We'll use the same 2-campaign set (Uber + Hotels.com) in both places for demo mode consistency.
-
-The mock data in AdvertiserSettingsPanel already has:
-- Uber: 15,234 impressions, 1,203 clicks, 342 saves, 89 conversions
-- Hotels.com: 18,765 impressions, 1,456 clicks, 523 saves, 134 conversions
-
-**Total (All Campaigns)**: 33,999 impressions, 2,659 clicks, 865 saves, 223 conversions
-
-When "Uber" is selected:
-- **Expected**: 15,234 impressions, 1,203 clicks, 342 saves, 89 conversions
-
-When "Hotels.com" is selected:
-- **Expected**: 18,765 impressions, 1,456 clicks, 523 saves, 134 conversions
-
----
-
-### Fix 3: Super Admin Should See Real Data (Not Mock)
-
-**Files**: 
-- `src/components/advertiser/AdvertiserSettingsPanel.tsx`
-- `src/pages/AdvertiserDashboard.tsx`
-
-**Current logic** (line 162-165 in Panel, line 271-274 in Dashboard):
-```typescript
-const activeAdvertiser = isDemoMode
-  ? mockAdvertiser
-  : advertiser || (isSuperAdmin ? superAdminAdvertiser : advertiser);
-const activeCampaigns = isDemoMode ? mockCampaigns : campaigns;
-```
-
-This is already correct - mock data is only used when `isDemoMode` is true. However, line 31 shows:
-```typescript
-const isPreviewMode = isDemoMode || isSuperAdmin;
-```
-
-The `isPreviewMode` is only used for the banner display, which is fine. The actual data selection is correct.
-
-**Verification**: Super admin with `isDemoMode = false` will:
-1. Call `loadAdvertiserData()` 
-2. Get real campaigns from database (likely empty)
-3. `activeCampaigns` = real `campaigns` array (empty)
-4. Show empty state in CampaignList
-
-This is already working correctly per the code.
-
----
-
-### Fix 4: Remove API Access, Add Payment Section
-
-**File**: `src/components/advertiser/AdvertiserSettings.tsx`
-
-**Remove** (lines 248-263):
-```typescript
-{/* API Access */}
-<Card className="bg-white/5 border-gray-700">
-  ...
-</Card>
-```
-
-**Add Payment Method Section**:
-```typescript
-{/* Payment Method */}
-<Card className="bg-white/5 border-white/10">
-  <CardHeader className="pb-3 sm:pb-6">
-    <CardTitle className="text-base sm:text-lg text-white">Payment Method</CardTitle>
-    <CardDescription className="text-xs sm:text-sm text-gray-400">
-      Add a company card for advertising billing
-    </CardDescription>
-  </CardHeader>
-  <CardContent className="space-y-4 px-4 sm:px-6">
-    {/* Card on File indicator or Add Card form */}
-    <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
-      <div className="flex items-center gap-3">
-        <CreditCard className="h-5 w-5 text-gray-400" />
-        <div className="flex-1">
-          <p className="text-sm text-gray-400">No payment method on file</p>
-          <p className="text-xs text-gray-500 mt-1">
-            Add a company card to pay for impressions, clicks, and conversions
-          </p>
-        </div>
-      </div>
-    </div>
-    
-    <Button
-      variant="outline"
-      className="w-full border-white/10 hover:bg-white/5 text-white"
-    >
-      <Plus className="h-4 w-4 mr-2" />
-      Add Payment Method
-    </Button>
-  </CardContent>
-</Card>
-```
-
-For now, clicking "Add Payment Method" will show a toast indicating this feature is coming soon, keeping it simple for MVP.
-
----
-
-### Fix 5: Realistic Engagement Chart Data
-
-**File**: `src/components/advertiser/CampaignAnalytics.tsx`
-
-The engagement chart (Saves vs Conversions bar chart) should also use the dynamically generated `performanceData` which now derives from the selected campaign's actual metrics.
-
----
-
-### Fix 6: Sync AdvertiserDashboard Mock Data
-
-**File**: `src/pages/AdvertiserDashboard.tsx`
-
-Update `mockCampaigns` to match exactly 2 campaigns (Uber + Hotels.com) to prevent confusion. Remove the Lyft mock campaign (lines 95-138) to ensure consistency.
-
----
-
-## Implementation Checklist
-
-1. **CampaignAnalytics.tsx**
-   - [ ] Add `filteredCampaigns` based on `selectedCampaign`
-   - [ ] Recalculate totals from filtered campaigns
-   - [ ] Generate performance chart data from campaign totals
-   - [ ] Update engagement chart to use derived data
-
-2. **AdvertiserSettings.tsx**
-   - [ ] Remove API Access card
-   - [ ] Add CreditCard import from lucide-react
-   - [ ] Add Payment Method card with placeholder UI
-   - [ ] Update border colors from `border-gray-700` to `border-white/10` for consistency
-
-3. **AdvertiserDashboard.tsx**
-   - [ ] Remove Lyft mock campaign to match 2-campaign set
-   - [ ] Verify super admin sees real data when not in demo mode
-
-4. **AdvertiserSettingsPanel.tsx**
-   - [ ] Verify mock data matches dashboard (already correct)
-   - [ ] Confirm super admin logic is correct (already correct)
-
----
-
-## Expected Results After Fix
-
-### Demo Mode ("All Campaigns" selected):
-- Total Impressions: **33,999** 
-- Total Clicks: **2,659**
-- Saves: **865**
-- Conversions: **223**
-
-### Demo Mode ("Uber" selected):
-- Total Impressions: **15,234**
-- Total Clicks: **1,203**
-- Saves: **342**
-- Conversions: **89**
-
-### Demo Mode ("Hotels.com" selected):
-- Total Impressions: **18,765**
-- Total Clicks: **1,456**
-- Saves: **523**
-- Conversions: **134**
-
-### Authenticated User (not demo, not super admin):
-- Shows real campaigns from database
-- Empty state if no campaigns
-- No mock data
-
-### Super Admin (not demo mode):
-- Shows real campaigns from database
-- Empty state if no campaigns created
-- Can create real campaigns
-
----
-
-## Settings Tab Changes
-
-**Before**:
-1. Account Status
-2. Company Information
-3. API Access (remove)
-
-**After**:
-1. Account Status
-2. Company Information
-3. Payment Method (add)
+1. Navigate to any trip → Polls tab
+   - ✓ "Create Poll" button should be gold with black text
+2. Navigate to Events trip → Tasks tab
+   - ✓ Icon should be gold, not orange
+   - ✓ "Add Task" button should be gold with black text
+   - ✓ "Add First Task" in empty state should be gold
+3. Navigate to Events trip → Agenda tab
+   - ✓ "Add Session" button should be gold
+   - ✓ "Upload Agenda" button should be gold
+4. Navigate to Events trip → Line-up tab
+   - ✓ Icon should be gold
+   - ✓ Company names should be gold text
+   - ✓ Organizers should see "Add to Line-up" button
+5. Compare all buttons to Trip Card "View" button
+   - ✓ All should match the same gold shade and gradient
