@@ -32,6 +32,7 @@ import { useEffectiveSystemMessagePreferences } from '@/hooks/useSystemMessagePr
 import { isConsumerTrip } from '@/utils/tripTierDetector';
 import { toggleMessageReaction, getMessagesReactions, subscribeToReactions, type ReactionType, type ReactionCount } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
+import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -121,6 +122,9 @@ export const TripChat = ({
 
   // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
   const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
+  
+  // Fetch privacy config for the trip (after shouldSkipLiveChat is defined)
+  const { data: privacyConfig } = useTripPrivacyConfig(shouldSkipLiveChat ? undefined : resolvedTripId);
   
   // Live chat hooks - only initialize for authenticated trips
   const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
@@ -386,8 +390,10 @@ export const TripChat = ({
     try {
       // Determine message type based on flags
       const messageType = isBroadcast ? 'broadcast' : isPayment ? 'payment' : 'text';
+      // Use actual privacy mode from trip config
+      const effectivePrivacyMode = getEffectivePrivacyMode(privacyConfig);
       
-      await sendTripMessage(message.text, authorName, undefined, undefined, user?.id, 'standard', messageType);
+      await sendTripMessage(message.text, authorName, undefined, undefined, user?.id, effectivePrivacyMode, messageType);
       
       // 🆕 Auto-parse message for entities (dates, times, locations)
       if (message.text && message.text.trim().length > 10) {

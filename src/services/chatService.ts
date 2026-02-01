@@ -3,6 +3,8 @@ import type { Database } from '@/integrations/supabase/types';
 import { retryWithBackoff } from '@/utils/retry';
 import type { RichChatAttachment, RichLinkPreview } from '@/types/chatAttachment';
 import { notifyTripOfChatMessage } from './pushNotificationTrigger';
+import { privacyService } from './privacyService';
+import type { PrivacyMode } from '@/types/privacy';
 type Row = Database['public']['Tables']['trip_chat_messages']['Row'];
 type Insert = Database['public']['Tables']['trip_chat_messages']['Insert'];
 
@@ -58,10 +60,36 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
 
   return retryWithBackoff(
     async () => {
+      let contentToSend = msg.content;
+      let isEncrypted = false;
+      const privacyMode = (msg.privacy_mode as PrivacyMode) || 'standard';
+
+      // Encrypt message content if High Privacy mode
+      if (privacyMode === 'high' && msg.content) {
+        try {
+          const result = await privacyService.prepareMessageForSending(
+            msg.content,
+            msg.trip_id,
+            privacyMode
+          );
+          contentToSend = result.content;
+          isEncrypted = result.encrypted;
+          
+          if (import.meta.env.DEV) {
+            console.log('[chatService] Message encrypted for High Privacy mode');
+          }
+        } catch (encryptError) {
+          console.error('[chatService] Encryption failed, sending as plaintext:', encryptError);
+          // Fail-safe: send as plaintext if encryption fails
+        }
+      }
+
       const insertPayload = {
         ...msg,
+        content: contentToSend,
         client_message_id: clientMessageId,
-        privacy_mode: msg.privacy_mode || 'standard',
+        privacy_mode: privacyMode,
+        privacy_encrypted: isEncrypted,
         message_type: msg.message_type || 'text',
         attachments: msg.attachments as any,
       };
@@ -139,12 +167,32 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
 export async function sendRichChatMessage(msg: RichChatMessageInsert) {
   return retryWithBackoff(
     async () => {
+      let contentToSend = msg.content;
+      let isEncrypted = false;
+      const privacyMode = (msg.privacy_mode as PrivacyMode) || 'standard';
+
+      // Encrypt message content if High Privacy mode
+      if (privacyMode === 'high' && msg.content) {
+        try {
+          const result = await privacyService.prepareMessageForSending(
+            msg.content,
+            msg.trip_id,
+            privacyMode
+          );
+          contentToSend = result.content;
+          isEncrypted = result.encrypted;
+        } catch (encryptError) {
+          console.error('[chatService] Rich message encryption failed:', encryptError);
+        }
+      }
+
       const insertPayload: any = {
         trip_id: msg.trip_id,
-        content: msg.content,
+        content: contentToSend,
         author_name: msg.author_name,
         user_id: msg.user_id,
-        privacy_mode: msg.privacy_mode || 'standard',
+        privacy_mode: privacyMode,
+        privacy_encrypted: isEncrypted,
         message_type: msg.message_type || 'text',
       };
 
