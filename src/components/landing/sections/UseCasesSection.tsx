@@ -5,13 +5,13 @@ import { cn } from '@/lib/utils';
 
 const scenarios = [
   {
-    title: 'Family Trips & Year-Round Hubs',
-    subtitle: 'Errands, Vacations, or Important Moments · One Household Hub for Fam or Roommates',
-    before: 'Missed practice pickups. Fridge notes ignored. Chores forgotten.',
-    expandCTA: 'See how families stay coordinated',
+    title: 'Family Hubs, Schedules & Carpools',
+    subtitle: 'Practices · pickups · errands · roomies · year-round planning',
+    before: "Last-minute texts. Missed pickups. Fridge notes ignored. Confusion over who's doing what — and when.",
+    expandCTA: 'See how families stay organized',
     after:
-      'One shared space for trips, birthdays, sports weekends, holidays, and everyday family logistics. Create a single trip that lasts all year—calendars, photos, plans, and updates stay in sync.',
-    badge: 'Less stress · more time together',
+      'One shared space for year-round family logistics and recurring routines. Keep calendars, chat updates, tasks, and photos in sync — so everyone knows where to be, and when.',
+    badge: 'Fewer drop-offs missed · more time together',
     isHero: true,
   },
   {
@@ -35,14 +35,14 @@ const scenarios = [
     badge: 'Fewer questions · more memories',
   },
   {
-    title: 'Schedules, Pickups & Carpools',
-    subtitle: 'Practices · lessons · rehearsals · shared logistics',
+    title: 'Fraternities & Sororities (Greek Life)',
+    subtitle: 'Rush · formals · retreats · philanthropy · chapter ops',
     before:
-      "Last-minute texts. Missed pickups. Confusion over times, locations, and who's responsible.",
-    expandCTA: 'See how parents stay organized',
+      "One giant group chat becomes a permanent archive — endless scrollback, mixed events, and sensitive moments living forever in one thread.",
+    expandCTA: 'See how chapters stay private',
     after:
-      'One shared calendar for schedules, pickups, and changes—everyone knows where to be, and when.',
-    badge: 'Time saved · fewer drop-offs missed',
+      "Create separate Trip vaults per event (Rush Week, Formal, Retreat) so chat + media stay compartmentalized. Membership is explicit, access is controlled, and your private moments don't end up as one searchable liability.",
+    badge: 'Event isolation · end-to-end encryption available',
   },
   {
     title: 'Collegiate & Pro Sports Programs',
