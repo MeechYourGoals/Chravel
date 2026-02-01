@@ -36,7 +36,7 @@ const scenarios = [
     badge: 'Fewer questions · more memories',
   },
   {
-    title: 'Fraternities/Sororities & Similar Organization',
+    title: 'Fraternities/Sororities & Similar Organizations',
     subtitle: 'Rush · formals · retreats · philanthropy · chapter ops',
     before:
       'One giant group chat becomes a permanent archive — endless scrollback, mixed events, and sensitive moments living forever in one thread.',
