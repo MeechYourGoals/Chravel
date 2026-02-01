@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Search, Users, X, Mic, Calendar } from 'lucide-react';
+import { Search, Users, X, Mic, Calendar, Plus } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
+import { Textarea } from '../ui/textarea';
+import { useToast } from '../../hooks/use-toast';
 import type { Speaker } from '../../types/events';
 
 interface LineupTabProps {
@@ -10,9 +12,13 @@ interface LineupTabProps {
   userRole: string;
 }
 
-export const LineupTab = ({ speakers, userRole }: LineupTabProps) => {
+export const LineupTab = ({ speakers: initialSpeakers, userRole }: LineupTabProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpeaker, setSelectedSpeaker] = useState<Speaker | null>(null);
+  const [speakers, setSpeakers] = useState<Speaker[]>(initialSpeakers);
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [newMember, setNewMember] = useState({ name: '', title: '', company: '', bio: '' });
+  const { toast } = useToast();
 
   const filteredSpeakers = speakers.filter(speaker =>
     speaker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -20,16 +26,116 @@ export const LineupTab = ({ speakers, userRole }: LineupTabProps) => {
     speaker.company?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleAddMember = () => {
+    if (!newMember.name.trim()) {
+      toast({ title: 'Name is required', variant: 'destructive' });
+      return;
+    }
+
+    const member: Speaker = {
+      id: Date.now().toString(),
+      name: newMember.name.trim(),
+      title: newMember.title.trim() || undefined,
+      company: newMember.company.trim() || undefined,
+      bio: newMember.bio.trim() || undefined,
+      avatar: undefined,
+      sessions: []
+    };
+
+    setSpeakers(prev => [...prev, member]);
+    setNewMember({ name: '', title: '', company: '', bio: '' });
+    setIsAddingMember(false);
+    toast({ title: 'Added to line-up successfully' });
+  };
+
+  const isOrganizer = userRole === 'organizer';
+
   return (
     <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <Users size={24} className="text-orange-400" />
-        <div>
-          <h2 className="text-xl font-semibold text-white">Line-up</h2>
-          <p className="text-gray-400 text-sm">Speakers, artists, and presenters at this event</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Users size={24} className="text-yellow-500" />
+          <div>
+            <h2 className="text-xl font-semibold text-white">Line-up</h2>
+            <p className="text-gray-400 text-sm">Speakers, artists, and presenters at this event</p>
+          </div>
         </div>
+        {isOrganizer && !isAddingMember && (
+          <Button
+            onClick={() => setIsAddingMember(true)}
+            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
+          >
+            <Plus size={16} className="mr-2" />
+            Add to Line-up
+          </Button>
+        )}
       </div>
+
+      {/* Add Member Form */}
+      {isAddingMember && isOrganizer && (
+        <Card className="bg-gray-800/50 border-gray-700">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium text-white">Add to Line-up</h3>
+              <Button
+                onClick={() => {
+                  setIsAddingMember(false);
+                  setNewMember({ name: '', title: '', company: '', bio: '' });
+                }}
+                variant="ghost"
+                size="sm"
+              >
+                Cancel
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Input
+                value={newMember.name}
+                onChange={(e) => setNewMember(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Name *"
+                className="bg-gray-900 border-gray-700 text-white"
+              />
+              <Input
+                value={newMember.title}
+                onChange={(e) => setNewMember(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Title (e.g., CEO, Keynote Speaker)"
+                className="bg-gray-900 border-gray-700 text-white"
+              />
+              <Input
+                value={newMember.company}
+                onChange={(e) => setNewMember(prev => ({ ...prev, company: e.target.value }))}
+                placeholder="Company/Organization"
+                className="bg-gray-900 border-gray-700 text-white md:col-span-2"
+              />
+            </div>
+            <Textarea
+              value={newMember.bio}
+              onChange={(e) => setNewMember(prev => ({ ...prev, bio: e.target.value }))}
+              placeholder="Bio (optional)"
+              className="bg-gray-900 border-gray-700 text-white"
+              rows={2}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                onClick={() => {
+                  setIsAddingMember(false);
+                  setNewMember({ name: '', title: '', company: '', bio: '' });
+                }}
+                variant="ghost"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddMember}
+                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
+              >
+                Add to Line-up
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search */}
       <div className="relative">
@@ -53,7 +159,7 @@ export const LineupTab = ({ speakers, userRole }: LineupTabProps) => {
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {speaker.avatar ? (
                       <img src={speaker.avatar} alt={speaker.name} className="w-full h-full object-cover" />
                     ) : (
@@ -66,7 +172,7 @@ export const LineupTab = ({ speakers, userRole }: LineupTabProps) => {
                       <p className="text-gray-400 text-sm truncate">{speaker.title}</p>
                     )}
                     {speaker.company && (
-                      <p className="text-orange-400 text-xs truncate">{speaker.company}</p>
+                      <p className="text-yellow-500 text-xs truncate">{speaker.company}</p>
                     )}
                   </div>
                 </div>
@@ -79,9 +185,20 @@ export const LineupTab = ({ speakers, userRole }: LineupTabProps) => {
           <CardContent className="p-12 text-center">
             <Users size={48} className="text-gray-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">No Line-up Yet</h3>
-            <p className="text-gray-400">
-              Speakers and performers will be announced soon
+            <p className="text-gray-400 mb-4">
+              {isOrganizer 
+                ? 'Add speakers, artists, or presenters to your event line-up'
+                : 'Speakers and performers will be announced soon'}
             </p>
+            {isOrganizer && (
+              <Button
+                onClick={() => setIsAddingMember(true)}
+                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
+              >
+                <Plus size={16} className="mr-2" />
+                Add First Member
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -106,7 +223,7 @@ export const LineupTab = ({ speakers, userRole }: LineupTabProps) => {
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center overflow-hidden">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center overflow-hidden">
                     {selectedSpeaker.avatar ? (
                       <img src={selectedSpeaker.avatar} alt={selectedSpeaker.name} className="w-full h-full object-cover" />
                     ) : (
@@ -119,7 +236,7 @@ export const LineupTab = ({ speakers, userRole }: LineupTabProps) => {
                       <p className="text-gray-400">{selectedSpeaker.title}</p>
                     )}
                     {selectedSpeaker.company && (
-                      <p className="text-orange-400 text-sm">{selectedSpeaker.company}</p>
+                      <p className="text-yellow-500 text-sm">{selectedSpeaker.company}</p>
                     )}
                   </div>
                 </div>
