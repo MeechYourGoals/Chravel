@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 
 /**
  * Per-trip PDF export limits for freemium model
  *
  * Free: 1 export per trip (creates friction to upgrade, but gives users a sample)
  * Explorer+: Unlimited exports
+ * Super Admins: Unlimited exports (founder bypass)
  */
 const FREE_TIER_LIMIT = 1;
 
@@ -23,6 +25,9 @@ export interface PdfExportUsage {
 export const usePdfExportUsage = (tripId: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Super admins always get unlimited (founder bypass)
+  const isSuperAdmin = isSuperAdminEmail(user?.email);
 
   // Fetch user tier from profile
   const { data: profileData } = useQuery({
@@ -45,8 +50,9 @@ export const usePdfExportUsage = (tripId: string) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Determine tier from profile
+  // Determine tier from profile (super admins always get pro tier)
   const getTier = (): UserTier => {
+    if (isSuperAdmin) return 'pro'; // Founder bypass
     if (!profileData) return 'free';
     const appRole = profileData.app_role;
     const productId = profileData.subscription_product_id;
@@ -65,7 +71,7 @@ export const usePdfExportUsage = (tripId: string) => {
   };
 
   const tier = getTier();
-  const isPaidUser = tier !== 'free';
+  const isPaidUser = tier !== 'free' || isSuperAdmin;
 
   // Fetch export count for this trip - use localStorage for simplicity
   // In production, this could be a database table like concierge_usage

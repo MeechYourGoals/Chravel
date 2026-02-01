@@ -608,7 +608,7 @@ export const TripHeader = ({
               {/* Left-aligned: Invite */}
               <button
                 onClick={() => setShowInvite(true)}
-                className={`flex items-center justify-center gap-1 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 hover:scale-105 shrink-0`}
+                className="flex items-center justify-center gap-1 bg-gray-800/50 hover:bg-gray-700/50 text-white text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 border border-gray-700 hover:border-gray-600 shrink-0"
                 title="Invite people to this trip"
               >
                 <Plus size={14} />
@@ -622,7 +622,7 @@ export const TripHeader = ({
                 className={cn(
                   'flex items-center justify-center gap-1 text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 shrink-0',
                   canExport
-                    ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
+                    ? 'bg-gray-800/50 hover:bg-gray-700/50 text-white border border-gray-700 hover:border-gray-600'
                     : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50',
                 )}
                 title={canExport ? 'Create PDF Recap' : 'Upgrade for PDF recap'}

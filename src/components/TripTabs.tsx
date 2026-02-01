@@ -260,7 +260,7 @@ export const TripTabs = ({
                       flex-1
                       ${
                         isActive && enabled
-                          ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
+                          ? 'bg-white/20 text-white border border-white/30 shadow-sm'
                           : enabled
                           ? 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white hover:shadow-sm'
                           : 'bg-white/5 text-gray-500 cursor-not-allowed opacity-40 grayscale'
