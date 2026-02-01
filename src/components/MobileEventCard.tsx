@@ -116,7 +116,7 @@ export const MobileEventCard = ({ event, onArchiveSuccess, onHideSuccess, onDele
   if (!isMobile) return null;
 
   return (
-    <div className={`bg-gradient-to-br ${eventColor.cardGradient} backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden transition-all duration-300 shadow-lg hover:scale-[1.02] group`}>
+    <div className={`bg-gradient-to-br ${eventColor.cardGradient} backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden transition-all duration-300 shadow-lg hover:scale-[1.02] group relative`}>
       {/* Menu */}
       <div className="absolute top-2 right-2 z-10">
         <DropdownMenu>

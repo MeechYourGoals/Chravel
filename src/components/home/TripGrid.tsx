@@ -501,7 +501,13 @@ export const TripGrid = React.memo(
             ) : viewMode === 'events' ? (
               Object.values(activeEvents).map(event =>
                 isMobile ? (
-                  <MobileEventCard key={event.id} event={event} />
+                  <MobileEventCard
+                    key={event.id}
+                    event={event}
+                    onArchiveSuccess={onTripStateChange}
+                    onHideSuccess={onTripStateChange}
+                    onDeleteSuccess={onTripStateChange}
+                  />
                 ) : (
                   <EventCard
                     key={event.id}

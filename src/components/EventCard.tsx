@@ -142,7 +142,7 @@ export const EventCard = ({ event, onArchiveSuccess, onHideSuccess, onDeleteSucc
       <div className="absolute top-4 right-4 z-10">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="text-white/60 hover:text-white transition-colors opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-xl">
+            <button className="text-white/60 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-xl">
               <MoreHorizontal size={16} />
             </button>
           </DropdownMenuTrigger>
