@@ -1,147 +1,251 @@
 
-# Fix Color Inconsistency: Standardize to Gold Theme Across App
+# Event Permissions: Role-Based Access Control Implementation
 
-## Problem Summary
+## Overview
 
-The app has inconsistent button and accent colors across different tabs:
-
-| Location | Current Color | Target Color |
-|----------|---------------|--------------|
-| Trip Card "View" button | ✅ `from-yellow-500 to-yellow-600` + black text | Keep as-is (reference) |
-| Polls "Create Poll" button | `accentColors.gradient` + white text | Gold gradient + **black text** |
-| Tasks "Add Task" / "Add First Task" | `bg-orange-600` (orange) | Gold gradient + black text |
-| Agenda "Add Session" / "Upload Agenda" | `bg-orange-600` (orange) | Gold gradient + black text |
-| Line-up icon | `text-orange-400` (orange) | Gold icon color |
-| EventTasksTab icon | `text-orange-400` (orange) | Gold icon color |
-
-**Reference**: The "View" button on trip cards (`TripCard.tsx` line 554):
-```
-bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-semibold
-```
-
-This is the standard gold button styling to apply everywhere.
+Implement proper permission checks for Event trips so that **attendees have restricted access** while **organizers/admins maintain full control**. This ensures event integrity while allowing collaborative features like Chat and Media sharing.
 
 ---
 
-## Root Cause
+## Permission Matrix
 
-1. **TripVariantContext.tsx** uses `glass-orange` and `glass-yellow` color tokens that **don't exist** in `tailwind.config.ts`
-2. Event-specific components hardcode `bg-orange-600` instead of using the design system gold
-3. Polls button uses white text on gold background (low contrast)
+| Feature | Attendee | Organizer/Admin |
+|---------|----------|-----------------|
+| **Agenda** | View only | Create, Edit, Delete, Upload |
+| **Calendar** | View only | Create, Edit, Delete |
+| **Chat** | Full access (send/receive) | Full access + moderation |
+| **Media** | Upload, Download, Delete own | Upload, Download, Delete any |
+| **Line-up** | View only | Create, Edit, Delete |
+| **Polls** | Vote only | Create, Close, Delete + Vote |
+| **Tasks** | View only | Create, Edit, Delete |
 
 ---
 
-## Implementation Plan
+## Technical Implementation
 
-### 1. Update TripVariantContext.tsx - Fix Consumer Accent Colors
+### Phase 1: Extend `useEventPermissions` Hook
 
-**File**: `src/contexts/TripVariantContext.tsx`
+**File**: `src/hooks/useEventPermissions.ts`
 
-Change the consumer variant from non-existent `glass-orange/glass-yellow` to actual gold colors:
-
-```typescript
-// Line 48-53: Change consumer accentColors
-: {
-    primary: 'yellow-500',
-    secondary: 'yellow-600',
-    gradient: 'from-yellow-500 to-yellow-600', 
-    badge: 'from-yellow-500 to-yellow-600'
-  };
-```
-
-This makes `accentColors.gradient` resolve to the same gold as the View button.
-
-### 2. Fix Polls "Create Poll" Button Text Color
-
-**File**: `src/components/CommentsWall.tsx`
-
-Line 26-27: Change `text-white` to `text-black`:
+Add event-specific feature permissions that distinguish between organizer and attendee roles:
 
 ```typescript
-// Before
-className={`...bg-gradient-to-r ${accentColors.gradient} ...text-white...`}
-
-// After
-className={`...bg-gradient-to-r ${accentColors.gradient} ...text-black font-semibold...`}
+export interface EventFeaturePermissions {
+  agenda: { canView: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean; canUpload: boolean };
+  calendar: { canView: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean };
+  chat: { canView: boolean; canSend: boolean; canDeleteOwn: boolean; canDeleteAny: boolean };
+  media: { canView: boolean; canUpload: boolean; canDeleteOwn: boolean; canDeleteAny: boolean };
+  lineup: { canView: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean };
+  polls: { canView: boolean; canVote: boolean; canCreate: boolean; canClose: boolean; canDelete: boolean };
+  tasks: { canView: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean };
+}
 ```
 
-### 3. Fix EventTasksTab - Orange to Gold
+Add logic to determine if user is the **trip creator** by querying `trips.created_by` in addition to checking `trip_admins` table.
 
-**File**: `src/components/events/EventTasksTab.tsx`
+### Phase 2: Update EventDetailContent
 
-**Changes**:
-- Line 90: Icon color `text-orange-400` → `text-yellow-500`
-- Line 102: Button `bg-orange-600 hover:bg-orange-700` → `bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold`
-- Line 137: Same button fix for "Add Task" in form
-- Line 191: Task number badge `bg-orange-600/20 border-orange-500/50` → `bg-yellow-500/20 border-yellow-500/50`
-- Line 192: Task number text `text-orange-400` → `text-yellow-500`
-- Line 239: "Add First Task" button - same gold gradient
+**File**: `src/components/events/EventDetailContent.tsx`
 
-### 4. Fix AgendaModal - Orange to Gold
+Pass granular permissions to each tab component instead of just `isAdmin` boolean:
+
+```typescript
+// Current
+<EventTasksTab eventId={tripId} isAdmin={showAsAdmin} />
+
+// Updated
+<EventTasksTab 
+  eventId={tripId} 
+  permissions={eventPermissions.tasks}
+/>
+```
+
+### Phase 3: Update Individual Tab Components
+
+#### 3a. AgendaModal
 
 **File**: `src/components/events/AgendaModal.tsx`
 
-**Changes**:
-- Line 233: "Add Session" button `bg-orange-600 hover:bg-orange-700` → Gold gradient + black text
-- Line 557: "Upload Agenda" button `bg-orange-600 hover:bg-orange-700` → Gold gradient + black text
-- Line 571: Demo mode indicator `bg-orange-600/10 border-orange-500/20` → `bg-yellow-500/10 border-yellow-500/20`
-- Line 572: Demo mode text `text-orange-300` → `text-yellow-300`
-
-### 5. Fix LineupTab - Orange to Gold Icons
-
-**File**: `src/components/events/LineupTab.tsx`
-
-**Changes**:
-- Line 27: Header icon `text-orange-400` → `text-yellow-500`
-- Line 56: Avatar gradient `from-orange-500 to-pink-500` → `from-yellow-500 to-yellow-600`
-- Line 69: Company text `text-orange-400` → `text-yellow-500`
-- Line 109: Modal avatar gradient - same gold gradient
-- Line 122: Modal company text - same gold color
-
-### 6. Add Lineup Member Creation (for Event Organizers)
-
-**File**: `src/components/events/LineupTab.tsx`
-
-Currently the LineupTab only displays speakers but has no way for organizers to add them. Adding a button and form:
+**Current**: Uses `isAdmin` prop to show/hide controls
+**Change**: Accept `permissions` prop with granular access
 
 ```typescript
-// Add after search input (around line 43)
-{userRole === 'organizer' && (
-  <Button
-    onClick={() => setIsAddingMember(true)}
-    className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
-  >
-    <Plus size={16} className="mr-2" />
-    Add to Line-up
-  </Button>
-)}
-
-// Add form state and handler for adding lineup members
-const [isAddingMember, setIsAddingMember] = useState(false);
-const [newMember, setNewMember] = useState({ name: '', title: '', company: '', bio: '' });
+interface AgendaModalProps {
+  eventId: string;
+  permissions: {
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+    canUpload: boolean;
+  };
+  // ... existing props
+}
 ```
 
-Add a simple form card that appears when the button is clicked, allowing the organizer to enter name, title, company, and bio.
+- Hide "Add Session" button if `!permissions.canCreate`
+- Hide "Upload" button if `!permissions.canUpload`  
+- Hide Edit/Delete icons on sessions if `!permissions.canEdit/canDelete`
+- Show read-only message for attendees: "The organizer manages this schedule"
 
-### 7. Fix EnhancedAgendaTab Button Styling  
+#### 3b. GroupCalendar
 
-**File**: `src/components/events/EnhancedAgendaTab.tsx`
+**File**: `src/components/GroupCalendar.tsx`
 
-Line 148: Button uses `bg-primary` which should already be gold, but ensure consistency:
-- Line 291: "Add Session" submit button - verify gold styling
+**Current**: Uses `canPerformAction('calendar', 'can_edit_events')` from `useRolePermissions`
+**Change**: Accept permissions prop for Events variant
+
+- Hide "Add Event", "Import" buttons for attendees
+- Hide Edit/Delete buttons on events for attendees
+- Keep Export visible for all (read operation)
+
+#### 3c. LineupTab
+
+**File**: `src/components/events/LineupTab.tsx`
+
+**Current**: Checks `userRole === 'organizer'`
+**Change**: Accept permissions prop
+
+```typescript
+interface LineupTabProps {
+  speakers: Speaker[];
+  permissions: {
+    canView: boolean;
+    canCreate: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+  };
+}
+```
+
+- Hide "Add to Line-up" button if `!permissions.canCreate`
+- Hide edit/delete controls if `!permissions.canEdit/canDelete`
+
+#### 3d. EventTasksTab
+
+**File**: `src/components/events/EventTasksTab.tsx`
+
+**Current**: Uses `isAdmin` prop
+**Change**: Accept permissions prop
+
+- Hide "Add Task" button if `!permissions.canCreate`
+- Hide Edit/Delete buttons if `!permissions.canEdit/canDelete`
+- Show message for attendees: "The organizer manages tasks for this event"
+
+#### 3e. CommentsWall (Polls)
+
+**File**: `src/components/CommentsWall.tsx`
+
+**Change**: Accept permissions prop to control poll creation
+
+```typescript
+interface CommentsWallProps {
+  tripId: string;
+  permissions?: {
+    canView: boolean;
+    canVote: boolean;
+    canCreate: boolean;
+    canClose: boolean;
+    canDelete: boolean;
+  };
+}
+```
+
+- Hide "Create Poll" button if `!permissions?.canCreate`
+- Pass voting permissions to PollComponent
+- Attendees can still vote on existing polls
+
+#### 3f. PollComponent
+
+**File**: `src/components/PollComponent.tsx`
+
+**Change**: Accept permissions to control close/delete actions
+
+- Pass `canClose` and `canDelete` to Poll component
+- Hide close/delete buttons for attendees
+- Keep voting enabled for all with `canVote`
+
+#### 3g. UnifiedMediaHub
+
+**File**: `src/components/UnifiedMediaHub.tsx`
+
+**Change**: Accept permissions prop
+
+```typescript
+interface UnifiedMediaHubProps {
+  tripId: string;
+  permissions?: {
+    canView: boolean;
+    canUpload: boolean;
+    canDeleteOwn: boolean;
+    canDeleteAny: boolean;
+  };
+}
+```
+
+- Upload enabled for all (attendees encouraged to share photos)
+- Delete own media enabled for all
+- Delete any media (moderation) only for organizer/admin
 
 ---
 
-## Standardized Button Class
+## Permission Determination Logic
 
-Create a consistent gold button class to use everywhere:
+In `useEventPermissions`, determine organizer status by:
 
-```css
-/* Gold CTA Button - matches Trip Card "View" button */
-bg-gradient-to-r from-yellow-500 to-yellow-600 
-hover:from-yellow-600 hover:to-yellow-700 
-text-black font-semibold 
-shadow-lg hover:shadow-yellow-500/25
+1. Check `trip_admins` table for explicit admin assignment
+2. Check `trips.created_by === user.id` for trip creator
+3. Check `trip_members.role === 'admin'` for legacy role assignment
+4. Check `user_trip_roles` for 'Organizer' role assignment
+
+```typescript
+const isOrganizer = isAdmin || isCreator || hasOrganizerRole;
+
+const eventPermissions: EventFeaturePermissions = {
+  agenda: {
+    canView: true,
+    canCreate: isOrganizer,
+    canEdit: isOrganizer,
+    canDelete: isOrganizer,
+    canUpload: isOrganizer
+  },
+  calendar: {
+    canView: true,
+    canCreate: isOrganizer,
+    canEdit: isOrganizer,
+    canDelete: isOrganizer
+  },
+  chat: {
+    canView: true,
+    canSend: true,
+    canDeleteOwn: true,
+    canDeleteAny: isOrganizer
+  },
+  media: {
+    canView: true,
+    canUpload: true,
+    canDeleteOwn: true,
+    canDeleteAny: isOrganizer
+  },
+  lineup: {
+    canView: true,
+    canCreate: isOrganizer,
+    canEdit: isOrganizer,
+    canDelete: isOrganizer
+  },
+  polls: {
+    canView: true,
+    canVote: true,
+    canCreate: isOrganizer,
+    canClose: isOrganizer,
+    canDelete: isOrganizer
+  },
+  tasks: {
+    canView: true,
+    canCreate: isOrganizer,
+    canEdit: isOrganizer,
+    canDelete: isOrganizer
+  }
+};
 ```
 
 ---
@@ -150,39 +254,41 @@ shadow-lg hover:shadow-yellow-500/25
 
 | File | Changes |
 |------|---------|
-| `src/contexts/TripVariantContext.tsx` | Update consumer gradient to use yellow-500/600 |
-| `src/components/CommentsWall.tsx` | Change poll button text from white to black |
-| `src/components/events/EventTasksTab.tsx` | Replace all orange-600 with gold gradient, fix icons |
-| `src/components/events/AgendaModal.tsx` | Replace all orange-600 with gold gradient |
-| `src/components/events/LineupTab.tsx` | Fix icon/text colors, add "Add to Line-up" button + form |
-| `src/components/events/EnhancedAgendaTab.tsx` | Verify button uses consistent gold styling |
+| `src/hooks/useEventPermissions.ts` | Add `EventFeaturePermissions` interface, `isCreator` check, export permissions object |
+| `src/components/events/EventDetailContent.tsx` | Pass granular permissions to each tab |
+| `src/components/events/AgendaModal.tsx` | Accept permissions prop, hide admin controls for attendees |
+| `src/components/GroupCalendar.tsx` | Accept permissions prop for Events variant |
+| `src/components/events/EventTasksTab.tsx` | Accept permissions prop, hide admin controls |
+| `src/components/events/LineupTab.tsx` | Accept permissions prop instead of userRole |
+| `src/components/CommentsWall.tsx` | Accept permissions prop, conditionally show Create Poll |
+| `src/components/PollComponent.tsx` | Accept permissions for close/delete visibility |
+| `src/components/UnifiedMediaHub.tsx` | Accept permissions for delete-any moderation |
+| `src/types/roleChannels.ts` | Add EventFeaturePermissions type |
 
 ---
 
-## Expected Visual Result
+## Demo Mode Behavior
 
-After these changes:
-- **All primary action buttons** will use the same gold gradient (`from-yellow-500 to-yellow-600`) with black text
-- **All accent icons** will use `text-yellow-500` instead of `text-orange-400`
-- **Polls, Tasks, Agenda, Line-up** will all match the visual language of the Trip Card "View" button
-- **Line-up tab** will allow organizers to add members to the lineup
+When `isDemoMode === true`:
+- All users get full organizer permissions
+- This allows investors to see all features during demos
 
 ---
 
-## Test Checklist
+## Test Scenarios
 
-1. Navigate to any trip → Polls tab
-   - ✓ "Create Poll" button should be gold with black text
-2. Navigate to Events trip → Tasks tab
-   - ✓ Icon should be gold, not orange
-   - ✓ "Add Task" button should be gold with black text
-   - ✓ "Add First Task" in empty state should be gold
-3. Navigate to Events trip → Agenda tab
-   - ✓ "Add Session" button should be gold
-   - ✓ "Upload Agenda" button should be gold
-4. Navigate to Events trip → Line-up tab
-   - ✓ Icon should be gold
-   - ✓ Company names should be gold text
-   - ✓ Organizers should see "Add to Line-up" button
-5. Compare all buttons to Trip Card "View" button
-   - ✓ All should match the same gold shade and gradient
+1. **As Trip Creator** (authenticated, created the event):
+   - Can see all admin buttons (Add Session, Add Task, Create Poll, etc.)
+   - Can edit/delete any content
+
+2. **As Attendee** (authenticated, joined via invite):
+   - Agenda: View sessions only, no Add/Edit/Delete buttons
+   - Calendar: View events only, no Add button
+   - Chat: Full send/receive access
+   - Media: Can upload, can delete own, cannot delete others'
+   - Line-up: View only, no Add button
+   - Polls: Can vote, cannot create/close/delete
+   - Tasks: View only, no Add button
+
+3. **In Demo Mode**:
+   - Full organizer access regardless of actual role
