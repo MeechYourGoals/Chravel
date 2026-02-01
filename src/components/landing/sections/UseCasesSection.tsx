@@ -42,7 +42,7 @@ const scenarios = [
     expandCTA: 'See how chapters stay private',
     after:
       "Create separate Trip vaults per event (Rush Week, Formal, Retreat) so chat + media stay compartmentalized. Membership is explicit, access is controlled, and your private moments don't end up as one searchable liability.",
-    badge: 'Event isolation · end-to-end encryption available',
+    badge: 'Private trip vaults with access controls',
   },
   {
     title: 'Collegiate & Pro Sports Programs',

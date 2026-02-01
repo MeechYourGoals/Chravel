@@ -9,6 +9,7 @@ import { offlineSyncService } from '@/services/offlineSyncService';
 import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { sendChatMessage } from '@/services/chatService';
+import { privacyService } from '@/services/privacyService';
 
 interface TripChatMessage {
   id: string;
@@ -59,7 +60,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     return `00000000-0000-4000-8000-${random}`;
   };
 
-  // Fetch initial messages (last 10) with offline cache support
+  // Fetch initial messages (last 10) with offline cache support and decryption
   const { data: messages = [], isLoading, error } = useQuery({
     queryKey: ['tripChat', tripId],
     queryFn: async (): Promise<TripChatMessage[]> => {
@@ -78,12 +79,32 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
 
         if (error) throw error;
 
-        const reversed = (data || []).reverse();
+        // Decrypt messages if they are encrypted
+        const decryptedData = await Promise.all(
+          (data || []).map(async (msg) => {
+            if (msg.privacy_encrypted && msg.content) {
+              try {
+                const decrypted = await privacyService.prepareMessageForDisplay(
+                  msg.content,
+                  tripId,
+                  true
+                );
+                return { ...msg, content: decrypted };
+              } catch (decryptError) {
+                console.error('[useTripChat] Decryption failed for message:', msg.id, decryptError);
+                return { ...msg, content: '[Unable to decrypt message]' };
+              }
+            }
+            return msg;
+          })
+        );
+
+        const reversed = decryptedData.reverse();
         setHasMore(data && data.length === 15);
         
-        // Cache messages for offline access
-        if (data && data.length > 0) {
-          await saveMessagesToCache(tripId, data);
+        // Cache messages for offline access (store decrypted versions)
+        if (decryptedData && decryptedData.length > 0) {
+          await saveMessagesToCache(tripId, decryptedData);
         }
         
         return reversed as TripChatMessage[];
@@ -167,6 +188,33 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
             if (isDuplicate) {
               console.log('[CHAT REALTIME] Duplicate message ignored:', newMessage.id, newMessage.client_message_id);
               return old;
+            }
+
+            // Decrypt if encrypted before adding to state
+            if (newMessage.privacy_encrypted && newMessage.content) {
+              privacyService.prepareMessageForDisplay(
+                newMessage.content,
+                tripId!,
+                true
+              ).then(decrypted => {
+                queryClient.setQueryData(['tripChat', tripId], (current: TripChatMessage[] = []) => {
+                  return current.map(msg => 
+                    msg.id === newMessage.id 
+                      ? { ...msg, content: decrypted }
+                      : msg
+                  );
+                });
+              }).catch(err => {
+                console.error('[CHAT REALTIME] Decryption failed:', err);
+                // Mark as unable to decrypt
+                queryClient.setQueryData(['tripChat', tripId], (current: TripChatMessage[] = []) => {
+                  return current.map(msg => 
+                    msg.id === newMessage.id 
+                      ? { ...msg, content: '[Unable to decrypt message]' }
+                      : msg
+                  );
+                });
+              });
             }
 
             // Insert message in correct chronological order
