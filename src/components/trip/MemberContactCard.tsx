@@ -57,10 +57,10 @@ export const MemberContactCard: React.FC<MemberContactCardProps> = ({
       setLoading(true);
       try {
         // Use profiles_public view which respects privacy settings
-        // and trip-scoped visibility (after migration is applied)
+        // Phone is only returned if user has opted in (show_phone=true) AND viewer is trip co-member
         const { data, error } = await supabase
           .from('profiles_public')
-          .select('phone, show_phone')
+          .select('phone')
           .eq('user_id', member.id)
           .single();
 
@@ -70,9 +70,11 @@ export const MemberContactCard: React.FC<MemberContactCardProps> = ({
           return;
         }
 
+        // If phone is returned, it means the user has opted in to share
+        const hasPhone = !!data?.phone;
         setContactInfo({
           phone: data?.phone ?? null,
-          showPhone: data?.show_phone ?? false,
+          showPhone: hasPhone, // Phone only comes back if sharing is enabled
         });
       } catch (err) {
         console.error('Error fetching contact info:', err);
