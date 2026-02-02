@@ -673,8 +673,8 @@ const Index = () => {
                 <TripViewToggle
                   viewMode={viewMode}
                   onViewModeChange={handleViewModeChange}
-                  showRecsTab={true}
-                  recsTabDisabled={true}
+                  showRecsTab={false}
+                  recsTabDisabled={false}
                   className="w-full lg:flex-1 h-12 sm:h-16"
                   requireAuth={true}
                   onAuthRequired={() => setIsAuthModalOpen(true)}
@@ -797,8 +797,8 @@ const Index = () => {
                     : 'myTrips'
             }
             onSelectType={handleTripTypeSelect}
-            showRecsOption={true}
-            recsDisabled={!isDemoMode}
+            showRecsOption={isDemoMode}
+            recsDisabled={false}
           />
         </div>
       );
@@ -832,8 +832,8 @@ const Index = () => {
               <TripViewToggle
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
-                showRecsTab={true}
-                recsTabDisabled={!isDemoMode}
+                showRecsTab={isDemoMode}
+                recsTabDisabled={false}
                 className="w-full lg:flex-1 h-12 sm:h-16"
               />
               <TripActionBar
@@ -959,8 +959,8 @@ const Index = () => {
                   : 'myTrips'
           }
           onSelectType={handleTripTypeSelect}
-          showRecsOption={true}
-          recsDisabled={!isDemoMode}
+          showRecsOption={isDemoMode}
+          recsDisabled={false}
         />
       </div>
     );
@@ -1008,8 +1008,8 @@ const Index = () => {
           <TripViewToggle
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
-            showRecsTab={true}
-            recsTabDisabled={!isDemoMode}
+            showRecsTab={isDemoMode}
+            recsTabDisabled={false}
             className="w-full lg:flex-1 h-12 sm:h-16"
           />
           <TripActionBar
@@ -1147,8 +1147,8 @@ const Index = () => {
                 : 'myTrips'
         }
         onSelectType={handleTripTypeSelect}
-        showRecsOption={true}
-        recsDisabled={!isDemoMode}
+        showRecsOption={isDemoMode}
+        recsDisabled={false}
       />
     </div>
   );

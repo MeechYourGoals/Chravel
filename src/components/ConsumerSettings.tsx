@@ -38,21 +38,23 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onCl
   const [activeSection, setActiveSection] = useState(initialSection || 'profile');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
-  const { demoView } = useDemoMode();
-  const isAppPreview = demoView === 'app-preview';
+  const { isDemoMode } = useDemoMode();
 
-  const sections = [
+  const allSections = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'billing', label: 'Billing', icon: CreditCard },
     { id: 'ai-concierge', label: 'AI Concierge', icon: Sparkles },
     { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-    { id: 'saved-recs', label: 'Saved Places', icon: Bookmark, comingSoon: !isAppPreview },
+    { id: 'saved-recs', label: 'Saved Places', icon: Bookmark, demoOnly: true },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'permissions', label: 'Permissions', icon: KeyRound },
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
     { id: 'settings', label: 'General Settings', icon: Settings },
     { id: 'archived', label: 'Archived Trips', icon: Archive }
   ];
+
+  // Filter out demo-only sections when not in demo mode
+  const sections = allSections.filter(section => !('demoOnly' in section && section.demoOnly) || isDemoMode);
 
   const renderTravelWalletSection = () => (
     <div>
@@ -101,32 +103,21 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onCl
             <div className="mt-2 bg-white/10 rounded-xl overflow-hidden">
               {sections.map((section) => {
                 const Icon = section.icon;
-                const isComingSoon = 'comingSoon' in section && section.comingSoon;
                 return (
                   <button
                     key={section.id}
                     onClick={() => {
-                      if (!isComingSoon) {
-                        setActiveSection(section.id);
-                        setShowMobileMenu(false);
-                      }
+                      setActiveSection(section.id);
+                      setShowMobileMenu(false);
                     }}
-                    disabled={isComingSoon}
                     className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
-                      isComingSoon 
-                        ? 'text-gray-500 cursor-not-allowed opacity-60'
-                        : activeSection === section.id
-                          ? 'bg-glass-orange/20 text-glass-orange'
-                          : 'text-gray-300 hover:text-white hover:bg-white/10'
+                      activeSection === section.id
+                        ? 'bg-glass-orange/20 text-glass-orange'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
                     }`}
                   >
                     <Icon size={20} />
                     <span className="flex-1">{section.label}</span>
-                    {isComingSoon && (
-                      <span className="text-xs bg-gray-600 text-gray-300 px-2 py-0.5 rounded-full">
-                        Coming Soon
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -152,31 +143,18 @@ export const ConsumerSettings = ({ currentUserId, initialSection, onClose: _onCl
         <div className="space-y-1.5">
           {sections.map((section) => {
             const Icon = section.icon;
-            const isComingSoon = 'comingSoon' in section && section.comingSoon;
             return (
               <button
                 key={section.id}
-                onClick={() => {
-                  if (!isComingSoon) {
-                    setActiveSection(section.id);
-                  }
-                }}
-                disabled={isComingSoon}
+                onClick={() => setActiveSection(section.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
-                  isComingSoon
-                    ? 'text-gray-500 cursor-not-allowed opacity-60'
-                    : activeSection === section.id
-                      ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
-                      : 'text-gray-300 hover:text-white hover:bg-white/10'
+                  activeSection === section.id
+                    ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
                 }`}
               >
                 <Icon size={20} />
                 <span className="flex-1 text-left">{section.label}</span>
-                {isComingSoon && (
-                  <span className="text-xs bg-gray-600 text-gray-300 px-1.5 py-0.5 rounded-full">
-                    Soon
-                  </span>
-                )}
               </button>
             );
           })}
