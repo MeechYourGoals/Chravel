@@ -190,7 +190,7 @@ export const OutstandingPayments = ({
         const debtorIds = [...new Set((splitsResult.data || []).map(s => s.debtor_user_id))];
         const { data: profiles } = await supabase
           .from('profiles_public')
-          .select('user_id, display_name, avatar_url')
+          .select('user_id, display_name, resolved_display_name, avatar_url')
           .in('user_id', debtorIds);
 
         const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
@@ -207,7 +207,7 @@ export const OutstandingPayments = ({
                 amount_owed: parseFloat(s.amount_owed.toString()),
                 is_settled: s.is_settled,
                 settled_at: s.settled_at,
-                debtor_name: profile?.display_name || 'Unknown',
+                debtor_name: profile?.resolved_display_name || profile?.display_name || 'Unknown',
                 debtor_avatar: profile?.avatar_url,
               };
             });

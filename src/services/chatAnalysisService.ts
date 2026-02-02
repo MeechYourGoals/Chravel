@@ -204,7 +204,7 @@ export async function detectPaymentParticipantsFromMessage(
     // Step 2: Get profiles for all trip members (use public view for co-member data)
     const { data: profiles, error: profileError } = await supabase
       .from('profiles_public')
-      .select('user_id, display_name')
+      .select('user_id, display_name, resolved_display_name')
       .in('user_id', userIds);
 
     if (profileError || !profiles) {
@@ -543,7 +543,7 @@ export async function getAutomaticParticipantSuggestions(
     // Get profiles (use public view for co-member data)
     const { data: profiles, error: profileError } = await supabase
       .from('profiles_public')
-      .select('user_id, display_name')
+      .select('user_id, display_name, resolved_display_name')
       .in('user_id', userIds);
 
     if (profileError || !profiles) {
@@ -565,7 +565,7 @@ export async function getAutomaticParticipantSuggestions(
     // Otherwise, suggest all trip members (lower confidence)
     return profiles.map(profile => ({
       userId: profile.user_id,
-      userName: profile.display_name || 'Unknown',
+      userName: profile.resolved_display_name || profile.display_name || 'Unknown',
       confidence: 0.5,
       reason: 'Trip member'
     }));

@@ -53,7 +53,7 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
         const userIds = requestsData.map(r => r.user_id);
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles_public')
-          .select('user_id, display_name, avatar_url')
+          .select('user_id, display_name, resolved_display_name, avatar_url')
           .in('user_id', userIds);
 
         if (profilesError) throw profilesError;
@@ -72,7 +72,7 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
             return {
               ...request,
               profiles: {
-                display_name: profile.display_name || 'Former Member',
+                display_name: profile.resolved_display_name || profile.display_name || 'Former Member',
                 avatar_url: profile.avatar_url || null,
               },
             };

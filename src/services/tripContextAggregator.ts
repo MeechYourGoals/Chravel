@@ -312,7 +312,7 @@ export class TripContextAggregator {
 
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, first_name, last_name')
+        .select('user_id, display_name, resolved_display_name, first_name, last_name')
         .in('user_id', memberIds);
 
       if (profilesError) throw profilesError;
@@ -322,6 +322,7 @@ export class TripContextAggregator {
       return (data || []).map((m: any) => {
         const profile = profilesMap.get(m.user_id);
         const name =
+          profile?.resolved_display_name ||
           profile?.display_name ||
           [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') ||
           'Unknown';

@@ -76,11 +76,11 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
         if (authorIds.length > 0 && !demoActive) {
           const { data: profiles } = await supabase
             .from('profiles_public')
-            .select('user_id, display_name')
+            .select('user_id, display_name, resolved_display_name')
             .in('user_id', authorIds);
 
           (profiles || []).forEach(p => {
-            profileMap.set(p.user_id, p.display_name || 'Trip member');
+            profileMap.set(p.user_id, p.resolved_display_name || p.display_name || 'Trip member');
           });
         }
 

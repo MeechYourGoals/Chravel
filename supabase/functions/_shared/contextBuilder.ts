@@ -214,19 +214,17 @@ export class TripContextBuilder {
       const memberIds = (data || []).map((m: any) => m.user_id);
       if (!memberIds.length) return [];
 
-      // profiles_public view doesn't expose email
+      // profiles_public view has resolved_display_name which always provides a usable name
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, first_name, last_name')
+        .select('user_id, resolved_display_name')
         .in('user_id', memberIds);
 
       if (profilesError) throw profilesError;
 
       interface ProfileRow {
         user_id: string;
-        display_name: string | null;
-        first_name: string | null;
-        last_name: string | null;
+        resolved_display_name: string | null;
       }
 
       const profilesMap = new Map<string, ProfileRow>(
@@ -235,10 +233,8 @@ export class TripContextBuilder {
 
       return (data || []).map((m: any) => {
         const profile = profilesMap.get(m.user_id);
-        const name =
-          profile?.display_name ||
-          [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') ||
-          'Unknown';
+        // resolved_display_name is DB-computed and always has a value if profile exists
+        const name = profile?.resolved_display_name || 'Chravel User';
 
         return {
           id: m.user_id,
@@ -327,14 +323,12 @@ export class TripContextBuilder {
       if (creatorIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles_public')
-          .select('user_id, display_name, first_name, last_name')
+          .select('user_id, resolved_display_name')
           .in('user_id', creatorIds);
         
         (profiles || []).forEach((p: any) => {
-          const name = p.display_name || 
-            [p.first_name, p.last_name].filter(Boolean).join(' ') || 
-            'Organizer';
-          profilesMap.set(p.user_id, name);
+          // resolved_display_name is DB-computed and always has a value if profile exists
+          profilesMap.set(p.user_id, p.resolved_display_name || 'Organizer');
         });
       }
 

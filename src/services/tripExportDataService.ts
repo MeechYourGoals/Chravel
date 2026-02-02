@@ -338,7 +338,7 @@ export async function getExportData(
       if (memberIds.length) {
         const { data: profiles } = await supabase
           .from('profiles_public')
-          .select('user_id, display_name, avatar_url')
+          .select('user_id, display_name, resolved_display_name, avatar_url')
           .in('user_id', memberIds);
 
         profilesMap = new Map((profiles || []).map(p => [p.user_id, p]));
@@ -348,7 +348,7 @@ export async function getExportData(
         members?.map(m => {
           const profile = profilesMap.get(m.user_id);
           return {
-            name: profile?.display_name || 'Unknown',
+            name: profile?.resolved_display_name || profile?.display_name || 'Unknown',
             role: m.role || 'member',
           };
         }) || [];

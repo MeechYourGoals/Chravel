@@ -82,7 +82,7 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
       // Use public view for co-member profile data (respects privacy settings)
       const { data, error } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, first_name, last_name, avatar_url')
+        .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
         .in('user_id', senderIds);
 
       if (error) {
@@ -92,7 +92,9 @@ export const MobileTripChat = ({ tripId, isEvent = false, isPro = false, userRol
 
       const nextMap: Record<string, { display_name: string | null; avatar_url: string | null }> = {};
       for (const row of data ?? []) {
-        const name = row.display_name
+        // resolved_display_name is DB-computed and always has a value if profile exists
+        const name = row.resolved_display_name
+          || row.display_name
           || [row.first_name, row.last_name].filter(Boolean).join(' ')
           || null;
         nextMap[row.user_id] = { display_name: name, avatar_url: row.avatar_url };

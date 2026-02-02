@@ -75,7 +75,7 @@ export const useJoinRequests = ({
         (data || []).map(async request => {
           const { data: profile, error: profileError } = await supabase
             .from('profiles_public')
-            .select('display_name, avatar_url, first_name, last_name')
+            .select('display_name, resolved_display_name, avatar_url, first_name, last_name')
             .eq('user_id', request.user_id)
             .maybeSingle();
 
@@ -90,15 +90,17 @@ export const useJoinRequests = ({
           // CRITICAL FIX: Do NOT filter out requests when profile is missing!
           // Use stored requester_name/email as fallback
           // Name resolution priority:
-          // 1. Profile display_name
-          // 2. Profile first/last name combination
-          // 3. Stored requester_name from join request (captured at request time)
-          // 4. Stored requester_email from join request
-          // 5. "New member" as last resort
+          // 1. Profile resolved_display_name (DB-computed, always has a value)
+          // 2. Profile display_name
+          // 3. Profile first/last name combination
+          // 4. Stored requester_name from join request (captured at request time)
+          // 5. Stored requester_email from join request
+          // 6. "New member" as last resort
           let finalDisplayName: string | null = null;
 
           if (profile) {
-            finalDisplayName = profile.display_name;
+            // resolved_display_name is DB-computed and always has a value if profile exists
+            finalDisplayName = profile.resolved_display_name || profile.display_name;
             if (!finalDisplayName) {
               if (profile.first_name && profile.last_name) {
                 finalDisplayName = `${profile.first_name} ${profile.last_name}`;

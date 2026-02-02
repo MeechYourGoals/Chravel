@@ -95,7 +95,7 @@ export const paymentBalanceService = {
 
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, avatar_url')
+        .select('user_id, display_name, resolved_display_name, avatar_url')
         .in('user_id', Array.from(allUserIds));
 
       if (profilesError) throw profilesError;
@@ -265,7 +265,7 @@ export const paymentBalanceService = {
 
         balances.push({
           userId: personUserId,
-          userName: profile?.display_name || 'Former Member',
+          userName: profile?.resolved_display_name || profile?.display_name || 'Former Member',
           avatar: profile?.avatar_url,
           amountOwed: entry.netAmount,
           amountOwedCurrency: baseCurrency,

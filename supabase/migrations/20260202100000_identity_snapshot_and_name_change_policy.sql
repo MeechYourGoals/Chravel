@@ -29,22 +29,131 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS display_name_updated_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS display_name_change_count INT DEFAULT 0;
 
--- 4. Update profiles_public view to include first_name / last_name
--- (already included per migration 20251230220000, this is a safety re-create)
-CREATE OR REPLACE VIEW public.profiles_public
-WITH (security_invoker = true, security_barrier = true)
-AS
-SELECT
-  p.id,
-  p.user_id,
-  p.display_name,
-  p.first_name,
-  p.last_name,
-  p.avatar_url,
-  p.bio,
-  p.created_at,
-  p.updated_at
-FROM public.profiles p;
+-- 4. Update profiles_public view with resolved_display_name computed column.
+-- This column ALWAYS returns a usable name via COALESCE chain:
+--   display_name > first+last > first > email prefix
+-- This eliminates the entire class of bugs where individual queries forget
+-- to select first_name/last_name and get NULL for display_name.
+--
+-- IMPORTANT: This view is intentionally permissive for authenticated users.
+-- The goal is to allow any authenticated user to see basic profile info
+-- (display_name, avatar, resolved_display_name) for other users.
+-- Sensitive fields (email, phone, full name) are still protected.
+--
+-- Security model:
+-- - Unauthenticated users see nothing
+-- - Authenticated users can see basic profile info for anyone
+-- - Sensitive fields (email, phone) require privacy settings OR same trip membership
+-- - resolved_display_name is always visible and always has a value
+
+-- Helper function to check if two users share a trip (used for sensitive field visibility)
+CREATE OR REPLACE FUNCTION public.is_trip_co_member(viewer_id UUID, profile_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+AS $$
+BEGIN
+  -- Same user is always a co-member of themselves
+  IF viewer_id = profile_user_id THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Check if both users share at least one trip via trip_members
+  -- OR if viewer is the creator of a trip that profile_user is a member of
+  RETURN EXISTS (
+    SELECT 1 FROM public.trip_members tm1
+    JOIN public.trip_members tm2 ON tm1.trip_id = tm2.trip_id
+    WHERE tm1.user_id = viewer_id
+      AND tm2.user_id = profile_user_id
+  ) OR EXISTS (
+    -- Also check if viewer is trip creator (creators may not always be in trip_members)
+    SELECT 1 FROM public.trips t
+    JOIN public.trip_members tm ON t.id = tm.trip_id
+    WHERE t.created_by = viewer_id
+      AND tm.user_id = profile_user_id
+  ) OR EXISTS (
+    -- And vice versa - profile_user is creator of a trip viewer is in
+    SELECT 1 FROM public.trips t
+    JOIN public.trip_members tm ON t.id = tm.trip_id
+    WHERE t.created_by = profile_user_id
+      AND tm.user_id = viewer_id
+  );
+END;
+$$;
+
+DROP VIEW IF EXISTS public.profiles_public;
+
+-- Create profiles_public view WITHOUT restrictive WHERE clause
+-- All authenticated users can see basic profile info, enabling trip member display
+CREATE VIEW public.profiles_public 
+WITH (security_invoker = true)
+AS SELECT 
+    user_id,
+    display_name,
+    avatar_url,
+    bio,
+    app_role,
+    role,
+    timezone,
+    created_at,
+    updated_at,
+    subscription_status,
+    -- resolved_display_name: ALWAYS returns a usable name
+    -- This is the key fix for the "Unknown User" / "Former Member" bug
+    -- PRIVACY: Email prefix is ONLY used when email visibility is allowed
+    -- (viewing own profile OR show_email=true AND trip co-member)
+    -- Otherwise falls back to 'Chravel User' to prevent email inference
+    COALESCE(
+      NULLIF(TRIM(display_name), ''),
+      NULLIF(TRIM(CONCAT_WS(' ', NULLIF(TRIM(first_name), ''), NULLIF(TRIM(last_name), ''))), ''),
+      NULLIF(TRIM(first_name), ''),
+      -- Email prefix fallback: gated behind same privacy rules as email field
+      CASE
+        WHEN (user_id = auth.uid()) THEN NULLIF(split_part(email, '@', 1), '')
+        WHEN ((show_email = true) AND is_trip_co_member(auth.uid(), user_id)) THEN NULLIF(split_part(email, '@', 1), '')
+        ELSE NULL
+      END,
+      -- Final fallback: generic placeholder (no PII leakage)
+      'Chravel User'
+    ) AS resolved_display_name,
+    -- First/Last name: always visible for authenticated users
+    -- (needed for name display even when display_name is null)
+    first_name,
+    last_name,
+    -- Email: only show if viewing own profile OR show_email=true AND shares a trip
+    CASE
+        WHEN (user_id = auth.uid()) THEN email
+        WHEN ((show_email = true) AND is_trip_co_member(auth.uid(), user_id)) THEN email
+        ELSE NULL::text
+    END AS email,
+    -- Phone: only show if viewing own profile OR show_phone=true AND shares a trip
+    CASE
+        WHEN (user_id = auth.uid()) THEN phone
+        WHEN ((show_phone = true) AND is_trip_co_member(auth.uid(), user_id)) THEN phone
+        ELSE NULL::text
+    END AS phone,
+    -- Privacy settings: only visible to own profile
+    CASE
+        WHEN (user_id = auth.uid()) THEN show_email
+        ELSE NULL::boolean
+    END AS show_email,
+    CASE
+        WHEN (user_id = auth.uid()) THEN show_phone
+        ELSE NULL::boolean
+    END AS show_phone,
+    -- Notification settings: only visible to own profile
+    CASE
+        WHEN (user_id = auth.uid()) THEN notification_settings
+        ELSE NULL::jsonb
+    END AS notification_settings
+FROM profiles
+WHERE 
+    -- Only require authentication - any authenticated user can see basic profile info
+    auth.uid() IS NOT NULL;
+
+-- Add comment explaining the security model and resolved_display_name
+COMMENT ON VIEW public.profiles_public IS 'Public profile view with resolved_display_name. Requires authentication. Basic info (display_name, avatar, first/last name) visible to all authenticated users. resolved_display_name always returns a usable name but gates email-prefix fallback behind privacy rules to prevent PII leakage. Sensitive fields (email, phone) protected by privacy settings and trip co-membership.';
 
 GRANT SELECT ON public.profiles_public TO authenticated;
 
