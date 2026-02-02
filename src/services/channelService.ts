@@ -8,7 +8,7 @@ import {
   CreateRoleRequest,
   AssignRoleRequest,
   CreateChannelRequest,
-  SendMessageRequest
+  SendMessageRequest,
 } from '../types/roleChannels';
 
 interface AdminPermissions {
@@ -22,12 +22,23 @@ class ChannelService {
     try {
       const uid = userId || (await supabase.auth.getUser()).data.user?.id;
       if (!uid) return false;
-      const { data } = await supabase.from('trip_admins').select('id').eq('trip_id', tripId).eq('user_id', uid).single();
+      const { data } = await supabase
+        .from('trip_admins')
+        .select('id')
+        .eq('trip_id', tripId)
+        .eq('user_id', uid)
+        .single();
       return !!data;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
-  async hasAdminPermission(tripId: string, permission: keyof AdminPermissions, userId?: string): Promise<boolean> {
+  async hasAdminPermission(
+    tripId: string,
+    permission: keyof AdminPermissions,
+    userId?: string,
+  ): Promise<boolean> {
     try {
       const uid = userId || (await supabase.auth.getUser()).data.user?.id;
       if (!uid) return false;
@@ -40,7 +51,9 @@ class ChannelService {
       if (!data) return false;
       const permissions = data.permissions as unknown as AdminPermissions;
       return permissions?.[permission] === true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
   async getUserPrimaryRole(tripId: string, userId?: string): Promise<TripRole | null> {
@@ -66,44 +79,84 @@ class ChannelService {
         description: r.description,
         createdBy: r.created_by,
         createdAt: r.created_at,
-        updatedAt: r.updated_at
+        updatedAt: r.updated_at,
       };
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 
   async createRole(request: CreateRoleRequest): Promise<TripRole | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return null;
-      const { data, error } = await supabase.from('trip_roles').insert({
-        trip_id: request.tripId, role_name: request.roleName, description: request.description, created_by: user.id
-      }).select().single();
+      const { data, error } = await supabase
+        .from('trip_roles')
+        .insert({
+          trip_id: request.tripId,
+          role_name: request.roleName,
+          description: request.description,
+          created_by: user.id,
+        })
+        .select()
+        .single();
       if (error) throw error;
-      return { id: data.id, tripId: data.trip_id, roleName: data.role_name, description: data.description, createdBy: data.created_by, createdAt: data.created_at, updatedAt: data.updated_at };
-    } catch { return null; }
+      return {
+        id: data.id,
+        tripId: data.trip_id,
+        roleName: data.role_name,
+        description: data.description,
+        createdBy: data.created_by,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+    } catch {
+      return null;
+    }
   }
 
   async getRoles(tripId: string): Promise<TripRole[]> {
     try {
-      const { data } = await supabase.from('trip_roles').select('*').eq('trip_id', tripId).order('created_at');
-      return (data || []).map(d => ({ id: d.id, tripId: d.trip_id, roleName: d.role_name, description: d.description, createdBy: d.created_by, createdAt: d.created_at, updatedAt: d.updated_at }));
-    } catch { return []; }
+      const { data } = await supabase
+        .from('trip_roles')
+        .select('*')
+        .eq('trip_id', tripId)
+        .order('created_at');
+      return (data || []).map(d => ({
+        id: d.id,
+        tripId: d.trip_id,
+        roleName: d.role_name,
+        description: d.description,
+        createdBy: d.created_by,
+        createdAt: d.created_at,
+        updatedAt: d.updated_at,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   async deleteRole(roleId: string): Promise<boolean> {
     try {
       const { error } = await supabase.from('trip_roles').delete().eq('id', roleId);
       return !error;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
   async assignUserToRole(request: AssignRoleRequest & { isPrimary?: boolean }): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return false;
 
       // Check if assigning as primary role and if user already has a primary role
-      if (request.isPrimary !== false) { // Default to primary if not specified
+      if (request.isPrimary !== false) {
+        // Default to primary if not specified
         // Check for existing primary role
         const { data: existingPrimary } = await supabase
           .from('user_trip_roles')
@@ -124,7 +177,7 @@ class ChannelService {
         user_id: request.userId,
         role_id: request.roleId,
         assigned_by: user.id,
-        is_primary: request.isPrimary !== false
+        is_primary: request.isPrimary !== false,
       });
       return !error;
     } catch {
@@ -134,31 +187,69 @@ class ChannelService {
 
   async revokeUserFromRole(tripId: string, userId: string, roleId: string): Promise<boolean> {
     try {
-      const { error } = await supabase.from('user_trip_roles').delete().eq('trip_id', tripId).eq('user_id', userId).eq('role_id', roleId);
+      const { error } = await supabase
+        .from('user_trip_roles')
+        .delete()
+        .eq('trip_id', tripId)
+        .eq('user_id', userId)
+        .eq('role_id', roleId);
       return !error;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
   async getUserRoles(tripId: string, userId: string): Promise<TripRole[]> {
     try {
-      const { data } = await supabase.from('user_trip_roles').select('role_id, trip_roles(*)').eq('trip_id', tripId).eq('user_id', userId);
-      return (data || []).filter(d => d.trip_roles).map(d => {
-        const r = d.trip_roles as any;
-        return { id: r.id, tripId: r.trip_id, roleName: r.role_name, description: r.description, createdBy: r.created_by, createdAt: r.created_at, updatedAt: r.updated_at };
-      });
-    } catch { return []; }
+      const { data } = await supabase
+        .from('user_trip_roles')
+        .select('role_id, trip_roles(*)')
+        .eq('trip_id', tripId)
+        .eq('user_id', userId);
+      return (data || [])
+        .filter(d => d.trip_roles)
+        .map(d => {
+          const r = d.trip_roles as any;
+          return {
+            id: r.id,
+            tripId: r.trip_id,
+            roleName: r.role_name,
+            description: r.description,
+            createdBy: r.created_by,
+            createdAt: r.created_at,
+            updatedAt: r.updated_at,
+          };
+        });
+    } catch {
+      return [];
+    }
   }
 
   async getRoleAssignments(tripId: string): Promise<UserRoleAssignment[]> {
     try {
-      const { data } = await supabase.from('user_trip_roles').select('*, trip_roles(role_name)').eq('trip_id', tripId);
-      return (data || []).map(d => ({ id: d.id, tripId: d.trip_id, userId: d.user_id, roleId: d.role_id, roleName: (d.trip_roles as any)?.role_name, assignedBy: d.assigned_by, assignedAt: d.assigned_at }));
-    } catch { return []; }
+      const { data } = await supabase
+        .from('user_trip_roles')
+        .select('*, trip_roles(role_name)')
+        .eq('trip_id', tripId);
+      return (data || []).map(d => ({
+        id: d.id,
+        tripId: d.trip_id,
+        userId: d.user_id,
+        roleId: d.role_id,
+        roleName: (d.trip_roles as any)?.role_name,
+        assignedBy: d.assigned_by,
+        assignedAt: d.assigned_at,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   async createChannel(request: CreateChannelRequest): Promise<TripChannel | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return null;
 
       const { data, error } = await supabase
@@ -170,7 +261,7 @@ class ChannelService {
           description: request.description,
           required_role_id: request.requiredRoleId,
           is_private: request.isPrivate ?? true,
-          created_by: user.id
+          created_by: user.id,
         })
         .select()
         .single();
@@ -179,12 +270,10 @@ class ChannelService {
 
       // Also populate channel_role_access junction table for multi-role support
       if (request.requiredRoleId) {
-        await supabase
-          .from('channel_role_access')
-          .insert({
-            channel_id: data.id,
-            role_id: request.requiredRoleId
-          });
+        await supabase.from('channel_role_access').insert({
+          channel_id: data.id,
+          role_id: request.requiredRoleId,
+        });
       }
 
       return {
@@ -198,9 +287,11 @@ class ChannelService {
         isArchived: data.is_archived,
         createdBy: data.created_by,
         createdAt: data.created_at,
-        updatedAt: data.updated_at
+        updatedAt: data.updated_at,
       };
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 
   async createChannelWithRoles(
@@ -208,10 +299,12 @@ class ChannelService {
     channelName: string,
     channelSlug: string,
     roleIds: string[],
-    description?: string
+    description?: string,
   ): Promise<TripChannel | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return null;
 
       // 1. Create the channel (use first role as required_role_id for backward compatibility)
@@ -224,7 +317,7 @@ class ChannelService {
           description: description,
           required_role_id: roleIds.length > 0 ? roleIds[0] : null,
           is_private: true,
-          created_by: user.id
+          created_by: user.id,
         })
         .select()
         .single();
@@ -237,7 +330,7 @@ class ChannelService {
       if (roleIds.length > 0) {
         const accessRecords = roleIds.map(roleId => ({
           channel_id: channelData.id,
-          role_id: roleId
+          role_id: roleId,
         }));
 
         const { error: accessError } = await supabase
@@ -261,7 +354,7 @@ class ChannelService {
         isArchived: channelData.is_archived,
         createdBy: channelData.created_by,
         createdAt: channelData.created_at,
-        updatedAt: channelData.updated_at
+        updatedAt: channelData.updated_at,
       };
     } catch (error) {
       console.error('Error creating channel with roles:', error);
@@ -271,7 +364,9 @@ class ChannelService {
 
   async getAccessibleChannels(tripId: string): Promise<TripChannel[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return [];
 
       // Get ALL user roles for the trip (not just primary)
@@ -284,11 +379,13 @@ class ChannelService {
       // Method 1: Find channels via channel_role_access junction table (multi-role support)
       const { data: junctionChannels } = await supabase
         .from('trip_channels')
-        .select(`
+        .select(
+          `
           *,
           trip_roles(role_name),
           channel_role_access!inner(role_id)
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .eq('is_archived', false)
         .in('channel_role_access.role_id', roleIds);
@@ -302,10 +399,12 @@ class ChannelService {
       // Method 2: Find channels via legacy required_role_id field (backward compatibility)
       const { data: legacyChannels } = await supabase
         .from('trip_channels')
-        .select(`
+        .select(
+          `
           *,
           trip_roles!required_role_id(role_name)
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .eq('is_archived', false)
         .in('required_role_id', roleIds);
@@ -315,6 +414,42 @@ class ChannelService {
           uniqueChannels.set(d.id, this.mapChannelData(d));
         }
       });
+
+      // Fetch member counts for all accessible channels
+      const channelIds = Array.from(uniqueChannels.keys());
+      if (channelIds.length > 0) {
+        // Calculate member counts: count users with roles that grant channel access
+        const { data: memberCounts } = await supabase
+          .from('channel_role_access')
+          .select('channel_id, role_id')
+          .in('channel_id', channelIds);
+
+        if (memberCounts) {
+          // Group by channel_id and get unique role_ids
+          const channelRoleMap = new Map<string, Set<string>>();
+          memberCounts.forEach(cr => {
+            if (!channelRoleMap.has(cr.channel_id)) {
+              channelRoleMap.set(cr.channel_id, new Set());
+            }
+            channelRoleMap.get(cr.channel_id)!.add(cr.role_id);
+          });
+
+          // For each channel, count users with any of its granted roles
+          for (const [channelId, roleSet] of channelRoleMap) {
+            const roleArray = Array.from(roleSet);
+            const { count } = await supabase
+              .from('user_trip_roles')
+              .select('*', { count: 'exact', head: true })
+              .eq('trip_id', tripId)
+              .in('role_id', roleArray);
+
+            const channel = uniqueChannels.get(channelId);
+            if (channel) {
+              channel.memberCount = count || 0;
+            }
+          }
+        }
+      }
 
       return Array.from(uniqueChannels.values());
     } catch {
@@ -333,44 +468,52 @@ class ChannelService {
       requiredRoleName: (d.trip_roles as any)?.role_name,
       isPrivate: d.is_private,
       isArchived: d.is_archived,
+      memberCount: d.member_count || 0,
       createdBy: d.created_by,
       createdAt: d.created_at,
-      updatedAt: d.updated_at
+      updatedAt: d.updated_at,
     };
   }
 
-  async sendMessage(request: SendMessageRequest & { 
-    messageType?: 'regular' | 'broadcast';
-    broadcastCategory?: 'chill' | 'logistics' | 'urgent';
-  }): Promise<ChannelMessage | null> {
+  async sendMessage(
+    request: SendMessageRequest & {
+      messageType?: 'regular' | 'broadcast';
+      broadcastCategory?: 'chill' | 'logistics' | 'urgent';
+    },
+  ): Promise<ChannelMessage | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return null;
-      
+
       const insertData: any = {
         channel_id: request.channelId,
         sender_id: user.id,
         content: request.content,
-        message_type: request.messageType === 'broadcast' ? 'broadcast' : (request.messageType || 'text'),
-        metadata: request.metadata || {}
+        message_type:
+          request.messageType === 'broadcast' ? 'broadcast' : request.messageType || 'text',
+        metadata: request.metadata || {},
       };
-      
+
       if (request.messageType === 'broadcast' && request.broadcastCategory) {
         insertData.broadcast_category = request.broadcastCategory;
         insertData.metadata = { ...insertData.metadata, category: request.broadcastCategory };
       }
-      
+
       const { data } = await supabase.from('channel_messages').insert(insertData).select().single();
-      return { 
-        id: data.id, 
-        channelId: data.channel_id, 
-        senderId: data.sender_id, 
-        content: data.content, 
-        messageType: data.message_type as 'text' | 'file' | 'system', 
-        metadata: (data.metadata || {}) as Record<string, any>, 
-        createdAt: data.created_at 
+      return {
+        id: data.id,
+        channelId: data.channel_id,
+        senderId: data.sender_id,
+        content: data.content,
+        messageType: data.message_type as 'text' | 'file' | 'system',
+        metadata: (data.metadata || {}) as Record<string, any>,
+        createdAt: data.created_at,
       };
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 
   async getMessages(channelId: string, limit = 50): Promise<ChannelMessage[]> {
@@ -378,15 +521,17 @@ class ChannelService {
       // Join with profiles to get sender names
       const { data } = await supabase
         .from('channel_messages')
-        .select(`
+        .select(
+          `
           *,
           profiles!channel_messages_sender_id_fkey(display_name, avatar_url)
-        `)
+        `,
+        )
         .eq('channel_id', channelId)
         .is('deleted_at', null)
         .order('created_at')
         .limit(limit);
-      
+
       return (data || []).map(d => {
         const profile = d.profiles as any;
         return {
@@ -398,7 +543,7 @@ class ChannelService {
           content: d.content,
           messageType: d.message_type as 'text' | 'file' | 'system',
           metadata: (d.metadata || {}) as Record<string, any>,
-          createdAt: d.created_at
+          createdAt: d.created_at,
         };
       });
     } catch (error) {
@@ -409,7 +554,9 @@ class ChannelService {
 
   async getAllChannelsForAdmin(tripId: string): Promise<TripChannel[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return [];
 
       // Check if user is admin
@@ -418,10 +565,12 @@ class ChannelService {
 
       const { data } = await supabase
         .from('trip_channels')
-        .select(`
+        .select(
+          `
           *,
           trip_roles(role_name)
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .eq('is_archived', false)
         .order('created_at');
@@ -438,7 +587,7 @@ class ChannelService {
         isArchived: d.is_archived,
         createdBy: d.created_by,
         createdAt: d.created_at,
-        updatedAt: d.updated_at
+        updatedAt: d.updated_at,
       }));
     } catch {
       return [];
@@ -448,18 +597,45 @@ class ChannelService {
   subscribeToChannel(
     channelId: string,
     onMessage: (msg: ChannelMessage) => void,
-    onMessageDeleted?: (messageId: string) => void
+    onMessageDeleted?: (messageId: string) => void,
   ): () => void {
-    const ch = supabase.channel(`chan_${channelId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'channel_messages', filter: `channel_id=eq.${channelId}` }, (p) => {
-        onMessage({ id: p.new.id, channelId: p.new.channel_id, senderId: p.new.sender_id, content: p.new.content, messageType: p.new.message_type, metadata: p.new.metadata, createdAt: p.new.created_at });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'channel_messages', filter: `channel_id=eq.${channelId}` }, (p) => {
-        // If message was deleted, notify the callback
-        if (p.new.deleted_at && onMessageDeleted) {
-          onMessageDeleted(p.new.id as string);
-        }
-      })
+    const ch = supabase
+      .channel(`chan_${channelId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'channel_messages',
+          filter: `channel_id=eq.${channelId}`,
+        },
+        p => {
+          onMessage({
+            id: p.new.id,
+            channelId: p.new.channel_id,
+            senderId: p.new.sender_id,
+            content: p.new.content,
+            messageType: p.new.message_type,
+            metadata: p.new.metadata,
+            createdAt: p.new.created_at,
+          });
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'channel_messages',
+          filter: `channel_id=eq.${channelId}`,
+        },
+        p => {
+          // If message was deleted, notify the callback
+          if (p.new.deleted_at && onMessageDeleted) {
+            onMessageDeleted(p.new.id as string);
+          }
+        },
+      )
       .subscribe();
     return () => ch.unsubscribe();
   }
@@ -467,10 +643,12 @@ class ChannelService {
   async designateAdmin(
     tripId: string,
     userId: string,
-    permissions?: Partial<AdminPermissions>
+    permissions?: Partial<AdminPermissions>,
   ): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return false;
 
       // Check if current user can designate admins
@@ -482,7 +660,7 @@ class ChannelService {
       const defaultPermissions: AdminPermissions = {
         can_manage_roles: true,
         can_manage_channels: true,
-        can_designate_admins: false
+        can_designate_admins: false,
       };
 
       const finalPermissions = { ...defaultPermissions, ...permissions };
@@ -491,7 +669,7 @@ class ChannelService {
         trip_id: tripId,
         user_id: userId,
         granted_by: user.id,
-        permissions: finalPermissions
+        permissions: finalPermissions,
       });
 
       return !error;
@@ -503,7 +681,9 @@ class ChannelService {
 
   async revokeAdmin(tripId: string, userId: string): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return false;
 
       // Check if current user can designate (and revoke) admins
@@ -528,10 +708,12 @@ class ChannelService {
   async updateAdminPermissions(
     tripId: string,
     userId: string,
-    permissions: Partial<AdminPermissions>
+    permissions: Partial<AdminPermissions>,
   ): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return false;
 
       // Check if current user can designate admins
@@ -554,7 +736,7 @@ class ChannelService {
 
       const updatedPermissions = {
         ...(currentAdmin.permissions as unknown as AdminPermissions),
-        ...permissions
+        ...permissions,
       };
 
       const { error } = await supabase
@@ -570,23 +752,22 @@ class ChannelService {
     }
   }
 
-  async getAdmins(tripId: string): Promise<Array<{
-    userId: string;
-    permissions: AdminPermissions;
-    grantedBy?: string;
-    grantedAt: string;
-  }>> {
+  async getAdmins(tripId: string): Promise<
+    Array<{
+      userId: string;
+      permissions: AdminPermissions;
+      grantedBy?: string;
+      grantedAt: string;
+    }>
+  > {
     try {
-      const { data } = await supabase
-        .from('trip_admins')
-        .select('*')
-        .eq('trip_id', tripId);
+      const { data } = await supabase.from('trip_admins').select('*').eq('trip_id', tripId);
 
       return (data || []).map(d => ({
         userId: d.user_id,
         permissions: d.permissions as unknown as AdminPermissions,
         grantedBy: d.granted_by,
-        grantedAt: d.granted_at
+        grantedAt: d.granted_at,
       }));
     } catch {
       return [];
