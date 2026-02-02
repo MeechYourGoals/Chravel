@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { demoModeService } from './demoModeService';
 import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
+import { FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 
 /**
  * Normalizes date input to YYYY-MM-DD format for database date columns
@@ -458,7 +459,7 @@ export const tripService = {
       const userIds = data.map(m => m.user_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, first_name, last_name, avatar_url')
+        .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
         .in('user_id', userIds);
 
       if (profilesError) {
@@ -541,7 +542,7 @@ export const tripService = {
       if (creatorId) {
         const { data: creatorProfile } = await supabase
           .from('profiles_public')
-          .select('user_id, display_name, avatar_url')
+          .select('user_id, display_name, resolved_display_name, avatar_url')
           .eq('user_id', creatorId)
           .maybeSingle();
 
@@ -549,7 +550,7 @@ export const tripService = {
           members: [
             {
               id: creatorId,
-              name: creatorProfile?.display_name || 'Trip Creator',
+              name: (creatorProfile as any)?.resolved_display_name || creatorProfile?.display_name || 'Trip Creator',
               avatar: creatorProfile?.avatar_url,
               isCreator: true,
             },
@@ -564,7 +565,7 @@ export const tripService = {
     const userIds = membersResult.data.map(m => m.user_id);
     const { data: profilesData } = await supabase
       .from('profiles_public')
-      .select('user_id, display_name, avatar_url')
+      .select('user_id, display_name, resolved_display_name, avatar_url')
       .in('user_id', userIds);
 
     const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
@@ -573,7 +574,7 @@ export const tripService = {
       const profile = profilesMap.get(m.user_id);
       return {
         id: m.user_id,
-        name: profile?.display_name || 'Former Member',
+        name: (profile as any)?.resolved_display_name || profile?.display_name || FORMER_MEMBER_LABEL,
         avatar: profile?.avatar_url,
         isCreator: m.user_id === creatorId,
       };

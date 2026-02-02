@@ -3278,6 +3278,7 @@ export type Database = {
           last_name: string | null
           notification_settings: Json | null
           phone: string | null
+          resolved_display_name: string | null
           role: string | null
           show_email: boolean | null
           show_phone: boolean | null

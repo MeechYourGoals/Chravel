@@ -29,24 +29,90 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS display_name_updated_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS display_name_change_count INT DEFAULT 0;
 
--- 4. Update profiles_public view to include first_name / last_name
--- (already included per migration 20251230220000, this is a safety re-create)
-CREATE OR REPLACE VIEW public.profiles_public
-WITH (security_invoker = true, security_barrier = true)
-AS
-SELECT
-  p.id,
-  p.user_id,
-  p.display_name,
-  p.first_name,
-  p.last_name,
-  p.avatar_url,
-  p.bio,
-  p.created_at,
-  p.updated_at
-FROM public.profiles p;
+-- 4. Recreate profiles_public view preserving the existing security model
+-- from 20260130191203, but adding resolved_display_name as an always-visible
+-- computed column so callers never get NULL for a name.
+--
+-- IMPORTANT: This view deliberately limits visibility to own profile + trip
+-- co-members. The resolved_display_name column is always visible (same as
+-- display_name) because it only uses display_name + first_name (which are
+-- already visible to co-members) and email prefix as last resort.
+DROP VIEW IF EXISTS public.profiles_public;
+
+CREATE VIEW public.profiles_public
+WITH (security_invoker = true)
+AS SELECT
+    user_id,
+    display_name,
+    avatar_url,
+    bio,
+    app_role,
+    role,
+    timezone,
+    created_at,
+    updated_at,
+    subscription_status,
+    -- Computed: always-visible resolved name (uses only public fields + email prefix fallback)
+    COALESCE(
+        NULLIF(TRIM(display_name), ''),
+        NULLIF(TRIM(CONCAT_WS(' ', NULLIF(TRIM(first_name), ''), NULLIF(TRIM(last_name), ''))), ''),
+        NULLIF(TRIM(first_name), ''),
+        NULLIF(split_part(email, '@', 1), '')
+    ) AS resolved_display_name,
+    -- Email: only show if viewing own profile OR show_email=true AND shares a trip
+    CASE
+        WHEN (user_id = auth.uid()) THEN email
+        WHEN ((show_email = true) AND is_trip_co_member(auth.uid(), user_id)) THEN email
+        ELSE NULL::text
+    END AS email,
+    -- Phone: only show if viewing own profile OR show_phone=true AND shares a trip
+    CASE
+        WHEN (user_id = auth.uid()) THEN phone
+        WHEN ((show_phone = true) AND is_trip_co_member(auth.uid(), user_id)) THEN phone
+        ELSE NULL::text
+    END AS phone,
+    -- First/Last name: only show if viewing own profile OR shares a trip
+    CASE
+        WHEN (user_id = auth.uid()) THEN first_name
+        WHEN is_trip_co_member(auth.uid(), user_id) THEN first_name
+        ELSE NULL::text
+    END AS first_name,
+    CASE
+        WHEN (user_id = auth.uid()) THEN last_name
+        WHEN is_trip_co_member(auth.uid(), user_id) THEN last_name
+        ELSE NULL::text
+    END AS last_name,
+    -- Privacy settings: only visible to own profile
+    CASE
+        WHEN (user_id = auth.uid()) THEN show_email
+        ELSE NULL::boolean
+    END AS show_email,
+    CASE
+        WHEN (user_id = auth.uid()) THEN show_phone
+        ELSE NULL::boolean
+    END AS show_phone,
+    -- Notification settings: only visible to own profile
+    CASE
+        WHEN (user_id = auth.uid()) THEN notification_settings
+        ELSE NULL::jsonb
+    END AS notification_settings
+FROM profiles
+WHERE
+    -- CRITICAL: Require authentication - unauthenticated users see nothing
+    auth.uid() IS NOT NULL
+    AND (
+        -- User can see their own profile
+        user_id = auth.uid()
+        -- OR they share a trip with this user
+        OR is_trip_co_member(auth.uid(), user_id)
+    );
 
 GRANT SELECT ON public.profiles_public TO authenticated;
+
+COMMENT ON VIEW public.profiles_public IS
+  'Secure view of profiles - requires authentication and only shows profiles of trip co-members or own profile. '
+  'Sensitive fields (email, phone, names) are further protected by privacy settings. '
+  'resolved_display_name is always populated: display_name > first+last > first > email prefix.';
 
 -- 5. Rate-limit trigger: max 2 display_name changes per 30 days
 CREATE OR REPLACE FUNCTION public.enforce_display_name_rate_limit()
