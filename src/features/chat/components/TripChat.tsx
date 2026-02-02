@@ -268,10 +268,13 @@ export const TripChat = ({
         // Prefer user_id for accurate ownership detection, fallback to author_name for display.
         // For system messages user_id may be null (by design).
         id: message.user_id || message.author_name || 'system',
-        name:
-          tripMembers.find(m => m.id === (message.user_id || ''))?.name ||
-          message.author_name ||
-          'System',
+        name: (() => {
+          const member = tripMembers.find(m => m.id === (message.user_id || ''));
+          // If member found and has a resolved profile name, use it.
+          // If member not found (left trip / deleted account), prefer stored author_name snapshot.
+          if (member) return member.name;
+          return message.author_name || 'System';
+        })(),
         // Canonical avatar comes from `profiles.avatar_url` via `useTripMembers`.
         // System messages should render without avatar in MessageItem.
         avatar: tripMembers.find(m => m.id === (message.user_id || ''))?.avatar || defaultAvatar,

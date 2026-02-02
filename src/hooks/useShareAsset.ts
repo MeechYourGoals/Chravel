@@ -90,7 +90,7 @@ export function useShareAsset(tripId: string) {
         const messageResult = await sendChatMessage({
           trip_id: tripId,
           user_id: userId,
-          author_name: user?.email?.split('@')[0] || 'Unknown User',
+          author_name: user?.email?.split('@')[0] || 'Former Member',
           content: '', // Empty content for pure media upload
           privacy_mode: 'standard',
           media_type: kind,
@@ -147,7 +147,7 @@ export function useShareAsset(tripId: string) {
         const messageResult = await sendChatMessage({
           trip_id: tripId,
           user_id: userId,
-          author_name: user?.email?.split('@')[0] || 'Unknown User',
+          author_name: user?.email?.split('@')[0] || 'Former Member',
           content: file.name,
           privacy_mode: 'standard',
           attachments: [
@@ -241,7 +241,7 @@ export function useShareAsset(tripId: string) {
       await sendChatMessage({
         trip_id: tripId,
         user_id: userId,
-        author_name: user?.email?.split('@')[0] || 'Unknown User',
+        author_name: user?.email?.split('@')[0] || 'Former Member',
         content: url,
         privacy_mode: 'standard',
         link_preview: {

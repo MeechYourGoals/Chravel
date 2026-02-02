@@ -148,6 +148,7 @@ class UnifiedMessagingService {
             trip_id: options.tripId,
             content: options.content,
             author_name: options.userName,
+            sender_display_name: options.userName,
             user_id: options.userId,
             privacy_mode: options.privacyMode || 'standard',
             reply_to_id: options.replyToId,

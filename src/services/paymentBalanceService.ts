@@ -265,7 +265,7 @@ export const paymentBalanceService = {
 
         balances.push({
           userId: personUserId,
-          userName: profile?.display_name || 'Unknown User',
+          userName: profile?.display_name || 'Former Member',
           avatar: profile?.avatar_url,
           amountOwed: entry.netAmount,
           amountOwedCurrency: baseCurrency,

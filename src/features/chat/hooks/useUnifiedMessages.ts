@@ -3,6 +3,7 @@ import { unifiedMessagingService, Message, SendMessageOptions } from '@/services
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
+import { resolveDisplayName } from '@/lib/resolveDisplayName';
 
 interface UseUnifiedMessagesOptions {
   tripId: string;
@@ -98,7 +99,19 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
     }
 
     setIsSending(true);
-    const userName = user.email?.split('@')[0] || 'Unknown User';
+
+    // Resolve display name from profile (snapshot at send time)
+    let userName = user.email?.split('@')[0] || 'Anonymous';
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name, first_name, last_name')
+        .eq('user_id', user.id)
+        .single();
+      userName = resolveDisplayName(profile, userName);
+    } catch {
+      // Profile lookup failed; use email-derived fallback
+    }
     
     // Create optimistic message with status tracking
     const optimisticId = `optimistic-${Date.now()}`;

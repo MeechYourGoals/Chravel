@@ -69,7 +69,7 @@ export const CompletionDrawer = ({ task, onClose }: CompletionDrawerProps) => {
                     
                     <div className="flex-1">
                       <div className="text-white font-medium">
-                        {status.user?.name || 'Unknown User'}
+                        {status.user?.name || 'Former Member'}
                       </div>
                       {status.completed_at && (
                         <div className="text-gray-400 text-xs">
@@ -105,7 +105,7 @@ export const CompletionDrawer = ({ task, onClose }: CompletionDrawerProps) => {
                     
                     <div className="flex-1">
                       <div className="text-white font-medium">
-                        {status.user?.name || 'Unknown User'}
+                        {status.user?.name || 'Former Member'}
                       </div>
                       <div className="text-gray-400 text-xs">
                         Not completed yet

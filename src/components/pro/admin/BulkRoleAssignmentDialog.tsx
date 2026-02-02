@@ -211,7 +211,7 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
-                            {profile?.display_name || 'Unknown User'}
+                            {profile?.display_name || 'Former Member'}
                           </p>
                         </div>
                       </div>

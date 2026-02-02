@@ -139,7 +139,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground text-sm">
-                      {admin.profile?.display_name || 'Unknown User'}
+                      {admin.profile?.display_name || 'Former Member'}
                     </span>
                     {isCreator && (
                       <Crown className="w-4 h-4 text-yellow-500" />
@@ -158,7 +158,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
                   onClick={() =>
                     setConfirmDemote({
                       userId: admin.user_id,
-                      userName: admin.profile?.display_name || 'Unknown User',
+                      userName: admin.profile?.display_name || 'Former Member',
                       isCreator: false
                     })
                   }
@@ -193,7 +193,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
             <SelectContent>
               {members.map((member) => (
                 <SelectItem key={member.user_id} value={member.user_id}>
-                  {member.profiles?.display_name || 'Unknown User'}
+                  {member.profiles?.display_name || 'Former Member'}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -205,7 +205,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
               if (member) {
                 setConfirmPromote({
                   userId: selectedMember,
-                  userName: member.profiles?.display_name || 'Unknown User'
+                  userName: member.profiles?.display_name || 'Former Member'
                 });
               }
             }}

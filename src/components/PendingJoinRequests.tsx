@@ -72,7 +72,7 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
             return {
               ...request,
               profiles: {
-                display_name: profile.display_name || 'Unknown User',
+                display_name: profile.display_name || 'Former Member',
                 avatar_url: profile.avatar_url || null,
               },
             };
@@ -185,7 +185,7 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
               </div>
             )}
             <div>
-              <p className="font-medium">{request.profiles?.display_name || 'Unknown User'}</p>
+              <p className="font-medium">{request.profiles?.display_name || 'Former Member'}</p>
               <p className="text-sm text-muted-foreground">
                 Requested {new Date(request.requested_at).toLocaleDateString()}
               </p>

@@ -1496,6 +1496,8 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string | null
+          display_name_change_count: number | null
+          display_name_updated_at: string | null
           email: string | null
           first_name: string | null
           free_event_limit: number | null
@@ -1524,6 +1526,8 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          display_name_change_count?: number | null
+          display_name_updated_at?: string | null
           email?: string | null
           first_name?: string | null
           free_event_limit?: number | null
@@ -1552,6 +1556,8 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          display_name_change_count?: number | null
+          display_name_updated_at?: string | null
           email?: string | null
           first_name?: string | null
           free_event_limit?: number | null
@@ -2020,6 +2026,8 @@ export type Database = {
           privacy_encrypted: boolean | null
           privacy_mode: string | null
           reply_to_id: string | null
+          sender_avatar_url: string | null
+          sender_display_name: string | null
           sentiment: string | null
           system_event_type: string | null
           thread_id: string | null
@@ -2047,6 +2055,8 @@ export type Database = {
           privacy_encrypted?: boolean | null
           privacy_mode?: string | null
           reply_to_id?: string | null
+          sender_avatar_url?: string | null
+          sender_display_name?: string | null
           sentiment?: string | null
           system_event_type?: string | null
           thread_id?: string | null
@@ -2074,6 +2084,8 @@ export type Database = {
           privacy_encrypted?: boolean | null
           privacy_mode?: string | null
           reply_to_id?: string | null
+          sender_avatar_url?: string | null
+          sender_display_name?: string | null
           sentiment?: string | null
           system_event_type?: string | null
           thread_id?: string | null

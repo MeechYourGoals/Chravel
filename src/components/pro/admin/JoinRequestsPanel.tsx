@@ -103,7 +103,7 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
 
               <div className="flex flex-col">
                 <span className="font-medium text-foreground text-sm">
-                  {request.profile?.display_name || 'Unknown User'}
+                  {request.profile?.display_name || 'Former Member'}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   Requested {formatDistanceToNow(new Date(request.requested_at), { addSuffix: true })}

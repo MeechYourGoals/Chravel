@@ -160,7 +160,7 @@ export const AiMessageModal = ({
         return;
       }
 
-      const userName = user.email?.split('@')[0] || 'Unknown User';
+      const userName = user.email?.split('@')[0] || 'Former Member';
 
       await unifiedMessagingService.sendMessage({
         tripId,

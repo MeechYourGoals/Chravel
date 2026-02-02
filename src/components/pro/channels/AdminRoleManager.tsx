@@ -645,7 +645,7 @@ export const AdminRoleManager = ({
                         className="flex items-center justify-between p-3 bg-white/5 border border-gray-700 rounded-lg"
                       >
                         <div className="flex-1">
-                          <h4 className="font-medium text-white">{member?.name || 'Unknown User'}</h4>
+                          <h4 className="font-medium text-white">{member?.name || 'Former Member'}</h4>
                           <div className="flex gap-2 mt-1">
                             {admin.permissions.can_manage_roles && (
                               <span className="text-xs bg-blue-600/20 text-blue-300 px-2 py-0.5 rounded">

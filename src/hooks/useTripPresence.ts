@@ -112,7 +112,7 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
           })
           .map((presence: any) => ({
             userId: presence.user_id,
-            displayName: presence.profiles?.display_name || 'Unknown User',
+            displayName: presence.profiles?.display_name || 'Former Member',
             avatarUrl: presence.profiles?.avatar_url,
             lastSeen: new Date(presence.last_seen),
             isActive: presence.is_active,

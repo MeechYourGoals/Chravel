@@ -324,10 +324,12 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         throw new Error('Message is too long. Please keep it under 1000 characters.');
       }
 
+      const sanitizedAuthorName = InputValidator.sanitizeText(message.author_name);
       const messageData = {
         trip_id: tripId,
         content: sanitizedContent,
-        author_name: InputValidator.sanitizeText(message.author_name),
+        author_name: sanitizedAuthorName,
+        sender_display_name: sanitizedAuthorName,
         user_id: message.userId,
         client_message_id: undefined as string | undefined,
         privacy_mode: message.privacyMode || 'standard',
