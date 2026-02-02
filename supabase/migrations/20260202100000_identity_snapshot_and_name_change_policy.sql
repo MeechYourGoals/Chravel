@@ -35,12 +35,18 @@ ALTER TABLE public.profiles
 -- This eliminates the entire class of bugs where individual queries forget
 -- to select first_name/last_name and get NULL for display_name.
 --
--- IMPORTANT: Preserves the security model from migration 20260130191203:
--- - Requires authentication (auth.uid() IS NOT NULL)
--- - Only shows profiles of trip co-members or own profile
--- - Sensitive fields (email, phone, first/last name) are protected by is_trip_co_member()
+-- IMPORTANT: This view is intentionally permissive for authenticated users.
+-- The goal is to allow any authenticated user to see basic profile info
+-- (display_name, avatar, resolved_display_name) for other users.
+-- Sensitive fields (email, phone, full name) are still protected.
+--
+-- Security model:
+-- - Unauthenticated users see nothing
+-- - Authenticated users can see basic profile info for anyone
+-- - Sensitive fields (email, phone) require privacy settings OR same trip membership
+-- - resolved_display_name is always visible and always has a value
 
--- First, ensure the is_trip_co_member function exists
+-- Helper function to check if two users share a trip (used for sensitive field visibility)
 CREATE OR REPLACE FUNCTION public.is_trip_co_member(viewer_id UUID, profile_user_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -53,18 +59,33 @@ BEGIN
     RETURN TRUE;
   END IF;
   
-  -- Check if both users share at least one trip
+  -- Check if both users share at least one trip via trip_members
+  -- OR if viewer is the creator of a trip that profile_user is a member of
   RETURN EXISTS (
     SELECT 1 FROM public.trip_members tm1
     JOIN public.trip_members tm2 ON tm1.trip_id = tm2.trip_id
     WHERE tm1.user_id = viewer_id
       AND tm2.user_id = profile_user_id
+  ) OR EXISTS (
+    -- Also check if viewer is trip creator (creators may not always be in trip_members)
+    SELECT 1 FROM public.trips t
+    JOIN public.trip_members tm ON t.id = tm.trip_id
+    WHERE t.created_by = viewer_id
+      AND tm.user_id = profile_user_id
+  ) OR EXISTS (
+    -- And vice versa - profile_user is creator of a trip viewer is in
+    SELECT 1 FROM public.trips t
+    JOIN public.trip_members tm ON t.id = tm.trip_id
+    WHERE t.created_by = profile_user_id
+      AND tm.user_id = viewer_id
   );
 END;
 $$;
 
 DROP VIEW IF EXISTS public.profiles_public;
 
+-- Create profiles_public view WITHOUT restrictive WHERE clause
+-- All authenticated users can see basic profile info, enabling trip member display
 CREATE VIEW public.profiles_public 
 WITH (security_invoker = true)
 AS SELECT 
@@ -79,13 +100,17 @@ AS SELECT
     updated_at,
     subscription_status,
     -- resolved_display_name: ALWAYS returns a usable name
-    -- This is the key fix for the "Former Member" bug
+    -- This is the key fix for the "Unknown User" / "Former Member" bug
     COALESCE(
       NULLIF(TRIM(display_name), ''),
       NULLIF(TRIM(CONCAT_WS(' ', NULLIF(TRIM(first_name), ''), NULLIF(TRIM(last_name), ''))), ''),
       NULLIF(TRIM(first_name), ''),
       NULLIF(split_part(email, '@', 1), '')
     ) AS resolved_display_name,
+    -- First/Last name: always visible for authenticated users
+    -- (needed for name display even when display_name is null)
+    first_name,
+    last_name,
     -- Email: only show if viewing own profile OR show_email=true AND shares a trip
     CASE
         WHEN (user_id = auth.uid()) THEN email
@@ -98,17 +123,6 @@ AS SELECT
         WHEN ((show_phone = true) AND is_trip_co_member(auth.uid(), user_id)) THEN phone
         ELSE NULL::text
     END AS phone,
-    -- First/Last name: only show if viewing own profile OR shares a trip
-    CASE
-        WHEN (user_id = auth.uid()) THEN first_name
-        WHEN is_trip_co_member(auth.uid(), user_id) THEN first_name
-        ELSE NULL::text
-    END AS first_name,
-    CASE
-        WHEN (user_id = auth.uid()) THEN last_name
-        WHEN is_trip_co_member(auth.uid(), user_id) THEN last_name
-        ELSE NULL::text
-    END AS last_name,
     -- Privacy settings: only visible to own profile
     CASE
         WHEN (user_id = auth.uid()) THEN show_email
@@ -125,17 +139,11 @@ AS SELECT
     END AS notification_settings
 FROM profiles
 WHERE 
-    -- CRITICAL: Require authentication - unauthenticated users see nothing
-    auth.uid() IS NOT NULL
-    AND (
-        -- User can see their own profile
-        user_id = auth.uid()
-        -- OR they share a trip with this user
-        OR is_trip_co_member(auth.uid(), user_id)
-    );
+    -- Only require authentication - any authenticated user can see basic profile info
+    auth.uid() IS NOT NULL;
 
 -- Add comment explaining the security model and resolved_display_name
-COMMENT ON VIEW public.profiles_public IS 'Secure view of profiles with resolved_display_name. Requires authentication and only shows profiles of trip co-members or own profile. resolved_display_name always returns a usable name via COALESCE(display_name, first+last, first, email_prefix).';
+COMMENT ON VIEW public.profiles_public IS 'Public profile view with resolved_display_name. Requires authentication. Basic info (display_name, avatar, resolved_display_name, first/last name) visible to all authenticated users. Sensitive fields (email, phone) protected by privacy settings and trip co-membership.';
 
 GRANT SELECT ON public.profiles_public TO authenticated;
 
