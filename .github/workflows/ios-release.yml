@@ -339,6 +339,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.release_type != 'validate_only' }}
     timeout-minutes: 10
+    env:
+      HAS_SENTRY_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
 
     steps:
       - name: Download dSYM artifact
@@ -348,7 +350,7 @@ jobs:
           path: dsyms
 
       - name: Upload to Sentry
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+        if: ${{ env.HAS_SENTRY_TOKEN == 'true' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
