@@ -77,13 +77,16 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
         (data || []).map(async (admin) => {
           const { data: profile } = await supabase
             .from('profiles_public')
-            .select('display_name, avatar_url')
+            .select('display_name, resolved_display_name, avatar_url')
             .eq('user_id', admin.user_id)
             .single();
 
           return {
             ...admin,
-            profile: profile || undefined
+            profile: profile ? {
+              ...profile,
+              display_name: profile.resolved_display_name || profile.display_name,
+            } : undefined
           };
         })
       );

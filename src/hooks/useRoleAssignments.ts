@@ -67,7 +67,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
           const [profileResult, roleResult] = await Promise.all([
             supabase
               .from('profiles_public')
-              .select('display_name, avatar_url')
+              .select('display_name, resolved_display_name, avatar_url')
               .eq('user_id', assignment.user_id)
               .single(),
             supabase
@@ -79,7 +79,10 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
 
           return {
             ...assignment,
-            user_profile: profileResult.data || undefined,
+            user_profile: profileResult.data ? {
+              ...profileResult.data,
+              display_name: profileResult.data.resolved_display_name || profileResult.data.display_name,
+            } : undefined,
             role: roleResult.data ? {
               id: roleResult.data.id,
               roleName: roleResult.data.role_name,

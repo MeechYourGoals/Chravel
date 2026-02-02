@@ -29,22 +29,113 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS display_name_updated_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS display_name_change_count INT DEFAULT 0;
 
--- 4. Update profiles_public view to include first_name / last_name
--- (already included per migration 20251230220000, this is a safety re-create)
-CREATE OR REPLACE VIEW public.profiles_public
-WITH (security_invoker = true, security_barrier = true)
-AS
-SELECT
-  p.id,
-  p.user_id,
-  p.display_name,
-  p.first_name,
-  p.last_name,
-  p.avatar_url,
-  p.bio,
-  p.created_at,
-  p.updated_at
-FROM public.profiles p;
+-- 4. Update profiles_public view with resolved_display_name computed column.
+-- This column ALWAYS returns a usable name via COALESCE chain:
+--   display_name > first+last > first > email prefix
+-- This eliminates the entire class of bugs where individual queries forget
+-- to select first_name/last_name and get NULL for display_name.
+--
+-- IMPORTANT: Preserves the security model from migration 20260130191203:
+-- - Requires authentication (auth.uid() IS NOT NULL)
+-- - Only shows profiles of trip co-members or own profile
+-- - Sensitive fields (email, phone, first/last name) are protected by is_trip_co_member()
+
+-- First, ensure the is_trip_co_member function exists
+CREATE OR REPLACE FUNCTION public.is_trip_co_member(viewer_id UUID, profile_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+AS $$
+BEGIN
+  -- Same user is always a co-member of themselves
+  IF viewer_id = profile_user_id THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Check if both users share at least one trip
+  RETURN EXISTS (
+    SELECT 1 FROM public.trip_members tm1
+    JOIN public.trip_members tm2 ON tm1.trip_id = tm2.trip_id
+    WHERE tm1.user_id = viewer_id
+      AND tm2.user_id = profile_user_id
+  );
+END;
+$$;
+
+DROP VIEW IF EXISTS public.profiles_public;
+
+CREATE VIEW public.profiles_public 
+WITH (security_invoker = true)
+AS SELECT 
+    user_id,
+    display_name,
+    avatar_url,
+    bio,
+    app_role,
+    role,
+    timezone,
+    created_at,
+    updated_at,
+    subscription_status,
+    -- resolved_display_name: ALWAYS returns a usable name
+    -- This is the key fix for the "Former Member" bug
+    COALESCE(
+      NULLIF(TRIM(display_name), ''),
+      NULLIF(TRIM(CONCAT_WS(' ', NULLIF(TRIM(first_name), ''), NULLIF(TRIM(last_name), ''))), ''),
+      NULLIF(TRIM(first_name), ''),
+      NULLIF(split_part(email, '@', 1), '')
+    ) AS resolved_display_name,
+    -- Email: only show if viewing own profile OR show_email=true AND shares a trip
+    CASE
+        WHEN (user_id = auth.uid()) THEN email
+        WHEN ((show_email = true) AND is_trip_co_member(auth.uid(), user_id)) THEN email
+        ELSE NULL::text
+    END AS email,
+    -- Phone: only show if viewing own profile OR show_phone=true AND shares a trip
+    CASE
+        WHEN (user_id = auth.uid()) THEN phone
+        WHEN ((show_phone = true) AND is_trip_co_member(auth.uid(), user_id)) THEN phone
+        ELSE NULL::text
+    END AS phone,
+    -- First/Last name: only show if viewing own profile OR shares a trip
+    CASE
+        WHEN (user_id = auth.uid()) THEN first_name
+        WHEN is_trip_co_member(auth.uid(), user_id) THEN first_name
+        ELSE NULL::text
+    END AS first_name,
+    CASE
+        WHEN (user_id = auth.uid()) THEN last_name
+        WHEN is_trip_co_member(auth.uid(), user_id) THEN last_name
+        ELSE NULL::text
+    END AS last_name,
+    -- Privacy settings: only visible to own profile
+    CASE
+        WHEN (user_id = auth.uid()) THEN show_email
+        ELSE NULL::boolean
+    END AS show_email,
+    CASE
+        WHEN (user_id = auth.uid()) THEN show_phone
+        ELSE NULL::boolean
+    END AS show_phone,
+    -- Notification settings: only visible to own profile
+    CASE
+        WHEN (user_id = auth.uid()) THEN notification_settings
+        ELSE NULL::jsonb
+    END AS notification_settings
+FROM profiles
+WHERE 
+    -- CRITICAL: Require authentication - unauthenticated users see nothing
+    auth.uid() IS NOT NULL
+    AND (
+        -- User can see their own profile
+        user_id = auth.uid()
+        -- OR they share a trip with this user
+        OR is_trip_co_member(auth.uid(), user_id)
+    );
+
+-- Add comment explaining the security model and resolved_display_name
+COMMENT ON VIEW public.profiles_public IS 'Secure view of profiles with resolved_display_name. Requires authentication and only shows profiles of trip co-members or own profile. resolved_display_name always returns a usable name via COALESCE(display_name, first+last, first, email_prefix).';
 
 GRANT SELECT ON public.profiles_public TO authenticated;
 

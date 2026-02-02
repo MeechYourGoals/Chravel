@@ -94,13 +94,13 @@ export async function searchBroadcasts(
   const creatorIds = [...new Set(data?.map(b => b.created_by) || [])];
   const { data: profiles } = await supabase
     .from('profiles_public')
-    .select('user_id, display_name, first_name, last_name')
+    .select('user_id, display_name, resolved_display_name, first_name, last_name')
     .in('user_id', creatorIds);
 
   const profileMap = new Map(
     (profiles || []).map(p => [
       p.user_id,
-      p.display_name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown'
+      p.resolved_display_name || p.display_name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown'
     ])
   );
 

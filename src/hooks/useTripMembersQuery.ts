@@ -119,7 +119,7 @@ async function fetchTripMembersData(
       // Fetch creator profile for local display
       const { data: creatorProfile } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, avatar_url')
+        .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
         .eq('user_id', creatorId)
         .single();
 

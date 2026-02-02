@@ -43,13 +43,19 @@ export const SeatManagement = () => {
       const userIds = members.map(m => m.user_id);
       const { data: profiles } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, avatar_url')
+        .select('user_id, display_name, resolved_display_name, avatar_url')
         .in('user_id', userIds);
 
-      const enriched = members.map(member => ({
-        ...member,
-        profile: profiles?.find(p => p.user_id === member.user_id),
-      }));
+      const enriched = members.map(member => {
+        const profile = profiles?.find(p => p.user_id === member.user_id);
+        return {
+          ...member,
+          profile: profile ? {
+            ...profile,
+            display_name: profile.resolved_display_name || profile.display_name,
+          } : undefined,
+        };
+      });
 
       setMembersWithProfiles(enriched);
       setLoading(false);
