@@ -66,7 +66,7 @@ export const MobileTeamMemberCard = ({
 
       <div className="flex-1 min-w-0">
         <p className="font-medium text-foreground truncate">
-          {member.full_name || 'Unknown User'}
+          {member.full_name || 'Former Member'}
         </p>
         {member.email && (
           <p className="text-sm text-muted-foreground flex items-center gap-1 truncate">

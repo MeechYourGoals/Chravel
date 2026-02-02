@@ -15,6 +15,7 @@ import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { resolveDisplayName } from '@/lib/resolveDisplayName';
 
 export interface TripMember {
   id: string;
@@ -31,7 +32,7 @@ interface TripMembersData {
 const formatTripMembers = (dbMembers: any[], creatorId?: string): TripMember[] => {
   return dbMembers.map(member => ({
     id: member.user_id,
-    name: member.profiles?.display_name || member.profiles?.first_name || 'Unknown User',
+    name: resolveDisplayName(member.profiles),
     avatar: member.profiles?.avatar_url,
     isCreator: member.user_id === creatorId
   }));

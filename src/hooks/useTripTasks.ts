@@ -429,7 +429,7 @@ export const useTripTasks = (
           updated_at: task.updated_at,
           creator: {
             id: task.creator_id,
-            name: task.creator?.display_name || 'Unknown User',
+            name: task.creator?.display_name || 'Former Member',
             avatar: task.creator?.avatar_url,
           },
           task_status: (task.task_status || []) as any[],
@@ -560,7 +560,7 @@ export const useTripTasks = (
         updated_at: newTask.updated_at,
         creator: {
           id: authUser.id,
-          name: userProfile?.display_name || 'Unknown User',
+          name: userProfile?.display_name || 'Former Member',
           avatar: userProfile?.avatar_url,
         },
         task_status: [

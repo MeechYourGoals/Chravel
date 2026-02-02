@@ -564,7 +564,7 @@ export const calendarService = {
       location: tripEvent.location,
       description: tripEvent.description,
       createdBy: tripEvent.created_by,
-      creatorName: tripEvent.creator?.display_name || 'Unknown User',
+      creatorName: tripEvent.creator?.display_name || 'Former Member',
       creatorAvatar: tripEvent.creator?.avatar_url,
       include_in_itinerary: tripEvent.include_in_itinerary,
       event_category: tripEvent.event_category as CalendarEvent['event_category'],

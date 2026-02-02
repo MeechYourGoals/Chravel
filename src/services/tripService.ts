@@ -458,7 +458,7 @@ export const tripService = {
       const userIds = data.map(m => m.user_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, avatar_url')
+        .select('user_id, display_name, first_name, last_name, avatar_url')
         .in('user_id', userIds);
 
       if (profilesError) {
@@ -573,7 +573,7 @@ export const tripService = {
       const profile = profilesMap.get(m.user_id);
       return {
         id: m.user_id,
-        name: profile?.display_name || 'Unknown User',
+        name: profile?.display_name || 'Former Member',
         avatar: profile?.avatar_url,
         isCreator: m.user_id === creatorId,
       };

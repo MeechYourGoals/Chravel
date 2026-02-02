@@ -84,7 +84,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
 
         const formattedMembers = membersData.map(m => ({
           id: m.user_id,
-          name: m.profiles?.display_name || 'Unknown User',
+          name: m.profiles?.display_name || 'Former Member',
           avatar: m.profiles?.avatar_url || undefined
         }));
 

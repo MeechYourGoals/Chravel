@@ -107,7 +107,7 @@ export const RoleAssignmentPanel: React.FC<RoleAssignmentPanelProps> = ({ tripId
 
                   <div className="flex-1">
                     <div className="font-medium text-foreground text-sm">
-                      {data.profile?.display_name || 'Unknown User'}
+                      {data.profile?.display_name || 'Former Member'}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {currentRole?.role?.roleName || 'No role assigned'}

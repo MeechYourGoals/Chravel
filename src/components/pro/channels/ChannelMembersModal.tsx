@@ -132,7 +132,7 @@ export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
                   </div>
                   <div>
                     <p className="text-white font-medium">
-                      {member.user?.display_name || 'Unknown User'}
+                      {member.user?.display_name || 'Former Member'}
                     </p>
                     <p className="text-xs text-gray-400">
                       Joined {new Date(member.joined_at).toLocaleDateString()}
