@@ -96,41 +96,44 @@ export const NativeTripTypeSwitcher = ({
     setIsDragging(true);
   }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging) return;
-    
-    const touch = e.touches[0];
-    const currentY = touch.clientY;
-    const deltaY = currentY - startY.current;
-    const now = Date.now();
-    const timeDelta = now - lastTime.current;
-    
-    if (timeDelta > 0) {
-      velocity.current = (currentY - lastY.current) / timeDelta * 1000;
-    }
-    
-    lastY.current = currentY;
-    lastTime.current = now;
-    
-    // Only allow dragging down, with rubber-band resistance for up
-    if (deltaY > 0) {
-      setTranslateY(deltaY);
-    } else {
-      // Rubber-band effect when pulling up
-      setTranslateY(deltaY * 0.2);
-    }
-  }, [isDragging]);
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!isDragging) return;
+
+      const touch = e.touches[0];
+      const currentY = touch.clientY;
+      const deltaY = currentY - startY.current;
+      const now = Date.now();
+      const timeDelta = now - lastTime.current;
+
+      if (timeDelta > 0) {
+        velocity.current = ((currentY - lastY.current) / timeDelta) * 1000;
+      }
+
+      lastY.current = currentY;
+      lastTime.current = now;
+
+      // Only allow dragging down, with rubber-band resistance for up
+      if (deltaY > 0) {
+        setTranslateY(deltaY);
+      } else {
+        // Rubber-band effect when pulling up
+        setTranslateY(deltaY * 0.2);
+      }
+    },
+    [isDragging],
+  );
 
   const handleTouchEnd = useCallback(async () => {
     setIsDragging(false);
-    
+
     const shouldDismiss = translateY > DISMISS_THRESHOLD || velocity.current > VELOCITY_THRESHOLD;
-    
+
     if (shouldDismiss) {
       await hapticService.light();
       onClose();
     }
-    
+
     setTranslateY(0);
   }, [translateY, onClose]);
 
@@ -206,8 +209,22 @@ export const NativeTripTypeSwitcher = ({
           <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
             <h2 className="text-lg font-semibold text-white">Select View</h2>
             <button
-              onClick={onClose}
+              onClick={e => {
+                e.stopPropagation();
+                onClose();
+              }}
+              onTouchStart={e => {
+                // Prevent parent's swipe-to-dismiss from capturing this touch
+                e.stopPropagation();
+              }}
+              onTouchEnd={e => {
+                // Handle close on touch end for reliable PWA/mobile experience
+                e.stopPropagation();
+                e.preventDefault();
+                onClose();
+              }}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 active:bg-white/20 transition-colors"
+              aria-label="Close"
             >
               <X size={18} className="text-white/70" />
             </button>
