@@ -1,113 +1,56 @@
 
-# Fix: PDF Export Founder Bypass + Revert Button Styling
+# Fix: Interactive Map & Search Functionality
 
-## Summary
+## Root Cause Analysis
 
-This plan addresses three issues:
-1. **PDF Export showing limits for founder** - ccamechi@gmail.com should have unlimited exports
-2. **Gold Invite/PDF Recap buttons** - Need to revert to gray styling in TripHeader
-3. **Gold Travel Tabs** - Need to revert active tab styling to not use gold gradient
+### Issue 1: "Interactive map unavailable. Retry" shows but map can't be interacted with
+**Root Cause:** The Google Maps JavaScript API fails to initialize (likely due to API key restrictions, missing API enablement, or billing issues). The current retry just reloads the page which doesn't help.
+
+**Current Flow:**
+1. MapCanvas tries to load Google Maps JS API via `loadMaps()`
+2. If it times out (8 seconds) or errors, `forceIframeFallback` is set to true
+3. This shows the static GoogleMapsEmbed iframe instead
+4. The "Retry" button calls `window.location.reload()` which reloads into the same failing state
+
+### Issue 2: "Location not found" when searching in fallback mode
+**Root Cause:** There's a disconnect in how search results flow to the embed iframe.
+
+**Current Flow:**
+1. User types "Los Angeles" → PlacesSection.handleSearchSubmit() calls
+2. `GoogleMapsService.geocodeWithNominatim("Los Angeles")` - this WORKS and returns coords
+3. `mapRef.current?.centerOn(coords, 15)` is called
+4. MapCanvas.centerOn() in fallback mode calls `setIframeSearchLocation({lat, lng})`
+5. BUT... it sets `address: undefined` because the PlacesSection doesn't pass the address
+
+**The Bug (Line 231-236 in MapCanvas.tsx):**
+```tsx
+if (useFallbackEmbed || forceIframeFallback) {
+  setIframeSearchLocation({
+    lat: latLng.lat,
+    lng: latLng.lng,
+    address: undefined  // ← BUG: No address passed!
+  });
+```
+
+Meanwhile, `GoogleMapsService.buildEmbeddableUrl()` prefers the address parameter to build the URL. When address is undefined but coords exist, it builds a URL like:
+```
+https://www.google.com/maps?output=embed&ll=34.0522,-118.2437&z=15
+```
+
+This URL format sometimes doesn't work as expected with the iframe embed.
 
 ---
 
-## Issue 1: PDF Export Founder Bypass
+## Solution
 
-### Root Cause
-The `usePdfExportUsage.ts` hook determines if a user is a "paid user" by checking their `app_role` and `subscription_product_id` from the database. It never checks if the user is a super admin (like ccamechi@gmail.com).
+### Fix 1: Improve centerOn() to accept address parameter
+Make the `centerOn()` method accept an optional address parameter so the embed can use address-based URLs (more reliable).
 
-### Fix
-Add super admin check at the top of the hook's tier detection logic.
+### Fix 2: Update PlacesSection to pass the address
+Pass the geocoded display name to centerOn so it can build the proper embed URL.
 
-**File:** `src/hooks/usePdfExportUsage.ts`
-
-```typescript
-// Add import at top
-import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
-
-// In the hook, check super admin first:
-const { user } = useAuth();
-
-// Super admins always get unlimited
-const isSuperAdmin = isSuperAdminEmail(user?.email);
-
-// Update getTier function
-const getTier = (): UserTier => {
-  if (isSuperAdmin) return 'pro'; // Super admins = pro tier
-  if (!profileData) return 'free';
-  // ... rest of existing logic
-};
-
-// Also update isPaidUser:
-const isPaidUser = tier !== 'free' || isSuperAdmin;
-```
-
----
-
-## Issue 2: Revert Invite & PDF Recap Buttons to Gray
-
-### Current State (incorrect)
-The buttons in TripHeader.tsx use gold gradient styling:
-- Invite button: `bg-gradient-to-r ${accentColors.gradient}`
-- PDF Recap button: `bg-gradient-to-r ${accentColors.gradient}`
-
-### Desired State
-Both should be gray like the TripCard buttons:
-`bg-gray-800/50 hover:bg-gray-700/50 text-white border border-gray-700`
-
-**File:** `src/components/TripHeader.tsx`
-
-**Invite button (lines 609-616):**
-```typescript
-// FROM:
-className={`flex items-center justify-center gap-1 bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 hover:scale-105 shrink-0`}
-
-// TO:
-className="flex items-center justify-center gap-1 bg-gray-800/50 hover:bg-gray-700/50 text-white text-xs font-medium py-1.5 px-2.5 rounded-lg transition-all duration-200 border border-gray-700 hover:border-gray-600 shrink-0"
-```
-
-**PDF Recap button (lines 622-627):**
-```typescript
-// FROM (enabled state):
-canExport ? `bg-gradient-to-r ${accentColors.gradient} hover:from-${accentColors.primary}/80 hover:to-${accentColors.secondary}/80 text-white hover:scale-105`
-
-// TO:
-canExport ? 'bg-gray-800/50 hover:bg-gray-700/50 text-white border border-gray-700 hover:border-gray-600'
-```
-
----
-
-## Issue 3: Revert Travel Tabs Active Styling
-
-### Current State (incorrect)
-Active tabs use gold gradient with white text (hard to read):
-```typescript
-isActive && enabled
-  ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
-```
-
-### Desired State
-Active tabs should use a subtle highlight without the gold gradient. A common pattern is a semi-transparent white background or a simple border indicator.
-
-**File:** `src/components/TripTabs.tsx`
-
-**Lines 261-267:**
-```typescript
-// FROM:
-${isActive && enabled
-  ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
-  : enabled
-  ? 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white hover:shadow-sm'
-  : 'bg-white/5 text-gray-500 cursor-not-allowed opacity-40 grayscale'}
-
-// TO:
-${isActive && enabled
-  ? 'bg-white/20 text-white border border-white/30 shadow-sm'
-  : enabled
-  ? 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white hover:shadow-sm'
-  : 'bg-white/5 text-gray-500 cursor-not-allowed opacity-40 grayscale'}
-```
-
-This gives the active tab a subtle white background and border without the hard-to-read gold + white text combination.
+### Fix 3: Better retry mechanism (non-page-reload)  
+Replace the page reload with a proper retry that re-attempts the API initialization (as planned earlier but not implemented).
 
 ---
 
@@ -115,32 +58,101 @@ This gives the active tab a subtle white background and border without the hard-
 
 | File | Change |
 |------|--------|
-| `src/hooks/usePdfExportUsage.ts` | Add super admin check for unlimited exports |
-| `src/components/TripHeader.tsx` | Revert Invite + PDF Recap buttons to gray styling |
-| `src/components/TripTabs.tsx` | Revert active tab from gold gradient to subtle white style |
+| `src/components/places/MapCanvas.tsx` | Update centerOn signature to accept optional address, add retryAttempt state for retry |
+| `src/components/PlacesSection.tsx` | Pass display name from Nominatim to centerOn |
 
 ---
 
-## Visual Reference
+## Technical Changes
 
-### Buttons After Fix
-| Button | New Style |
-|--------|-----------|
-| Invite | Gray background, white text |
-| PDF Recap | Gray background, white text |
-| View | Gold gradient (unchanged - this is the primary action) |
+### 1. MapCanvas.tsx - Add address to centerOn and implement proper retry
 
-### Tabs After Fix
-| State | Style |
-|-------|-------|
-| Active | White semi-transparent bg + white text + subtle border |
-| Inactive | Dark semi-transparent bg + gray text |
-| Disabled | Very subtle bg + grayed out text + lock icon |
+**Add retryAttempt state (line ~77):**
+```tsx
+const [retryAttempt, setRetryAttempt] = useState(0);
+```
+
+**Update centerOn signature (lines 228-237):**
+```tsx
+centerOn: (latLng: { lat: number; lng: number }, zoom = 15, address?: string) => {
+  // Handle iframe fallback mode
+  if (useFallbackEmbed || forceIframeFallback) {
+    setIframeSearchLocation({
+      lat: latLng.lat,
+      lng: latLng.lng,
+      address: address || undefined  // Now accepts address!
+    });
+    return;
+  }
+  // ... rest unchanged
+}
+```
+
+**Update MapCanvasRef interface (line 44):**
+```tsx
+centerOn: (latLng: { lat: number; lng: number }, zoom?: number, address?: string) => void;
+```
+
+**Update Retry button (lines 803-808):**
+```tsx
+<button
+  onClick={() => {
+    setForceIframeFallback(false);
+    setUseFallbackEmbed(false);
+    setRetryAttempt(prev => prev + 1);
+  }}
+  className="underline hover:no-underline"
+>
+  Retry
+</button>
+```
+
+**Add retryAttempt to initMap useEffect dependencies (line 456):**
+```tsx
+}, [retryAttempt]);  // Re-run when retry is clicked
+```
+
+### 2. PlacesSection.tsx - Pass address to centerOn
+
+**Update handleSearchSubmit (lines 413-416):**
+```tsx
+if (coords) {
+  // Center map on the found location - pass display name for embed URL
+  mapRef.current?.centerOn(
+    { lat: coords.lat, lng: coords.lng }, 
+    15, 
+    coords.displayName || trimmedQuery  // Pass address for fallback mode
+  );
+  setSearchError(null);
+}
+```
 
 ---
 
-## Technical Summary
+## Why This Fixes Both Issues
 
-1. **PDF Export bypass** - Single line check for super admin email at the start of tier detection
-2. **Button styling** - Replace gradient classes with gray background classes
-3. **Tab styling** - Replace gradient-based active state with neutral white/transparent style
+### Search now works in fallback mode:
+1. User searches "Los Angeles"
+2. Nominatim returns `{ lat: 34.0522, lng: -118.2437, displayName: "Los Angeles, CA, USA" }`
+3. PlacesSection calls `centerOn(coords, 15, "Los Angeles, CA, USA")`  
+4. MapCanvas sets `iframeSearchLocation` with the address
+5. GoogleMapsEmbed builds URL: `https://www.google.com/maps?output=embed&q=Los+Angeles%2C+CA%2C+USA`
+6. Map iframe centers on Los Angeles ✓
+
+### Retry actually retries:
+1. User clicks "Retry"
+2. `retryAttempt` increments, `useFallbackEmbed` resets
+3. useEffect re-runs `initMap()` 
+4. If API key/billing is now valid, interactive map loads
+5. If still failing, gracefully falls back to embed again
+
+---
+
+## Summary
+
+| Issue | Root Cause | Fix |
+|-------|------------|-----|
+| "Location not found" | centerOn() didn't pass address to embed | Add address parameter, pass displayName from Nominatim |
+| Retry doesn't work | Page reload doesn't retry API init | Use retryAttempt state to re-trigger useEffect |
+
+This is a minimal 2-file fix (~15 lines of changes) that resolves both issues.
