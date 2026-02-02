@@ -416,37 +416,52 @@ class ChannelService {
       });
 
       // Fetch member counts for all accessible channels
+      // Must consider BOTH channel_role_access junction table AND legacy required_role_id
       const channelIds = Array.from(uniqueChannels.keys());
       if (channelIds.length > 0) {
-        // Calculate member counts: count users with roles that grant channel access
-        const { data: memberCounts } = await supabase
+        // Step 1: Get roles from channel_role_access junction table
+        const { data: junctionRoles } = await supabase
           .from('channel_role_access')
           .select('channel_id, role_id')
           .in('channel_id', channelIds);
 
-        if (memberCounts) {
-          // Group by channel_id and get unique role_ids
-          const channelRoleMap = new Map<string, Set<string>>();
-          memberCounts.forEach(cr => {
-            if (!channelRoleMap.has(cr.channel_id)) {
-              channelRoleMap.set(cr.channel_id, new Set());
+        // Step 2: Build a map of channel_id -> Set of role_ids (including legacy required_role_id)
+        const channelRoleMap = new Map<string, Set<string>>();
+
+        // Initialize with legacy required_role_id from each channel
+        for (const [channelId, channel] of uniqueChannels) {
+          const roleSet = new Set<string>();
+          // Include legacy required_role_id if present
+          if (channel.requiredRoleId) {
+            roleSet.add(channel.requiredRoleId);
+          }
+          channelRoleMap.set(channelId, roleSet);
+        }
+
+        // Add roles from junction table
+        if (junctionRoles) {
+          junctionRoles.forEach(cr => {
+            const roleSet = channelRoleMap.get(cr.channel_id);
+            if (roleSet) {
+              roleSet.add(cr.role_id);
             }
-            channelRoleMap.get(cr.channel_id)!.add(cr.role_id);
           });
+        }
 
-          // For each channel, count users with any of its granted roles
-          for (const [channelId, roleSet] of channelRoleMap) {
-            const roleArray = Array.from(roleSet);
-            const { count } = await supabase
-              .from('user_trip_roles')
-              .select('*', { count: 'exact', head: true })
-              .eq('trip_id', tripId)
-              .in('role_id', roleArray);
+        // Step 3: For each channel, count users with any of its granted roles
+        for (const [channelId, roleSet] of channelRoleMap) {
+          if (roleSet.size === 0) continue;
 
-            const channel = uniqueChannels.get(channelId);
-            if (channel) {
-              channel.memberCount = count || 0;
-            }
+          const roleArray = Array.from(roleSet);
+          const { count } = await supabase
+            .from('user_trip_roles')
+            .select('*', { count: 'exact', head: true })
+            .eq('trip_id', tripId)
+            .in('role_id', roleArray);
+
+          const channel = uniqueChannels.get(channelId);
+          if (channel) {
+            channel.memberCount = count || 0;
           }
         }
       }
