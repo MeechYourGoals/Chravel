@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { roleChannelService, RoleChannel, RoleChannelMessage } from '../services/roleChannelService';
+import {
+  roleChannelService,
+  RoleChannel,
+  RoleChannelMessage,
+} from '../services/roleChannelService';
+import { channelService } from '../services/channelService';
 import { getDemoChannelsForTrip } from '../data/demoChannelData';
 import { TripChannel, ChannelMessage } from '../types/roleChannels';
 import { useDemoMode } from './useDemoMode';
@@ -8,10 +13,26 @@ import { MockRolesService } from '@/services/mockRolesService';
 // All demo trip IDs including Pro and Event trips
 const DEMO_TRIP_IDS = [
   // Pro trips
-  'lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026',
-  '13', '14', '15', '16',
+  'lakers-road-trip',
+  'beyonce-cowboy-carter-tour',
+  'eli-lilly-c-suite-retreat-2026',
+  '13',
+  '14',
+  '15',
+  '16',
   // Consumer demo trips (numeric IDs)
-  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '10',
+  '11',
+  '12',
 ];
 
 // Convert RoleChannel to TripChannel
@@ -27,7 +48,7 @@ const convertToTripChannel = (channel: RoleChannel): TripChannel => ({
   memberCount: channel.memberCount || 0,
   createdBy: channel.createdBy,
   createdAt: channel.createdAt,
-  updatedAt: channel.createdAt
+  updatedAt: channel.createdAt,
 });
 
 // Convert ChannelMessage to RoleChannelMessage
@@ -38,7 +59,7 @@ const convertToRoleChannelMessage = (msg: ChannelMessage): RoleChannelMessage =>
   senderName: msg.senderName,
   senderAvatar: undefined,
   content: msg.content,
-  createdAt: msg.createdAt
+  createdAt: msg.createdAt,
 });
 
 export const useRoleChannels = (tripId: string, userRole: string, roles?: string[]) => {
@@ -64,7 +85,7 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
         setIsLoading(false);
         return;
       }
-      
+
       // Fallback to demo channels with dynamic generation
       const { channels, messagesByChannel } = getDemoChannelsForTrip(tripId, roles);
       setAvailableChannels(channels);
@@ -73,28 +94,26 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
       return;
     }
 
-    // AUTHENTICATED MODE: Fetch from database
+    // AUTHENTICATED MODE: Fetch from database using proper role-based access check
     try {
-      const channels = await roleChannelService.getRoleChannels(tripId);
-      
+      // Use channelService.getAccessibleChannels which properly checks user_trip_roles
+      // and channel_role_access to return only channels the user has access to
+      const accessibleChannels = await channelService.getAccessibleChannels(tripId);
+
       // If no channels found, user might not have a role yet - show empty state
-      if (!channels || channels.length === 0) {
+      if (!accessibleChannels || accessibleChannels.length === 0) {
         setAvailableChannels([]);
         setIsLoading(false);
         return;
       }
-      
-      // Filter to only show channels user can access and convert to TripChannel
-      const accessibleChannels = channels
-        .filter(channel => roleChannelService.canUserAccessChannel(channel, userRole))
-        .map(convertToTripChannel);
-      
+
+      // Channels already come in TripChannel format from channelService
       setAvailableChannels(accessibleChannels);
     } catch (error) {
       console.error('Error loading channels:', error);
       setAvailableChannels([]);
     }
-    
+
     setIsLoading(false);
   }, [tripId, userRole, isDemoMode, isDemoTrip, roles]);
 
@@ -118,19 +137,35 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
     }
 
     const loadMessages = async () => {
-      const channelMessages = await roleChannelService.getChannelMessages(activeChannel.id);
-      setMessages(channelMessages);
+      // Use channelService for proper RLS enforcement
+      const channelMessages = await channelService.getMessages(activeChannel.id);
+      // Convert to RoleChannelMessage format
+      const formattedMessages: RoleChannelMessage[] = channelMessages.map(msg => ({
+        id: msg.id,
+        channelId: msg.channelId,
+        senderId: msg.senderId,
+        senderName: msg.senderName || 'Unknown',
+        senderAvatar: msg.senderAvatar,
+        content: msg.content,
+        createdAt: msg.createdAt,
+      }));
+      setMessages(formattedMessages);
     };
 
     loadMessages();
 
-    // Subscribe to new messages
-    const unsubscribe = roleChannelService.subscribeToChannel(
-      activeChannel.id,
-      (newMessage) => {
-        setMessages(prev => [...prev, newMessage]);
-      }
-    );
+    // Subscribe to new messages using channelService
+    const unsubscribe = channelService.subscribeToChannel(activeChannel.id, newMessage => {
+      const formattedMessage: RoleChannelMessage = {
+        id: newMessage.id,
+        channelId: newMessage.channelId,
+        senderId: newMessage.senderId,
+        senderName: newMessage.senderName || 'Unknown',
+        content: newMessage.content,
+        createdAt: newMessage.createdAt,
+      };
+      setMessages(prev => [...prev, formattedMessage]);
+    });
 
     return unsubscribe;
   }, [activeChannel, isDemoTrip, demoMessages]);
@@ -167,13 +202,18 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
         senderId: 'demo-user',
         senderName: 'You',
         content,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
       setMessages(prev => [...prev, newMessage]);
       return true;
     }
 
-    const message = await roleChannelService.sendChannelMessage(activeChannel.id, content);
+    // Use channelService which properly respects RLS policies
+    // If user doesn't have channel access, RLS will block the insert
+    const message = await channelService.sendMessage({
+      channelId: activeChannel.id,
+      content,
+    });
     return !!message;
   };
 
@@ -186,7 +226,6 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
     createChannel,
     deleteChannel,
     sendMessage,
-    refreshChannels: loadChannels
+    refreshChannels: loadChannels,
   };
 };
-
