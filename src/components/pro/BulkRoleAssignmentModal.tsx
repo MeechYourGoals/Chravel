@@ -426,7 +426,7 @@ export const BulkRoleAssignmentModal = ({
               <Button
                 onClick={handleAssign}
                 disabled={isAssigning || !selectedRole.trim()}
-                className="flex-1 bg-red-600 hover:bg-red-700"
+                className="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold shadow-lg hover:shadow-yellow-500/25"
               >
                 {isAssigning ? (
                   <>Assigning...</>
@@ -444,7 +444,7 @@ export const BulkRoleAssignmentModal = ({
                   (step === 'select' && selectedMembers.length === 0) ||
                   (step === 'assign' && !selectedRole.trim())
                 }
-                className="flex-1 bg-red-600 hover:bg-red-700"
+                className="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold shadow-lg hover:shadow-yellow-500/25"
               >
                 Next
                 <ChevronRight size={16} className="ml-1" />
