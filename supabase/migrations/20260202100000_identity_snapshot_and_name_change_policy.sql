@@ -101,11 +101,21 @@ AS SELECT
     subscription_status,
     -- resolved_display_name: ALWAYS returns a usable name
     -- This is the key fix for the "Unknown User" / "Former Member" bug
+    -- PRIVACY: Email prefix is ONLY used when email visibility is allowed
+    -- (viewing own profile OR show_email=true AND trip co-member)
+    -- Otherwise falls back to 'Chravel User' to prevent email inference
     COALESCE(
       NULLIF(TRIM(display_name), ''),
       NULLIF(TRIM(CONCAT_WS(' ', NULLIF(TRIM(first_name), ''), NULLIF(TRIM(last_name), ''))), ''),
       NULLIF(TRIM(first_name), ''),
-      NULLIF(split_part(email, '@', 1), '')
+      -- Email prefix fallback: gated behind same privacy rules as email field
+      CASE
+        WHEN (user_id = auth.uid()) THEN NULLIF(split_part(email, '@', 1), '')
+        WHEN ((show_email = true) AND is_trip_co_member(auth.uid(), user_id)) THEN NULLIF(split_part(email, '@', 1), '')
+        ELSE NULL
+      END,
+      -- Final fallback: generic placeholder (no PII leakage)
+      'Chravel User'
     ) AS resolved_display_name,
     -- First/Last name: always visible for authenticated users
     -- (needed for name display even when display_name is null)
@@ -143,7 +153,7 @@ WHERE
     auth.uid() IS NOT NULL;
 
 -- Add comment explaining the security model and resolved_display_name
-COMMENT ON VIEW public.profiles_public IS 'Public profile view with resolved_display_name. Requires authentication. Basic info (display_name, avatar, resolved_display_name, first/last name) visible to all authenticated users. Sensitive fields (email, phone) protected by privacy settings and trip co-membership.';
+COMMENT ON VIEW public.profiles_public IS 'Public profile view with resolved_display_name. Requires authentication. Basic info (display_name, avatar, first/last name) visible to all authenticated users. resolved_display_name always returns a usable name but gates email-prefix fallback behind privacy rules to prevent PII leakage. Sensitive fields (email, phone) protected by privacy settings and trip co-membership.';
 
 GRANT SELECT ON public.profiles_public TO authenticated;
 
