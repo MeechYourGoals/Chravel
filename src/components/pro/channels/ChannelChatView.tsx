@@ -55,9 +55,9 @@ export const ChannelChatView = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const { canPerformAction, permissionLevel } = useRolePermissions(channel.tripId);
-  const { removeRole } = useRoleAssignments({ tripId: channel.tripId });
+  const { leaveRole } = useRoleAssignments({ tripId: channel.tripId });
 
-  // Handle user leaving the channel/role
+  // Handle user leaving the channel/role (self-service)
   const handleLeaveChannel = async () => {
     if (!user?.id || !channel.requiredRoleId) {
       toast({
@@ -70,7 +70,8 @@ export const ChannelChatView = ({
 
     setIsLeaving(true);
     try {
-      await removeRole(user.id, channel.requiredRoleId);
+      // Use leaveRole for self-service removal (no admin permission required)
+      await leaveRole(channel.requiredRoleId);
       toast({
         title: 'Left channel',
         description: `You have left the "${channel.channelName}" channel`,

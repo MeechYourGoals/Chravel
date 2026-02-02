@@ -63,7 +63,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
 
       // Fetch profiles and roles separately
       const assignmentsWithDetails = await Promise.all(
-        (data || []).map(async (assignment) => {
+        (data || []).map(async assignment => {
           const [profileResult, roleResult] = await Promise.all([
             supabase
               .from('profiles_public')
@@ -74,22 +74,27 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
               .from('trip_roles')
               .select('id, role_name, permission_level')
               .eq('id', assignment.role_id)
-              .single()
+              .single(),
           ]);
 
           return {
             ...assignment,
-            user_profile: profileResult.data ? {
-              ...profileResult.data,
-              display_name: profileResult.data.resolved_display_name || profileResult.data.display_name,
-            } : undefined,
-            role: roleResult.data ? {
-              id: roleResult.data.id,
-              roleName: roleResult.data.role_name,
-              permissionLevel: roleResult.data.permission_level
-            } : undefined
+            user_profile: profileResult.data
+              ? {
+                  ...profileResult.data,
+                  display_name:
+                    profileResult.data.resolved_display_name || profileResult.data.display_name,
+                }
+              : undefined,
+            role: roleResult.data
+              ? {
+                  id: roleResult.data.id,
+                  roleName: roleResult.data.role_name,
+                  permissionLevel: roleResult.data.permission_level,
+                }
+              : undefined,
           };
-        })
+        }),
       );
 
       setAssignments(assignmentsWithDetails as RoleAssignment[]);
@@ -117,11 +122,11 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
           event: '*',
           schema: 'public',
           table: 'user_trip_roles',
-          filter: `trip_id=eq.${tripId}`
+          filter: `trip_id=eq.${tripId}`,
         },
         () => {
           fetchAssignments();
-        }
+        },
       )
       .subscribe();
 
@@ -130,106 +135,166 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     };
   }, [tripId, enabled, isDemoMode, fetchAssignments]);
 
-  const assignRole = useCallback(async (userId: string, roleId: string) => {
-    setIsProcessing(true);
-    
-    try {
-      // 🆕 DEMO MODE: Add to localStorage
-      if (isDemoMode) {
-        const stored = localStorage.getItem('demo_pro_trip_assignments');
-        const allAssignments = stored ? JSON.parse(stored) : {};
-        const tripAssignments = allAssignments[tripId] || [];
-        
-        const newAssignment: RoleAssignment = {
-          id: `mock-assignment-${Date.now()}`,
-          trip_id: tripId,
-          user_id: userId,
-          role_id: roleId,
-          is_primary: true,
-          assigned_at: new Date().toISOString(),
-          assigned_by: user?.id,
-        };
-        
-        allAssignments[tripId] = [...tripAssignments, newAssignment];
-        localStorage.setItem('demo_pro_trip_assignments', JSON.stringify(allAssignments));
-        
+  const assignRole = useCallback(
+    async (userId: string, roleId: string) => {
+      setIsProcessing(true);
+
+      try {
+        // 🆕 DEMO MODE: Add to localStorage
+        if (isDemoMode) {
+          const stored = localStorage.getItem('demo_pro_trip_assignments');
+          const allAssignments = stored ? JSON.parse(stored) : {};
+          const tripAssignments = allAssignments[tripId] || [];
+
+          const newAssignment: RoleAssignment = {
+            id: `mock-assignment-${Date.now()}`,
+            trip_id: tripId,
+            user_id: userId,
+            role_id: roleId,
+            is_primary: true,
+            assigned_at: new Date().toISOString(),
+            assigned_by: user?.id,
+          };
+
+          allAssignments[tripId] = [...tripAssignments, newAssignment];
+          localStorage.setItem('demo_pro_trip_assignments', JSON.stringify(allAssignments));
+
+          toast.success('✅ Role assigned successfully');
+          await fetchAssignments();
+          return { success: true, message: 'Role assigned' };
+        }
+
+        const { data, error } = await supabase.rpc('assign_trip_role' as any, {
+          _trip_id: tripId,
+          _user_id: userId,
+          _role_id: roleId,
+          _set_as_primary: false,
+        });
+
+        if (error) throw error;
+
+        const result = data as { success: boolean; message: string };
+        if (!result.success) {
+          throw new Error(result.message);
+        }
+
         toast.success('✅ Role assigned successfully');
         await fetchAssignments();
-        return { success: true, message: 'Role assigned' };
+
+        return result;
+      } catch (error) {
+        console.error('Error assigning role:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to assign role');
+        throw error;
+      } finally {
+        setIsProcessing(false);
       }
+    },
+    [tripId, fetchAssignments, isDemoMode, user?.id],
+  );
 
-      const { data, error } = await supabase.rpc('assign_trip_role' as any, {
-        _trip_id: tripId,
-        _user_id: userId,
-        _role_id: roleId,
-        _set_as_primary: false
-      });
+  const removeRole = useCallback(
+    async (userId: string, roleId: string) => {
+      setIsProcessing(true);
 
-      if (error) throw error;
+      try {
+        // 🆕 DEMO MODE: Remove from localStorage
+        if (isDemoMode) {
+          const stored = localStorage.getItem('demo_pro_trip_assignments');
+          const allAssignments = stored ? JSON.parse(stored) : {};
+          const tripAssignments = allAssignments[tripId] || [];
 
-      const result = data as { success: boolean; message: string };
-      if (!result.success) {
-        throw new Error(result.message);
-      }
+          allAssignments[tripId] = tripAssignments.filter(
+            (a: RoleAssignment) => !(a.user_id === userId && a.role_id === roleId),
+          );
+          localStorage.setItem('demo_pro_trip_assignments', JSON.stringify(allAssignments));
 
-      toast.success('✅ Role assigned successfully');
-      await fetchAssignments();
-      
-      return result;
-    } catch (error) {
-      console.error('Error assigning role:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to assign role');
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [tripId, fetchAssignments, isDemoMode, user?.id]);
+          toast.success('Role removed successfully');
+          await fetchAssignments();
+          return { success: true, message: 'Role removed' };
+        }
 
-  const removeRole = useCallback(async (userId: string, roleId: string) => {
-    setIsProcessing(true);
-    
-    try {
-      // 🆕 DEMO MODE: Remove from localStorage
-      if (isDemoMode) {
-        const stored = localStorage.getItem('demo_pro_trip_assignments');
-        const allAssignments = stored ? JSON.parse(stored) : {};
-        const tripAssignments = allAssignments[tripId] || [];
-        
-        allAssignments[tripId] = tripAssignments.filter(
-          (a: RoleAssignment) => !(a.user_id === userId && a.role_id === roleId)
-        );
-        localStorage.setItem('demo_pro_trip_assignments', JSON.stringify(allAssignments));
-        
+        const { data, error } = await supabase.rpc('remove_user_from_role' as any, {
+          _trip_id: tripId,
+          _user_id: userId,
+          _role_id: roleId,
+        });
+
+        if (error) throw error;
+
+        const result = data as { success: boolean; message: string };
+        if (!result.success) {
+          throw new Error(result.message);
+        }
+
         toast.success('Role removed successfully');
         await fetchAssignments();
-        return { success: true, message: 'Role removed' };
+
+        return result;
+      } catch (error) {
+        console.error('Error removing role:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to remove role');
+        throw error;
+      } finally {
+        setIsProcessing(false);
       }
+    },
+    [tripId, fetchAssignments, isDemoMode],
+  );
 
-      const { data, error } = await supabase.rpc('remove_user_from_role' as any, {
-        _trip_id: tripId,
-        _user_id: userId,
-        _role_id: roleId
-      });
+  /**
+   * Self-service function for a user to leave a role/channel.
+   * Unlike removeRole (which requires admin permissions), this only allows
+   * the authenticated user to remove their own role assignment.
+   */
+  const leaveRole = useCallback(
+    async (roleId: string) => {
+      setIsProcessing(true);
 
-      if (error) throw error;
+      try {
+        // 🆕 DEMO MODE: Remove current user from localStorage
+        if (isDemoMode) {
+          const stored = localStorage.getItem('demo_pro_trip_assignments');
+          const allAssignments = stored ? JSON.parse(stored) : {};
+          const tripAssignments = allAssignments[tripId] || [];
 
-      const result = data as { success: boolean; message: string };
-      if (!result.success) {
-        throw new Error(result.message);
+          // Remove the current user's assignment to this role
+          allAssignments[tripId] = tripAssignments.filter(
+            (a: RoleAssignment) => !(a.user_id === user?.id && a.role_id === roleId),
+          );
+          localStorage.setItem('demo_pro_trip_assignments', JSON.stringify(allAssignments));
+
+          toast.success('Left the channel successfully');
+          await fetchAssignments();
+          return { success: true, message: 'Left the channel' };
+        }
+
+        const { data, error } = await supabase.rpc('leave_trip_role' as any, {
+          _trip_id: tripId,
+          _role_id: roleId,
+        });
+
+        if (error) throw error;
+
+        const result = data as { success: boolean; message: string };
+        if (!result.success) {
+          throw new Error(result.message);
+        }
+
+        toast.success('Left the channel successfully');
+        await fetchAssignments();
+
+        return result;
+      } catch (error) {
+        console.error('Error leaving role:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to leave channel');
+        throw error;
+      } finally {
+        setIsProcessing(false);
       }
-
-      toast.success('Role removed successfully');
-      await fetchAssignments();
-      
-      return result;
-    } catch (error) {
-      console.error('Error removing role:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to remove role');
-      throw error;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [tripId, fetchAssignments, isDemoMode]);
+    },
+    [tripId, fetchAssignments, isDemoMode, user?.id],
+  );
 
   return {
     assignments,
@@ -237,6 +302,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
     isProcessing,
     assignRole,
     removeRole,
-    refetch: fetchAssignments
+    leaveRole,
+    refetch: fetchAssignments,
   };
 };
