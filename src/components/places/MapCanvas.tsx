@@ -41,7 +41,7 @@ export interface MapCanvasProps {
 }
 
 export interface MapCanvasRef {
-  centerOn: (latLng: { lat: number; lng: number }, zoom?: number) => void;
+  centerOn: (latLng: { lat: number; lng: number }, zoom?: number, address?: string) => void;
   fitBounds: (bounds: { north: number; south: number; east: number; west: number }) => void;
   highlight: (markerId: string) => void;
   getMap: () => google.maps.Map | null;
@@ -75,6 +75,9 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     
     // ⚡ CRITICAL: Track if JS API loaded successfully - show embed until it does
     const [jsApiReady, setJsApiReady] = useState(false);
+    
+    // Retry counter for re-attempting JS API initialization
+    const [retryAttempt, setRetryAttempt] = useState(0);
     
     // Custom hooks for state management
     const mapState = useMapState();
@@ -225,13 +228,13 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
     // Expose methods via ref
     // IMPORTANT: The dependency array ensures these methods update when fallback mode changes
     useImperativeHandle(ref, () => ({
-      centerOn: (latLng: { lat: number; lng: number }, zoom = 15) => {
+      centerOn: (latLng: { lat: number; lng: number }, zoom = 15, address?: string) => {
         // Handle iframe fallback mode
         if (useFallbackEmbed || forceIframeFallback) {
           setIframeSearchLocation({
             lat: latLng.lat,
             lng: latLng.lng,
-            address: undefined
+            address: address || undefined  // Now accepts address for reliable embed URL!
           });
           return;
         }
@@ -453,7 +456,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
           loadingTimeoutRef.current = null;
         }
       };
-    }, []);
+    }, [retryAttempt]);  // Re-run when retry is clicked
 
     // Get user geolocation as fallback
     useEffect(() => {
@@ -801,7 +804,12 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
               <div className="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-2">
                 <span>Interactive map unavailable</span>
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={() => {
+                    // Reset fallback state and retry API initialization
+                    setForceIframeFallback(false);
+                    setUseFallbackEmbed(false);
+                    setRetryAttempt(prev => prev + 1);
+                  }}
                   className="underline hover:no-underline"
                 >
                   Retry
