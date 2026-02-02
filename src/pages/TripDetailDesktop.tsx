@@ -200,32 +200,39 @@ export const TripDetailDesktop = () => {
   if (loading || isAuthLoading) {
     return (
       <div className="min-h-screen bg-black">
-        <div className="container mx-auto px-6 py-4 pb-8 max-w-7xl">
+        <div className="container mx-auto px-6 py-4 pb-8 max-w-7xl" aria-hidden="true">
           {/* Skeleton Header Navigation */}
           <div className="flex items-center justify-between mb-6">
-            <div className="h-8 w-32 bg-white/10 rounded-lg animate-pulse" />
+            <div className="h-8 w-32 bg-white/[0.06] rounded-lg animate-pulse" />
             <div className="flex gap-2">
-              <div className="h-10 w-10 bg-white/10 rounded-full animate-pulse" />
-              <div className="h-10 w-10 bg-white/10 rounded-full animate-pulse" />
+              <div className="h-10 w-10 bg-white/[0.06] rounded-full animate-pulse" />
+              <div className="h-10 w-10 bg-white/[0.06] rounded-full animate-pulse" />
             </div>
           </div>
-          {/* Skeleton Cover Photo */}
+          {/* Skeleton Cover Photo + Details */}
           <div className="mb-8 animate-pulse">
-            <div className="h-64 bg-white/5 rounded-3xl mb-4" />
-            <div className="h-8 bg-white/5 rounded w-1/3 mb-2" />
-            <div className="h-4 bg-white/5 rounded w-1/4" />
+            <div className="h-64 bg-white/[0.03] rounded-3xl mb-4" />
+            <div className="rounded-2xl md:rounded-3xl p-3 md:p-4 border border-white/[0.08] bg-white/[0.03]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="h-5 bg-white/[0.04] rounded w-2/3" />
+                  <div className="h-4 bg-white/[0.04] rounded w-1/2" />
+                </div>
+                <div className="rounded-2xl p-3 border border-white/[0.05] bg-white/[0.02] h-[120px]" />
+              </div>
+            </div>
           </div>
           {/* Skeleton Tabs */}
           <div className="flex gap-2 mb-4">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="h-10 w-24 bg-white/10 rounded-xl animate-pulse" />
+              <div key={i} className="h-10 w-24 bg-white/[0.06] rounded-xl animate-pulse" />
             ))}
           </div>
           {/* Skeleton Content */}
           <div className="space-y-4">
-            <div className="h-20 bg-white/5 rounded-2xl animate-pulse" />
-            <div className="h-20 bg-white/5 rounded-2xl animate-pulse" />
-            <div className="h-20 bg-white/5 rounded-2xl animate-pulse" />
+            <div className="h-20 bg-white/[0.03] rounded-2xl animate-pulse" />
+            <div className="h-20 bg-white/[0.03] rounded-2xl animate-pulse" />
+            <div className="h-20 bg-white/[0.03] rounded-2xl animate-pulse" />
           </div>
         </div>
       </div>
@@ -239,9 +246,7 @@ export const TripDetailDesktop = () => {
         <div className="text-center max-w-md px-4">
           <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-white mb-4">Please Log In</h1>
-          <p className="text-gray-400 mb-6">
-            You need to be signed in to view this trip.
-          </p>
+          <p className="text-gray-400 mb-6">You need to be signed in to view this trip.</p>
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`)}
@@ -300,16 +305,16 @@ export const TripDetailDesktop = () => {
     // Check if user is not logged in - if so, show login prompt instead of "Trip Not Found"
     if (!user) {
       if (import.meta.env.DEV) {
-        console.warn('[TripDetailDesktop] No trip AND no user - showing login prompt instead of Trip Not Found');
+        console.warn(
+          '[TripDetailDesktop] No trip AND no user - showing login prompt instead of Trip Not Found',
+        );
       }
       return (
         <div className="min-h-screen bg-black flex items-center justify-center">
           <div className="text-center max-w-md px-4">
             <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-white mb-4">Please Log In</h1>
-            <p className="text-gray-400 mb-6">
-              You need to be signed in to view this trip.
-            </p>
+            <p className="text-gray-400 mb-6">You need to be signed in to view this trip.</p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`)}
@@ -538,10 +543,17 @@ export const TripDetailDesktop = () => {
         {/* Trip Header with Cover Photo Upload */}
         <Suspense
           fallback={
-            <div className="mb-8 animate-pulse">
-              <div className="h-64 bg-white/5 rounded-3xl mb-4"></div>
-              <div className="h-8 bg-white/5 rounded w-1/3 mb-2"></div>
-              <div className="h-4 bg-white/5 rounded w-1/4"></div>
+            <div className="mb-8 animate-pulse" aria-hidden="true">
+              <div className="h-64 bg-white/[0.03] rounded-3xl mb-4" />
+              <div className="rounded-2xl md:rounded-3xl p-3 md:p-4 border border-white/[0.08] bg-white/[0.03]">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="h-5 bg-white/[0.04] rounded w-2/3" />
+                    <div className="h-4 bg-white/[0.04] rounded w-1/2" />
+                  </div>
+                  <div className="rounded-2xl p-3 border border-white/[0.05] bg-white/[0.02] h-[120px]" />
+                </div>
+              </div>
             </div>
           }
         >
