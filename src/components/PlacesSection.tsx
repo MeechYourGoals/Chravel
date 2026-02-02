@@ -411,8 +411,12 @@ export const PlacesSection = ({
       clearTimeout(timeoutId);
 
       if (coords) {
-        // Center map on the found location
-        mapRef.current?.centerOn({ lat: coords.lat, lng: coords.lng }, 15);
+        // Center map on the found location - pass display name for embed URL
+        mapRef.current?.centerOn(
+          { lat: coords.lat, lng: coords.lng }, 
+          15, 
+          coords.displayName || trimmedQuery  // Pass address for fallback mode
+        );
         setSearchError(null);
       } else {
         // Location not found - show error
