@@ -31,10 +31,10 @@ export const MobileTripDetail = () => {
 
   // ⚡ PERFORMANCE: Use unified hook for parallel data fetching with TanStack Query cache
   // 🔒 FIX: Get tripError/membersError/isAuthLoading to distinguish errors from not-found
-  const { 
-    trip, 
-    tripMembers, 
-    tripCreatorId, 
+  const {
+    trip,
+    tripMembers,
+    tripCreatorId,
     isLoading: loading,
     isMembersLoading,
     isAuthLoading,
@@ -317,36 +317,36 @@ export const MobileTripDetail = () => {
   if (loading || isAuthLoading) {
     return (
       <MobileErrorBoundary>
-        <div className="flex flex-col min-h-screen bg-black">
+        <div className="flex flex-col min-h-screen bg-black" aria-hidden="true">
           {/* Skeleton Header */}
-          <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header">
+          <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/[0.06] mobile-safe-header">
             <div className="px-4 py-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="w-[44px] h-[44px] rounded-full bg-white/10 animate-pulse" />
+                <div className="w-[44px] h-[44px] rounded-full bg-white/[0.06] animate-pulse" />
                 <div className="flex-1 min-w-0 text-center space-y-1.5">
-                  <div className="h-4 bg-white/10 rounded w-32 mx-auto animate-pulse" />
-                  <div className="h-3 bg-white/10 rounded w-24 mx-auto animate-pulse" />
+                  <div className="h-4 bg-white/[0.06] rounded w-32 mx-auto animate-pulse" />
+                  <div className="h-3 bg-white/[0.06] rounded w-24 mx-auto animate-pulse" />
                 </div>
-                <div className="w-[44px] h-[44px] rounded-full bg-white/10 animate-pulse" />
+                <div className="w-[44px] h-[44px] rounded-full bg-white/[0.06] animate-pulse" />
               </div>
             </div>
           </div>
           {/* Skeleton Tabs */}
-          <div className="sticky z-40 bg-black/95 backdrop-blur-md border-b border-white/10 py-2 px-4">
+          <div className="sticky z-40 bg-black/95 backdrop-blur-md border-b border-white/[0.06] py-2 px-4">
             <div className="flex gap-2 overflow-hidden">
               {[1, 2, 3, 4, 5].map(i => (
                 <div
                   key={i}
-                  className="h-[44px] w-20 rounded-lg bg-white/10 animate-pulse flex-shrink-0"
+                  className="h-[44px] w-20 rounded-lg bg-white/[0.06] animate-pulse flex-shrink-0"
                 />
               ))}
             </div>
           </div>
           {/* Skeleton Content */}
           <div className="flex-1 p-4 space-y-3">
-            <div className="h-16 bg-white/5 rounded-xl animate-pulse" />
-            <div className="h-16 bg-white/5 rounded-xl animate-pulse" />
-            <div className="h-16 bg-white/5 rounded-xl animate-pulse" />
+            <div className="h-16 bg-white/[0.03] rounded-xl animate-pulse" />
+            <div className="h-16 bg-white/[0.03] rounded-xl animate-pulse" />
+            <div className="h-16 bg-white/[0.03] rounded-xl animate-pulse" />
           </div>
         </div>
       </MobileErrorBoundary>
@@ -360,9 +360,7 @@ export const MobileTripDetail = () => {
         <div className="text-center max-w-md">
           <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-4">Please Log In</h1>
-          <p className="text-gray-400 mb-6">
-            You need to be signed in to view this trip.
-          </p>
+          <p className="text-gray-400 mb-6">You need to be signed in to view this trip.</p>
           <div className="flex flex-col gap-3">
             <button
               onClick={() => {
@@ -431,16 +429,16 @@ export const MobileTripDetail = () => {
     // Check if user is not logged in - if so, show login prompt instead of "Trip Not Found"
     if (!user) {
       if (import.meta.env.DEV) {
-        console.warn('[MobileTripDetail] No trip AND no user - showing login prompt instead of Trip Not Found');
+        console.warn(
+          '[MobileTripDetail] No trip AND no user - showing login prompt instead of Trip Not Found',
+        );
       }
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <LogIn className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-white mb-4">Please Log In</h1>
-            <p className="text-gray-400 mb-6">
-              You need to be signed in to view this trip.
-            </p>
+            <p className="text-gray-400 mb-6">You need to be signed in to view this trip.</p>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => {

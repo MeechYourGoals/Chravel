@@ -9,7 +9,6 @@ import {
   FileDown,
   Camera,
   Loader2,
-  
   LogOut,
   AlertTriangle,
 } from 'lucide-react';
@@ -393,7 +392,7 @@ export const TripHeader = ({
   return (
     <>
       {/* Cover Photo Hero - Show for ALL trip types (consumer, pro, event) */}
-      {(
+      {
         <div
           data-trip-section="hero"
           className={cn(
@@ -482,13 +481,13 @@ export const TripHeader = ({
             </button>
           </div>
         </div>
-      )}
+      }
 
       {/* Main Trip Info Section - Compact 75% height */}
       <div
         data-trip-section="details"
         className={cn(
-          'relative rounded-2xl md:rounded-3xl p-3 md:p-4 overflow-hidden border border-white/20 bg-white/10 backdrop-blur-md',
+          'relative rounded-2xl md:rounded-3xl p-3 md:p-4 overflow-hidden border border-white/[0.08] bg-white/10 backdrop-blur-md transition-colors duration-300',
           drawerLayout
             ? 'h-full min-h-0 overflow-y-auto mb-0 pb-[env(safe-area-inset-bottom,20px)]'
             : 'mb-0 md:mb-3',
@@ -515,9 +514,7 @@ export const TripHeader = ({
           </div>
 
           {/* Right: Collaborators Panel - Full width on mobile, constrained on desktop */}
-          <div
-            className="rounded-2xl p-3 pb-2 w-full border border-white/10 max-h-[240px] bg-white/5 backdrop-blur-sm"
-          >
+          <div className="rounded-2xl p-3 pb-2 w-full border border-white/10 max-h-[240px] bg-white/5 backdrop-blur-sm">
             {/* Header: Trip Members | count | Show all - consolidated layout */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -561,7 +558,7 @@ export const TripHeader = ({
                 {[1, 2, 3].map(i => (
                   <div
                     key={i}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 w-[140px] animate-pulse"
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 min-w-[100px] max-w-[160px] animate-pulse"
                   >
                     <div className="h-7 w-7 rounded-full bg-white/10 shrink-0" />
                     <div className="flex-1 space-y-1">
@@ -703,7 +700,7 @@ export const TripHeader = ({
           onClose={handleCropCancel}
           imageSrc={cropImageSrc}
           onCropComplete={handleCropComplete}
-          aspectRatio={drawerLayout ? 4/3 : 3}
+          aspectRatio={drawerLayout ? 4 / 3 : 3}
         />
       )}
 
