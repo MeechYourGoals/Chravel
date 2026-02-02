@@ -3257,41 +3257,32 @@ export type Database = {
       profiles_public: {
         Row: {
           avatar_url: string | null
-          bio: string | null
           display_name: string | null
           email: string | null
           first_name: string | null
           last_name: string | null
           phone: string | null
           resolved_display_name: string | null
-          show_email: boolean | null
-          show_phone: boolean | null
           user_id: string | null
         }
         Insert: {
           avatar_url?: string | null
-          bio?: string | null
           display_name?: string | null
           email?: never
           first_name?: string | null
           last_name?: string | null
           phone?: never
           resolved_display_name?: never
-          show_email?: boolean | null
-          show_phone?: boolean | null
           user_id?: string | null
         }
         Update: {
           avatar_url?: string | null
-          bio?: string | null
           display_name?: string | null
           email?: never
           first_name?: string | null
           last_name?: string | null
           phone?: never
           resolved_display_name?: never
-          show_email?: boolean | null
-          show_phone?: boolean | null
           user_id?: string | null
         }
         Relationships: []
