@@ -1496,8 +1496,6 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string | null
-          display_name_change_count: number | null
-          display_name_updated_at: string | null
           email: string | null
           first_name: string | null
           free_event_limit: number | null
@@ -1526,8 +1524,6 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
-          display_name_change_count?: number | null
-          display_name_updated_at?: string | null
           email?: string | null
           first_name?: string | null
           free_event_limit?: number | null
@@ -1556,8 +1552,6 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
-          display_name_change_count?: number | null
-          display_name_updated_at?: string | null
           email?: string | null
           first_name?: string | null
           free_event_limit?: number | null
@@ -2026,8 +2020,6 @@ export type Database = {
           privacy_encrypted: boolean | null
           privacy_mode: string | null
           reply_to_id: string | null
-          sender_avatar_url: string | null
-          sender_display_name: string | null
           sentiment: string | null
           system_event_type: string | null
           thread_id: string | null
@@ -2055,8 +2047,6 @@ export type Database = {
           privacy_encrypted?: boolean | null
           privacy_mode?: string | null
           reply_to_id?: string | null
-          sender_avatar_url?: string | null
-          sender_display_name?: string | null
           sentiment?: string | null
           system_event_type?: string | null
           thread_id?: string | null
@@ -2084,8 +2074,6 @@ export type Database = {
           privacy_encrypted?: boolean | null
           privacy_mode?: string | null
           reply_to_id?: string | null
-          sender_avatar_url?: string | null
-          sender_display_name?: string | null
           sentiment?: string | null
           system_event_type?: string | null
           thread_id?: string | null
@@ -3268,61 +3256,42 @@ export type Database = {
       }
       profiles_public: {
         Row: {
-          app_role: string | null
           avatar_url: string | null
           bio: string | null
-          created_at: string | null
           display_name: string | null
           email: string | null
           first_name: string | null
           last_name: string | null
-          notification_settings: Json | null
           phone: string | null
           resolved_display_name: string | null
-          role: string | null
           show_email: boolean | null
           show_phone: boolean | null
-          subscription_status: string | null
-          timezone: string | null
-          updated_at: string | null
           user_id: string | null
         }
         Insert: {
-          app_role?: string | null
           avatar_url?: string | null
           bio?: string | null
-          created_at?: string | null
           display_name?: string | null
           email?: never
-          first_name?: never
-          last_name?: never
-          notification_settings?: never
+          first_name?: string | null
+          last_name?: string | null
           phone?: never
-          role?: string | null
-          show_email?: never
-          show_phone?: never
-          subscription_status?: string | null
-          timezone?: string | null
-          updated_at?: string | null
+          resolved_display_name?: never
+          show_email?: boolean | null
+          show_phone?: boolean | null
           user_id?: string | null
         }
         Update: {
-          app_role?: string | null
           avatar_url?: string | null
           bio?: string | null
-          created_at?: string | null
           display_name?: string | null
           email?: never
-          first_name?: never
-          last_name?: never
-          notification_settings?: never
+          first_name?: string | null
+          last_name?: string | null
           phone?: never
-          role?: string | null
-          show_email?: never
-          show_phone?: never
-          subscription_status?: string | null
-          timezone?: string | null
-          updated_at?: string | null
+          resolved_display_name?: never
+          show_email?: boolean | null
+          show_phone?: boolean | null
           user_id?: string | null
         }
         Relationships: []
