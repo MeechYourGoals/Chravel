@@ -269,11 +269,11 @@ export const TripChat = ({
         // For system messages user_id may be null (by design).
         id: message.user_id || message.author_name || 'system',
         name: (() => {
-          const memberName = tripMembers.find(m => m.id === (message.user_id || ''))?.name;
-          // Prefer live profile name if it's a real name (not a fallback placeholder)
-          if (memberName && memberName !== 'Former Member') return memberName;
-          // Fall back to stored author_name snapshot from message creation
-          return message.author_name || memberName || 'System';
+          const member = tripMembers.find(m => m.id === (message.user_id || ''));
+          // If member found and has a resolved profile name, use it.
+          // If member not found (left trip / deleted account), prefer stored author_name snapshot.
+          if (member) return member.name;
+          return message.author_name || 'System';
         })(),
         // Canonical avatar comes from `profiles.avatar_url` via `useTripMembers`.
         // System messages should render without avatar in MessageItem.
