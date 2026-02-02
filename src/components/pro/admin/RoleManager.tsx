@@ -11,6 +11,7 @@ import {
   Settings,
   UserMinus,
   AlertTriangle,
+  Pencil,
 } from 'lucide-react';
 import { PermissionEditorDialog } from './PermissionEditorDialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,6 +75,12 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
   const [showMembersDialog, setShowMembersDialog] = useState(false);
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
 
+  // Edit/Rename role state
+  const [roleToEdit, setRoleToEdit] = useState<TripRole | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editedRoleName, setEditedRoleName] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
   const handleCreateRole = async () => {
     if (!newRoleName.trim()) return;
 
@@ -131,6 +138,66 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
       toast.error('Failed to remove user from role');
     } finally {
       setRemovingUserId(null);
+    }
+  };
+
+  // Handle editing/renaming a role
+  const handleEditRoleClick = (role: TripRole) => {
+    setRoleToEdit(role);
+    setEditedRoleName(role.roleName);
+    setShowEditDialog(true);
+  };
+
+  const handleSaveRoleEdit = async () => {
+    if (!roleToEdit || !editedRoleName.trim()) return;
+
+    // Don't save if name hasn't changed
+    if (editedRoleName.trim() === roleToEdit.roleName) {
+      setShowEditDialog(false);
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      // Generate new channel slug from the new name
+      const newChannelSlug = editedRoleName.trim().toLowerCase().replace(/\s+/g, '-');
+
+      // Update the role name
+      const { error: roleError } = await supabase
+        .from('trip_roles')
+        .update({
+          role_name: editedRoleName.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', roleToEdit.id);
+
+      if (roleError) throw roleError;
+
+      // Update the associated channel name and slug (if exists)
+      const { error: channelError } = await supabase
+        .from('trip_channels')
+        .update({
+          channel_name: editedRoleName.trim(),
+          channel_slug: newChannelSlug,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('required_role_id', roleToEdit.id);
+
+      // Channel update might fail if no channel exists - that's okay
+      if (channelError) {
+        console.warn('No channel found or failed to update channel:', channelError);
+      }
+
+      toast.success(`Role renamed to "${editedRoleName.trim()}"`);
+      setShowEditDialog(false);
+      setRoleToEdit(null);
+      setEditedRoleName('');
+      await refetchRoles();
+    } catch (error) {
+      console.error('Error renaming role:', error);
+      toast.error('Failed to rename role');
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -247,6 +314,15 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handleEditRoleClick(role)}
+                      className="rounded-full border-white/10 hover:bg-white/10"
+                      title="Rename role and channel"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleManageMembers(role)}
                       className="rounded-full border-white/10 hover:bg-white/10"
                       title="Manage role members"
@@ -347,6 +423,58 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
               className="rounded-full bg-purple-600 hover:bg-purple-700"
             >
               {isProcessing ? 'Creating...' : 'Create Role'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit/Rename Role Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[425px] bg-background border-white/10">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-purple-500" />
+              Rename Role
+            </DialogTitle>
+            <DialogDescription>
+              Change the name of this role. The associated channel will also be renamed.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-role-name">Role Name</Label>
+              <Input
+                id="edit-role-name"
+                placeholder="Enter new role name"
+                value={editedRoleName}
+                onChange={e => setEditedRoleName(e.target.value)}
+                className="rounded-full bg-white/5 border-white/10"
+                disabled={isSavingEdit}
+              />
+              <p className="text-xs text-muted-foreground">Current: {roleToEdit?.roleName}</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowEditDialog(false);
+                setRoleToEdit(null);
+                setEditedRoleName('');
+              }}
+              disabled={isSavingEdit}
+              className="rounded-full"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveRoleEdit}
+              disabled={!editedRoleName.trim() || isSavingEdit}
+              className="rounded-full bg-purple-600 hover:bg-purple-700"
+            >
+              {isSavingEdit ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
