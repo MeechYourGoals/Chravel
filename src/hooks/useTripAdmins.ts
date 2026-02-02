@@ -73,7 +73,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
       if (error) throw error;
 
       // Fetch profiles separately (use public view for co-member data)
-      const adminsWithProfiles = await Promise.all(
+      const adminsWithProfiles: TripAdmin[] = await Promise.all(
         (data || []).map(async (admin) => {
           const { data: profile } = await supabase
             .from('profiles_public')
@@ -81,17 +81,29 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
             .eq('user_id', admin.user_id)
             .single();
 
+          // Parse permissions from Json to typed object
+          const permissions = admin.permissions as Record<string, boolean> | null;
+
           return {
-            ...admin,
+            id: admin.id,
+            trip_id: admin.trip_id,
+            user_id: admin.user_id,
+            granted_by: admin.granted_by ?? undefined,
+            granted_at: admin.granted_at ?? new Date().toISOString(),
+            permissions: {
+              can_manage_roles: permissions?.can_manage_roles ?? false,
+              can_manage_channels: permissions?.can_manage_channels ?? false,
+              can_designate_admins: permissions?.can_designate_admins ?? false,
+            },
             profile: profile ? {
-              ...profile,
-              display_name: profile.resolved_display_name || profile.display_name,
+              display_name: profile.resolved_display_name || profile.display_name || 'User',
+              avatar_url: profile.avatar_url ?? undefined,
             } : undefined
           };
         })
       );
 
-      setAdmins(adminsWithProfiles as TripAdmin[]);
+      setAdmins(adminsWithProfiles);
     } catch (error) {
       console.error('Error fetching admins:', error);
       toast.error('Failed to load admins');
