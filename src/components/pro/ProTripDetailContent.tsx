@@ -1,10 +1,12 @@
-
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { RoomAssignmentsModal } from './RoomAssignmentsModal';
 import { ProTabNavigation } from './ProTabNavigation';
 import { ProTabContent } from './ProTabContent';
 import { getVisibleTabs } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
+import { useRoleAssignments } from '../../hooks/useRoleAssignments';
+import { useTripRoles } from '../../hooks/useTripRoles';
+import { toast } from 'sonner';
 
 import { ProTripData } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
@@ -32,10 +34,17 @@ export const ProTripDetailContent = ({
   selectedCategory,
   onUpdateTripData,
   trip,
-  tripCreatorId
+  tripCreatorId,
 }: ProTripDetailContentProps) => {
   const [showRoomModal, setShowRoomModal] = useState(false);
   const { user } = useAuth();
+
+  // Hooks for role assignment persistence
+  const { assignRole, isProcessing: isAssigningRole } = useRoleAssignments({
+    tripId,
+    enabled: !!tripId,
+  });
+  const { roles, refetch: refetchRoles } = useTripRoles({ tripId, enabled: !!tripId });
 
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
@@ -46,24 +55,63 @@ export const ProTripDetailContent = ({
     // In a real app, this would update the trip data
   };
 
-  const handleUpdateMemberRole = async (memberId: string, newRole: string) => {
-    try {
-      // Update the roster with the new role
-      const updatedRoster = tripData.roster?.map(member =>
-        member.id === memberId ? { ...member, role: newRole } : member
-      ) || [];
-
-      // Update the trip data
-      if (onUpdateTripData) {
-        onUpdateTripData({ roster: updatedRoster });
+  /**
+   * Handle role assignment for a member.
+   * This function:
+   * 1. Looks up the role ID from the role name (or creates a role if needed)
+   * 2. Persists the assignment to the database via useRoleAssignments
+   * 3. Updates local state optimistically
+   */
+  const handleUpdateMemberRole = useCallback(
+    async (memberId: string, newRole: string) => {
+      if (!tripId) {
+        console.error('Cannot assign role: tripId is missing');
+        throw new Error('Trip ID is required');
       }
 
-    } catch (error) {
-      console.error('Failed to update member role:', error);
-      throw error;
-    }
-  };
+      try {
+        // Look up the role ID from the role name
+        const roleRecord = roles.find(r => r.roleName === newRole);
 
+        if (!roleRecord) {
+          // Role doesn't exist in trip_roles - this is a custom role that wasn't created first
+          toast.error(
+            `Role "${newRole}" doesn't exist. Please create the role first using "Create Role".`,
+          );
+          throw new Error(`Role "${newRole}" not found. Create it first.`);
+        }
+
+        // Find the user_id for this member from the roster
+        // The memberId might be the roster participant ID or user_id
+        const member = tripData.roster?.find(m => m.id === memberId);
+        if (!member) {
+          console.error('Member not found in roster:', memberId);
+          throw new Error('Member not found');
+        }
+
+        // Get the actual user_id - roster may have it stored as 'id' or 'userId'
+        const userId = (member as any).userId || member.id;
+
+        // Persist the role assignment to the database
+        await assignRole(userId, roleRecord.id);
+
+        // Refetch roles to update member counts
+        await refetchRoles();
+
+        // Update local state optimistically for immediate UI feedback
+        const updatedRoster =
+          tripData.roster?.map(m => (m.id === memberId ? { ...m, role: newRole } : m)) || [];
+
+        if (onUpdateTripData) {
+          onUpdateTripData({ roster: updatedRoster });
+        }
+      } catch (error) {
+        console.error('Failed to update member role:', error);
+        throw error;
+      }
+    },
+    [tripId, roles, tripData.roster, assignRole, refetchRoles, onUpdateTripData],
+  );
 
   return (
     <>
