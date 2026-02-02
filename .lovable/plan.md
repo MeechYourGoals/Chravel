@@ -1,148 +1,109 @@
 
 
-# Hide Recs Tab and Saved Places for Authenticated Users
+# Hide Advertiser Tab for Authenticated Users
 
 ## Summary
 
-Hide the Chravel Recs feature from authenticated users in production. This includes:
-1. Removing the Recs tab from desktop and mobile navigation
-2. Hiding the "Saved Places" menu item from Settings
-
-The features will remain visible and functional in Demo Mode only.
+Hide the Advertiser tab from the Settings menu for authenticated users in production. The tab will only be visible in Demo Mode (app-preview) or for Super Admins. This keeps the infrastructure intact while providing a cleaner production experience.
 
 ---
 
-## Files to Modify
+## Current State
+
+| Condition | Advertiser Tab Visibility |
+|-----------|--------------------------|
+| Demo Mode (app-preview) | Visible, enabled |
+| Super Admin | Visible, enabled |
+| Regular authenticated user | Visible, **disabled with "Soon" badge** |
+
+## Desired State
+
+| Condition | Advertiser Tab Visibility |
+|-----------|--------------------------|
+| Demo Mode (app-preview) | Visible, enabled |
+| Super Admin | Visible, enabled |
+| Regular authenticated user | **Hidden completely** |
+
+---
+
+## File to Modify
 
 | File | Change |
 |------|--------|
-| `src/pages/Index.tsx` | Set `showRecsTab={isDemoMode}` and `showRecsOption={isDemoMode}` for all navigation components |
-| `src/components/home/TripViewToggle.tsx` | Update grid to use 3 columns when Recs hidden, 4 when visible |
-| `src/components/ConsumerSettings.tsx` | Filter out "Saved Places" from sections list when not in demo mode |
+| `src/components/SettingsMenu.tsx` | Wrap Advertiser button in conditional to hide when not `canAccessAdvertiser` |
 
 ---
 
 ## Technical Changes
 
-### 1. Index.tsx - Desktop Navigation (3 locations)
+### SettingsMenu.tsx - Conditionally Render Advertiser Button
 
-**Lines 673-678 (Unauthenticated view):**
+**Lines 167-184:**
+
 ```tsx
 // FROM:
-showRecsTab={true}
-recsTabDisabled={true}
+<button
+  onClick={() => canAccessAdvertiser && setSettingsType('advertiser')}
+  disabled={!canAccessAdvertiser}
+  className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap flex items-center gap-1 transition-all ${
+    settingsType === 'advertiser'
+      ? 'bg-primary text-white shadow-lg'
+      : canAccessAdvertiser
+        ? 'text-gray-400 hover:text-white hover:bg-white/5'
+        : 'text-gray-500 cursor-not-allowed opacity-60'
+  }`}
+>
+  Advertiser
+  {!canAccessAdvertiser && (
+    <span className="text-xs bg-gray-600 text-gray-300 px-1 py-0.5 rounded-full">
+      Soon
+    </span>
+  )}
+</button>
 
 // TO:
-showRecsTab={false}
-recsTabDisabled={false}
+{canAccessAdvertiser && (
+  <button
+    onClick={() => setSettingsType('advertiser')}
+    className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+      settingsType === 'advertiser'
+        ? 'bg-primary text-white shadow-lg'
+        : 'text-gray-400 hover:text-white hover:bg-white/5'
+    }`}
+  >
+    Advertiser
+  </button>
+)}
 ```
 
-**Lines 832-837 (Authenticated + Demo Mode toggle available):**
-```tsx
-// FROM:
-showRecsTab={true}
-recsTabDisabled={!isDemoMode}
-
-// TO:
-showRecsTab={isDemoMode}
-recsTabDisabled={false}
-```
-
-**Lines 1008-1013 (Main authenticated desktop view):**
-```tsx
-// FROM:
-showRecsTab={true}
-recsTabDisabled={!isDemoMode}
-
-// TO:
-showRecsTab={isDemoMode}
-recsTabDisabled={false}
-```
-
-### 2. Index.tsx - Mobile Trip Type Switcher (3 locations)
-
-**Lines 787-802, 949-964, 1137-1152:**
-```tsx
-// FROM:
-showRecsOption={true}
-recsDisabled={!isDemoMode}
-
-// TO:
-showRecsOption={isDemoMode}
-recsDisabled={false}
-```
-
-### 3. TripViewToggle.tsx - Dynamic Grid Columns
-
-**Line 44:**
-```tsx
-// FROM:
-className="... grid grid-cols-4 ..."
-
-// TO:
-className={`bg-card/50 backdrop-blur-xl border-2 border-border/50 rounded-2xl p-1 shadow-lg grid ${showRecsTab ? 'grid-cols-4' : 'grid-cols-3'} h-12 sm:h-16 gap-0.5 sm:gap-1`}
-```
-
-### 4. ConsumerSettings.tsx - Hide Saved Places Section
-
-**Lines 44-55:**
-```tsx
-// FROM:
-const sections = [
-  { id: 'profile', label: 'Profile', icon: User },
-  { id: 'billing', label: 'Billing', icon: CreditCard },
-  { id: 'ai-concierge', label: 'AI Concierge', icon: Sparkles },
-  { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-  { id: 'saved-recs', label: 'Saved Places', icon: Bookmark, comingSoon: !isAppPreview },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'permissions', label: 'Permissions', icon: KeyRound },
-  { id: 'privacy', label: 'Privacy & Security', icon: Shield },
-  { id: 'settings', label: 'General Settings', icon: Settings },
-  { id: 'archived', label: 'Archived Trips', icon: Archive }
-];
-
-// TO:
-const allSections = [
-  { id: 'profile', label: 'Profile', icon: User },
-  { id: 'billing', label: 'Billing', icon: CreditCard },
-  { id: 'ai-concierge', label: 'AI Concierge', icon: Sparkles },
-  { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-  { id: 'saved-recs', label: 'Saved Places', icon: Bookmark, demoOnly: true },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'permissions', label: 'Permissions', icon: KeyRound },
-  { id: 'privacy', label: 'Privacy & Security', icon: Shield },
-  { id: 'settings', label: 'General Settings', icon: Settings },
-  { id: 'archived', label: 'Archived Trips', icon: Archive }
-];
-
-// Filter out demo-only sections when not in demo mode
-const { isDemoMode } = useDemoMode();
-const sections = allSections.filter(section => !section.demoOnly || isDemoMode);
-```
+**Changes:**
+1. Wrap entire button in `{canAccessAdvertiser && (...)}` - hides it completely when not accessible
+2. Remove `disabled` prop - no longer needed since button won't render
+3. Remove "Soon" badge - no longer needed
+4. Simplify className - remove disabled styling branch
 
 ---
 
 ## Visual Result
 
 ### Authenticated Users (Production)
-| Location | What Shows |
-|----------|------------|
-| Desktop nav | My Trips, Pro, Events (3 tabs, evenly spaced) |
-| Mobile view selector | My Trips, Pro Trips, Events (3 options) |
-| Consumer Settings | No "Saved Places" menu item |
+```text
+Settings tabs: [ Group ] [ Enterprise ] [ Events ]
+(Advertiser tab completely hidden - no placeholder, no "Soon" badge)
+```
 
-### Demo Mode
-| Location | What Shows |
-|----------|------------|
-| Desktop nav | My Trips, Pro, Events, Recs (4 tabs) |
-| Mobile view selector | All 4 options including Chravel Recs |
-| Consumer Settings | "Saved Places" menu item visible |
+### Demo Mode / Super Admin
+```text
+Settings tabs: [ Group ] [ Enterprise ] [ Events ] [ Advertiser ]
+(Full access to Advertiser Hub)
+```
 
 ---
 
 ## Benefits
 
-1. **Cleaner production UI** - No grayed-out placeholders or "Coming Soon" badges
-2. **Professional appearance** - 3-column grid looks intentional, not incomplete
-3. **Easy rollback** - When Recs feature is ready, change `isDemoMode` to `true`
+1. **Cleaner production UI** - No grayed-out tab or "Coming Soon" placeholder
+2. **Consistent pattern** - Matches how Recs tab and Saved Places are now hidden
+3. **Easy rollback** - When Advertiser feature is ready, change condition to `true` or add user-specific logic
+4. **Infrastructure preserved** - AdvertiserSettingsPanel and all routes remain intact
 
