@@ -164,24 +164,18 @@ export const SettingsMenu = ({
                 >
                   Events
                 </button>
-                <button
-                  onClick={() => canAccessAdvertiser && setSettingsType('advertiser')}
-                  disabled={!canAccessAdvertiser}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap flex items-center gap-1 transition-all ${
-                    settingsType === 'advertiser'
-                      ? 'bg-primary text-white shadow-lg'
-                      : canAccessAdvertiser
-                        ? 'text-gray-400 hover:text-white hover:bg-white/5'
-                        : 'text-gray-500 cursor-not-allowed opacity-60'
-                  }`}
-                >
-                  Advertiser
-                  {!canAccessAdvertiser && (
-                    <span className="text-xs bg-gray-600 text-gray-300 px-1 py-0.5 rounded-full">
-                      Soon
-                    </span>
-                  )}
-                </button>
+                {canAccessAdvertiser && (
+                  <button
+                    onClick={() => setSettingsType('advertiser')}
+                    className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                      settingsType === 'advertiser'
+                        ? 'bg-primary text-white shadow-lg'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    Advertiser
+                  </button>
+                )}
               </div>
               <ScrollBar orientation="horizontal" className="md:hidden" />
             </ScrollArea>
