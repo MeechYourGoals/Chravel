@@ -320,7 +320,8 @@ export const RolesView = ({
       >
         {filteredRoster.map(member => {
           // Get all roles for this member: admin status + assigned roles
-          const memberUserId = member.userId;
+          // Fall back to member.id when userId is absent (e.g., demo/mock data stores user ID in id)
+          const memberUserId = member.userId || member.id;
           const isAdminMember = memberUserId ? adminUserIds.has(memberUserId) : false;
           const assignedRoles = memberUserId ? memberRolesMap.get(memberUserId) || [] : [];
 
