@@ -8,12 +8,10 @@ import {
   Plus,
   Trash2,
   Link as LinkIcon,
-  Settings,
   UserMinus,
   AlertTriangle,
   Pencil,
 } from 'lucide-react';
-import { PermissionEditorDialog } from './PermissionEditorDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -36,13 +34,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TripRole } from '@/types/roleChannels';
 import { MAX_ROLES_PER_TRIP } from '@/utils/roleUtils';
@@ -63,9 +54,6 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
   const { assignments, removeRole, refetch: refetchAssignments } = useRoleAssignments({ tripId });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
-  const [permissionLevel, setPermissionLevel] = useState<'view' | 'edit' | 'admin'>('edit');
-  const [editingRole, setEditingRole] = useState<any>(null);
-  const [showPermissionEditor, setShowPermissionEditor] = useState(false);
 
   // Delete confirmation state
   const [roleToDelete, setRoleToDelete] = useState<TripRole | null>(null);
@@ -86,10 +74,9 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
     if (!newRoleName.trim()) return;
 
     try {
-      await createRole(newRoleName, permissionLevel);
+      await createRole(newRoleName);
       setShowCreateDialog(false);
       setNewRoleName('');
-      setPermissionLevel('edit');
     } catch (error) {
       // Error handled in hook
     }
@@ -202,33 +189,6 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
     }
   };
 
-  const handleSavePermissions = async (
-    roleId: string,
-    permissionLevel: string,
-    featurePermissions: any,
-  ) => {
-    try {
-      const { error } = await supabase
-        .from('trip_roles')
-        .update({
-          permission_level: permissionLevel as 'view' | 'edit' | 'admin',
-          feature_permissions: featurePermissions,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', roleId);
-
-      if (error) throw error;
-
-      toast.success('Permissions updated successfully');
-
-      // Refresh roles
-      window.location.reload();
-    } catch (error) {
-      console.error('Error updating permissions:', error);
-      throw error;
-    }
-  };
-
   if (isLoading) {
     return (
       <Card className="p-6 bg-background/40 backdrop-blur-sm border-white/10">
@@ -289,12 +249,9 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
                   key={role.id}
                   className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h4 className="font-medium text-foreground">{role.roleName}</h4>
-                      <span className="text-xs bg-white/10 text-muted-foreground px-2 py-0.5 rounded-full capitalize">
-                        {role.permissionLevel}
-                      </span>
                     </div>
 
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -304,54 +261,42 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
                           <span>•</span>
                           <div className="flex items-center gap-1">
                             <LinkIcon className="w-3 h-3" />
-                            <span>#{(channel as any).channel_name}</span>
+                            <span className="truncate">#{(channel as any).channel_name}</span>
                           </div>
                         </>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
                     <Button
                       variant="outline"
-                      size="sm"
+                      size="icon"
                       onClick={() => handleEditRoleClick(role)}
-                      className="rounded-full border-white/10 hover:bg-white/10"
+                      className="rounded-full border-white/10 hover:bg-white/10 h-8 w-8 shrink-0"
                       title="Rename role and channel"
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Pencil className="w-3.5 h-3.5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleManageMembers(role)}
-                      className="rounded-full border-white/10 hover:bg-white/10"
+                      className="rounded-full border-white/10 hover:bg-white/10 h-8 px-2.5 shrink-0"
                       title="Manage role members"
                     >
-                      <UserMinus className="w-4 h-4 mr-1" />
-                      Members
+                      <UserMinus className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline ml-1 text-xs">Members</span>
                     </Button>
                     <Button
                       variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setEditingRole(role);
-                        setShowPermissionEditor(true);
-                      }}
-                      className="rounded-full border-white/10 hover:bg-white/10"
-                    >
-                      <Settings className="w-4 h-4 mr-1" />
-                      Permissions
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                      size="icon"
                       onClick={() => handleDeleteRoleClick(role)}
                       disabled={isProcessing}
-                      className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500"
+                      className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500 h-8 w-8 shrink-0"
                       title="Delete role and channel"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -360,14 +305,6 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
           </div>
         )}
       </Card>
-
-      {/* Permission Editor Dialog */}
-      <PermissionEditorDialog
-        open={showPermissionEditor}
-        onOpenChange={setShowPermissionEditor}
-        role={editingRole}
-        onSave={handleSavePermissions}
-      />
 
       {/* Create Role Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -390,22 +327,8 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
                 onChange={e => setNewRoleName(e.target.value)}
                 className="rounded-full bg-white/5 border-white/10"
               />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="permission-level">Permission Level</Label>
-              <Select value={permissionLevel} onValueChange={v => setPermissionLevel(v as any)}>
-                <SelectTrigger className="rounded-full bg-white/5 border-white/10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="view">View Only</SelectItem>
-                  <SelectItem value="edit">Editor</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
               <p className="text-xs text-muted-foreground">
-                Controls what members with this role can do
+                Members with this role will have access to the role's private channel
               </p>
             </div>
           </div>
