@@ -3,7 +3,15 @@ import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ConsumerSubscriptionProvider } from './hooks/useConsumerSubscription';
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
@@ -201,6 +209,27 @@ const NativeLifecycleBridge = ({ client }: { client: QueryClient }) => {
   }, [refreshCriticalData, syncBadgeCount]);
 
   return null;
+};
+
+const OfflineIndicatorGate = () => {
+  const { user } = useAuth();
+  const { pathname } = useLocation();
+
+  const isPublicRoute =
+    pathname === '/' ||
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/join') ||
+    pathname.startsWith('/accept-invite') ||
+    pathname.startsWith('/teams') ||
+    pathname.startsWith('/recs') ||
+    pathname.startsWith('/advertiser') ||
+    pathname.startsWith('/privacy') ||
+    pathname.startsWith('/terms') ||
+    pathname.startsWith('/demo') ||
+    pathname.startsWith('/healthz');
+
+  if (!user || isPublicRoute) return null;
+  return <OfflineIndicator />;
 };
 
 const App = () => {
@@ -491,11 +520,11 @@ const App = () => {
                 <Sonner />
 
                 <BuildBadge />
-                <OfflineIndicator />
                 {/* All components using react-router hooks must render inside <Router> */}
                 <Router>
                   <ExitDemoButtonWithNav />
                   <NativeLifecycleBridge client={queryClient} />
+                  <OfflineIndicatorGate />
                   <MobileAppLayout>
                     <Routes>
                       <Route
