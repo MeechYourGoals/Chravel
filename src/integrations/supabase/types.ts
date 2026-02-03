@@ -3290,6 +3290,15 @@ export type Database = {
     }
     Functions: {
       approve_join_request: { Args: { _request_id: string }; Returns: Json }
+      assign_trip_role: {
+        Args: {
+          _role_id: string
+          _set_as_primary?: boolean
+          _trip_id: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       assign_user_to_role: {
         Args: { _role_id: string; _trip_id: string; _user_id: string }
         Returns: Json

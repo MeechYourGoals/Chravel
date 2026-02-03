@@ -369,6 +369,28 @@ class ChannelService {
       } = await supabase.auth.getUser();
       if (!user) return [];
 
+      // Check if user is trip creator or admin (always has full access to all channels)
+      const { data: trip } = await supabase
+        .from('trips')
+        .select('created_by')
+        .eq('id', tripId)
+        .single();
+
+      const isTripCreator = trip?.created_by === user.id;
+      const isAdmin = await this.isAdmin(tripId, user.id);
+
+      // If trip creator or admin, return all channels for this trip
+      if (isTripCreator || isAdmin) {
+        const { data: allChannels } = await supabase
+          .from('trip_channels')
+          .select('*, trip_roles(role_name)')
+          .eq('trip_id', tripId)
+          .eq('is_archived', false)
+          .order('created_at');
+
+        return (allChannels || []).map(c => this.mapChannelData(c));
+      }
+
       // Get ALL user roles for the trip (not just primary)
       const userRoles = await this.getUserRoles(tripId, user.id);
       if (userRoles.length === 0) return [];
