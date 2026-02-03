@@ -1,145 +1,268 @@
 
-# Fix "Former Member" Display Issue - Root Cause & Solution
+# Fix Role Assignment Failure and Restore Channel Visibility
 
 ## Problem Summary
 
-After running the migration, trip members still show as "Former M." and "Former Member" because the `profiles_public` view returns **empty results** for other users' profiles.
+Two related issues are occurring in Pro trips:
+
+1. **Role Assignment Failure**: When assigning roles via Bulk Role Assignment, the system returns "Assignment Partially Complete - Successfully assigned role to 0 members" with a toast "Failed to assign role"
+
+2. **Channels Not Showing**: When clicking on the Channels tab in Chat, no channels appear despite channels existing in the database
 
 ---
 
 ## Root Cause Analysis
 
-### Current State
+### Issue 1: Role Assignment Failure
 
-| Component | Configuration | Problem |
-|-----------|--------------|---------|
-| `profiles` table RLS | `(auth.uid() = user_id)` for SELECT | Users can ONLY see their own profile row |
-| `profiles_public` view | `WITH (security_invoker = true)` | View respects the restrictive RLS policy |
-| Result | View returns empty for other users | Names fall back to "Former Member" |
+The `assign_trip_role` RPC function in the database has a strict membership check:
 
-### Data Flow Trace
-
-```text
-1. useTripMembersQuery.ts fetches trip_members (succeeds)
-2. tripService.getTripMembers() queries profiles_public for user_ids
-3. profiles_public has security_invoker=true → enforces base table RLS
-4. RLS policy only allows auth.uid() = user_id → returns empty for other users
-5. No profile data → resolveDisplayName() returns UNRESOLVED_NAME_SENTINEL
-6. Frontend displays FORMER_MEMBER_LABEL ("Former Member")
+```sql
+-- Lines 107-116 in 20251210000000_fix_role_channels.sql
+IF NOT EXISTS (
+  SELECT 1 FROM public.trip_members 
+  WHERE trip_id = _trip_id AND user_id = _user_id
+) THEN
+  RETURN jsonb_build_object(
+    'success', false,
+    'message', 'User must be a trip member'
+  );
+END IF;
 ```
+
+**Database Evidence**:
+- Trip ID: `95689641-0d3f-4278-9ae5-639c00945345` (Chravel Pro Test Trip)
+- Creator: `013d9240-10c0-44e5-8da5-abfa2c4751c5` (Christian Amechi)
+- `trip_members` table: Only has 1 entry (Christian is listed)
+- `user_trip_roles` table: **EMPTY** - no roles assigned to anyone
+
+The assignment is failing because:
+1. Although Christian IS in trip_members, the assignment still fails
+2. The RPC returns `{success: false, message: 'User must be a trip member'}` but this message is not being surfaced clearly
+
+### Issue 2: Channels Not Visible
+
+Channel visibility is tied to role assignments. The `channelService.getAccessibleChannels()` method:
+
+```typescript
+// Lines 372-374 in channelService.ts
+const userRoles = await this.getUserRoles(tripId, user.id);
+if (userRoles.length === 0) return []; // No roles = no channels
+```
+
+Since `user_trip_roles` is empty for this trip, no channels are returned.
+
+**Database Evidence**:
+- 5 channels exist in `trip_channels` for this trip
+- 5 roles exist in `trip_roles` for this trip
+- 0 entries in `user_trip_roles` - no one has been assigned roles
 
 ---
 
-## Solution: Update profiles Table RLS Policy
+## Solution
 
-The fix requires adding a new SELECT policy on the `profiles` table that allows authenticated users to view basic profile data of **anyone**. The `profiles_public` view will still handle column-level privacy (masking email/phone).
+### Part 1: Fix Role Assignment RPC
 
-### Why This Approach?
+Update the `assign_trip_role` function to:
+1. Allow trip creators to bypass the `trip_members` check (they own the trip)
+2. Optionally auto-add the user to `trip_members` if they're not already there (for admins assigning roles)
 
-1. **Follows existing architecture** - The memory note confirms "profiles_public view allows all authenticated users to see basic profile information"
-2. **Defense in depth** - Base table policy controls row access; view controls column visibility
-3. **No regression** - Email/phone remain protected via CASE statements in the view
-4. **Performance** - Single policy check vs. complex subqueries
+```sql
+-- Updated logic:
+-- Trip creator can always assign roles to themselves
+-- If user is not in trip_members, add them first (for authenticated admins only)
+```
+
+### Part 2: Improve Error Surfacing
+
+Update the frontend to show the actual error message from the RPC instead of generic "Failed to assign role":
+
+- File: `src/hooks/useRoleAssignments.ts`
+- File: `src/components/pro/BulkRoleAssignmentModal.tsx`
+
+### Part 3: Ensure Trip Creator Has Channel Access (Admin Override)
+
+Add a fallback in `channelService.getAccessibleChannels()` that grants trip creators access to all channels, similar to how `is_trip_member` function works.
 
 ---
 
-## Database Migration Required
+## Technical Implementation
+
+### Database Migration
 
 ```sql
--- Fix profiles_public returning empty by adding permissive SELECT policy
--- The view handles column-level privacy (email/phone), so base table can allow basic SELECT
+CREATE OR REPLACE FUNCTION public.assign_trip_role(
+  _trip_id text,
+  _user_id uuid,
+  _role_id uuid,
+  _set_as_primary boolean DEFAULT false
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  is_first_role boolean;
+  is_trip_creator boolean;
+BEGIN
+  -- Check if the target user is the trip creator
+  SELECT EXISTS (
+    SELECT 1 FROM public.trips 
+    WHERE id = _trip_id AND created_by = _user_id
+  ) INTO is_trip_creator;
 
--- Option 1: Add a new permissive policy for basic profile access
-CREATE POLICY "Authenticated users can view all profiles"
-ON public.profiles FOR SELECT TO authenticated
-USING (true);
+  -- Check permissions (admins only)
+  IF NOT (
+    EXISTS (
+      SELECT 1 FROM public.trips 
+      WHERE id = _trip_id AND created_by = auth.uid()
+    ) OR
+    EXISTS (
+      SELECT 1 FROM public.trip_admins 
+      WHERE trip_id = _trip_id 
+      AND user_id = auth.uid()
+      AND (permissions->>'can_manage_roles')::boolean = true
+    )
+  ) THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'message', 'Only admins can assign roles'
+    );
+  END IF;
 
--- Keep the existing policy for backwards compatibility
--- "Users can view their own profile" remains but is now redundant
--- (OR just drop it since the new policy is more permissive)
+  -- Auto-add user to trip_members if not present
+  -- (Trip creators and existing members are allowed)
+  IF NOT EXISTS (
+    SELECT 1 FROM public.trip_members 
+    WHERE trip_id = _trip_id AND user_id = _user_id
+  ) THEN
+    -- Only allow adding if caller is trip creator or admin
+    INSERT INTO public.trip_members (trip_id, user_id)
+    VALUES (_trip_id, _user_id)
+    ON CONFLICT (trip_id, user_id) DO NOTHING;
+  END IF;
+
+  -- Check if this is the user's first role
+  SELECT NOT EXISTS (
+    SELECT 1 FROM public.user_trip_roles
+    WHERE trip_id = _trip_id AND user_id = _user_id
+  ) INTO is_first_role;
+
+  -- If _set_as_primary is true, demote existing primary role first
+  IF _set_as_primary AND NOT is_first_role THEN
+    UPDATE public.user_trip_roles
+    SET is_primary = false, updated_at = NOW()
+    WHERE trip_id = _trip_id 
+    AND user_id = _user_id 
+    AND is_primary = true;
+  END IF;
+
+  -- Insert the new role
+  INSERT INTO public.user_trip_roles (
+    trip_id,
+    user_id,
+    role_id,
+    is_primary,
+    assigned_by
+  )
+  VALUES (
+    _trip_id,
+    _user_id,
+    _role_id,
+    CASE WHEN is_first_role THEN true ELSE _set_as_primary END,
+    auth.uid()
+  )
+  ON CONFLICT (trip_id, user_id, role_id)
+  DO UPDATE SET
+    is_primary = CASE 
+      WHEN is_first_role THEN true 
+      WHEN _set_as_primary THEN true
+      ELSE public.user_trip_roles.is_primary
+    END,
+    assigned_at = NOW();
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'message', 'Role assigned successfully'
+  );
+END;
+$$;
 ```
 
-Alternatively, we can use a more restrictive policy that only allows trip co-members:
+### Frontend: Better Error Messages
 
-```sql
--- Option 2: More restrictive - only co-members can see profiles
-CREATE POLICY "Users can view trip co-member profiles"
-ON public.profiles FOR SELECT TO authenticated
-USING (
-  auth.uid() = user_id  -- Own profile
-  OR public.is_trip_co_member(auth.uid(), user_id)  -- Trip co-member
-);
-
--- Drop the old restrictive policy
-DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
+```typescript
+// useRoleAssignments.ts - Update error handling
+const result = data as { success: boolean; message: string };
+if (!result.success) {
+  // Show the actual error message from the database
+  toast.error(result.message || 'Failed to assign role');
+  throw new Error(result.message);
+}
 ```
 
-**Recommendation**: Option 1 is simpler and aligns with the memory note. The view already handles privacy for sensitive columns.
+### Frontend: Channel Access for Trip Creators
+
+```typescript
+// channelService.ts - Add trip creator fallback
+async getAccessibleChannels(tripId: string): Promise<TripChannel[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // Check if user is trip creator (always has full access)
+  const { data: trip } = await supabase
+    .from('trips')
+    .select('created_by')
+    .eq('id', tripId)
+    .single();
+  
+  const isTripCreator = trip?.created_by === user.id;
+
+  // If trip creator, return all channels for this trip
+  if (isTripCreator) {
+    const { data: allChannels } = await supabase
+      .from('trip_channels')
+      .select('*, trip_roles(role_name)')
+      .eq('trip_id', tripId)
+      .eq('is_archived', false);
+    
+    return (allChannels || []).map(c => this.mapChannelData(c));
+  }
+
+  // Existing logic for role-based access...
+}
+```
 
 ---
 
 ## Files to Modify
 
-| Location | Change |
-|----------|--------|
-| New migration file | Add permissive SELECT policy on `profiles` table |
-| No frontend changes | The hooks already handle the data correctly when profiles are returned |
+| File | Change |
+|------|--------|
+| New migration file | Update `assign_trip_role` RPC to auto-add users to trip_members |
+| `src/hooks/useRoleAssignments.ts` | Surface actual error messages from RPC |
+| `src/services/channelService.ts` | Add trip creator fallback for channel access |
+| `src/components/pro/BulkRoleAssignmentModal.tsx` | Show specific error messages in UI |
 
 ---
 
-## Technical Details
-
-### Migration SQL
-
-```sql
--- Migration: Fix profiles_public empty result issue
--- Root cause: security_invoker view respects restrictive RLS on base profiles table
-
--- Step 1: Drop the restrictive policy
-DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
-
--- Step 2: Add permissive policy for authenticated users
--- The profiles_public view handles column-level privacy for email/phone
-CREATE POLICY "Authenticated users can view all profiles"
-ON public.profiles FOR SELECT TO authenticated
-USING (true);
-
--- The view already has:
--- - CASE statements to protect email/phone based on show_* settings + is_trip_co_member()
--- - WHERE auth.uid() IS NOT NULL to require authentication
-```
-
-### Why security_invoker Views Need Matching RLS
-
-When a view uses `security_invoker = true`:
-- The view executes with the **caller's** privileges
-- RLS policies on base tables are enforced
-- If the base table policy is restrictive, the view inherits that restriction
-
-When `security_invoker` is NOT set (or false):
-- The view executes with the **owner's** privileges (usually postgres/superuser)
-- RLS is bypassed
-- The view's internal WHERE clause handles filtering
-
-The current setup uses `security_invoker = true` but the base table RLS is too restrictive.
-
----
-
-## Expected Result After Fix
+## Expected Results After Fix
 
 | Before | After |
 |--------|-------|
-| "Former M." for all members except self | Actual names displayed (e.g., "Carla S.", "Phil Q.") |
-| Empty profiles_public result | Full profile data returned |
-| Only own avatar visible | All member avatars visible |
+| "Assignment Partially Complete - 0 members" | Role assigned successfully |
+| Channels tab shows nothing | Trip creator sees all channels |
+| Generic "Failed to assign role" toast | Specific error message from database |
 
 ---
 
-## Regression Prevention
+## Testing Verification
 
-| Check | Status |
-|-------|--------|
-| Email/phone still protected | ✓ View CASE statements unchanged |
-| Own profile access | ✓ Policy allows self-access |
-| Authentication required | ✓ Policy is for `authenticated` role only |
-| No anon access | ✓ Anon role has no policy |
+1. As trip creator, go to Team tab
+2. Click "Assign Roles" 
+3. Select yourself and a role
+4. Confirm assignment completes successfully
+5. Navigate to Chat tab, click Channels
+6. Verify all role-based channels are visible
+7. Click a channel to open it
