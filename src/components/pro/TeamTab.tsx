@@ -18,12 +18,22 @@ interface TeamTabProps {
   isReadOnly?: boolean;
   category: ProTripCategory;
   tripId?: string;
-  onUpdateMemberRole?: (memberId: string, newRole: string) => Promise<void>;
+  /** Callback receives memberId, roleId (for DB), and roleName (for display/local state) */
+  onUpdateMemberRole?: (memberId: string, roleId: string, roleName: string) => Promise<void>;
   trip?: any;
   tripCreatorId?: string;
 }
 
-export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId, onUpdateMemberRole, trip, tripCreatorId }: TeamTabProps) => {
+export const TeamTab = ({
+  roster,
+  userRole,
+  isReadOnly = false,
+  category,
+  tripId,
+  onUpdateMemberRole,
+  trip,
+  tripCreatorId,
+}: TeamTabProps) => {
   const { isAdmin, hasPermission, isLoading: adminLoading } = useProTripAdmin(tripId || '');
   const { isDemoMode } = useDemoMode();
   const { isSuperAdmin } = useSuperAdmin();
@@ -47,7 +57,7 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      
+
       // Map database fields to TripRole type
       const mappedRoles: TripRole[] = (data || []).map(role => ({
         id: role.id,
@@ -58,9 +68,9 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
         featurePermissions: role.feature_permissions as any,
         createdBy: role.created_by,
         createdAt: role.created_at,
-        updatedAt: role.updated_at
+        updatedAt: role.updated_at,
       }));
-      
+
       setRoles(mappedRoles);
     } catch (error) {
       console.error('Error loading roles:', error);
@@ -83,7 +93,8 @@ export const TeamTab = ({ roster, userRole, isReadOnly = false, category, tripId
   };
 
   // Super admins always have full role management capabilities
-  const canManageRoles = isSuperAdmin || (isAdmin && hasPermission('can_manage_roles')) || isDemoMode;
+  const canManageRoles =
+    isSuperAdmin || (isAdmin && hasPermission('can_manage_roles')) || isDemoMode;
 
   return (
     <div className="space-y-6 w-full">

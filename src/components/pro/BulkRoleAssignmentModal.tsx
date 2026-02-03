@@ -5,7 +5,14 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import {
-  Users, Check, X, Search, Filter, ChevronRight, CheckCircle2, AlertCircle
+  Users,
+  Check,
+  X,
+  Search,
+  Filter,
+  ChevronRight,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
@@ -22,7 +29,8 @@ interface BulkRoleAssignmentModalProps {
   category: ProTripCategory;
   existingRoles: string[];
   availableRoles?: TripRole[];
-  onUpdateMemberRole: (memberId: string, newRole: string) => Promise<void>;
+  /** Callback receives memberId, roleId (for DB), and roleName (for display/local state) */
+  onUpdateMemberRole: (memberId: string, roleId: string, roleName: string) => Promise<void>;
 }
 
 type Step = 'select' | 'assign' | 'confirm';
@@ -34,7 +42,7 @@ export const BulkRoleAssignmentModal = ({
   category,
   existingRoles,
   availableRoles = [],
-  onUpdateMemberRole
+  onUpdateMemberRole,
 }: BulkRoleAssignmentModalProps) => {
   const [step, setStep] = useState<Step>('select');
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,9 +56,9 @@ export const BulkRoleAssignmentModal = ({
     toggleMember,
     selectAll,
     clearSelection,
-    selectByRole,
+    selectByRole: _selectByRole,
     assignRoleToMultiple,
-    isAssigning
+    isAssigning,
   } = useBulkRoleAssignment();
 
   // Get actual trip roles - these are the only roles that can be assigned
@@ -63,9 +71,10 @@ export const BulkRoleAssignmentModal = ({
 
     // Apply search filter
     if (searchQuery) {
-      filtered = filtered.filter(member =>
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        member =>
+          member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          member.email.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
@@ -104,10 +113,19 @@ export const BulkRoleAssignmentModal = ({
   const handleAssign = async () => {
     if (!selectedRole.trim()) return;
 
+    // Find the role ID from availableRoles
+    const roleRecord = availableRoles.find(r => r.roleName === selectedRole.trim());
+    if (!roleRecord) {
+      console.error('Role not found in availableRoles:', selectedRole);
+      setResult({ success: false, assignedCount: 0 });
+      return;
+    }
+
     const result = await assignRoleToMultiple(
       selectedMembers,
+      roleRecord.id,
       selectedRole.trim(),
-      onUpdateMemberRole
+      onUpdateMemberRole,
     );
 
     setResult(result);
@@ -136,28 +154,44 @@ export const BulkRoleAssignmentModal = ({
 
         {/* Progress Steps */}
         <div className="flex items-center justify-between mb-6">
-          <div className={`flex items-center gap-2 ${step === 'select' ? 'text-red-400' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step !== 'select' ? 'bg-red-600' : 'bg-red-600/20'
-            }`}>
+          <div
+            className={`flex items-center gap-2 ${step === 'select' ? 'text-red-400' : 'text-gray-400'}`}
+          >
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                step !== 'select' ? 'bg-red-600' : 'bg-red-600/20'
+              }`}
+            >
               {step !== 'select' ? <Check size={16} /> : '1'}
             </div>
             <span className="text-sm font-medium">Select Members</span>
           </div>
           <ChevronRight size={20} className="text-gray-600" />
-          <div className={`flex items-center gap-2 ${step === 'assign' ? 'text-red-400' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step === 'confirm' ? 'bg-red-600' : step === 'assign' ? 'bg-red-600/20' : 'bg-gray-700'
-            }`}>
+          <div
+            className={`flex items-center gap-2 ${step === 'assign' ? 'text-red-400' : 'text-gray-400'}`}
+          >
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                step === 'confirm'
+                  ? 'bg-red-600'
+                  : step === 'assign'
+                    ? 'bg-red-600/20'
+                    : 'bg-gray-700'
+              }`}
+            >
               {step === 'confirm' ? <Check size={16} /> : '2'}
             </div>
             <span className="text-sm font-medium">Choose Role</span>
           </div>
           <ChevronRight size={20} className="text-gray-600" />
-          <div className={`flex items-center gap-2 ${step === 'confirm' ? 'text-red-400' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step === 'confirm' ? 'bg-red-600/20' : 'bg-gray-700'
-            }`}>
+          <div
+            className={`flex items-center gap-2 ${step === 'confirm' ? 'text-red-400' : 'text-gray-400'}`}
+          >
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                step === 'confirm' ? 'bg-red-600/20' : 'bg-gray-700'
+              }`}
+            >
               3
             </div>
             <span className="text-sm font-medium">Confirm</span>
@@ -170,10 +204,13 @@ export const BulkRoleAssignmentModal = ({
             {/* Search and Filter */}
             <div className="flex gap-2">
               <div className="flex-1 relative">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search
+                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <Input
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search by name or email..."
                   className="pl-10 bg-gray-800 border-gray-600 text-white"
                 />
@@ -186,7 +223,9 @@ export const BulkRoleAssignmentModal = ({
                 <SelectContent className="bg-gray-800 border-gray-600">
                   <SelectItem value="all">All Roles</SelectItem>
                   {existingRoles.map(role => (
-                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -194,12 +233,7 @@ export const BulkRoleAssignmentModal = ({
 
             {/* Quick Actions */}
             <div className="flex gap-2">
-              <Button
-                onClick={handleSelectAll}
-                variant="outline"
-                size="sm"
-                className="flex-1"
-              >
+              <Button onClick={handleSelectAll} variant="outline" size="sm" className="flex-1">
                 Select All ({filteredRoster.length})
               </Button>
               <Button
@@ -249,7 +283,9 @@ export const BulkRoleAssignmentModal = ({
                     <p className="font-medium truncate">{member.name}</p>
                     <p className="text-sm text-gray-400 truncate">{member.email}</p>
                   </div>
-                  <span className={`${getRoleColorClass(member.role, category)} px-2 py-1 rounded text-xs font-medium`}>
+                  <span
+                    className={`${getRoleColorClass(member.role, category)} px-2 py-1 rounded text-xs font-medium`}
+                  >
                     {member.role}
                   </span>
                 </label>
@@ -270,7 +306,9 @@ export const BulkRoleAssignmentModal = ({
           <div className="space-y-4">
             <div className="bg-white/5 rounded-lg p-4 border border-gray-700">
               <p className="text-sm text-gray-400 mb-2">Assigning role to:</p>
-              <p className="text-lg font-medium">{selectedMembers.length} selected member{selectedMembers.length !== 1 ? 's' : ''}</p>
+              <p className="text-lg font-medium">
+                {selectedMembers.length} selected member{selectedMembers.length !== 1 ? 's' : ''}
+              </p>
             </div>
 
             {/* Role Type Toggle */}
@@ -279,7 +317,7 @@ export const BulkRoleAssignmentModal = ({
               <div className="flex gap-2">
                 <Button
                   type="button"
-                  variant={!isCustomRole ? "default" : "outline"}
+                  variant={!isCustomRole ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => {
                     setIsCustomRole(false);
@@ -292,7 +330,7 @@ export const BulkRoleAssignmentModal = ({
                 </Button>
                 <Button
                   type="button"
-                  variant={isCustomRole ? "default" : "outline"}
+                  variant={isCustomRole ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => {
                     setIsCustomRole(true);
@@ -322,13 +360,14 @@ export const BulkRoleAssignmentModal = ({
             ) : !isCustomRole && tripRoleNames.length === 0 ? (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
                 <p className="text-yellow-400 text-sm">
-                  No roles exist yet. Use the "Custom" option to create a new role, or create roles first using the "Create Role" button.
+                  No roles exist yet. Use the "Custom" option to create a new role, or create roles
+                  first using the "Create Role" button.
                 </p>
               </div>
             ) : (
               <Input
                 value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
+                onChange={e => setSelectedRole(e.target.value)}
                 placeholder="Enter custom role (e.g., Assistant Tour Manager)"
                 className="bg-gray-800 border-gray-600 text-white"
               />
@@ -345,7 +384,12 @@ export const BulkRoleAssignmentModal = ({
                 <div>
                   <p className="font-medium text-yellow-400">Confirm Bulk Assignment</p>
                   <p className="text-sm text-gray-300 mt-1">
-                    You are about to assign the role <span className="font-bold text-white">"{selectedRole}"</span> to <span className="font-bold text-white">{selectedMembers.length} member{selectedMembers.length !== 1 ? 's' : ''}</span>.
+                    You are about to assign the role{' '}
+                    <span className="font-bold text-white">"{selectedRole}"</span> to{' '}
+                    <span className="font-bold text-white">
+                      {selectedMembers.length} member{selectedMembers.length !== 1 ? 's' : ''}
+                    </span>
+                    .
                   </p>
                 </div>
               </div>
@@ -355,7 +399,10 @@ export const BulkRoleAssignmentModal = ({
             <div className="space-y-2 max-h-64 overflow-y-auto">
               <Label className="text-sm text-gray-400">Members to update:</Label>
               {selectedMemberDetails.map(member => (
-                <div key={member.id} className="flex items-center justify-between p-2 bg-white/5 rounded border border-gray-700">
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-2 bg-white/5 rounded border border-gray-700"
+                >
                   <div className="flex items-center gap-2">
                     <Avatar className="w-8 h-8 flex-shrink-0">
                       <AvatarImage src={member.avatar} alt={member.name} />
@@ -378,11 +425,13 @@ export const BulkRoleAssignmentModal = ({
 
         {/* Result */}
         {result && (
-          <div className={`rounded-lg p-4 ${
-            result.success 
-              ? 'bg-green-500/10 border border-green-500/20' 
-              : 'bg-red-500/10 border border-red-500/20'
-          }`}>
+          <div
+            className={`rounded-lg p-4 ${
+              result.success
+                ? 'bg-green-500/10 border border-green-500/20'
+                : 'bg-red-500/10 border border-red-500/20'
+            }`}
+          >
             <div className="flex items-center gap-3">
               {result.success ? (
                 <CheckCircle2 className="text-green-400" size={24} />
@@ -394,7 +443,8 @@ export const BulkRoleAssignmentModal = ({
                   {result.success ? 'Assignment Complete!' : 'Assignment Partially Complete'}
                 </p>
                 <p className="text-sm text-gray-300 mt-1">
-                  Successfully assigned role to {result.assignedCount} member{result.assignedCount !== 1 ? 's' : ''}.
+                  Successfully assigned role to {result.assignedCount} member
+                  {result.assignedCount !== 1 ? 's' : ''}.
                 </p>
               </div>
             </div>
@@ -404,11 +454,7 @@ export const BulkRoleAssignmentModal = ({
         {/* Actions */}
         <div className="flex gap-2 pt-4 border-t border-gray-700">
           {!result && step !== 'select' && (
-            <Button
-              onClick={handleBack}
-              variant="outline"
-              disabled={isAssigning}
-            >
+            <Button onClick={handleBack} variant="outline" disabled={isAssigning}>
               Back
             </Button>
           )}
@@ -421,8 +467,8 @@ export const BulkRoleAssignmentModal = ({
             <X size={16} className="mr-1" />
             {result ? 'Done' : 'Cancel'}
           </Button>
-          {!result && (
-            step === 'confirm' ? (
+          {!result &&
+            (step === 'confirm' ? (
               <Button
                 onClick={handleAssign}
                 disabled={isAssigning || !selectedRole.trim()}
@@ -449,11 +495,9 @@ export const BulkRoleAssignmentModal = ({
                 Next
                 <ChevronRight size={16} className="ml-1" />
               </Button>
-            )
-          )}
+            ))}
         </div>
       </DialogContent>
     </Dialog>
   );
 };
-

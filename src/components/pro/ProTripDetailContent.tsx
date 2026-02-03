@@ -6,7 +6,6 @@ import { getVisibleTabs } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
 import { useRoleAssignments } from '../../hooks/useRoleAssignments';
 import { useTripRoles } from '../../hooks/useTripRoles';
-import { toast } from 'sonner';
 
 import { ProTripData } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
@@ -40,11 +39,11 @@ export const ProTripDetailContent = ({
   const { user } = useAuth();
 
   // Hooks for role assignment persistence
-  const { assignRole, isProcessing: isAssigningRole } = useRoleAssignments({
+  const { assignRole } = useRoleAssignments({
     tripId,
     enabled: !!tripId,
   });
-  const { roles, refetch: refetchRoles } = useTripRoles({ tripId, enabled: !!tripId });
+  const { refetch: refetchRoles } = useTripRoles({ tripId, enabled: !!tripId });
 
   const userRole = user?.proRole || 'staff';
   const userPermissions = user?.permissions || ['read'];
@@ -58,29 +57,22 @@ export const ProTripDetailContent = ({
   /**
    * Handle role assignment for a member.
    * This function:
-   * 1. Looks up the role ID from the role name (or creates a role if needed)
+   * 1. Uses the role ID directly (passed from the modal)
    * 2. Persists the assignment to the database via useRoleAssignments
    * 3. Updates local state optimistically
+   *
+   * @param memberId - The roster participant ID
+   * @param roleId - The role UUID (from trip_roles table)
+   * @param roleName - The role display name (for local state updates)
    */
   const handleUpdateMemberRole = useCallback(
-    async (memberId: string, newRole: string) => {
+    async (memberId: string, roleId: string, roleName: string) => {
       if (!tripId) {
         console.error('Cannot assign role: tripId is missing');
         throw new Error('Trip ID is required');
       }
 
       try {
-        // Look up the role ID from the role name
-        const roleRecord = roles.find(r => r.roleName === newRole);
-
-        if (!roleRecord) {
-          // Role doesn't exist in trip_roles - this is a custom role that wasn't created first
-          toast.error(
-            `Role "${newRole}" doesn't exist. Please create the role first using "Create Role".`,
-          );
-          throw new Error(`Role "${newRole}" not found. Create it first.`);
-        }
-
         // Find the user_id for this member from the roster
         // The memberId might be the roster participant ID or user_id
         const member = tripData.roster?.find(m => m.id === memberId);
@@ -92,15 +84,15 @@ export const ProTripDetailContent = ({
         // Get the actual user_id - roster may have it stored as 'id' or 'userId'
         const userId = (member as any).userId || member.id;
 
-        // Persist the role assignment to the database
-        await assignRole(userId, roleRecord.id);
+        // Persist the role assignment to the database using the role ID directly
+        await assignRole(userId, roleId);
 
         // Refetch roles to update member counts
         await refetchRoles();
 
         // Update local state optimistically for immediate UI feedback
         const updatedRoster =
-          tripData.roster?.map(m => (m.id === memberId ? { ...m, role: newRole } : m)) || [];
+          tripData.roster?.map(m => (m.id === memberId ? { ...m, role: roleName } : m)) || [];
 
         if (onUpdateTripData) {
           onUpdateTripData({ roster: updatedRoster });
@@ -110,7 +102,7 @@ export const ProTripDetailContent = ({
         throw error;
       }
     },
-    [tripId, roles, tripData.roster, assignRole, refetchRoles, onUpdateTripData],
+    [tripId, tripData.roster, assignRole, refetchRoles, onUpdateTripData],
   );
 
   return (

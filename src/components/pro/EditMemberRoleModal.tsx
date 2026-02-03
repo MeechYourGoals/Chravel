@@ -19,17 +19,18 @@ interface EditMemberRoleModalProps {
   category: ProTripCategory;
   existingRoles: string[];
   availableRoles?: TripRole[];
-  onUpdateRole: (memberId: string, newRole: string) => Promise<void>;
+  /** Callback receives memberId, roleId (for DB), and roleName (for display/local state) */
+  onUpdateRole: (memberId: string, roleId: string, roleName: string) => Promise<void>;
 }
 
 export const EditMemberRoleModal = ({
   isOpen,
   onClose,
   member,
-  category,
+  category: _category,
   existingRoles,
   availableRoles = [],
-  onUpdateRole
+  onUpdateRole,
 }: EditMemberRoleModalProps) => {
   const [newRole, setNewRole] = useState('');
   const [isCustomRole, setIsCustomRole] = useState(false);
@@ -55,13 +56,20 @@ export const EditMemberRoleModal = ({
       return;
     }
 
+    // Find the role ID from availableRoles
+    const roleRecord = availableRoles.find(r => r.roleName === newRole.trim());
+    if (!roleRecord) {
+      setError(`Role "${newRole}" doesn't exist. Please create the role first.`);
+      return;
+    }
+
     setSaving(true);
     setError('');
 
     try {
-      await onUpdateRole(member.id, newRole.trim());
+      await onUpdateRole(member.id, roleRecord.id, newRole.trim());
       onClose();
-    } catch (err) {
+    } catch {
       setError('Failed to update role. Please try again.');
     } finally {
       setSaving(false);
@@ -100,9 +108,7 @@ export const EditMemberRoleModal = ({
               <div>
                 <h3 className="font-medium">{member.name}</h3>
                 <p className="text-sm text-gray-400">{member.email}</p>
-                <Badge className="mt-1 bg-red-600/20 text-red-400">
-                  Current: {member.role}
-                </Badge>
+                <Badge className="mt-1 bg-red-600/20 text-red-400">Current: {member.role}</Badge>
               </div>
             </div>
           </div>
@@ -117,7 +123,7 @@ export const EditMemberRoleModal = ({
             <div className="flex gap-2">
               <Button
                 type="button"
-                variant={!isCustomRole ? "default" : "outline"}
+                variant={!isCustomRole ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => {
                   setIsCustomRole(false);
@@ -130,7 +136,7 @@ export const EditMemberRoleModal = ({
               </Button>
               <Button
                 type="button"
-                variant={isCustomRole ? "default" : "outline"}
+                variant={isCustomRole ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => {
                   setIsCustomRole(true);
@@ -149,7 +155,7 @@ export const EditMemberRoleModal = ({
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
-                  {tripRoleNames.map((role) => (
+                  {tripRoleNames.map(role => (
                     <SelectItem key={role} value={role} className="text-white hover:bg-gray-700">
                       {role}
                     </SelectItem>
@@ -159,14 +165,15 @@ export const EditMemberRoleModal = ({
             ) : !isCustomRole && tripRoleNames.length === 0 ? (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
                 <p className="text-yellow-400 text-sm">
-                  No roles exist yet. Use the "Custom" option to create a new role, or create roles first using the "Create Role" button.
+                  No roles exist yet. Use the "Custom" option to create a new role, or create roles
+                  first using the "Create Role" button.
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
                 <Input
                   value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
+                  onChange={e => setNewRole(e.target.value)}
                   placeholder="Enter custom role (e.g., Production Manager, Lead Vocalist)"
                   className="bg-gray-800 border-gray-600 text-white"
                 />
@@ -175,7 +182,7 @@ export const EditMemberRoleModal = ({
                   <div className="text-xs text-gray-400">
                     <p className="mb-1">Existing roles in roster:</p>
                     <div className="flex flex-wrap gap-1">
-                      {existingRoles.slice(0, 5).map((role) => (
+                      {existingRoles.slice(0, 5).map(role => (
                         <button
                           key={role}
                           type="button"
@@ -203,12 +210,7 @@ export const EditMemberRoleModal = ({
 
           {/* Actions */}
           <div className="flex gap-2 pt-4">
-            <Button
-              onClick={handleCancel}
-              variant="outline"
-              className="flex-1"
-              disabled={saving}
-            >
+            <Button onClick={handleCancel} variant="outline" className="flex-1" disabled={saving}>
               <X size={16} className="mr-1" />
               Cancel
             </Button>
