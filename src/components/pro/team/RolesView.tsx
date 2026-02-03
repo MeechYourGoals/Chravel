@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Settings, AlertTriangle, UserPlus, UsersRound, Shield, Clock, Cog } from 'lucide-react';
+import { Users, Settings, AlertTriangle, UserPlus, Clock, Cog } from 'lucide-react';
 import { ProParticipant } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
 import { EditMemberRoleModal } from '../EditMemberRoleModal';
@@ -15,7 +15,6 @@ import { getInitials } from '../../../utils/avatarUtils';
 import { useDemoMode } from '../../../hooks/useDemoMode';
 import { useSuperAdmin } from '../../../hooks/useSuperAdmin';
 import { useIsMobile } from '../../../hooks/use-mobile';
-import { AdminManagerDialog } from '../admin/AdminManagerDialog';
 import { JoinRequestsDialog } from '../admin/JoinRequestsDialog';
 import { RoleManagerDialog } from '../admin/RoleManagerDialog';
 import { TripRole } from '../../../types/roleChannels';
@@ -65,7 +64,6 @@ export const RolesView = ({
   } | null>(null);
   const [newRoleName, setNewRoleName] = useState('');
   const [showRoleCreation, setShowRoleCreation] = useState(false);
-  const [showAdminsDialog, setShowAdminsDialog] = useState(false);
   const [showRequestsDialog, setShowRequestsDialog] = useState(false);
   const [showRoleManagerDialog, setShowRoleManagerDialog] = useState(false);
 
@@ -168,11 +166,11 @@ export const RolesView = ({
           )}
         </div>
 
-        {/* Row 2: Consolidated Admin Action Buttons (4 buttons) - Mobile optimized */}
+        {/* Row 2: Consolidated Admin Action Buttons (3 buttons) - Mobile optimized */}
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
           <div
             className={`${
-              isMobile ? 'grid grid-cols-2 gap-2' : 'flex items-center justify-center gap-2'
+              isMobile ? 'flex flex-col gap-2' : 'flex items-center justify-center gap-2'
             } mb-3`}
           >
             <Button
@@ -188,29 +186,16 @@ export const RolesView = ({
               Create Role
             </Button>
             <Button
-              onClick={() => setShowBulkModal(true)}
-              variant="outline"
-              size="sm"
-              disabled={roster.length === 0}
-              className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
-                isMobile ? 'min-h-[44px] justify-center text-xs' : ''
-              }`}
-              title="Assign roles to multiple members"
-            >
-              <UsersRound size={16} className="mr-1.5" />
-              Assign Roles
-            </Button>
-            <Button
-              onClick={() => setShowAdminsDialog(true)}
+              onClick={() => setShowRoleManagerDialog(true)}
               variant="outline"
               size="sm"
               className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
                 isMobile ? 'min-h-[44px] justify-center text-xs' : ''
               }`}
-              title="Manage trip administrators"
+              title="Manage roles, assignments, and admins"
             >
-              <Shield className="w-4 h-4 mr-1.5" />
-              Admins
+              <Cog className="w-4 h-4 mr-1.5" />
+              Manage Roles
             </Button>
             <Button
               onClick={() => setShowRequestsDialog(true)}
@@ -223,18 +208,6 @@ export const RolesView = ({
             >
               <Clock className="w-4 h-4 mr-1.5" />
               Requests
-            </Button>
-            <Button
-              onClick={() => setShowRoleManagerDialog(true)}
-              variant="outline"
-              size="sm"
-              className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
-                isMobile ? 'min-h-[44px] justify-center text-xs col-span-2' : ''
-              }`}
-              title="Manage, rename, or delete roles"
-            >
-              <Cog className="w-4 h-4 mr-1.5" />
-              Manage Roles
             </Button>
           </div>
         )}
@@ -438,30 +411,24 @@ export const RolesView = ({
         />
       )}
 
-      {/* Admin Management Dialog */}
+      {/* Join Requests and Role Manager Dialogs */}
       {tripId && tripCreatorId && (
         <>
-          <AdminManagerDialog
-            open={showAdminsDialog}
-            onOpenChange={setShowAdminsDialog}
-            tripId={tripId}
-            tripCreatorId={tripCreatorId}
-          />
           <JoinRequestsDialog
             open={showRequestsDialog}
             onOpenChange={setShowRequestsDialog}
             tripId={tripId}
           />
+          <RoleManagerDialog
+            open={showRoleManagerDialog}
+            onOpenChange={setShowRoleManagerDialog}
+            tripId={tripId}
+            tripCreatorId={tripCreatorId}
+            roster={roster}
+            availableRoles={availableRoles}
+            onUpdateMemberRole={onUpdateMemberRole}
+          />
         </>
-      )}
-
-      {/* Role Manager Dialog - for editing, renaming, and deleting roles */}
-      {tripId && (
-        <RoleManagerDialog
-          open={showRoleManagerDialog}
-          onOpenChange={setShowRoleManagerDialog}
-          tripId={tripId}
-        />
       )}
     </div>
   );
