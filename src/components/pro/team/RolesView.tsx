@@ -120,8 +120,23 @@ export const RolesView = ({
       member.role === 'Participant',
   );
 
-  const filteredRoster =
-    selectedRole === 'all' ? roster : roster.filter(member => member.role === selectedRole);
+  // Filter roster by selected role - use actual role assignments from memberRolesMap
+  const filteredRoster = useMemo(() => {
+    if (selectedRole === 'all') return roster;
+
+    return roster.filter(member => {
+      const memberUserId = member.userId || member.id;
+      const assignedRoles = memberUserId ? memberRolesMap.get(memberUserId) || [] : [];
+
+      // Check if member is assigned to the selected role via user_trip_roles
+      const hasAssignedRole = assignedRoles.includes(selectedRole);
+
+      // Fallback: also check legacy member.role field for backwards compatibility
+      const hasLegacyRole = member.role === selectedRole;
+
+      return hasAssignedRole || hasLegacyRole;
+    });
+  }, [selectedRole, roster, memberRolesMap]);
 
   const handleAssignRolesClick = () => {
     // Open the role manager dialog instead of the per-member modal
@@ -273,12 +288,21 @@ export const RolesView = ({
               className={`flex ${isMobile ? 'gap-2 min-w-max' : 'flex-wrap gap-2 justify-center items-center max-w-5xl'}`}
             >
               {roles.map(role => {
-                const roleMembers = roster.filter(m => m.role === role);
-                // Always show 'all', and for other roles show if they exist in availableRoles or have members
+                // Get member count from actual role assignments (availableRoles has memberCount from DB)
+                const roleFromAvailable = availableRoles.find(r => r.roleName === role);
+                const assignmentCount = roleFromAvailable?.memberCount ?? 0;
+
+                // Fallback: count members with legacy role field for backwards compatibility
+                const legacyRoleMembers = roster.filter(m => m.role === role);
+
+                // Use assignment count if role exists in availableRoles, otherwise use legacy count
+                const memberCount = roleFromAvailable ? assignmentCount : legacyRoleMembers.length;
+
+                // Always show 'all', and for other roles show if they exist in availableRoles or have legacy members
                 const shouldShow =
                   role === 'all' ||
                   availableRoles.some(r => r.roleName === role) ||
-                  roleMembers.length > 0;
+                  legacyRoleMembers.length > 0;
 
                 if (!shouldShow) return null;
 
@@ -294,7 +318,7 @@ export const RolesView = ({
                   >
                     {role === 'all' ? 'All' : role}
                     {role !== 'all' && (
-                      <span className="ml-1 text-xs opacity-75">{roleMembers.length}</span>
+                      <span className="ml-1 text-xs opacity-75">{memberCount}</span>
                     )}
                   </button>
                 );
@@ -345,12 +369,14 @@ export const RolesView = ({
           });
 
           // Fallback to member.role if no assigned roles (ignore admin pill for this check)
+          // Also exclude 'admin' from fallback to prevent duplicate admin pills
           const showFallbackRole =
             assignedRoles.length === 0 &&
             member.role &&
             member.role !== '' &&
             member.role !== 'Member' &&
-            member.role !== 'Participant';
+            member.role !== 'Participant' &&
+            member.role.toLowerCase() !== 'admin';
 
           return (
             <div
