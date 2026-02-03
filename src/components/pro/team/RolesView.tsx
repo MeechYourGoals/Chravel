@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Settings, AlertTriangle, UserPlus, UsersRound, Shield, Clock } from 'lucide-react';
+import { Users, Settings, AlertTriangle, UserPlus, UsersRound, Shield, Clock, Cog } from 'lucide-react';
 import { ProParticipant } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
 import { EditMemberRoleModal } from '../EditMemberRoleModal';
@@ -17,6 +17,7 @@ import { useSuperAdmin } from '../../../hooks/useSuperAdmin';
 import { useIsMobile } from '../../../hooks/use-mobile';
 import { AdminManagerDialog } from '../admin/AdminManagerDialog';
 import { JoinRequestsDialog } from '../admin/JoinRequestsDialog';
+import { RoleManagerDialog } from '../admin/RoleManagerDialog';
 import { TripRole } from '../../../types/roleChannels';
 
 interface RolesViewProps {
@@ -66,6 +67,7 @@ export const RolesView = ({
   const [showRoleCreation, setShowRoleCreation] = useState(false);
   const [showAdminsDialog, setShowAdminsDialog] = useState(false);
   const [showRequestsDialog, setShowRequestsDialog] = useState(false);
+  const [showRoleManagerDialog, setShowRoleManagerDialog] = useState(false);
 
   // Super admins are never in read-only mode
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
@@ -221,6 +223,18 @@ export const RolesView = ({
             >
               <Clock className="w-4 h-4 mr-1.5" />
               Requests
+            </Button>
+            <Button
+              onClick={() => setShowRoleManagerDialog(true)}
+              variant="outline"
+              size="sm"
+              className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
+                isMobile ? 'min-h-[44px] justify-center text-xs col-span-2' : ''
+              }`}
+              title="Manage, rename, or delete roles"
+            >
+              <Cog className="w-4 h-4 mr-1.5" />
+              Manage Roles
             </Button>
           </div>
         )}
@@ -439,6 +453,15 @@ export const RolesView = ({
             tripId={tripId}
           />
         </>
+      )}
+
+      {/* Role Manager Dialog - for editing, renaming, and deleting roles */}
+      {tripId && (
+        <RoleManagerDialog
+          open={showRoleManagerDialog}
+          onOpenChange={setShowRoleManagerDialog}
+          tripId={tripId}
+        />
       )}
     </div>
   );

@@ -1,10 +1,11 @@
 import { ProTripCategory, getCategoryConfig } from '../types/proCategories';
 
 /**
- * MVP constraint: Maximum 5 roles per Pro trip
- * This limit can be expanded post-MVP based on user feedback and infrastructure scaling
+ * Pro trip role limit: Maximum 10 roles per Pro trip
+ * Increased from 5 to accommodate larger organizations (e.g., college football programs)
+ * with multiple distinct groups: players, coaches, media, press, staff, etc.
  */
-export const MAX_ROLES_PER_TRIP = 5;
+export const MAX_ROLES_PER_TRIP = 10;
 
 export interface RoleOption {
   value: string;

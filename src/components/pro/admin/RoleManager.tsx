@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TripRole } from '@/types/roleChannels';
+import { MAX_ROLES_PER_TRIP } from '@/utils/roleUtils';
 
 interface RoleManagerProps {
   tripId: string;
@@ -247,13 +248,13 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
             <Users className="w-5 h-5 text-purple-500" />
             <h3 className="font-semibold text-foreground">Role Management</h3>
             <span className="text-xs bg-purple-500/20 text-purple-500 px-2 py-0.5 rounded-full">
-              {roles.length} / 5
+              {roles.length} / {MAX_ROLES_PER_TRIP}
             </span>
           </div>
 
           <Button
             onClick={() => setShowCreateDialog(true)}
-            disabled={roles.length >= 5}
+            disabled={roles.length >= MAX_ROLES_PER_TRIP}
             className="rounded-full bg-purple-600 hover:bg-purple-700 text-white"
             size="sm"
           >

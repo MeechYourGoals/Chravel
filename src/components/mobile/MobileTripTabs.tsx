@@ -20,6 +20,8 @@ import { usePrefetchTrip } from '../../hooks/usePrefetchTrip';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
 import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
+import { useRoleAssignments } from '../../hooks/useRoleAssignments';
+import { useTripRoles } from '../../hooks/useTripRoles';
 import type { EventData } from '../../types/events';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
@@ -92,6 +94,24 @@ export const MobileTripTabs = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const features = useFeatureToggle(tripData || {});
+
+  // Role assignment hooks for Pro trips Team tab
+  const { assignRole } = useRoleAssignments({
+    tripId,
+    enabled: variant === 'pro' && !!tripId,
+  });
+  const { refetch: refetchRoles } = useTripRoles({
+    tripId,
+    enabled: variant === 'pro' && !!tripId,
+  });
+
+  // Track local roster state for optimistic updates
+  const [localParticipants, setLocalParticipants] = useState(participants);
+
+  // Sync local participants with prop changes
+  React.useEffect(() => {
+    setLocalParticipants(participants);
+  }, [participants]);
 
   // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
@@ -192,6 +212,46 @@ export const MobileTripTabs = ({
     prefetchTab(tripId, tabId);
   }, [tripId, prefetchTab]);
 
+  /**
+   * Handle role assignment for a member in Pro trips.
+   * This enables the "Assign Roles" button in the Team tab to work properly.
+   */
+  const handleUpdateMemberRole = useCallback(
+    async (memberId: string, roleId: string, roleName: string) => {
+      if (!tripId) {
+        console.error('Cannot assign role: tripId is missing');
+        throw new Error('Trip ID is required');
+      }
+
+      try {
+        // Find the member from participants
+        const member = localParticipants.find(m => m.id === memberId);
+        if (!member) {
+          console.error('Member not found in participants:', memberId);
+          throw new Error('Member not found');
+        }
+
+        // Persist the role assignment to the database
+        await assignRole(memberId, roleId);
+
+        // Refetch roles to update member counts
+        await refetchRoles();
+
+        // Update local state optimistically for immediate UI feedback
+        setLocalParticipants(prev =>
+          prev.map(p => (p.id === memberId ? { ...p, role: roleName } : p))
+        );
+
+        toast.success(`Role assigned successfully`);
+      } catch (error) {
+        console.error('Failed to update member role:', error);
+        toast.error('Failed to assign role');
+        throw error;
+      }
+    },
+    [tripId, localParticipants, assignRole, refetchRoles]
+  );
+
   // ⚡ PERFORMANCE: Content-aware skeletons for lazy-loaded tabs
   const DefaultTabSkeleton = () => (
     <div className="flex items-center justify-center h-full min-h-[300px]">
@@ -237,7 +297,7 @@ export const MobileTripTabs = ({
         return (
           <div className="px-4 py-4 pb-safe overflow-y-auto h-full">
             <TeamTab
-              roster={participants.map(p => ({
+              roster={localParticipants.map(p => ({
                 id: p.id,
                 name: p.name,
                 role: p.role || 'member',
@@ -251,6 +311,7 @@ export const MobileTripTabs = ({
               category={(category || tripData?.proTripCategory || 'Sports – Pro, Collegiate, Youth') as any}
               tripId={tripId}
               tripCreatorId={tripCreatorId || tripData?.createdBy}
+              onUpdateMemberRole={handleUpdateMemberRole}
             />
           </div>
         );
@@ -279,7 +340,7 @@ export const MobileTripTabs = ({
       default:
         return <MobileTripChat tripId={tripId} />;
     }
-  }, [tripId, variant, isEventAdmin, eventData, basecamp, isDemoMode, participants, category, tripCreatorId, tripData]);
+  }, [tripId, variant, isEventAdmin, eventData, basecamp, isDemoMode, participants, localParticipants, handleUpdateMemberRole, category, tripCreatorId, tripData]);
 
   return (
     <>
