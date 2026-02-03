@@ -448,20 +448,25 @@ class ChannelService {
           });
         }
 
-        // Step 3: For each channel, count users with any of its granted roles
+        // Step 3: For each channel, count DISTINCT users with any of its granted roles
+        // A user with multiple roles granting access should only be counted once
         for (const [channelId, roleSet] of channelRoleMap) {
           if (roleSet.size === 0) continue;
 
           const roleArray = Array.from(roleSet);
-          const { count } = await supabase
+          // Fetch user_ids instead of just counting rows to allow deduplication
+          const { data: userRoleData } = await supabase
             .from('user_trip_roles')
-            .select('*', { count: 'exact', head: true })
+            .select('user_id')
             .eq('trip_id', tripId)
             .in('role_id', roleArray);
 
+          // Use a Set to count distinct users (handles multi-role users correctly)
+          const distinctUserIds = new Set((userRoleData || []).map(row => row.user_id));
+
           const channel = uniqueChannels.get(channelId);
           if (channel) {
-            channel.memberCount = count || 0;
+            channel.memberCount = distinctUserIds.size;
           }
         }
       }
