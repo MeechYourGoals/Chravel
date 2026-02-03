@@ -493,9 +493,12 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
               <p>This action cannot be undone. Deleting this role will:</p>
               <ul className="list-disc list-inside text-sm space-y-1 mt-2">
                 <li>Remove all {roleToDelete?.memberCount || 0} members from this role</li>
-                <li>Delete the associated channel and all its messages</li>
+                <li>Archive the associated channel (chat history will be hidden but preserved)</li>
                 <li>Revoke channel access for all affected members</li>
               </ul>
+              <p className="text-xs text-muted-foreground mt-3 pt-2 border-t border-white/10">
+                Note: This frees up 1 role slot. You can create a new role after deletion.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -504,7 +507,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
               onClick={handleConfirmDelete}
               className="rounded-full bg-red-600 hover:bg-red-700 text-white"
             >
-              Delete Role & Channel
+              Delete Role & Archive Channel
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
