@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { Users, Settings, AlertTriangle, UserPlus, Clock, Cog } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Users, AlertTriangle, UserPlus, Clock, Cog } from 'lucide-react';
 import { ProParticipant } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
-import { EditMemberRoleModal } from '../EditMemberRoleModal';
 import { TeamOnboardingBanner } from '../TeamOnboardingBanner';
 import { BulkRoleAssignmentModal } from '../BulkRoleAssignmentModal';
 import { QuickContactMenu } from '../QuickContactMenu';
@@ -18,6 +17,8 @@ import { useIsMobile } from '../../../hooks/use-mobile';
 import { JoinRequestsDialog } from '../admin/JoinRequestsDialog';
 import { RoleManagerDialog } from '../admin/RoleManagerDialog';
 import { TripRole } from '../../../types/roleChannels';
+import { useRoleAssignments } from '../../../hooks/useRoleAssignments';
+import { useTripAdmins } from '../../../hooks/useTripAdmins';
 
 interface RolesViewProps {
   roster: ProParticipant[];
@@ -55,7 +56,6 @@ export const RolesView = ({
   const { isSuperAdmin } = useSuperAdmin();
   const isMobile = useIsMobile();
   const [selectedRole, setSelectedRole] = useState<string>('all');
-  const [editingMember, setEditingMember] = useState<ProParticipant | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [roleContactSheet, setRoleContactSheet] = useState<{
@@ -66,6 +66,35 @@ export const RolesView = ({
   const [showRoleCreation, setShowRoleCreation] = useState(false);
   const [showRequestsDialog, setShowRequestsDialog] = useState(false);
   const [showRoleManagerDialog, setShowRoleManagerDialog] = useState(false);
+
+  // Fetch role assignments and admins to display role pills per member
+  const { assignments } = useRoleAssignments({ tripId: tripId || '', enabled: !!tripId });
+  const { admins } = useTripAdmins({ tripId: tripId || '', enabled: !!tripId });
+
+  // Create a map of userId -> array of assigned role names
+  const memberRolesMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+
+    // Add roles from assignments
+    assignments.forEach(assignment => {
+      const userId = assignment.user_id;
+      const roleName = assignment.role?.roleName;
+      if (userId && roleName) {
+        const existing = map.get(userId) || [];
+        if (!existing.includes(roleName)) {
+          existing.push(roleName);
+        }
+        map.set(userId, existing);
+      }
+    });
+
+    return map;
+  }, [assignments]);
+
+  // Create a set of admin user IDs
+  const adminUserIds = useMemo(() => {
+    return new Set(admins.map(admin => admin.user_id));
+  }, [admins]);
 
   // Super admins are never in read-only mode
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
@@ -94,28 +123,9 @@ export const RolesView = ({
   const filteredRoster =
     selectedRole === 'all' ? roster : roster.filter(member => member.role === selectedRole);
 
-  const handleEditMember = (member: ProParticipant) => {
-    if (effectiveIsReadOnly || !onUpdateMemberRole) return;
-    setEditingMember(member);
-  };
-
-  const handleUpdateRole = async (memberId: string, roleId: string, roleName: string) => {
-    if (!onUpdateMemberRole) return;
-    await onUpdateMemberRole(memberId, roleId, roleName);
-  };
-
   const handleAssignRolesClick = () => {
-    // Find first member without proper role and open edit modal
-    const firstUnassigned = roster.find(
-      member =>
-        !member.role ||
-        member.role === '' ||
-        member.role === 'Member' ||
-        member.role === 'Participant',
-    );
-    if (firstUnassigned) {
-      setEditingMember(firstUnassigned);
-    }
+    // Open the role manager dialog instead of the per-member modal
+    setShowRoleManagerDialog(true);
     setShowOnboarding(false);
   };
 
@@ -178,7 +188,7 @@ export const RolesView = ({
               disabled={adminLoading || isLoadingRoles}
               variant="outline"
               size="sm"
-              className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
+              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
                 isMobile ? 'min-h-[44px] justify-center text-xs' : ''
               }`}
             >
@@ -189,7 +199,7 @@ export const RolesView = ({
               onClick={() => setShowRoleManagerDialog(true)}
               variant="outline"
               size="sm"
-              className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
+              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
                 isMobile ? 'min-h-[44px] justify-center text-xs' : ''
               }`}
               title="Manage roles, assignments, and admins"
@@ -201,7 +211,7 @@ export const RolesView = ({
               onClick={() => setShowRequestsDialog(true)}
               variant="outline"
               size="sm"
-              className={`rounded-full bg-black/40 hover:bg-black/60 text-white border-white/20 ${
+              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
                 isMobile ? 'min-h-[44px] justify-center text-xs' : ''
               }`}
               title="View join requests"
@@ -308,65 +318,105 @@ export const RolesView = ({
       <div
         className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'}`}
       >
-        {filteredRoster.map(member => (
-          <div
-            key={member.id}
-            className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-lg p-3"
-          >
-            <div className="flex items-start gap-2.5">
-              <Avatar className="w-10 h-10 border-2 border-gray-600 flex-shrink-0">
-                <AvatarImage src={member.avatar} alt={member.name} />
-                <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
-                  {getInitials(member.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <QuickContactMenu member={member}>
-                  <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-blue-400 transition-colors leading-tight">
-                    {member.name}
-                  </h3>
-                </QuickContactMenu>
-                <p className="text-gray-400 text-xs truncate leading-tight">{member.email}</p>
-                {member.phone && (
-                  <p className="text-gray-500 text-xs truncate leading-tight">{member.phone}</p>
-                )}
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <span
-                    className={`${getRoleColorClass(member.role, category)} px-1.5 py-0.5 rounded text-xs font-medium`}
-                  >
-                    {member.role}
-                  </span>
+        {filteredRoster.map(member => {
+          // Get all roles for this member: admin status + assigned roles
+          const memberUserId = member.userId;
+          const isAdminMember = memberUserId ? adminUserIds.has(memberUserId) : false;
+          const assignedRoles = memberUserId ? memberRolesMap.get(memberUserId) || [] : [];
+
+          // Combine roles: admin first, then assigned roles sorted alphabetically
+          const allRolePills: { name: string; isAdmin: boolean }[] = [];
+
+          // Add admin pill if applicable
+          if (isAdminMember) {
+            allRolePills.push({ name: 'admin', isAdmin: true });
+          }
+
+          // Add assigned roles (sorted alphabetically, case-insensitive)
+          const sortedRoles = [...assignedRoles].sort((a, b) =>
+            a.toLowerCase().localeCompare(b.toLowerCase()),
+          );
+          sortedRoles.forEach(roleName => {
+            // Avoid duplicating if somehow "admin" is also an assigned role
+            if (roleName.toLowerCase() !== 'admin') {
+              allRolePills.push({ name: roleName, isAdmin: false });
+            }
+          });
+
+          // Fallback to member.role if no pills and member has a role
+          const showFallbackRole =
+            allRolePills.length === 0 &&
+            member.role &&
+            member.role !== '' &&
+            member.role !== 'Member' &&
+            member.role !== 'Participant';
+
+          return (
+            <div
+              key={member.id}
+              className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-lg p-3"
+            >
+              <div className="flex items-start gap-2.5">
+                <Avatar className="w-10 h-10 border-2 border-gray-600 flex-shrink-0">
+                  <AvatarImage src={member.avatar} alt={member.name} />
+                  <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
+                    {getInitials(member.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <QuickContactMenu member={member}>
+                    <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-blue-400 transition-colors leading-tight">
+                      {member.name}
+                    </h3>
+                  </QuickContactMenu>
+                  <p className="text-gray-400 text-xs truncate leading-tight">{member.email}</p>
+                  {member.phone && (
+                    <p className="text-gray-500 text-xs truncate leading-tight">{member.phone}</p>
+                  )}
+                  {/* Role pills - admin first, then assigned roles alphabetically */}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    {allRolePills.map((pill, index) => (
+                      <span
+                        key={`${pill.name}-${index}`}
+                        className={`${
+                          pill.isAdmin
+                            ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
+                            : getRoleColorClass(pill.name, category)
+                        } px-1.5 py-0.5 rounded text-xs font-medium`}
+                      >
+                        {pill.name}
+                      </span>
+                    ))}
+                    {showFallbackRole && (
+                      <span
+                        className={`${getRoleColorClass(member.role, category)} px-1.5 py-0.5 rounded text-xs font-medium`}
+                      >
+                        {member.role}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-              {(isAdmin || isSuperAdmin) && !effectiveIsReadOnly && onUpdateMemberRole && (
-                <button
-                  onClick={() => handleEditMember(member)}
-                  className="text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-white/10 flex-shrink-0"
-                  title="Edit role"
-                >
-                  <Settings size={14} />
-                </button>
+
+              {/* Medical Alerts - Compact */}
+              {member.medicalNotes && (
+                <div className="mt-2 p-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded flex items-center gap-1.5">
+                  <AlertTriangle size={12} className="text-yellow-400 flex-shrink-0" />
+                  <span className="text-yellow-400 text-xs font-medium">Medical Alert</span>
+                </div>
+              )}
+
+              {/* Dietary Restrictions - Compact */}
+              {member.dietaryRestrictions && member.dietaryRestrictions.length > 0 && (
+                <div className="mt-1.5">
+                  <p className="text-gray-400 text-xs leading-tight">
+                    Dietary: {member.dietaryRestrictions.join(', ')}
+                  </p>
+                </div>
               )}
             </div>
-
-            {/* Medical Alerts - Compact */}
-            {member.medicalNotes && (
-              <div className="mt-2 p-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded flex items-center gap-1.5">
-                <AlertTriangle size={12} className="text-yellow-400 flex-shrink-0" />
-                <span className="text-yellow-400 text-xs font-medium">Medical Alert</span>
-              </div>
-            )}
-
-            {/* Dietary Restrictions - Compact */}
-            {member.dietaryRestrictions && member.dietaryRestrictions.length > 0 && (
-              <div className="mt-1.5">
-                <p className="text-gray-400 text-xs leading-tight">
-                  Dietary: {member.dietaryRestrictions.join(', ')}
-                </p>
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {filteredRoster.length === 0 && (
@@ -375,17 +425,6 @@ export const RolesView = ({
           <p className="text-gray-400">No team members found for the selected role.</p>
         </div>
       )}
-
-      {/* Role Edit Modal */}
-      <EditMemberRoleModal
-        isOpen={!!editingMember}
-        onClose={() => setEditingMember(null)}
-        member={editingMember}
-        category={category}
-        existingRoles={existingRoles}
-        availableRoles={availableRoles}
-        onUpdateRole={handleUpdateRole}
-      />
 
       {/* Bulk Role Assignment Modal */}
       {onUpdateMemberRole && (
