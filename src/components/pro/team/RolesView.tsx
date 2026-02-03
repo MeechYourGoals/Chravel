@@ -24,7 +24,8 @@ interface RolesViewProps {
   userRole: string;
   isReadOnly?: boolean;
   category: ProTripCategory;
-  onUpdateMemberRole?: (memberId: string, newRole: string) => Promise<void>;
+  /** Callback receives memberId, roleId (for DB), and roleName (for display/local state) */
+  onUpdateMemberRole?: (memberId: string, roleId: string, roleName: string) => Promise<void>;
   canManageRoles?: boolean;
   onCreateRole?: () => void;
   isLoadingRoles?: boolean;
@@ -35,11 +36,11 @@ interface RolesViewProps {
   availableRoles?: TripRole[];
 }
 
-export const RolesView = ({ 
-  roster, 
-  userRole, 
-  isReadOnly = false, 
-  category, 
+export const RolesView = ({
+  roster,
+  userRole,
+  isReadOnly = false,
+  category,
   onUpdateMemberRole,
   canManageRoles = false,
   onCreateRole,
@@ -48,7 +49,7 @@ export const RolesView = ({
   tripId,
   tripCreatorId,
   trip,
-  availableRoles = []
+  availableRoles = [],
 }: RolesViewProps) => {
   const { isDemoMode } = useDemoMode();
   const { isSuperAdmin } = useSuperAdmin();
@@ -57,7 +58,10 @@ export const RolesView = ({
   const [editingMember, setEditingMember] = useState<ProParticipant | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const [roleContactSheet, setRoleContactSheet] = useState<{ role: string; members: ProParticipant[] } | null>(null);
+  const [roleContactSheet, setRoleContactSheet] = useState<{
+    role: string;
+    members: ProParticipant[];
+  } | null>(null);
   const [newRoleName, setNewRoleName] = useState('');
   const [showRoleCreation, setShowRoleCreation] = useState(false);
   const [showAdminsDialog, setShowAdminsDialog] = useState(false);
@@ -66,38 +70,48 @@ export const RolesView = ({
   // Super admins are never in read-only mode
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
 
-  const { terminology: { teamLabel } } = getCategoryConfig(category);
+  const {
+    terminology: { teamLabel },
+  } = getCategoryConfig(category);
 
   // Use dynamic roles if available, otherwise fallback to existing behavior
-  const roles = availableRoles.length > 0 
-    ? ['all', ...availableRoles.map(r => r.roleName)]
-    : ['all', ...extractUniqueRoles(roster)];
-  
+  const roles =
+    availableRoles.length > 0
+      ? ['all', ...availableRoles.map(r => r.roleName)]
+      : ['all', ...extractUniqueRoles(roster)];
+
   const existingRoles = extractUniqueRoles(roster);
-  
+
   // Check if there are unassigned roles (members with default/empty roles)
-  const hasUnassignedRoles = roster.some(member => 
-    !member.role || member.role === '' || member.role === 'Member' || member.role === 'Participant'
+  const hasUnassignedRoles = roster.some(
+    member =>
+      !member.role ||
+      member.role === '' ||
+      member.role === 'Member' ||
+      member.role === 'Participant',
   );
-  
-  const filteredRoster = selectedRole === 'all' 
-    ? roster 
-    : roster.filter(member => member.role === selectedRole);
+
+  const filteredRoster =
+    selectedRole === 'all' ? roster : roster.filter(member => member.role === selectedRole);
 
   const handleEditMember = (member: ProParticipant) => {
     if (effectiveIsReadOnly || !onUpdateMemberRole) return;
     setEditingMember(member);
   };
 
-  const handleUpdateRole = async (memberId: string, newRole: string) => {
+  const handleUpdateRole = async (memberId: string, roleId: string, roleName: string) => {
     if (!onUpdateMemberRole) return;
-    await onUpdateMemberRole(memberId, newRole);
+    await onUpdateMemberRole(memberId, roleId, roleName);
   };
 
   const handleAssignRolesClick = () => {
     // Find first member without proper role and open edit modal
-    const firstUnassigned = roster.find(member => 
-      !member.role || member.role === '' || member.role === 'Member' || member.role === 'Participant'
+    const firstUnassigned = roster.find(
+      member =>
+        !member.role ||
+        member.role === '' ||
+        member.role === 'Member' ||
+        member.role === 'Participant',
     );
     if (firstUnassigned) {
       setEditingMember(firstUnassigned);
@@ -117,7 +131,8 @@ export const RolesView = ({
   };
 
   // Super admins are always treated as admins
-  const isAdmin = isSuperAdmin || userRole === 'admin' || userRole === 'tour manager' || userRole === 'manager';
+  const isAdmin =
+    isSuperAdmin || userRole === 'admin' || userRole === 'tour manager' || userRole === 'manager';
 
   return (
     <div className="space-y-6">
@@ -153,9 +168,11 @@ export const RolesView = ({
 
         {/* Row 2: Consolidated Admin Action Buttons (4 buttons) - Mobile optimized */}
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
-          <div className={`${isMobile 
-            ? 'grid grid-cols-2 gap-2' 
-            : 'flex items-center justify-center gap-2'} mb-3`}>
+          <div
+            className={`${
+              isMobile ? 'grid grid-cols-2 gap-2' : 'flex items-center justify-center gap-2'
+            } mb-3`}
+          >
             <Button
               onClick={onCreateRole}
               disabled={adminLoading || isLoadingRoles}
@@ -217,8 +234,8 @@ export const RolesView = ({
                 type="text"
                 placeholder="Enter role name (e.g., 'Stage Manager', 'Chef')"
                 value={newRoleName}
-                onChange={(e) => setNewRoleName(e.target.value)}
-                onKeyDown={(e) => {
+                onChange={e => setNewRoleName(e.target.value)}
+                onKeyDown={e => {
                   if (e.key === 'Enter') {
                     handleCreateRole();
                   }
@@ -244,22 +261,30 @@ export const RolesView = ({
               </Button>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              Once created, you can assign this role to team members using the edit button on their profile.
+              Once created, you can assign this role to team members using the edit button on their
+              profile.
             </p>
           </div>
         )}
 
         {/* Row 3: Centered Role Filter Pills */}
         {(availableRoles.length > 0 || existingRoles.length > 0) && (
-          <div className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide -mx-3 px-3' : 'justify-center'}`}>
-            <div className={`flex ${isMobile ? 'gap-2 min-w-max' : 'flex-wrap gap-2 justify-center items-center max-w-5xl'}`}>
-              {roles.map((role) => {
+          <div
+            className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide -mx-3 px-3' : 'justify-center'}`}
+          >
+            <div
+              className={`flex ${isMobile ? 'gap-2 min-w-max' : 'flex-wrap gap-2 justify-center items-center max-w-5xl'}`}
+            >
+              {roles.map(role => {
                 const roleMembers = roster.filter(m => m.role === role);
                 // Always show 'all', and for other roles show if they exist in availableRoles or have members
-                const shouldShow = role === 'all' || availableRoles.some(r => r.roleName === role) || roleMembers.length > 0;
-                
+                const shouldShow =
+                  role === 'all' ||
+                  availableRoles.some(r => r.roleName === role) ||
+                  roleMembers.length > 0;
+
                 if (!shouldShow) return null;
-                
+
                 return (
                   <button
                     key={role}
@@ -272,9 +297,7 @@ export const RolesView = ({
                   >
                     {role === 'all' ? 'All' : role}
                     {role !== 'all' && (
-                      <span className="ml-1 text-xs opacity-75">
-                        {roleMembers.length}
-                      </span>
+                      <span className="ml-1 text-xs opacity-75">{roleMembers.length}</span>
                     )}
                   </button>
                 );
@@ -282,21 +305,27 @@ export const RolesView = ({
             </div>
           </div>
         )}
-        
+
         {/* Manual Role Input Notice for Corporate & Business */}
         {availableRoles.length === 0 && (
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
             <p className="text-blue-400 text-sm">
-              Team members can have custom titles entered manually. {isAdmin && 'Use the "Create Role" button above to add new roles.'}
+              Team members can have custom titles entered manually.{' '}
+              {isAdmin && 'Use the "Create Role" button above to add new roles.'}
             </p>
           </div>
         )}
       </div>
 
       {/* Team Grid View - Optimized for mobile */}
-      <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'}`}>
-        {filteredRoster.map((member) => (
-          <div key={member.id} className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-lg p-3">
+      <div
+        className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'}`}
+      >
+        {filteredRoster.map(member => (
+          <div
+            key={member.id}
+            className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-lg p-3"
+          >
             <div className="flex items-start gap-2.5">
               <Avatar className="w-10 h-10 border-2 border-gray-600 flex-shrink-0">
                 <AvatarImage src={member.avatar} alt={member.name} />
@@ -305,9 +334,7 @@ export const RolesView = ({
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <QuickContactMenu
-                  member={member}
-                >
+                <QuickContactMenu member={member}>
                   <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-blue-400 transition-colors leading-tight">
                     {member.name}
                   </h3>
@@ -317,13 +344,15 @@ export const RolesView = ({
                   <p className="text-gray-500 text-xs truncate leading-tight">{member.phone}</p>
                 )}
                 <div className="flex items-center gap-1.5 mt-1.5">
-                  <span className={`${getRoleColorClass(member.role, category)} px-1.5 py-0.5 rounded text-xs font-medium`}>
+                  <span
+                    className={`${getRoleColorClass(member.role, category)} px-1.5 py-0.5 rounded text-xs font-medium`}
+                  >
                     {member.role}
                   </span>
                 </div>
               </div>
-                {(isAdmin || isSuperAdmin) && !effectiveIsReadOnly && onUpdateMemberRole && (
-                <button 
+              {(isAdmin || isSuperAdmin) && !effectiveIsReadOnly && onUpdateMemberRole && (
+                <button
                   onClick={() => handleEditMember(member)}
                   className="text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-white/10 flex-shrink-0"
                   title="Edit role"
