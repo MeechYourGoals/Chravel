@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useTripRoles } from '@/hooks/useTripRoles';
 import { useRoleAssignments } from '@/hooks/useRoleAssignments';
 import { useTripMembers } from '@/hooks/useTripMembers';
+import { useTripAdmins } from '@/hooks/useTripAdmins';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -15,6 +16,9 @@ import {
   Pencil,
   Check,
   X,
+  Shield,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -44,9 +48,10 @@ import { MAX_ROLES_PER_TRIP } from '@/utils/roleUtils';
 
 interface RoleManagerProps {
   tripId: string;
+  tripCreatorId?: string;
 }
 
-export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
+export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId }) => {
   const {
     roles,
     isLoading,
@@ -61,9 +66,29 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
     removeRole,
     refetch: refetchAssignments,
   } = useRoleAssignments({ tripId });
-  const { tripMembers, loading: loadingMembers } = useTripMembers(tripId);
+  const {
+    tripMembers,
+    loading: loadingMembers,
+    tripCreatorId: fetchedCreatorId,
+  } = useTripMembers(tripId);
+  const {
+    admins,
+    isLoading: loadingAdmins,
+    isProcessing: adminProcessing,
+    promoteToAdmin,
+    demoteFromAdmin,
+  } = useTripAdmins({ tripId });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
+  const [showAdminSection, setShowAdminSection] = useState(false);
+
+  // Use passed tripCreatorId or fallback to fetched one
+  const effectiveCreatorId = tripCreatorId || fetchedCreatorId;
+
+  // Create a set of admin user IDs for quick lookup
+  const adminUserIds = useMemo(() => {
+    return new Set(admins.map(a => a.user_id));
+  }, [admins]);
 
   // Delete confirmation state
   const [roleToDelete, setRoleToDelete] = useState<TripRole | null>(null);
@@ -176,6 +201,28 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
       toast.error('Failed to add user to role');
     } finally {
       setAddingUserId(null);
+    }
+  };
+
+  // Handle toggling admin status for a user
+  const handleToggleAdmin = async (userId: string, userName?: string) => {
+    // Don't allow demoting the trip creator
+    if (userId === effectiveCreatorId) {
+      toast.error('Cannot change admin status of the trip creator');
+      return;
+    }
+
+    try {
+      if (adminUserIds.has(userId)) {
+        await demoteFromAdmin(userId);
+        toast.success(`${userName || 'User'} has been removed from admins`);
+      } else {
+        await promoteToAdmin(userId);
+        toast.success(`${userName || 'User'} is now an admin`);
+      }
+    } catch (error) {
+      console.error('Error toggling admin status:', error);
+      toast.error('Failed to update admin status');
     }
   };
 
@@ -352,6 +399,101 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId }) => {
                 </div>
               );
             })}
+          </div>
+        )}
+      </Card>
+
+      {/* Admin Access Section - Collapsible */}
+      <Card className="p-4 bg-background/40 backdrop-blur-sm border-white/10 mt-4">
+        <button
+          onClick={() => setShowAdminSection(!showAdminSection)}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-blue-500" />
+            <h3 className="font-semibold text-foreground">Admin Access</h3>
+            <span className="text-xs bg-blue-500/20 text-blue-500 px-2 py-0.5 rounded-full">
+              {admins.length} admins
+            </span>
+          </div>
+          {showAdminSection ? (
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          )}
+        </button>
+
+        {showAdminSection && (
+          <div className="mt-4 space-y-2">
+            <p className="text-xs text-muted-foreground mb-3">
+              Admins can manage roles, channels, and team settings. Trip creators are always admins.
+            </p>
+
+            {loadingMembers || loadingAdmins ? (
+              <div className="flex items-center gap-2 py-4">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                <span className="text-sm text-muted-foreground">Loading...</span>
+              </div>
+            ) : tripMembers.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">No trip members found</p>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {tripMembers.map(member => {
+                  const isAdmin = adminUserIds.has(member.id);
+                  const isTripCreator = member.id === effectiveCreatorId || member.isCreator;
+
+                  return (
+                    <div
+                      key={member.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border ${
+                        isAdmin ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white/5 border-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8 border border-white/10">
+                          <AvatarImage src={member.avatar} />
+                          <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                            {member.name?.[0]?.toUpperCase() || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm text-foreground flex items-center gap-2">
+                            {member.name || 'Unknown User'}
+                            {isTripCreator && (
+                              <span className="text-xs bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded-full">
+                                Creator
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant={isAdmin ? 'default' : 'outline'}
+                        onClick={() => handleToggleAdmin(member.id, member.name)}
+                        disabled={adminProcessing || isTripCreator}
+                        className={`rounded-full h-8 px-3 ${
+                          isAdmin
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'border-white/20 hover:bg-blue-500/10 hover:border-blue-500/50'
+                        }`}
+                        title={
+                          isTripCreator
+                            ? 'Trip creator is always admin'
+                            : isAdmin
+                              ? 'Remove admin privileges'
+                              : 'Make admin'
+                        }
+                      >
+                        <Shield className="w-3.5 h-3.5 mr-1" />
+                        {isAdmin ? 'Admin' : 'Make Admin'}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </Card>

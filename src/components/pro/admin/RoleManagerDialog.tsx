@@ -32,10 +32,11 @@ export const RoleManagerDialog: React.FC<RoleManagerDialogProps> = ({
   open,
   onOpenChange,
   tripId,
+  tripCreatorId,
 }) => {
   const isMobile = useIsMobile();
 
-  const content = <RoleManager tripId={tripId} />;
+  const content = <RoleManager tripId={tripId} tripCreatorId={tripCreatorId} />;
 
   if (isMobile) {
     return (
