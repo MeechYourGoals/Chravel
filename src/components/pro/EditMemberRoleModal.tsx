@@ -1,3 +1,10 @@
+/**
+ * @deprecated This component is no longer used.
+ * Role management is now handled exclusively through the RoleManagerDialog (Manage Roles).
+ * The gear icon and per-member role editing have been removed from RolesView as of 2026-02-03.
+ * This file can be safely deleted in a future cleanup.
+ * See: RoleManagerDialog, RoleAssignmentPanel for current role management UI.
+ */
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
