@@ -344,9 +344,9 @@ export const RolesView = ({
             }
           });
 
-          // Fallback to member.role if no pills and member has a role
+          // Fallback to member.role if no assigned roles (ignore admin pill for this check)
           const showFallbackRole =
-            allRolePills.length === 0 &&
+            assignedRoles.length === 0 &&
             member.role &&
             member.role !== '' &&
             member.role !== 'Member' &&
