@@ -424,9 +424,6 @@ export const RolesView = ({
             onOpenChange={setShowRoleManagerDialog}
             tripId={tripId}
             tripCreatorId={tripCreatorId}
-            roster={roster}
-            availableRoles={availableRoles}
-            onUpdateMemberRole={onUpdateMemberRole}
           />
         </>
       )}
