@@ -300,24 +300,29 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
   return (
     <>
       <Card className="p-6 bg-background/40 backdrop-blur-sm border-white/10">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
+        {/* Header - Stacked for mobile */}
+        <div className="mb-6">
+          {/* Title Row */}
+          <div className="flex items-center gap-2 mb-3">
             <Users className="w-5 h-5 text-purple-500" />
             <h3 className="font-semibold text-foreground">Role Management</h3>
+          </div>
+          
+          {/* Actions Row - Centered */}
+          <div className="flex items-center justify-center gap-3">
             <span className="text-xs bg-purple-500/20 text-purple-500 px-2 py-0.5 rounded-full">
               {roles.length} / {MAX_ROLES_PER_TRIP}
             </span>
+            <Button
+              onClick={() => setShowCreateDialog(true)}
+              disabled={roles.length >= MAX_ROLES_PER_TRIP}
+              className="rounded-full bg-purple-600 hover:bg-purple-700 text-white text-xs h-8 px-3"
+              size="sm"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Create
+            </Button>
           </div>
-
-          <Button
-            onClick={() => setShowCreateDialog(true)}
-            disabled={roles.length >= MAX_ROLES_PER_TRIP}
-            className="rounded-full bg-purple-600 hover:bg-purple-700 text-white"
-            size="sm"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Create Role
-          </Button>
         </div>
 
         {roles.length === 0 ? (
@@ -344,56 +349,54 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
               return (
                 <div
                   key={role.id}
-                  className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
+                  className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h4 className="font-medium text-foreground">{role.roleName}</h4>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {/* Role Info - Full Width */}
+                  <div className="mb-3">
+                    <h4 className="font-medium text-foreground mb-1">{role.roleName}</h4>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                       <span>{role.memberCount || 0} members</span>
                       {hasChannel && !(channel as any).is_archived && (
                         <>
                           <span>•</span>
                           <div className="flex items-center gap-1">
                             <LinkIcon className="w-3 h-3" />
-                            <span className="truncate">#{(channel as any).channel_name}</span>
+                            <span>#{(channel as any).channel_name}</span>
                           </div>
                         </>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
+                  {/* Action Buttons - Centered Row */}
+                  <div className="flex items-center justify-center gap-2 pt-3 border-t border-white/5">
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={() => handleEditRoleClick(role)}
-                      className="rounded-full border-white/10 hover:bg-white/10 h-8 w-8 shrink-0"
+                      className="rounded-full border-white/10 hover:bg-white/10 h-9 w-9"
                       title="Rename role and channel"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="outline"
-                      size="sm"
+                      size="icon"
                       onClick={() => handleManageMembers(role)}
-                      className="rounded-full border-white/10 hover:bg-white/10 h-8 px-2.5 shrink-0"
+                      className="rounded-full border-white/10 hover:bg-white/10 h-9 w-9"
                       title="Manage role members"
                     >
-                      <UserMinus className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline ml-1 text-xs">Members</span>
+                      <UserMinus className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={() => handleDeleteRoleClick(role)}
                       disabled={isProcessing}
-                      className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500 h-8 w-8 shrink-0"
+                      className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500 h-9 w-9"
                       title="Delete role and channel"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
