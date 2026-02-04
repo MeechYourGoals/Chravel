@@ -1,5 +1,12 @@
 import { supabase } from '../integrations/supabase/client';
 
+// VAPID public key from environment
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+// ============================================================================
+// Types
+// ============================================================================
+
 export interface NotificationPreference {
   userId: string;
   pushEnabled: boolean;
@@ -22,35 +29,90 @@ export interface PushToken {
   createdAt: Date;
 }
 
+export interface NotificationAction {
+  action: string;
+  title: string;
+  icon?: string;
+}
+
 export interface NotificationPayload {
   title: string;
   body: string;
   icon?: string;
   badge?: string;
-  data?: Record<string, any>;
-  actions?: Array<{
-    action: string;
-    title: string;
-    icon?: string;
-  }>;
+  image?: string;
+  data?: Record<string, unknown>;
+  actions?: NotificationAction[];
+  tag?: string;
+  requireInteraction?: boolean;
 }
+
+export type NotificationType = 
+  | 'chat_message'
+  | 'itinerary_update'
+  | 'payment_request'
+  | 'payment_split'
+  | 'trip_reminder'
+  | 'trip_invite'
+  | 'poll_vote'
+  | 'task_assigned'
+  | 'broadcast'
+  | 'mention';
+
+export interface WebPushSendRequest {
+  userIds?: string[];
+  tripId?: string;
+  excludeUserId?: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  icon?: string;
+  badge?: string;
+  image?: string;
+  data?: Record<string, unknown>;
+  actions?: NotificationAction[];
+  tag?: string;
+  requireInteraction?: boolean;
+  ttl?: number;
+}
+
+// ============================================================================
+// Notification Service
+// ============================================================================
 
 export class NotificationService {
   private serviceWorker: ServiceWorkerRegistration | null = null;
+  private isInitialized = false;
 
-  async initialize() {
+  /**
+   * Initialize the notification service
+   * Registers service worker and checks for existing subscription
+   */
+  async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       try {
-        this.serviceWorker = await navigator.serviceWorker.register('/sw.js');
+        // Wait for service worker to be ready
+        this.serviceWorker = await navigator.serviceWorker.ready;
+        this.isInitialized = true;
+        console.log('[NotificationService] Initialized successfully');
       } catch (error) {
-        if (import.meta.env.DEV) console.error('Service Worker registration failed:', error);
+        if (import.meta.env.DEV) {
+          console.error('[NotificationService] Service Worker registration failed:', error);
+        }
       }
     }
   }
 
+  /**
+   * Request notification permission from user
+   */
   async requestPermission(): Promise<NotificationPermission> {
     if (!('Notification' in window)) {
-      if (import.meta.env.DEV) console.warn('This browser does not support notifications');
+      if (import.meta.env.DEV) {
+        console.warn('[NotificationService] This browser does not support notifications');
+      }
       return 'denied';
     }
 
@@ -66,155 +128,505 @@ export class NotificationService {
     return permission;
   }
 
+  /**
+   * Subscribe to Web Push notifications
+   * Creates a subscription and saves it to Supabase
+   */
   async subscribeToPush(userId: string): Promise<string | null> {
     if (!this.serviceWorker) {
       await this.initialize();
     }
 
     if (!this.serviceWorker) {
-      if (import.meta.env.DEV) console.error('Service Worker not available');
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Service Worker not available');
+      }
+      return null;
+    }
+
+    if (!VAPID_PUBLIC_KEY) {
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] VITE_VAPID_PUBLIC_KEY not configured');
+      }
       return null;
     }
 
     try {
-      const subscription = await this.serviceWorker.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(
-          // This would be your VAPID public key
-          'your-vapid-public-key'
-        )
-      });
+      // Check for existing subscription
+      let subscription = await this.serviceWorker.pushManager.getSubscription();
+      
+      // Create new subscription if none exists
+      if (!subscription) {
+        subscription = await this.serviceWorker.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      }
 
-      const token = JSON.stringify(subscription);
+      // Save subscription to Supabase
+      const subscriptionJSON = subscription.toJSON();
+      const keys = subscriptionJSON.keys;
 
-      // Save token to database
-      await this.savePushToken(userId, token, 'web');
+      if (!keys?.p256dh || !keys?.auth) {
+        console.error('[NotificationService] Subscription missing required keys');
+        return null;
+      }
 
-      return token;
+      const { error } = await supabase
+        .from('web_push_subscriptions')
+        .upsert(
+          {
+            user_id: userId,
+            endpoint: subscription.endpoint,
+            p256dh_key: keys.p256dh,
+            auth_key: keys.auth,
+            user_agent: navigator.userAgent,
+            device_name: this.getDeviceName(),
+            is_active: true,
+            failed_count: 0,
+          },
+          {
+            onConflict: 'user_id,endpoint',
+          }
+        );
+
+      if (error) {
+        console.error('[NotificationService] Failed to save subscription:', error);
+        return null;
+      }
+
+      console.log('[NotificationService] Subscription saved successfully');
+      return JSON.stringify(subscriptionJSON);
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Push subscription failed:', error);
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Push subscription failed:', error);
+      }
       return null;
     }
   }
 
-  async savePushToken(userId: string, token: string, platform: 'ios' | 'android' | 'web') {
+  /**
+   * Get user-friendly device name from user agent
+   */
+  private getDeviceName(): string {
+    const ua = navigator.userAgent;
+    
+    let browser = 'Unknown Browser';
+    if (ua.includes('Firefox')) browser = 'Firefox';
+    else if (ua.includes('Edg')) browser = 'Edge';
+    else if (ua.includes('Chrome')) browser = 'Chrome';
+    else if (ua.includes('Safari')) browser = 'Safari';
+    else if (ua.includes('Opera')) browser = 'Opera';
+    
+    let os = 'Unknown OS';
+    if (ua.includes('Windows')) os = 'Windows';
+    else if (ua.includes('Mac OS')) os = 'macOS';
+    else if (ua.includes('Linux')) os = 'Linux';
+    else if (ua.includes('Android')) os = 'Android';
+    else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+    
+    return `${browser} on ${os}`;
+  }
+
+  /**
+   * Save FCM/APNs push token (for native apps)
+   */
+  async savePushToken(userId: string, token: string, platform: 'ios' | 'android' | 'web'): Promise<boolean> {
     try {
-      // Mock implementation until database tables are available
+      const { error } = await supabase
+        .from('push_device_tokens')
+        .upsert(
+          {
+            user_id: userId,
+            token,
+            platform,
+            last_seen_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'user_id,token',
+          }
+        );
+
+      if (error) {
+        console.error('[NotificationService] Error saving push token:', error);
+        return false;
+      }
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Error saving push token:', error);
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Error saving push token:', error);
+      }
       return false;
     }
   }
 
+  /**
+   * Get notification preferences for a user
+   */
   async getNotificationPreferences(userId: string): Promise<NotificationPreference | null> {
     try {
-      // Mock implementation until database tables are available
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !data) {
+        // Return default preferences if none exist
+        return {
+          userId,
+          pushEnabled: true,
+          emailEnabled: true,
+          smsEnabled: false,
+          tripUpdates: true,
+          chatMessages: true,
+          calendarReminders: true,
+          paymentAlerts: true,
+          quietHoursEnabled: false,
+          quietStart: '22:00',
+          quietEnd: '08:00'
+        };
+      }
+
       return {
-        userId,
-        pushEnabled: true,
-        emailEnabled: true,
-        smsEnabled: false,
-        tripUpdates: true,
-        chatMessages: true,
-        calendarReminders: true,
-        paymentAlerts: true,
-        quietHoursEnabled: false,
-        quietStart: '22:00',
-        quietEnd: '08:00'
+        userId: data.user_id,
+        pushEnabled: data.push_enabled ?? true,
+        emailEnabled: data.email_enabled ?? true,
+        smsEnabled: data.sms_enabled ?? false,
+        tripUpdates: data.trip_updates ?? true,
+        chatMessages: data.chat_messages ?? true,
+        calendarReminders: data.calendar_reminders ?? true,
+        paymentAlerts: data.payment_alerts ?? true,
+        quietHoursEnabled: data.quiet_hours_enabled ?? false,
+        quietStart: data.quiet_start ?? '22:00',
+        quietEnd: data.quiet_end ?? '08:00'
       };
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Error getting notification preferences:', error);
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Error getting notification preferences:', error);
+      }
       return null;
     }
   }
 
-  async updateNotificationPreferences(userId: string, preferences: Partial<NotificationPreference>) {
+  /**
+   * Update notification preferences for a user
+   */
+  async updateNotificationPreferences(
+    userId: string, 
+    preferences: Partial<NotificationPreference>
+  ): Promise<boolean> {
     try {
-      // Mock implementation until database tables are available
+      const updateData: Record<string, unknown> = {
+        user_id: userId,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (preferences.pushEnabled !== undefined) updateData.push_enabled = preferences.pushEnabled;
+      if (preferences.emailEnabled !== undefined) updateData.email_enabled = preferences.emailEnabled;
+      if (preferences.smsEnabled !== undefined) updateData.sms_enabled = preferences.smsEnabled;
+      if (preferences.tripUpdates !== undefined) updateData.trip_updates = preferences.tripUpdates;
+      if (preferences.chatMessages !== undefined) updateData.chat_messages = preferences.chatMessages;
+      if (preferences.calendarReminders !== undefined) updateData.calendar_reminders = preferences.calendarReminders;
+      if (preferences.paymentAlerts !== undefined) updateData.payment_alerts = preferences.paymentAlerts;
+      if (preferences.quietHoursEnabled !== undefined) updateData.quiet_hours_enabled = preferences.quietHoursEnabled;
+      if (preferences.quietStart !== undefined) updateData.quiet_start = preferences.quietStart;
+      if (preferences.quietEnd !== undefined) updateData.quiet_end = preferences.quietEnd;
+
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert(updateData, { onConflict: 'user_id' });
+
+      if (error) {
+        console.error('[NotificationService] Error updating preferences:', error);
+        return false;
+      }
       return true;
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Error updating notification preferences:', error);
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Error updating notification preferences:', error);
+      }
       return false;
     }
   }
 
-  async sendLocalNotification(payload: NotificationPayload) {
+  /**
+   * Send a local notification (directly via browser API)
+   */
+  async sendLocalNotification(payload: NotificationPayload): Promise<void> {
     if (Notification.permission !== 'granted') {
-      if (import.meta.env.DEV) console.warn('Notification permission not granted');
+      if (import.meta.env.DEV) {
+        console.warn('[NotificationService] Notification permission not granted');
+      }
       return;
     }
 
     try {
-      const notification = new Notification(payload.title, {
-        body: payload.body,
-        icon: payload.icon || '/chravel-logo.png',
-        badge: payload.badge || '/chravel-logo.png',
-        data: payload.data,
-        requireInteraction: true
+      // Use service worker to show notification (supports actions)
+      if (this.serviceWorker) {
+        await this.serviceWorker.showNotification(payload.title, {
+          body: payload.body,
+          icon: payload.icon || '/chravel-logo.png',
+          badge: payload.badge || '/chravel-badge.png',
+          image: payload.image,
+          data: payload.data,
+          actions: payload.actions,
+          tag: payload.tag || `chravel-local-${Date.now()}`,
+          requireInteraction: payload.requireInteraction ?? false,
+          renotify: true,
+        });
+      } else {
+        // Fallback to basic Notification API (no actions support)
+        const notification = new Notification(payload.title, {
+          body: payload.body,
+          icon: payload.icon || '/chravel-logo.png',
+          badge: payload.badge || '/chravel-logo.png',
+          data: payload.data,
+          tag: payload.tag,
+          requireInteraction: payload.requireInteraction ?? false,
+        });
+
+        notification.onclick = (event) => {
+          event.preventDefault();
+          window.focus();
+          if (payload.data?.url && typeof payload.data.url === 'string') {
+            window.open(payload.data.url, '_self');
+          }
+        };
+
+        // Auto-close after 5 seconds
+        setTimeout(() => {
+          notification.close();
+        }, 5000);
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Failed to show notification:', error);
+      }
+    }
+  }
+
+  /**
+   * Send a push notification via Supabase Edge Function
+   * This sends to ALL subscribed devices for the target users
+   */
+  async sendPushNotification(request: WebPushSendRequest): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.functions.invoke('web-push-send', {
+        body: request,
       });
 
-      notification.onclick = (event) => {
-        event.preventDefault();
-        window.focus();
-        if (payload.data?.url) {
-          window.open(payload.data.url, '_self');
+      if (error) {
+        console.error('[NotificationService] Error sending push notification:', error);
+        return false;
+      }
+
+      console.log('[NotificationService] Push notification sent:', data);
+      return data?.success ?? false;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Error sending push notification:', error);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Send notification for new chat message
+   */
+  async notifyNewMessage(
+    tripId: string,
+    senderName: string,
+    messagePreview: string,
+    messageId: string,
+    excludeUserId?: string
+  ): Promise<boolean> {
+    return this.sendPushNotification({
+      tripId,
+      excludeUserId,
+      type: 'chat_message',
+      title: senderName,
+      body: messagePreview,
+      icon: '/chravel-logo.png',
+      data: {
+        tripId,
+        messageId,
+        type: 'chat_message',
+      },
+      actions: [
+        { action: 'reply', title: 'Reply' },
+        { action: 'view', title: 'View Trip' },
+      ],
+    });
+  }
+
+  /**
+   * Send notification for itinerary update
+   */
+  async notifyItineraryUpdate(
+    tripId: string,
+    tripName: string,
+    updaterName: string,
+    eventId?: string,
+    excludeUserId?: string
+  ): Promise<boolean> {
+    return this.sendPushNotification({
+      tripId,
+      excludeUserId,
+      type: 'itinerary_update',
+      title: `${tripName} - Itinerary Updated`,
+      body: `${updaterName} made changes to the itinerary`,
+      icon: '/chravel-logo.png',
+      data: {
+        tripId,
+        eventId,
+        type: 'itinerary_update',
+      },
+      actions: [
+        { action: 'view', title: 'View Changes' },
+      ],
+    });
+  }
+
+  /**
+   * Send notification for payment request
+   */
+  async notifyPaymentRequest(
+    tripId: string,
+    requesterName: string,
+    amount: string,
+    description: string,
+    paymentId: string,
+    userIds: string[]
+  ): Promise<boolean> {
+    return this.sendPushNotification({
+      userIds,
+      type: 'payment_request',
+      title: '💰 Payment Request',
+      body: `${requesterName} requested ${amount} for "${description}"`,
+      icon: '/chravel-logo.png',
+      data: {
+        tripId,
+        paymentId,
+        type: 'payment_request',
+      },
+      actions: [
+        { action: 'pay', title: 'Pay Now' },
+        { action: 'view', title: 'View Details' },
+      ],
+      requireInteraction: true,
+    });
+  }
+
+  /**
+   * Send 24-hour trip reminder
+   */
+  async notifyTripReminder(
+    tripId: string,
+    tripName: string,
+    destination: string,
+    userIds: string[]
+  ): Promise<boolean> {
+    return this.sendPushNotification({
+      userIds,
+      type: 'trip_reminder',
+      title: `🧳 ${tripName} starts tomorrow!`,
+      body: `Your trip to ${destination} begins in 24 hours. Make sure you're ready!`,
+      icon: '/chravel-logo.png',
+      data: {
+        tripId,
+        type: 'trip_reminder',
+      },
+      actions: [
+        { action: 'view', title: 'View Trip' },
+        { action: 'dismiss', title: 'Dismiss' },
+      ],
+      requireInteraction: true,
+    });
+  }
+
+  /**
+   * Send email notification via Edge Function
+   */
+  async sendEmailNotification(userId: string, subject: string, content: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.functions.invoke('push-notifications', {
+        body: {
+          action: 'send_email',
+          userId,
+          subject,
+          content,
+        },
+      });
+
+      if (error) {
+        console.error('[NotificationService] Error sending email:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Error sending email notification:', error);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Send SMS notification via Edge Function
+   */
+  async sendSMSNotification(userId: string, message: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.functions.invoke('push-notifications', {
+        body: {
+          action: 'send_sms',
+          userId,
+          message,
+        },
+      });
+
+      if (error) {
+        console.error('[NotificationService] Error sending SMS:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Error sending SMS notification:', error);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Unsubscribe from push notifications
+   */
+  async unsubscribe(userId: string): Promise<void> {
+    try {
+      if (this.serviceWorker) {
+        const subscription = await this.serviceWorker.pushManager.getSubscription();
+        if (subscription) {
+          // Remove from database
+          await supabase
+            .from('web_push_subscriptions')
+            .delete()
+            .eq('user_id', userId)
+            .eq('endpoint', subscription.endpoint);
+
+          // Unsubscribe from browser
+          await subscription.unsubscribe();
         }
-      };
-
-      // Auto-close after 5 seconds
-      setTimeout(() => {
-        notification.close();
-      }, 5000);
-
+      }
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Failed to show notification:', error);
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Error unsubscribing from notifications:', error);
+      }
     }
   }
 
-  async sendPushNotification(userId: string, payload: NotificationPayload) {
-    try {
-      return true;
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Error sending push notification:', error);
-      return false;
-    }
-  }
-
-  async sendEmailNotification(userId: string, subject: string, content: string) {
-    try {
-      return true;
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Error sending email notification:', error);
-      return false;
-    }
-  }
-
-  async sendSMSNotification(userId: string, message: string) {
-    try {
-      return true;
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Error sending SMS notification:', error);
-      return false;
-    }
-  }
-
-  // Utility methods
-  private urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray as Uint8Array<ArrayBuffer>;
-  }
-
+  /**
+   * Check if currently in quiet hours
+   */
   isQuietHours(preferences: NotificationPreference): boolean {
     if (!preferences.quietHoursEnabled) return false;
 
@@ -231,18 +643,26 @@ export class NotificationService {
     }
   }
 
-  async unsubscribe(userId: string) {
-    try {
-      // Unsubscribe from service worker
-      if (this.serviceWorker) {
-        const subscription = await this.serviceWorker.pushManager.getSubscription();
-        if (subscription) {
-          await subscription.unsubscribe();
-        }
-      }
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Error unsubscribing from notifications:', error);
+  // ============================================================================
+  // Utility Methods
+  // ============================================================================
+
+  /**
+   * Convert base64url string to Uint8Array for applicationServerKey
+   */
+  private urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
     }
+    return outputArray;
   }
 }
 
