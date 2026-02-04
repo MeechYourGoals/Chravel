@@ -439,6 +439,7 @@ Deno.serve(async (req) => {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
     const vapidSubject = Deno.env.get('VAPID_SUBJECT') || 'mailto:notifications@chravel.app';
@@ -454,7 +455,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client with service role
+    // ========================================================================
+    // AUTHENTICATION: Verify caller's JWT
+    // ========================================================================
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create client with user's JWT to verify identity
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user: caller }, error: authError } = await userClient.auth.getUser();
+    if (authError || !caller) {
+      console.error('[web-push-send] Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[web-push-send] Authenticated caller: ${caller.id}`);
+
+    // Initialize service role client for database operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request
@@ -476,10 +504,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Resolve target user IDs
+    // ========================================================================
+    // AUTHORIZATION: Verify caller can send to these targets
+    // ========================================================================
     let targetUserIds: string[] = body.userIds || [];
 
-    if (body.tripId && !body.userIds?.length) {
+    if (body.tripId) {
+      // Verify caller is a member of this trip
+      const { data: callerMembership, error: membershipError } = await supabase
+        .from('trip_members')
+        .select('user_id, role')
+        .eq('trip_id', body.tripId)
+        .eq('user_id', caller.id)
+        .single();
+
+      if (membershipError || !callerMembership) {
+        console.warn(`[web-push-send] Caller ${caller.id} is not a member of trip ${body.tripId}`);
+        return new Response(
+          JSON.stringify({ error: 'You are not a member of this trip' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`[web-push-send] Caller is trip member with role: ${callerMembership.role}`);
+
       // Fetch all trip members
       const { data: members, error: membersError } = await supabase
         .from('trip_members')
@@ -495,6 +543,50 @@ Deno.serve(async (req) => {
       }
 
       targetUserIds = (members || []).map(m => m.user_id);
+    } else if (body.userIds?.length) {
+      // When targeting specific userIds, only allow:
+      // 1. Sending to self
+      // 2. Sending to users in a shared trip
+      
+      // For security, verify each target user shares a trip with caller
+      const nonSelfTargets = body.userIds.filter(id => id !== caller.id);
+      
+      if (nonSelfTargets.length > 0) {
+        // Get all trips where caller is a member
+        const { data: callerTrips } = await supabase
+          .from('trip_members')
+          .select('trip_id')
+          .eq('user_id', caller.id);
+        
+        const callerTripIds = (callerTrips || []).map(t => t.trip_id);
+        
+        if (callerTripIds.length === 0) {
+          return new Response(
+            JSON.stringify({ error: 'You can only send notifications to yourself or trip members' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Check if all target users share at least one trip with caller
+        const { data: sharedMembers } = await supabase
+          .from('trip_members')
+          .select('user_id')
+          .in('trip_id', callerTripIds)
+          .in('user_id', nonSelfTargets);
+        
+        const sharedUserIds = new Set((sharedMembers || []).map(m => m.user_id));
+        const unauthorizedTargets = nonSelfTargets.filter(id => !sharedUserIds.has(id));
+        
+        if (unauthorizedTargets.length > 0) {
+          console.warn(`[web-push-send] Unauthorized targets: ${unauthorizedTargets.join(', ')}`);
+          return new Response(
+            JSON.stringify({ error: 'You can only send notifications to users you share a trip with' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+      
+      targetUserIds = body.userIds;
     }
 
     // Exclude sender if specified
