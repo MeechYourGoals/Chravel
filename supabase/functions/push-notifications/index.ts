@@ -236,7 +236,7 @@ async function sendSMSNotification({
     finalMessage = generateSmsMessage(category, templateData);
     console.log(`[SMS] Generated template for ${category}: ${finalMessage.substring(0, 50)}...`);
   } else if (!finalMessage) {
-    finalMessage = '[Chravel] You have a new notification. Check the app for details.';
+    finalMessage = '[ChravelApp] You have a new notification. Check the app for details.';
   }
 
   const credentials = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
