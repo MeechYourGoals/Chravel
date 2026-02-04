@@ -27,7 +27,7 @@ export interface NotificationPreferences {
   push_enabled: boolean;
   email_enabled: boolean;
   sms_enabled: boolean;
-  sms_phone_number?: string; // Phone number for SMS delivery
+  sms_phone_number?: string | null; // Phone number for SMS delivery
   chat_messages: boolean;
   mentions_only: boolean;
   broadcasts: boolean;
@@ -46,6 +46,34 @@ export interface NotificationPreferences {
   created_at?: string;
   updated_at?: string;
 }
+
+// Category types that map to database columns
+export type NotificationCategory =
+  | 'chat_messages'
+  | 'broadcasts'
+  | 'calendar_events'
+  | 'payments'
+  | 'tasks'
+  | 'polls'
+  | 'trip_invites'
+  | 'join_requests'
+  | 'basecamp_updates';
+
+// Categories eligible for email delivery (high-signal only)
+export const EMAIL_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
+  'broadcasts',
+  'payments',
+  'basecamp_updates',
+];
+
+// Categories eligible for SMS delivery (high-urgency only)
+export const SMS_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
+  'broadcasts',       // Critical announcements from organizers
+  'payments',         // Payment requests and deadlines
+  'basecamp_updates', // Location/basecamp changes
+  'calendar_events',  // Event updates and reminders
+  'join_requests',    // New member join requests (for organizers)
+];
 
 const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   push_enabled: true,

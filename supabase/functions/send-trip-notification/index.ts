@@ -57,21 +57,30 @@ serve(async (req) => {
     }
 
     // Get trip members with their preferences
+    // Use correct column names from notification_preferences table
     const { data: members, error: membersError } = await supabase
       .from('trip_members')
       .select(`
         user_id,
         profiles!inner(user_id, full_name, timezone),
-        notification_preferences!inner(
+        notification_preferences(
           push_enabled,
           email_enabled,
-          trip_updates,
+          sms_enabled,
+          sms_phone_number,
           chat_messages,
-          calendar_reminders,
-          payment_alerts,
+          broadcasts,
+          calendar_events,
+          payments,
+          tasks,
+          polls,
+          trip_invites,
+          join_requests,
+          basecamp_updates,
           quiet_hours_enabled,
           quiet_start,
-          quiet_end
+          quiet_end,
+          timezone
         )
       `)
       .eq('trip_id', payload.tripId);
@@ -93,16 +102,26 @@ serve(async (req) => {
       const prefs = member.notification_preferences;
 
       // Check if user has this type of notification enabled
-      const typeEnabled = checkNotificationTypeEnabled(payload.type, prefs);
-      const pushEnabled = Array.isArray(prefs) ? prefs[0]?.push_enabled : (prefs as any)?.push_enabled;
-      if (!typeEnabled || !pushEnabled) {
-        console.log(`Skipping user ${member.user_id}: notification type disabled`);
-        continue;
+      // Handle case where user has no preferences (use defaults: allow notifications)
+      const prefsObj = Array.isArray(prefs) ? prefs[0] : prefs;
+
+      // If no preferences exist, allow by default (don't block notifications for new users)
+      if (!prefsObj) {
+        console.log(`User ${member.user_id} has no preferences, proceeding with defaults`);
+      } else {
+        const typeEnabled = checkNotificationTypeEnabled(payload.type, prefsObj);
+        const pushEnabled = prefsObj.push_enabled !== false; // Default to true if undefined
+
+        if (!typeEnabled || !pushEnabled) {
+          console.log(`Skipping user ${member.user_id}: notification type or push disabled`);
+          continue;
+        }
       }
 
-      // Check quiet hours
-      const timezone = Array.isArray(member.profiles) ? member.profiles[0]?.timezone : (member.profiles as any)?.timezone;
-      if (isQuietHours(prefs, timezone)) {
+      // Check quiet hours (use prefsObj which is already normalized)
+      const profileObj = Array.isArray(member.profiles) ? member.profiles[0] : member.profiles;
+      const timezone = prefsObj?.timezone || profileObj?.timezone || 'UTC';
+      if (prefsObj && isQuietHours(prefsObj, timezone)) {
         console.log(`Skipping user ${member.user_id}: quiet hours`);
         continue;
       }
@@ -191,44 +210,97 @@ serve(async (req) => {
   }
 });
 
+/**
+ * Map notification types to their corresponding preference column names.
+ * This uses the actual database column names from notification_preferences table.
+ */
 function checkNotificationTypeEnabled(
   type: string,
   prefs: any
 ): boolean {
+  // Handle array vs single object (join can return either)
+  const p = Array.isArray(prefs) ? prefs[0] : prefs;
+  if (!p) return true;
+
   switch (type) {
+    // Chat/messaging notifications
     case 'chat_message':
-      return prefs.chat_messages;
+    case 'message':
+    case 'mention':
+      return p.chat_messages === true;
+
+    // Broadcast announcements
+    case 'broadcast':
+      return p.broadcasts === true;
+
+    // Calendar/events
+    case 'calendar_reminder':
+    case 'calendar_event':
+    case 'itinerary_update':
+      return p.calendar_events === true;
+
+    // Payment notifications
+    case 'payment_alert':
+    case 'payment_request':
+    case 'payment_split':
+      return p.payments === true;
+
+    // Tasks
+    case 'task_assigned':
+    case 'task':
+      return p.tasks === true;
+
+    // Polls
+    case 'poll_created':
+    case 'poll_vote':
+      return p.polls === true;
+
+    // Trip membership
     case 'trip_update':
     case 'member_joined':
-      return prefs.trip_updates;
-    case 'calendar_reminder':
-      return prefs.calendar_reminders;
-    case 'payment_alert':
-      return prefs.payment_alerts;
-    case 'poll_created':
-      return prefs.trip_updates;
+    case 'join_request':
+      return p.join_requests === true;
+
+    // Trip invites
+    case 'trip_invite':
+      return p.trip_invites === true;
+
+    // Basecamp/location updates
+    case 'basecamp_update':
+    case 'location_update':
+      return p.basecamp_updates === true;
+
+    // Default: allow unknown types (safer for future expansion)
     default:
+      console.log(`[send-trip-notification] Unknown notification type: ${type}, allowing by default`);
       return true;
   }
 }
 
-function isQuietHours(prefs: any, timezone: string): boolean {
-  if (!prefs.quiet_hours_enabled) return false;
+function isQuietHours(
+  prefs: { quiet_hours_enabled?: boolean; quiet_start?: string; quiet_end?: string },
+  timezone: string
+): boolean {
+  if (!prefs?.quiet_hours_enabled) return false;
 
   try {
     const now = new Date();
     const userTime = new Date(now.toLocaleString('en-US', { timeZone: timezone || 'UTC' }));
     const currentMinutes = userTime.getHours() * 60 + userTime.getMinutes();
 
-    const [startHour, startMin] = prefs.quiet_start.split(':').map(Number);
-    const [endHour, endMin] = prefs.quiet_end.split(':').map(Number);
+    const quietStart = prefs.quiet_start || '22:00';
+    const quietEnd = prefs.quiet_end || '08:00';
+
+    const [startHour, startMin] = quietStart.split(':').map(Number);
+    const [endHour, endMin] = quietEnd.split(':').map(Number);
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
 
     if (startMinutes <= endMinutes) {
+      // Same day range (e.g., 09:00 - 17:00)
       return currentMinutes >= startMinutes && currentMinutes < endMinutes;
     } else {
-      // Crosses midnight
+      // Crosses midnight (e.g., 22:00 - 08:00)
       return currentMinutes >= startMinutes || currentMinutes < endMinutes;
     }
   } catch (error) {
