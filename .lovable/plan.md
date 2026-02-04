@@ -1,59 +1,177 @@
 
+# Mobile Layout Fix: Role Management Dialog
 
-# Update SMS Branding: [Chravel] → [ChravelApp] + Professional URLs
+## Problem Summary
 
-## Overview
+The Role Management dialog has several mobile layout issues visible in the screenshot:
 
-Update all SMS notification templates to use the **ChravelApp** brand name and the production domain **chravel.app** instead of the Lovable preview URL.
-
----
-
-## Changes Required
-
-### File 1: `supabase/functions/_shared/smsTemplates.ts`
-
-**URL Update:**
-- Line 8: Change `https://chravel.lovable.app` → `https://chravel.app`
-
-**Branding Updates (all [Chravel] → [ChravelApp]):**
-- Line 58: Basecamp update message
-- Line 63: Join request message  
-- Line 71: Payment request message
-- Line 77: Broadcast message
-- Line 84: Calendar event message
-- Line 90: Generic fallback message
-- Line 5: Update documentation comment
-
-### File 2: `supabase/functions/push-notifications/index.ts`
-
-**Branding Update:**
-- Line 239: Update fallback SMS message from `[Chravel]` to `[ChravelApp]`
+1. **Header Overflow**: "Create Role" button is cut off on the right side
+2. **Role Cards**: Role names and channel hashtags overlap with action buttons
+3. **Inconsistent Layout**: Some role names appear under buttons, others overlap
 
 ---
 
-## Updated Templates
+## Solution: Stack-Based Mobile Layout
 
-| Scenario | New Template |
-|----------|-------------|
-| Basecamp Update | `[ChravelApp] 📍 Basecamp changed for {trip}: {location}. View: https://chravel.app/trip/{id}/places` |
-| Join Request | `[ChravelApp] 👤 {name} wants to join {trip}. Review: https://chravel.app/trip/{id}/members` |
-| Payment Request | `[ChravelApp] 💰 {name} requested ${amount} for {trip}. Pay: https://chravel.app/trip/{id}/payments` |
-| Urgent Broadcast | `[ChravelApp] 🚨 {trip}: {preview} https://chravel.app/trip/{id}/chat` |
-| Calendar Reminder | `[ChravelApp] 🗓️ {event} at {time} in {trip}. Details: https://chravel.app/trip/{id}/calendar` |
+### Change 1: Restructure the Header Section
+
+**Current Layout** (broken):
+```
+[Icon] [Role Management] [4/10]  ←→  [+ Create Role]
+```
+
+**Proposed Layout** (mobile-optimized):
+```
+[Icon] Role Management
+       [4/10 roles]   [+ Create]
+```
+
+- Stack the header title on top
+- Place the counter and button on a second row, centered
+- Make the "Create" button more compact (icon only on very small screens)
+
+### Change 2: Vertical Stack for Role Cards
+
+**Current Layout** (broken):
+```
+[Co-Founder team]  [✏️] [👥] [🗑️]
+[1 members • #Co-Founder team]
+```
+Text and buttons compete for horizontal space, causing overlap.
+
+**Proposed Layout** (mobile-optimized):
+```
+[Co-Founder team]
+[1 members • #Co-Founder team]
+──────────────────────────────
+   [✏️]    [👥]    [🗑️]
+```
+
+- Role info stacked at top (full width)
+- Action buttons in their own row at bottom (centered)
+- Clear visual separation
 
 ---
 
-## Already Using Professional Branding (No Changes Needed)
+## Technical Implementation
 
-These components are already configured correctly:
-- Invite links use `https://p.chravel.app/j/`
-- Trip share links use `https://p.chravel.app/t/`
-- Universal link handling configured for `chravel.app`
-- Push notification subject uses `notifications@chravel.app`
+### File: `src/components/pro/admin/RoleManager.tsx`
+
+#### Header Section (Lines 303-321)
+
+Replace the single-row flex layout with a two-row stacked layout for mobile:
+
+```tsx
+{/* Header - Stacked on mobile */}
+<div className="mb-6">
+  {/* Title Row */}
+  <div className="flex items-center gap-2 mb-3">
+    <Users className="w-5 h-5 text-purple-500" />
+    <h3 className="font-semibold text-foreground">Role Management</h3>
+  </div>
+  
+  {/* Actions Row - Centered */}
+  <div className="flex items-center justify-center gap-3">
+    <span className="text-xs bg-purple-500/20 text-purple-500 px-2 py-0.5 rounded-full">
+      {roles.length} / {MAX_ROLES_PER_TRIP}
+    </span>
+    <Button
+      onClick={() => setShowCreateDialog(true)}
+      disabled={roles.length >= MAX_ROLES_PER_TRIP}
+      className="rounded-full bg-purple-600 hover:bg-purple-700 text-white text-xs h-8 px-3"
+      size="sm"
+    >
+      <Plus className="w-3.5 h-3.5 mr-1" />
+      Create
+    </Button>
+  </div>
+</div>
+```
+
+#### Role Card Layout (Lines 344-399)
+
+Change from horizontal flex to vertical stack:
+
+```tsx
+<div
+  key={role.id}
+  className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
+>
+  {/* Role Info - Full Width */}
+  <div className="mb-3">
+    <h4 className="font-medium text-foreground mb-1">{role.roleName}</h4>
+    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+      <span>{role.memberCount || 0} members</span>
+      {hasChannel && !(channel as any).is_archived && (
+        <>
+          <span>•</span>
+          <div className="flex items-center gap-1">
+            <LinkIcon className="w-3 h-3" />
+            <span>#{(channel as any).channel_name}</span>
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+
+  {/* Action Buttons - Centered Row */}
+  <div className="flex items-center justify-center gap-2 pt-2 border-t border-white/5">
+    <Button variant="outline" size="icon" ...>
+      <Pencil className="w-4 h-4" />
+    </Button>
+    <Button variant="outline" size="icon" ...>
+      <UserMinus className="w-4 h-4" />
+    </Button>
+    <Button variant="outline" size="icon" ...>
+      <Trash2 className="w-4 h-4" />
+    </Button>
+  </div>
+</div>
+```
 
 ---
 
-## Deployment
+## Visual Summary
 
-After the code changes, the edge functions will be automatically redeployed. No manual steps required.
+### Before (Broken)
+```
+┌─────────────────────────────────────┐
+│ 👥 Role Management [4/10] [+ Create R│  ← cut off
+├─────────────────────────────────────┤
+│ Co-                                 │
+│ Founder   [✏️][👥][🗑️]              │  ← text overlaps
+│ team                                │
+│ 1 members • #Co-Founder team        │  ← runs into icons
+└─────────────────────────────────────┘
+```
 
+### After (Fixed)
+```
+┌─────────────────────────────────────┐
+│ 👥 Role Management                  │
+│        [4/10]  [+ Create]           │  ← centered row
+├─────────────────────────────────────┤
+│ Co-Founder team                     │
+│ 1 members • #Co-Founder team        │  ← clear space
+│ ─────────────────────────────────── │
+│      [✏️]    [👥]    [🗑️]           │  ← buttons below
+└─────────────────────────────────────┘
+```
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/pro/admin/RoleManager.tsx` | Restructure header (lines 303-321) and role cards (lines 344-399) |
+
+---
+
+## Scope
+
+- Header restructure: ~15 lines changed
+- Role card restructure: ~30 lines changed
+- No new dependencies
+- No database changes
+- Mobile/PWA optimized while desktop remains functional
