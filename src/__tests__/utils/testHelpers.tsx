@@ -1,28 +1,9 @@
 import React from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
-import { vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ConsumerSubscriptionProvider } from '@/hooks/useConsumerSubscription';
-import { createMockSupabaseClient } from './supabaseMocks';
-
-// Mock Supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: createMockSupabaseClient(),
-}));
-
-// Mock Google Maps
-vi.mock('@/services/googlePlacesNew', () => ({
-  loadMaps: vi.fn().mockResolvedValue(true),
-  autocomplete: vi.fn(),
-  resolveQuery: vi.fn(),
-  centerMapOnPlace: vi.fn(),
-  searchNearby: vi.fn(),
-  searchByText: vi.fn(),
-  fetchPlaceDetails: vi.fn(),
-  generateSessionToken: vi.fn(() => 'mock-session-token'),
-}));
 
 // Create a test query client with default options
 const createTestQueryClient = () =>
@@ -50,19 +31,19 @@ export function renderWithProviders(
   ui: React.ReactElement,
   {
     queryClient = createTestQueryClient(),
-    initialEntries: _initialEntries = ['/'],
+    initialEntries = ['/'],
     ...renderOptions
-  }: CustomRenderOptions = {}
+  }: CustomRenderOptions = {},
 ) {
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <BrowserRouter>
+      <MemoryRouter initialEntries={initialEntries}>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <ConsumerSubscriptionProvider>{children}</ConsumerSubscriptionProvider>
           </AuthProvider>
         </QueryClientProvider>
-      </BrowserRouter>
+      </MemoryRouter>
     );
   }
 
@@ -75,7 +56,7 @@ export function renderWithProviders(
 /**
  * Wait for async operations to complete
  */
-export const waitForAsync = () => new Promise((resolve) => setTimeout(resolve, 0));
+export const waitForAsync = () => new Promise(resolve => setTimeout(resolve, 0));
 
 /**
  * Create mock trip data

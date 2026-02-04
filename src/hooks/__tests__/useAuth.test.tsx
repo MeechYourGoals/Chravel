@@ -4,13 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import React, { useContext } from 'react';
 import { AuthProvider, useAuth } from '../useAuth';
-import { createMockSupabaseClient, mockUser, mockSession } from '@/__tests__/utils/supabaseMocks';
+import { mockUser, mockSession } from '@/__tests__/utils/supabaseMocks';
 import { supabase } from '@/integrations/supabase/client';
-
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: createMockSupabaseClient(),
-}));
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -88,15 +83,18 @@ describe('AuthProvider', () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false);
+      },
+      { timeout: 3000 },
+    );
 
     const signUpResult = await result.current.signUp(
       'test@example.com',
       'password123',
       'Test',
-      'User'
+      'User',
     );
 
     expect(signUpResult.error).toBeUndefined();

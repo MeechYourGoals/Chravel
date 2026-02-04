@@ -2,12 +2,7 @@
 // @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { sendChatMessage, subscribeToChatMessages } from '../chatService';
-import { createMockSupabaseClient } from '@/__tests__/utils/supabaseMocks';
 import { supabase } from '@/integrations/supabase/client';
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: createMockSupabaseClient(),
-}));
 
 describe('chatService - Integration Tests', () => {
   const tripId = 'trip-123';
@@ -139,7 +134,7 @@ describe('chatService - Integration Tests', () => {
           table: 'trip_chat_messages',
           filter: `trip_id=eq.${tripId}`,
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
       expect(mockChannel.subscribe).toHaveBeenCalled();
       expect(subscription).toBeDefined();

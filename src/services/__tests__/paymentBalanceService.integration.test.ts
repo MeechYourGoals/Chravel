@@ -2,12 +2,8 @@
 // @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { paymentBalanceService } from '../paymentBalanceService';
-import { createMockSupabaseClient, createQueryBuilderMock } from '@/__tests__/utils/supabaseMocks';
+import { createQueryBuilderMock } from '@/__tests__/utils/supabaseMocks';
 import { supabase } from '@/integrations/supabase/client';
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: createMockSupabaseClient(),
-}));
 
 vi.mock('../currencyService', () => ({
   normalizeToBaseCurrency: vi.fn((amount: number) => amount),
@@ -20,12 +16,12 @@ describe('paymentBalanceService - Integration Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Default mock: authenticated user with trip membership
     const mockSupabase = vi.mocked(supabase);
     mockSupabase.auth.getUser = vi.fn().mockResolvedValue({
       data: { user: { id: userId } },
-      error: null
+      error: null,
     });
   });
 
@@ -123,8 +119,8 @@ describe('paymentBalanceService - Integration Tests', () => {
           // Mock membership check
           builder.select.mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
-            })
+              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null }),
+            }),
           });
         } else if (table === 'trip_payment_messages') {
           builder.selectReturn.mockResolvedValue({ data: paymentMessages, error: null });
@@ -165,8 +161,8 @@ describe('paymentBalanceService - Integration Tests', () => {
         if (table === 'trip_members') {
           builder.select.mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
-            })
+              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null }),
+            }),
           });
         } else if (table === 'trip_payment_messages') {
           builder.selectReturn.mockResolvedValue({ data: [], error: null });
@@ -191,8 +187,8 @@ describe('paymentBalanceService - Integration Tests', () => {
         if (table === 'trip_members') {
           builder.select.mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null })
-            })
+              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'membership-1' }, error: null }),
+            }),
           });
         } else if (table === 'trip_payment_messages') {
           builder.selectReturn.mockResolvedValue({ data: null, error });
@@ -201,7 +197,7 @@ describe('paymentBalanceService - Integration Tests', () => {
       });
 
       await expect(paymentBalanceService.getBalanceSummary(tripId, userId)).rejects.toThrow(
-        'Database error'
+        'Database error',
       );
     });
   });
