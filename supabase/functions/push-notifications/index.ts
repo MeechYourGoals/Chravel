@@ -1,11 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { corsHeaders } from '../_shared/cors.ts';
+import { generateSmsMessage, isSmsEligibleCategory, type SmsTemplateData } from '../_shared/smsTemplates.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 );
+
+const SMS_DAILY_LIMIT = 10;
 
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
@@ -157,16 +160,88 @@ async function sendEmailNotification({ userId, email, subject, content, template
   );
 }
 
-async function sendSMSNotification({ userId, phoneNumber, message }: any) {
+async function sendSMSNotification({ 
+  userId, 
+  phoneNumber, 
+  message,
+  category,
+  templateData 
+}: {
+  userId: string;
+  phoneNumber: string;
+  message?: string;
+  category?: string;
+  templateData?: SmsTemplateData;
+}) {
   const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
   const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
   
   if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+    console.error('[SMS] Twilio credentials not configured');
+    
+    // Log the failure
+    await supabase.from('notification_logs').insert({
+      user_id: userId,
+      type: 'sms',
+      title: 'SMS Notification',
+      body: message || 'N/A',
+      recipient: phoneNumber,
+      status: 'failed',
+      error_message: 'Twilio credentials not configured',
+      created_at: new Date().toISOString()
+    });
+    
     throw new Error('Twilio credentials not configured');
   }
 
+  // Check rate limit
+  const { data: rateLimitData, error: rateLimitError } = await supabase
+    .rpc('check_sms_rate_limit', { p_user_id: userId, p_daily_limit: SMS_DAILY_LIMIT });
+  
+  if (rateLimitError) {
+    console.error('[SMS] Rate limit check failed:', rateLimitError);
+  }
+  
+  const rateLimit = rateLimitData?.[0];
+  if (rateLimit && !rateLimit.allowed) {
+    console.warn(`[SMS] Rate limit exceeded for user ${userId}. Remaining: ${rateLimit.remaining}`);
+    
+    // Log rate-limited attempt
+    await supabase.from('notification_logs').insert({
+      user_id: userId,
+      type: 'sms',
+      title: 'SMS Rate Limited',
+      body: message || 'N/A',
+      recipient: phoneNumber,
+      status: 'rate_limited',
+      error_message: `Daily limit of ${SMS_DAILY_LIMIT} SMS exceeded. Resets at ${rateLimit.reset_at}`,
+      created_at: new Date().toISOString()
+    });
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'rate_limited',
+        message: `Daily SMS limit reached. Resets at ${rateLimit.reset_at}`,
+        remaining: 0
+      }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Generate templated message if category is provided
+  let finalMessage = message || '';
+  if (category && isSmsEligibleCategory(category) && templateData) {
+    finalMessage = generateSmsMessage(category, templateData);
+    console.log(`[SMS] Generated template for ${category}: ${finalMessage.substring(0, 50)}...`);
+  } else if (!finalMessage) {
+    finalMessage = '[Chravel] You have a new notification. Check the app for details.';
+  }
+
   const credentials = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
+  
+  console.log(`[SMS] Sending to ${phoneNumber.substring(0, 6)}*** via Twilio`);
   
   const response = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
@@ -179,33 +254,58 @@ async function sendSMSNotification({ userId, phoneNumber, message }: any) {
       body: new URLSearchParams({
         From: twilioPhoneNumber,
         To: phoneNumber,
-        Body: message
+        Body: finalMessage
       }),
     }
   );
 
+  const responseText = await response.text();
+  
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Twilio error: ${error}`);
-  }
-
-  const result = await response.json();
-
-  // Log notification in database
-  await supabase
-    .from('notification_logs')
-    .insert({
+    console.error(`[SMS] Twilio error (${response.status}):`, responseText);
+    
+    // Log the failure
+    await supabase.from('notification_logs').insert({
       user_id: userId,
       type: 'sms',
-      title: 'SMS Notification',
-      body: message,
+      title: 'SMS Failed',
+      body: finalMessage,
       recipient: phoneNumber,
-      external_id: result.sid,
-      sent_at: new Date().toISOString()
+      status: 'failed',
+      error_message: `Twilio error (${response.status}): ${responseText.substring(0, 200)}`,
+      created_at: new Date().toISOString()
     });
+    
+    throw new Error(`Twilio error: ${responseText}`);
+  }
+
+  const result = JSON.parse(responseText);
+  console.log(`[SMS] Sent successfully. SID: ${result.sid}`);
+
+  // Increment the user's SMS counter
+  await supabase.rpc('increment_sms_counter', { p_user_id: userId });
+
+  // Log successful notification
+  await supabase.from('notification_logs').insert({
+    user_id: userId,
+    type: 'sms',
+    title: 'SMS Notification',
+    body: finalMessage,
+    recipient: phoneNumber,
+    external_id: result.sid,
+    status: 'sent',
+    data: { category, twilioStatus: result.status },
+    sent_at: new Date().toISOString(),
+    created_at: new Date().toISOString()
+  });
 
   return new Response(
-    JSON.stringify(result),
+    JSON.stringify({ 
+      success: true, 
+      sid: result.sid,
+      status: result.status,
+      remaining: rateLimit?.remaining ?? SMS_DAILY_LIMIT - 1
+    }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
