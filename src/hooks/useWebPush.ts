@@ -1,467 +1,206 @@
 /**
  * Web Push Notifications Hook
  * 
- * Manages the Web Push subscription lifecycle for PWA/browser push notifications.
- * Handles permission requests, subscription management, and Supabase storage.
+ * Manages push subscription lifecycle with iOS-aware handling.
+ * Single source of truth for push notification state.
  * 
- * Includes iOS-specific handling:
+ * iOS Notes:
  * - iOS < 16.4: Push not supported
- * - iOS 16.4+ Safari (not standalone): Requires "Add to Home Screen"
- * - iOS 16.4+ standalone: Full push support
- * 
- * @example
- * ```tsx
- * const { 
- *   isSupported, 
- *   permission, 
- *   subscribe, 
- *   unsubscribe,
- *   iosStatus,
- * } = useWebPush();
- * 
- * // Request permission and subscribe on first trip creation
- * const handleFirstTrip = async () => {
- *   if (iosStatus.requiresHomeScreen) {
- *     // Show iOS Add to Home Screen modal
- *     showIOSInstructions();
- *   } else if (permission === 'default') {
- *     await subscribe();
- *   }
- * };
- * ```
- * 
- * @see https://web.dev/push-notifications-subscribing-a-user/
- * @see https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/
+ * - iOS 16.4+ in Safari: Requires "Add to Home Screen" first
+ * - iOS 16.4+ standalone PWA: Full push support
  */
 
-import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  detectPlatform, 
-  detectPushSupport,
-  type PlatformInfo,
-  type PushSupportInfo,
-} from '@/utils/platformDetection';
 
-// VAPID public key from environment
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+// ============================================================================
+// Types
+// ============================================================================
 
 export type WebPushPermission = 'granted' | 'denied' | 'default' | 'unsupported';
 
-export interface IOSPushStatus {
-  /** Whether this is an iOS device */
-  isIOS: boolean;
-  /** iOS version string (e.g., "16.4") */
-  iosVersion: string | null;
-  /** Whether iOS version supports push (16.4+) */
-  versionSupportsPush: boolean;
-  /** Whether running as standalone PWA */
-  isStandalone: boolean;
-  /** Whether user needs to Add to Home Screen for push */
-  requiresHomeScreen: boolean;
-  /** Human-readable explanation */
-  explanation: string;
-}
-
 export interface WebPushState {
-  /** Whether Web Push is supported in this browser */
   isSupported: boolean;
-  /** Current notification permission status */
   permission: WebPushPermission;
-  /** Whether user is currently subscribed to push */
   isSubscribed: boolean;
-  /** Loading state during async operations */
   isLoading: boolean;
-  /** Error message if something went wrong */
   error: string | null;
-  /** The active subscription object (for debugging) */
-  subscription: PushSubscription | null;
-  /** iOS-specific push status */
-  iosStatus: IOSPushStatus;
-  /** Platform information */
-  platform: PlatformInfo;
-  /** Push support information */
-  pushSupport: PushSupportInfo;
+  /** iOS requires Add to Home Screen for push */
+  requiresHomeScreen: boolean;
+  /** iOS version too old for push */
+  iosUnsupported: boolean;
 }
 
-export interface WebPushActions {
-  /** Request permission and subscribe to push notifications */
+export interface UseWebPushReturn extends WebPushState {
   subscribe: () => Promise<boolean>;
-  /** Unsubscribe from push notifications */
   unsubscribe: () => Promise<boolean>;
-  /** Check current permission status */
   checkPermission: () => Promise<WebPushPermission>;
-  /** Check if user is currently subscribed */
-  checkSubscription: () => Promise<boolean>;
-  /** Request permission without subscribing */
-  requestPermission: () => Promise<WebPushPermission>;
 }
 
-export type UseWebPushReturn = WebPushState & WebPushActions;
+// ============================================================================
+// Simple iOS Detection (inline, no separate utility needed)
+// ============================================================================
 
-/**
- * Convert base64url string to Uint8Array for applicationServerKey
- */
+function detectiOS(): { isIOS: boolean; version: number | null; isStandalone: boolean } {
+  const ua = navigator.userAgent;
+  
+  // Check for iOS
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  
+  if (!isIOS) {
+    return { isIOS: false, version: null, isStandalone: false };
+  }
+  
+  // Parse iOS version
+  const match = ua.match(/OS (\d+)_(\d+)/);
+  const version = match ? parseFloat(`${match[1]}.${match[2]}`) : null;
+  
+  // Check standalone mode
+  const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches ||
+    (navigator as any).standalone === true;
+  
+  return { isIOS, version, isStandalone };
+}
+
+function checkPushSupport(): { 
+  supported: boolean; 
+  requiresHomeScreen: boolean; 
+  iosUnsupported: boolean;
+  reason?: string;
+} {
+  // Basic browser support
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    return { supported: false, requiresHomeScreen: false, iosUnsupported: false, reason: 'Browser does not support push' };
+  }
+  
+  const { isIOS, version, isStandalone } = detectiOS();
+  
+  if (isIOS) {
+    // iOS < 16.4 has no push support
+    if (version !== null && version < 16.4) {
+      return { supported: false, requiresHomeScreen: false, iosUnsupported: true, reason: 'iOS 16.4+ required' };
+    }
+    
+    // iOS 16.4+ but not standalone - needs Add to Home Screen
+    if (!isStandalone) {
+      return { supported: false, requiresHomeScreen: true, iosUnsupported: false, reason: 'Add to Home Screen required' };
+    }
+  }
+  
+  return { supported: true, requiresHomeScreen: false, iosUnsupported: false };
+}
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
-
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
 }
 
-/**
- * Convert ArrayBuffer to base64url string
- */
-function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-}
-
-/**
- * Check if Web Push is supported in current browser
- */
-function isWebPushSupported(): boolean {
-  return (
-    'serviceWorker' in navigator &&
-    'PushManager' in window &&
-    'Notification' in window
-  );
-}
-
-/**
- * Get user-friendly device name from user agent
- */
 function getDeviceName(): string {
   const ua = navigator.userAgent;
-  
-  // Detect browser
-  let browser = 'Unknown Browser';
-  if (ua.includes('Firefox')) browser = 'Firefox';
-  else if (ua.includes('Edg')) browser = 'Edge';
-  else if (ua.includes('Chrome')) browser = 'Chrome';
-  else if (ua.includes('Safari')) browser = 'Safari';
-  else if (ua.includes('Opera')) browser = 'Opera';
-  
-  // Detect OS
-  let os = 'Unknown OS';
-  if (ua.includes('Windows')) os = 'Windows';
-  else if (ua.includes('Mac OS')) os = 'macOS';
-  else if (ua.includes('Linux')) os = 'Linux';
-  else if (ua.includes('Android')) os = 'Android';
-  else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
-  
+  const browser = ua.includes('Chrome') ? 'Chrome' : 
+                  ua.includes('Firefox') ? 'Firefox' : 
+                  ua.includes('Safari') ? 'Safari' : 'Browser';
+  const os = ua.includes('Windows') ? 'Windows' :
+             ua.includes('Mac') ? 'Mac' :
+             ua.includes('Android') ? 'Android' :
+             ua.includes('iPhone') || ua.includes('iPad') ? 'iOS' : 'Unknown';
   return `${browser} on ${os}`;
 }
 
-/**
- * Hook for managing Web Push notifications
- */
+// ============================================================================
+// Hook
+// ============================================================================
+
 export function useWebPush(): UseWebPushReturn {
   const { user } = useAuth();
+  const serviceWorkerRef = useRef<ServiceWorkerRegistration | null>(null);
   
-  // Detect platform and push support
-  const platform = useMemo(() => detectPlatform(), []);
-  const pushSupport = useMemo(() => detectPushSupport(platform), [platform]);
-  
-  // Compute iOS-specific status
-  const iosStatus = useMemo((): IOSPushStatus => {
-    const isIOS = platform.os === 'ios';
-    const versionSupportsPush = isIOS 
-      ? (platform.iosMajorVersion !== null && 
-         (platform.iosMajorVersion + (platform.iosMinorVersion || 0) / 10) >= 16.4)
-      : true;
-    
-    return {
-      isIOS,
-      iosVersion: platform.iosVersion,
-      versionSupportsPush,
-      isStandalone: platform.isStandalone,
-      requiresHomeScreen: pushSupport.requiresHomeScreen,
-      explanation: pushSupport.explanation,
-    };
-  }, [platform, pushSupport]);
+  // Check platform support once
+  const pushSupport = checkPushSupport();
   
   const [state, setState] = useState<WebPushState>({
-    isSupported: false,
+    isSupported: pushSupport.supported,
     permission: 'default',
     isSubscribed: false,
     isLoading: false,
     error: null,
-    subscription: null,
-    iosStatus,
-    platform,
-    pushSupport,
+    requiresHomeScreen: pushSupport.requiresHomeScreen,
+    iosUnsupported: pushSupport.iosUnsupported,
   });
-  
-  // Update state when platform info changes
-  useEffect(() => {
-    setState(prev => ({
-      ...prev,
-      iosStatus,
-      platform,
-      pushSupport,
-      isSupported: pushSupport.isSupported,
-    }));
-  }, [iosStatus, platform, pushSupport]);
-  
-  const serviceWorkerRef = useRef<ServiceWorkerRegistration | null>(null);
-  const initializingRef = useRef(false);
 
-  /**
-   * Get the service worker registration
-   */
-  const getServiceWorkerRegistration = useCallback(async (): Promise<ServiceWorkerRegistration | null> => {
-    if (serviceWorkerRef.current) {
-      return serviceWorkerRef.current;
-    }
-
+  // Get service worker registration
+  const getRegistration = useCallback(async (): Promise<ServiceWorkerRegistration | null> => {
+    if (serviceWorkerRef.current) return serviceWorkerRef.current;
     try {
-      const registration = await navigator.serviceWorker.ready;
-      serviceWorkerRef.current = registration;
-      return registration;
-    } catch (err) {
-      console.error('[useWebPush] Failed to get service worker registration:', err);
+      serviceWorkerRef.current = await navigator.serviceWorker.ready;
+      return serviceWorkerRef.current;
+    } catch {
       return null;
     }
   }, []);
 
-  /**
-   * Check current permission status
-   */
+  // Check permission
   const checkPermission = useCallback(async (): Promise<WebPushPermission> => {
-    if (!isWebPushSupported()) {
-      return 'unsupported';
-    }
-    
+    if (!pushSupport.supported) return 'unsupported';
     const permission = Notification.permission as WebPushPermission;
     setState(prev => ({ ...prev, permission }));
     return permission;
-  }, []);
+  }, [pushSupport.supported]);
 
-  /**
-   * Check if user is currently subscribed
-   */
-  const checkSubscription = useCallback(async (): Promise<boolean> => {
-    if (!isWebPushSupported()) {
-      return false;
-    }
-
-    try {
-      const registration = await getServiceWorkerRegistration();
-      if (!registration) {
-        return false;
-      }
-
-      const subscription = await registration.pushManager.getSubscription();
-      const isSubscribed = !!subscription;
-      
-      setState(prev => ({ 
-        ...prev, 
-        isSubscribed,
-        subscription 
-      }));
-      
-      return isSubscribed;
-    } catch (err) {
-      console.error('[useWebPush] Failed to check subscription:', err);
-      return false;
-    }
-  }, [getServiceWorkerRegistration]);
-
-  /**
-   * Request notification permission without subscribing
-   */
-  const requestPermission = useCallback(async (): Promise<WebPushPermission> => {
-    if (!isWebPushSupported()) {
-      return 'unsupported';
-    }
-
-    try {
-      const result = await Notification.requestPermission();
-      const permission = result as WebPushPermission;
-      setState(prev => ({ ...prev, permission }));
-      return permission;
-    } catch (err) {
-      console.error('[useWebPush] Failed to request permission:', err);
-      return 'denied';
-    }
-  }, []);
-
-  /**
-   * Save subscription to Supabase
-   */
-  const saveSubscription = useCallback(async (subscription: PushSubscription): Promise<boolean> => {
-    if (!user) {
-      console.warn('[useWebPush] Cannot save subscription: no user');
-      return false;
-    }
-
-    try {
-      const subscriptionJSON = subscription.toJSON();
-      const keys = subscriptionJSON.keys;
-
-      if (!keys?.p256dh || !keys?.auth) {
-        console.error('[useWebPush] Subscription missing required keys');
-        return false;
-      }
-
-      const { error } = await supabase
-        .from('web_push_subscriptions')
-        .upsert(
-          {
-            user_id: user.id,
-            endpoint: subscription.endpoint,
-            p256dh_key: keys.p256dh,
-            auth_key: keys.auth,
-            user_agent: navigator.userAgent,
-            device_name: getDeviceName(),
-            is_active: true,
-            failed_count: 0,
-            last_error: null,
-          },
-          {
-            onConflict: 'user_id,endpoint',
-          }
-        );
-
-      if (error) {
-        console.error('[useWebPush] Failed to save subscription:', error);
-        return false;
-      }
-
-      console.log('[useWebPush] Subscription saved successfully');
-      return true;
-    } catch (err) {
-      console.error('[useWebPush] Error saving subscription:', err);
-      return false;
-    }
-  }, [user]);
-
-  /**
-   * Remove subscription from Supabase
-   */
-  const removeSubscription = useCallback(async (endpoint: string): Promise<boolean> => {
-    if (!user) {
-      return false;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('web_push_subscriptions')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('endpoint', endpoint);
-
-      if (error) {
-        console.error('[useWebPush] Failed to remove subscription:', error);
-        return false;
-      }
-
-      console.log('[useWebPush] Subscription removed successfully');
-      return true;
-    } catch (err) {
-      console.error('[useWebPush] Error removing subscription:', err);
-      return false;
-    }
-  }, [user]);
-
-  /**
-   * Subscribe to push notifications
-   */
+  // Subscribe to push
   const subscribe = useCallback(async (): Promise<boolean> => {
-    // Check iOS-specific requirements first
-    if (iosStatus.isIOS) {
-      if (!iosStatus.versionSupportsPush) {
-        setState(prev => ({ 
-          ...prev, 
-          error: `Push notifications require iOS 16.4 or later. You're on iOS ${iosStatus.iosVersion}.`
-        }));
-        return false;
-      }
-      
-      if (iosStatus.requiresHomeScreen) {
-        setState(prev => ({ 
-          ...prev, 
-          error: 'On iOS, push notifications only work when you add Chravel to your Home Screen. Tap the Share button and select "Add to Home Screen".'
-        }));
-        return false;
-      }
-    }
-    
-    if (!isWebPushSupported()) {
-      setState(prev => ({ 
-        ...prev, 
-        error: 'Web Push is not supported in this browser' 
-      }));
+    if (!pushSupport.supported) {
+      setState(prev => ({ ...prev, error: pushSupport.reason || 'Push not supported' }));
       return false;
     }
 
     if (!VAPID_PUBLIC_KEY) {
-      setState(prev => ({ 
-        ...prev, 
-        error: 'VAPID public key is not configured' 
-      }));
-      console.error('[useWebPush] VITE_VAPID_PUBLIC_KEY environment variable is not set');
+      setState(prev => ({ ...prev, error: 'VAPID key not configured' }));
       return false;
     }
 
     if (!user) {
-      setState(prev => ({ 
-        ...prev, 
-        error: 'User must be logged in to subscribe' 
-      }));
+      setState(prev => ({ ...prev, error: 'Must be logged in' }));
       return false;
     }
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Request permission if not already granted
-      const permission = await requestPermission();
-      
+      // Request permission
+      const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         setState(prev => ({ 
           ...prev, 
-          isLoading: false,
-          permission,
-          error: permission === 'denied' 
-            ? 'Notification permission was denied. Please enable notifications in your browser settings.' 
-            : null
+          isLoading: false, 
+          permission: permission as WebPushPermission,
+          error: permission === 'denied' ? 'Permission denied' : null 
         }));
         return false;
       }
 
-      // Get service worker registration
-      const registration = await getServiceWorkerRegistration();
+      // Get service worker and subscribe
+      const registration = await getRegistration();
       if (!registration) {
-        setState(prev => ({ 
-          ...prev, 
-          isLoading: false,
-          error: 'Service worker not available' 
-        }));
+        setState(prev => ({ ...prev, isLoading: false, error: 'Service worker unavailable' }));
         return false;
       }
 
-      // Check for existing subscription
       let subscription = await registration.pushManager.getSubscription();
-      
-      // Create new subscription if none exists
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
@@ -469,166 +208,82 @@ export function useWebPush(): UseWebPushReturn {
         });
       }
 
-      // Save to Supabase
-      const saved = await saveSubscription(subscription);
-      
-      if (!saved) {
-        setState(prev => ({ 
-          ...prev, 
-          isLoading: false,
-          error: 'Failed to save subscription to server' 
-        }));
+      // Save to database
+      const keys = subscription.toJSON().keys;
+      if (!keys?.p256dh || !keys?.auth) {
+        setState(prev => ({ ...prev, isLoading: false, error: 'Invalid subscription keys' }));
         return false;
       }
 
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false,
-        isSubscribed: true,
-        subscription,
-        error: null
-      }));
+      const { error } = await supabase.from('web_push_subscriptions').upsert({
+        user_id: user.id,
+        endpoint: subscription.endpoint,
+        p256dh_key: keys.p256dh,
+        auth_key: keys.auth,
+        device_name: getDeviceName(),
+        is_active: true,
+        failed_count: 0,
+      }, { onConflict: 'user_id,endpoint' });
 
+      if (error) {
+        console.error('[useWebPush] Save error:', error);
+        setState(prev => ({ ...prev, isLoading: false, error: 'Failed to save subscription' }));
+        return false;
+      }
+
+      setState(prev => ({ ...prev, isLoading: false, isSubscribed: true, permission: 'granted' }));
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      console.error('[useWebPush] Subscribe error:', err);
-      
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false,
-        error: `Failed to subscribe: ${errorMessage}`
-      }));
-      
+      const message = err instanceof Error ? err.message : 'Subscription failed';
+      setState(prev => ({ ...prev, isLoading: false, error: message }));
       return false;
     }
-  }, [user, requestPermission, getServiceWorkerRegistration, saveSubscription, iosStatus]);
+  }, [user, getRegistration, pushSupport]);
 
-  /**
-   * Unsubscribe from push notifications
-   */
+  // Unsubscribe
   const unsubscribe = useCallback(async (): Promise<boolean> => {
-    if (!isWebPushSupported()) {
-      return false;
-    }
-
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    if (!user) return false;
+    setState(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const registration = await getServiceWorkerRegistration();
-      if (!registration) {
-        setState(prev => ({ ...prev, isLoading: false }));
-        return false;
-      }
-
-      const subscription = await registration.pushManager.getSubscription();
+      const registration = await getRegistration();
+      const subscription = await registration?.pushManager.getSubscription();
       
       if (subscription) {
-        // Remove from database first
-        await removeSubscription(subscription.endpoint);
-        
-        // Then unsubscribe from push service
+        await supabase.from('web_push_subscriptions')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('endpoint', subscription.endpoint);
         await subscription.unsubscribe();
       }
 
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false,
-        isSubscribed: false,
-        subscription: null
-      }));
-
+      setState(prev => ({ ...prev, isLoading: false, isSubscribed: false }));
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      console.error('[useWebPush] Unsubscribe error:', err);
-      
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false,
-        error: `Failed to unsubscribe: ${errorMessage}`
-      }));
-      
+      setState(prev => ({ ...prev, isLoading: false, error: 'Unsubscribe failed' }));
       return false;
     }
-  }, [getServiceWorkerRegistration, removeSubscription]);
+  }, [user, getRegistration]);
 
-  /**
-   * Initialize on mount
-   */
+  // Initialize
   useEffect(() => {
-    if (initializingRef.current) return;
-    initializingRef.current = true;
-
-    const initialize = async () => {
-      const supported = isWebPushSupported();
+    const init = async () => {
+      if (!pushSupport.supported) return;
       
-      if (!supported) {
-        setState(prev => ({ 
-          ...prev, 
-          isSupported: false,
-          permission: 'unsupported'
-        }));
-        return;
-      }
-
-      setState(prev => ({ ...prev, isSupported: true }));
-      
-      // Check permission and subscription status
       await checkPermission();
-      await checkSubscription();
+      
+      try {
+        const registration = await getRegistration();
+        const subscription = await registration?.pushManager.getSubscription();
+        setState(prev => ({ ...prev, isSubscribed: !!subscription }));
+      } catch {
+        // Ignore
+      }
     };
+    init();
+  }, [pushSupport.supported, checkPermission, getRegistration]);
 
-    initialize();
-  }, [checkPermission, checkSubscription]);
-
-  return {
-    ...state,
-    subscribe,
-    unsubscribe,
-    checkPermission,
-    checkSubscription,
-    requestPermission,
-  };
-}
-
-/**
- * Hook to request notification permission on first trip creation
- * 
- * @example
- * ```tsx
- * const { requestOnFirstTrip } = useWebPushOnFirstTrip();
- * 
- * // In trip creation handler
- * await createTrip(tripData);
- * await requestOnFirstTrip();
- * ```
- */
-export function useWebPushOnFirstTrip() {
-  const { subscribe, permission, isSupported } = useWebPush();
-  const [hasRequested, setHasRequested] = useState(() => {
-    return localStorage.getItem('chravel_push_requested') === 'true';
-  });
-
-  const requestOnFirstTrip = useCallback(async () => {
-    // Skip if already requested, not supported, or already granted/denied
-    if (hasRequested || !isSupported || permission !== 'default') {
-      return;
-    }
-
-    // Mark as requested
-    localStorage.setItem('chravel_push_requested', 'true');
-    setHasRequested(true);
-
-    // Subscribe to push notifications
-    await subscribe();
-  }, [hasRequested, isSupported, permission, subscribe]);
-
-  return {
-    requestOnFirstTrip,
-    hasRequested,
-    shouldPrompt: isSupported && permission === 'default' && !hasRequested,
-  };
+  return { ...state, subscribe, unsubscribe, checkPermission };
 }
 
 export default useWebPush;
