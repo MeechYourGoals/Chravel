@@ -22,7 +22,6 @@ import { useDemoModeStore } from './store/demoModeStore';
 import { errorTracking } from './services/errorTracking';
 import { supabase } from './integrations/supabase/client';
 import { AppInitializer } from './components/app/AppInitializer';
-import BuildBadge from './components/BuildBadge';
 import { OfflineIndicator } from './components/OfflineIndicator';
 
 import { ExitDemoButton } from './components/demo';
@@ -519,7 +518,6 @@ const App = () => {
                 <Toaster />
                 <Sonner />
 
-                <BuildBadge />
                 {/* All components using react-router hooks must render inside <Router> */}
                 <Router>
                   <ExitDemoButtonWithNav />
