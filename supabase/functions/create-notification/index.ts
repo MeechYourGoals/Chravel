@@ -405,11 +405,27 @@ Deno.serve(async (req) => {
     // ========================================================================
     for (const smsUser of smsUsers) {
       try {
+        // Build template data from notification metadata
+        const templateData = {
+          tripId: body.tripId,
+          tripName: (body.metadata?.trip_name as string) || 'your trip',
+          senderName: (body.metadata?.sender_name as string) || 'Someone',
+          amount: body.metadata?.amount as number | undefined,
+          currency: (body.metadata?.currency as string) || 'USD',
+          location: body.metadata?.location as string | undefined,
+          eventName: body.metadata?.event_name as string | undefined,
+          eventTime: body.metadata?.event_time as string | undefined,
+          preview: body.message?.substring(0, 60),
+        };
+        
         await supabase.functions.invoke('push-notifications', {
           body: {
             action: 'send_sms',
             userId: smsUser.userId,
             phoneNumber: smsUser.phone,
+            category,
+            templateData,
+            // Fallback message if template fails
             message: `${body.title}: ${body.message}`,
           },
         });
