@@ -274,13 +274,6 @@ export const ConsumerProfileSection = () => {
           </p>
         </div>
 
-        {/* Bio field hidden until Member Profile Cards ship */}
-        <div className="mt-3 p-3 bg-white/5 border border-dashed border-white/20 rounded-lg">
-          <p className="text-sm text-gray-400 text-center">
-            ✨ Member profile cards coming soon — you'll be able to share a bio with trip members
-          </p>
-        </div>
-
         {/* Save Button */}
         <div className="mt-4 flex justify-end">
           <button
