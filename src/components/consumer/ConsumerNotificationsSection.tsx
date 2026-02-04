@@ -176,8 +176,8 @@ export const ConsumerNotificationsSection = () => {
           end: prefs.quiet_end || '08:00',
         });
         // Load SMS phone number if it exists
-        if ((prefs as any).sms_phone_number) {
-          setSmsPhoneNumber((prefs as any).sms_phone_number);
+        if (prefs.sms_phone_number) {
+          setSmsPhoneNumber(prefs.sms_phone_number);
         }
       } catch (error) {
         console.error('Error loading notification preferences:', error);
