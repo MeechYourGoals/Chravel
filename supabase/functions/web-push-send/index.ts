@@ -217,124 +217,160 @@ async function generateVapidJwt(
 }
 
 /**
- * Encrypt push message using Web Push encryption (RFC 8291)
+ * Concatenate Uint8Arrays
+ */
+function concatUint8Arrays(...arrays: Uint8Array[]): Uint8Array {
+  const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
+  }
+  return result;
+}
+
+/**
+ * HKDF-Extract and HKDF-Expand implementation
+ */
+async function hkdfDerive(
+  salt: Uint8Array,
+  ikm: Uint8Array,
+  info: Uint8Array,
+  length: number
+): Promise<Uint8Array> {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    ikm,
+    { name: 'HKDF' },
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'HKDF',
+      salt: salt,
+      info: info,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    length * 8
+  );
+
+  return new Uint8Array(derivedBits);
+}
+
+/**
+ * Encrypt push message using RFC 8291 (aes128gcm content encoding)
+ * 
+ * This implements the full Web Push encryption standard that browsers expect.
+ * @see https://datatracker.ietf.org/doc/html/rfc8291
  */
 async function encryptPushMessage(
   payload: string,
   p256dhKey: string,
   authKey: string
-): Promise<{ ciphertext: Uint8Array; salt: Uint8Array; localPublicKey: Uint8Array }> {
+): Promise<{ ciphertext: Uint8Array; salt: Uint8Array; serverPublicKey: Uint8Array }> {
   const encoder = new TextEncoder();
   const payloadBytes = encoder.encode(payload);
 
-  // Decode subscription keys
-  const userPublicKeyBytes = base64UrlDecode(p256dhKey);
-  const authBytes = base64UrlDecode(authKey);
+  // Decode subscription keys from base64url
+  const uaPublicKey = base64UrlDecode(p256dhKey);  // User agent (browser) public key
+  const authSecret = base64UrlDecode(authKey);      // 16-byte auth secret
 
-  // Generate ephemeral ECDH key pair
-  const localKeyPair = await crypto.subtle.generateKey(
+  // Generate ephemeral ECDH key pair for this message
+  const serverKeyPair = await crypto.subtle.generateKey(
     { name: 'ECDH', namedCurve: 'P-256' },
     true,
     ['deriveBits']
   );
 
-  // Export local public key
-  const localPublicKeyRaw = await crypto.subtle.exportKey('raw', localKeyPair.publicKey);
-  const localPublicKey = new Uint8Array(localPublicKeyRaw);
+  // Export server public key in uncompressed format (65 bytes)
+  const serverPublicKeyRaw = await crypto.subtle.exportKey('raw', serverKeyPair.publicKey);
+  const serverPublicKey = new Uint8Array(serverPublicKeyRaw);
 
-  // Import user's public key
-  const userPublicKey = await crypto.subtle.importKey(
+  // Import user agent's public key
+  const uaPublicKeyCrypto = await crypto.subtle.importKey(
     'raw',
-    userPublicKeyBytes,
+    uaPublicKey,
     { name: 'ECDH', namedCurve: 'P-256' },
     false,
     []
   );
 
-  // Derive shared secret
-  const sharedSecretBits = await crypto.subtle.deriveBits(
-    { name: 'ECDH', public: userPublicKey },
-    localKeyPair.privateKey,
+  // Step 1: ECDH to derive shared secret
+  const ecdhSecretBits = await crypto.subtle.deriveBits(
+    { name: 'ECDH', public: uaPublicKeyCrypto },
+    serverKeyPair.privateKey,
     256
   );
-  const sharedSecret = new Uint8Array(sharedSecretBits);
+  const ecdhSecret = new Uint8Array(ecdhSecretBits);
 
-  // Generate salt
+  // Step 2: Generate random 16-byte salt
   const salt = crypto.getRandomValues(new Uint8Array(16));
 
-  // HKDF to derive encryption key and nonce
-  const infoAuth = encoder.encode('Content-Encoding: auth\0');
-  const infoAesgcm = encoder.encode('Content-Encoding: aesgcm\0');
-  const infoNonce = encoder.encode('Content-Encoding: nonce\0');
+  // Step 3: Derive IKM using auth secret (RFC 8291 Section 3.3)
+  // key_info = "WebPush: info" || 0x00 || ua_public || as_public
+  const keyInfoHeader = encoder.encode('WebPush: info\0');
+  const keyInfo = concatUint8Arrays(keyInfoHeader, uaPublicKey, serverPublicKey);
+  
+  // IKM = HKDF(auth_secret, ecdh_secret, key_info, 32)
+  const ikm = await hkdfDerive(authSecret, ecdhSecret, keyInfo, 32);
 
-  // PRK = HKDF-Extract(auth, shared_secret)
-  const prkKey = await crypto.subtle.importKey(
-    'raw',
-    authBytes,
-    { name: 'HKDF' },
-    false,
-    ['deriveBits']
+  // Step 4: Derive content encryption key (CEK) and nonce
+  // cek_info = "Content-Encoding: aes128gcm" || 0x00
+  const cekInfo = encoder.encode('Content-Encoding: aes128gcm\0');
+  const cek = await hkdfDerive(salt, ikm, cekInfo, 16);
+
+  // nonce_info = "Content-Encoding: nonce" || 0x00
+  const nonceInfo = encoder.encode('Content-Encoding: nonce\0');
+  const nonce = await hkdfDerive(salt, ikm, nonceInfo, 12);
+
+  // Step 5: Build the plaintext record with padding (RFC 8291 Section 4)
+  // For aes128gcm, the record is: plaintext || 0x02 (delimiter for last record)
+  // We're sending a single record, so use 0x02 as the delimiter
+  const paddedPayload = concatUint8Arrays(
+    payloadBytes,
+    new Uint8Array([0x02])  // Record delimiter (last record)
   );
 
-  // IKM for HKDF (shared_secret || auth)
-  const ikm = new Uint8Array(sharedSecret.length + authBytes.length);
-  ikm.set(sharedSecret, 0);
-  // Note: Simplified encryption - in production use full RFC 8291
-
-  // For simplicity, use basic AES-GCM encryption
-  // Full RFC 8291 implementation would require more complex key derivation
-  const keyMaterial = await crypto.subtle.importKey(
+  // Step 6: Encrypt with AES-128-GCM
+  const cekKey = await crypto.subtle.importKey(
     'raw',
-    sharedSecret,
-    { name: 'HKDF' },
-    false,
-    ['deriveKey']
-  );
-
-  const encryptionKey = await crypto.subtle.deriveKey(
-    {
-      name: 'HKDF',
-      salt: salt,
-      info: infoAesgcm,
-      hash: 'SHA-256',
-    },
-    keyMaterial,
-    { name: 'AES-GCM', length: 128 },
+    cek,
+    { name: 'AES-GCM' },
     false,
     ['encrypt']
   );
 
-  // Nonce derivation
-  const nonceBits = await crypto.subtle.deriveBits(
-    {
-      name: 'HKDF',
-      salt: salt,
-      info: infoNonce,
-      hash: 'SHA-256',
-    },
-    keyMaterial,
-    96
-  );
-  const nonce = new Uint8Array(nonceBits);
-
-  // Add padding (RFC 8291 requires at least 2 bytes of padding)
-  const paddingLength = 0;
-  const paddedPayload = new Uint8Array(2 + paddingLength + payloadBytes.length);
-  paddedPayload[0] = (paddingLength >> 8) & 0xff;
-  paddedPayload[1] = paddingLength & 0xff;
-  paddedPayload.set(payloadBytes, 2 + paddingLength);
-
-  // Encrypt
-  const ciphertextBuffer = await crypto.subtle.encrypt(
+  const encryptedRecord = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv: nonce },
-    encryptionKey,
+    cekKey,
     paddedPayload
   );
 
+  // Step 7: Build the aes128gcm body (RFC 8188)
+  // Header: salt (16) || rs (4, big-endian) || idlen (1) || keyid (idlen) || ciphertext
+  // For Web Push, we use keyid = server public key (65 bytes)
+  const recordSize = 4096;  // Max record size
+  const header = new Uint8Array(16 + 4 + 1 + serverPublicKey.length);
+  header.set(salt, 0);
+  // Record size as 4-byte big-endian
+  header[16] = (recordSize >> 24) & 0xff;
+  header[17] = (recordSize >> 16) & 0xff;
+  header[18] = (recordSize >> 8) & 0xff;
+  header[19] = recordSize & 0xff;
+  // Key ID length and key ID (server public key)
+  header[20] = serverPublicKey.length;
+  header.set(serverPublicKey, 21);
+
+  const body = concatUint8Arrays(header, new Uint8Array(encryptedRecord));
+
   return {
-    ciphertext: new Uint8Array(ciphertextBuffer),
+    ciphertext: body,
     salt,
-    localPublicKey,
+    serverPublicKey,
   };
 }
 
@@ -364,23 +400,23 @@ async function sendWebPushNotification(
       expiration
     );
 
-    // Encrypt the payload
+    // Encrypt the payload using RFC 8291 (aes128gcm)
     const payloadString = JSON.stringify(payload);
-    const { ciphertext, salt, localPublicKey } = await encryptPushMessage(
+    const { ciphertext } = await encryptPushMessage(
       payloadString,
       subscription.p256dh_key,
       subscription.auth_key
     );
 
     // Send to push service
+    // Note: With aes128gcm encoding, the salt and server public key are
+    // embedded in the encrypted body, so we don't need Encryption or Crypto-Key headers
     const response = await fetch(subscription.endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `vapid t=${jwt}, k=${vapidPublicKey}`,
         'Content-Type': 'application/octet-stream',
-        'Content-Encoding': 'aesgcm',
-        'Encryption': `salt=${base64UrlEncode(salt)}`,
-        'Crypto-Key': `dh=${base64UrlEncode(localPublicKey)}`,
+        'Content-Encoding': 'aes128gcm',
         'TTL': ttl.toString(),
         'Urgency': 'normal',
       },
