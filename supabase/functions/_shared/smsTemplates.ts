@@ -2,10 +2,10 @@
  * SMS Message Templates
  * 
  * Short, actionable SMS messages under 160 characters with deep links.
- * Branded with [Chravel] prefix and relevant emoji.
+ * Branded with [ChravelApp] prefix and relevant emoji.
  */
 
-const APP_BASE_URL = 'https://chravel.lovable.app';
+const APP_BASE_URL = 'https://chravel.app';
 
 export interface SmsTemplateData {
   tripId?: string;
@@ -55,12 +55,12 @@ export function generateSmsMessage(
     case 'basecamp_updates': {
       const location = data.location ? truncate(data.location, 40) : 'a new address';
       const link = tripLink(tripId, 'places');
-      return `[Chravel] 📍 Basecamp changed for ${truncate(tripName, 20)}: ${location}. View: ${link}`;
+      return `[ChravelApp] 📍 Basecamp changed for ${truncate(tripName, 20)}: ${location}. View: ${link}`;
     }
     
     case 'join_requests': {
       const link = tripLink(tripId, 'members');
-      return `[Chravel] 👤 ${truncate(senderName, 15)} wants to join ${truncate(tripName, 25)}. Review: ${link}`;
+      return `[ChravelApp] 👤 ${truncate(senderName, 15)} wants to join ${truncate(tripName, 25)}. Review: ${link}`;
     }
     
     case 'payments': {
@@ -68,26 +68,26 @@ export function generateSmsMessage(
       const currency = data.currency || 'USD';
       const symbol = currency === 'USD' ? '$' : currency;
       const link = tripLink(tripId, 'payments');
-      return `[Chravel] 💰 ${truncate(senderName, 12)} requested ${symbol}${amount} for ${truncate(tripName, 20)}. Pay: ${link}`;
+      return `[ChravelApp] 💰 ${truncate(senderName, 12)} requested ${symbol}${amount} for ${truncate(tripName, 20)}. Pay: ${link}`;
     }
     
     case 'broadcasts': {
       const preview = data.preview ? truncate(data.preview, 60) : 'Important update';
       const link = tripLink(tripId, 'chat');
-      return `[Chravel] 🚨 ${truncate(tripName, 15)}: ${preview} ${link}`;
+      return `[ChravelApp] 🚨 ${truncate(tripName, 15)}: ${preview} ${link}`;
     }
     
     case 'calendar_events': {
       const eventName = data.eventName ? truncate(data.eventName, 25) : 'An event';
       const timeInfo = data.eventTime ? ` at ${data.eventTime}` : ' soon';
       const link = tripLink(tripId, 'calendar');
-      return `[Chravel] 🗓️ ${eventName}${timeInfo} in ${truncate(tripName, 15)}. Details: ${link}`;
+      return `[ChravelApp] 🗓️ ${eventName}${timeInfo} in ${truncate(tripName, 15)}. Details: ${link}`;
     }
     
     default: {
       // Generic fallback
       const link = tripLink(tripId);
-      return `[Chravel] New update in ${truncate(tripName, 30)}. View: ${link}`;
+      return `[ChravelApp] New update in ${truncate(tripName, 30)}. View: ${link}`;
     }
   }
 }
