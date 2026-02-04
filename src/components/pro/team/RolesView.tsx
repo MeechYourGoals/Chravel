@@ -288,9 +288,13 @@ export const RolesView = ({
               className={`flex ${isMobile ? 'gap-2 min-w-max' : 'flex-wrap gap-2 justify-center items-center max-w-5xl'}`}
             >
               {roles.map(role => {
-                // Get member count from actual role assignments (availableRoles has memberCount from DB)
+                // Count members assigned to this role from actual role assignments (memberRolesMap)
+                const assignmentCount = Array.from(memberRolesMap.values()).filter(
+                  roleNames => roleNames.includes(role)
+                ).length;
+
+                // Check if this is a role from availableRoles (modern system) or legacy
                 const roleFromAvailable = availableRoles.find(r => r.roleName === role);
-                const assignmentCount = roleFromAvailable?.memberCount ?? 0;
 
                 // Fallback: count members with legacy role field for backwards compatibility
                 const legacyRoleMembers = roster.filter(m => m.role === role);
