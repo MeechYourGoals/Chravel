@@ -18,7 +18,7 @@ const mockDataStorage = new Map<string, any[]>();
 export function setMockData<T extends Record<string, any>>(
   table: string,
   data: T[],
-  filter?: { column: string; value: any }
+  filter?: { column: string; value: any },
 ): void {
   if (filter) {
     // Store under specific filter key
@@ -32,7 +32,7 @@ export function setMockData<T extends Record<string, any>>(
     // Also populate matching keys for each record to support filtered queries
     // This allows queries like .eq('trip_id', 'trip-123') to find records
     // even when data was seeded without a filter
-    data.forEach((record) => {
+    data.forEach(record => {
       Object.entries(record).forEach(([column, value]) => {
         if (value !== null && value !== undefined) {
           const filterKey = `${table}:${column}:${value}`;
@@ -53,7 +53,7 @@ export function setMockData<T extends Record<string, any>>(
  */
 export function getMockData<T = any>(
   table: string,
-  filter?: { column: string; value: any }
+  filter?: { column: string; value: any },
 ): T[] | undefined {
   if (filter) {
     const filterKey = `${table}:${filter.column}:${filter.value}`;
@@ -64,9 +64,7 @@ export function getMockData<T = any>(
     // Fall back to :all and filter in memory
     const allData = mockDataStorage.get(`${table}:all`);
     if (allData) {
-      return allData.filter(
-        (record: any) => record[filter.column] === filter.value
-      ) as T[];
+      return allData.filter((record: any) => record[filter.column] === filter.value) as T[];
     }
   } else {
     return mockDataStorage.get(`${table}:all`) as T[] | undefined;
@@ -86,7 +84,7 @@ export function clearMockData(table?: string): void {
         keysToDelete.push(key);
       }
     });
-    keysToDelete.forEach((key) => mockDataStorage.delete(key));
+    keysToDelete.forEach(key => mockDataStorage.delete(key));
   } else {
     mockDataStorage.clear();
   }
@@ -101,6 +99,9 @@ export function createMockSupabaseClient(): SupabaseClient<Database> {
     return createQueryBuilderWithStorage(table);
   });
   const mockRpc = vi.fn();
+  const mockFunctions = {
+    invoke: vi.fn(),
+  };
   const mockAuth = {
     getUser: vi.fn(),
     signInWithPassword: vi.fn(),
@@ -122,6 +123,7 @@ export function createMockSupabaseClient(): SupabaseClient<Database> {
   const mockClient = {
     from: mockFrom,
     rpc: mockRpc,
+    functions: mockFunctions,
     auth: mockAuth,
     channel: mockChannel,
     removeChannel: vi.fn(),
@@ -135,7 +137,11 @@ export function createMockSupabaseClient(): SupabaseClient<Database> {
  * Tracks filters applied via .eq(), .neq(), etc. and retrieves matching data
  */
 function createQueryBuilderWithStorage(table: string) {
-  let currentFilter: { column: string; value: any; operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' } | null = null;
+  let currentFilter: {
+    column: string;
+    value: any;
+    operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte';
+  } | null = null;
   let currentData: any[] | null = null;
 
   const like = vi.fn().mockReturnThis();
@@ -327,7 +333,10 @@ function createQueryBuilderWithStorage(table: string) {
  * Helper to create a query builder chain mock
  * For backward compatibility - use createQueryBuilderWithStorage for storage integration
  */
-export function createQueryBuilderMock<T = any>(mockData: T | null = null, error: Error | null = null) {
+export function createQueryBuilderMock<T = any>(
+  mockData: T | null = null,
+  error: Error | null = null,
+) {
   const select = vi.fn().mockReturnThis();
   const insert = vi.fn().mockReturnThis();
   const update = vi.fn().mockReturnThis();
@@ -446,16 +455,22 @@ export const mockSession = {
  */
 export const mockSupabase = createMockSupabaseClient();
 
+export const resetMockSupabase = (): void => {
+  const freshMock = createMockSupabaseClient();
+  Object.assign(mockSupabase, freshMock);
+};
+
 export const supabaseMockHelpers = {
   setUser: (user: any) => {
     mockSupabase.auth.getUser = vi.fn().mockResolvedValue({ data: { user }, error: null });
   },
   clearMocks: () => {
+    resetMockSupabase();
     clearMockData();
   },
   setMockData,
   setMockError: (table: string, error: Error) => {
     // Store error for queries on this table
     setMockData(table, []);
-  }
+  },
 };

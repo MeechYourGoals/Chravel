@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockSupabaseClient, mockUser } from '@/__tests__/utils/supabaseMocks';
+import { mockUser } from '@/__tests__/utils/supabaseMocks';
 import { supabase } from '@/integrations/supabase/client';
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: createMockSupabaseClient(),
-}));
 
 // Mock tripService - adjust import path based on actual structure
 describe('Trip Service - Integration Tests', () => {

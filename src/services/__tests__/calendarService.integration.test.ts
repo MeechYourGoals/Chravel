@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { calendarService } from '../calendarService';
-import { createMockSupabaseClient, mockUser } from '@/__tests__/utils/supabaseMocks';
+import { mockUser } from '@/__tests__/utils/supabaseMocks';
 import { supabase } from '@/integrations/supabase/client';
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: createMockSupabaseClient(),
-}));
 
 vi.mock('../demoModeService', () => ({
   demoModeService: {
@@ -86,7 +82,7 @@ describe('calendarService - Integration Tests', () => {
         expect.objectContaining({
           p_trip_id: tripId,
           p_title: 'Test Event',
-        })
+        }),
       );
     });
 

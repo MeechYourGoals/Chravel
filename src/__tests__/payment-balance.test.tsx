@@ -1,14 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mockSupabase, supabaseMockHelpers } from './utils/supabaseMocks';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { supabaseMockHelpers } from './utils/supabaseMocks';
 import { paymentBalanceService } from '@/services/paymentBalanceService';
 import { testFactories } from './utils/testHelpers';
-
-// Mock Supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabase,
-}));
 
 describe('Payment Split → Balance Calculation', () => {
   beforeEach(() => {

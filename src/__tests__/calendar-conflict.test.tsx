@@ -5,11 +5,6 @@ import { mockSupabase, supabaseMockHelpers } from './utils/supabaseMocks';
 import { calendarService } from '@/services/calendarService';
 import { testFactories } from './utils/testHelpers';
 
-// Mock Supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabase,
-}));
-
 // Mock demoModeService
 vi.mock('@/services/demoModeService', () => ({
   demoModeService: {
@@ -67,7 +62,7 @@ describe('Calendar Event → Conflict Detection', () => {
       expect.objectContaining({
         p_trip_id: trip.id,
         p_start_time: newEventData.start_time,
-      })
+      }),
     );
   });
 

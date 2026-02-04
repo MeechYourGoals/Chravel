@@ -7,23 +7,45 @@ import { mockSupabase, supabaseMockHelpers } from './utils/supabaseMocks';
 import { testFactories } from './utils/testHelpers';
 import React from 'react';
 
-// Mock Supabase client
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: mockSupabase,
-}));
-
 // Mock useAuth hook
 vi.mock('@/hooks/useAuth', async () => {
-  const actual = await vi.importActual('@/hooks/useAuth');
+  const actual = await vi.importActual<typeof import('@/hooks/useAuth')>('@/hooks/useAuth');
   return {
     ...actual,
     useAuth: () => ({
-      user: testFactories.createUser(),
+      user: {
+        id: 'test-user-123',
+        email: 'test-user@example.com',
+        displayName: 'Test User',
+        hasCompletedProfileSetup: true,
+        firstName: 'Test',
+        lastName: 'User',
+        avatar: null,
+        bio: null,
+        isPro: false,
+        showEmail: true,
+        showPhone: false,
+        permissions: [],
+        notificationSettings: {
+          messages: true,
+          broadcasts: true,
+          tripUpdates: true,
+          email: true,
+          push: true,
+        },
+      },
       session: { access_token: 'mock-token', user: { id: 'test-user-123' } },
       isLoading: false,
       signIn: vi.fn(),
+      signInWithPhone: vi.fn(),
+      signInWithGoogle: vi.fn(),
+      signInWithApple: vi.fn(),
       signUp: vi.fn(),
       signOut: vi.fn(),
+      resetPassword: vi.fn(),
+      updateProfile: vi.fn(),
+      updateNotificationSettings: vi.fn(),
+      switchRole: vi.fn(),
     }),
   };
 });
