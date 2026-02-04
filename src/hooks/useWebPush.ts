@@ -4,34 +4,65 @@
  * Manages the Web Push subscription lifecycle for PWA/browser push notifications.
  * Handles permission requests, subscription management, and Supabase storage.
  * 
+ * Includes iOS-specific handling:
+ * - iOS < 16.4: Push not supported
+ * - iOS 16.4+ Safari (not standalone): Requires "Add to Home Screen"
+ * - iOS 16.4+ standalone: Full push support
+ * 
  * @example
  * ```tsx
  * const { 
  *   isSupported, 
  *   permission, 
  *   subscribe, 
- *   unsubscribe 
+ *   unsubscribe,
+ *   iosStatus,
  * } = useWebPush();
  * 
  * // Request permission and subscribe on first trip creation
  * const handleFirstTrip = async () => {
- *   if (permission === 'default') {
+ *   if (iosStatus.requiresHomeScreen) {
+ *     // Show iOS Add to Home Screen modal
+ *     showIOSInstructions();
+ *   } else if (permission === 'default') {
  *     await subscribe();
  *   }
  * };
  * ```
  * 
  * @see https://web.dev/push-notifications-subscribing-a-user/
+ * @see https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/
  */
 
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  detectPlatform, 
+  detectPushSupport,
+  type PlatformInfo,
+  type PushSupportInfo,
+} from '@/utils/platformDetection';
 
 // VAPID public key from environment
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
 export type WebPushPermission = 'granted' | 'denied' | 'default' | 'unsupported';
+
+export interface IOSPushStatus {
+  /** Whether this is an iOS device */
+  isIOS: boolean;
+  /** iOS version string (e.g., "16.4") */
+  iosVersion: string | null;
+  /** Whether iOS version supports push (16.4+) */
+  versionSupportsPush: boolean;
+  /** Whether running as standalone PWA */
+  isStandalone: boolean;
+  /** Whether user needs to Add to Home Screen for push */
+  requiresHomeScreen: boolean;
+  /** Human-readable explanation */
+  explanation: string;
+}
 
 export interface WebPushState {
   /** Whether Web Push is supported in this browser */
@@ -46,6 +77,12 @@ export interface WebPushState {
   error: string | null;
   /** The active subscription object (for debugging) */
   subscription: PushSubscription | null;
+  /** iOS-specific push status */
+  iosStatus: IOSPushStatus;
+  /** Platform information */
+  platform: PlatformInfo;
+  /** Push support information */
+  pushSupport: PushSupportInfo;
 }
 
 export interface WebPushActions {
@@ -137,6 +174,29 @@ function getDeviceName(): string {
  */
 export function useWebPush(): UseWebPushReturn {
   const { user } = useAuth();
+  
+  // Detect platform and push support
+  const platform = useMemo(() => detectPlatform(), []);
+  const pushSupport = useMemo(() => detectPushSupport(platform), [platform]);
+  
+  // Compute iOS-specific status
+  const iosStatus = useMemo((): IOSPushStatus => {
+    const isIOS = platform.os === 'ios';
+    const versionSupportsPush = isIOS 
+      ? (platform.iosMajorVersion !== null && 
+         (platform.iosMajorVersion + (platform.iosMinorVersion || 0) / 10) >= 16.4)
+      : true;
+    
+    return {
+      isIOS,
+      iosVersion: platform.iosVersion,
+      versionSupportsPush,
+      isStandalone: platform.isStandalone,
+      requiresHomeScreen: pushSupport.requiresHomeScreen,
+      explanation: pushSupport.explanation,
+    };
+  }, [platform, pushSupport]);
+  
   const [state, setState] = useState<WebPushState>({
     isSupported: false,
     permission: 'default',
@@ -144,7 +204,21 @@ export function useWebPush(): UseWebPushReturn {
     isLoading: false,
     error: null,
     subscription: null,
+    iosStatus,
+    platform,
+    pushSupport,
   });
+  
+  // Update state when platform info changes
+  useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      iosStatus,
+      platform,
+      pushSupport,
+      isSupported: pushSupport.isSupported,
+    }));
+  }, [iosStatus, platform, pushSupport]);
   
   const serviceWorkerRef = useRef<ServiceWorkerRegistration | null>(null);
   const initializingRef = useRef(false);
@@ -311,6 +385,25 @@ export function useWebPush(): UseWebPushReturn {
    * Subscribe to push notifications
    */
   const subscribe = useCallback(async (): Promise<boolean> => {
+    // Check iOS-specific requirements first
+    if (iosStatus.isIOS) {
+      if (!iosStatus.versionSupportsPush) {
+        setState(prev => ({ 
+          ...prev, 
+          error: `Push notifications require iOS 16.4 or later. You're on iOS ${iosStatus.iosVersion}.`
+        }));
+        return false;
+      }
+      
+      if (iosStatus.requiresHomeScreen) {
+        setState(prev => ({ 
+          ...prev, 
+          error: 'On iOS, push notifications only work when you add Chravel to your Home Screen. Tap the Share button and select "Add to Home Screen".'
+        }));
+        return false;
+      }
+    }
+    
     if (!isWebPushSupported()) {
       setState(prev => ({ 
         ...prev, 
@@ -409,7 +502,7 @@ export function useWebPush(): UseWebPushReturn {
       
       return false;
     }
-  }, [user, requestPermission, getServiceWorkerRegistration, saveSubscription]);
+  }, [user, requestPermission, getServiceWorkerRegistration, saveSubscription, iosStatus]);
 
   /**
    * Unsubscribe from push notifications
