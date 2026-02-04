@@ -65,11 +65,14 @@ export const EMAIL_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
 
 /**
  * Categories eligible for SMS delivery.
- * Only urgent categories to minimize costs and annoyance.
+ * High-urgency categories only - these warrant a text message.
  */
 export const SMS_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
-  'broadcasts',  // Critical announcements
-  'payments',    // Payment deadlines
+  'broadcasts',       // Critical announcements from organizers
+  'payments',         // Payment requests and deadlines
+  'basecamp_updates', // Location/basecamp changes
+  'calendar_events',  // Event updates and reminders
+  'join_requests',    // New member join requests (for organizers)
 ];
 
 /**

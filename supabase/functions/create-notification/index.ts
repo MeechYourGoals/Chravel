@@ -2,11 +2,16 @@
  * Create Notification Edge Function
  *
  * Centralized notification creation with full preference gating.
- * This is the single entry point for creating notifications that respects:
+ * This is the single entry point for creating SYSTEM notifications that respects:
  * - Category toggles (e.g., broadcasts ON/OFF)
  * - Delivery method toggles (push/email/SMS)
  * - Email/SMS category eligibility restrictions
  * - Quiet hours
+ *
+ * SECURITY:
+ * - This is NOT for user-to-user messaging (use chat for that)
+ * - Trip notifications require caller to be trip organizer/admin
+ * - Direct user targeting only allowed from internal edge functions
  *
  * In-app notifications are created if category is enabled (even during quiet hours).
  * Delivery methods are only triggered if enabled AND not in quiet hours.
@@ -27,10 +32,8 @@ import {
 // ============================================================================
 
 interface CreateNotificationRequest {
-  // Target user(s)
-  userId?: string;
-  userIds?: string[];
-  tripId?: string; // If provided, sends to all trip members
+  // Target trip (required) - caller must be trip organizer/admin
+  tripId: string;
 
   // Notification content
   type: string; // Will be normalized to NotificationCategory
@@ -42,6 +45,9 @@ interface CreateNotificationRequest {
   excludeUserId?: string; // Exclude this user (e.g., the sender)
   highPriority?: boolean;
 }
+
+// Roles that can send trip-wide notifications
+const NOTIFICATION_SENDER_ROLES = ['organizer', 'admin', 'creator'];
 
 interface NotificationResult {
   userId: string;
@@ -130,36 +136,68 @@ Deno.serve(async (req) => {
     console.log(`[create-notification] Type: ${body.type} -> Category: ${category}`);
 
     // ========================================================================
-    // Determine Target Users
+    // Authorization Check
     // ========================================================================
-    let targetUserIds: string[] = [];
+    // This endpoint requires a tripId - it's for trip organizers to send
+    // notifications to their trip members. Direct user targeting is not allowed.
+    //
+    // For system/internal notifications (cron jobs, triggers, etc.):
+    // - Use send-trip-notification (for push)
+    // - Or insert directly into notifications table via triggers
 
-    if (body.tripId) {
-      // Get all trip members
-      const { data: members, error: membersError } = await supabase
-        .from('trip_members')
-        .select('user_id')
-        .eq('trip_id', body.tripId);
-
-      if (membersError) {
-        console.error('[create-notification] Error fetching trip members:', membersError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch trip members' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      targetUserIds = (members || []).map(m => m.user_id);
-    } else if (body.userIds?.length) {
-      targetUserIds = body.userIds;
-    } else if (body.userId) {
-      targetUserIds = [body.userId];
-    } else {
+    if (!body.tripId) {
       return new Response(
-        JSON.stringify({ error: 'One of userId, userIds, or tripId is required' }),
+        JSON.stringify({
+          error: 'tripId is required. This endpoint is for sending notifications to trip members.',
+          hint: 'For chat messages, use the chat feature. For system notifications, use database triggers.'
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Verify caller is an organizer/admin of the trip
+    const { data: membership, error: memberError } = await supabase
+      .from('trip_members')
+      .select('role')
+      .eq('trip_id', body.tripId)
+      .eq('user_id', caller.id)
+      .maybeSingle();
+
+    if (memberError) {
+      console.error('[create-notification] Error checking membership:', memberError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to verify authorization' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!membership || !NOTIFICATION_SENDER_ROLES.includes(membership.role)) {
+      console.warn(`[create-notification] Unauthorized: User ${caller.id} is not an organizer/admin of trip ${body.tripId}`);
+      return new Response(
+        JSON.stringify({ error: 'You must be a trip organizer or admin to send notifications to this trip' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[create-notification] Authorized: User ${caller.id} has role '${membership.role}' in trip ${body.tripId}`);
+
+    // ========================================================================
+    // Determine Target Users (all trip members)
+    // ========================================================================
+    const { data: members, error: membersError } = await supabase
+      .from('trip_members')
+      .select('user_id')
+      .eq('trip_id', body.tripId);
+
+    if (membersError) {
+      console.error('[create-notification] Error fetching trip members:', membersError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch trip members' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let targetUserIds = (members || []).map(m => m.user_id);
 
     // Exclude specified user
     if (body.excludeUserId) {
@@ -263,7 +301,7 @@ Deno.serve(async (req) => {
           type: body.type,
           title: body.title,
           message: body.message,
-          trip_id: body.tripId || (body.metadata?.trip_id as string) || null,
+          trip_id: body.tripId,
           metadata: {
             ...body.metadata,
             category,
