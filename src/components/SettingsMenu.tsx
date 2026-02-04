@@ -15,7 +15,6 @@ import { useTripVariant } from '../contexts/TripVariantContext';
 import { AuthModal } from './AuthModal';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { createMockDemoUser } from '../utils/authGate';
-import { useSuperAdmin } from '../hooks/useSuperAdmin';
 
 interface SettingsMenuProps {
   isOpen: boolean;
@@ -42,15 +41,15 @@ export const SettingsMenu = ({
   );
   const _tripVariant = useTripVariant();
   const { demoView } = useDemoMode();
-  const { isSuperAdmin } = useSuperAdmin();
 
   // In app-preview mode, use mock user if not logged in (full demo access)
   // In marketing mode or off, require real user
   const isAppPreview = demoView === 'app-preview';
   const currentUser = user || (isAppPreview ? createMockDemoUser() : null);
 
-  // Allow advertiser access for app-preview mode OR super admins
-  const canAccessAdvertiser = isAppPreview || isSuperAdmin;
+  // Allow advertiser access ONLY for app-preview mode (demo mode for investors)
+  // Hidden for authenticated users (including super admins) until Chravel Recs feature is live
+  const canAccessAdvertiser = isAppPreview;
 
   if (!isOpen) return null;
 
