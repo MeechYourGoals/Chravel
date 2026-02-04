@@ -157,6 +157,23 @@ function getDefaultActionsForType(type, data) {
 }
 
 /**
+ * Send analytics event to all clients
+ */
+async function sendAnalyticsToClients(eventType, eventData) {
+  try {
+    const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    allClients.forEach((client) => {
+      client.postMessage({
+        type: eventType,
+        ...eventData,
+      });
+    });
+  } catch (error) {
+    console.error('[SW] Failed to send analytics:', error);
+  }
+}
+
+/**
  * Handle notification click events
  * Routes user to appropriate page based on notification data
  */
@@ -167,6 +184,17 @@ self.addEventListener('notificationclick', (event) => {
 
   const data = event.notification.data || {};
   const action = event.action;
+  
+  // Send analytics event
+  event.waitUntil(
+    sendAnalyticsToClients('NOTIFICATION_CLICK', {
+      notificationType: data.type,
+      actionId: action || null,
+      tripId: data.tripId,
+      messageId: data.messageId,
+      timestamp: Date.now(),
+    })
+  );
 
   // Build URL based on action and notification data
   let url = '/';
@@ -269,8 +297,16 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('notificationclose', (event) => {
   console.log('[SW] Notification closed:', event.notification.tag);
   
-  // Could send analytics event here
-  // Example: track notification dismissals for engagement metrics
+  const data = event.notification.data || {};
+  
+  // Send analytics event for dismissal tracking
+  event.waitUntil(
+    sendAnalyticsToClients('NOTIFICATION_CLOSE', {
+      notificationType: data.type,
+      tripId: data.tripId,
+      timestamp: Date.now(),
+    })
+  );
 });
 
 // Background sync event - process queued operations
