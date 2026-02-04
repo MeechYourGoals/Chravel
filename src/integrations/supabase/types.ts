@@ -3213,6 +3213,54 @@ export type Database = {
           },
         ]
       }
+      web_push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string
+          device_name: string | null
+          endpoint: string
+          failed_count: number
+          id: string
+          is_active: boolean
+          last_error: string | null
+          last_used_at: string
+          p256dh_key: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string
+          device_name?: string | null
+          endpoint: string
+          failed_count?: number
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_used_at?: string
+          p256dh_key: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string
+          device_name?: string | null
+          endpoint?: string
+          failed_count?: number
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_used_at?: string
+          p256dh_key?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       campaigns_public: {

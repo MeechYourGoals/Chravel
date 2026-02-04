@@ -12,10 +12,13 @@ export interface NotificationPreference {
   pushEnabled: boolean;
   emailEnabled: boolean;
   smsEnabled: boolean;
-  tripUpdates: boolean;
+  // These map to the actual database columns
+  broadcasts: boolean;
   chatMessages: boolean;
-  calendarReminders: boolean;
-  paymentAlerts: boolean;
+  calendarEvents: boolean;
+  payments: boolean;
+  tasks: boolean;
+  polls: boolean;
   quietHoursEnabled: boolean;
   quietStart: string;
   quietEnd: string;
@@ -278,10 +281,12 @@ export class NotificationService {
           pushEnabled: true,
           emailEnabled: true,
           smsEnabled: false,
-          tripUpdates: true,
-          chatMessages: true,
-          calendarReminders: true,
-          paymentAlerts: true,
+          broadcasts: true,
+          chatMessages: false,
+          calendarEvents: true,
+          payments: true,
+          tasks: true,
+          polls: true,
           quietHoursEnabled: false,
           quietStart: '22:00',
           quietEnd: '08:00'
@@ -293,10 +298,12 @@ export class NotificationService {
         pushEnabled: data.push_enabled ?? true,
         emailEnabled: data.email_enabled ?? true,
         smsEnabled: data.sms_enabled ?? false,
-        tripUpdates: data.trip_updates ?? true,
-        chatMessages: data.chat_messages ?? true,
-        calendarReminders: data.calendar_reminders ?? true,
-        paymentAlerts: data.payment_alerts ?? true,
+        broadcasts: data.broadcasts ?? true,
+        chatMessages: data.chat_messages ?? false,
+        calendarEvents: data.calendar_events ?? true,
+        payments: data.payments ?? true,
+        tasks: data.tasks ?? true,
+        polls: data.polls ?? true,
         quietHoursEnabled: data.quiet_hours_enabled ?? false,
         quietStart: data.quiet_start ?? '22:00',
         quietEnd: data.quiet_end ?? '08:00'
@@ -317,25 +324,27 @@ export class NotificationService {
     preferences: Partial<NotificationPreference>
   ): Promise<boolean> {
     try {
-      const updateData: Record<string, unknown> = {
+      // Build update object with proper typing
+      const updateData = {
         user_id: userId,
         updated_at: new Date().toISOString(),
+        ...(preferences.pushEnabled !== undefined && { push_enabled: preferences.pushEnabled }),
+        ...(preferences.emailEnabled !== undefined && { email_enabled: preferences.emailEnabled }),
+        ...(preferences.smsEnabled !== undefined && { sms_enabled: preferences.smsEnabled }),
+        ...(preferences.broadcasts !== undefined && { broadcasts: preferences.broadcasts }),
+        ...(preferences.chatMessages !== undefined && { chat_messages: preferences.chatMessages }),
+        ...(preferences.calendarEvents !== undefined && { calendar_events: preferences.calendarEvents }),
+        ...(preferences.payments !== undefined && { payments: preferences.payments }),
+        ...(preferences.tasks !== undefined && { tasks: preferences.tasks }),
+        ...(preferences.polls !== undefined && { polls: preferences.polls }),
+        ...(preferences.quietHoursEnabled !== undefined && { quiet_hours_enabled: preferences.quietHoursEnabled }),
+        ...(preferences.quietStart !== undefined && { quiet_start: preferences.quietStart }),
+        ...(preferences.quietEnd !== undefined && { quiet_end: preferences.quietEnd }),
       };
-
-      if (preferences.pushEnabled !== undefined) updateData.push_enabled = preferences.pushEnabled;
-      if (preferences.emailEnabled !== undefined) updateData.email_enabled = preferences.emailEnabled;
-      if (preferences.smsEnabled !== undefined) updateData.sms_enabled = preferences.smsEnabled;
-      if (preferences.tripUpdates !== undefined) updateData.trip_updates = preferences.tripUpdates;
-      if (preferences.chatMessages !== undefined) updateData.chat_messages = preferences.chatMessages;
-      if (preferences.calendarReminders !== undefined) updateData.calendar_reminders = preferences.calendarReminders;
-      if (preferences.paymentAlerts !== undefined) updateData.payment_alerts = preferences.paymentAlerts;
-      if (preferences.quietHoursEnabled !== undefined) updateData.quiet_hours_enabled = preferences.quietHoursEnabled;
-      if (preferences.quietStart !== undefined) updateData.quiet_start = preferences.quietStart;
-      if (preferences.quietEnd !== undefined) updateData.quiet_end = preferences.quietEnd;
 
       const { error } = await supabase
         .from('notification_preferences')
-        .upsert(updateData, { onConflict: 'user_id' });
+        .upsert(updateData);
 
       if (error) {
         console.error('[NotificationService] Error updating preferences:', error);
@@ -368,13 +377,12 @@ export class NotificationService {
           body: payload.body,
           icon: payload.icon || '/chravel-logo.png',
           badge: payload.badge || '/chravel-badge.png',
-          image: payload.image,
-          data: payload.data,
+          data: { ...payload.data, image: payload.image },
           actions: payload.actions,
           tag: payload.tag || `chravel-local-${Date.now()}`,
           requireInteraction: payload.requireInteraction ?? false,
           renotify: true,
-        });
+        } as NotificationOptions);
       } else {
         // Fallback to basic Notification API (no actions support)
         const notification = new Notification(payload.title, {
@@ -650,7 +658,7 @@ export class NotificationService {
   /**
    * Convert base64url string to Uint8Array for applicationServerKey
    */
-  private urlBase64ToUint8Array(base64String: string): Uint8Array {
+  private urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding)
       .replace(/-/g, '+')
@@ -662,7 +670,7 @@ export class NotificationService {
     for (let i = 0; i < rawData.length; ++i) {
       outputArray[i] = rawData.charCodeAt(i);
     }
-    return outputArray;
+    return outputArray as Uint8Array<ArrayBuffer>;
   }
 }
 
