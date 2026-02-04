@@ -195,6 +195,7 @@ export const tripService = {
           trip_type: tripData.trip_type || 'consumer',
           cover_image_url: tripData.cover_image_url,
           card_color: tripData.card_color, // ✅ Pass card color for Pro/Event trips
+          organizer_display_name: tripData.organizer_display_name, // ✅ Organizer name for Events
           enabled_features: tripData.enabled_features, // ✅ Phase 2: Pass feature toggles
         },
       });
