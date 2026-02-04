@@ -6,9 +6,6 @@ import { Switch } from '../ui/switch';
 import { Button } from '../ui/button';
 
 export const EventProfileSection = () => {
-  // Primary organizer display name (shown on event card)
-  const [organizerDisplayName, setOrganizerDisplayName] = useState('');
-
   const [organizerInfo, setOrganizerInfo] = useState({
     organizerName: '',
     organizerTitle: '',
@@ -39,21 +36,21 @@ export const EventProfileSection = () => {
         <p className="text-gray-300 mt-2">Manage information about your event organizer</p>
       </div>
 
-      {/* Organizer Display Name - Primary field shown on event card */}
+      {/* Organizer Display Name Info */}
       <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-600/5 border border-yellow-500/30 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Building size={18} className="text-yellow-500" />
           <h4 className="text-base font-semibold text-white">Organizer Display Name</h4>
         </div>
-        <Input
-          id="organizerDisplayName"
-          value={organizerDisplayName}
-          onChange={e => setOrganizerDisplayName(e.target.value)}
-          className="bg-gray-800/50 border-gray-600 text-white"
-          placeholder="e.g., Los Angeles Rams, Boys & Girls Club of Dallas"
-        />
-        <p className="text-xs text-gray-400 mt-2">
-          This name appears on your event card. Use your organization, company, or group name.
+        <p className="text-sm text-gray-300">
+          The organizer name shown on each event card is set per-event. You can:
+        </p>
+        <ul className="text-sm text-gray-400 mt-2 space-y-1 list-disc list-inside">
+          <li>Set it when creating a new event in the Create Trip modal</li>
+          <li>Edit it anytime by clicking "Edit" on an event's details page</li>
+        </ul>
+        <p className="text-xs text-gray-500 mt-3">
+          Examples: "Los Angeles Rams", "Boys & Girls Club of Dallas", "Acme Events Inc."
         </p>
       </div>
 
