@@ -7,6 +7,7 @@ import {
   Type,
   Image as ImageIcon,
   Palette,
+  Users,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseDateRange, formatDateRange } from '@/utils/dateFormatters';
@@ -32,6 +33,7 @@ interface EditTripModalProps {
     coverPhoto?: string;
     trip_type?: 'consumer' | 'pro' | 'event';
     card_color?: string;
+    organizer_display_name?: string;
   };
   onUpdate?: (updates: Partial<EditTripModalProps['trip']>) => void;
 }
@@ -49,11 +51,13 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
     destination: '',
     start_date: '',
     end_date: '',
+    organizer_display_name: '',
   });
   const [selectedCardColor, setSelectedCardColor] = useState<string | undefined>(trip.card_color);
-  
+
   const availableColors = getAllProTripColors();
   const isProOrEvent = trip.trip_type === 'pro' || trip.trip_type === 'event';
+  const isEvent = trip.trip_type === 'event';
 
   // Initialize form data when modal opens
   useEffect(() => {
@@ -64,6 +68,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         destination: trip.location,
         start_date: dates.start,
         end_date: dates.end,
+        organizer_display_name: trip.organizer_display_name || '',
       });
       setSelectedCardColor(trip.card_color);
     }
@@ -107,6 +112,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         start_date: formData.start_date,
         end_date: formData.end_date,
         ...(isProOrEvent && { card_color: selectedCardColor }),
+        ...(isEvent && { organizer_display_name: formData.organizer_display_name.trim() || null }),
       };
 
       // Convert to mock format for UI callback
@@ -116,6 +122,9 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         dateRange: formatDateRange(formData.start_date, formData.end_date),
         coverPhoto: coverPhoto,
         ...(isProOrEvent && { card_color: selectedCardColor }),
+        ...(isEvent && {
+          organizer_display_name: formData.organizer_display_name.trim() || undefined,
+        }),
       };
 
       // Demo mode: store in localStorage
@@ -213,7 +222,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
                 Card Color
               </label>
               <div className="flex flex-wrap gap-3">
-                {availableColors.map((color) => {
+                {availableColors.map(color => {
                   const isSelected = selectedCardColor === color.accent;
                   return (
                     <button
@@ -225,7 +234,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
                         `bg-gradient-to-br ${color.cardGradient}`,
                         isSelected
                           ? 'border-white ring-2 ring-white/50 scale-110'
-                          : 'border-transparent hover:scale-105 hover:border-white/30'
+                          : 'border-transparent hover:scale-105 hover:border-white/30',
                       )}
                       aria-label={`Select ${color.accent} color`}
                       disabled={loading}
@@ -234,7 +243,8 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
                 })}
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                Color-code your {trip.trip_type === 'pro' ? 'trips' : 'events'} for easy organization
+                Color-code your {trip.trip_type === 'pro' ? 'trips' : 'events'} for easy
+                organization
               </p>
             </div>
           )}
@@ -255,6 +265,26 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
               disabled={loading}
             />
           </div>
+
+          {/* Organizer - Only for Events */}
+          {isEvent && (
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                <Users size={16} />
+                Organizer
+              </label>
+              <input
+                type="text"
+                value={formData.organizer_display_name}
+                onChange={e => setFormData({ ...formData, organizer_display_name: e.target.value })}
+                maxLength={200}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                placeholder="e.g., Los Angeles Rams, Boys & Girls Club of Dallas"
+                disabled={loading}
+              />
+              <p className="text-xs text-gray-400 mt-1">This name appears on your event card</p>
+            </div>
+          )}
 
           {/* Location */}
           <div>
