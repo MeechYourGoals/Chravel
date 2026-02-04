@@ -17,27 +17,17 @@ if (self.workbox) {
     statuses: [0, 200],
   });
 
-  // App shell (cache-first) + offline fallback for navigation.
-  const appShellHandler = new workbox.strategies.CacheFirst({
-    cacheName: 'chravel-app-shell',
-    plugins: [
-      cacheableOk,
-      new workbox.expiration.ExpirationPlugin({
-        maxEntries: 50,
-        maxAgeSeconds: SEVEN_DAYS,
-      }),
-    ],
-  });
+  // App shell (precache) + offline fallback for navigation.
+  const appShellHandler = workbox.precaching.createHandlerBoundToURL('/index.html');
 
   workbox.routing.registerRoute(
-    ({ request }) => request.mode === 'navigate',
-    async ({ event }) => {
+    new workbox.routing.NavigationRoute(async ({ event }) => {
       try {
-        return await appShellHandler.handle({ event, request: event.request });
+        return await appShellHandler({ event });
       } catch {
         return caches.match('/offline.html', { ignoreSearch: true });
       }
-    },
+    }),
   );
 
   // Cache-first static assets (JS/CSS/fonts/images).
