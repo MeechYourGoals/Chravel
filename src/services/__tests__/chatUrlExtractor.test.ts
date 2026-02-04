@@ -2,24 +2,24 @@
 // @ts-nocheck
 /**
  * Tests for Chat URL Extractor Service
- * 
+ *
  * Tests URL extraction, normalization, categorization, and deduplication
- * 
+ *
  * @module services/__tests__/chatUrlExtractor.test
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { extractUrlsFromTripChat } from '../chatUrlExtractor';
 import { normalizeUrl } from '../urlUtils';
 import { categorizeUrl } from '../ogMetadataService';
 
 // Mock Supabase client
-jest.mock('@/integrations/supabase/client', () => ({
+vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          order: jest.fn(() => ({
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({
             data: [],
             error: null,
           })),
