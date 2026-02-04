@@ -55,6 +55,7 @@ export interface Trip {
   enabled_features?: string[]; // ✅ Phase 2: Feature toggles for Pro/Event trips
   membership_status?: 'owner' | 'member' | 'pending' | 'rejected'; // Membership status for current user
   card_color?: string | null; // Color coding for Pro/Event cards
+  organizer_display_name?: string | null; // Organizer name for Events (e.g., "Los Angeles Rams")
 }
 
 export interface CreateTripData {
@@ -70,6 +71,7 @@ export interface CreateTripData {
   basecamp_address?: string;
   enabled_features?: string[]; // ✅ Phase 2: Feature toggles for Pro/Event trips
   card_color?: string; // Color coding for Pro/Event cards
+  organizer_display_name?: string; // Organizer name for Events (e.g., "Los Angeles Rams")
 }
 
 type TripDetailErrorCode = 'AUTH_REQUIRED' | 'TRIP_NOT_FOUND' | 'ACCESS_DENIED' | 'BAD_REQUEST';
@@ -550,7 +552,10 @@ export const tripService = {
           members: [
             {
               id: creatorId,
-              name: creatorProfile?.resolved_display_name || creatorProfile?.display_name || 'Trip Creator',
+              name:
+                creatorProfile?.resolved_display_name ||
+                creatorProfile?.display_name ||
+                'Trip Creator',
               avatar: creatorProfile?.avatar_url,
               isCreator: true,
             },

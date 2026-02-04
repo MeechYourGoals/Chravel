@@ -1,4 +1,4 @@
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 // ============= COMMON VALIDATION HELPERS =============
 
@@ -12,30 +12,30 @@ import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 export function validateExternalHttpsUrl(url: string): boolean {
   try {
     const urlObj = new URL(url);
-    
+
     // Must be HTTPS
     if (urlObj.protocol !== 'https:') {
       return false;
     }
-    
+
     // Block localhost and .local domains
     const hostname = urlObj.hostname.toLowerCase();
     if (hostname === 'localhost' || hostname.endsWith('.local')) {
       return false;
     }
-    
+
     // Block private/internal IP ranges
     const ipPatterns = [
-      /^127\./,           // 127.0.0.0/8
-      /^10\./,            // 10.0.0.0/8
+      /^127\./, // 127.0.0.0/8
+      /^10\./, // 10.0.0.0/8
       /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
-      /^192\.168\./,      // 192.168.0.0/16
-      /^169\.254\./,      // 169.254.0.0/16 (link-local)
-      /^::1$/,            // IPv6 localhost
-      /^fc00:/,           // IPv6 private
-      /^fe80:/            // IPv6 link-local
+      /^192\.168\./, // 192.168.0.0/16
+      /^169\.254\./, // 169.254.0.0/16 (link-local)
+      /^::1$/, // IPv6 localhost
+      /^fc00:/, // IPv6 private
+      /^fe80:/, // IPv6 link-local
     ];
-    
+
     // Check if hostname is an IP address
     if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.includes(':')) {
       for (const pattern of ipPatterns) {
@@ -44,7 +44,7 @@ export function validateExternalHttpsUrl(url: string): boolean {
         }
       }
     }
-    
+
     return true;
   } catch {
     return false;
@@ -54,10 +54,13 @@ export function validateExternalHttpsUrl(url: string): boolean {
 /**
  * Zod refinement for external HTTPS URLs with max length
  */
-export const externalHttpsUrlSchema = z.string().url().max(2000, "URL too long").refine(
-  (url) => validateExternalHttpsUrl(url),
-  { message: "URL must be HTTPS and external (no internal/private networks)" }
-);
+export const externalHttpsUrlSchema = z
+  .string()
+  .url()
+  .max(2000, 'URL too long')
+  .refine(url => validateExternalHttpsUrl(url), {
+    message: 'URL must be HTTPS and external (no internal/private networks)',
+  });
 
 /**
  * Allowed file types for uploads
@@ -71,18 +74,38 @@ export const ALLOWED_FILE_TYPES = {
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
     'text/plain',
-    'text/csv'
+    'text/csv',
   ],
-  media: ['video/mp4', 'video/quicktime', 'audio/mpeg', 'audio/wav']
+  media: ['video/mp4', 'video/quicktime', 'audio/mpeg', 'audio/wav'],
 };
 
 /**
  * Blocked file extensions (executables, scripts, etc.)
  */
 export const BLOCKED_EXTENSIONS = [
-  '.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js', '.jar',
-  '.sh', '.bash', '.zsh', '.ps1', '.app', '.deb', '.rpm', '.msi', '.dmg',
-  '.bin', '.run', '.dll', '.so', '.dylib'
+  '.exe',
+  '.bat',
+  '.cmd',
+  '.com',
+  '.pif',
+  '.scr',
+  '.vbs',
+  '.js',
+  '.jar',
+  '.sh',
+  '.bash',
+  '.zsh',
+  '.ps1',
+  '.app',
+  '.deb',
+  '.rpm',
+  '.msi',
+  '.dmg',
+  '.bin',
+  '.run',
+  '.dll',
+  '.so',
+  '.dylib',
 ];
 
 /**
@@ -102,90 +125,98 @@ export function isBlockedExtension(filename: string): boolean {
 
 // ============= FILE UPLOAD SCHEMAS =============
 
-export const FileUploadSchema = z.object({
-  tripId: z.string()
-    .min(1, "Trip ID is required")
-    .max(50, "Trip ID too long")
-    .regex(/^[a-zA-Z0-9_-]+$/, "Trip ID contains invalid characters"),
-  userId: z.string().uuid("Invalid user ID format"),
-  file: z.custom<File>((val) => val instanceof File, {
-    message: "File is required"
+export const FileUploadSchema = z
+  .object({
+    tripId: z
+      .string()
+      .min(1, 'Trip ID is required')
+      .max(50, 'Trip ID too long')
+      .regex(/^[a-zA-Z0-9_-]+$/, 'Trip ID contains invalid characters'),
+    userId: z.string().uuid('Invalid user ID format'),
+    file: z.custom<File>(val => val instanceof File, {
+      message: 'File is required',
+    }),
   })
-}).refine(
-  (data) => {
-    if (data.file instanceof File) {
-      // Check file size (50MB max)
-      if (data.file.size > 50 * 1024 * 1024) {
-        return false;
+  .refine(
+    data => {
+      if (data.file instanceof File) {
+        // Check file size (50MB max)
+        if (data.file.size > 50 * 1024 * 1024) {
+          return false;
+        }
+        // Check file extension
+        if (isBlockedExtension(data.file.name)) {
+          return false;
+        }
+        // Check MIME type
+        const allowedTypes = [
+          ...ALLOWED_FILE_TYPES.images,
+          ...ALLOWED_FILE_TYPES.documents,
+          ...ALLOWED_FILE_TYPES.media,
+        ];
+        return isValidFileType(data.file.type, allowedTypes);
       }
-      // Check file extension
-      if (isBlockedExtension(data.file.name)) {
-        return false;
-      }
-      // Check MIME type
-      const allowedTypes = [
-        ...ALLOWED_FILE_TYPES.images,
-        ...ALLOWED_FILE_TYPES.documents,
-        ...ALLOWED_FILE_TYPES.media
-      ];
-      return isValidFileType(data.file.type, allowedTypes);
-    }
-    return true;
-  },
-  {
-    message: "File type not allowed or file too large (max 50MB). Blocked: executables, scripts, and unsafe file types."
-  }
-);
+      return true;
+    },
+    {
+      message:
+        'File type not allowed or file too large (max 50MB). Blocked: executables, scripts, and unsafe file types.',
+    },
+  );
 
-export const ImageUploadSchema = z.object({
-  file: z.custom<File>((val) => val instanceof File, {
-    message: "File is required"
-  }),
-  folder: z.string().max(100).optional().default('ad-images')
-}).refine(
-  (data) => {
-    if (data.file instanceof File) {
-      // Check file size (5MB max for images)
-      if (data.file.size > 5 * 1024 * 1024) {
-        return false;
+export const ImageUploadSchema = z
+  .object({
+    file: z.custom<File>(val => val instanceof File, {
+      message: 'File is required',
+    }),
+    folder: z.string().max(100).optional().default('ad-images'),
+  })
+  .refine(
+    data => {
+      if (data.file instanceof File) {
+        // Check file size (5MB max for images)
+        if (data.file.size > 5 * 1024 * 1024) {
+          return false;
+        }
+        // Check file extension
+        if (isBlockedExtension(data.file.name)) {
+          return false;
+        }
+        // Only images allowed
+        return isValidFileType(data.file.type, ALLOWED_FILE_TYPES.images);
       }
-      // Check file extension
-      if (isBlockedExtension(data.file.name)) {
-        return false;
-      }
-      // Only images allowed
-      return isValidFileType(data.file.type, ALLOWED_FILE_TYPES.images);
-    }
-    return true;
-  },
-  {
-    message: "Only JPEG, PNG, and WebP images are allowed (max 5MB). Executables and scripts are blocked."
-  }
-);
+      return true;
+    },
+    {
+      message:
+        'Only JPEG, PNG, and WebP images are allowed (max 5MB). Executables and scripts are blocked.',
+    },
+  );
 
 // ============= DOCUMENT PROCESSOR SCHEMA =============
 
 export const DocumentProcessorSchema = z.object({
-  fileId: z.string().uuid("Invalid file ID format"),
-  tripId: z.string().uuid("Invalid trip ID format"),
-  forceReprocess: z.boolean().optional().default(false)
+  fileId: z.string().uuid('Invalid file ID format'),
+  tripId: z.string().uuid('Invalid trip ID format'),
+  forceReprocess: z.boolean().optional().default(false),
 });
 
 // ============= URL FETCHING SCHEMAS (SSRF Protection) =============
 
 export const FetchOGMetadataSchema = z.object({
-  url: externalHttpsUrlSchema
+  url: externalHttpsUrlSchema,
 });
 
-export const ReceiptOCRSchema = z.object({
-  receiptId: z.string().uuid("Invalid receipt ID format"),
-  imageUrl: externalHttpsUrlSchema.optional(),
-  imageBase64: z.string().optional(),
-  provider: z.enum(['google-vision', 'aws-textract', 'tesseract']).optional()
-}).refine(
-  (data) => data.imageUrl || data.imageBase64,
-  { message: "Either imageUrl or imageBase64 is required" }
-);
+export const ReceiptOCRSchema = z
+  .object({
+    receiptId: z.string().uuid('Invalid receipt ID format'),
+    imageUrl: externalHttpsUrlSchema.optional(),
+    imageBase64: z.string().optional(),
+    provider: z.enum(['google-vision', 'aws-textract', 'tesseract']).optional(),
+  })
+  .refine(data => data.imageUrl || data.imageBase64, {
+    message: 'Either imageUrl or imageBase64 is required',
+  });
 
 // ============= TRIP MEMBERSHIP VERIFICATION =============
 
@@ -196,7 +227,7 @@ export const ReceiptOCRSchema = z.object({
 export async function verifyTripMembership(
   supabase: any,
   userId: string,
-  tripId: string
+  tripId: string,
 ): Promise<{ isMember: boolean; error?: string }> {
   try {
     const { data: membership, error } = await supabase
@@ -225,30 +256,34 @@ export async function verifyTripMembership(
 
 // Organization invite validation schemas
 export const InviteOrganizationMemberSchema = z.object({
-  organizationId: z.string().uuid("Invalid organization ID format"),
-  email: z.string().email("Invalid email address").max(255, "Email too long"),
+  organizationId: z.string().uuid('Invalid organization ID format'),
+  email: z.string().email('Invalid email address').max(255, 'Email too long'),
   role: z.enum(['admin', 'member'], {
-    errorMap: () => ({ message: "Role must be either 'admin' or 'member'" })
-  })
+    errorMap: () => ({ message: "Role must be either 'admin' or 'member'" }),
+  }),
 });
 
 export const AcceptInviteSchema = z.object({
-  token: z.string().uuid("Invalid token format")
+  token: z.string().uuid('Invalid token format'),
 });
 
 export const LinkTripToOrgSchema = z.object({
-  tripId: z.string()
-    .min(1, "Trip ID is required")
-    .max(50, "Trip ID too long")
-    .regex(/^[a-zA-Z0-9_-]+$/, "Trip ID contains invalid characters"),
-  organizationId: z.string().uuid("Invalid organization ID format")
+  tripId: z
+    .string()
+    .min(1, 'Trip ID is required')
+    .max(50, 'Trip ID too long')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Trip ID contains invalid characters'),
+  organizationId: z.string().uuid('Invalid organization ID format'),
 });
 
 // AI Features validation schemas
 export const AIFeaturesSchema = z.object({
-  feature: z.enum(['review-analysis', 'message-template', 'priority-classify', 'send-time-suggest'], {
-    errorMap: () => ({ message: "Invalid feature type" })
-  }),
+  feature: z.enum(
+    ['review-analysis', 'message-template', 'priority-classify', 'send-time-suggest'],
+    {
+      errorMap: () => ({ message: 'Invalid feature type' }),
+    },
+  ),
   url: externalHttpsUrlSchema.optional(),
   venue_name: z.string().max(200).optional(),
   place_id: z.string().max(100).optional(),
@@ -257,55 +292,71 @@ export const AIFeaturesSchema = z.object({
   template_id: z.string().uuid().optional(),
   context: z.record(z.any()).optional(),
   userId: z.string().uuid().optional(),
-  tripId: z.string().max(50).optional()
+  tripId: z.string().max(50).optional(),
 });
 
 // AI Answer validation schema
 export const AIAnswerSchema = z.object({
-  query: z.string().min(1, "Query is required").max(1000, "Query too long"),
-  tripId: z.string()
-    .min(1, "Trip ID is required")
-    .max(50, "Trip ID too long")
-    .regex(/^[a-zA-Z0-9_-]+$/, "Trip ID contains invalid characters"),
-  chatHistory: z.array(z.object({
-    role: z.enum(['user', 'assistant', 'system']),
-    content: z.string()
-  })).optional()
+  query: z.string().min(1, 'Query is required').max(1000, 'Query too long'),
+  tripId: z
+    .string()
+    .min(1, 'Trip ID is required')
+    .max(50, 'Trip ID too long')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Trip ID contains invalid characters'),
+  chatHistory: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant', 'system']),
+        content: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 // Broadcast creation validation schema
 export const BroadcastCreateSchema = z.object({
-  trip_id: z.string()
-    .min(1, "Trip ID is required")
-    .max(50, "Trip ID too long")
-    .regex(/^[a-zA-Z0-9_-]+$/, "Trip ID contains invalid characters"),
-  content: z.string().min(1, "Content is required").max(5000, "Content too long"),
+  trip_id: z
+    .string()
+    .min(1, 'Trip ID is required')
+    .max(50, 'Trip ID too long')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Trip ID contains invalid characters'),
+  content: z.string().min(1, 'Content is required').max(5000, 'Content too long'),
   location: z.string().max(500).optional(),
   tag: z.enum(['urgent', 'important', 'chill', 'fyi']).optional(),
-  scheduled_time: z.string().datetime().optional()
+  scheduled_time: z.string().datetime().optional(),
 });
 
 // Trip creation validation schema
 export const CreateTripSchema = z.object({
-  name: z.string().min(1, "Trip name is required").max(200, "Trip name too long"),
+  name: z.string().min(1, 'Trip name is required').max(200, 'Trip name too long'),
   description: z.string().max(2000).optional(),
   destination: z.string().max(200).optional(),
-  start_date: z.string().datetime({ message: "Invalid date format. Use ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)" }).optional(),
-  end_date: z.string().datetime({ message: "Invalid date format. Use ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)" }).optional(),
+  start_date: z
+    .string()
+    .datetime({ message: 'Invalid date format. Use ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)' })
+    .optional(),
+  end_date: z
+    .string()
+    .datetime({ message: 'Invalid date format. Use ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)' })
+    .optional(),
   trip_type: z.enum(['consumer', 'pro', 'event']).optional(),
   cover_image_url: z.string().url().max(500).optional(),
   card_color: z.string().max(50).optional(), // Color coding for Pro/Event cards
+  // Organizer display name for Events (e.g., "Los Angeles Rams", "Boys & Girls Club")
+  organizer_display_name: z.string().max(200).optional(),
   // ✅ Phase 2: Feature toggles for Pro/Event trips
-  enabled_features: z.array(
-    z.enum(['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'])
-  ).optional()
+  enabled_features: z
+    .array(
+      z.enum(['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks']),
+    )
+    .optional(),
 });
 
 // ============= GENERIC VALIDATION HELPER =============
 
 export function validateInput<T>(
   schema: z.ZodSchema<T>,
-  data: unknown
+  data: unknown,
 ): { success: true; data: T } | { success: false; error: string } {
   try {
     const validated = schema.parse(data);
@@ -315,7 +366,7 @@ export function validateInput<T>(
       const firstError = error.errors[0];
       return {
         success: false,
-        error: `${firstError.path.join('.')}: ${firstError.message}`
+        error: `${firstError.path.join('.')}: ${firstError.message}`,
       };
     }
     return { success: false, error: 'Invalid input data' };

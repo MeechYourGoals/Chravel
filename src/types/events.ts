@@ -1,4 +1,3 @@
-
 export interface Track {
   id: string;
   name: string;
@@ -15,7 +14,15 @@ export interface Speaker {
   avatar: string;
   sessions: string[];
   // 🆕 Performer type for versatility
-  performerType?: 'speaker' | 'comedian' | 'musician' | 'dj' | 'host' | 'panelist' | 'officiant' | 'other';
+  performerType?:
+    | 'speaker'
+    | 'comedian'
+    | 'musician'
+    | 'dj'
+    | 'host'
+    | 'panelist'
+    | 'officiant'
+    | 'other';
   socialLinks?: {
     instagram?: string;
     twitter?: string;
@@ -105,6 +112,8 @@ export interface EventData {
   archived?: boolean;
   coverPhoto?: string;
   card_color?: string;
+  // Organizer display name (e.g., "Los Angeles Rams", "Boys & Girls Club of Dallas")
+  organizer_display_name?: string;
   // 🆕 Event feature toggles (organizer controls)
   chatEnabled?: boolean; // Default: true
   pollsEnabled?: boolean; // Default: true
@@ -112,7 +121,7 @@ export interface EventData {
   mediaUploadEnabled?: boolean; // Default: true
   mediaUploadPermissions?: 'everyone' | 'organizers' | 'cohosts'; // Default: 'everyone'
   pdfScheduleUrl?: string;
-  
+
   // Media content for events
   photos?: Array<{
     id: string;
@@ -156,24 +165,24 @@ export interface EventData {
     created_at: string;
     source: 'chat' | 'manual' | 'places';
   }>;
-  
+
   // Event-specific features
   tracks: Track[];
   speakers: Speaker[];
   sessions: Session[];
   sponsors: Sponsor[];
   exhibitors: Exhibitor[];
-  
+
   // Agenda and Tasks (new)
   agenda?: EventAgendaItem[];
   tasks?: EventTask[];
-  
+
   // User context
   userRole: EventUserRole;
-  
+
   // Analytics
   checkedInCount: number;
-  
+
   // Enhanced participant data
   participants: Array<{
     id: number;
@@ -183,7 +192,7 @@ export interface EventData {
     userRole?: EventUserRole;
     checkedIn?: boolean;
   }>;
-  
+
   // Budget with sponsor revenue
   budget: {
     total: number;
@@ -195,7 +204,7 @@ export interface EventData {
       spent: number;
     }>;
   };
-  
+
   // Basic trip data for compatibility
   itinerary: Array<{
     date: string;

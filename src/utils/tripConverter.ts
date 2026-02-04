@@ -128,5 +128,6 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
     itinerary: [],
     coverPhoto: supabaseTrip.cover_image_url ?? undefined,
     card_color: (supabaseTrip as any).card_color ?? undefined,
+    organizer_display_name: supabaseTrip.organizer_display_name ?? undefined,
   };
 }
