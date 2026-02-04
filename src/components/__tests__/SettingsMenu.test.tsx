@@ -171,7 +171,8 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     renderMenu();
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Consumer' })).toBeInTheDocument();
+    // Tab labels: Group (consumer), Enterprise, Events
+    expect(screen.getByRole('button', { name: 'Group' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enterprise' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Events' })).toBeInTheDocument();
     expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
@@ -187,8 +188,9 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
   });
 
-  it('enables Advertiser access for super admins', () => {
-    mockIsSuperAdmin = true;
+  it('enables Advertiser access in app-preview mode', () => {
+    // Advertiser is only available in app-preview mode (investor demos)
+    mockDemoView = 'app-preview';
     renderMenu();
 
     const advertiserButton = screen.getByRole('button', { name: 'Advertiser' });
@@ -196,13 +198,13 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     expect(advertiserButton).not.toBeDisabled();
   });
 
-  it('keeps Advertiser disabled for regular users (non-app-preview)', () => {
+  it('hides Advertiser for regular users (non-app-preview)', () => {
+    mockDemoView = 'off';
     renderMenu();
 
-    // Accessible name includes the "Soon" badge text (often ends up as "AdvertiserSoon").
-    const advertiserButton = screen.getByRole('button', { name: /advertiser/i });
-    expect(advertiserButton).toBeDisabled();
-    expect(screen.getByText('Soon')).toBeInTheDocument();
+    // Advertiser tab is only visible in app-preview mode, not for regular users
+    const advertiserButton = screen.queryByRole('button', { name: /advertiser/i });
+    expect(advertiserButton).toBeNull();
   });
 
   it('renders even when logged out, as long as demoView is app-preview (mock demo user path)', () => {
@@ -234,7 +236,7 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     expect(screen.getByTestId('events-settings')).toBeInTheDocument();
   });
 
-  it('can switch between Consumer / Enterprise / Events tabs without crashing', async () => {
+  it('can switch between Group / Enterprise / Events tabs without crashing', async () => {
     const user = userEvent.setup();
     renderMenu();
 
@@ -250,7 +252,7 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
       expect(screen.getByTestId('events-settings')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: 'Consumer' }));
+    await user.click(screen.getByRole('button', { name: 'Group' }));
     await waitFor(() => {
       expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
     });
