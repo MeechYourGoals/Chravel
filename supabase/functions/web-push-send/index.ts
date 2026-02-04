@@ -28,6 +28,7 @@ interface WebPushSubscription {
   endpoint: string;
   p256dh_key: string;
   auth_key: string;
+  failed_count: number;
 }
 
 interface NotificationAction {
@@ -239,19 +240,26 @@ async function hkdfDerive(
   info: Uint8Array,
   length: number
 ): Promise<Uint8Array> {
+  // Convert to ArrayBuffer to satisfy Deno's stricter type checking
+  const ikmBuffer = ikm.buffer.slice(ikm.byteOffset, ikm.byteOffset + ikm.byteLength) as ArrayBuffer;
+  
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
-    ikm,
+    ikmBuffer,
     { name: 'HKDF' },
     false,
     ['deriveBits']
   );
 
+  // Convert salt and info to ArrayBuffer
+  const saltBuffer = salt.buffer.slice(salt.byteOffset, salt.byteOffset + salt.byteLength) as ArrayBuffer;
+  const infoBuffer = info.buffer.slice(info.byteOffset, info.byteOffset + info.byteLength) as ArrayBuffer;
+
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: 'HKDF',
-      salt: salt,
-      info: info,
+      salt: saltBuffer,
+      info: infoBuffer,
       hash: 'SHA-256',
     },
     keyMaterial,
@@ -290,10 +298,11 @@ async function encryptPushMessage(
   const serverPublicKeyRaw = await crypto.subtle.exportKey('raw', serverKeyPair.publicKey);
   const serverPublicKey = new Uint8Array(serverPublicKeyRaw);
 
-  // Import user agent's public key
+  // Import user agent's public key (convert to ArrayBuffer for Deno compatibility)
+  const uaPublicKeyBuffer = uaPublicKey.buffer.slice(uaPublicKey.byteOffset, uaPublicKey.byteOffset + uaPublicKey.byteLength) as ArrayBuffer;
   const uaPublicKeyCrypto = await crypto.subtle.importKey(
     'raw',
-    uaPublicKey,
+    uaPublicKeyBuffer,
     { name: 'ECDH', namedCurve: 'P-256' },
     false,
     []
@@ -335,17 +344,20 @@ async function encryptPushMessage(
     new Uint8Array([0x02])  // Record delimiter (last record)
   );
 
-  // Step 6: Encrypt with AES-128-GCM
+  // Step 6: Encrypt with AES-128-GCM (convert to ArrayBuffer for Deno compatibility)
+  const cekBuffer = cek.buffer.slice(cek.byteOffset, cek.byteOffset + cek.byteLength) as ArrayBuffer;
   const cekKey = await crypto.subtle.importKey(
     'raw',
-    cek,
+    cekBuffer,
     { name: 'AES-GCM' },
     false,
     ['encrypt']
   );
 
+  // Convert nonce to ArrayBuffer
+  const nonceBuffer = nonce.buffer.slice(nonce.byteOffset, nonce.byteOffset + nonce.byteLength) as ArrayBuffer;
   const encryptedRecord = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: nonce },
+    { name: 'AES-GCM', iv: nonceBuffer },
     cekKey,
     paddedPayload
   );
@@ -411,6 +423,8 @@ async function sendWebPushNotification(
     // Send to push service
     // Note: With aes128gcm encoding, the salt and server public key are
     // embedded in the encrypted body, so we don't need Encryption or Crypto-Key headers
+    // Convert ciphertext to ArrayBuffer for fetch body compatibility
+    const ciphertextBuffer = ciphertext.buffer.slice(ciphertext.byteOffset, ciphertext.byteOffset + ciphertext.byteLength) as ArrayBuffer;
     const response = await fetch(subscription.endpoint, {
       method: 'POST',
       headers: {
@@ -420,7 +434,7 @@ async function sendWebPushNotification(
         'TTL': ttl.toString(),
         'Urgency': 'normal',
       },
-      body: ciphertext,
+      body: ciphertextBuffer,
     });
 
     if (response.ok || response.status === 201) {
