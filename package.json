@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run typecheck && vite build",
+    "build": "npm run typecheck && vite build && node scripts/build-sw.cjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
@@ -151,6 +151,7 @@
     "typescript-eslint": "^8.46.2",
     "vite": "^5.4.1",
     "vitest": "^1.6.1",
+    "workbox-build": "^7.4.0",
     "zod": "^3.23.8"
   }
 }
