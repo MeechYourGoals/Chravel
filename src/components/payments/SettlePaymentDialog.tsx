@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { safeReload } from '@/utils/safeReload';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../ui/use-toast';
@@ -91,7 +92,7 @@ export const SettlePaymentDialog = ({
       }
 
       onOpenChange(false);
-      window.location.reload();
+      await safeReload();
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error settling payment:', error);

@@ -2,6 +2,7 @@ import React, { Suspense, useEffect, useState, useCallback, useRef } from 'react
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingSpinner } from './LoadingSpinner';
 import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
+import { safeReload } from '@/utils/safeReload';
 
 // Build version check - compare with stored version to detect updates
 const BUILD_VERSION_KEY = 'chravel_build_version';
@@ -225,7 +226,7 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({ children, fallback = <Defa
       // Check if this is a new version - if so, auto-clear and reload
       if (isNewVersion()) {
         clearAllCaches().then(() => {
-          window.location.reload();
+          safeReload();
         });
         return;
       }
@@ -257,8 +258,8 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({ children, fallback = <Defa
   // Clear all caches and reload the page
   const handleClearAndReload = useCallback(async () => {
     await clearAllCaches();
-    // Force a full page reload to get fresh chunks
-    window.location.reload();
+    // Force a fresh mount to get new chunks (Capacitor-safe)
+    await safeReload();
   }, []);
 
   // Render error fallback if chunk error detected and auto-retries exhausted

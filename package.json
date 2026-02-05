@@ -28,7 +28,9 @@
     "prepare": "husky install",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "docs:generate": "typedoc"
+    "docs:generate": "typedoc",
+    "doctor": "bash scripts/doctor.sh",
+    "validate-env": "npx tsx scripts/validate-env.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.0",
