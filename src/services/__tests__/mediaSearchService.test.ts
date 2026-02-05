@@ -2,23 +2,23 @@
 // @ts-nocheck
 /**
  * Tests for Media Search Service
- * 
+ *
  * Tests full-text search, tag search, and relevance scoring
- * 
+ *
  * @module services/__tests__/mediaSearchService.test
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { searchMedia, searchMediaByTags } from '../mediaSearchService';
 
 // Mock Supabase client
-jest.mock('@/integrations/supabase/client', () => ({
+vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          in: jest.fn(() => ({
-            order: jest.fn(() => ({
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          in: vi.fn(() => ({
+            order: vi.fn(() => ({
               data: [],
               error: null,
             })),

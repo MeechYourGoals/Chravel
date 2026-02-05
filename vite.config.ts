@@ -1,7 +1,7 @@
-import { defineConfig, Plugin } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
+import { defineConfig, Plugin } from 'vite';
+import react from '@vitejs/plugin-react-swc';
+import path from 'path';
+import { componentTagger } from 'lovable-tagger';
 
 // Generate build version timestamp
 const buildVersion = Date.now().toString(36);
@@ -22,18 +22,15 @@ export default defineConfig(({ mode }) => ({
    */
   base: '/',
   server: {
-    host: "localhost",
+    host: 'localhost',
     port: 8080,
   },
-  plugins: [
-    react(),
-    buildVersionPlugin(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
+  plugins: [react(), buildVersionPlugin(), mode === 'development' && componentTagger()].filter(
+    Boolean,
+  ),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
@@ -46,16 +43,21 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           // Vendor chunks
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs'],
-          'supabase': ['@supabase/supabase-js'],
-          'utils': ['date-fns', 'clsx', 'tailwind-merge'],
-          'charts': ['recharts'],
-          'pdf': ['jspdf', 'jspdf-autotable', 'html2canvas'],
+          'ui-vendor': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+          ],
+          supabase: ['@supabase/supabase-js'],
+          utils: ['date-fns', 'clsx', 'tailwind-merge'],
+          charts: ['recharts'],
+          pdf: ['jspdf', 'jspdf-autotable', 'html2canvas'],
         },
         // Optimize chunk names - include build version for aggressive cache busting
         chunkFileNames: `assets/js/[name]-[hash]-${buildVersion}.js`,
         entryFileNames: `assets/js/[name]-[hash]-${buildVersion}.js`,
-        assetFileNames: (assetInfo) => {
+        assetFileNames: assetInfo => {
           if (!assetInfo.name) return 'assets/[name]-[hash][extname]';
           const info = assetInfo.name.split('.');
           const ext = info[info.length - 1];
@@ -89,5 +91,7 @@ export default defineConfig(({ mode }) => ({
   // Optimize dependencies
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
+    // Exclude optional telemetry dependencies that may not be installed
+    exclude: ['@sentry/capacitor', '@sentry/react', 'posthog-js'],
   },
 }));

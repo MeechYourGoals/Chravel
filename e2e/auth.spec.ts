@@ -12,8 +12,12 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should show auth modal with email form when login clicked', async ({ page }) => {
-    // Use the visible "Sign up / Log in" button which is in viewport
-    const signInButton = page.getByRole('button', { name: /Sign up.*Log in/i });
+    // Sign in button should be visible on the landing page
+    const signInButton = page.getByRole('button', { name: /sign in|log in|get started/i }).first();
+
+    // Assert the button exists - if not, the test should fail (not silently pass)
+    await expect(signInButton).toBeVisible({ timeout: 5000 });
+
     await signInButton.click();
 
     // Wait for auth modal to appear - email input uses placeholder not label
@@ -22,19 +26,18 @@ test.describe('Authentication Flow', () => {
 
     // Verify the modal has the expected structure (email input is ready for validation)
     await expect(emailInput).toBeEnabled();
-
-    // The presence of the email input in a form means validation will occur on submit
-    // This confirms the auth modal is functioning correctly
   });
 
   test('should navigate to sign up page', async ({ page }) => {
-    // Look for sign up link/button
+    // Look for sign up link/button - should be visible on landing page
     const signUpLink = page.getByRole('link', { name: /sign up|create account/i });
 
-    if (await signUpLink.isVisible()) {
-      await signUpLink.click();
-      // Verify we're on sign up page (adjust based on actual routing)
-      await expect(page).toHaveURL(/.*sign.*up|.*register/i);
-    }
+    // If sign up is handled via modal instead of dedicated page, skip this test
+    const isVisible = await signUpLink.isVisible().catch(() => false);
+    test.skip(!isVisible, 'Sign up link not present - auth may use modal flow instead');
+
+    await signUpLink.click();
+    // Verify we're on sign up page (adjust based on actual routing)
+    await expect(page).toHaveURL(/.*sign.*up|.*register/i);
   });
 });

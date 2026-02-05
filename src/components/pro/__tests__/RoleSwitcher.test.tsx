@@ -24,14 +24,14 @@ describe('RoleSwitcher', () => {
     render(<RoleSwitcher category="Sports – Pro, Collegiate, Youth" />);
 
     await waitFor(() => {
-      expect(switchRole).toHaveBeenCalledWith('players');
+      expect(switchRole).toHaveBeenCalledWith('player');
     });
   });
 
   it('keeps role when valid for category', async () => {
     const switchRole = vi.fn();
     mockedUseAuth.mockReturnValue({
-      user: { isPro: true, proRole: 'players' },
+      user: { isPro: true, proRole: 'player' },
       switchRole,
     } as any);
 

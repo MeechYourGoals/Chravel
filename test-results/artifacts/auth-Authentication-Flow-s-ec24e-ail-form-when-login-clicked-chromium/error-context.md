@@ -1,0 +1,523 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - navigation [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]: Chravel
+          - link "For Teams" [ref=e10] [cursor=pointer]:
+            - /url: /teams
+          - generic [ref=e11]:
+            - button "Go to Home" [ref=e12] [cursor=pointer]:
+              - generic: Home
+            - button "Go to Features" [ref=e13] [cursor=pointer]:
+              - generic: Features
+            - button "Go to How It Works" [ref=e14] [cursor=pointer]:
+              - generic: How It Works
+            - button "Go to AI" [ref=e15] [cursor=pointer]:
+              - generic: AI
+            - button "Go to Use Cases" [ref=e16] [cursor=pointer]:
+              - generic: Use Cases
+            - button "Go to Storage" [ref=e17] [cursor=pointer]:
+              - generic: Storage
+            - button "Go to Reviews" [ref=e18] [cursor=pointer]:
+              - generic: Reviews
+            - button "Go to Compare" [ref=e19] [cursor=pointer]:
+              - generic: Compare
+            - button "Go to FAQ" [ref=e20] [cursor=pointer]:
+              - generic: FAQ
+            - button "Go to Pricing" [ref=e21] [cursor=pointer]:
+              - generic: Pricing
+          - generic [ref=e22]: Home
+          - button "Log In" [ref=e24] [cursor=pointer]:
+            - img
+            - generic [ref=e25]: Log In
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic:
+            - img
+            - img
+          - generic [ref=e29]:
+            - button "Login or Signup" [ref=e31] [cursor=pointer]
+            - generic [ref=e32]:
+              - heading "Group Travel Made Easy" [level=1] [ref=e34]
+              - paragraph [ref=e35]:
+                - text: For Friends, Families, Sports, Tours, Work Trips & More.
+                - text: Planning is Frustrating. Get UnFrustrated.
+              - heading "ChravelApp" [level=2] [ref=e37]
+            - img "ChravelApp trip dashboard preview" [ref=e41]
+            - generic [ref=e42]:
+              - heading "Less Chaos, More Coordination" [level=3] [ref=e44]
+              - paragraph [ref=e45]: Plans, Photos, Places, PDFs, & Payments — in one Shared space.
+        - generic [ref=e46]:
+          - generic:
+            - img
+          - generic [ref=e49]:
+            - generic [ref=e50]:
+              - heading "Why Juggle a Dozen Apps for ONE Trip?" [level=2] [ref=e51]
+              - paragraph [ref=e52]: Tap the Tabs below to see ChravelApp Consolidate your App Arsenal
+            - generic [ref=e53]:
+              - heading "Chat A private group chat built specifically for your trip." [level=3] [ref=e55]:
+                - button "Chat A private group chat built specifically for your trip." [ref=e56] [cursor=pointer]:
+                  - generic [ref=e57]:
+                    - generic [ref=e58]: Chat
+                    - generic [ref=e59]: A private group chat built specifically for your trip.
+                    - img [ref=e60]
+                  - img [ref=e62]
+              - heading "Calendar One shared schedule—Updated live for everyone." [level=3] [ref=e65]:
+                - button "Calendar One shared schedule—Updated live for everyone." [ref=e66] [cursor=pointer]:
+                  - generic [ref=e67]:
+                    - generic [ref=e68]: Calendar
+                    - generic [ref=e69]: One shared schedule—Updated live for everyone.
+                    - img [ref=e70]
+                  - img [ref=e72]
+              - heading "Concierge Your AI concierge—aware of your trip, preferences, and context." [level=3] [ref=e75]:
+                - button "Concierge Your AI concierge—aware of your trip, preferences, and context." [ref=e76] [cursor=pointer]:
+                  - generic [ref=e77]:
+                    - generic [ref=e78]: Concierge
+                    - generic [ref=e79]: Your AI concierge—aware of your trip, preferences, and context.
+                    - img [ref=e80]
+                  - img [ref=e82]
+              - heading "Media Photos, videos, and files—one hub for the whole group." [level=3] [ref=e85]:
+                - button "Media Photos, videos, and files—one hub for the whole group." [ref=e86] [cursor=pointer]:
+                  - generic [ref=e87]:
+                    - generic [ref=e88]: Media
+                    - generic [ref=e89]: Photos, videos, and files—one hub for the whole group.
+                    - img [ref=e90]
+                  - img [ref=e92]
+              - heading "Payments See who owes what. No spreadsheets. Your preferred payment method." [level=3] [ref=e95]:
+                - button "Payments See who owes what. No spreadsheets. Your preferred payment method." [ref=e96] [cursor=pointer]:
+                  - generic [ref=e97]:
+                    - generic [ref=e98]: Payments
+                    - generic [ref=e99]: See who owes what. No spreadsheets. Your preferred payment method.
+                    - img [ref=e100]
+                  - img [ref=e102]
+              - heading "Places Links and locations saved once, found instantly." [level=3] [ref=e105]:
+                - button "Places Links and locations saved once, found instantly." [ref=e106] [cursor=pointer]:
+                  - generic [ref=e107]:
+                    - generic [ref=e108]: Places
+                    - generic [ref=e109]: Links and locations saved once, found instantly.
+                    - img [ref=e110]
+                  - img [ref=e112]
+              - heading "Polls Make group decisions without endless debates. No scrolling to remember the vote." [level=3] [ref=e115]:
+                - button "Polls Make group decisions without endless debates. No scrolling to remember the vote." [ref=e116] [cursor=pointer]:
+                  - generic [ref=e117]:
+                    - generic [ref=e118]: Polls
+                    - generic [ref=e119]: Make group decisions without endless debates. No scrolling to remember the vote.
+                    - img [ref=e120]
+                  - img [ref=e122]
+              - heading "Tasks The Group's To Do List—Reminders and accountability for all." [level=3] [ref=e125]:
+                - button "Tasks The Group's To Do List—Reminders and accountability for all." [ref=e126] [cursor=pointer]:
+                  - generic [ref=e127]:
+                    - generic [ref=e128]: Tasks
+                    - generic [ref=e129]: The Group's To Do List—Reminders and accountability for all.
+                    - img [ref=e130]
+                  - img [ref=e132]
+            - paragraph [ref=e135]: ChravelApp's 8 core tabs cover almost all trip needs—with one app.
+        - generic [ref=e136]:
+          - generic:
+            - img
+          - generic [ref=e138]:
+            - generic [ref=e139]:
+              - heading "How It Works" [level=2] [ref=e140]
+              - paragraph [ref=e141]: From zero → organized in under 60 seconds
+            - generic [ref=e143]:
+              - generic [ref=e144]:
+                - generic [ref=e145]: "1"
+                - img [ref=e147]
+                - heading "Create a trip" [level=3] [ref=e149]
+                - paragraph [ref=e150]: Name it. Add Details. Done.
+              - generic [ref=e153]:
+                - generic [ref=e154]: "2"
+                - img [ref=e156]
+                - heading "Invite your group" [level=3] [ref=e162]
+                - paragraph [ref=e163]: One Link. Easily Shared
+              - generic [ref=e166]:
+                - generic [ref=e167]: "3"
+                - img [ref=e169]
+                - heading "Everything syncs" [level=3] [ref=e174]
+                - paragraph [ref=e175]: Plan Changes. Updated Live
+            - generic [ref=e177]:
+              - img "Create New Trip form interface" [ref=e180]
+              - img "Coachella trip invite card showing invitation interface" [ref=e183]
+              - img "Trip chat interface showing group messages and activity" [ref=e186]
+        - generic [ref=e187]:
+          - generic:
+            - img
+          - generic [ref=e190]:
+            - generic [ref=e191]:
+              - heading "Built for Every Journey" [level=2] [ref=e192]
+              - paragraph [ref=e194]: For work trips, vacations, sports teams, tours, and even local events. ChravelApp is designed to handle it all.
+            - generic [ref=e195]:
+              - generic [ref=e196] [cursor=pointer]:
+                - generic [ref=e197]:
+                  - heading "Family Hubs, Schedules & Carpools" [level=3] [ref=e198]
+                  - paragraph [ref=e199]: Practices · pickups · errands · roomies · year-round planning
+                - generic [ref=e200]:
+                  - generic [ref=e201]: "Before: Chaos"
+                  - paragraph [ref=e202]: Last-minute texts. Missed pickups. Fridge notes ignored. Confusion over who's doing what — and when.
+                - generic [ref=e203]:
+                  - img [ref=e204]
+                  - generic [ref=e206]: See how families stay organized
+              - generic [ref=e207] [cursor=pointer]:
+                - generic [ref=e208]:
+                  - heading "Touring Artists & Crews" [level=3] [ref=e209]
+                  - paragraph [ref=e210]: Musicians · comedians · podcasts · managers · production
+                - generic [ref=e211]:
+                  - generic [ref=e212]: "Before: Chaos"
+                  - paragraph [ref=e213]: Spreadsheets, countless texts, last-minute changes, and missed details. Overwhelmed Tour Managers & Annoyed Artists.
+                - generic [ref=e214]:
+                  - img [ref=e215]
+                  - generic [ref=e217]: See how tours stay in sync
+              - generic [ref=e218] [cursor=pointer]:
+                - generic [ref=e219]:
+                  - heading "Bach Parties → Wedding Weekends" [level=3] [ref=e220]
+                  - paragraph [ref=e221]: Bachelor & bachelorette trips · guests · families · vendors
+                - generic [ref=e222]:
+                  - generic [ref=e223]: "Before: Chaos"
+                  - paragraph [ref=e224]: Dozens of chats between families, guests, planners, and vendors. Guests constantly asking where to be and when.
+                - generic [ref=e225]:
+                  - img [ref=e226]
+                  - generic [ref=e228]: See how celebrations run smoothly
+              - generic [ref=e229] [cursor=pointer]:
+                - generic [ref=e230]:
+                  - heading "Fraternities/Sororities & Similar Organizations" [level=3] [ref=e231]
+                  - paragraph [ref=e232]: Rush · formals · retreats · philanthropy · chapter ops
+                - generic [ref=e233]:
+                  - generic [ref=e234]: "Before: Chaos"
+                  - paragraph [ref=e235]: One giant group chat becomes a permanent archive — endless scrollback, mixed events, and sensitive moments living forever in one thread.
+                - generic [ref=e236]:
+                  - img [ref=e237]
+                  - generic [ref=e239]: See how chapters stay private
+              - generic [ref=e240] [cursor=pointer]:
+                - generic [ref=e241]:
+                  - heading "Youth, Amateur, & Pro sports programs." [level=3] [ref=e242]
+                  - paragraph [ref=e243]: Players · coaches · coordinators · operations staff
+                - generic [ref=e244]:
+                  - generic [ref=e245]: "Before: Chaos"
+                  - paragraph [ref=e246]: Staff juggling travel, practices, academics, and logistics across multiple tools.
+                - generic [ref=e247]:
+                  - img [ref=e248]
+                  - generic [ref=e250]: See how programs stay aligned
+              - generic [ref=e251] [cursor=pointer]:
+                - generic [ref=e252]:
+                  - heading "Local Community Groups" [level=3] [ref=e253]
+                  - paragraph [ref=e254]: Run clubs · dog park crews · faith groups · recurring meetups
+                - generic [ref=e255]:
+                  - generic [ref=e256]: "Before: Chaos"
+                  - paragraph [ref=e257]: Plans scattered across DMs, texts, and random calendar invites.
+                - generic [ref=e258]:
+                  - img [ref=e259]
+                  - generic [ref=e261]: See how groups stay connected
+        - generic [ref=e262]:
+          - generic:
+            - img
+          - generic [ref=e264]:
+            - generic [ref=e265]:
+              - 'heading "Travel Intelligence: AI that understands your trip." [level=2] [ref=e266]'
+              - paragraph [ref=e267]: It reads your itinerary, places, tasks, and group decisions—so answers are actually useful.
+            - generic [ref=e268]:
+              - generic [ref=e269]:
+                - img "AI Concierge providing personalized recommendations" [ref=e271]
+                - generic [ref=e272]:
+                  - generic [ref=e274]:
+                    - img [ref=e276]
+                    - generic [ref=e279]:
+                      - heading "Context-Aware Concierge" [level=3] [ref=e280]
+                      - paragraph [ref=e281]: AI that understands your trip — not just your question.
+                  - generic [ref=e283]:
+                    - img [ref=e285]
+                    - generic [ref=e287]:
+                      - heading "Payment Tracking" [level=3] [ref=e288]
+                      - paragraph [ref=e289]: Keep track of who owes what, without the spreadsheets
+                  - generic [ref=e291]:
+                    - img [ref=e293]
+                    - generic [ref=e295]:
+                      - heading "Decision Lock-In" [level=3] [ref=e296]
+                      - paragraph [ref=e297]: "Persistent Poll View: No more scrolling to see who voted on what 3 weeks ago."
+              - generic [ref=e298]:
+                - img "Interactive maps and places discovery" [ref=e300]
+                - generic [ref=e301]:
+                  - generic [ref=e303]:
+                    - img [ref=e305]
+                    - generic [ref=e308]:
+                      - heading "BaseCamps" [level=3] [ref=e309]
+                      - paragraph [ref=e310]: No more fumbling to find the Airbnb or hotel address. Store it once for all trip members.
+                  - generic [ref=e312]:
+                    - img [ref=e314]
+                    - generic [ref=e319]:
+                      - heading "Relevant Notifications" [level=3] [ref=e320]
+                      - paragraph [ref=e321]: Important updates without the message overload. You choose what matters
+                  - generic [ref=e323]:
+                    - img [ref=e325]
+                    - generic [ref=e328]:
+                      - heading "Chravel Recap PDFs" [level=3] [ref=e329]
+                      - paragraph [ref=e330]: Sharing recommendations or just want a quick overview of the trip? Get a simple summary PDF.
+        - generic [ref=e331]:
+          - generic:
+            - img
+          - generic [ref=e334]:
+            - generic [ref=e335]:
+              - generic [ref=e336]:
+                - heading "Start free. Upgrade when your trip gets serious." [level=2] [ref=e338]
+                - paragraph [ref=e340]: Don't lose receipts, links, or the final plan. Free works forever—upgrade only when you need more.
+              - generic [ref=e341]:
+                - heading "Why Upgrade?" [level=3] [ref=e342]
+                - generic [ref=e343]:
+                  - generic [ref=e345]:
+                    - img [ref=e347]
+                    - generic [ref=e349]:
+                      - heading "Trips can easily exceed $1,000" [level=4] [ref=e350]
+                      - paragraph [ref=e351]: Your memories are worth more than $9.99/month
+                  - generic [ref=e353]:
+                    - img [ref=e355]
+                    - generic [ref=e358]:
+                      - heading "Never delete another trip" [level=4] [ref=e359]
+                      - paragraph [ref=e360]: That sunset in Santorini? Keep it forever.
+                  - generic [ref=e362]:
+                    - img [ref=e364]
+                    - generic [ref=e366]:
+                      - heading "Unlimited AI assistance" [level=4] [ref=e367]
+                      - paragraph [ref=e368]: From "what's near me?" to complex itinerary planning
+                  - generic [ref=e370]:
+                    - img [ref=e372]
+                    - generic [ref=e375]:
+                      - heading "Location-aware suggestions" [level=4] [ref=e376]
+                      - paragraph [ref=e377]: "\"Find coffee shops within walking distance\" - your AI knows where you are"
+                  - generic [ref=e379]:
+                    - img [ref=e381]
+                    - generic [ref=e383]:
+                      - heading "Seamless calendar sync" [level=4] [ref=e384]
+                      - paragraph [ref=e385]: Your trips, automatically in your calendar
+                  - generic [ref=e387]:
+                    - img [ref=e389]
+                    - generic [ref=e394]:
+                      - heading "Pro Trips with Role-Based Channels" [level=4] [ref=e395]
+                      - paragraph [ref=e396]: Filter chat convos to just who needs to be involved
+                  - generic [ref=e398]:
+                    - img [ref=e400]
+                    - generic [ref=e403]:
+                      - heading "Professional PDF exports" [level=4] [ref=e404]
+                      - paragraph [ref=e405]: Share beautiful itineraries with one click
+                  - generic [ref=e407]:
+                    - img [ref=e409]
+                    - generic [ref=e411]:
+                      - heading "Early Access Features" [level=4] [ref=e412]
+                      - paragraph [ref=e413]: Get early access to our latest features and updates before they roll wide
+                  - generic [ref=e415]:
+                    - img [ref=e417]
+                    - generic [ref=e422]:
+                      - heading "Plan your next trip, season, or wedding" [level=4] [ref=e423]
+                      - paragraph [ref=e424]: Plan your next family trip, sports season, or wedding weekend without ever leaving one app.
+              - generic [ref=e426]:
+                - button "ChravelApp Plus" [ref=e427] [cursor=pointer]:
+                  - img [ref=e428]
+                  - text: ChravelApp Plus
+                - button "ChravelApp Pro" [ref=e433] [cursor=pointer]:
+                  - img [ref=e434]
+                  - text: ChravelApp Pro
+              - generic [ref=e437]:
+                - generic [ref=e438]: Monthly
+                - button [ref=e439] [cursor=pointer]
+                - generic [ref=e441]: Annual
+            - generic [ref=e442]:
+              - generic [ref=e444]:
+                - generic [ref=e445]:
+                  - img [ref=e447]
+                  - heading "Free Plan" [level=3] [ref=e452]
+                  - generic [ref=e453]:
+                    - generic [ref=e455]: $0
+                    - paragraph [ref=e456]: Perfect for trying ChravelApp with your Crew
+                - generic [ref=e457]:
+                  - generic [ref=e458]: Archive trips to make room for new ones. Upgrade to restore anytime!
+                  - list [ref=e459]:
+                    - listitem [ref=e460]:
+                      - img [ref=e461]
+                      - generic [ref=e463]: Core group chat
+                    - listitem [ref=e464]:
+                      - img [ref=e465]
+                      - generic [ref=e467]: Shared calendar
+                    - listitem [ref=e468]:
+                      - img [ref=e469]
+                      - generic [ref=e471]: Photo & video sharing
+                    - listitem [ref=e472]:
+                      - img [ref=e473]
+                      - generic [ref=e475]: Basic itinerary planning
+                    - listitem [ref=e476]:
+                      - img [ref=e477]
+                      - generic [ref=e479]: Payment tracking
+                    - listitem [ref=e480]:
+                      - img [ref=e481]
+                      - generic [ref=e483]: Polls & group decisions
+                    - listitem [ref=e484]:
+                      - img [ref=e485]
+                      - generic [ref=e487]: AI Trip Assistant (5 queries per user per trip)
+                    - listitem [ref=e488]:
+                      - img [ref=e489]
+                      - generic [ref=e491]: 1 PDF export per trip (sample it!)
+                    - listitem [ref=e492]:
+                      - img [ref=e493]
+                      - generic [ref=e495]: Save up to 3 active trips
+                    - listitem [ref=e496]:
+                      - img [ref=e497]
+                      - generic [ref=e499]: 🎁 1 free Pro trip to try
+                    - listitem [ref=e500]:
+                      - img [ref=e501]
+                      - generic [ref=e503]: 🎁 1 free Event to try
+                - button "Start First Trip Free" [ref=e505] [cursor=pointer]
+              - generic [ref=e507]:
+                - generic [ref=e509]: Most Popular
+                - generic [ref=e510]:
+                  - img [ref=e512]
+                  - heading "Explorer" [level=3] [ref=e515]
+                  - generic [ref=e516]:
+                    - generic [ref=e517]:
+                      - generic [ref=e518]: $9.99
+                      - generic [ref=e519]: /month
+                    - paragraph [ref=e520]: For people who travel regularly and want smarter planning
+                - list [ref=e522]:
+                  - listitem [ref=e523]:
+                    - img [ref=e524]
+                    - generic [ref=e526]: Everything in Free
+                  - listitem [ref=e527]:
+                    - img [ref=e528]
+                    - generic [ref=e530]: Unlimited saved trips + restore archived
+                  - listitem [ref=e531]:
+                    - img [ref=e532]
+                    - generic [ref=e534]: 10 AI queries per user per trip
+                  - listitem [ref=e535]:
+                    - img [ref=e536]
+                    - generic [ref=e538]: Unlimited PDF exports
+                  - listitem [ref=e539]:
+                    - img [ref=e540]
+                    - generic [ref=e542]: ICS calendar export
+                  - listitem [ref=e543]:
+                    - img [ref=e544]
+                    - generic [ref=e546]: Location-aware AI recommendations
+                  - listitem [ref=e547]:
+                    - img [ref=e548]
+                    - generic [ref=e550]: Search past trips and memories
+                - button "Upgrade to Explorer" [ref=e552] [cursor=pointer]
+              - generic [ref=e554]:
+                - generic [ref=e555]:
+                  - img [ref=e557]
+                  - heading "Frequent Chraveler" [level=3] [ref=e559]
+                  - generic [ref=e560]:
+                    - generic [ref=e561]:
+                      - generic [ref=e562]: $19.99
+                      - generic [ref=e563]: /month
+                    - paragraph [ref=e564]: For Frequent Flyers, Teams, and Tours
+                - list [ref=e566]:
+                  - listitem [ref=e567]:
+                    - img [ref=e568]
+                    - generic [ref=e570]: Everything in Explorer
+                  - listitem [ref=e571]:
+                    - img [ref=e572]
+                    - generic [ref=e574]: Unlimited AI queries (24/7 concierge)
+                  - listitem [ref=e575]:
+                    - img [ref=e576]
+                    - generic [ref=e578]: Calendar sync (Google, Apple, Outlook)
+                  - listitem [ref=e579]:
+                    - img [ref=e580]
+                    - generic [ref=e582]: One-click PDF trip exports
+                  - listitem [ref=e583]:
+                    - img [ref=e584]
+                    - generic [ref=e586]: Role-based channels & Pro features
+                  - listitem [ref=e587]:
+                    - img [ref=e588]
+                    - generic [ref=e590]: Custom trip categories
+                  - listitem [ref=e591]:
+                    - img [ref=e592]
+                    - generic [ref=e594]: Early feature access
+                - button "Upgrade to Frequent" [ref=e596] [cursor=pointer]
+        - generic [ref=e597]:
+          - generic:
+            - img
+          - generic [ref=e599]:
+            - generic [ref=e600]:
+              - heading "Frequently Asked Questions" [level=2] [ref=e601]
+              - paragraph [ref=e602]: Everything you need to know about ChravelApp
+            - generic [ref=e603]:
+              - button "Who is ChravelApp for?" [ref=e606] [cursor=pointer]:
+                - generic [ref=e607]: Who is ChravelApp for?
+                - img [ref=e608]
+              - button "Isn't this just another app to download?" [ref=e612] [cursor=pointer]:
+                - generic [ref=e613]: Isn't this just another app to download?
+                - img [ref=e614]
+              - button "What happens when I hit my 3-trip limit?" [ref=e618] [cursor=pointer]:
+                - generic [ref=e619]: What happens when I hit my 3-trip limit?
+                - img [ref=e620]
+              - button "How do AI queries work on each plan?" [ref=e624] [cursor=pointer]:
+                - generic [ref=e625]: How do AI queries work on each plan?
+                - img [ref=e626]
+              - button "Can I change plans anytime?" [ref=e630] [cursor=pointer]:
+                - generic [ref=e631]: Can I change plans anytime?
+                - img [ref=e632]
+              - button "Is my data safe?" [ref=e636] [cursor=pointer]:
+                - generic [ref=e637]: Is my data safe?
+                - img [ref=e638]
+              - button "Do all trip members need to pay?" [ref=e642] [cursor=pointer]:
+                - generic [ref=e643]: Do all trip members need to pay?
+                - img [ref=e644]
+              - button "What's included with the free Pro Trip and Event?" [ref=e648] [cursor=pointer]:
+                - generic [ref=e649]: What's included with the free Pro Trip and Event?
+                - img [ref=e650]
+              - button "Are Events included in my subscription?" [ref=e654] [cursor=pointer]:
+                - generic [ref=e655]: Are Events included in my subscription?
+                - img [ref=e656]
+        - generic [ref=e660]:
+          - generic [ref=e661]:
+            - generic [ref=e662]:
+              - generic [ref=e663]: ChravelApp
+              - paragraph [ref=e664]: The AI-powered social storage platform for group plans, messages, and memories.
+            - generic [ref=e665]:
+              - heading "Product" [level=3] [ref=e666]
+              - list [ref=e667]:
+                - listitem [ref=e668]:
+                  - button "Features" [ref=e669] [cursor=pointer]
+                - listitem [ref=e670]:
+                  - button "AI Features" [ref=e671] [cursor=pointer]
+                - listitem [ref=e672]:
+                  - button "Pricing" [ref=e673] [cursor=pointer]
+                - listitem [ref=e674]:
+                  - link "For Teams" [ref=e675] [cursor=pointer]:
+                    - /url: /teams
+                - listitem [ref=e676]:
+                  - link "Demo" [ref=e677] [cursor=pointer]:
+                    - /url: /demo
+            - generic [ref=e678]:
+              - heading "Company" [level=3] [ref=e679]
+              - list [ref=e680]:
+                - listitem [ref=e681]:
+                  - link "Contact" [ref=e682] [cursor=pointer]:
+                    - /url: mailto:hello@chravelapp.com
+                - listitem [ref=e683]:
+                  - link "Support" [ref=e684] [cursor=pointer]:
+                    - /url: mailto:support@chravelapp.com
+            - generic [ref=e685]:
+              - heading "Legal" [level=3] [ref=e686]
+              - list [ref=e687]:
+                - listitem [ref=e688]:
+                  - link "Privacy Policy" [ref=e689] [cursor=pointer]:
+                    - /url: /privacy
+                - listitem [ref=e690]:
+                  - link "Terms of Service" [ref=e691] [cursor=pointer]:
+                    - /url: /terms
+          - generic [ref=e692]:
+            - paragraph [ref=e693]: © 2026 Chravel. All rights reserved.
+            - generic [ref=e694]:
+              - link "Twitter" [ref=e695] [cursor=pointer]:
+                - /url: https://twitter.com/chravelapp
+                - img [ref=e696]
+              - link "LinkedIn" [ref=e698] [cursor=pointer]:
+                - /url: https://linkedin.com/company/chravelapp
+                - img [ref=e699]
+              - link "Instagram" [ref=e701] [cursor=pointer]:
+                - /url: https://instagram.com/chravelapp
+                - img [ref=e702]
+```
