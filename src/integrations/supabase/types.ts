@@ -2987,6 +2987,7 @@ export type Database = {
           is_archived: boolean | null
           is_hidden: boolean | null
           name: string
+          organizer_display_name: string | null
           privacy_mode: string | null
           registration_status: string | null
           start_date: string | null
@@ -3014,6 +3015,7 @@ export type Database = {
           is_archived?: boolean | null
           is_hidden?: boolean | null
           name: string
+          organizer_display_name?: string | null
           privacy_mode?: string | null
           registration_status?: string | null
           start_date?: string | null
@@ -3041,6 +3043,7 @@ export type Database = {
           is_archived?: boolean | null
           is_hidden?: boolean | null
           name?: string
+          organizer_display_name?: string | null
           privacy_mode?: string | null
           registration_status?: string | null
           start_date?: string | null
