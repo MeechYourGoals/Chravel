@@ -40,8 +40,8 @@ const mockBalance = {
   amountOwedCurrency: 'USD',
   preferredPaymentMethod: null,
   unsettledPayments: [
-    { paymentId: 'pay-1', amount: 50.0 },
-    { paymentId: 'pay-2', amount: 25.0 },
+    { paymentId: 'pay-1', amount: 50.0, description: 'Dinner', amountCurrency: 'USD', date: '2025-01-15' },
+    { paymentId: 'pay-2', amount: 25.0, description: 'Taxi', amountCurrency: 'USD', date: '2025-01-16' },
   ],
 };
 
@@ -108,7 +108,7 @@ describe('SettlePaymentDialog', () => {
   it('should show preferred payment method when available', () => {
     const balanceWithMethod = {
       ...mockBalance,
-      preferredPaymentMethod: { type: 'cashapp' as const, details: '$johnsmith' },
+      preferredPaymentMethod: { id: 'pm-1', type: 'cashapp' as const, identifier: '$johnsmith' },
     };
 
     render(
