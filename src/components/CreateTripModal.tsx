@@ -373,7 +373,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div
+      data-testid="create-trip-modal"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+    >
       <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div
@@ -381,7 +384,11 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           style={{ paddingTop: 'max(0px, calc(env(safe-area-inset-top, 0px) + 4px))' }}
         >
           <h2 className="text-2xl font-bold text-white">Create New Trip</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <button
+            data-testid="create-trip-close"
+            onClick={onClose}
+            className="text-slate-400 hover:text-white transition-colors"
+          >
             <X size={24} />
           </button>
         </div>
@@ -398,6 +405,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             className="grid grid-cols-3 gap-2 bg-slate-700/30 p-1 rounded-xl"
           >
             <ToggleGroupItem
+              data-testid="trip-type-consumer"
               value="consumer"
               className="flex items-center gap-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white text-slate-300 hover:text-white"
             >
@@ -405,6 +413,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               Group
             </ToggleGroupItem>
             <ToggleGroupItem
+              data-testid="trip-type-pro"
               value="pro"
               className="flex items-center gap-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white text-slate-300 hover:text-white"
             >
@@ -412,6 +421,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               Pro
             </ToggleGroupItem>
             <ToggleGroupItem
+              data-testid="trip-type-event"
               value="event"
               className="flex items-center gap-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white text-slate-300 hover:text-white"
             >
@@ -453,6 +463,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Trip Title</label>
             <input
+              data-testid="create-trip-title-input"
               type="text"
               name="title"
               value={formData.title}
@@ -498,6 +509,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               Locations
             </label>
             <input
+              data-testid="create-trip-location-input"
               type="text"
               name="location"
               value={formData.location}
@@ -518,6 +530,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 Start Date
               </label>
               <input
+                data-testid="create-trip-start-date-input"
                 type="date"
                 name="startDate"
                 value={formData.startDate}
@@ -537,6 +550,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">End Date</label>
               <input
+                data-testid="create-trip-end-date-input"
                 type="date"
                 name="endDate"
                 value={formData.endDate}
@@ -617,6 +631,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               Description (Optional)
             </label>
             <textarea
+              data-testid="create-trip-description-input"
               name="description"
               value={formData.description}
               onChange={handleInputChange}
@@ -770,6 +785,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           {/* Buttons */}
           <div className="flex gap-3 pt-4">
             <button
+              data-testid="create-trip-cancel"
               type="button"
               onClick={onClose}
               className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-medium transition-colors"
@@ -777,6 +793,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               Cancel
             </button>
             <button
+              data-testid="create-trip-submit"
               type="submit"
               disabled={isLoading}
               className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-medium transition-colors"

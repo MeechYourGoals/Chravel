@@ -401,6 +401,7 @@ export const TripCard = ({
 
   return (
     <div
+      data-testid={`trip-card-${tripIdStr}`}
       className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
@@ -529,6 +530,7 @@ export const TripCard = ({
         <div className="grid grid-cols-2 gap-2 md:gap-3">
           {/* Top Row */}
           <button
+            data-testid={`trip-card-recap-${tripIdStr}`}
             onClick={() => setShowExportModal(true)}
             className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm flex items-center justify-center gap-1.5"
           >
@@ -538,6 +540,7 @@ export const TripCard = ({
           </button>
 
           <button
+            data-testid={`trip-card-invite-${tripIdStr}`}
             onClick={() => setShowInviteModal(true)}
             className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm flex items-center justify-center gap-1.5"
           >
@@ -548,6 +551,7 @@ export const TripCard = ({
 
           {/* Bottom Row - View button with prefetch on hover/focus */}
           <button
+            data-testid={`trip-card-view-${tripIdStr}`}
             onClick={handleViewTrip}
             onMouseEnter={handlePrefetch}
             onFocus={handlePrefetch}
@@ -557,6 +561,7 @@ export const TripCard = ({
           </button>
 
           <button
+            data-testid={`trip-card-share-${tripIdStr}`}
             onClick={() => setShowShareModal(true)}
             className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm"
           >

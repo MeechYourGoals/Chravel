@@ -445,6 +445,7 @@ export const TripGrid = React.memo(
           )}
 
           <div
+            data-testid="trip-grid"
             className={`grid gap-6 w-full ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}
           >
             {activeFilter === 'requests' ? (
