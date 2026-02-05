@@ -251,9 +251,9 @@ FROM pg_tables
 WHERE schemaname = 'public' AND tablename = 'table_name';
 ```
 
-## Next Steps for Developer Agency
+## Next Steps
 
-1. **Audit Migrations:** Review all 96 migration files
+1. **Audit Migrations:** Review all migration files
 2. **Identify Duplicates:** Find tables modified multiple times
 3. **Create Consolidation Plan:** Document which migrations to merge
 4. **Test Consolidation:** Apply consolidated migrations to staging

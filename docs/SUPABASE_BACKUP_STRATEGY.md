@@ -155,7 +155,7 @@ Maintain a log of all backups:
 - **Monthly backups:** 1 year
 - **Annual backups:** 7 years (for compliance)
 
-## Next Steps for Developer Agency
+## Next Steps
 
 1. **Enable Automated Backups:** Verify in Supabase Dashboard
 2. **Set Up Monitoring:** Configure alerts for backup failures

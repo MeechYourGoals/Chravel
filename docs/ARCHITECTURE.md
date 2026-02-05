@@ -350,7 +350,7 @@ const { execute, isLoading, retryCount } = useRetryableMutation(
 
 ## Future Enhancements
 
-### Short-Term (Corpsoft Handoff)
+### Short-Term
 
 1. **Consolidate messaging** to single provider (Stream)
 2. **Add integration tests** for critical flows

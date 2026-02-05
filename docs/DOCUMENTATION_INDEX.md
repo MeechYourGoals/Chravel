@@ -116,8 +116,7 @@ npm run storybook
 - **[CODEBASE_MAP.md](/docs/ACTIVE/CODEBASE_MAP.md)** - Codebase structure
 
 ### Handoff Documents
-- **[HANDOFF.md](HANDOFF.md)** - General handoff guide
-- **[DEVELOPER_HANDOFF_AVATAR.md](/docs/_archive/root/DEVELOPER_HANDOFF_AVATAR.md)** - Avatar feature handoff (historical)
+- **[THOUGHTBOT_HANDOFF.md](THOUGHTBOT_HANDOFF.md)** - iOS handoff guide for Thoughtbot
 
 ---
 
