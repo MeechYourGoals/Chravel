@@ -90,9 +90,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-2">
-      <div className="bg-gray-900 rounded-t-2xl sm:rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] sm:max-h-[85vh] border border-gray-700 flex flex-col pb-[env(safe-area-inset-bottom)]">
+      <div className="bg-gray-900 rounded-t-2xl sm:rounded-xl shadow-2xl max-w-md w-full max-h-[80vh] sm:max-h-[85vh] border border-gray-700 flex flex-col">
         {/* Header */}
-        <div 
+        <div
           className="flex items-center justify-between p-3 border-b border-gray-700 flex-shrink-0"
           style={{ paddingTop: 'max(12px, calc(env(safe-area-inset-top, 0px) + 12px))' }}
         >
@@ -112,7 +112,10 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-3 overflow-y-auto flex-1">
+        <div
+          className="p-3 overflow-y-auto flex-1"
+          style={!hasAccess ? { paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px))' } : undefined}
+        >
           {/* Upgrade prompt when free export is used */}
           {showUpgradePrompt ? (
             <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 rounded-lg p-4 mb-3">
@@ -238,29 +241,32 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer - Always visible with safe area padding for PWA/mobile */}
         {hasAccess && (
-          <div className="flex items-center justify-end gap-2 p-3 border-t border-gray-700 flex-shrink-0">
+          <div
+            className="flex items-center justify-end gap-2 p-3 border-t border-gray-700 flex-shrink-0 bg-gray-900"
+            style={{ paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }}
+          >
             <button
               onClick={onClose}
               disabled={isExporting}
-              className="px-3 py-1.5 text-xs rounded-lg text-gray-300 hover:text-white transition-colors disabled:opacity-50"
+              className="px-4 py-2.5 text-sm rounded-lg text-gray-300 hover:text-white transition-colors disabled:opacity-50 min-h-[44px]"
             >
               Cancel
             </button>
             <button
               onClick={handleExport}
               disabled={isExporting || selectedSections.length === 0}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
             >
               {isExporting ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" />
+                  <Loader2 size={16} className="animate-spin" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <Download size={14} />
+                  <Download size={16} />
                   Create Recap
                 </>
               )}
