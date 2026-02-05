@@ -4,6 +4,7 @@ import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'rea
 import { Search, X, Loader2 } from 'lucide-react';
 import { BasecampLocation } from '@/types/basecamp';
 import { PlaceInfoOverlay, PlaceInfo } from './PlaceInfoOverlay';
+import { safeReload } from '@/utils/safeReload';
 import {
   loadMaps,
   autocomplete,
@@ -895,7 +896,7 @@ export const MapCanvas = forwardRef<MapCanvasRef, MapCanvasProps>(
               </div>
               
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => safeReload()}
                 className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
               >
                 Reload After Setup

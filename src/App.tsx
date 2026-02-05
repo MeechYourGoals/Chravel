@@ -30,6 +30,7 @@ import { useDeepLinks } from '@/hooks/useDeepLinks';
 
 import { toast } from '@/hooks/use-toast';
 import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
+import { safeReload } from '@/utils/safeReload';
 import { parseJwtPayload } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
 
@@ -414,7 +415,7 @@ const App = () => {
         caches.keys().then(names => Promise.all(names.map(n => caches.delete(n))));
       }
       localStorage.setItem(BREAKING_VERSION_KEY, CURRENT_BREAKING_VERSION);
-      window.location.reload();
+      safeReload(true);
     }
   }, []);
 
@@ -448,7 +449,7 @@ const App = () => {
         const registrations = await navigator.serviceWorker.getRegistrations();
         await Promise.all(registrations.map(reg => reg.unregister()));
       }
-      window.location.reload();
+      await safeReload();
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {

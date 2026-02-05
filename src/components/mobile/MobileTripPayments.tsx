@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Plus, DollarSign, CheckCircle, Clock, AlertCircle, Lock, Loader2, ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
 import { hapticService } from '@/services/hapticService';
+import { safeReload } from '@/utils/safeReload';
 import { CreatePaymentModal } from './CreatePaymentModal';
 import { demoModeService } from '@/services/demoModeService';
 import { paymentService } from '@/services/paymentService';
@@ -101,8 +102,8 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const handleRetryAfterTimeout = useCallback(() => {
     setHasTimedOut(false);
     setIsLoading(true);
-    // Re-trigger the useEffect fetch by changing a dependency (not ideal but works)
-    window.location.reload();
+    // Re-trigger the useEffect fetch by changing a dependency (Capacitor-safe)
+    safeReload();
   }, []);
 
   // Load trip members and payments - matching desktop PaymentsTab logic

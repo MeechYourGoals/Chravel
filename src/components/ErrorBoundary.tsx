@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
+import { safeReload } from '@/utils/safeReload';
 
 interface Props {
   children: ReactNode;
@@ -76,7 +77,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleClearAndReload = async () => {
     await clearAllCaches();
-    window.location.reload();
+    await safeReload();
   };
 
   public render() {
@@ -167,7 +168,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
               {!isChunk && (
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={() => safeReload()}
                   className="w-full bg-muted text-muted-foreground hover:bg-muted/80 px-6 py-3 rounded-xl transition-colors"
                 >
                   Refresh Page

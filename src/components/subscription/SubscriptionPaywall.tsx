@@ -4,6 +4,7 @@ import { Check, Loader2, Crown, Sparkles, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { safeReload } from '@/utils/safeReload';
 
 interface SubscriptionPaywallProps {
   /** Called when user successfully purchases */
@@ -259,7 +260,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
             <div className="flex flex-col items-center justify-center py-8">
               <AlertCircle className="w-8 h-8 text-destructive mb-4" />
               <p className="text-destructive text-center mb-4">{error}</p>
-              <Button variant="outline" onClick={() => window.location.reload()}>
+              <Button variant="outline" onClick={() => safeReload()}>
                 Try Again
               </Button>
             </div>

@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { safeReload } from '@/utils/safeReload';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { supabase } from '../../integrations/supabase/client';
 import { toast } from '../ui/use-toast';
@@ -71,7 +72,7 @@ export const ConfirmPaymentDialog = ({
       onOpenChange(false);
 
       // Refresh the page to show updated balances
-      window.location.reload();
+      await safeReload();
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error confirming payment:', error);
