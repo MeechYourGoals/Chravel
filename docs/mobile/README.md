@@ -30,11 +30,11 @@ Score = 100 - Σ(blocker_severity × blocker_weight) - Σ(risk_probability × ri
 
 ### Estimated Time to Ready: 2-4 business days
 - AI work: ✅ COMPLETE
-- Human/agency required: Apple portal setup, Xcode signing, TestFlight, screenshots
+- Human required: Apple portal setup, Xcode signing, TestFlight, screenshots
 
 ---
 
-### REMAINING BLOCKERS (Human/Agency Required)
+### REMAINING BLOCKERS (Human Required)
 
 | # | Blocker | Severity | Status | Owner | Est. Hours |
 |---|---------|----------|--------|-------|-----------|
@@ -413,7 +413,7 @@ Apple may reject apps that are "just a wrapped website." Evidence of native valu
 
 ## TASK 5 — OWNERSHIP SPLIT TABLE
 
-| Item | AI Can Implement Fully? | What AI Can Do Now | What Human/Agency Must Do |
+| Item | AI Can Implement Fully? | What AI Can Do Now | What Human Must Do |
 |------|------------------------|-------------------|---------------------------|
 | **App.entitlements file** | No | Create template file with correct keys | Add via Xcode Signing & Capabilities |
 | **APNs Key creation** | No | Document exact steps | Create in Apple Developer Portal, download .p8 |
@@ -574,7 +574,7 @@ npx cap run ios --target=<device-id>
 5. ~~**Implement account deletion**~~ ✅ Done - `ConsumerGeneralSettings.tsx`
 6. ~~**Implement APNs JWT signing**~~ ✅ Done - `send-push/index.ts`
 
-### For Human/Agency (NEXT STEPS)
+### For Human (NEXT STEPS)
 
 | Priority | Task | Est. Hours | Notes |
 |----------|------|------------|-------|
@@ -614,4 +614,4 @@ npx cap run ios --target=<device-id>
 
 ---
 
-**Audit Complete.** This document should be handed to any developer or agency for immediate action.
+**Audit Complete.** This document should be handed to the development team for immediate action.
