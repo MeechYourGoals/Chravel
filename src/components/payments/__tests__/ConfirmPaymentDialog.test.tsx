@@ -100,7 +100,7 @@ describe('ConfirmPaymentDialog', () => {
   it('should show preferred payment method when available', () => {
     const balanceWithMethod = {
       ...mockBalance,
-      preferredPaymentMethod: { type: 'venmo' as const, details: '@janedoe' },
+      preferredPaymentMethod: { id: 'pm-1', type: 'venmo' as const, identifier: '@janedoe' },
     };
 
     render(

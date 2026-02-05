@@ -37,8 +37,8 @@ describe('ErrorBoundary', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock import.meta.env.DEV
-    vi.stubEnv('DEV', '');
+    // Mock import.meta.env.DEV - expects boolean
+    vi.stubEnv('DEV', false);
     // Mock window.gtag
     (window as any).gtag = vi.fn();
   });

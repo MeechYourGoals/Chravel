@@ -11,6 +11,8 @@ import {
   Loader2,
   LogOut,
   AlertTriangle,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { InviteModal } from './InviteModal';
@@ -108,6 +110,20 @@ export const TripHeader = ({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [descEditTick, setDescEditTick] = useState(0);
+  
+  // Collapsible hero state (desktop only, persisted globally)
+  const [isHeroCollapsed, setIsHeroCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chravel-hero-collapsed') === 'true';
+    }
+    return false;
+  });
+
+  const toggleHeroCollapsed = () => {
+    const newValue = !isHeroCollapsed;
+    setIsHeroCollapsed(newValue);
+    localStorage.setItem('chravel-hero-collapsed', String(newValue));
+  };
 
   // Handle URL param to open collaborators modal on specific tab
   // This runs on mount and whenever searchParams changes
@@ -391,13 +407,21 @@ export const TripHeader = ({
 
   return (
     <>
-      {/* Cover Photo Hero - Show for ALL trip types (consumer, pro, event) */}
+      {/* Cover Photo Hero - Collapsible on Desktop */}
       {
         <div
           data-trip-section="hero"
           className={cn(
-            'relative rounded-2xl md:rounded-3xl overflow-hidden bg-cover bg-center',
-            drawerLayout ? 'h-full min-h-[320px] mb-0' : 'aspect-[3/1] min-h-[200px] mb-0 md:mb-8',
+            'relative rounded-2xl md:rounded-3xl overflow-hidden bg-cover bg-center transition-all duration-300',
+            // Mobile/tablet: always full height
+            drawerLayout ? 'h-full min-h-[320px] mb-0' : '',
+            // Desktop: collapsed vs expanded
+            !drawerLayout && (
+              isHeroCollapsed 
+                ? 'h-[140px] min-h-[140px]'
+                : 'aspect-[3/1] min-h-[200px]'
+            ),
+            'mb-0 md:mb-8',
           )}
           style={{
             backgroundImage: coverPhoto ? `url(${coverPhoto})` : undefined,
@@ -414,72 +438,139 @@ export const TripHeader = ({
             )}
           />
 
-          {/* Trip title at TOP-LEFT */}
-          <div className="absolute top-4 left-4 right-16 z-10">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg line-clamp-2">
-              {trip.title}
-            </h1>
-          </div>
-
-          {/* Location and dates at BOTTOM-LEFT - stacked vertically */}
-          <div className="absolute bottom-4 left-4 right-20 z-10">
-            <div className="flex flex-col gap-1 text-lg font-bold text-white">
-              {trip.location && (
-                <span className="flex items-center gap-1.5">
-                  <MapPin size={18} className="text-primary" />
-                  {trip.location}
-                </span>
-              )}
-              {trip.dateRange && (
-                <span className="flex items-center gap-1.5">
-                  <Calendar size={18} className="text-primary" />
-                  {trip.dateRange}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Add Cover Photo Button - Show when no cover photo */}
-          {!coverPhoto && (
-            <div className="absolute top-4 right-4 z-10">
-              <button
-                onClick={handleAddCoverPhotoClick}
-                disabled={isUpdating || isUploading}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2 text-white/80 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Add cover photo"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    <span className="text-sm font-medium">Uploading...</span>
-                  </>
-                ) : (
-                  <>
-                    <Camera size={16} />
-                    <span className="text-sm font-medium">Add Cover Photo</span>
-                  </>
-                )}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
+          {/* Collapsed Layout: Horizontal info row - Desktop only */}
+          {isHeroCollapsed && !drawerLayout && (
+            <div className="absolute inset-0 flex items-center justify-between px-6 z-10">
+              {/* Left: Title + Location/Date inline */}
+              <div className="flex flex-col gap-1">
+                <h1 className="text-xl font-bold text-white line-clamp-1">
+                  {trip.title}
+                </h1>
+                <div className="flex items-center gap-3 text-sm text-gray-300">
+                  {trip.location && (
+                    <span className="flex items-center gap-1">
+                      <MapPin size={14} className="text-primary" />
+                      {trip.location}
+                    </span>
+                  )}
+                  {trip.dateRange && (
+                    <>
+                      <span className="text-gray-500">•</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar size={14} className="text-primary" />
+                        {trip.dateRange}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              {/* Right: Action buttons */}
+              <div className="flex items-center gap-2">
+                {/* Expand button */}
+                <button
+                  onClick={toggleHeroCollapsed}
+                  className="p-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white"
+                  title="Expand cover photo"
+                >
+                  <ChevronDown size={16} />
+                </button>
+                {/* Edit button */}
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="p-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white"
+                  title="Edit trip details"
+                >
+                  <Edit size={14} />
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Edit Button - Bottom right */}
-          <div className="absolute bottom-2 right-2 z-10">
-            <button
-              onClick={() => setShowEditModal(true)}
-              className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg"
-              title="Edit trip details"
-            >
-              <Edit size={14} />
-            </button>
-          </div>
+          {/* Expanded Layout: Current layout with title top-left, details bottom-left */}
+          {(!isHeroCollapsed || drawerLayout) && (
+            <>
+              {/* Trip title at TOP-LEFT */}
+              <div className="absolute top-4 left-4 right-16 z-10">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg line-clamp-2">
+                  {trip.title}
+                </h1>
+              </div>
+
+              {/* Collapse button - Desktop only, top right */}
+              {!drawerLayout && (
+                <div className="hidden lg:block absolute top-4 right-4 z-10">
+                  <button
+                    onClick={toggleHeroCollapsed}
+                    className="p-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white"
+                    title="Collapse cover photo"
+                  >
+                    <ChevronUp size={16} />
+                  </button>
+                </div>
+              )}
+
+              {/* Location and dates at BOTTOM-LEFT - stacked vertically */}
+              <div className="absolute bottom-4 left-4 right-20 z-10">
+                <div className="flex flex-col gap-1 text-lg font-bold text-white">
+                  {trip.location && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin size={18} className="text-primary" />
+                      {trip.location}
+                    </span>
+                  )}
+                  {trip.dateRange && (
+                    <span className="flex items-center gap-1.5">
+                      <Calendar size={18} className="text-primary" />
+                      {trip.dateRange}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Add Cover Photo Button - Show when no cover photo */}
+              {!coverPhoto && (
+                <div className="absolute top-4 right-4 z-10 lg:right-16">
+                  <button
+                    onClick={handleAddCoverPhotoClick}
+                    disabled={isUpdating || isUploading}
+                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2 text-white/80 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Add cover photo"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span className="text-sm font-medium">Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Camera size={16} />
+                        <span className="text-sm font-medium">Add Cover Photo</span>
+                      </>
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+              )}
+
+              {/* Edit Button - Bottom right */}
+              <div className="absolute bottom-2 right-2 z-10">
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm border border-white/20 rounded-lg transition-all text-white/80 hover:text-white shadow-lg"
+                  title="Edit trip details"
+                >
+                  <Edit size={14} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       }
 
