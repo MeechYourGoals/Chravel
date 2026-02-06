@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { MapCanvas, MapCanvasRef } from './places/MapCanvas';
-import { UnifiedMapControls } from './places/UnifiedMapControls';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
 import {
   BasecampLocation,
   PlaceWithDistance,
-  DistanceCalculationSettings,
   PlaceCategory,
 } from '../types/basecamp';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -21,7 +18,6 @@ import { demoModeService } from '@/services/demoModeService';
 import { getTripById, generateTripMockData } from '@/data/tripsData';
 import { toast } from 'sonner';
 import { cacheEntity, getCachedEntity } from '@/offline/cache';
-import { withTimeout } from '@/utils/timeout';
 
 interface PlacesSectionProps {
   tripId?: string;
@@ -44,35 +40,11 @@ export const PlacesSection = ({
   const { data: tripBasecamp, isLoading: isBasecampLoading } = useTripBasecamp(tripId);
   const updateBasecampMutation = useUpdateTripBasecamp(tripId);
 
-  const mapRef = useRef<MapCanvasRef>(null);
-
   // State
   const [activeTab, setActiveTab] = useState<TabView>('basecamps');
   const [places, setPlaces] = useState<PlaceWithDistance[]>([]);
   const [linkedPlaceIds, setLinkedPlaceIds] = useState<Set<string>>(new Set());
-  const [searchContext, setSearchContext] = useState<'trip' | 'personal'>('trip');
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
-  // Reserved for personal basecamp modal
-  const [_showPersonalBasecampSelector, setShowPersonalBasecampSelector] = useState(false);
-
-  // Track most recent location for priority centering (reserved for future use)
-  const [_lastUpdatedLocation, setLastUpdatedLocation] = useState<{
-    type: 'trip' | 'personal' | 'search';
-    timestamp: number;
-    coords: { lat: number; lng: number };
-  } | null>(null);
-
-  // Search state (simplified - no autocomplete)
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [isMapLoading, setIsMapLoading] = useState(true);
-  // Distance settings for display purposes (basecamp distances are no longer calculated)
-  const distanceSettings: DistanceCalculationSettings = {
-    preferredMode: 'driving',
-    unit: 'miles',
-    showDistances: false, // Disabled since basecamps no longer have coordinates
-  };
 
   const { createLinkFromPlace, removeLinkByPlaceId } = usePlacesLinkSync();
 
@@ -134,7 +106,6 @@ export const PlacesSection = ({
         if (!trip) return [];
 
         // Bottom 6 consumer trips (IDs 7-12) intentionally empty to show empty state
-        // Only applies to numeric demo trip IDs
         if (typeof trip.id === 'number' && trip.id > 6) return [];
 
         const { links } = generateTripMockData(trip);
@@ -153,7 +124,6 @@ export const PlacesSection = ({
       };
 
       if (isDemoMode) {
-        // Load city-specific links from tripsData for demo mode
         try {
           const demoPlaces = await loadDemoPlacesFromTripsData();
           setPlaces(demoPlaces);
@@ -163,13 +133,11 @@ export const PlacesSection = ({
           }
         }
       } else {
-        // If offline, prefer cached.
         if (navigator.onLine === false && cachedPlaces.length > 0) {
           setPlaces(cachedPlaces);
           return;
         }
 
-        // Load real data for authenticated users
         const { data, error } = await supabase
           .from('trip_link_index')
           .select('*')
@@ -185,7 +153,6 @@ export const PlacesSection = ({
           return;
         }
 
-        // If DB is empty, fallback to tripsData for mock trips
         if (!data || data.length === 0) {
           const fallbackPlaces = await loadDemoPlacesFromTripsData();
           setPlaces(fallbackPlaces);
@@ -219,7 +186,6 @@ export const PlacesSection = ({
         });
         setPlaces(placesWithDistance);
 
-        // Cache for offline access (best-effort).
         await cacheEntity({
           entityType: 'trip_links',
           entityId: cacheKey,
@@ -231,9 +197,6 @@ export const PlacesSection = ({
 
     loadPlaces();
   }, [tripId, isDemoMode]);
-
-  // Trip basecamp is now loaded by useTripBasecamp hook - no manual loading needed
-  // The hook handles both demo mode and authenticated mode automatically
 
   // Load personal basecamp
   useEffect(() => {
@@ -261,13 +224,12 @@ export const PlacesSection = ({
 
   // Track local updates to prevent toast spam
   const lastLocalUpdateRef = useRef<{ timestamp: number; address: string } | null>(null);
-  const UPDATE_DEBOUNCE_MS = 2000; // 2 second window to detect local vs remote updates
+  const UPDATE_DEBOUNCE_MS = 2000;
 
   // Realtime sync for trip basecamp updates - invalidate TanStack Query cache
   useEffect(() => {
     if (isDemoMode || !tripId) return;
 
-    // Subscribe to trip basecamp changes
     const channel = supabase
       .channel(`trip_basecamp_${tripId}`)
       .on(
@@ -279,18 +241,15 @@ export const PlacesSection = ({
           filter: `id=eq.${tripId}`,
         },
         async _payload => {
-          // Conflict resolution: Check if this update came from local user
           const now = Date.now();
           const isLocalUpdate =
             lastLocalUpdateRef.current &&
             now - lastLocalUpdateRef.current.timestamp < UPDATE_DEBOUNCE_MS;
 
           if (!isLocalUpdate) {
-            // Remote update - invalidate TanStack Query cache to fetch fresh data
             console.log('[PlacesSection] Remote basecamp update detected, invalidating cache');
             queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
 
-            // Fetch updated basecamp to show notification with new value
             const updatedBasecamp = await basecampService.getTripBasecamp(tripId);
             if (updatedBasecamp) {
               toast.success('Trip Base Camp updated by another member!', {
@@ -309,20 +268,12 @@ export const PlacesSection = ({
     };
   }, [tripId, isDemoMode, queryClient]);
 
-  // Note: Search origin and distance calculations are no longer tied to basecamps
-  // Basecamps are now simple text references without coordinates
-  // The map is for browsing only and is not affected by basecamp changes
-
   const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
-    // Track local update for conflict resolution
     lastLocalUpdateRef.current = {
       timestamp: Date.now(),
       address: newBasecamp.address,
     };
 
-    // Use the mutation hook which handles optimistic updates, rollback, and cache invalidation
-    // CRITICAL: Do NOT catch errors here - let them propagate to BasecampSelector
-    // so it can show the correct toast (success vs error)
     await updateBasecampMutation.mutateAsync({
       name: newBasecamp.name,
       address: newBasecamp.address,
@@ -335,110 +286,6 @@ export const PlacesSection = ({
     }
   };
 
-  const handleCenterMap = (
-    coords: { lat: number; lng: number },
-    type?: 'trip' | 'personal' | 'search',
-  ) => {
-    if (!coords?.lat || !coords?.lng) {
-      if (import.meta.env.DEV) {
-        console.warn('[Map] Invalid coordinates provided to handleCenterMap:', coords);
-      }
-      return;
-    }
-
-    // Validate coordinate ranges
-    if (coords.lat < -90 || coords.lat > 90 || coords.lng < -180 || coords.lng > 180) {
-      if (import.meta.env.DEV) {
-        console.error('[Map] Coordinates out of valid range:', coords);
-      }
-      return;
-    }
-
-    mapRef.current?.centerOn(coords, 15);
-
-    if (type) {
-      // Track most recent location update for "most recent wins" logic
-      setLastUpdatedLocation({
-        type: type,
-        timestamp: Date.now(),
-        coords: coords,
-      });
-
-      // Update search context (for UI highlighting)
-      if (type !== 'search') {
-        setSearchContext(type);
-      }
-    }
-  };
-
-  const handleContextChange = (context: 'trip' | 'personal') => {
-    setSearchContext(context);
-    // Note: Search origin is no longer tied to basecamps since they don't have coordinates
-    // Users can still search the map freely
-
-    // Show personal basecamp selector if personal context selected but not set
-    if (context === 'personal' && !personalBasecamp) {
-      setShowPersonalBasecampSelector(true);
-    }
-  };
-
-  // Simple search handler - just update the query
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
-    setSearchError(null);
-  };
-
-  // Simple search submit - geocode and center map (like Trip Base Camp)
-  const handleSearchSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedQuery = searchQuery.trim();
-    if (!trimmedQuery) return;
-
-    setIsSearching(true);
-    setSearchError(null);
-
-    // Failsafe: Reset searching state after 10 seconds max
-    const timeoutId = setTimeout(() => {
-      setIsSearching(false);
-      setSearchError('Search timed out. Please try again.');
-    }, 10000);
-
-    try {
-      // Import and use Nominatim geocoding directly (same as Trip Base Camp)
-      const { GoogleMapsService } = await import('@/services/googleMapsService');
-      const coords = await GoogleMapsService.geocodeWithNominatim(trimmedQuery);
-
-      clearTimeout(timeoutId);
-
-      if (coords) {
-        // Center map on the found location - pass display name for embed URL
-        mapRef.current?.centerOn(
-          { lat: coords.lat, lng: coords.lng }, 
-          15, 
-          coords.displayName || trimmedQuery  // Pass address for fallback mode
-        );
-        setSearchError(null);
-      } else {
-        // Location not found - show error
-        setSearchError('Location not found');
-      }
-    } catch (error) {
-      clearTimeout(timeoutId);
-      if (import.meta.env.DEV) {
-        console.error('[PlacesSection] Search error:', error);
-      }
-      setSearchError('Search failed. Please try again.');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery('');
-    setSearchError(null);
-    mapRef.current?.clearSearch();
-  };
-
   const toBasecampLocation = (pb: PersonalBasecamp): BasecampLocation => ({
     address: pb.address || '',
     name: pb.name,
@@ -446,15 +293,8 @@ export const PlacesSection = ({
     coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined,
   });
 
-  // Wrapper for personal basecamp updates
   const handlePersonalBasecampUpdate = (basecamp: PersonalBasecamp | null) => {
     setPersonalBasecamp(basecamp);
-    // Note: Map centering is now disconnected from basecamp saving
-    // Basecamps are simple text references without coordinates
-  };
-
-  const handleMapReady = () => {
-    setIsMapLoading(false);
   };
 
   return (
@@ -486,16 +326,13 @@ export const PlacesSection = ({
         <div className="flex-none w-[100px]"></div>
       </div>
 
-      {/* Tab Content - ABOVE map */}
+      {/* Tab Content */}
       <div className="w-full px-0 mb-2 md:mb-6">
         {activeTab === 'basecamps' && (
           <BasecampsPanel
             tripId={tripId}
             tripBasecamp={tripBasecamp || null}
             onTripBasecampSet={handleBasecampSet}
-            onCenterMap={handleCenterMap}
-            activeContext={searchContext}
-            onContextChange={handleContextChange}
             personalBasecamp={personalBasecamp}
             onPersonalBasecampUpdate={handlePersonalBasecampUpdate}
           />
@@ -522,56 +359,9 @@ export const PlacesSection = ({
             onEventAdded={_eventData => {
               // Event added to calendar (reserved for future use)
             }}
-            onCenterMap={coords => {
-              if (mapRef.current) {
-                mapRef.current.centerOn(coords, 15);
-              }
-            }}
-            distanceUnit={distanceSettings.unit}
-            preferredMode={distanceSettings.preferredMode}
           />
         )}
       </div>
-
-      {/* Map - ONLY SHOW ON BASECAMPS TAB */}
-      {activeTab === 'basecamps' && (
-        <div className="mb-2 md:mb-6">
-          <div className="relative h-[52.5vh] md:h-[450px] rounded-2xl overflow-hidden shadow-2xl">
-            <MapCanvas
-              ref={mapRef}
-              activeContext={searchContext}
-              tripBasecamp={tripBasecamp || null}
-              personalBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : null}
-              className="w-full h-full"
-              onMapReady={handleMapReady}
-              onSaveSearchAsBasecamp={location => {
-                // Save searched location as trip basecamp
-                const newBasecamp: BasecampLocation = {
-                  address: location.address,
-                  name: location.address.split(',')[0],
-                  type: 'other',
-                  coordinates: { lat: location.lat, lng: location.lng },
-                };
-                handleBasecampSet(newBasecamp);
-                toast.success('Saved as Trip Base Camp!', {
-                  description: newBasecamp.name,
-                });
-              }}
-            />
-
-            {/* Unified Map Controls - floating on map (simple search bar) */}
-            <UnifiedMapControls
-              searchQuery={searchQuery}
-              onSearchChange={handleSearchChange}
-              onSearchSubmit={handleSearchSubmit}
-              isSearching={isSearching}
-              searchError={searchError}
-              onClearSearch={handleClearSearch}
-              isMapLoading={isMapLoading}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

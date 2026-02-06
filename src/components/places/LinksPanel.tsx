@@ -21,9 +21,6 @@ export interface LinksPanelProps {
   onAddToLinks: (place: PlaceWithDistance) => Promise<boolean>;
   linkedPlaceIds: Set<string>;
   onEventAdded: (eventData: AddToCalendarData) => void;
-  onCenterMap: (coords: { lat: number; lng: number }) => void;
-  distanceUnit: string;
-  preferredMode: string;
 }
 
 export const LinksPanel: React.FC<LinksPanelProps> = ({
@@ -36,9 +33,6 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
   onAddToLinks,
   linkedPlaceIds,
   onEventAdded,
-  onCenterMap,
-  distanceUnit,
-  preferredMode
 }) => {
   const { user } = useAuth();
   const { subscription } = useSubscription();
