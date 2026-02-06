@@ -549,6 +549,122 @@ export const calendarService = {
     }
   },
 
+  /**
+   * Bulk create events in a single insert call.
+   * Performs auth, super admin, and membership checks ONCE,
+   * then inserts all events in one Supabase request.
+   * Falls back to parallel batches of 5 if single insert fails.
+   */
+  async bulkCreateEvents(events: CreateEventData[]): Promise<{
+    imported: number;
+    failed: number;
+    events: TripEvent[];
+  }> {
+    if (!events.length) {
+      return { imported: 0, failed: 0, events: [] };
+    }
+
+    // 1. Auth check ONCE
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('You must be logged in to import events.');
+
+    // 2. Super admin check ONCE
+    const isSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+
+    // 3. Membership check ONCE (all events share the same trip)
+    const tripId = events[0].trip_id;
+    if (!isSuperAdmin) {
+      await this.ensureTripMembership(tripId, user.id);
+    } else {
+      await this.ensureTripMembership(tripId, user.id);
+    }
+
+    // 4. Build insert rows
+    const rows = events.map(e => ({
+      trip_id: e.trip_id,
+      title: e.title,
+      description: e.description || null,
+      location: e.location || null,
+      start_time: e.start_time,
+      end_time: e.end_time || null,
+      created_by: user.id,
+      event_category: e.event_category || 'other',
+      include_in_itinerary: e.include_in_itinerary ?? true,
+      source_type: e.source_type || 'manual',
+      source_data: e.source_data || {},
+    }));
+
+    // 5. Single bulk insert
+    console.log(`[calendarService] Bulk inserting ${rows.length} events for trip ${tripId}`);
+    const { data, error } = await supabase
+      .from('trip_events')
+      .insert(rows)
+      .select('*');
+
+    if (!error && data) {
+      console.log(`[calendarService] Bulk insert success: ${data.length} events`);
+      // Cache all events
+      for (const event of data) {
+        await offlineSyncService.cacheEntity(
+          'calendar_event',
+          event.id,
+          event.trip_id,
+          event,
+          event.version || 1
+        );
+      }
+      return { imported: data.length, failed: 0, events: data };
+    }
+
+    // 6. Fallback: parallel batches of 5
+    console.warn('[calendarService] Bulk insert failed, falling back to batches:', error?.message);
+    return await this.batchInsertFallback(rows, user.id);
+  },
+
+  /**
+   * Fallback: insert events in parallel batches of 5.
+   * Used when a single bulk insert fails (e.g., one bad row).
+   */
+  async batchInsertFallback(
+    rows: Record<string, any>[],
+    userId: string
+  ): Promise<{ imported: number; failed: number; events: TripEvent[] }> {
+    const BATCH_SIZE = 5;
+    let imported = 0;
+    let failed = 0;
+    const allEvents: TripEvent[] = [];
+
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const batch = rows.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (row) => {
+          const { data, error } = await supabase
+            .from('trip_events')
+            .insert(row as any)
+            .select('*')
+            .single();
+          if (error) throw error;
+          return data;
+        })
+      );
+
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value) {
+          imported++;
+          allEvents.push(result.value);
+        } else {
+          failed++;
+          if (result.status === 'rejected') {
+            console.warn('[calendarService] Batch item failed:', result.reason?.message);
+          }
+        }
+      }
+    }
+
+    console.log(`[calendarService] Batch fallback complete: ${imported} imported, ${failed} failed`);
+    return { imported, failed, events: allEvents };
+  },
+
   // Convert database event to CalendarEvent format
   convertToCalendarEvent(tripEvent: any): CalendarEvent {
     const startDate = new Date(tripEvent.start_time);
