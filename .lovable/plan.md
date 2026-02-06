@@ -1,26 +1,40 @@
 
 
-# Update Marketing Copy for Calendar Features Across Pricing Tiers
+# Revert HTML Stripping, Increase Limits for Full-Page Parsing
 
-## Summary
+## Root Cause (Confirmed by Logs)
 
-Three targeted copy changes to the consumer pricing tiers in `PricingSection.tsx` to better communicate the calendar import feature progression across plans.
+The `stripHtmlCruft()` function removes `<script>` tags, but NBA.com (and many modern sites) render schedule data entirely via JavaScript. The schedule data is embedded inside `<script>` tags as JSON payloads. Stripping scripts removed ALL schedule content.
+
+```
+Before: 624,845 characters (full page with schedule data in scripts)
+After:  74 characters (empty shell - zero schedule data)
+AI got: 74 chars -> returned [] -> "No events found"
+```
+
+## Solution
+
+Remove `stripHtmlCruft()` entirely and increase the character limit so Gemini Flash can parse the full raw HTML. Gemini Flash has a 1M token context window -- 600KB of HTML is roughly 150-200K tokens, well within capacity.
 
 ## Changes
 
-**File: `src/components/conversion/PricingSection.tsx`**
+**File: `supabase/functions/scrape-schedule/index.ts`**
 
-| Tier | Current Copy | Updated Copy |
-|------|-------------|--------------|
-| Free Plan (line 63) | "Basic itinerary planning" | "Shared Group Calendar Sync" |
-| Explorer (after line 89) | _(nothing)_ | Add "Calendar Importing" after "ICS calendar export" |
-| Frequent Chraveler (line 110) | "Calendar sync (Google, Apple, Outlook)" | "Smart Calendar Import (URL, ICS, PDF, Excel)" |
+| Change | Detail |
+|--------|--------|
+| Remove `stripHtmlCruft()` function | Delete lines 24-54 (the entire function definition) |
+| Remove the call to `stripHtmlCruft()` | Delete lines 153-156 where it's called and logged |
+| Increase MAX_HTML_LENGTH | Change from 150,000 to 800,000 characters (~200K tokens, well within Gemini Flash 1M limit) |
+| Keep max_tokens at 16,000 | Already increased from previous fix, sufficient for full-season schedules |
+| Update truncation log message | Simplify since there's no more stripping step |
 
-## Why This Works
+### After the change, the flow is:
 
-- **Free**: "Shared Group Calendar Sync" sounds more valuable and specific than "Basic itinerary planning" -- it highlights the collaborative, real-time nature of the calendar
-- **Explorer**: "Calendar Importing" is clear, simple language that any user understands -- no jargon like "priority processing"
-- **Frequent Chraveler**: "Smart Calendar Import (URL, ICS, PDF, Excel)" spells out the full breadth of import sources, making it the obvious power-user tier for teams and tour managers who need bulk schedule importing
+1. Fetch raw HTML from URL (624KB for nba.com)
+2. Truncate to 800K chars if needed (most pages won't hit this)
+3. Send full HTML directly to Gemini Flash
+4. Gemini extracts schedule data from script tags, tables, divs -- wherever it lives
+5. Return all future events
 
-This creates a natural feature ladder: Sync (free) -> Import (Explorer) -> Smart Import with all formats (Frequent Chraveler).
+No other files need to change. The frontend CalendarImportModal already handles the response correctly.
 
