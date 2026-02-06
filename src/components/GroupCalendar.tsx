@@ -7,7 +7,7 @@ import { CalendarHeader } from '@/features/calendar/components/CalendarHeader';
 import { CalendarGrid } from '@/features/calendar/components/CalendarGrid';
 import { AddEventModal } from '@/features/calendar/components/AddEventModal';
 import { EventList } from '@/features/calendar/components/EventList';
-import { ICSImportModal } from '@/features/calendar/components/ICSImportModal';
+import { CalendarImportModal } from '@/features/calendar/components/CalendarImportModal';
 import { exportTripEventsToICal } from '@/services/calendarSync';
 import { useToast } from '@/hooks/use-toast';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
@@ -187,7 +187,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         />
 
         {/* ICS Import Modal */}
-        <ICSImportModal
+        <CalendarImportModal
           isOpen={showImportModal}
           onClose={() => setShowImportModal(false)}
           tripId={tripId}
@@ -211,7 +211,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         <ItineraryView events={events} tripName="Trip Itinerary" />
 
         {/* ICS Import Modal */}
-        <ICSImportModal
+        <CalendarImportModal
           isOpen={showImportModal}
           onClose={() => setShowImportModal(false)}
           tripId={tripId}
@@ -298,7 +298,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       />
 
       {/* ICS Import Modal */}
-      <ICSImportModal
+      <CalendarImportModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         tripId={tripId}

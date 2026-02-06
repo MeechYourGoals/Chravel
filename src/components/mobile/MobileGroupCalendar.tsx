@@ -27,7 +27,7 @@ import {
   isSameMonth,
 } from 'date-fns';
 import { CreateEventModal } from './CreateEventModal';
-import { ICSImportModal } from '@/features/calendar/components/ICSImportModal';
+import { CalendarImportModal } from '@/features/calendar/components/CalendarImportModal';
 import { useCalendarEvents } from '@/features/calendar/hooks/useCalendarEvents';
 import { toast } from 'sonner';
 import { calendarExporter } from '../../utils/calendarExport';
@@ -622,8 +622,8 @@ export const MobileGroupCalendar = ({
         }}
       />
 
-      {/* ICS Import Modal */}
-      <ICSImportModal
+      {/* Calendar Import Modal */}
+      <CalendarImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         tripId={tripId}
