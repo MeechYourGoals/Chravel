@@ -378,6 +378,10 @@ class BasecampService {
    * Bypasses the versioned RPC (no optimistic locking) but ensures the save succeeds.
    * This handles the case where the RPC function has a bug (e.g., log_basecamp_change
    * column mismatch) but the user still has UPDATE RLS access to the trips table.
+   *
+   * Uses .select() after .update() so PostgREST returns the affected rows.
+   * Without .select(), an RLS-blocked UPDATE returns no error and 0 rows — a silent no-op
+   * that the old code incorrectly treated as success.
    */
   private async tryDirectBasecampUpdate(
     tripId: string,
@@ -386,7 +390,7 @@ class BasecampService {
     longitude: number | null,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('trips')
         .update({
           basecamp_name: basecamp.name || null,
@@ -394,7 +398,8 @@ class BasecampService {
           basecamp_latitude: latitude,
           basecamp_longitude: longitude,
         })
-        .eq('id', tripId);
+        .eq('id', tripId)
+        .select('id, basecamp_address');
 
       if (error) {
         console.error(this.LOG_PREFIX, 'tryDirectBasecampUpdate: UPDATE error', {
@@ -405,20 +410,30 @@ class BasecampService {
         return { success: false, error: error.message };
       }
 
-      // Verify the update was persisted
-      const { data: verifyData } = await supabase
-        .from('trips')
-        .select('basecamp_address')
-        .eq('id', tripId)
-        .single();
+      // If no rows were returned, the UPDATE was silently blocked by RLS (0 rows affected).
+      if (!data || data.length === 0) {
+        console.error(this.LOG_PREFIX, 'tryDirectBasecampUpdate: 0 rows updated (RLS blocked)', {
+          tripId,
+        });
+        return {
+          success: false,
+          error: 'Unable to update trip basecamp. You may not have permission.',
+        };
+      }
 
-      if (verifyData?.basecamp_address !== basecamp.address) {
-        console.warn(this.LOG_PREFIX, 'tryDirectBasecampUpdate: verification mismatch', {
+      // Confirm the returned row actually has the new address
+      const updatedRow = data[0];
+      if (updatedRow.basecamp_address !== basecamp.address) {
+        console.warn(this.LOG_PREFIX, 'tryDirectBasecampUpdate: returned address mismatch', {
           tripId,
           expected: basecamp.address,
-          actual: verifyData?.basecamp_address,
+          actual: updatedRow.basecamp_address,
         });
-        // Don't fail - may be transient read inconsistency
+        // Still treat as failure — the row didn't actually get our value
+        return {
+          success: false,
+          error: 'Basecamp update did not persist. Please try again.',
+        };
       }
 
       return { success: true };
