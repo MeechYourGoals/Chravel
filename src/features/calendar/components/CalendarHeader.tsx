@@ -43,55 +43,53 @@ export const CalendarHeader = ({
   };
 
   return (
-    <div className="grid grid-cols-9 gap-2 mb-6 items-center">
-      {/* Left: Group Calendar Title - spans first 5 columns */}
-      <h2 className="col-span-5 text-2xl font-bold text-foreground">Group Calendar</h2>
+    <div className="flex gap-2 mb-6 items-center">
+      {/* Left: Group Calendar Title - takes space of first 4 tabs (Chat, Calendar, Concierge, Media) */}
+      <div className="flex-[4] flex items-center">
+        <h2 className="text-2xl font-bold text-foreground">Group Calendar</h2>
+      </div>
 
       {/* Import button - aligned under Payments */}
       <Button
         variant="outline"
         onClick={onImport}
-        size="sm"
-        className="col-span-1 w-full flex items-center justify-center gap-1.5"
+        className="flex-1 flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[42px] rounded-xl font-medium text-sm"
         disabled={!onImport}
       >
-        <Upload className="h-4 w-4" />
-        <span className="hidden lg:inline">Import</span>
+        <Upload className="h-4 w-4 flex-shrink-0" />
+        <span className="hidden lg:inline whitespace-nowrap">Import</span>
       </Button>
 
       {/* Export button - aligned under Places */}
       <Button
         variant="outline"
         onClick={onExport}
-        size="sm"
-        className="col-span-1 w-full flex items-center justify-center gap-1.5"
+        className="flex-1 flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[42px] rounded-xl font-medium text-sm"
         disabled={!onExport}
       >
-        <Download className="h-4 w-4" />
-        <span className="hidden lg:inline">Export</span>
+        <Download className="h-4 w-4 flex-shrink-0" />
+        <span className="hidden lg:inline whitespace-nowrap">Export</span>
       </Button>
 
       {/* View toggle button - aligned under Polls */}
       <Button
         variant="outline"
         onClick={onToggleView}
-        size="sm"
-        className="col-span-1 w-full flex items-center justify-center gap-1.5"
+        className="flex-1 flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[42px] rounded-xl font-medium text-sm"
       >
         {getViewButtonIcon()}
-        <span className="hidden lg:inline">{getViewButtonLabel()}</span>
+        <span className="hidden lg:inline whitespace-nowrap">{getViewButtonLabel()}</span>
       </Button>
 
       {/* Add Event button - aligned under Tasks */}
       <Button
         variant="outline"
         onClick={onAddEvent}
-        size="sm"
-        className="col-span-1 w-full flex items-center justify-center gap-1.5"
+        className="flex-1 flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[42px] rounded-xl font-medium text-sm"
         disabled={!onAddEvent}
       >
-        <Plus className="h-4 w-4" />
-        <span className="hidden lg:inline">Add Event</span>
+        <Plus className="h-4 w-4 flex-shrink-0" />
+        <span className="hidden lg:inline whitespace-nowrap">Add Event</span>
       </Button>
     </div>
   );
