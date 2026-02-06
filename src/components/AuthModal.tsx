@@ -13,7 +13,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
-  const { signIn, signUp, resetPassword, signInWithGoogle, isLoading, user } = useAuth();
+  const { signIn, signUp, resetPassword, isLoading, user } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>(initialMode ?? 'signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +25,6 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   // Track when we're waiting for auth state to update after successful sign-in
   const [awaitingAuth, setAwaitingAuth] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Close modal immediately if user is already authenticated when modal opens
@@ -92,23 +91,6 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setError('');
-    setGoogleLoading(true);
-    try {
-      const result = await signInWithGoogle();
-      if (result.error) {
-        setError(result.error);
-        setGoogleLoading(false);
-        return;
-      }
-      // OAuth will redirect, so we don't need to handle success here
-    } catch (error) {
-      console.error('Google sign-in error:', error);
-      setError('Failed to sign in with Google');
-      setGoogleLoading(false);
-    }
-  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -31,20 +31,10 @@ export class GoogleCalendarService {
   }
 
   async authenticateUser(): Promise<string> {
-    // In production, these would come from environment variables
-    const clientId = 'your_google_client_id';
-    const redirectUri = `${window.location.origin}/auth/google/callback`;
-    
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-      `client_id=${clientId}&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `response_type=code&` +
-      `scope=${encodeURIComponent('https://www.googleapis.com/auth/calendar')}&` +
-      `access_type=offline&` +
-      `prompt=consent`;
-    
-    window.location.href = authUrl;
-    return authUrl;
+    throw new Error(
+      'Google Calendar OAuth is not configured. ' +
+      'A Google Cloud client ID and redirect URI must be set up before calendar sync can work.',
+    );
   }
 
   async handleAuthCallback(code: string): Promise<CalendarConnection> {
