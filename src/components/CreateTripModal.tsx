@@ -13,9 +13,6 @@ import {
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
-import { Switch } from './ui/switch';
-import { Checkbox } from './ui/checkbox';
-import { DEFAULT_FEATURES, PRO_FEATURES, EVENT_FEATURES } from '../hooks/useFeatureToggle';
 import { useTrips } from '../hooks/useTrips';
 import { useOrganization } from '../hooks/useOrganization';
 import { useAuth } from '../hooks/useAuth';
@@ -68,11 +65,6 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { organizations, fetchUserOrganizations } = useOrganization();
 
-  const [enableAllFeatures, setEnableAllFeatures] = useState(true);
-  const [selectedFeatures, setSelectedFeatures] = useState<Record<string, boolean>>(
-    PRO_FEATURES.reduce((acc, feature) => ({ ...acc, [feature]: true }), {}),
-  );
-
   useEffect(() => {
     if (isOpen) {
       // Fetch organizations (hook handles demo mode internally)
@@ -95,15 +87,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     }
   }, [isOpen, fetchUserOrganizations]);
 
-  // Update privacy mode and features when trip type changes
+  // Update privacy mode when trip type changes
   const handleTripTypeChange = (newTripType: 'consumer' | 'pro' | 'event') => {
     setTripType(newTripType);
     setPrivacyMode(getDefaultPrivacyMode(newTripType));
-
-    // Reset features based on trip type
-    const features = newTripType === 'event' ? EVENT_FEATURES : PRO_FEATURES;
-    setSelectedFeatures(features.reduce((acc, feature) => ({ ...acc, [feature]: true }), {}));
-    setEnableAllFeatures(true);
   };
 
   // Validation functions
@@ -207,12 +194,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         ...(tripType !== 'consumer' && { card_color: selectedCardColor }),
         privacy_mode: privacyMode,
         ai_access_enabled: privacyMode === 'standard',
-        // ✅ Phase 2: Pass feature toggles for Pro/Event trips
-        ...(tripType !== 'consumer' && {
-          enabled_features: Object.entries(selectedFeatures)
-            .filter(([_, enabled]) => enabled)
-            .map(([feature, _]) => feature),
-        }),
+        // All features are enabled by default for all trip types (MVP)
+        // The edge function sets the correct feature set based on trip_type
       };
 
       const newTrip = await createTrip(tripData);
@@ -353,24 +336,6 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         title: nameError,
       }));
     }
-  };
-
-  const handleFeatureToggle = (feature: string, enabled: boolean) => {
-    setSelectedFeatures(prev => ({ ...prev, [feature]: enabled }));
-  };
-
-  const featureLabels: Record<string, string> = {
-    agenda: 'Agenda',
-    chat: 'Chat',
-    calendar: 'Calendar',
-    concierge: 'Concierge',
-    lineup: 'Line-up',
-    media: 'Media',
-    payments: 'Payments',
-    places: 'Places',
-    polls: 'Polls',
-    tasks: 'Tasks',
-    team: 'Team',
   };
 
   return (
@@ -693,13 +658,13 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               </div>
             )}
 
-          {/* Advanced Feature Settings - Only for Pro/Event trips */}
+          {/* Advanced Settings - Only for Pro/Event trips */}
           {tripType !== 'consumer' && (
             <Collapsible className="space-y-3">
               <CollapsibleTrigger className="w-full flex items-center justify-between p-3 bg-slate-700/30 hover:bg-slate-700/50 rounded-xl transition-colors">
                 <div className="flex items-center gap-2 text-slate-300">
                   <Settings size={16} />
-                  <span className="text-sm font-medium">Advanced • Feature Set</span>
+                  <span className="text-sm font-medium">Advanced</span>
                 </div>
                 <ChevronDown
                   size={16}
@@ -732,37 +697,6 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                     Color-code your {tripType === 'pro' ? 'Pro trips' : 'Events'} for easy
                     organization
                   </p>
-                </div>
-
-                {/* Enable All Toggle */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-600/50">
-                  <label className="text-sm font-medium text-slate-300">Enable all features</label>
-                  <Switch checked={enableAllFeatures} onCheckedChange={setEnableAllFeatures} />
-                </div>
-
-                {/* Individual Feature Checkboxes */}
-                <div
-                  className={`space-y-3 ${enableAllFeatures ? 'pointer-events-none opacity-50' : ''}`}
-                >
-                  <p className="text-xs text-slate-400 mb-3">
-                    Select which features participants can access:
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {(tripType === 'event' ? EVENT_FEATURES : PRO_FEATURES).map(feature => (
-                      <div key={feature} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={feature}
-                          checked={selectedFeatures[feature]}
-                          onCheckedChange={checked =>
-                            handleFeatureToggle(feature, checked as boolean)
-                          }
-                        />
-                        <label htmlFor={feature} className="text-sm text-slate-300 cursor-pointer">
-                          {featureLabels[feature]}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </CollapsibleContent>
             </Collapsible>
