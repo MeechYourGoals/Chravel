@@ -222,9 +222,9 @@ export class GoogleMapsService {
         return `${baseUrl}?output=embed&q=${q}`;
       }
 
-      // If we have coordinates, show that location
+      // If we have coordinates, show that location using q= (more reliable than ll=)
       if (coords) {
-        return `${baseUrl}?output=embed&ll=${coords.lat},${coords.lng}&z=15`;
+        return `${baseUrl}?output=embed&q=${coords.lat},${coords.lng}&z=15`;
       }
 
       // Default: show world map centered on US
