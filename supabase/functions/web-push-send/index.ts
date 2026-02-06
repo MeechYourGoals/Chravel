@@ -356,10 +356,15 @@ async function encryptPushMessage(
 
   // Convert nonce to ArrayBuffer
   const nonceBuffer = nonce.buffer.slice(nonce.byteOffset, nonce.byteOffset + nonce.byteLength) as ArrayBuffer;
+  // Convert paddedPayload to ArrayBuffer (Deno requires ArrayBuffer, not Uint8Array)
+  const paddedPayloadBuffer = paddedPayload.buffer.slice(
+    paddedPayload.byteOffset,
+    paddedPayload.byteOffset + paddedPayload.byteLength
+  ) as ArrayBuffer;
   const encryptedRecord = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv: nonceBuffer },
     cekKey,
-    paddedPayload
+    paddedPayloadBuffer
   );
 
   // Step 7: Build the aes128gcm body (RFC 8188)
