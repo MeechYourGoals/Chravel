@@ -418,7 +418,7 @@ export const TripHeader = ({
             // Desktop: collapsed vs expanded
             !drawerLayout && (
               isHeroCollapsed 
-                ? 'h-[140px] min-h-[140px]'
+                ? 'min-h-[200px]'
                 : 'aspect-[3/1] min-h-[200px]'
             ),
             'mb-0 md:mb-8',
@@ -443,13 +443,13 @@ export const TripHeader = ({
             <div className="absolute inset-0 flex items-center justify-between px-6 z-10">
               {/* Left: Title + Location/Date inline */}
               <div className="flex flex-col gap-1">
-                <h1 className="text-xl font-bold text-white line-clamp-1">
+                <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-lg line-clamp-1">
                   {trip.title}
                 </h1>
-                <div className="flex items-center gap-3 text-sm text-gray-300">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-base md:text-lg font-bold text-white">
                   {trip.location && (
                     <span className="flex items-center gap-1">
-                      <MapPin size={14} className="text-primary" />
+                      <MapPin size={18} className="text-primary" />
                       {trip.location}
                     </span>
                   )}
@@ -457,7 +457,7 @@ export const TripHeader = ({
                     <>
                       <span className="text-gray-500">•</span>
                       <span className="flex items-center gap-1">
-                        <Calendar size={14} className="text-primary" />
+                        <Calendar size={18} className="text-primary" />
                         {trip.dateRange}
                       </span>
                     </>
