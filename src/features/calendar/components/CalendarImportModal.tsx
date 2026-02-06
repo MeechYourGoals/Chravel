@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import {
   Upload,
@@ -16,12 +17,15 @@ import {
   Image,
   Type,
   Sparkles,
+  Globe,
+  Link,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ICSParsedEvent, findDuplicateEvents } from '@/utils/calendarImport';
 import {
   parseCalendarFile,
   parseTextWithAI,
+  parseURLSchedule,
   SmartParseResult,
   getFormatLabel,
 } from '@/utils/calendarImportParsers';
@@ -48,6 +52,7 @@ const FORMAT_BADGES = [
   { label: 'Excel', icon: FileSpreadsheet },
   { label: 'PDF', icon: FileText },
   { label: 'Image', icon: Image },
+  { label: 'URL', icon: Globe },
 ];
 
 export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
@@ -63,6 +68,8 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const [importProgress, setImportProgress] = useState({ imported: 0, skipped: 0, failed: 0 });
   const [showPasteInput, setShowPasteInput] = useState(false);
   const [pasteText, setPasteText] = useState('');
+  const [urlInput, setUrlInput] = useState('');
+  const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetState = useCallback(() => {
@@ -72,6 +79,8 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
     setImportProgress({ imported: 0, skipped: 0, failed: 0 });
     setShowPasteInput(false);
     setPasteText('');
+    setUrlInput('');
+    setParsingSource('file');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -114,6 +123,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
       const file = event.target.files?.[0];
       if (!file) return;
 
+      setParsingSource('file');
       setState('parsing');
       const result = await parseCalendarFile(file);
       processParseResult(result);
@@ -124,10 +134,30 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const handlePasteSubmit = useCallback(async () => {
     if (!pasteText.trim()) return;
 
+    setParsingSource('text');
     setState('parsing');
     const result = await parseTextWithAI(pasteText.trim());
     processParseResult(result);
   }, [pasteText, processParseResult]);
+
+  const isValidUrl = useCallback((str: string) => {
+    try {
+      const url = new URL(str);
+      return url.protocol === 'https:' || url.protocol === 'http:';
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const handleUrlImport = useCallback(async () => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+
+    setParsingSource('url');
+    setState('parsing');
+    const result = await parseURLSchedule(trimmed);
+    processParseResult(result);
+  }, [urlInput, processParseResult]);
 
   const handleImport = useCallback(async () => {
     if (!parseResult) return;
@@ -287,6 +317,38 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                   onChange={handleFileSelect}
                   className="hidden"
                 />
+
+                {/* URL import section */}
+                <div className="mt-4 pt-4 border-t border-border/50 w-full">
+                  <p className="text-xs text-muted-foreground mb-2 flex items-center justify-center gap-1.5">
+                    <Link className="w-3.5 h-3.5" />
+                    or import from a URL
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      type="url"
+                      placeholder="Paste a schedule URL (team's site, tour dates, etc.)"
+                      value={urlInput}
+                      onChange={e => setUrlInput(e.target.value)}
+                      className="flex-1 text-sm rounded-lg min-h-[40px]"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && isValidUrl(urlInput.trim())) {
+                          handleUrlImport();
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUrlImport}
+                      disabled={!urlInput.trim() || !isValidUrl(urlInput.trim())}
+                      className="min-h-[40px] shrink-0"
+                    >
+                      <Globe className="w-4 h-4 mr-1.5" />
+                      Import
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {/* Paste schedule toggle */}
@@ -331,9 +393,13 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
             <div className="flex flex-col items-center justify-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
               <p className="text-muted-foreground">
-                {parseResult?.sourceFormat === 'pdf' || parseResult?.sourceFormat === 'image'
-                  ? 'AI is extracting events...'
-                  : 'Parsing calendar file...'}
+                {parsingSource === 'url'
+                  ? 'Scanning website for schedule...'
+                  : parsingSource === 'text'
+                    ? 'AI is extracting events from text...'
+                    : parseResult?.sourceFormat === 'pdf' || parseResult?.sourceFormat === 'image'
+                      ? 'AI is extracting events...'
+                      : 'Parsing calendar file...'}
               </p>
             </div>
           )}
@@ -347,13 +413,18 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                   <p className="font-medium">
                     {eventsToImport} event{eventsToImport !== 1 ? 's' : ''} to import
                   </p>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center flex-wrap gap-2 mt-1">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary">
                       {getFormatLabel(parseResult.sourceFormat)}
                     </span>
                     {duplicateCount > 0 && (
                       <span className="text-xs text-amber-500">
                         {duplicateCount} duplicate{duplicateCount !== 1 ? 's' : ''} skipped
+                      </span>
+                    )}
+                    {parseResult.urlMeta && parseResult.urlMeta.eventsFiltered > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        ({parseResult.urlMeta.eventsFiltered} past event{parseResult.urlMeta.eventsFiltered !== 1 ? 's' : ''} excluded)
                       </span>
                     )}
                   </div>

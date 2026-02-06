@@ -13,13 +13,15 @@ import { parseICSFile, ICSParsedEvent, ICSParseResult } from './calendarImport';
 import { supabase } from '@/integrations/supabase/client';
 import * as XLSX from 'xlsx';
 
-export type ImportSourceFormat = 'ics' | 'csv' | 'excel' | 'pdf' | 'image' | 'text';
+export type ImportSourceFormat = 'ics' | 'csv' | 'excel' | 'pdf' | 'image' | 'text' | 'url';
 
 export interface SmartParseResult extends ICSParseResult {
   /** Which parser handled this file */
   sourceFormat: ImportSourceFormat;
   /** Per-event confidence scores (for AI-parsed results) */
   confidenceScores?: number[];
+  /** Metadata from URL scrape (total found vs filtered) */
+  urlMeta?: { eventsFound: number; eventsFiltered: number };
 }
 
 // ─── Column Detection Heuristics ─────────────────────────────────────────────
@@ -550,6 +552,80 @@ export function getFormatLabel(format: ImportSourceFormat): string {
     case 'pdf': return 'PDF Document';
     case 'image': return 'Image';
     case 'text': return 'Pasted Text';
+    case 'url': return 'Website URL';
     default: return 'Unknown';
+  }
+}
+
+// ─── URL Schedule Parser ─────────────────────────────────────────────────────
+
+interface ScrapeScheduleEvent {
+  title: string;
+  date: string;
+  start_time?: string;
+  location?: string;
+}
+
+export async function parseURLSchedule(url: string): Promise<SmartParseResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke('scrape-schedule', {
+      body: { url },
+    });
+
+    if (error) {
+      return {
+        events: [],
+        errors: [`Failed to scan website: ${error.message}`],
+        isValid: false,
+        sourceFormat: 'url',
+      };
+    }
+
+    if (!data?.success) {
+      return {
+        events: [],
+        errors: [data?.error || 'No schedule data found on this page'],
+        isValid: false,
+        sourceFormat: 'url',
+        urlMeta: data?.events_found
+          ? { eventsFound: data.events_found, eventsFiltered: data.events_filtered }
+          : undefined,
+      };
+    }
+
+    const scheduleEvents: ScrapeScheduleEvent[] = data.events ?? [];
+    const events: ICSParsedEvent[] = [];
+    for (let i = 0; i < scheduleEvents.length; i++) {
+      const se = scheduleEvents[i];
+      const startTime = parseFlexibleDate(se.date, se.start_time);
+      if (!startTime) continue;
+
+      events.push({
+        uid: `imported-url-${Date.now()}-${i}`,
+        title: se.title,
+        startTime,
+        endTime: startTime,
+        location: se.location,
+        isAllDay: !se.start_time,
+      });
+    }
+
+    return {
+      events,
+      errors: [],
+      isValid: events.length > 0,
+      sourceFormat: 'url',
+      urlMeta: {
+        eventsFound: data.events_found,
+        eventsFiltered: data.events_filtered,
+      },
+    };
+  } catch (err) {
+    return {
+      events: [],
+      errors: [`Website scan error: ${err instanceof Error ? err.message : 'Unknown error'}`],
+      isValid: false,
+      sourceFormat: 'url',
+    };
   }
 }
