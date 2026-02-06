@@ -60,7 +60,7 @@ const consumerTiers: PricingTier[] = [
       'Core group chat',
       'Shared calendar',
       'Photo & video sharing',
-      'Basic itinerary planning',
+      'Shared Group Calendar Sync',
       'Payment tracking',
       'Polls & group decisions',
       'AI Trip Assistant (5 queries per user per trip)',
@@ -87,6 +87,7 @@ const consumerTiers: PricingTier[] = [
       '10 AI queries per user per trip',
       'Unlimited PDF exports',
       'ICS calendar export',
+      'Calendar Importing',
       'Location-aware AI recommendations',
       'Search past trips and memories'
     ],
@@ -107,7 +108,7 @@ const consumerTiers: PricingTier[] = [
     features: [
       'Everything in Explorer',
       'Unlimited AI queries (24/7 concierge)',
-      'Calendar sync (Google, Apple, Outlook)',
+      'Smart Calendar Import (URL, ICS, PDF, Excel)',
       'One-click PDF trip exports',
       'Role-based channels & Pro features',
       'Custom trip categories',
