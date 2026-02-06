@@ -1,175 +1,67 @@
 
 
-# Speed Up Bulk Calendar Event Import
+# Fix Build Error + Ensure Bulk Import Actually Deploys
 
-## Problem
+## Root Cause
 
-When importing 20 events, the modal froze at "1/20" because each event is inserted **one at a time** via `calendarService.createEvent()`. Each call runs a cascade of expensive sub-operations:
+The bulk import changes from the previous update **never deployed** because a pre-existing build error in `web-push-send/index.ts` is blocking the entire build. That is why you are still seeing the old "4 / 20" sequential counter -- the app is running stale code.
 
-1. Conflict check (fetches ALL existing trip events)
-2. Demo mode check
-3. Online status check
-4. `supabase.auth.getUser()` call
-5. Super admin email check
-6. `ensureTripMembership()` (2-3 Supabase queries)
-7. The actual insert with `retryWithBackoff` (up to 3 retries)
-8. Cache the event in offline storage
+## Changes (3 files)
 
-For 20 events, that is **~120 sequential network requests** -- each waiting for the previous one to complete. A single event takes 1-3 seconds, so 20 events can take 30-60+ seconds (or hang entirely if any request stalls).
+### 1. Fix Build Error: `supabase/functions/web-push-send/index.ts`
 
-## Solution
+The `paddedPayload` variable is a `Uint8Array` but Deno's strict typing requires an `ArrayBuffer` for `crypto.subtle.encrypt()`. The same pattern used for `cek` and `nonce` (`.buffer.slice(...)`) needs to be applied here.
 
-Add a `bulkCreateEvents()` method to `calendarService` that does all the expensive checks **once**, then inserts all events in a **single Supabase `.insert([array])` call**.
-
-### Part 1: Add `bulkCreateEvents` to calendarService
-
-**File: `src/services/calendarService.ts`**
-
-Add a new method `bulkCreateEvents(events: CreateEventData[])` that:
-
-1. Runs `supabase.auth.getUser()` **once**
-2. Checks super admin status **once**
-3. Calls `ensureTripMembership()` **once** (all events share the same trip)
-4. Builds the full array of insert rows
-5. Calls `supabase.from('trip_events').insert(allRows).select('*')` in a **single request**
-6. Caches all returned events in one pass
-7. Returns the count of successfully inserted events
-
-If the single bulk insert fails (e.g., one bad row), fall back to inserting in small **batches of 5** using `Promise.all` for parallelism -- this is still 4x faster than sequential.
+**Line 362**: Convert `paddedPayload` to `ArrayBuffer` before passing to encrypt:
 
 ```typescript
-async bulkCreateEvents(events: CreateEventData[]): Promise<{
-  imported: number;
-  failed: number;
-  events: TripEvent[];
-}> {
-  // 1. Auth check ONCE
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('You must be logged in');
+const paddedPayloadBuffer = paddedPayload.buffer.slice(
+  paddedPayload.byteOffset,
+  paddedPayload.byteOffset + paddedPayload.byteLength
+) as ArrayBuffer;
 
-  // 2. Super admin check ONCE
-  const isSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
+const encryptedRecord = await crypto.subtle.encrypt(
+  { name: 'AES-GCM', iv: nonceBuffer },
+  cekKey,
+  paddedPayloadBuffer  // was: paddedPayload
+);
+```
 
-  // 3. Membership check ONCE (all events share tripId)
-  const tripId = events[0].trip_id;
-  await this.ensureTripMembership(tripId, user.id);
+### 2. Speed Up Caching: `src/services/calendarService.ts`
 
-  // 4. Build insert rows
-  const rows = events.map(e => ({
-    trip_id: e.trip_id,
-    title: e.title,
-    description: e.description || null,
-    location: e.location || null,
-    start_time: e.start_time,
-    end_time: e.end_time || null,
-    created_by: user.id,
-    event_category: e.event_category || 'other',
-    include_in_itinerary: e.include_in_itinerary ?? true,
-    source_type: e.source_type || 'manual',
-    source_data: e.source_data || {},
-  }));
+The sequential caching loop in `bulkCreateEvents` (lines 607-614) awaits each IndexedDB write one at a time. For 20 events that adds unnecessary latency. Replace with `Promise.all` for parallel caching:
 
-  // 5. Single bulk insert
-  const { data, error } = await supabase
-    .from('trip_events')
-    .insert(rows)
-    .select('*');
-
-  if (error) {
-    // Fallback: batch insert in groups of 5
-    return await this.batchInsertFallback(rows);
-  }
-
-  return { imported: data.length, failed: 0, events: data };
+```typescript
+// Before (sequential - slow):
+for (const event of data) {
+  await offlineSyncService.cacheEntity(...);
 }
+
+// After (parallel - fast):
+await Promise.all(
+  data.map(event =>
+    offlineSyncService.cacheEntity(
+      'calendar_event', event.id, event.trip_id, event, event.version || 1
+    ).catch(() => {}) // best-effort, don't block on cache failures
+  )
+);
 ```
 
-### Part 2: Update CalendarImportModal to use bulk insert
+Also simplify the redundant super admin branch (lines 576-580) where both if/else do the same thing.
 
-**File: `src/features/calendar/components/CalendarImportModal.tsx`**
+### 3. Remove Dead Code: `src/features/calendar/components/ICSImportModal.tsx`
 
-Replace the sequential `for` loop in `handleImport()` with:
+This file is the OLD import modal with the sequential "4 / 20" loop. It is not imported anywhere in the codebase (all references use `CalendarImportModal`). Deleting it removes confusion and dead code.
 
-1. Filter out duplicates upfront (build the array of events to import)
-2. Call `calendarService.bulkCreateEvents(eventsToInsert)` -- one call
-3. Update progress to show completion immediately
-4. Show the same success/failure toast
+## Result
 
-The progress indicator will show a simpler flow:
-- "Preparing X events..." (brief)
-- "Inserting events..." (the single bulk call)
-- Complete
-
-```typescript
-const handleImport = useCallback(async () => {
-  if (!parseResult) return;
-  setState('importing');
-
-  // Build array of non-duplicate events
-  const eventsToInsert = parseResult.events
-    .filter((_, i) => !duplicateIndices.has(i))
-    .map(event => {
-      let endTime: string | undefined;
-      if (event.endTime && event.endTime.getTime() !== event.startTime.getTime()) {
-        endTime = event.endTime.toISOString();
-      } else if (event.isAllDay) {
-        const endOfDay = new Date(event.startTime);
-        endOfDay.setHours(23, 59, 59, 999);
-        endTime = endOfDay.toISOString();
-      }
-      return {
-        trip_id: tripId,
-        title: event.title,
-        start_time: event.startTime.toISOString(),
-        end_time: endTime,
-        description: event.description,
-        location: event.location,
-        event_category: 'other' as const,
-        include_in_itinerary: true,
-        source_type: 'manual',
-        source_data: { imported_from: parseResult.sourceFormat, original_uid: event.uid },
-      };
-    });
-
-  const skipped = duplicateIndices.size;
-  setImportProgress({ imported: 0, skipped, failed: 0 });
-
-  try {
-    const result = await calendarService.bulkCreateEvents(eventsToInsert);
-    setImportProgress({ imported: result.imported, skipped, failed: result.failed });
-  } catch (error) {
-    setImportProgress({ imported: 0, skipped, failed: eventsToInsert.length });
-  }
-
-  setState('complete');
-  onImportComplete?.();
-}, [...]);
-```
-
-### Part 3: Update progress UI for bulk mode
-
-**File: `src/features/calendar/components/CalendarImportModal.tsx`**
-
-The importing state display (lines 512-525) will show a cleaner message for bulk operations:
-- "Importing X events..." instead of "1 / 20"
-- The spinner remains the same
-- Progress bar shows indeterminate since it's a single operation
-
-## Performance Impact
-
-| Metric | Before (sequential) | After (bulk) |
-|--------|---------------------|--------------|
-| Network requests for 20 events | ~120 | 1-5 |
-| Time for 20 events | 30-60+ seconds | 1-3 seconds |
-| Time for 80 events (NBA season) | 2-4+ minutes | 2-5 seconds |
-| Auth checks | 20 | 1 |
-| Membership checks | 20 | 1 |
-| Conflict checks | 20 | 0 (already handled by duplicate detection in preview) |
+Once the build error is fixed, the new bulk import code will deploy. Imports will go from 30-60+ seconds (sequential) to 1-3 seconds (single Supabase insert). The user will see "Importing 20 events... This should only take a moment" instead of "4 / 20".
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/services/calendarService.ts` | Add `bulkCreateEvents()` method with single-insert and batch fallback |
-| `src/features/calendar/components/CalendarImportModal.tsx` | Replace sequential loop with bulk insert call, update progress UI text |
+| `supabase/functions/web-push-send/index.ts` | Fix `Uint8Array` to `ArrayBuffer` conversion for `paddedPayload` (1 line) |
+| `src/services/calendarService.ts` | Parallelize caching loop with `Promise.all`, simplify admin branch |
+| `src/features/calendar/components/ICSImportModal.tsx` | Delete (dead code, not imported anywhere) |
 
