@@ -14,14 +14,6 @@ export interface BasecampsPanelProps {
   tripId: string;
   tripBasecamp: BasecampLocation | null;
   onTripBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
-  /**
-   * @deprecated Map centering is now disconnected from basecamp saving.
-   * Basecamps are stored as text-only references without coordinates.
-   * TODO: Remove in v2.0 after all consumers migrated
-   */
-  onCenterMap?: (coords: { lat: number; lng: number }, type: 'trip' | 'personal') => void;
-  activeContext: 'trip' | 'personal';
-  onContextChange: (context: 'trip' | 'personal') => void;
   personalBasecamp?: PersonalBasecamp | null;
   onPersonalBasecampUpdate?: (basecamp: PersonalBasecamp | null) => void;
 }
@@ -30,7 +22,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   tripId,
   tripBasecamp,
   onTripBasecampSet,
-  // onCenterMap is deprecated - map centering is disconnected from basecamp saving
   personalBasecamp: externalPersonalBasecamp,
   onPersonalBasecampUpdate,
 }) => {
@@ -63,7 +54,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
   // Load personal basecamp (only if not provided externally)
   useEffect(() => {
-    // Skip loading if external state is being used
     if (externalPersonalBasecamp !== undefined) {
       setLoading(false);
       return;
@@ -97,8 +87,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   const handleTripBasecampSet = async (newBasecamp: BasecampLocation) => {
     await onTripBasecampSet(newBasecamp);
     setShowTripSelector(false);
-    // Note: Map centering is now disconnected from basecamp saving
-    // Basecamps are simple text references without coordinates
   };
 
   const handleTripBasecampClear = async () => {
@@ -121,29 +109,24 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
       let savedBasecamp: PersonalBasecamp | null = null;
 
       if (isDemoMode) {
-        // Save without coordinates - basecamp is just a text reference now
         savedBasecamp = demoModeService.setSessionPersonalBasecamp({
           trip_id: tripId,
           user_id: effectiveUserId,
           name: location.name,
           address: location.address,
-          // No coordinates - basecamp is text-only
           latitude: undefined,
           longitude: undefined,
         });
       } else if (user) {
-        // Save without coordinates - basecamp is just a text reference now
         savedBasecamp = await basecampService.upsertPersonalBasecamp({
           trip_id: tripId,
           name: location.name,
           address: location.address,
-          // No coordinates - basecamp is text-only
           latitude: undefined,
           longitude: undefined,
         });
       }
 
-      // CRITICAL FIX: Only show success and update state if we actually saved
       if (savedBasecamp) {
         setPersonalBasecamp(savedBasecamp);
         setShowPersonalSelector(false);
@@ -153,14 +136,11 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           savedBasecamp.address,
         );
       } else {
-        // Service returned null - save failed silently
         console.error(
           '[BasecampsPanel] Personal basecamp save returned null - database operation may have failed',
         );
         toast.error('Failed to save personal base camp. Please try again.');
       }
-      // Note: Map centering is now disconnected from basecamp saving
-      // Basecamps are simple text references without coordinates
     } catch (error) {
       console.error('[BasecampsPanel] Failed to set personal basecamp:', error);
       toast.error('Failed to set personal base camp');
@@ -332,6 +312,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           personalBasecamp={personalBasecamp}
         />
       </div>
+
       {/* Basecamp Selectors */}
       {showTripSelector && (
         <BasecampSelector
