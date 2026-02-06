@@ -24,5 +24,6 @@ dist-ssr
 *.sw?
 .env
 
-# Cursor MCP Configuration (contains API keys)
+# MCP Configuration (contains API keys)
+.mcp.json
 .cursor/mcp_config.json
