@@ -21,37 +21,6 @@ interface ScheduleEvent {
   start_time?: string; // HH:MM
   location?: string;
 }
-/**
- * Strips non-content HTML elements to reduce page size before sending to AI.
- * Removes scripts, styles, SVGs, nav chrome, comments, and collapses whitespace.
- * Typical reduction: 400KB -> 40-80KB for schedule pages.
- */
-function stripHtmlCruft(html: string): string {
-  return html
-    // Remove script tags and contents
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    // Remove style tags and contents
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    // Remove SVG tags and contents
-    .replace(/<svg[\s\S]*?<\/svg>/gi, '')
-    // Remove noscript tags and contents
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
-    // Remove HTML comments
-    .replace(/<!--[\s\S]*?-->/g, '')
-    // Remove head section
-    .replace(/<head[\s\S]*?<\/head>/gi, '')
-    // Remove nav, footer, header tags (navigation chrome, not schedule content)
-    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
-    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
-    // Remove data attributes and inline event handlers
-    .replace(/\s+(data-[\w-]+|on\w+)="[^"]*"/gi, '')
-    // Remove image tags (logos, ads — not useful for schedule data)
-    .replace(/<img[^>]*>/gi, '')
-    // Collapse excessive whitespace
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -150,15 +119,11 @@ serve(async (req) => {
       );
     }
 
-    // Strip non-content HTML (scripts, styles, SVGs, nav chrome) before truncation
-    const rawLength = html.length;
-    html = stripHtmlCruft(html);
-    console.log(`[scrape-schedule] HTML stripped: ${rawLength} -> ${html.length} chars (removed ${rawLength - html.length})`);
-
-    // Truncate to 150k characters (after stripping, most pages are well under this)
-    const MAX_HTML_LENGTH = 150000;
+    // Send full raw HTML to Gemini Flash (1M token context window handles ~800K chars easily)
+    const MAX_HTML_LENGTH = 800000;
+    console.log(`[scrape-schedule] Raw HTML: ${html.length} characters`);
     if (html.length > MAX_HTML_LENGTH) {
-      console.log(`[scrape-schedule] Truncating stripped HTML from ${html.length} to ${MAX_HTML_LENGTH} chars`);
+      console.log(`[scrape-schedule] Truncating from ${html.length} to ${MAX_HTML_LENGTH} chars`);
       html = html.substring(0, MAX_HTML_LENGTH);
     }
 
