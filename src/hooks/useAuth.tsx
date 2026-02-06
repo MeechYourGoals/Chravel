@@ -80,8 +80,6 @@ interface AuthContextType {
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signInWithPhone: (phone: string) => Promise<{ error?: string }>;
-  signInWithGoogle: () => Promise<{ error?: string }>;
-  signInWithApple: () => Promise<{ error?: string }>;
   signUp: (
     email: string,
     password: string,
@@ -763,93 +761,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signInWithGoogle = async (): Promise<{ error?: string }> => {
-    try {
-      // Build the redirect URL - after OAuth completes, Supabase will redirect here
-      const redirectUrl = `${window.location.origin}/auth`;
-
-      // Use skipBrowserRedirect to capture the exact authorization URL for debugging
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: true, // Capture URL for debugging
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-
-      if (error) {
-        if (error.message.includes('not configured') || error.message.includes('OAuth')) {
-          return {
-            error:
-              'Google sign-in is not configured. Please use email to sign in or contact support.',
-          };
-        }
-
-        if (error.message.includes('invalid_client')) {
-          return {
-            error: 'Google OAuth configuration error. Please contact support.',
-          };
-        }
-
-        return { error: error.message };
-      }
-
-      if (data?.url) {
-        // Navigate to Google - try multiple methods to handle iframe restrictions
-        try {
-          // First try window.top (for iframe scenarios)
-          if (window.top && window.top !== window) {
-            window.top.location.href = data.url;
-          } else {
-            window.location.href = data.url;
-          }
-        } catch {
-          // Cross-origin iframe restriction - fallback to current window
-          window.location.href = data.url;
-        }
-      } else {
-        return { error: 'Failed to initiate Google sign-in. Please try again.' };
-      }
-
-      return {};
-    } catch {
-      return { error: 'An unexpected error occurred. Please try again.' };
-    }
-  };
-
-  const signInWithApple = async (): Promise<{ error?: string }> => {
-    try {
-      const redirectUrl = `${window.location.origin}/auth`;
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: redirectUrl,
-        },
-      });
-
-      if (error) {
-        // Provide more specific error messages
-        if (error.message.includes('not configured') || error.message.includes('OAuth')) {
-          return {
-            error:
-              'Apple sign-in is not configured. Please use email to sign in or contact support.',
-          };
-        }
-
-        return { error: error.message };
-      }
-
-      return {};
-    } catch {
-      return { error: 'An unexpected error occurred. Please try again.' };
-    }
-  };
-
   const signUp = async (
     email: string,
     password: string,
@@ -1080,8 +991,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading,
         signIn,
         signInWithPhone,
-        signInWithGoogle,
-        signInWithApple,
         signUp,
         signOut,
         resetPassword,
