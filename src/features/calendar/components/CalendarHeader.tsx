@@ -43,56 +43,54 @@ export const CalendarHeader = ({
   };
 
   return (
-    <div className="grid grid-cols-9 gap-2 mb-6 items-center">
-      {/* Left: Group Calendar Title - spans first 4 columns */}
-      <h2 className="col-span-4 text-2xl font-bold text-foreground">Group Calendar</h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-center">
+      {/* Match the main calendar layout: title aligns above left panel, actions align above right panel. */}
+      <h2 className="text-2xl font-bold text-foreground">Group Calendar</h2>
 
-      {/* Import button */}
-      <Button
-        variant="outline"
-        onClick={onImport}
-        size="sm"
-        className="col-span-1 w-full flex items-center justify-center gap-1.5"
-        disabled={!onImport}
-      >
-        <Upload className="h-4 w-4" />
-        <span className="hidden lg:inline">Import</span>
-      </Button>
+      <div className="grid grid-cols-4 gap-2 md:justify-self-end w-full">
+        <Button
+          variant="outline"
+          onClick={onImport}
+          size="sm"
+          className="w-full flex items-center justify-center gap-1.5"
+          disabled={!onImport}
+        >
+          <Upload className="h-4 w-4" />
+          <span className="hidden lg:inline">Import</span>
+        </Button>
 
-      {/* Export button */}
-      <Button
-        variant="outline"
-        onClick={onExport}
-        size="sm"
-        className="col-span-1 w-full flex items-center justify-center gap-1.5"
-        disabled={!onExport}
-      >
-        <Download className="h-4 w-4" />
-        <span className="hidden lg:inline">Export</span>
-      </Button>
+        <Button
+          variant="outline"
+          onClick={onExport}
+          size="sm"
+          className="w-full flex items-center justify-center gap-1.5"
+          disabled={!onExport}
+        >
+          <Download className="h-4 w-4" />
+          <span className="hidden lg:inline">Export</span>
+        </Button>
 
-      {/* View toggle button */}
-      <Button
-        variant="outline"
-        onClick={onToggleView}
-        size="sm"
-        className="col-span-1 w-full flex items-center justify-center gap-1.5"
-      >
-        {getViewButtonIcon()}
-        <span className="hidden lg:inline">{getViewButtonLabel()}</span>
-      </Button>
+        <Button
+          variant="outline"
+          onClick={onToggleView}
+          size="sm"
+          className="w-full flex items-center justify-center gap-1.5"
+        >
+          {getViewButtonIcon()}
+          <span className="hidden lg:inline">{getViewButtonLabel()}</span>
+        </Button>
 
-      {/* Add Event button */}
-      <Button
-        variant="outline"
-        onClick={onAddEvent}
-        size="sm"
-        className="col-span-1 w-full flex items-center justify-center gap-1.5"
-        disabled={!onAddEvent}
-      >
-        <Plus className="h-4 w-4" />
-        <span className="hidden lg:inline">Add Event</span>
-      </Button>
+        <Button
+          variant="outline"
+          onClick={onAddEvent}
+          size="sm"
+          className="w-full flex items-center justify-center gap-1.5"
+          disabled={!onAddEvent}
+        >
+          <Plus className="h-4 w-4" />
+          <span className="hidden lg:inline">Add Event</span>
+        </Button>
+      </div>
     </div>
   );
 };
