@@ -44,10 +44,10 @@ export const CalendarHeader = ({
 
   return (
     <div className="grid grid-cols-9 gap-2 mb-6 items-center">
-      {/* Left: Group Calendar Title - spans first 4 columns */}
-      <h2 className="col-span-4 text-2xl font-bold text-foreground">Group Calendar</h2>
+      {/* Left: Group Calendar Title - spans first 5 columns */}
+      <h2 className="col-span-5 text-2xl font-bold text-foreground">Group Calendar</h2>
 
-      {/* Import button */}
+      {/* Import button - aligned under Payments */}
       <Button
         variant="outline"
         onClick={onImport}
@@ -59,7 +59,7 @@ export const CalendarHeader = ({
         <span className="hidden lg:inline">Import</span>
       </Button>
 
-      {/* Export button */}
+      {/* Export button - aligned under Places */}
       <Button
         variant="outline"
         onClick={onExport}
@@ -71,7 +71,7 @@ export const CalendarHeader = ({
         <span className="hidden lg:inline">Export</span>
       </Button>
 
-      {/* View toggle button */}
+      {/* View toggle button - aligned under Polls */}
       <Button
         variant="outline"
         onClick={onToggleView}
@@ -82,7 +82,7 @@ export const CalendarHeader = ({
         <span className="hidden lg:inline">{getViewButtonLabel()}</span>
       </Button>
 
-      {/* Add Event button */}
+      {/* Add Event button - aligned under Tasks */}
       <Button
         variant="outline"
         onClick={onAddEvent}
