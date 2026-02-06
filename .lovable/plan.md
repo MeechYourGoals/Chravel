@@ -1,75 +1,63 @@
 
 
-# Clean Up Old Google OAuth Code
+# Match Collapsed Hero Height to Description Box + Enlarge Text
 
-## What gets removed
+## Problem
 
-All remnants of the previous Google OAuth attempt will be deleted. The Google sign-in functions are not rendered anywhere in the UI (the AuthModal only shows email/password forms), but dead code referencing them still exists across several files.
+When the trip cover photo hero is collapsed, two visual issues exist:
 
-## Changes
+1. The collapsed hero bar (`140px`) is shorter than the description/members box below it, breaking visual symmetry.
+2. The trip title, location, and dates shrink to very small sizes (`text-xl` title, `text-sm` details) -- too small now that the photo is de-emphasized and text should be the focal point.
 
-### 1. Delete `src/components/auth/OAuthButtons.tsx`
+## Changes (1 file)
 
-This component is never imported or rendered outside its own test file. Contains the disabled `isOAuthEnabled()` flag and unused Google OAuth button.
+### `src/components/TripHeader.tsx`
 
-### 2. Delete `src/components/auth/AuthDivider.tsx`
+**A. Match height to description box**
 
-OAuth divider component ("or continue with"). Only imported by OAuthButtons test file. Not used anywhere in the app.
+The description box (lines 578-585) has no fixed height -- it grows with content. To achieve visual parity, the collapsed hero needs a `min-h` that matches the description box's natural height. From the screenshots, the description box is roughly 200-220px. Setting the collapsed hero to `min-h-[200px]` with auto height ensures parity.
 
-### 3. Delete `src/components/auth/__tests__/OAuthButtons.test.tsx`
+```
+Line 421:
+- 'h-[140px] min-h-[140px]'
++ 'min-h-[200px]'
+```
 
-Tests for the components being deleted. No longer needed.
+This removes the fixed `h-[140px]` constraint and lets the collapsed bar breathe to match the box below.
 
-### 4. Update `src/components/auth/index.ts`
+**B. Enlarge collapsed text to match expanded styling**
 
-Remove all exports since both exported components are being deleted. If the file becomes empty, delete it entirely.
+The collapsed layout (lines 442-487) currently uses undersized text. Update to prominent, bold typography that makes title/location/dates the visual focus:
 
-### 5. Clean up `src/components/AuthModal.tsx`
+- **Title**: `text-xl` becomes `text-2xl md:text-3xl font-bold` (matches expanded hero sizing)
+- **Location**: `text-sm text-gray-300` becomes `text-base md:text-lg font-bold text-white` with larger icon
+- **Dates**: Same upgrade as location -- `text-base md:text-lg font-bold text-white`
 
-- Remove `signInWithGoogle` from the useAuth destructure (line 16)
-- Remove `googleLoading` state variable (line 28)
-- Remove `handleGoogleSignIn` function (lines 95-111)
-- Keep only the email/password and forgot password flows (no functional change since Google button was never rendered)
+```
+Line 446 (title):
+- <h1 className="text-xl font-bold text-white line-clamp-1">
++ <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-lg line-clamp-1">
 
-### 6. Clean up `src/hooks/useAuth.tsx`
+Line 449 (container):
+- <div className="flex items-center gap-3 text-sm text-gray-300">
++ <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-base md:text-lg font-bold text-white">
 
-- Remove `signInWithGoogle` from the AuthContext interface (line 83)
-- Remove `signInWithApple` from the AuthContext interface (line 84)
-- Remove the `signInWithGoogle` function implementation (lines 766-822)
-- Remove the `signInWithApple` function implementation (lines 824-851)
-- Remove both from the context provider value (lines 1083-1084)
+Line 452 (MapPin icon):
+- <MapPin size={14} ...
++ <MapPin size={18} ...
 
-### 7. Clean up `src/pages/AuthPage.tsx`
+Line 460 (Calendar icon):
+- <Calendar size={14} ...
++ <Calendar size={18} ...
+```
 
-- Remove `isProcessingOAuth` state and the OAuth callback useEffect (lines 24, 36-71)
-- Remove the OAuth loading screen (lines 84-93)
-- Simplify the authenticated redirect check (remove `isProcessingOAuth` dependency)
-- The page now purely handles email/password auth via AuthModal
+## Visual Result
 
-### 8. Clean up `src/services/googleCalendarService.ts`
+- Collapsed hero bar and description box will have matching heights for clean alignment
+- Trip name becomes large and bold -- the clear focal point when the photo is minimized
+- Location and dates become prominent, bold, and white -- matching their expanded-state styling
+- Icons scale up proportionally (14px to 18px) to match the larger text
 
-- Remove the hardcoded `'your_google_client_id'` placeholder in `authenticateUser()` (line 35)
-- Replace with a clear error message indicating calendar OAuth is not configured
-- This is a separate feature from sign-in OAuth but still contains stale placeholder credentials
+## No other files affected
 
-## What stays
-
-- Email/password sign-in and sign-up (fully functional)
-- Password reset flow
-- The `useAuth` hook (minus the Google/Apple methods)
-- All trip membership, profile, and notification logic in useAuth
-- The AuthModal UI (unchanged since Google button was never rendered)
-
-## Files summary
-
-| Action | File |
-|--------|------|
-| Delete | `src/components/auth/OAuthButtons.tsx` |
-| Delete | `src/components/auth/AuthDivider.tsx` |
-| Delete | `src/components/auth/__tests__/OAuthButtons.test.tsx` |
-| Delete | `src/components/auth/index.ts` |
-| Edit | `src/components/AuthModal.tsx` |
-| Edit | `src/hooks/useAuth.tsx` |
-| Edit | `src/pages/AuthPage.tsx` |
-| Edit | `src/services/googleCalendarService.ts` |
-
+All changes are isolated to `TripHeader.tsx` collapsed layout section (lines 420-465).
