@@ -1,87 +1,96 @@
 
 
-# Smart Calendar Import: Multi-Format Support
+# URL Import for Smart Calendar: Scrape Any Schedule Website
 
-## Current State (Good News)
+## Summary
 
-The ICS import is fully functional - it parses .ics files, detects duplicates, previews events, and writes them to your Supabase database. This is NOT a mock feature.
-
-The AI parsing infrastructure also exists in your edge functions (`enhanced-ai-parser` and `file-ai-parser`) - they already know how to extract calendar events from images and documents using Gemini. They're just not connected to the import modal yet.
-
-The `xlsx` library is also already installed but unused.
-
-## What Needs to Change
-
-Upgrade the import modal from "ICS only" to "Smart Import" that accepts ANY format a team might already have their schedule in.
+Add a URL input field to the CalendarImportModal so users can paste a link to any schedule page (ESPN, MaxPreps, team websites, concert tour pages, etc.) and have the system scrape the page HTML, send it to Gemini for extraction, and auto-populate future-only events into the calendar.
 
 ---
 
-## Supported Formats
+## Architecture
 
-| Format | How It Works |
-|--------|-------------|
-| `.ics` files | Existing parser (already works) |
-| `.csv` files | Client-side parsing - detect date/time/title columns |
-| `.xlsx` / `.xls` files | Use installed `xlsx` library to read spreadsheet, then same column detection |
-| PDF files | Upload to Supabase storage, send URL to `enhanced-ai-parser` with `extractionType: 'calendar'`, Gemini extracts events |
-| Images (JPG/PNG) | Same as PDF - Gemini vision reads the schedule image |
-| Plain text / pasted text | Send to `enhanced-ai-parser` as `messageText` |
+The flow is straightforward and uses infrastructure that already exists:
+
+1. **User pastes URL** into a new text field in the import modal
+2. **New edge function** (`scrape-schedule`) fetches the webpage HTML server-side (avoids CORS)
+3. **Gemini AI** parses the HTML and extracts schedule events as structured JSON
+4. **Client receives** the same `ICSParsedEvent[]` format used by all other parsers
+5. **Existing preview/import flow** handles duplicate detection and database insertion
+
+The key insight: we do NOT need Firecrawl. Deno's native `fetch()` in edge functions can grab page HTML directly (same pattern as `fetch-og-metadata` already does). Then Gemini's large context window handles the parsing -- it's excellent at reading HTML tables.
 
 ---
 
-## Implementation Plan
+## What Gets Built
 
-### 1. Rename and Expand `ICSImportModal` to `CalendarImportModal`
+### 1. New Edge Function: `supabase/functions/scrape-schedule/index.ts`
 
-Transform the current ICS-only modal into a universal import modal:
+This function:
+- Accepts a URL from the client
+- Validates it (HTTPS only, no internal IPs -- reusing existing `validateExternalHttpsUrl`)
+- Fetches the page HTML with a browser-like User-Agent
+- Sends the HTML to Gemini with a sports/events-specific prompt
+- Gemini extracts structured events (title, date, time if available, location)
+- Returns only events from today forward (critical requirement)
+- Does NOT fill in end times or descriptions (per your instructions)
 
-- Update file accept to: `.ics, .csv, .xlsx, .xls, .pdf, image/jpeg, image/png`
-- Update the drag-and-drop zone text: "Drag and drop a file here, or click to browse"
-- Add supported format badges: ICS, CSV, Excel, PDF, Image
-- Remove the "V1 Limitations" card (no longer just V1)
-- Add a "Paste schedule text" option (textarea that appears on a toggle)
+**Gemini Prompt Strategy:**
 
-### 2. Create `src/utils/calendarImportParsers.ts` - Multi-Format Router
-
-A new utility that routes files to the right parser:
+The system prompt will be specifically tuned for schedule extraction:
 
 ```text
-.ics  --> existing parseICSFile() (no change)
-.csv  --> new parseCSVCalendar() - client-side
-.xlsx --> new parseExcelCalendar() - uses xlsx library, client-side
-.pdf  --> new parseWithAI() - uploads file, calls enhanced-ai-parser edge function
-.jpg/.png --> new parseWithAI() - same as PDF
-text  --> new parseTextWithAI() - calls enhanced-ai-parser with messageText
+You are a schedule extraction expert. Extract ONLY games/events/shows
+from this webpage HTML. For each event extract:
+- title: The matchup or event name (e.g., "Lakers at Memphis Grizzlies")
+- date: DD-MM-YYYY format
+- start_time: HH:MM format IF clearly listed, otherwise omit
+- location: The opponent/venue name. For home games use the team name.
+  For away games use the opponent name. Do NOT guess addresses.
+
+CRITICAL RULES:
+- Only include events dated {today's date} or later
+- Do NOT include past games/events
+- Do NOT fill in end_time
+- Do NOT fill in description
+- If no time is listed, omit start_time entirely
+- Return valid JSON array
 ```
 
-**CSV/Excel Column Detection Logic:**
-- Scan headers for date-like columns: "date", "start", "when", "day", "scheduled"
-- Scan for title-like columns: "title", "name", "event", "summary", "description", "what"
-- Scan for time-like columns: "time", "start_time", "begins", "from"
-- Scan for location columns: "location", "venue", "where", "place", "address"
-- If headers aren't clear, use Gemini to classify columns
+### 2. Updated CalendarImportModal UI
 
-### 3. Add AI-Powered Parsing Path
+Add a URL input section below the "Choose File" button, inside the drop zone area:
 
-For PDFs and images:
-1. Upload the file to Supabase storage (temporary bucket)
-2. Get the public URL
-3. Call `enhanced-ai-parser` edge function with `extractionType: 'calendar'`
-4. The edge function already returns structured event JSON with dates, times, locations, categories
-5. Map the AI response to `ICSParsedEvent[]` format so the existing preview/import flow works unchanged
+```text
+ ┌─────────────────────────────────────────────────────────────┐
+ │  Drag and drop a file here, or click to browse             │
+ │  [ICS] [CSV] [Excel] [PDF] [Image]                        │
+ │                                                             │
+ │  [ Choose File ]                                            │
+ │                                                             │
+ │  ─── or import from a URL ───                              │
+ │                                                             │
+ │  🔗 [ https://www.espn.com/nba/team/schedule... ]          │
+ │  [ Import from URL ]                                        │
+ └─────────────────────────────────────────────────────────────┘
+ │                                                             │
+ │  [toggle] Paste schedule text instead                       │
+ └─────────────────────────────────────────────────────────────┘
+```
 
-### 4. Update the Preview Step
+The URL input will have:
+- A text field with placeholder: "Paste a schedule URL (team's site, tour dates, etc.)"
+- A "Import from URL" button with a globe/link icon
+- Loading state: "Scanning website for schedule..." with spinner
+- A new "URL" badge added to the format badges row
 
-The existing preview step (showing parsed events with duplicate detection) stays the same - all parsers output the same `ICSParsedEvent[]` format. Add one enhancement:
-- Show a confidence indicator per event for AI-parsed results (the AI returns confidence scores)
-- Show the source format badge ("Parsed from PDF", "Parsed from Excel", etc.)
+### 3. New Parser Function in `calendarImportParsers.ts`
 
-### 5. Add Paste Schedule Option
+```typescript
+export async function parseURLSchedule(url: string): Promise<SmartParseResult>
+```
 
-Add a toggle in the idle state: "Or paste your schedule text"
-- Opens a textarea where users can paste a schedule from email, website, etc.
-- On submit, sends to `enhanced-ai-parser` with `extractionType: 'calendar'`
-- Same preview/import flow
+This calls the `scrape-schedule` edge function and maps the response to the standard `ICSParsedEvent[]` format. Source format will be `'url'` (new type added to `ImportSourceFormat`).
 
 ---
 
@@ -89,97 +98,137 @@ Add a toggle in the idle state: "Or paste your schedule text"
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/features/calendar/components/ICSImportModal.tsx` | **Rename + Rewrite** | Become `CalendarImportModal.tsx` - multi-format support, paste option |
-| `src/utils/calendarImportParsers.ts` | **Create** | Multi-format router: CSV parser, Excel parser, AI parser wrapper |
-| `src/utils/calendarImport.ts` | **Keep as-is** | ICS parser stays unchanged |
-| `src/components/GroupCalendar.tsx` | **Update imports** | Switch from `ICSImportModal` to `CalendarImportModal` |
-| `src/components/mobile/MobileGroupCalendar.tsx` | **Update imports** | Same import swap |
-| `src/features/calendar/components/CalendarHeader.tsx` | **No change** | Import button already wired correctly |
+| `supabase/functions/scrape-schedule/index.ts` | **Create** | Edge function: fetch HTML, send to Gemini, return structured events |
+| `supabase/config.toml` | **Update** | Add `[functions.scrape-schedule]` with `verify_jwt = true` |
+| `src/utils/calendarImportParsers.ts` | **Update** | Add `'url'` to `ImportSourceFormat`, add `parseURLSchedule()` function, update `getFormatLabel()` |
+| `src/features/calendar/components/CalendarImportModal.tsx` | **Update** | Add URL input field, "Import from URL" button, URL badge, handler |
 
 ---
 
-## Technical Details
+## Edge Function Details: `scrape-schedule`
 
-### CSV Parser (Client-Side)
-
-```text
-1. Read file as text
-2. Split by newlines, split by comma (handle quoted values)
-3. Use first row as headers
-4. Auto-detect columns by header name matching
-5. If ambiguous, fall back to AI classification
-6. Parse each row into ICSParsedEvent format
-7. Skip rows with invalid/missing dates
+**Input:**
+```json
+{
+  "url": "https://www.espn.com/nba/team/schedule/_/name/ind"
+}
 ```
 
-### Excel Parser (Client-Side)
-
-```text
-1. Read file as ArrayBuffer
-2. Use xlsx.read() to parse workbook
-3. Get first sheet (or let user pick if multiple)
-4. Convert to JSON array with xlsx.utils.sheet_to_json()
-5. Same column detection as CSV
-6. Same row-to-event mapping
+**Output:**
+```json
+{
+  "success": true,
+  "events": [
+    {
+      "title": "Pacers vs Celtics",
+      "date": "2026-02-10",
+      "start_time": "19:00",
+      "location": "Pacers"
+    },
+    {
+      "title": "Pacers at Lakers",
+      "date": "2026-02-15",
+      "location": "Lakers"
+    }
+  ],
+  "source_url": "https://www.espn.com/...",
+  "events_found": 42,
+  "events_filtered": 12
+}
 ```
 
-### AI Parser (Edge Function - Already Exists)
+**Key implementation details:**
+- Uses `Deno.env.get('LOVABLE_API_KEY')` for Gemini (already configured)
+- Reuses `validateExternalHttpsUrl` from `_shared/validation.ts` for SSRF protection
+- Fetches with a browser User-Agent to avoid bot blocking
+- Sets a 15-second timeout on the fetch
+- Sends raw HTML to Gemini (not markdown) -- Gemini handles HTML tables extremely well
+- Truncates HTML to first ~50,000 characters to stay within token limits
+- Filters to today-forward dates server-side before returning
+- Returns `events_found` (total on page) and `events_filtered` (how many were past and removed) so the UI can show "Found 82 events, showing 41 remaining games"
 
-```text
-1. Upload file to Supabase storage
-2. Get signed URL
-3. Call enhanced-ai-parser with:
-   - fileUrl: signed URL
-   - extractionType: 'calendar'
-   - fileType: mime type
-4. Gemini returns structured JSON with events
-5. Map to ICSParsedEvent[] format
-6. Clean up uploaded file after parsing
-```
-
-### Column Detection Heuristic
-
-Priority matching for spreadsheet headers:
-
-```text
-Date columns: /date|start|when|day|scheduled|begins/i
-Title columns: /title|name|event|summary|subject|what|activity/i  
-Time columns: /time|start.time|hour|begins|from|at/i
-End time: /end.time|ends|to|until|through/i
-Location columns: /location|venue|where|place|address|site/i
-Description: /description|details|notes|info|about/i
+**Date filtering logic:**
+```typescript
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const futureEvents = events.filter(e => {
+  const eventDate = new Date(e.date);
+  return eventDate >= today;
+});
 ```
 
 ---
 
-## User Experience
+## CalendarImportModal UI Changes
 
-### Enterprise Onboarding Scenario (Chicago Bulls Example)
+### New state variables:
+```typescript
+const [urlInput, setUrlInput] = useState('');
+const [isUrlMode, setIsUrlMode] = useState(false);
+```
 
-1. Team coordinator opens Chravel trip calendar
-2. Clicks "Import"
-3. Modal shows: "Import from any format - ICS, CSV, Excel, PDF, or paste text"
-4. Coordinator drags their existing Excel schedule (82 games + practices)
-5. System detects columns: "Date", "Opponent/Event", "Time", "Arena"
-6. Preview shows all 82 games mapped to calendar events
-7. Coordinator clicks "Import 82 Events"
-8. Done - entire season schedule populated in seconds
+### New handler:
+```typescript
+const handleUrlImport = async () => {
+  if (!urlInput.trim()) return;
+  setState('parsing');
+  const result = await parseURLSchedule(urlInput.trim());
+  processParseResult(result);
+};
+```
 
-### Casual User Scenario
+### URL validation (simple client-side check):
+```typescript
+const isValidUrl = (str: string) => {
+  try {
+    const url = new URL(str);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+};
+```
 
-1. User receives hotel confirmation PDF via email
-2. Drags PDF into import modal
-3. Gemini vision extracts: "Check-in: Feb 15, Check-out: Feb 18, Hilton Rome, Confirmation #HX82934"
-4. Preview shows the event
-5. One click to add to trip calendar
+### Updated FORMAT_BADGES:
+Add `{ label: 'URL', icon: Globe }` to the existing badges array.
+
+### Parsing state message update:
+When parsing from URL, show "Scanning website for schedule..." instead of the generic message.
 
 ---
 
-## Scope
+## Edge Cases Handled
 
-- No database changes needed
-- No new edge functions needed (existing `enhanced-ai-parser` handles it)
-- `xlsx` library already installed
-- Existing duplicate detection and calendarService.createEvent() work unchanged
-- All parsers output the same `ICSParsedEvent[]` format for a unified preview flow
+| Scenario | Behavior |
+|----------|----------|
+| ESPN blocks the fetch | Return clear error: "Could not access this website. Try copying the schedule text and pasting it instead." |
+| No schedule data found | Return: "No schedule or events found on this page. Make sure the URL points to a schedule page." |
+| All events are in the past | Return: "Found X events but all are in the past. Only future events are imported." |
+| No start times listed | Events import as all-day events (no time set) |
+| Page is JS-rendered (SPA) | Some sites won't work with simple fetch. The error message will suggest using the paste or file option instead. |
+| URL is HTTP (not HTTPS) | Auto-upgrade to HTTPS before sending to edge function |
+| Malformed URL | Button disabled, input shows validation hint |
+| Rate limited by Lovable AI | Show toast: "AI service is busy, please try again in a moment" |
+
+---
+
+## Why This Works Without Firecrawl
+
+- Most sports schedule pages (ESPN, MaxPreps, NBA.com, MLB.com, etc.) serve their schedules as server-rendered HTML tables
+- Deno's native `fetch()` in edge functions can grab this HTML directly
+- The `fetch-og-metadata` edge function already does exactly this pattern
+- Gemini 2.5 Flash has a massive context window and excels at parsing HTML structure
+- No additional API keys or connectors needed -- LOVABLE_API_KEY is already configured
+
+For the small percentage of sites that are fully client-rendered SPAs (schedule loads via JavaScript after page load), the fallback is clear: the user can just copy-paste the schedule text into the existing paste input, or screenshot it and use the image import. The error message will guide them.
+
+---
+
+## Security
+
+- URL validation via existing `validateExternalHttpsUrl` (blocks localhost, private IPs, non-HTTPS)
+- JWT authentication required (user must be logged in)
+- HTML truncated to prevent sending excessive data to Gemini
+- No user-controlled HTML is rendered in the app -- only extracted structured data
+- Edge function has a fetch timeout to prevent hanging
 
