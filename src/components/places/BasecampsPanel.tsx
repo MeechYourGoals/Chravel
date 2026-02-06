@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBasecamp } from '@/contexts/BasecampContext';
 import { toast } from 'sonner';
-import { DistanceCalculator } from './DistanceCalculator';
+import { DirectionsEmbed } from './DirectionsEmbed';
 
 export interface BasecampsPanelProps {
   tripId: string;
@@ -325,9 +325,9 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         </div>
       </div>
 
-      {/* Distance Calculator - Below basecamp cards */}
+      {/* Directions Embed - Below basecamp cards */}
       <div className="mt-4">
-        <DistanceCalculator
+        <DirectionsEmbed
           tripBasecamp={tripBasecamp}
           personalBasecamp={personalBasecamp}
         />
