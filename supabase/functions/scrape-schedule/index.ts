@@ -21,6 +21,37 @@ interface ScheduleEvent {
   start_time?: string; // HH:MM
   location?: string;
 }
+/**
+ * Strips non-content HTML elements to reduce page size before sending to AI.
+ * Removes scripts, styles, SVGs, nav chrome, comments, and collapses whitespace.
+ * Typical reduction: 400KB -> 40-80KB for schedule pages.
+ */
+function stripHtmlCruft(html: string): string {
+  return html
+    // Remove script tags and contents
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    // Remove style tags and contents
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    // Remove SVG tags and contents
+    .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+    // Remove noscript tags and contents
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
+    // Remove HTML comments
+    .replace(/<!--[\s\S]*?-->/g, '')
+    // Remove head section
+    .replace(/<head[\s\S]*?<\/head>/gi, '')
+    // Remove nav, footer, header tags (navigation chrome, not schedule content)
+    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+    // Remove data attributes and inline event handlers
+    .replace(/\s+(data-[\w-]+|on\w+)="[^"]*"/gi, '')
+    // Remove image tags (logos, ads — not useful for schedule data)
+    .replace(/<img[^>]*>/gi, '')
+    // Collapse excessive whitespace
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -119,14 +150,19 @@ serve(async (req) => {
       );
     }
 
-    // Truncate to ~50k characters to stay within token limits
-    const MAX_HTML_LENGTH = 50000;
+    // Strip non-content HTML (scripts, styles, SVGs, nav chrome) before truncation
+    const rawLength = html.length;
+    html = stripHtmlCruft(html);
+    console.log(`[scrape-schedule] HTML stripped: ${rawLength} -> ${html.length} chars (removed ${rawLength - html.length})`);
+
+    // Truncate to 150k characters (after stripping, most pages are well under this)
+    const MAX_HTML_LENGTH = 150000;
     if (html.length > MAX_HTML_LENGTH) {
+      console.log(`[scrape-schedule] Truncating stripped HTML from ${html.length} to ${MAX_HTML_LENGTH} chars`);
       html = html.substring(0, MAX_HTML_LENGTH);
-      console.log(`[scrape-schedule] Truncated HTML from ${html.length} to ${MAX_HTML_LENGTH} chars`);
     }
 
-    console.log(`[scrape-schedule] HTML fetched: ${html.length} characters`);
+    console.log(`[scrape-schedule] Final HTML for AI: ${html.length} characters`);
 
     // ── Send to Gemini for extraction ──
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -178,7 +214,7 @@ Example output:
           },
         ],
         temperature: 0.1,
-        max_tokens: 8000,
+        max_tokens: 16000,
       }),
     });
 
