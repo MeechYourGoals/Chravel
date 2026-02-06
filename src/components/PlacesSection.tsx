@@ -2,16 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
-import {
-  BasecampLocation,
-  PlaceWithDistance,
-  PlaceCategory,
-} from '../types/basecamp';
+import { BasecampLocation, PlaceWithDistance, PlaceCategory } from '../types/basecamp';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { useTripBasecamp, useUpdateTripBasecamp, tripBasecampKeys } from '@/hooks/useTripBasecamp';
+import {
+  useTripBasecamp,
+  useUpdateTripBasecamp,
+  useClearTripBasecamp,
+  tripBasecampKeys,
+} from '@/hooks/useTripBasecamp';
 import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
@@ -39,6 +40,7 @@ export const PlacesSection = ({
   // Use TanStack Query for trip basecamp (canonical source of truth)
   const { data: tripBasecamp, isLoading: isBasecampLoading } = useTripBasecamp(tripId);
   const updateBasecampMutation = useUpdateTripBasecamp(tripId);
+  const clearBasecampMutation = useClearTripBasecamp(tripId);
 
   // State
   const [activeTab, setActiveTab] = useState<TabView>('basecamps');
@@ -286,6 +288,10 @@ export const PlacesSection = ({
     }
   };
 
+  const handleBasecampClear = async () => {
+    await clearBasecampMutation.mutateAsync();
+  };
+
   const toBasecampLocation = (pb: PersonalBasecamp): BasecampLocation => ({
     address: pb.address || '',
     name: pb.name,
@@ -333,6 +339,7 @@ export const PlacesSection = ({
             tripId={tripId}
             tripBasecamp={tripBasecamp || null}
             onTripBasecampSet={handleBasecampSet}
+            onTripBasecampClear={handleBasecampClear}
             personalBasecamp={personalBasecamp}
             onPersonalBasecampUpdate={handlePersonalBasecampUpdate}
           />

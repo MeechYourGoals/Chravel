@@ -241,71 +241,55 @@ class BasecampService {
         },
       );
 
-      // Use versioned update RPC
-      const { data, error } = (await supabase.rpc('update_trip_basecamp_with_version', {
-        p_trip_id: tripId,
-        p_current_version: currentVersion,
-        p_name: basecamp.name || null,
-        p_address: basecamp.address,
-        p_latitude: finalLatitude || null,
-        p_longitude: finalLongitude || null,
-        p_user_id: user.id,
-      })) as { data: any; error: any };
+      // Attempt 1: Use versioned update RPC
+      const rpcResult = await this.tryRpcBasecampUpdate(
+        tripId,
+        currentVersion,
+        basecamp,
+        finalLatitude,
+        finalLongitude,
+        user.id,
+      );
 
-      if (error) {
-        console.error(this.LOG_PREFIX, 'setTripBasecamp RPC error:', {
-          tripId,
-          error: error.message,
-          code: error.code,
-          details: error.details,
-        });
-        return { success: false, error: error.message };
+      if (rpcResult.conflict) {
+        return rpcResult;
       }
 
-      // Check for conflict
-      if (data && typeof data === 'object' && data.conflict === true) {
-        console.warn(this.LOG_PREFIX, 'setTripBasecamp: conflict detected', {
+      // Attempt 2: If RPC fails (e.g., due to log_basecamp_change column mismatch),
+      // fall back to a direct UPDATE on the trips table. This provides immediate
+      // relief even before the DB migration fix is deployed.
+      if (!rpcResult.success) {
+        console.warn(
+          this.LOG_PREFIX,
+          'setTripBasecamp: RPC failed, attempting direct UPDATE fallback',
+          { tripId, rpcError: rpcResult.error },
+        );
+
+        const fallbackResult = await this.tryDirectBasecampUpdate(
           tripId,
-          currentVersion,
-          serverVersion: data.current_version,
+          basecamp,
+          finalLatitude,
+          finalLongitude,
+        );
+
+        if (!fallbackResult.success) {
+          console.error(this.LOG_PREFIX, 'setTripBasecamp: Both RPC and fallback failed', {
+            tripId,
+            rpcError: rpcResult.error,
+            fallbackError: fallbackResult.error,
+          });
+          return { success: false, error: rpcResult.error || fallbackResult.error };
+        }
+
+        // Fallback succeeded
+        console.log(this.LOG_PREFIX, 'setTripBasecamp: Direct UPDATE fallback succeeded', {
+          tripId,
         });
-        return {
-          success: false,
-          conflict: true,
-          error: 'Basecamp was modified by another user. Please refresh and try again.',
-        };
       }
 
-      // CRITICAL FIX: Verify the update was actually persisted by reading back
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('trips')
-        .select('basecamp_address, basecamp_name, basecamp_version')
-        .eq('id', tripId)
-        .single();
-
-      if (verifyError) {
-        console.error(this.LOG_PREFIX, 'setTripBasecamp: Verification query failed', {
-          tripId,
-          error: verifyError.message,
-        });
-        // Don't fail - the RPC said success, this is just a verification issue
-      } else if (verifyData?.basecamp_address !== basecamp.address) {
-        // Log the mismatch but trust the RPC result - transient read inconsistency
-        // can happen due to replication lag or connection pooling
-        console.warn(this.LOG_PREFIX, 'setTripBasecamp: verification mismatch (may be transient)', {
-          tripId,
-          expected: basecamp.address,
-          actual: verifyData?.basecamp_address,
-          newVersion: verifyData?.basecamp_version,
-        });
-        // Do NOT return failure here - the RPC committed successfully.
-        // The TanStack Query delayed refetch (2s) will sync the correct value.
-      }
-
-      console.log(this.LOG_PREFIX, 'setTripBasecamp SUCCESS (verified):', {
+      console.log(this.LOG_PREFIX, 'setTripBasecamp SUCCESS:', {
         tripId,
         newAddress: basecamp.address,
-        newVersion: verifyData?.basecamp_version,
         userId: user.id,
         timestamp: new Date().toISOString(),
       });
@@ -331,6 +315,132 @@ class BasecampService {
         stack: error instanceof Error ? error.stack : undefined,
       });
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Try updating trip basecamp via the versioned RPC function.
+   * This is the preferred path with optimistic locking.
+   */
+  private async tryRpcBasecampUpdate(
+    tripId: string,
+    currentVersion: number,
+    basecamp: { name?: string; address: string },
+    latitude: number | null,
+    longitude: number | null,
+    userId: string,
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean }> {
+    try {
+      const { data, error } = (await supabase.rpc('update_trip_basecamp_with_version', {
+        p_trip_id: tripId,
+        p_current_version: currentVersion,
+        p_name: basecamp.name || null,
+        p_address: basecamp.address,
+        p_latitude: latitude,
+        p_longitude: longitude,
+        p_user_id: userId,
+      })) as { data: any; error: any };
+
+      if (error) {
+        console.error(this.LOG_PREFIX, 'tryRpcBasecampUpdate: RPC error', {
+          tripId,
+          error: error.message,
+          code: error.code,
+          details: error.details,
+        });
+        return { success: false, error: error.message };
+      }
+
+      // Check for conflict
+      if (data && typeof data === 'object' && data.conflict === true) {
+        console.warn(this.LOG_PREFIX, 'tryRpcBasecampUpdate: conflict detected', {
+          tripId,
+          currentVersion,
+          serverVersion: data.current_version,
+        });
+        return {
+          success: false,
+          conflict: true,
+          error: 'Basecamp was modified by another user. Please refresh and try again.',
+        };
+      }
+
+      return { success: true };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(this.LOG_PREFIX, 'tryRpcBasecampUpdate: exception', { tripId, error: msg });
+      return { success: false, error: msg };
+    }
+  }
+
+  /**
+   * Fallback: Direct UPDATE on the trips table when the RPC fails.
+   * Bypasses the versioned RPC (no optimistic locking) but ensures the save succeeds.
+   * This handles the case where the RPC function has a bug (e.g., log_basecamp_change
+   * column mismatch) but the user still has UPDATE RLS access to the trips table.
+   *
+   * Uses .select() after .update() so PostgREST returns the affected rows.
+   * Without .select(), an RLS-blocked UPDATE returns no error and 0 rows — a silent no-op
+   * that the old code incorrectly treated as success.
+   */
+  private async tryDirectBasecampUpdate(
+    tripId: string,
+    basecamp: { name?: string; address: string },
+    latitude: number | null,
+    longitude: number | null,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('trips')
+        .update({
+          basecamp_name: basecamp.name || null,
+          basecamp_address: basecamp.address,
+          basecamp_latitude: latitude,
+          basecamp_longitude: longitude,
+        })
+        .eq('id', tripId)
+        .select('id, basecamp_address');
+
+      if (error) {
+        console.error(this.LOG_PREFIX, 'tryDirectBasecampUpdate: UPDATE error', {
+          tripId,
+          error: error.message,
+          code: error.code,
+        });
+        return { success: false, error: error.message };
+      }
+
+      // If no rows were returned, the UPDATE was silently blocked by RLS (0 rows affected).
+      if (!data || data.length === 0) {
+        console.error(this.LOG_PREFIX, 'tryDirectBasecampUpdate: 0 rows updated (RLS blocked)', {
+          tripId,
+        });
+        return {
+          success: false,
+          error: 'Unable to update trip basecamp. You may not have permission.',
+        };
+      }
+
+      // Confirm the returned row actually has the new address
+      const updatedRow = data[0];
+      if (updatedRow.basecamp_address !== basecamp.address) {
+        console.warn(this.LOG_PREFIX, 'tryDirectBasecampUpdate: returned address mismatch', {
+          tripId,
+          expected: basecamp.address,
+          actual: updatedRow.basecamp_address,
+        });
+        // Still treat as failure — the row didn't actually get our value
+        return {
+          success: false,
+          error: 'Basecamp update did not persist. Please try again.',
+        };
+      }
+
+      return { success: true };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(this.LOG_PREFIX, 'tryDirectBasecampUpdate: exception', { tripId, error: msg });
+      return { success: false, error: msg };
     }
   }
 
@@ -525,21 +635,22 @@ class BasecampService {
       });
 
       // Log to history (if not skipped)
+      // Parameter names must match the log_basecamp_change function definition
       if (!options?.skipHistory) {
         try {
           await (supabase as any).rpc('log_basecamp_change', {
             p_trip_id: payload.trip_id,
             p_user_id: user.id,
-            p_scope: 'personal',
+            p_basecamp_type: 'personal',
             p_action: isUpdate ? 'updated' : 'created',
-            p_old_name: currentBasecamp?.name || null,
-            p_old_address: currentBasecamp?.address || null,
-            p_old_lat: currentBasecamp?.latitude || null,
-            p_old_lng: currentBasecamp?.longitude || null,
+            p_previous_name: currentBasecamp?.name || null,
+            p_previous_address: currentBasecamp?.address || null,
+            p_previous_latitude: currentBasecamp?.latitude || null,
+            p_previous_longitude: currentBasecamp?.longitude || null,
             p_new_name: payload.name || null,
             p_new_address: payload.address,
-            p_new_lat: finalLatitude || null,
-            p_new_lng: finalLongitude || null,
+            p_new_latitude: finalLatitude || null,
+            p_new_longitude: finalLongitude || null,
           });
         } catch (historyError) {
           // Don't fail the operation if history logging fails
@@ -602,21 +713,22 @@ class BasecampService {
       }
 
       // Log to history (if not skipped)
+      // Parameter names must match the log_basecamp_change function definition
       if (!options?.skipHistory && basecamp) {
         try {
           await (supabase as any).rpc('log_basecamp_change', {
             p_trip_id: basecamp.trip_id,
             p_user_id: user.id,
-            p_scope: 'personal',
+            p_basecamp_type: 'personal',
             p_action: 'deleted',
-            p_old_name: basecamp.name || null,
-            p_old_address: basecamp.address || null,
-            p_old_lat: basecamp.latitude || null,
-            p_old_lng: basecamp.longitude || null,
+            p_previous_name: basecamp.name || null,
+            p_previous_address: basecamp.address || null,
+            p_previous_latitude: basecamp.latitude || null,
+            p_previous_longitude: basecamp.longitude || null,
             p_new_name: null,
             p_new_address: null,
-            p_new_lat: null,
-            p_new_lng: null,
+            p_new_latitude: null,
+            p_new_longitude: null,
           });
         } catch (historyError) {
           // Don't fail the operation if history logging fails

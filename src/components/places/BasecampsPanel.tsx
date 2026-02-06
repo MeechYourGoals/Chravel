@@ -14,6 +14,7 @@ export interface BasecampsPanelProps {
   tripId: string;
   tripBasecamp: BasecampLocation | null;
   onTripBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
+  onTripBasecampClear?: () => Promise<void> | void;
   personalBasecamp?: PersonalBasecamp | null;
   onPersonalBasecampUpdate?: (basecamp: PersonalBasecamp | null) => void;
 }
@@ -22,6 +23,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   tripId,
   tripBasecamp,
   onTripBasecampSet,
+  onTripBasecampClear,
   personalBasecamp: externalPersonalBasecamp,
   onPersonalBasecampUpdate,
 }) => {
@@ -95,9 +97,18 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     try {
       if (isDemoMode) {
         demoModeService.clearSessionTripBasecamp(tripId);
+        clearBasecamp();
+        toast.success('Trip basecamp cleared');
+      } else if (onTripBasecampClear) {
+        // Persist the clear to the database via the parent's mutation hook
+        await onTripBasecampClear();
+        clearBasecamp();
+        // Toast is handled by the mutation hook
+      } else {
+        // Fallback: only clear in-memory state (shouldn't happen if wired up correctly)
+        clearBasecamp();
+        toast.success('Trip basecamp cleared');
       }
-      clearBasecamp();
-      toast.success('Trip basecamp cleared');
     } catch (error) {
       console.error('Failed to clear trip basecamp:', error);
       toast.error('Failed to clear trip basecamp');
@@ -307,10 +318,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
       {/* Directions Embed - Below basecamp cards */}
       <div className="mt-4">
-        <DirectionsEmbed
-          tripBasecamp={tripBasecamp}
-          personalBasecamp={personalBasecamp}
-        />
+        <DirectionsEmbed tripBasecamp={tripBasecamp} personalBasecamp={personalBasecamp} />
       </div>
 
       {/* Basecamp Selectors */}
