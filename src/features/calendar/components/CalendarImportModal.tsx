@@ -163,19 +163,11 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
     if (!parseResult) return;
 
     setState('importing');
-    const progress = { imported: 0, skipped: 0, failed: 0 };
 
-    for (let i = 0; i < parseResult.events.length; i++) {
-      const event = parseResult.events[i];
-
-      // Skip duplicates
-      if (duplicateIndices.has(i)) {
-        progress.skipped++;
-        setImportProgress({ ...progress });
-        continue;
-      }
-
-      try {
+    // Build array of non-duplicate events upfront
+    const eventsToInsert = parseResult.events
+      .filter((_, i) => !duplicateIndices.has(i))
+      .map(event => {
         let endTime: string | undefined;
         if (event.endTime && event.endTime.getTime() !== event.startTime.getTime()) {
           endTime = event.endTime.toISOString();
@@ -185,45 +177,55 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
           endTime = endOfDay.toISOString();
         }
 
-        await calendarService.createEvent({
+        return {
           trip_id: tripId,
           title: event.title,
           description: event.description,
           start_time: event.startTime.toISOString(),
           end_time: endTime,
           location: event.location,
-          event_category: 'other',
+          event_category: 'other' as const,
           include_in_itinerary: true,
           source_type: 'manual',
           source_data: {
             imported_from: parseResult.sourceFormat,
             original_uid: event.uid,
           },
-        });
+        };
+      });
 
-        progress.imported++;
-      } catch (error) {
-        console.error('Failed to import event:', event.title, error);
-        progress.failed++;
+    const skipped = duplicateIndices.size;
+    setImportProgress({ imported: 0, skipped, failed: 0 });
+
+    let imported = 0;
+    let failed = 0;
+
+    try {
+      if (eventsToInsert.length > 0) {
+        const result = await calendarService.bulkCreateEvents(eventsToInsert);
+        imported = result.imported;
+        failed = result.failed;
       }
-
-      setImportProgress({ ...progress });
+    } catch (error) {
+      console.error('Bulk import failed:', error);
+      failed = eventsToInsert.length;
     }
 
+    setImportProgress({ imported, skipped, failed });
     setState('complete');
 
-    if (progress.imported > 0) {
-      let description = `${progress.imported} event${progress.imported !== 1 ? 's' : ''} imported`;
-      if (progress.skipped > 0) {
-        description += `, ${progress.skipped} duplicate${progress.skipped !== 1 ? 's' : ''} skipped`;
+    if (imported > 0) {
+      let description = `${imported} event${imported !== 1 ? 's' : ''} imported`;
+      if (skipped > 0) {
+        description += `, ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped`;
       }
-      if (progress.failed > 0) {
-        description += `, ${progress.failed} failed`;
+      if (failed > 0) {
+        description += `, ${failed} failed`;
       }
       toast.success('Import complete', { description });
-    } else if (progress.skipped > 0) {
+    } else if (skipped > 0) {
       toast.info('No new events', {
-        description: `All ${progress.skipped} event${progress.skipped !== 1 ? 's' : ''} were already in your calendar`,
+        description: `All ${skipped} event${skipped !== 1 ? 's' : ''} were already in your calendar`,
       });
     } else {
       toast.error('Import failed', { description: 'No events could be imported' });
@@ -512,10 +514,11 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
           {state === 'importing' && (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
-              <p className="text-muted-foreground mb-2">Importing events...</p>
-              <p className="text-sm text-muted-foreground">
-                {importProgress.imported + importProgress.skipped + importProgress.failed} /{' '}
-                {parseResult?.events.length ?? 0}
+              <p className="text-muted-foreground mb-2">
+                Importing {eventsToImport} event{eventsToImport !== 1 ? 's' : ''}...
+              </p>
+              <p className="text-xs text-muted-foreground">
+                This should only take a moment
               </p>
             </div>
           )}
