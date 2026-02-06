@@ -344,8 +344,8 @@ export const CreateTripSchema = z.object({
   card_color: z.string().max(50).optional(), // Color coding for Pro/Event cards
   // Organizer display name for Events (e.g., "Los Angeles Rams", "Boys & Girls Club")
   organizer_display_name: z.string().max(200).optional(),
-  // Privacy mode: controls data access level
-  privacy_mode: z.enum(['standard', 'enhanced', 'maximum']).optional(),
+  // Privacy mode: controls data access level ('standard' for consumer, 'high' for pro/event)
+  privacy_mode: z.enum(['standard', 'high']).optional(),
   // AI concierge access flag
   ai_access_enabled: z.boolean().optional(),
   // ✅ Phase 2: Feature toggles for Pro/Event trips
