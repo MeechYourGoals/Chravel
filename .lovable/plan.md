@@ -1,157 +1,117 @@
 
 
-# Remove Custom Calculator, Use Native Google Maps Directions
+# Remove Old Map, Keep DirectionsEmbed Only
 
-## Summary
+## Rationale
 
-Remove the broken custom distance calculator and replace it with a simple form that generates a native Google Maps directions embed. Google Maps will handle all the semantic search resolution internally (e.g., "SoFi Stadium" → actual location).
-
----
+The DirectionsEmbed is working perfectly and serves the actual user need: "How far is X from Y?" The old interactive/embed map below it was:
+- Showing "Interactive map unavailable" errors
+- Not providing value a user can't get from opening Google Maps natively
+- Adding visual clutter beneath the DirectionsEmbed
 
 ## What Gets Removed
 
-| File | Action |
+### Files to Delete (10 files)
+
+| File | Reason |
 |------|--------|
-| `src/components/places/DistanceCalculator.tsx` | Delete entirely |
-| `src/components/places/LocationInput.tsx` | Delete entirely |
-| `src/components/places/BasecampsPanel.tsx` | Remove import and usage of DistanceCalculator |
+| `src/components/places/MapCanvas.tsx` (915 lines) | The old interactive map component |
+| `src/components/GoogleMapsEmbed.tsx` | Iframe embed used as MapCanvas fallback |
+| `src/components/places/UnifiedMapControls.tsx` | Search bar overlay that floated on the old map |
+| `src/components/places/PlaceInfoOverlay.tsx` | Place info card that appeared on old map |
+| `src/components/places/SearchContextSwitch.tsx` | Trip/Personal context toggle for old map |
+| `src/components/places/StaticMapEmbed.tsx` | Static map embed helper |
+| `src/hooks/map/useMapState.ts` | Map state management hook |
+| `src/hooks/map/useMapSearch.ts` | Map search state hook |
+| `src/hooks/map/useMapRouting.ts` | Map routing/polyline hook |
+| `src/components/places/__tests__/MapCanvas.test.tsx` | Tests for deleted component |
 
----
+### Code Removed from PlacesSection.tsx
 
-## What Gets Added
+- `MapCanvas` import and ref
+- `UnifiedMapControls` import
+- All search state: `searchQuery`, `isSearching`, `searchError`, `isMapLoading`
+- All search handlers: `handleSearchChange`, `handleSearchSubmit`, `handleClearSearch`
+- `handleCenterMap` function
+- `handleMapReady` function
+- `distanceSettings` object
+- `searchContext` state and `handleContextChange`
+- The entire map rendering block (lines 536-574)
+- Several deprecated state variables (`_lastUpdatedLocation`, `_showPersonalBasecampSelector`)
 
-A new, simpler **DirectionsEmbed** component that:
-- Uses plain text inputs (no autocomplete/geocoding required)
-- Has quick-fill buttons for Trip/Personal Base Camp
-- Builds a native Google Maps directions URL with `saddr` and `daddr`
-- Displays the results in an iframe (Google handles everything)
+### Code Cleaned Up in LinksPanel.tsx
 
----
+- Remove `onCenterMap` prop (dead code with no map to center)
+- Remove `distanceUnit` and `preferredMode` props (no longer needed)
 
-## Technical Implementation
+### Code Cleaned Up in BasecampsPanel.tsx
 
-### New File: `src/components/places/DirectionsEmbed.tsx`
+- Remove deprecated `onCenterMap` prop from the interface
+- Remove `activeContext` and `onContextChange` props (context switching was for the old map)
 
-A simple component with:
-- Two text inputs (From and To)
-- Swap button to reverse directions
-- Quick-fill buttons for basecamps
-- "Get Directions" button that generates an embed URL
-- Iframe showing the Google Maps directions result
+## What Stays
 
-```tsx
-// Core logic - NO geocoding required
-const handleGetDirections = () => {
-  if (!fromText.trim() || !toText.trim()) return;
-  
-  const saddr = encodeURIComponent(fromText.trim());
-  const daddr = encodeURIComponent(toText.trim());
-  const url = `https://www.google.com/maps?output=embed&saddr=${saddr}&daddr=${daddr}`;
-  
-  setDirectionsUrl(url);
-  setShowDirections(true);
-};
-```
+| Component | Why |
+|-----------|-----|
+| `DirectionsEmbed.tsx` | Working perfectly - the replacement |
+| `BasecampsPanel.tsx` | Houses basecamp cards + DirectionsEmbed |
+| `LinksPanel.tsx` | Trip links display (cleaned up) |
+| `googleMapsService.ts` | Still used by basecamp selector and DirectionsEmbed URL building |
+| `googlePlacesNew.ts` | Still used by `LocationSearchBar.tsx` on the home page |
 
-### Modified File: `src/components/places/BasecampsPanel.tsx`
+## Result
 
-Replace `DistanceCalculator` with `DirectionsEmbed`:
+The Places tab becomes cleaner and more focused:
 
-```tsx
-// Remove this:
-import { DistanceCalculator } from './DistanceCalculator';
-
-// Add this:
-import { DirectionsEmbed } from './DirectionsEmbed';
-
-// Replace usage:
-<DirectionsEmbed
-  tripBasecamp={tripBasecamp}
-  personalBasecamp={personalBasecamp}
-/>
-```
-
----
-
-## User Experience Flow
-
-1. User types "SoFi Stadium Los Angeles" in "From" field
-2. User types "Crypto.com Arena" in "To" field  
-3. User clicks "Get Directions"
-4. Google Maps embed appears showing:
-   - The route between the two locations
-   - Distance and travel time
-   - Turn-by-turn directions (interactive in embed)
-
-**Key difference**: Google Maps resolves "SoFi Stadium Los Angeles" → actual stadium location. No Nominatim, no custom geocoding, no coordinate extraction needed.
-
----
-
-## Visual Design
-
-**Before clicking "Get Directions"**:
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  🗺️ Get Directions                                              │
-│  ───────────────────────────────────────────────────────────── │
-│  From: [Trip Base Camp] [Personal Base Camp]                   │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ 📍 SoFi Stadium Los Angeles                              │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                          ⇅                                     │
-│  To: [Trip Base Camp] [Personal Base Camp]                     │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ 📍 Crypto.com Arena                                      │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  [ 🗺️ Get Directions ]                                         │
-└─────────────────────────────────────────────────────────────────┘
+Before:                          After:
+┌──────────────────────┐        ┌──────────────────────┐
+│ Base Camps Tab       │        │ Base Camps Tab       │
+│ ┌────────┬─────────┐ │        │ ┌────────┬─────────┐ │
+│ │ Trip   │Personal │ │        │ │ Trip   │Personal │ │
+│ └────────┴─────────┘ │        │ └────────┴─────────┘ │
+│ ┌──────────────────┐ │        │ ┌──────────────────┐ │
+│ │ Get Directions   │ │        │ │ Get Directions   │ │
+│ └──────────────────┘ │        │ └──────────────────┘ │
+│ ┌──────────────────┐ │        │                      │
+│ │ Google Map       │ │        │ (cleaner, focused)   │
+│ │ "unavailable"    │ │        │                      │
+│ │ [Retry]          │ │        └──────────────────────┘
+│ └──────────────────┘ │
+└──────────────────────┘
 ```
 
-**After clicking "Get Directions"**:
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  🗺️ Directions: SoFi Stadium → Crypto.com Arena    [✕ Close]   │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                                                          │  │
-│  │            [Google Maps Directions Embed]                │  │
-│  │         Shows route, distance, and travel time           │  │
-│  │              Interactive within iframe                   │  │
-│  │                                                          │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-```
+## Technical Details
 
----
+### PlacesSection.tsx - Major Simplification
 
-## Files Summary
+Remove approximately 150 lines of map-related state and handlers. The component shrinks from ~577 lines to ~400 lines. Key removals:
+- `mapRef` and `MapCanvasRef` usage
+- Search state variables and handlers
+- `handleCenterMap`, `handleMapReady`, `handleContextChange`
+- `distanceSettings` configuration
+- `searchContext` state
+- The entire map JSX block at the bottom
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/components/places/DistanceCalculator.tsx` | **Delete** | Remove broken custom calculator |
-| `src/components/places/LocationInput.tsx` | **Delete** | No longer needed |
-| `src/components/places/DirectionsEmbed.tsx` | **Create** | Simple text inputs + native directions embed |
-| `src/components/places/BasecampsPanel.tsx` | **Modify** | Swap DistanceCalculator → DirectionsEmbed |
+### BasecampsPanel.tsx - Interface Cleanup
 
----
+Remove deprecated props from the interface:
+- `onCenterMap` (already marked as deprecated with TODO)
+- `activeContext` and `onContextChange` (no longer needed without the map)
 
-## Why This Works
+### LinksPanel.tsx - Dead Props Removal
 
-1. **Google Maps handles semantic search** - "Popeyes Inglewood CA" resolves correctly
-2. **No API calls needed** - The `?output=embed&saddr=X&daddr=Y` format is free
-3. **Button is always enabled** - Just needs text in both fields, no coordinates
-4. **Full directions experience** - Distance, duration, route all visible in embed
-5. **Much simpler code** - ~80 lines instead of ~300 lines
+Remove props that referenced the old map:
+- `onCenterMap`
+- `distanceUnit`
+- `preferredMode`
 
----
+Update the call site in PlacesSection.tsx accordingly.
 
-## Edge Cases Handled
+## Migration Safety
 
-| Scenario | Behavior |
-|----------|----------|
-| User types partial venue name | Google Maps will show multiple matches or best guess |
-| Location not found | Google Maps shows "couldn't find" message in embed |
-| Both fields empty | Button disabled |
-| User clicks quick-fill | Text populated from basecamp address |
-| User wants to change search | Click "Close" to return to input form |
+- `googlePlacesNew` service is NOT deleted (still used by `LocationSearchBar.tsx`)
+- `googleMapsService.ts` is NOT deleted (used by basecamp selector for geocoding)
+- No database changes required
+- No breaking changes to any other tabs/features
 
