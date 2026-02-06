@@ -35,10 +35,15 @@ export const GoogleMapsEmbed = ({
 
       // Priority 1: External search location (from search bar)
       if (searchLocation?.lat && searchLocation?.lng) {
-        url = GoogleMapsService.buildEmbeddableUrl(searchLocation.address, {
-          lat: searchLocation.lat,
-          lng: searchLocation.lng,
-        });
+        // Prefer address if available (more reliable centering in embed mode)
+        if (searchLocation.address) {
+          url = GoogleMapsService.buildEmbeddableUrl(searchLocation.address);
+        } else {
+          url = GoogleMapsService.buildEmbeddableUrl(undefined, {
+            lat: searchLocation.lat,
+            lng: searchLocation.lng,
+          });
+        }
       }
       // Priority 2: Trip basecamp from context
       else if (isBasecampSet && basecamp?.address) {
