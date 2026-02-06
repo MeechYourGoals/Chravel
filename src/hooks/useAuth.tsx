@@ -79,6 +79,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signInWithGoogle: () => Promise<{ error?: string }>;
   signInWithPhone: (phone: string) => Promise<{ error?: string }>;
   signUp: (
     email: string,
@@ -723,6 +724,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const signInWithGoogle = async (): Promise<{ error?: string }> => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Google OAuth error:', error);
+        }
+        if (error.message.includes('provider is not enabled')) {
+          return { error: 'Google sign-in is not configured. Please contact support.' };
+        }
+        return { error: error.message };
+      }
+
+      return {};
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[Auth] Unexpected Google OAuth error:', error);
+      }
+      return { error: 'An unexpected error occurred. Please try again.' };
+    }
+  };
+
   const signInWithPhone = async (phone: string): Promise<{ error?: string }> => {
     try {
       setIsLoading(true);
@@ -990,6 +1019,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         session,
         isLoading,
         signIn,
+        signInWithGoogle,
         signInWithPhone,
         signUp,
         signOut,
