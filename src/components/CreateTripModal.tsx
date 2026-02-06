@@ -370,6 +370,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     places: 'Places',
     polls: 'Polls',
     tasks: 'Tasks',
+    team: 'Team',
   };
 
   return (

@@ -56,6 +56,8 @@ serve(async req => {
       enabled_features,
       card_color,
       organizer_display_name,
+      privacy_mode,
+      ai_access_enabled,
     } = validation.data;
 
     // Get user's subscription tier, taste test usage, and email
@@ -120,6 +122,8 @@ serve(async req => {
         cover_image_url,
         card_color, // Persist selected card color for Pro/Event trips
         organizer_display_name, // Organizer name for Events (e.g., "Los Angeles Rams")
+        privacy_mode: privacy_mode || 'standard', // Default to standard privacy
+        ai_access_enabled: ai_access_enabled ?? true, // Default to enabled
         created_by: user.id,
         enabled_features: enabled_features || [
           'chat',

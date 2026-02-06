@@ -72,6 +72,8 @@ export interface CreateTripData {
   enabled_features?: string[]; // ✅ Phase 2: Feature toggles for Pro/Event trips
   card_color?: string; // Color coding for Pro/Event cards
   organizer_display_name?: string; // Organizer name for Events (e.g., "Los Angeles Rams")
+  privacy_mode?: string; // Privacy mode: 'standard' | 'enhanced' | 'maximum'
+  ai_access_enabled?: boolean; // Whether AI concierge can access trip data
 }
 
 type TripDetailErrorCode = 'AUTH_REQUIRED' | 'TRIP_NOT_FOUND' | 'ACCESS_DENIED' | 'BAD_REQUEST';
@@ -197,6 +199,8 @@ export const tripService = {
           card_color: tripData.card_color, // ✅ Pass card color for Pro/Event trips
           organizer_display_name: tripData.organizer_display_name, // ✅ Organizer name for Events
           enabled_features: tripData.enabled_features, // ✅ Phase 2: Pass feature toggles
+          privacy_mode: tripData.privacy_mode, // ✅ Privacy mode for trip
+          ai_access_enabled: tripData.ai_access_enabled, // ✅ AI concierge access flag
         },
       });
 
@@ -204,7 +208,26 @@ export const tripService = {
 
       if (error) {
         console.error('[tripService] Edge function error:', error);
-        throw new Error(error.message || 'Failed to create trip');
+
+        // Extract the actual error message from the edge function response body
+        // supabase.functions.invoke sets error.message to a generic string for non-2xx,
+        // but the response JSON (with the real error) may be in data or error.context
+        let detailedMessage = '';
+        if (data?.error) {
+          detailedMessage = data.error;
+        } else if (data?.message) {
+          detailedMessage = data.message;
+        }
+
+        // Map known edge function error codes to user-friendly messages
+        if (detailedMessage === 'UPGRADE_REQUIRED_PRO_TRIP') {
+          throw new Error('UPGRADE_REQUIRED_PRO_TRIP');
+        }
+        if (detailedMessage === 'UPGRADE_REQUIRED_EVENT') {
+          throw new Error('UPGRADE_REQUIRED_EVENT');
+        }
+
+        throw new Error(detailedMessage || error.message || 'Failed to create trip');
       }
 
       if (!data?.success) {
