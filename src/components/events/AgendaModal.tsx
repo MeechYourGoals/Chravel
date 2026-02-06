@@ -488,8 +488,7 @@ export const AgendaModal = ({
                   />
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="cursor-pointer"
+                    className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold cursor-pointer"
                     asChild
                     disabled={isUploadingFile}
                   >
@@ -544,36 +543,15 @@ export const AgendaModal = ({
               )}
             </div>
           ) : (
-            <Card className="bg-white/5 border-white/10 border-dashed">
+            <Card className="bg-white/5 border-white/10">
               <CardContent className="p-8 text-center">
                 <Image size={48} className="text-gray-600 mx-auto mb-3" />
                 <h4 className="text-white font-medium mb-1">No Agenda File</h4>
-                <p className="text-gray-400 text-sm mb-4">
+                <p className="text-gray-400 text-sm">
                   {canUpload
                     ? 'Upload a PDF or image of your event agenda'
                     : 'The organizer hasn\'t uploaded an agenda file yet'}
                 </p>
-                {canUpload && (
-                  <label>
-                    <input
-                      type="file"
-                      accept=".pdf,image/jpeg,image/png,image/jpg"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      disabled={isUploadingFile}
-                    />
-                    <Button
-                      className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold cursor-pointer"
-                      asChild
-                      disabled={isUploadingFile}
-                    >
-                      <span>
-                        <Upload size={16} className="mr-2" />
-                        Upload Agenda
-                      </span>
-                    </Button>
-                  </label>
-                )}
               </CardContent>
             </Card>
           )}
