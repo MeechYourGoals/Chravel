@@ -573,11 +573,7 @@ export const calendarService = {
 
     // 3. Membership check ONCE (all events share the same trip)
     const tripId = events[0].trip_id;
-    if (!isSuperAdmin) {
-      await this.ensureTripMembership(tripId, user.id);
-    } else {
-      await this.ensureTripMembership(tripId, user.id);
-    }
+    await this.ensureTripMembership(tripId, user.id);
 
     // 4. Build insert rows
     const rows = events.map(e => ({
@@ -603,16 +599,18 @@ export const calendarService = {
 
     if (!error && data) {
       console.log(`[calendarService] Bulk insert success: ${data.length} events`);
-      // Cache all events
-      for (const event of data) {
-        await offlineSyncService.cacheEntity(
-          'calendar_event',
-          event.id,
-          event.trip_id,
-          event,
-          event.version || 1
-        );
-      }
+      // Cache all events in parallel (best-effort, don't block on cache failures)
+      await Promise.all(
+        data.map(event =>
+          offlineSyncService.cacheEntity(
+            'calendar_event',
+            event.id,
+            event.trip_id,
+            event,
+            event.version || 1
+          ).catch(() => {})
+        )
+      );
       return { imported: data.length, failed: 0, events: data };
     }
 
