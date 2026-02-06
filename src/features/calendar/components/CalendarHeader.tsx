@@ -44,10 +44,11 @@ export const CalendarHeader = ({
 
   return (
     <div className="mb-6">
-      <h2 className="text-2xl font-bold text-foreground mb-4">Group Calendar</h2>
-      <div className="grid grid-cols-8 gap-2">
-        {/* Empty space occupying cols 1-4 (under Chat, Calendar, Concierge, Media) */}
-        <div className="col-span-4" />
+      <div className="grid grid-cols-8 gap-2 items-center">
+        {/* Title occupying cols 1-4 (under Chat, Calendar, Concierge, Media) */}
+        <div className="col-span-4">
+          <h2 className="text-2xl font-bold text-foreground">Group Calendar</h2>
+        </div>
 
         {/* Import button - col 5 (under Payments) */}
         <Button
