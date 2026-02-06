@@ -56,6 +56,8 @@ serve(async req => {
       enabled_features,
       card_color,
       organizer_display_name,
+      privacy_mode,
+      ai_access_enabled,
     } = validation.data;
 
     // Get user's subscription tier, taste test usage, and email
@@ -107,6 +109,29 @@ serve(async req => {
       }
     }
 
+    // Resolve the effective trip type
+    const effectiveTripType = trip_type || 'consumer';
+
+    // Default features per trip type (all features enabled for MVP)
+    const DEFAULT_FEATURES_BY_TYPE: Record<string, string[]> = {
+      consumer: ['chat', 'calendar', 'concierge', 'media', 'payments', 'places', 'polls', 'tasks'],
+      pro: [
+        'chat',
+        'calendar',
+        'concierge',
+        'media',
+        'payments',
+        'places',
+        'polls',
+        'tasks',
+        'team',
+      ],
+      event: ['agenda', 'calendar', 'chat', 'concierge', 'lineup', 'media', 'polls', 'tasks'],
+    };
+
+    const defaultFeatures =
+      DEFAULT_FEATURES_BY_TYPE[effectiveTripType] || DEFAULT_FEATURES_BY_TYPE['consumer'];
+
     // Create trip
     const { data: trip, error: tripError } = await supabase
       .from('trips')
@@ -116,21 +141,14 @@ serve(async req => {
         destination,
         start_date,
         end_date,
-        trip_type: trip_type || 'consumer',
+        trip_type: effectiveTripType,
         cover_image_url,
         card_color, // Persist selected card color for Pro/Event trips
         organizer_display_name, // Organizer name for Events (e.g., "Los Angeles Rams")
+        privacy_mode: privacy_mode || 'standard', // Default to standard privacy
+        ai_access_enabled: ai_access_enabled ?? true, // Default to enabled
         created_by: user.id,
-        enabled_features: enabled_features || [
-          'chat',
-          'calendar',
-          'concierge',
-          'media',
-          'payments',
-          'places',
-          'polls',
-          'tasks',
-        ],
+        enabled_features: enabled_features || defaultFeatures,
       })
       .select()
       .single();
@@ -161,7 +179,7 @@ serve(async req => {
       }
     }
 
-    console.log(`Trip created: ${trip.id} by user ${user.id}, type: ${trip_type || 'consumer'}`);
+    console.log(`Trip created: ${trip.id} by user ${user.id}, type: ${effectiveTripType}`);
 
     return new Response(JSON.stringify({ success: true, trip }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
