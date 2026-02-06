@@ -1,67 +1,75 @@
 
 
-# Fix Build Error + Ensure Bulk Import Actually Deploys
+# Clean Up Old Google OAuth Code
 
-## Root Cause
+## What gets removed
 
-The bulk import changes from the previous update **never deployed** because a pre-existing build error in `web-push-send/index.ts` is blocking the entire build. That is why you are still seeing the old "4 / 20" sequential counter -- the app is running stale code.
+All remnants of the previous Google OAuth attempt will be deleted. The Google sign-in functions are not rendered anywhere in the UI (the AuthModal only shows email/password forms), but dead code referencing them still exists across several files.
 
-## Changes (3 files)
+## Changes
 
-### 1. Fix Build Error: `supabase/functions/web-push-send/index.ts`
+### 1. Delete `src/components/auth/OAuthButtons.tsx`
 
-The `paddedPayload` variable is a `Uint8Array` but Deno's strict typing requires an `ArrayBuffer` for `crypto.subtle.encrypt()`. The same pattern used for `cek` and `nonce` (`.buffer.slice(...)`) needs to be applied here.
+This component is never imported or rendered outside its own test file. Contains the disabled `isOAuthEnabled()` flag and unused Google OAuth button.
 
-**Line 362**: Convert `paddedPayload` to `ArrayBuffer` before passing to encrypt:
+### 2. Delete `src/components/auth/AuthDivider.tsx`
 
-```typescript
-const paddedPayloadBuffer = paddedPayload.buffer.slice(
-  paddedPayload.byteOffset,
-  paddedPayload.byteOffset + paddedPayload.byteLength
-) as ArrayBuffer;
+OAuth divider component ("or continue with"). Only imported by OAuthButtons test file. Not used anywhere in the app.
 
-const encryptedRecord = await crypto.subtle.encrypt(
-  { name: 'AES-GCM', iv: nonceBuffer },
-  cekKey,
-  paddedPayloadBuffer  // was: paddedPayload
-);
-```
+### 3. Delete `src/components/auth/__tests__/OAuthButtons.test.tsx`
 
-### 2. Speed Up Caching: `src/services/calendarService.ts`
+Tests for the components being deleted. No longer needed.
 
-The sequential caching loop in `bulkCreateEvents` (lines 607-614) awaits each IndexedDB write one at a time. For 20 events that adds unnecessary latency. Replace with `Promise.all` for parallel caching:
+### 4. Update `src/components/auth/index.ts`
 
-```typescript
-// Before (sequential - slow):
-for (const event of data) {
-  await offlineSyncService.cacheEntity(...);
-}
+Remove all exports since both exported components are being deleted. If the file becomes empty, delete it entirely.
 
-// After (parallel - fast):
-await Promise.all(
-  data.map(event =>
-    offlineSyncService.cacheEntity(
-      'calendar_event', event.id, event.trip_id, event, event.version || 1
-    ).catch(() => {}) // best-effort, don't block on cache failures
-  )
-);
-```
+### 5. Clean up `src/components/AuthModal.tsx`
 
-Also simplify the redundant super admin branch (lines 576-580) where both if/else do the same thing.
+- Remove `signInWithGoogle` from the useAuth destructure (line 16)
+- Remove `googleLoading` state variable (line 28)
+- Remove `handleGoogleSignIn` function (lines 95-111)
+- Keep only the email/password and forgot password flows (no functional change since Google button was never rendered)
 
-### 3. Remove Dead Code: `src/features/calendar/components/ICSImportModal.tsx`
+### 6. Clean up `src/hooks/useAuth.tsx`
 
-This file is the OLD import modal with the sequential "4 / 20" loop. It is not imported anywhere in the codebase (all references use `CalendarImportModal`). Deleting it removes confusion and dead code.
+- Remove `signInWithGoogle` from the AuthContext interface (line 83)
+- Remove `signInWithApple` from the AuthContext interface (line 84)
+- Remove the `signInWithGoogle` function implementation (lines 766-822)
+- Remove the `signInWithApple` function implementation (lines 824-851)
+- Remove both from the context provider value (lines 1083-1084)
 
-## Result
+### 7. Clean up `src/pages/AuthPage.tsx`
 
-Once the build error is fixed, the new bulk import code will deploy. Imports will go from 30-60+ seconds (sequential) to 1-3 seconds (single Supabase insert). The user will see "Importing 20 events... This should only take a moment" instead of "4 / 20".
+- Remove `isProcessingOAuth` state and the OAuth callback useEffect (lines 24, 36-71)
+- Remove the OAuth loading screen (lines 84-93)
+- Simplify the authenticated redirect check (remove `isProcessingOAuth` dependency)
+- The page now purely handles email/password auth via AuthModal
 
-## Files Modified
+### 8. Clean up `src/services/googleCalendarService.ts`
 
-| File | Change |
-|------|--------|
-| `supabase/functions/web-push-send/index.ts` | Fix `Uint8Array` to `ArrayBuffer` conversion for `paddedPayload` (1 line) |
-| `src/services/calendarService.ts` | Parallelize caching loop with `Promise.all`, simplify admin branch |
-| `src/features/calendar/components/ICSImportModal.tsx` | Delete (dead code, not imported anywhere) |
+- Remove the hardcoded `'your_google_client_id'` placeholder in `authenticateUser()` (line 35)
+- Replace with a clear error message indicating calendar OAuth is not configured
+- This is a separate feature from sign-in OAuth but still contains stale placeholder credentials
+
+## What stays
+
+- Email/password sign-in and sign-up (fully functional)
+- Password reset flow
+- The `useAuth` hook (minus the Google/Apple methods)
+- All trip membership, profile, and notification logic in useAuth
+- The AuthModal UI (unchanged since Google button was never rendered)
+
+## Files summary
+
+| Action | File |
+|--------|------|
+| Delete | `src/components/auth/OAuthButtons.tsx` |
+| Delete | `src/components/auth/AuthDivider.tsx` |
+| Delete | `src/components/auth/__tests__/OAuthButtons.test.tsx` |
+| Delete | `src/components/auth/index.ts` |
+| Edit | `src/components/AuthModal.tsx` |
+| Edit | `src/hooks/useAuth.tsx` |
+| Edit | `src/pages/AuthPage.tsx` |
+| Edit | `src/services/googleCalendarService.ts` |
 
