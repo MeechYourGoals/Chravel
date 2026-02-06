@@ -43,11 +43,11 @@ export const CalendarHeader = ({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-center">
-      {/* Match the main calendar layout: title aligns above left panel, actions align above right panel. */}
-      <h2 className="text-2xl font-bold text-foreground">Group Calendar</h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {/* Title spans full width; actions align to the right-column slot above the Events panel. */}
+      <h2 className="md:col-span-2 text-2xl font-bold text-foreground">Group Calendar</h2>
 
-      <div className="grid grid-cols-4 gap-2 md:justify-self-end w-full">
+      <div className="md:col-start-2 grid grid-cols-4 gap-2 w-full">
         <Button
           variant="outline"
           onClick={onImport}
