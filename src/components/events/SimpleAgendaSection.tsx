@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { FileText, Upload, Download, Eye } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -6,6 +6,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 
 export const SimpleAgendaSection = () => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [agendaInfo, setAgendaInfo] = useState({
     title: 'Event Schedule',
     description: '',
@@ -14,7 +15,7 @@ export const SimpleAgendaSection = () => {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
+    if (file) {
       setAgendaInfo({ ...agendaInfo, uploadedFile: file });
     }
   };
@@ -30,7 +31,7 @@ export const SimpleAgendaSection = () => {
           <FileText size={24} className="text-glass-orange" />
           Event Agenda
         </h3>
-        <p className="text-gray-300 mt-2">Upload your event schedule as a PDF for attendees to view</p>
+        <p className="text-gray-300 mt-2">Upload your event agenda for attendees to view</p>
       </div>
 
       {/* Agenda Information */}
@@ -63,28 +64,30 @@ export const SimpleAgendaSection = () => {
         </div>
       </div>
 
-      {/* PDF Upload */}
+      {/* File Upload */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-        <h4 className="text-base font-semibold text-white mb-2">Upload Agenda PDF</h4>
+        <h4 className="text-base font-semibold text-white mb-2">Upload Agenda</h4>
         
         {!agendaInfo.uploadedFile ? (
           <div className="border-2 border-dashed border-glass-orange/30 rounded-lg p-4 text-center">
             <Upload size={48} className="mx-auto text-glass-orange mb-4" />
             <p className="text-white mb-2">Upload your event agenda</p>
-            <p className="text-gray-400 text-sm mb-4">PDF files only, max 10MB</p>
+            <p className="text-gray-400 text-sm mb-4">Images, PDFs, Word docs, and more</p>
             
-            <label htmlFor="agenda-upload" className="cursor-pointer">
-              <Button className="bg-glass-orange hover:bg-glass-orange/80" asChild>
-                <span>Choose PDF File</span>
-              </Button>
-              <input
-                id="agenda-upload"
-                type="file"
-                accept=".pdf"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Button
+              className="bg-glass-orange hover:bg-glass-orange/80"
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              Upload Agenda
+            </Button>
           </div>
         ) : (
           <div className="bg-white/5 rounded-lg p-3 border border-white/10">
@@ -124,8 +127,8 @@ export const SimpleAgendaSection = () => {
               <div>
                 <p className="text-blue-300 font-medium">Easy Access for Attendees</p>
                 <p className="text-gray-300 text-sm mt-1">
-                  Once uploaded, attendees will see a "View Agenda" or "Download Schedule" button 
-                  on the event page. They can view the PDF directly or download it to their device.
+                  Once uploaded, attendees will see a "View Agenda" or "Download Agenda" button 
+                  on the event page. They can view it directly or download it to their device.
                 </p>
               </div>
             </div>
@@ -138,7 +141,7 @@ export const SimpleAgendaSection = () => {
                 <div>
                   <p className="text-green-300 font-medium">Agenda Ready!</p>
                   <p className="text-gray-300 text-sm mt-1">
-                    Your agenda PDF is uploaded and ready for attendees to view.
+                    Your agenda is uploaded and ready for attendees to view.
                   </p>
                 </div>
               </div>

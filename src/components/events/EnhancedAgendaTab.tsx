@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Calendar, Upload, Plus, FileText, Clock, MapPin, Trash2, Download, CheckCircle2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -27,6 +27,7 @@ export const EnhancedAgendaTab = ({
   userRole,
   pdfScheduleUrl: initialPdfUrl
 }: EnhancedAgendaTabProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [pdfScheduleUrl, setPdfScheduleUrl] = useState<string | undefined>(initialPdfUrl);
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
   const [sessions, setSessions] = useState<AgendaSession[]>([]);
@@ -54,8 +55,8 @@ export const EnhancedAgendaTab = ({
       setPdfScheduleUrl(url);
       
       toast({
-        title: 'PDF uploaded successfully',
-        description: 'Attendees can now download the schedule'
+        title: 'Agenda uploaded successfully',
+        description: 'Attendees can now view the agenda'
       });
     } catch (error) {
       toast({
@@ -116,7 +117,7 @@ export const EnhancedAgendaTab = ({
           <Calendar size={24} className="text-blue-400 flex-shrink-0 mt-0.5" />
           <div>
             <h2 className="text-lg md:text-xl font-semibold text-foreground">Event Agenda</h2>
-            <p className="text-muted-foreground text-sm">View the full event schedule</p>
+            <p className="text-muted-foreground text-sm">View the event agenda and schedule</p>
           </div>
         </div>
         
@@ -124,24 +125,26 @@ export const EnhancedAgendaTab = ({
         {isOrganizer && !isAddingSession && (
           <div className="flex flex-col sm:flex-row gap-2">
             {!pdfScheduleUrl && (
-              <label className="flex-1 sm:flex-none">
+              <>
                 <input
+                  ref={fileInputRef}
                   type="file"
-                  accept=".pdf"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
                   onChange={handlePDFUpload}
                   className="hidden"
                   disabled={isUploadingPDF}
                 />
                 <Button 
                   variant="outline"
-                  className="w-full sm:w-auto border-border cursor-pointer"
+                  className="flex-1 sm:flex-none border-border cursor-pointer"
                   disabled={isUploadingPDF}
                   type="button"
+                  onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload size={16} className="mr-2" />
-                  {isUploadingPDF ? 'Uploading...' : 'Upload PDF'}
+                  {isUploadingPDF ? 'Uploading...' : 'Upload Agenda'}
                 </Button>
-              </label>
+              </>
             )}
             <Button
               onClick={() => setIsAddingSession(true)}
@@ -162,14 +165,14 @@ export const EnhancedAgendaTab = ({
               <div className="flex items-center gap-3">
                 <FileText size={32} className="text-red-400 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-foreground">Full Event Schedule (PDF)</h3>
-                  <p className="text-sm text-muted-foreground">Complete agenda with all details</p>
+                  <h3 className="font-medium text-foreground">Event Agenda</h3>
+                  <p className="text-sm text-muted-foreground">Uploaded agenda file</p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <a
                   href={pdfScheduleUrl}
-                  download="Event_Schedule.pdf"
+                  download
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 sm:flex-none"
@@ -182,7 +185,7 @@ export const EnhancedAgendaTab = ({
                 {isOrganizer && (
                   <Button
                     onClick={() => {
-                      if (confirm('Remove uploaded PDF schedule?')) {
+                      if (confirm('Remove uploaded agenda?')) {
                         setPdfScheduleUrl(undefined);
                       }
                     }}
@@ -350,7 +353,7 @@ export const EnhancedAgendaTab = ({
             <h3 className="text-lg font-medium text-foreground mb-2">No Agenda Yet</h3>
             <p className="text-muted-foreground text-sm max-w-xs mx-auto">
               {isOrganizer 
-                ? 'Use the buttons above to upload a PDF schedule or add sessions manually'
+                ? 'Use the buttons above to upload an agenda or add sessions manually'
                 : 'The event organizer hasn\'t added an agenda yet'
               }
             </p>
