@@ -8,9 +8,14 @@ import type { EventAgendaItem } from '@/types/events';
 interface UseEventAgendaOptions {
   eventId: string;
   initialSessions?: EventAgendaItem[];
+  enabled?: boolean;
 }
 
-export function useEventAgenda({ eventId, initialSessions = [] }: UseEventAgendaOptions) {
+export function useEventAgenda({
+  eventId,
+  initialSessions = [],
+  enabled = true,
+}: UseEventAgendaOptions) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
@@ -51,6 +56,7 @@ export function useEventAgenda({ eventId, initialSessions = [] }: UseEventAgenda
       }));
     },
     staleTime: 30_000,
+    enabled,
   });
 
   // Add session
@@ -132,7 +138,11 @@ export function useEventAgenda({ eventId, initialSessions = [] }: UseEventAgenda
     },
     onError: (err: Error) => {
       console.error('Failed to update session:', err);
-      toast({ title: 'Failed to update session', description: err.message, variant: 'destructive' });
+      toast({
+        title: 'Failed to update session',
+        description: err.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -141,10 +151,7 @@ export function useEventAgenda({ eventId, initialSessions = [] }: UseEventAgenda
     mutationFn: async (sessionId: string) => {
       if (isDemoMode) return sessionId;
 
-      const { error } = await supabase
-        .from('event_agenda_items')
-        .delete()
-        .eq('id', sessionId);
+      const { error } = await supabase.from('event_agenda_items').delete().eq('id', sessionId);
 
       if (error) throw error;
       return sessionId;
@@ -155,7 +162,11 @@ export function useEventAgenda({ eventId, initialSessions = [] }: UseEventAgenda
     },
     onError: (err: Error) => {
       console.error('Failed to delete session:', err);
-      toast({ title: 'Failed to delete session', description: err.message, variant: 'destructive' });
+      toast({
+        title: 'Failed to delete session',
+        description: err.message,
+        variant: 'destructive',
+      });
     },
   });
 

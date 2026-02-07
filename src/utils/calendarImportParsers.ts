@@ -83,7 +83,7 @@ function parseFlexibleDate(dateStr: string, timeStr?: string): Date | null {
 
   // Handle MM/DD/YYYY or M/D/YYYY
   if (isNaN(date.getTime())) {
-    const mdyMatch = cleaned.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    const mdyMatch = cleaned.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
     if (mdyMatch) {
       const [, m, d, y] = mdyMatch;
       const year = y.length === 2 ? 2000 + parseInt(y, 10) : parseInt(y, 10);
@@ -138,11 +138,7 @@ function parseTimeString(timeStr: string): { hours: number; minutes: number } | 
 
 // ─── Row to Event Mapper ─────────────────────────────────────────────────────
 
-function rowToEvent(
-  row: string[],
-  mapping: ColumnMapping,
-  index: number,
-): ICSParsedEvent | null {
+function rowToEvent(row: string[], mapping: ColumnMapping, index: number): ICSParsedEvent | null {
   const dateStr = row[mapping.date];
   const title = row[mapping.title]?.trim();
 
@@ -165,8 +161,10 @@ function rowToEvent(
     title,
     startTime,
     endTime,
-    location: mapping.location !== undefined ? row[mapping.location]?.trim() || undefined : undefined,
-    description: mapping.description !== undefined ? row[mapping.description]?.trim() || undefined : undefined,
+    location:
+      mapping.location !== undefined ? row[mapping.location]?.trim() || undefined : undefined,
+    description:
+      mapping.description !== undefined ? row[mapping.description]?.trim() || undefined : undefined,
     isAllDay,
   };
 }
@@ -546,14 +544,22 @@ export async function parseCalendarFile(file: File): Promise<SmartParseResult> {
 /** Human-readable label for the source format */
 export function getFormatLabel(format: ImportSourceFormat): string {
   switch (format) {
-    case 'ics': return 'ICS Calendar';
-    case 'csv': return 'CSV Spreadsheet';
-    case 'excel': return 'Excel Spreadsheet';
-    case 'pdf': return 'PDF Document';
-    case 'image': return 'Image';
-    case 'text': return 'Pasted Text';
-    case 'url': return 'Website URL';
-    default: return 'Unknown';
+    case 'ics':
+      return 'ICS Calendar';
+    case 'csv':
+      return 'CSV Spreadsheet';
+    case 'excel':
+      return 'Excel Spreadsheet';
+    case 'pdf':
+      return 'PDF Document';
+    case 'image':
+      return 'Image';
+    case 'text':
+      return 'Pasted Text';
+    case 'url':
+      return 'Website URL';
+    default:
+      return 'Unknown';
   }
 }
 

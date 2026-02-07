@@ -17,6 +17,7 @@ interface LineupMember {
 interface UseEventLineupOptions {
   eventId: string;
   initialMembers?: Speaker[];
+  enabled?: boolean;
 }
 
 function memberToSpeaker(m: LineupMember): Speaker {
@@ -32,7 +33,11 @@ function memberToSpeaker(m: LineupMember): Speaker {
   };
 }
 
-export function useEventLineup({ eventId, initialMembers = [] }: UseEventLineupOptions) {
+export function useEventLineup({
+  eventId,
+  initialMembers = [],
+  enabled = true,
+}: UseEventLineupOptions) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
@@ -59,11 +64,18 @@ export function useEventLineup({ eventId, initialMembers = [] }: UseEventLineupO
       return (data || []).map(memberToSpeaker);
     },
     staleTime: 30_000,
+    enabled,
   });
 
   // Add member
   const addMember = useMutation({
-    mutationFn: async (member: { name: string; title?: string; company?: string; bio?: string; performer_type?: string }) => {
+    mutationFn: async (member: {
+      name: string;
+      title?: string;
+      company?: string;
+      bio?: string;
+      performer_type?: string;
+    }) => {
       if (isDemoMode) {
         return { ...member, id: `demo-${Date.now()}` };
       }
@@ -94,13 +106,23 @@ export function useEventLineup({ eventId, initialMembers = [] }: UseEventLineupO
     },
     onError: (err: Error) => {
       console.error('Failed to add lineup member:', err);
-      toast({ title: 'Failed to add to line-up', description: err.message, variant: 'destructive' });
+      toast({
+        title: 'Failed to add to line-up',
+        description: err.message,
+        variant: 'destructive',
+      });
     },
   });
 
   // Update member
   const updateMember = useMutation({
-    mutationFn: async (member: { id: string; name: string; title?: string; company?: string; bio?: string }) => {
+    mutationFn: async (member: {
+      id: string;
+      name: string;
+      title?: string;
+      company?: string;
+      bio?: string;
+    }) => {
       if (isDemoMode) return member;
 
       const { error } = await supabase
@@ -131,10 +153,7 @@ export function useEventLineup({ eventId, initialMembers = [] }: UseEventLineupO
     mutationFn: async (memberId: string) => {
       if (isDemoMode) return memberId;
 
-      const { error } = await supabase
-        .from('event_lineup_members')
-        .delete()
-        .eq('id', memberId);
+      const { error } = await supabase.from('event_lineup_members').delete().eq('id', memberId);
 
       if (error) throw error;
       return memberId;
@@ -169,9 +188,7 @@ export function useEventLineup({ eventId, initialMembers = [] }: UseEventLineupO
         created_by: userId || null,
       }));
 
-      const { error } = await supabase
-        .from('event_lineup_members')
-        .insert(rows);
+      const { error } = await supabase.from('event_lineup_members').insert(rows);
 
       if (error) throw error;
     },
