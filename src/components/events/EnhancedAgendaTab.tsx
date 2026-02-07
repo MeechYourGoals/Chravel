@@ -5,28 +5,16 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Card, CardContent } from '../ui/card';
-import { useToast } from '../../hooks/use-toast';
-import { Speaker } from '@/types/events';
+import { useEventAgenda } from '@/hooks/useEventAgenda';
+import { EventAgendaItem } from '@/types/events';
 import { format, parseISO } from 'date-fns';
-
-interface AgendaSession {
-  id: string;
-  title: string;
-  session_date?: string;
-  time: string;
-  endTime?: string;
-  location: string;
-  track?: string;
-  speakers?: string[];
-  description?: string;
-}
 
 interface EnhancedAgendaTabProps {
   eventId: string;
   userRole: 'organizer' | 'attendee' | 'exhibitor';
   pdfScheduleUrl?: string;
-  onLineupUpdate?: (speakers: Speaker[]) => void;
-  existingLineup?: Speaker[];
+  onLineupUpdate?: (speakerNames: string[]) => void;
+  existingLineup?: { name: string }[];
 }
 
 export const EnhancedAgendaTab = ({
@@ -37,20 +25,20 @@ export const EnhancedAgendaTab = ({
   existingLineup = []
 }: EnhancedAgendaTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { sessions, addSession, updateSession, deleteSession, isAdding, isUpdating } = useEventAgenda({ eventId });
+
   const [pdfScheduleUrl, setPdfScheduleUrl] = useState<string | undefined>(initialPdfUrl);
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
-  const [sessions, setSessions] = useState<AgendaSession[]>([]);
   const [isAddingSession, setIsAddingSession] = useState(false);
-  const [editingSession, setEditingSession] = useState<AgendaSession | null>(null);
-  const { toast } = useToast();
+  const [editingSession, setEditingSession] = useState<EventAgendaItem | null>(null);
   const [speakerInput, setSpeakerInput] = useState('');
 
   // New session form state
-  const [newSession, setNewSession] = useState<Partial<AgendaSession>>({
+  const [newSession, setNewSession] = useState<Partial<EventAgendaItem>>({
     title: '',
     session_date: '',
-    time: '',
-    endTime: '',
+    start_time: '',
+    end_time: '',
     location: '',
     track: '',
     speakers: [],
@@ -60,20 +48,10 @@ export const EnhancedAgendaTab = ({
   const handlePDFUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setIsUploadingPDF(true);
     try {
       const url = URL.createObjectURL(file);
       setPdfScheduleUrl(url);
-      toast({
-        title: 'Agenda uploaded successfully',
-        description: 'Attendees can now view the agenda'
-      });
-    } catch (error) {
-      toast({
-        title: 'Upload failed',
-        variant: 'destructive'
-      });
     } finally {
       setIsUploadingPDF(false);
     }
@@ -96,74 +74,45 @@ export const EnhancedAgendaTab = ({
     }));
   };
 
-  const handleSaveSession = () => {
-    if (!newSession.title) {
-      toast({
-        title: 'Missing required fields',
-        description: 'Please fill in the title',
-        variant: 'destructive'
-      });
-      return;
-    }
+  const handleSaveSession = async () => {
+    if (!newSession.title) return;
 
-    const session: AgendaSession = {
-      id: editingSession?.id || Date.now().toString(),
+    const sessionData = {
       title: newSession.title,
-      session_date: newSession.session_date,
-      time: newSession.time || '',
-      endTime: newSession.endTime,
-      location: newSession.location || '',
-      track: newSession.track,
-      speakers: newSession.speakers,
-      description: newSession.description
+      session_date: newSession.session_date || undefined,
+      start_time: newSession.start_time || undefined,
+      end_time: newSession.end_time || undefined,
+      location: newSession.location || undefined,
+      track: newSession.track || undefined,
+      speakers: newSession.speakers || [],
+      description: newSession.description || undefined,
     };
 
-    if (editingSession) {
-      setSessions(prev => prev.map(s => s.id === editingSession.id ? session : s));
-      toast({ title: 'Session updated' });
-    } else {
-      setSessions(prev => [...prev, session].sort((a, b) => {
-        const dateCompare = (a.session_date || '').localeCompare(b.session_date || '');
-        if (dateCompare !== 0) return dateCompare;
-        return (a.time || '').localeCompare(b.time || '');
-      }));
-      toast({ title: 'Session added' });
-    }
+    try {
+      if (editingSession) {
+        await updateSession({ ...sessionData, id: editingSession.id });
+      } else {
+        await addSession(sessionData as Omit<EventAgendaItem, 'id'>);
+      }
 
-    // Auto-populate lineup with new speakers
-    if (onLineupUpdate && newSession.speakers && newSession.speakers.length > 0) {
-      const existingNames = new Set(existingLineup.map(s => s.name.toLowerCase()));
-      const newSpeakers: Speaker[] = [];
-      for (const name of newSession.speakers) {
-        if (!existingNames.has(name.toLowerCase())) {
-          existingNames.add(name.toLowerCase());
-          newSpeakers.push({
-            id: `agenda-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            name,
-            title: '',
-            company: '',
-            bio: '',
-            avatar: '',
-            sessions: [session.id],
-            performerType: 'speaker'
-          });
-        }
+      // Auto-populate lineup with new speakers
+      if (onLineupUpdate && sessionData.speakers && sessionData.speakers.length > 0) {
+        onLineupUpdate(sessionData.speakers);
       }
-      if (newSpeakers.length > 0) {
-        onLineupUpdate([...existingLineup, ...newSpeakers]);
-      }
+    } catch {
+      // Error handled by hook toast
     }
 
     resetForm();
   };
 
-  const handleEditSession = (session: AgendaSession) => {
+  const handleEditSession = (session: EventAgendaItem) => {
     setEditingSession(session);
     setNewSession({
       title: session.title,
       session_date: session.session_date,
-      time: session.time,
-      endTime: session.endTime,
+      start_time: session.start_time,
+      end_time: session.end_time,
       location: session.location,
       track: session.track,
       speakers: session.speakers || [],
@@ -172,13 +121,16 @@ export const EnhancedAgendaTab = ({
     setIsAddingSession(true);
   };
 
-  const handleDeleteSession = (sessionId: string) => {
-    setSessions(prev => prev.filter(s => s.id !== sessionId));
-    toast({ title: 'Session removed' });
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      await deleteSession(sessionId);
+    } catch {
+      // Error handled by hook toast
+    }
   };
 
   const resetForm = () => {
-    setNewSession({ title: '', session_date: '', time: '', endTime: '', location: '', track: '', speakers: [], description: '' });
+    setNewSession({ title: '', session_date: '', start_time: '', end_time: '', location: '', track: '', speakers: [], description: '' });
     setSpeakerInput('');
     setIsAddingSession(false);
     setEditingSession(null);
@@ -222,10 +174,7 @@ export const EnhancedAgendaTab = ({
                 </Button>
               </>
             )}
-            <Button
-              onClick={() => setIsAddingSession(true)}
-              className="flex-1 sm:flex-none bg-primary hover:bg-primary/90"
-            >
+            <Button onClick={() => setIsAddingSession(true)} className="flex-1 sm:flex-none bg-primary hover:bg-primary/90">
               <Plus size={16} className="mr-2" />
               Add Session
             </Button>
@@ -253,11 +202,7 @@ export const EnhancedAgendaTab = ({
                   </Button>
                 </a>
                 {isOrganizer && (
-                  <Button
-                    onClick={() => { if (confirm('Remove uploaded agenda?')) setPdfScheduleUrl(undefined); }}
-                    variant="outline"
-                    className="border-destructive text-destructive hover:bg-destructive/10"
-                  >
+                  <Button onClick={() => { if (confirm('Remove uploaded agenda?')) setPdfScheduleUrl(undefined); }} variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
                     <Trash2 size={16} />
                   </Button>
                 )}
@@ -294,46 +239,22 @@ export const EnhancedAgendaTab = ({
               {/* Row 1: Title */}
               <div className="space-y-2">
                 <Label htmlFor="session-title">Session Title *</Label>
-                <Input
-                  id="session-title"
-                  value={newSession.title}
-                  onChange={(e) => setNewSession(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g., Keynote: The Future of AI"
-                  className="bg-background border-border"
-                />
+                <Input id="session-title" value={newSession.title} onChange={(e) => setNewSession(prev => ({ ...prev, title: e.target.value }))} placeholder="e.g., Keynote: The Future of AI" className="bg-background border-border" />
               </div>
 
               {/* Row 2: Date, Start Time, End Time */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-2">
                   <Label htmlFor="session-date">Date</Label>
-                  <Input
-                    id="session-date"
-                    type="date"
-                    value={newSession.session_date}
-                    onChange={(e) => setNewSession(prev => ({ ...prev, session_date: e.target.value }))}
-                    className="bg-background border-border"
-                  />
+                  <Input id="session-date" type="date" value={newSession.session_date} onChange={(e) => setNewSession(prev => ({ ...prev, session_date: e.target.value }))} className="bg-background border-border" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="session-time">Start Time</Label>
-                  <Input
-                    id="session-time"
-                    type="time"
-                    value={newSession.time}
-                    onChange={(e) => setNewSession(prev => ({ ...prev, time: e.target.value }))}
-                    className="bg-background border-border"
-                  />
+                  <Input id="session-time" type="time" value={newSession.start_time} onChange={(e) => setNewSession(prev => ({ ...prev, start_time: e.target.value }))} className="bg-background border-border" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="session-endtime">End Time</Label>
-                  <Input
-                    id="session-endtime"
-                    type="time"
-                    value={newSession.endTime}
-                    onChange={(e) => setNewSession(prev => ({ ...prev, endTime: e.target.value }))}
-                    className="bg-background border-border"
-                  />
+                  <Input id="session-endtime" type="time" value={newSession.end_time} onChange={(e) => setNewSession(prev => ({ ...prev, end_time: e.target.value }))} className="bg-background border-border" />
                 </div>
               </div>
 
@@ -341,23 +262,11 @@ export const EnhancedAgendaTab = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div className="space-y-2">
                   <Label htmlFor="session-location">Location</Label>
-                  <Input
-                    id="session-location"
-                    value={newSession.location}
-                    onChange={(e) => setNewSession(prev => ({ ...prev, location: e.target.value }))}
-                    placeholder="e.g., Main Hall, Room 301"
-                    className="bg-background border-border"
-                  />
+                  <Input id="session-location" value={newSession.location} onChange={(e) => setNewSession(prev => ({ ...prev, location: e.target.value }))} placeholder="e.g., Main Hall, Room 301" className="bg-background border-border" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="session-track">Category</Label>
-                  <Input
-                    id="session-track"
-                    value={newSession.track}
-                    onChange={(e) => setNewSession(prev => ({ ...prev, track: e.target.value }))}
-                    placeholder="e.g., Main Stage, Workshop"
-                    className="bg-background border-border"
-                  />
+                  <Input id="session-track" value={newSession.track} onChange={(e) => setNewSession(prev => ({ ...prev, track: e.target.value }))} placeholder="e.g., Main Stage, Workshop" className="bg-background border-border" />
                 </div>
               </div>
 
@@ -365,29 +274,16 @@ export const EnhancedAgendaTab = ({
               <div className="space-y-2">
                 <Label>Speakers/Performers</Label>
                 <div className="flex gap-2">
-                  <Input
-                    value={speakerInput}
-                    onChange={(e) => setSpeakerInput(e.target.value)}
-                    placeholder="Add speaker name"
-                    className="bg-background border-border"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSpeaker())}
-                  />
-                  <Button type="button" onClick={handleAddSpeaker} variant="outline" size="sm">
-                    Add
-                  </Button>
+                  <Input value={speakerInput} onChange={(e) => setSpeakerInput(e.target.value)} placeholder="Add speaker name" className="bg-background border-border" onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSpeaker())} />
+                  <Button type="button" onClick={handleAddSpeaker} variant="outline" size="sm">Add</Button>
                 </div>
                 {newSession.speakers && newSession.speakers.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {newSession.speakers.map((speaker, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded-full text-xs"
-                      >
+                      <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded-full text-xs">
                         <User size={12} />
                         {speaker}
-                        <button type="button" onClick={() => handleRemoveSpeaker(index)} className="hover:text-destructive">
-                          <X size={12} />
-                        </button>
+                        <button type="button" onClick={() => handleRemoveSpeaker(index)} className="hover:text-destructive"><X size={12} /></button>
                       </span>
                     ))}
                   </div>
@@ -397,31 +293,20 @@ export const EnhancedAgendaTab = ({
               {/* Row 5: Description */}
               <div className="space-y-2">
                 <Label htmlFor="session-description">Description (Optional)</Label>
-                <Textarea
-                  id="session-description"
-                  value={newSession.description}
-                  onChange={(e) => setNewSession(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Brief description of the session..."
-                  className="bg-background border-border"
-                  rows={2}
-                />
+                <Textarea id="session-description" value={newSession.description} onChange={(e) => setNewSession(prev => ({ ...prev, description: e.target.value }))} placeholder="Brief description of the session..." className="bg-background border-border" rows={2} />
               </div>
             </div>
 
-            <Button
-              onClick={handleSaveSession}
-              className="w-full bg-primary hover:bg-primary/90"
-              disabled={!newSession.title}
-            >
+            <Button onClick={handleSaveSession} className="w-full bg-primary hover:bg-primary/90" disabled={!newSession.title || isAdding || isUpdating}>
               <CheckCircle2 size={16} className="mr-2" />
-              {editingSession ? 'Update Session' : 'Add Session'}
+              {isAdding || isUpdating ? 'Saving...' : editingSession ? 'Update Session' : 'Add Session'}
             </Button>
           </CardContent>
         </Card>
       )}
 
       {/* Sessions List */}
-      {sessions.length > 0 && (
+      {sessions.length > 0 ? (
         <div className="space-y-3">
           <h3 className="text-lg font-medium text-foreground">Schedule</h3>
           {sessions.map(session => (
@@ -430,9 +315,7 @@ export const EnhancedAgendaTab = ({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     {session.track && (
-                      <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-xs mb-1 inline-block">
-                        {session.track}
-                      </span>
+                      <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-xs mb-1 inline-block">{session.track}</span>
                     )}
                     <h3 className="text-foreground font-medium mb-2 truncate">{session.title}</h3>
                     <div className="space-y-1 text-sm">
@@ -443,8 +326,8 @@ export const EnhancedAgendaTab = ({
                             try { return format(parseISO(session.session_date), 'MMM d') + ' — '; }
                             catch { return ''; }
                           })()}
-                          {session.time}
-                          {session.endTime && ` - ${session.endTime}`}
+                          {session.start_time}
+                          {session.end_time && ` - ${session.end_time}`}
                         </span>
                       </div>
                       {session.location && (
@@ -456,34 +339,23 @@ export const EnhancedAgendaTab = ({
                       {session.speakers && session.speakers.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {session.speakers.map((speaker, i) => (
-                            <span key={i} className="text-xs text-primary flex items-center gap-1">
-                              <User size={12} />
-                              {speaker}
+                            <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs">
+                              <User size={10} />{speaker}
                             </span>
                           ))}
                         </div>
                       )}
-                      {session.description && (
-                        <p className="text-muted-foreground/70 mt-2 line-clamp-2">{session.description}</p>
-                      )}
                     </div>
+                    {session.description && (
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{session.description}</p>
+                    )}
                   </div>
                   {isOrganizer && (
-                    <div className="flex gap-1">
-                      <Button
-                        onClick={() => handleEditSession(session)}
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                      >
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Button onClick={() => handleEditSession(session)} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                         <Edit2 size={14} />
                       </Button>
-                      <Button
-                        onClick={() => handleDeleteSession(session.id)}
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      >
+                      <Button onClick={() => handleDeleteSession(session.id)} variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
                         <Trash2 size={14} />
                       </Button>
                     </div>
@@ -493,19 +365,13 @@ export const EnhancedAgendaTab = ({
             </Card>
           ))}
         </div>
-      )}
-
-      {/* Empty State */}
-      {!pdfScheduleUrl && sessions.length === 0 && !isAddingSession && (
+      ) : !isAddingSession && (
         <Card className="bg-card/50 border-border">
-          <CardContent className="py-12 px-6 text-center">
-            <Calendar size={48} className="text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">No Agenda Yet</h3>
-            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-              {isOrganizer 
-                ? 'Use the buttons above to upload an agenda or add sessions manually'
-                : 'The event organizer hasn\'t added an agenda yet'
-              }
+          <CardContent className="p-8 text-center">
+            <Calendar size={48} className="text-muted-foreground/30 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No Sessions Yet</h3>
+            <p className="text-muted-foreground text-sm">
+              {isOrganizer ? 'Add sessions to build your event schedule' : 'Sessions will be announced soon'}
             </p>
           </CardContent>
         </Card>
