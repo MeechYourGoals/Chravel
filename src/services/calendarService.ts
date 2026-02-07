@@ -65,7 +65,9 @@ export const calendarService = {
       }
 
       // Get user email to check for super admin
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
 
       // Check if user is the trip creator
@@ -77,14 +79,12 @@ export const calendarService = {
 
       if (trip?.created_by === userId || isSuperAdmin) {
         // User is the creator OR a super admin - add them as admin
-        const { error: insertError } = await supabase
-          .from('trip_members')
-          .insert({
-            trip_id: tripId,
-            user_id: userId,
-            role: 'admin',
-            status: 'active'
-          });
+        const { error: insertError } = await supabase.from('trip_members').insert({
+          trip_id: tripId,
+          user_id: userId,
+          role: 'admin',
+          status: 'active',
+        });
 
         if (insertError) {
           // Check if it's a duplicate error (user was added by another process)
@@ -120,20 +120,18 @@ export const calendarService = {
       const newEnd = endTime ? new Date(endTime).getTime() : newStart + 3600000; // Default 1 hour if no end time
 
       const conflicts: string[] = [];
-      
+
       for (const event of events) {
         const eventStart = new Date(event.start_time).getTime();
-        const eventEnd = event.end_time 
-          ? new Date(event.end_time).getTime() 
-          : eventStart + 3600000; // Default 1 hour if no end time
+        const eventEnd = event.end_time ? new Date(event.end_time).getTime() : eventStart + 3600000; // Default 1 hour if no end time
 
         // Check if times overlap
-        const overlaps = (newStart < eventEnd) && (newEnd > eventStart);
+        const overlaps = newStart < eventEnd && newEnd > eventStart;
         if (overlaps) {
           conflicts.push(event.title);
         }
       }
-      
+
       return conflicts;
     } catch (error) {
       console.warn('Could not check for conflicts:', error);
@@ -141,7 +139,9 @@ export const calendarService = {
     }
   },
 
-  async createEvent(eventData: CreateEventData): Promise<{ event: TripEvent | null; conflicts: string[] }> {
+  async createEvent(
+    eventData: CreateEventData,
+  ): Promise<{ event: TripEvent | null; conflicts: string[] }> {
     const conflicts: string[] = [];
 
     try {
@@ -164,9 +164,9 @@ export const calendarService = {
 
       // Check for conflicts first (non-blocking - just for notification)
       const existingConflicts = await this.checkForConflicts(
-        eventData.trip_id, 
-        eventData.start_time, 
-        eventData.end_time
+        eventData.trip_id,
+        eventData.start_time,
+        eventData.end_time,
       );
       conflicts.push(...existingConflicts);
 
@@ -185,11 +185,13 @@ export const calendarService = {
           'calendar_event',
           'create',
           eventData.trip_id,
-          eventData
+          eventData,
         );
 
         // Return optimistic event for immediate UI update
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         return {
           event: {
             id: queueId,
@@ -199,18 +201,25 @@ export const calendarService = {
             updated_at: new Date().toISOString(),
             version: 1,
           } as TripEvent,
-          conflicts
+          conflicts,
         };
       }
 
       // Use Supabase for authenticated users - direct insert
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         console.error('[calendarService] User not authenticated');
         throw new Error('You must be logged in to create events. Please sign in and try again.');
       }
 
-      console.log('[calendarService] Creating event for trip:', eventData.trip_id, 'by user:', user.id);
+      console.log(
+        '[calendarService] Creating event for trip:',
+        eventData.trip_id,
+        'by user:',
+        user.id,
+      );
 
       // Check if user is super admin
       const isSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
@@ -219,7 +228,10 @@ export const calendarService = {
       if (!isSuperAdmin) {
         const hasMembership = await this.ensureTripMembership(eventData.trip_id, user.id);
         if (!hasMembership) {
-          console.warn('[calendarService] User not a trip member and could not be added. Trip ID:', eventData.trip_id);
+          console.warn(
+            '[calendarService] User not a trip member and could not be added. Trip ID:',
+            eventData.trip_id,
+          );
           // Don't throw here - let the insert fail with a more descriptive RLS error
           // The insert will fail if the user truly doesn't have access
         }
@@ -245,7 +257,7 @@ export const calendarService = {
               event_category: eventData.event_category || 'other',
               include_in_itinerary: eventData.include_in_itinerary ?? true,
               source_type: eventData.source_type || 'manual',
-              source_data: eventData.source_data || {}
+              source_data: eventData.source_data || {},
             })
             .select('*')
             .single();
@@ -253,8 +265,14 @@ export const calendarService = {
           if (directError) {
             console.error('[calendarService] Insert failed:', directError);
             // Provide more specific error messages based on error type
-            if (directError.code === '42501' || directError.message?.includes('RLS') || directError.message?.includes('policy')) {
-              throw new Error('You do not have permission to add events to this trip. Please contact the trip admin.');
+            if (
+              directError.code === '42501' ||
+              directError.message?.includes('RLS') ||
+              directError.message?.includes('policy')
+            ) {
+              throw new Error(
+                'You do not have permission to add events to this trip. Please contact the trip admin.',
+              );
             }
             if (directError.code === '23503' || directError.message?.includes('foreign key')) {
               throw new Error('This trip no longer exists or is invalid.');
@@ -270,21 +288,24 @@ export const calendarService = {
           maxRetries: 3,
           onRetry: (attempt, error) => {
             if (import.meta.env.DEV) {
-              console.warn(`Retry attempt ${attempt}/3 for creating calendar event:`, error.message);
+              console.warn(
+                `Retry attempt ${attempt}/3 for creating calendar event:`,
+                error.message,
+              );
             }
-          }
-        }
+          },
+        },
       );
-      
+
       // Cache the created event
       await offlineSyncService.cacheEntity(
         'calendar_event',
         createdEvent.id,
         createdEvent.trip_id,
         createdEvent,
-        createdEvent.version || 1
+        createdEvent.version || 1,
       );
-      
+
       return { event: createdEvent, conflicts };
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -303,11 +324,11 @@ export const calendarService = {
   async getTripEvents(tripId: string): Promise<TripEvent[]> {
     // Declare outside try block for catch block access
     let cachedEvents: any[] = [];
-    
+
     try {
       // Check if in demo mode
       const isDemoMode = await demoModeService.isDemoModeEnabled();
-      
+
       if (isDemoMode) {
         const storedEvents = await calendarStorageService.getEvents(tripId);
         const seededEvents = demoTripEventsByTripId[tripId] || [];
@@ -324,7 +345,9 @@ export const calendarService = {
       cachedEvents = await offlineSyncService.getCachedEntities(tripId, 'calendar_event');
 
       // Use Supabase with timezone-aware function for authenticated users
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         // Fallback to direct query if no user
         const { data, error } = await supabase
@@ -332,17 +355,16 @@ export const calendarService = {
           .select('*')
           .eq('trip_id', tripId)
           .order('start_time', { ascending: true });
-        
+
         if (error) throw error;
         return data || [];
       }
 
       // Use timezone-aware function
-      const { data: timezoneData, error: tzError } = await supabase
-        .rpc('get_events_in_user_tz', {
-          p_trip_id: tripId,
-          p_user_id: user.id
-        });
+      const { data: timezoneData, error: tzError } = await supabase.rpc('get_events_in_user_tz', {
+        p_trip_id: tripId,
+        p_user_id: user.id,
+      });
 
       if (tzError) {
         // Fallback to direct query if timezone function fails
@@ -354,7 +376,7 @@ export const calendarService = {
           .select('*')
           .eq('trip_id', tripId)
           .order('start_time', { ascending: true });
-        
+
         if (error) throw error;
         return data || [];
       }
@@ -372,9 +394,9 @@ export const calendarService = {
         .order('start_time', { ascending: true });
 
       if (fetchError) throw fetchError;
-      
+
       const events = fullEvents || [];
-      
+
       // Cache events for offline access
       for (const event of events) {
         await offlineSyncService.cacheEntity(
@@ -382,10 +404,10 @@ export const calendarService = {
           event.id,
           event.trip_id,
           event,
-          event.version || 1
+          event.version || 1,
         );
       }
-      
+
       return events;
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -413,7 +435,7 @@ export const calendarService = {
 
     // Check if in demo mode
     const isDemoMode = await demoModeService.isDemoModeEnabled();
-    
+
     if (isDemoMode) {
       // Extract trip_id from the eventId or use updates
       const tripId = updates.trip_id || eventId.split('-')[0]; // Fallback logic
@@ -428,7 +450,7 @@ export const calendarService = {
     if (!navigator.onLine) {
       const tripId = updates.trip_id || '';
       const version = (updates as any).version;
-      
+
       await calendarOfflineQueue.queueUpdate(tripId, eventId, updates, version);
       await offlineSyncService.queueOperation(
         'calendar_event',
@@ -436,14 +458,16 @@ export const calendarService = {
         tripId,
         updates,
         eventId,
-        version
+        version,
       );
-      
+
       return true; // Optimistic success
     }
 
     // Get current user for logging
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       throw new Error('You must be logged in to update events. Please sign in and try again.');
     }
@@ -455,7 +479,7 @@ export const calendarService = {
       .from('trip_events')
       .update({
         ...updates,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', eventId)
       .select()
@@ -464,19 +488,31 @@ export const calendarService = {
     if (error) {
       console.error('[calendarService] Update failed:', error);
       // Provide more specific error messages based on error type
-      if (error.code === '42501' || error.message?.includes('RLS') || error.message?.includes('policy')) {
-        throw new Error('You do not have permission to update this event. Only the event creator or trip admin can edit it.');
+      if (
+        error.code === '42501' ||
+        error.message?.includes('RLS') ||
+        error.message?.includes('policy')
+      ) {
+        throw new Error(
+          'You do not have permission to update this event. Only the event creator or trip admin can edit it.',
+        );
       }
       if (error.code === 'PGRST116' || error.message?.includes('0 rows')) {
-        throw new Error('Event update failed — no matching event found or you do not have permission to edit it.');
+        throw new Error(
+          'Event update failed — no matching event found or you do not have permission to edit it.',
+        );
       }
       throw new Error(error.message || 'Failed to update event. Please try again.');
     }
 
     // Verify we got data back (confirms update happened)
     if (!data) {
-      console.error('[calendarService] Update returned no data - likely RLS blocked or event not found');
-      throw new Error('Event update failed — no rows updated. You may not have permission to edit this event.');
+      console.error(
+        '[calendarService] Update returned no data - likely RLS blocked or event not found',
+      );
+      throw new Error(
+        'Event update failed — no rows updated. You may not have permission to edit this event.',
+      );
     }
 
     console.log('[calendarService] Event updated successfully:', data.id);
@@ -489,7 +525,7 @@ export const calendarService = {
         eventId,
         cached.tripId,
         data,
-        data.version || cached.version || 1
+        data.version || cached.version || 1,
       );
     }
 
@@ -515,25 +551,16 @@ export const calendarService = {
       // Check if offline - queue the operation
       if (!navigator.onLine && tripId) {
         await calendarOfflineQueue.queueDelete(tripId, eventId);
-        await offlineSyncService.queueOperation(
-          'calendar_event',
-          'delete',
-          tripId,
-          {},
-          eventId
-        );
-        
+        await offlineSyncService.queueOperation('calendar_event', 'delete', tripId, {}, eventId);
+
         // Remove from cache
         await offlineSyncService.removeCachedEntity('calendar_event', eventId);
-        
+
         return true; // Optimistic success
       }
 
       // Use Supabase for authenticated users
-      const { error } = await supabase
-        .from('trip_events')
-        .delete()
-        .eq('id', eventId);
+      const { error } = await supabase.from('trip_events').delete().eq('id', eventId);
 
       if (!error) {
         // Remove from cache
@@ -550,10 +577,12 @@ export const calendarService = {
   },
 
   /**
-   * Bulk create events in a single insert call.
-   * Performs auth, super admin, and membership checks ONCE,
-   * then inserts all events in one Supabase request.
-   * Falls back to parallel batches of 5 if single insert fails.
+   * Bulk create events using batched inserts.
+   * Performs auth and membership checks ONCE,
+   * then inserts events in small batches for reliability.
+   *
+   * For <= 5 events: single insert (fast path).
+   * For >5 events: sequential batches of 5 parallel inserts each.
    */
   async bulkCreateEvents(events: CreateEventData[]): Promise<{
     imported: number;
@@ -565,18 +594,29 @@ export const calendarService = {
     }
 
     // 1. Auth check ONCE
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('You must be logged in to import events.');
 
-    // 2. Super admin check ONCE
-    const isSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
-
-    // 3. Membership check ONCE (all events share the same trip)
+    // 2. Membership check ONCE (all events share the same trip)
     const tripId = events[0].trip_id;
     await this.ensureTripMembership(tripId, user.id);
 
-    // 4. Build insert rows
-    const rows = events.map(e => ({
+    // 3. Build insert rows
+    const rows: Array<{
+      trip_id: string;
+      title: string;
+      description: string | null;
+      location: string | null;
+      start_time: string;
+      end_time: string | null;
+      created_by: string;
+      event_category: string;
+      include_in_itinerary: boolean;
+      source_type: string;
+      source_data: Record<string, unknown>;
+    }> = events.map(e => ({
       trip_id: e.trip_id,
       title: e.title,
       description: e.description || null,
@@ -587,80 +627,138 @@ export const calendarService = {
       event_category: e.event_category || 'other',
       include_in_itinerary: e.include_in_itinerary ?? true,
       source_type: e.source_type || 'manual',
-      source_data: e.source_data || {},
+      source_data: (e.source_data || {}) as Record<string, unknown>,
     }));
 
-    // 5. Single bulk insert
-    console.log(`[calendarService] Bulk inserting ${rows.length} events for trip ${tripId}`);
-    const { data, error } = await supabase
-      .from('trip_events')
-      .insert(rows)
-      .select('*');
+    // 4. For small batches (<= 5), try a single insert first
+    if (rows.length <= 5) {
+      const { data, error } = await supabase.from('trip_events').insert(rows).select('*');
 
-    if (!error && data) {
-      console.log(`[calendarService] Bulk insert success: ${data.length} events`);
-      // Cache all events in parallel (best-effort, don't block on cache failures)
-      await Promise.all(
-        data.map(event =>
-          offlineSyncService.cacheEntity(
-            'calendar_event',
-            event.id,
-            event.trip_id,
-            event,
-            event.version || 1
-          ).catch(() => {})
-        )
+      if (!error && data && data.length > 0) {
+        this.cacheEventsInBackground(data);
+        return { imported: data.length, failed: 0, events: data };
+      }
+
+      if (error) {
+        console.error(
+          `[calendarService] Single insert failed: ${error.message} (code: ${error.code})`,
+        );
+      }
+
+      console.warn(
+        '[calendarService] Single insert returned no data, falling back to individual inserts',
       );
-      return { imported: data.length, failed: 0, events: data };
     }
 
-    // 6. Fallback: parallel batches of 5
-    console.warn('[calendarService] Bulk insert failed, falling back to batches:', error?.message);
-    return await this.batchInsertFallback(rows, user.id);
+    // 5. For larger batches or failed single insert, use sequential batches
+    return await this.batchInsertEvents(rows);
   },
 
   /**
-   * Fallback: insert events in parallel batches of 5.
-   * Used when a single bulk insert fails (e.g., one bad row).
+   * Insert events in sequential batches of parallel individual inserts.
+   * Each batch inserts up to 5 events in parallel, then waits before
+   * starting the next batch. This is reliable for any number of events.
    */
-  async batchInsertFallback(
-    rows: Record<string, any>[],
-    userId: string
+  async batchInsertEvents(
+    rows: Array<{
+      trip_id: string;
+      title: string;
+      description: string | null;
+      location: string | null;
+      start_time: string;
+      end_time: string | null;
+      created_by: string;
+      event_category: string;
+      include_in_itinerary: boolean;
+      source_type: string;
+      source_data: Record<string, unknown>;
+    }>,
   ): Promise<{ imported: number; failed: number; events: TripEvent[] }> {
     const BATCH_SIZE = 5;
     let imported = 0;
     let failed = 0;
     const allEvents: TripEvent[] = [];
+    const failedReasons: string[] = [];
 
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       const batch = rows.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
+
       const results = await Promise.allSettled(
-        batch.map(async (row) => {
+        batch.map(async row => {
           const { data, error } = await supabase
             .from('trip_events')
-            .insert(row as any)
+            .insert(row)
             .select('*')
             .single();
-          if (error) throw error;
+
+          if (error) {
+            console.error(
+              `[calendarService] Insert failed for "${row.title}": ${error.message} (code: ${error.code})`,
+            );
+            throw error;
+          }
+
+          if (!data) {
+            throw new Error('Insert returned no data');
+          }
+
           return data;
-        })
+        }),
       );
+
+      let batchImported = 0;
+      let batchFailed = 0;
 
       for (const result of results) {
         if (result.status === 'fulfilled' && result.value) {
           imported++;
+          batchImported++;
           allEvents.push(result.value);
         } else {
           failed++;
+          batchFailed++;
           if (result.status === 'rejected') {
-            console.warn('[calendarService] Batch item failed:', result.reason?.message);
+            const reason = result.reason?.message || 'Unknown error';
+            failedReasons.push(reason);
+            console.warn(`[calendarService] Batch ${batchNum} item failed: ${reason}`);
           }
         }
       }
+
+      if (import.meta.env.DEV) {
+        console.info(
+          `[calendarService] Batch ${batchNum}/${totalBatches}: ${batchImported} imported, ${batchFailed} failed`,
+        );
+      }
     }
 
-    console.log(`[calendarService] Batch fallback complete: ${imported} imported, ${failed} failed`);
+    if (allEvents.length > 0) {
+      this.cacheEventsInBackground(allEvents);
+    }
+
+    if (failed > 0 && failedReasons.length > 0) {
+      const uniqueReasons = [...new Set(failedReasons)];
+      console.error(
+        `[calendarService] Import completed with ${failed} failures. Reasons: ${uniqueReasons.join('; ')}`,
+      );
+    }
+
     return { imported, failed, events: allEvents };
+  },
+
+  /**
+   * Cache events in background for offline access. Best-effort, non-blocking.
+   */
+  cacheEventsInBackground(events: TripEvent[]): void {
+    Promise.all(
+      events.map(event =>
+        offlineSyncService
+          .cacheEntity('calendar_event', event.id, event.trip_id, event, event.version || 1)
+          .catch(() => {}),
+      ),
+    ).catch(() => {});
   },
 
   // Convert database event to CalendarEvent format
@@ -670,10 +768,10 @@ export const calendarService = {
       id: tripEvent.id,
       title: tripEvent.title,
       date: startDate,
-      time: startDate.toLocaleTimeString('en-US', { 
-        hour12: false, 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      time: startDate.toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
       }),
       location: tripEvent.location,
       description: tripEvent.description,
@@ -691,7 +789,7 @@ export const calendarService = {
       // Busy/free time blocking
       is_busy: tripEvent.is_busy ?? true,
       availability_status: tripEvent.availability_status || 'busy',
-      end_time: tripEvent.end_time ? new Date(tripEvent.end_time) : undefined
+      end_time: tripEvent.end_time ? new Date(tripEvent.end_time) : undefined,
     };
   },
 
@@ -722,7 +820,7 @@ export const calendarService = {
       recurrence_exceptions: calendarEvent.recurrence_exceptions,
       // Busy/free time blocking
       is_busy: calendarEvent.is_busy ?? true,
-      availability_status: calendarEvent.availability_status || 'busy'
+      availability_status: calendarEvent.availability_status || 'busy',
     };
-  }
+  },
 };

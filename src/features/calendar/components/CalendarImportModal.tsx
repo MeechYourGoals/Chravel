@@ -231,7 +231,13 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
       toast.error('Import failed', { description: 'No events could be imported' });
     }
 
-    onImportComplete?.();
+    if (onImportComplete) {
+      try {
+        await onImportComplete();
+      } catch (refreshError) {
+        console.warn('Failed to refresh events after import:', refreshError);
+      }
+    }
   }, [parseResult, duplicateIndices, tripId, onImportComplete]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -259,9 +265,9 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
     [handleFileSelect],
   );
 
-  const eventsToImport =
-    parseResult?.events.filter((_, i) => !duplicateIndices.has(i)).length ?? 0;
+  const eventsToImport = parseResult?.events.filter((_, i) => !duplicateIndices.has(i)).length ?? 0;
   const duplicateCount = duplicateIndices.size;
+  const hasImportFailure = importProgress.imported === 0 && importProgress.failed > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -426,7 +432,8 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                     )}
                     {parseResult.urlMeta && parseResult.urlMeta.eventsFiltered > 0 && (
                       <span className="text-xs text-muted-foreground">
-                        ({parseResult.urlMeta.eventsFiltered} past event{parseResult.urlMeta.eventsFiltered !== 1 ? 's' : ''} excluded)
+                        ({parseResult.urlMeta.eventsFiltered} past event
+                        {parseResult.urlMeta.eventsFiltered !== 1 ? 's' : ''} excluded)
                       </span>
                     )}
                   </div>
@@ -517,21 +524,31 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
               <p className="text-muted-foreground mb-2">
                 Importing {eventsToImport} event{eventsToImport !== 1 ? 's' : ''}...
               </p>
-              <p className="text-xs text-muted-foreground">
-                This should only take a moment
-              </p>
+              <p className="text-xs text-muted-foreground">This should only take a moment</p>
             </div>
           )}
 
           {/* ── Complete State ── */}
           {state === 'complete' && (
             <div className="flex flex-col items-center justify-center py-12">
-              <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
-              <p className="font-medium text-lg mb-2">Import Complete</p>
+              {hasImportFailure ? (
+                <>
+                  <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
+                  <p className="font-medium text-lg mb-2">Import Failed</p>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
+                  <p className="font-medium text-lg mb-2">Import Complete</p>
+                </>
+              )}
               <div className="text-sm text-muted-foreground text-center space-y-1">
-                <p>
-                  {importProgress.imported} event{importProgress.imported !== 1 ? 's' : ''} imported
-                </p>
+                {importProgress.imported > 0 && (
+                  <p>
+                    {importProgress.imported} event{importProgress.imported !== 1 ? 's' : ''}{' '}
+                    imported
+                  </p>
+                )}
                 {importProgress.skipped > 0 && (
                   <p>
                     {importProgress.skipped} duplicate{importProgress.skipped !== 1 ? 's' : ''}{' '}
@@ -539,7 +556,15 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                   </p>
                 )}
                 {importProgress.failed > 0 && (
-                  <p className="text-red-500">{importProgress.failed} failed</p>
+                  <p className="text-red-500">
+                    {importProgress.failed} event{importProgress.failed !== 1 ? 's' : ''} failed to
+                    import
+                  </p>
+                )}
+                {hasImportFailure && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Please try again or contact support if the issue persists.
+                  </p>
                 )}
               </div>
             </div>

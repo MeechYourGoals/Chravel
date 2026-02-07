@@ -3,6 +3,8 @@ import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
 import { ItineraryView } from './ItineraryView';
 import { useCalendarManagement } from '@/features/calendar/hooks/useCalendarManagement';
+import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 import { CalendarHeader } from '@/features/calendar/components/CalendarHeader';
 import { CalendarGrid } from '@/features/calendar/components/CalendarGrid';
 import { AddEventModal } from '@/features/calendar/components/AddEventModal';
@@ -18,6 +20,7 @@ interface GroupCalendarProps {
 }
 
 export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
+  const queryClient = useQueryClient();
   const {
     selectedDate,
     setSelectedDate,
@@ -64,9 +67,10 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   }, [canPerformAction, toast]);
 
   const handleImportComplete = useCallback(async () => {
-    // Refresh events after import
+    // Invalidate cache before refetch to ensure we pull the latest events
+    await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
     await refreshEvents();
-  }, [refreshEvents]);
+  }, [queryClient, refreshEvents, tripId]);
 
   const handleEdit = (event: any) => {
     // Check permissions (will return true in Demo Mode)
