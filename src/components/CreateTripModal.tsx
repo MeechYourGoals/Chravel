@@ -284,12 +284,31 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             action: {
               label: 'View Plans',
               onClick: () => {
-                // Navigate to settings/billing
                 window.location.href = '/settings';
               },
             },
           },
         );
+      } else if (error instanceof Error && error.message === 'UPGRADE_REQUIRED_PRO_TRIP') {
+        toast.error('Upgrade to create more Pro trips!', {
+          duration: 6000,
+          action: {
+            label: 'View Plans',
+            onClick: () => {
+              window.location.href = '/settings';
+            },
+          },
+        });
+      } else if (error instanceof Error && error.message === 'UPGRADE_REQUIRED_EVENT') {
+        toast.error('Upgrade to create unlimited Events!', {
+          duration: 6000,
+          action: {
+            label: 'View Plans',
+            onClick: () => {
+              window.location.href = '/settings';
+            },
+          },
+        });
       } else {
         toast.error(errorMessage);
       }

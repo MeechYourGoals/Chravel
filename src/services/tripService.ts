@@ -209,14 +209,27 @@ export const tripService = {
       if (error) {
         console.error('[tripService] Edge function error:', error);
 
-        // Extract the actual error message from the edge function response body
-        // supabase.functions.invoke sets error.message to a generic string for non-2xx,
-        // but the response JSON (with the real error) may be in data or error.context
+        // Extract the actual error message from the edge function response body.
+        // supabase.functions.invoke returns { data: null, error: FunctionsHttpError }
+        // for non-2xx responses. The response body is in error.context (raw Response).
         let detailedMessage = '';
+
+        // First try data (populated in some client versions)
         if (data?.error) {
           detailedMessage = data.error;
         } else if (data?.message) {
           detailedMessage = data.message;
+        }
+
+        // If data was null, try parsing the Response from error.context
+        if (!detailedMessage && error.context) {
+          try {
+            const responseBody =
+              typeof error.context.json === 'function' ? await error.context.json() : error.context;
+            detailedMessage = responseBody?.error || responseBody?.message || '';
+          } catch {
+            // Response body already consumed or not JSON - ignore
+          }
         }
 
         // Map known edge function error codes to user-friendly messages
@@ -227,7 +240,7 @@ export const tripService = {
           throw new Error('UPGRADE_REQUIRED_EVENT');
         }
 
-        throw new Error(detailedMessage || error.message || 'Failed to create trip');
+        throw new Error(detailedMessage || 'Failed to create trip. Please try again.');
       }
 
       if (!data?.success) {
