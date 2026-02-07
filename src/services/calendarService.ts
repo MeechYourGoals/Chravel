@@ -581,7 +581,7 @@ export const calendarService = {
    * Performs auth and membership checks ONCE,
    * then inserts events in small batches for reliability.
    *
-   * For ≤5 events: single insert (fast path).
+   * For <= 5 events: single insert (fast path).
    * For >5 events: sequential batches of 5 parallel inserts each.
    */
   async bulkCreateEvents(events: CreateEventData[]): Promise<{
@@ -630,7 +630,7 @@ export const calendarService = {
       source_data: (e.source_data || {}) as Record<string, unknown>,
     }));
 
-    // 4. For small batches (≤5), try a single insert first
+    // 4. For small batches (<= 5), try a single insert first
     if (rows.length <= 5) {
       const { data, error } = await supabase.from('trip_events').insert(rows).select('*');
 
