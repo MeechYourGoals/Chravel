@@ -1,9 +1,9 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { Users, Calendar, MessageCircle, Camera, BarChart3, ClipboardList } from 'lucide-react';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
 import { useDemoMode } from '@/hooks/useDemoMode';
 
-import { EventData } from '../../types/events';
+import { EventData, Speaker } from '../../types/events';
 import { TripContext } from '@/types';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 
@@ -49,6 +49,9 @@ export const EventDetailContent = ({
   const { accentColors } = useTripVariant();
   const { eventPermissions, isOrganizer, isLoading: permissionsLoading } = useEventPermissions(tripId);
   const { isDemoMode } = useDemoMode();
+  
+  // Lifted lineup state for auto-populate from Agenda speakers
+  const [lineupSpeakers, setLineupSpeakers] = useState<Speaker[]>(eventData.speakers || []);
 
   // Updated Event tabs: Agenda, Calendar, Chat, Media, Line-up, Polls, Tasks
   const tabs = [
@@ -73,6 +76,8 @@ export const EventDetailContent = ({
             permissions={eventPermissions.agenda}
             initialSessions={eventData.agenda}
             initialPdfUrl={eventData.pdfScheduleUrl}
+            onLineupUpdate={setLineupSpeakers}
+            existingLineup={lineupSpeakers}
           />
         );
       case 'calendar':
@@ -86,7 +91,7 @@ export const EventDetailContent = ({
       case 'lineup':
         return (
           <LineupTab
-            speakers={eventData.speakers || []}
+            speakers={lineupSpeakers}
             permissions={eventPermissions.lineup}
           />
         );
@@ -101,6 +106,8 @@ export const EventDetailContent = ({
             permissions={eventPermissions.agenda}
             initialSessions={eventData.agenda}
             initialPdfUrl={eventData.pdfScheduleUrl}
+            onLineupUpdate={setLineupSpeakers}
+            existingLineup={lineupSpeakers}
           />
         );
     }

@@ -170,6 +170,7 @@ interface ExportData {
   }>;
   agenda?: Array<{
     title: string;
+    session_date?: string;
     start_time?: string;
     end_time?: string;
     location?: string;
@@ -965,6 +966,7 @@ export async function generateClientPDF(
           }
 
           const agendaRows = chunk.map((item: any) => [
+            item.session_date ? sanitizePdfText(item.session_date) : '—',
             formatEventDateTime(item.start_time, item.end_time),
             sanitizePdfText(item.title || 'Untitled'),
             sanitizePdfText(item.location || 'N/A'),
@@ -974,18 +976,19 @@ export async function generateClientPDF(
 
           autoTable(doc, {
             startY: yPos,
-            head: [['Time', 'Session', 'Location', 'Track', 'Speakers']],
+            head: [['Date', 'Time', 'Session', 'Location', 'Category', 'Speakers']],
             body: agendaRows,
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
             margin: { left: margin, right: margin },
             styles: { fontSize: 9 },
             columnStyles: {
-              0: { cellWidth: contentWidth * 0.22 },
-              1: { cellWidth: contentWidth * 0.28 },
-              2: { cellWidth: contentWidth * 0.18 },
-              3: { cellWidth: contentWidth * 0.12 },
-              4: { cellWidth: contentWidth * 0.20 },
+              0: { cellWidth: contentWidth * 0.12 },
+              1: { cellWidth: contentWidth * 0.18 },
+              2: { cellWidth: contentWidth * 0.22 },
+              3: { cellWidth: contentWidth * 0.16 },
+              4: { cellWidth: contentWidth * 0.12 },
+              5: { cellWidth: contentWidth * 0.20 },
             },
           });
 

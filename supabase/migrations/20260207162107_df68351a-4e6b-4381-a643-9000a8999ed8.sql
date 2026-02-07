@@ -1,0 +1,1 @@
+ALTER TABLE event_agenda_items ADD COLUMN IF NOT EXISTS session_date date;

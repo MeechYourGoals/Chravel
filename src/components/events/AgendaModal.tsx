@@ -8,7 +8,8 @@ import { Card, CardContent } from '../ui/card';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { eventsMockData } from '@/data/eventsMockData';
-import { EventAgendaItem } from '@/types/events';
+import { EventAgendaItem, Speaker } from '@/types/events';
+import { format, parseISO } from 'date-fns';
 
 interface AgendaPermissions {
   canView: boolean;
@@ -24,6 +25,8 @@ interface AgendaModalProps {
   initialSessions?: EventAgendaItem[];
   initialPdfUrl?: string;
   onClose?: () => void;
+  onLineupUpdate?: (speakers: Speaker[]) => void;
+  existingLineup?: Speaker[];
 }
 
 // Mock PDF URL for demo mode
@@ -34,7 +37,9 @@ export const AgendaModal = ({
   permissions,
   initialSessions = [],
   initialPdfUrl,
-  onClose
+  onClose,
+  onLineupUpdate,
+  existingLineup = []
 }: AgendaModalProps) => {
   const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
@@ -62,6 +67,7 @@ export const AgendaModal = ({
   // New session form state
   const [newSession, setNewSession] = useState<Partial<EventAgendaItem>>({
     title: '',
+    session_date: '',
     start_time: '',
     end_time: '',
     location: '',
@@ -146,6 +152,7 @@ export const AgendaModal = ({
     const session: EventAgendaItem = {
       id: editingSession?.id || Date.now().toString(),
       title: newSession.title,
+      session_date: newSession.session_date,
       start_time: newSession.start_time,
       end_time: newSession.end_time,
       location: newSession.location,
@@ -158,10 +165,36 @@ export const AgendaModal = ({
       setSessions(prev => prev.map(s => s.id === editingSession.id ? session : s));
       toast({ title: 'Session updated' });
     } else {
-      setSessions(prev => [...prev, session].sort((a, b) => 
-        (a.start_time || '').localeCompare(b.start_time || '')
-      ));
+      setSessions(prev => [...prev, session].sort((a, b) => {
+        const dateCompare = (a.session_date || '').localeCompare(b.session_date || '');
+        if (dateCompare !== 0) return dateCompare;
+        return (a.start_time || '').localeCompare(b.start_time || '');
+      }));
       toast({ title: 'Session added' });
+    }
+
+    // Auto-populate lineup with new speakers
+    if (onLineupUpdate && newSession.speakers && newSession.speakers.length > 0) {
+      const existingNames = new Set(existingLineup.map(s => s.name.toLowerCase()));
+      const newSpeakers: Speaker[] = [];
+      for (const name of newSession.speakers) {
+        if (!existingNames.has(name.toLowerCase())) {
+          existingNames.add(name.toLowerCase());
+          newSpeakers.push({
+            id: `agenda-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            name,
+            title: '',
+            company: '',
+            bio: '',
+            avatar: '',
+            sessions: [session.id],
+            performerType: 'speaker'
+          });
+        }
+      }
+      if (newSpeakers.length > 0) {
+        onLineupUpdate([...existingLineup, ...newSpeakers]);
+      }
     }
 
     resetForm();
@@ -172,6 +205,7 @@ export const AgendaModal = ({
     setEditingSession(session);
     setNewSession({
       title: session.title,
+      session_date: session.session_date,
       start_time: session.start_time,
       end_time: session.end_time,
       location: session.location,
@@ -197,6 +231,7 @@ export const AgendaModal = ({
   const resetForm = () => {
     setNewSession({
       title: '',
+      session_date: '',
       start_time: '',
       end_time: '',
       location: '',
@@ -265,8 +300,9 @@ export const AgendaModal = ({
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="md:col-span-2 space-y-1.5">
+                <div className="space-y-3">
+                  {/* Row 1: Title */}
+                  <div className="space-y-1.5">
                     <Label htmlFor="title" className="text-sm">Title *</Label>
                     <Input
                       id="title"
@@ -277,51 +313,66 @@ export const AgendaModal = ({
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="start_time" className="text-sm">Start Time *</Label>
-                    <Input
-                      id="start_time"
-                      type="time"
-                      value={newSession.start_time}
-                      onChange={(e) => setNewSession(prev => ({ ...prev, start_time: e.target.value }))}
-                      className="bg-white/5 border-white/10"
-                    />
+                  {/* Row 2: Date, Start Time, End Time */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="session_date" className="text-sm">Date</Label>
+                      <Input
+                        id="session_date"
+                        type="date"
+                        value={newSession.session_date}
+                        onChange={(e) => setNewSession(prev => ({ ...prev, session_date: e.target.value }))}
+                        className="bg-white/5 border-white/10"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="start_time" className="text-sm">Start Time</Label>
+                      <Input
+                        id="start_time"
+                        type="time"
+                        value={newSession.start_time}
+                        onChange={(e) => setNewSession(prev => ({ ...prev, start_time: e.target.value }))}
+                        className="bg-white/5 border-white/10"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="end_time" className="text-sm">End Time</Label>
+                      <Input
+                        id="end_time"
+                        type="time"
+                        value={newSession.end_time}
+                        onChange={(e) => setNewSession(prev => ({ ...prev, end_time: e.target.value }))}
+                        className="bg-white/5 border-white/10"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="end_time" className="text-sm">End Time</Label>
-                    <Input
-                      id="end_time"
-                      type="time"
-                      value={newSession.end_time}
-                      onChange={(e) => setNewSession(prev => ({ ...prev, end_time: e.target.value }))}
-                      className="bg-white/5 border-white/10"
-                    />
+                  {/* Row 3: Location, Category */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="location" className="text-sm">Location</Label>
+                      <Input
+                        id="location"
+                        value={newSession.location}
+                        onChange={(e) => setNewSession(prev => ({ ...prev, location: e.target.value }))}
+                        placeholder="Room or venue"
+                        className="bg-white/5 border-white/10"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="track" className="text-sm">Category</Label>
+                      <Input
+                        id="track"
+                        value={newSession.track}
+                        onChange={(e) => setNewSession(prev => ({ ...prev, track: e.target.value }))}
+                        placeholder="e.g., Main Stage, Workshop"
+                        className="bg-white/5 border-white/10"
+                      />
+                    </div>
                   </div>
 
+                  {/* Row 4: Speakers/Performers */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="location" className="text-sm">Location</Label>
-                    <Input
-                      id="location"
-                      value={newSession.location}
-                      onChange={(e) => setNewSession(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="Room or venue"
-                      className="bg-white/5 border-white/10"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="track" className="text-sm">Track/Category</Label>
-                    <Input
-                      id="track"
-                      value={newSession.track}
-                      onChange={(e) => setNewSession(prev => ({ ...prev, track: e.target.value }))}
-                      placeholder="e.g., Main Stage, Workshop"
-                      className="bg-white/5 border-white/10"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2 space-y-1.5">
                     <Label className="text-sm">Speakers/Performers</Label>
                     <div className="flex gap-2">
                       <Input
@@ -357,7 +408,8 @@ export const AgendaModal = ({
                     )}
                   </div>
 
-                  <div className="md:col-span-2 space-y-1.5">
+                  {/* Row 5: Description */}
+                  <div className="space-y-1.5">
                     <Label htmlFor="description" className="text-sm">Description</Label>
                     <Textarea
                       id="description"
@@ -373,7 +425,7 @@ export const AgendaModal = ({
                 <Button
                   onClick={handleSaveSession}
                   className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
-                  disabled={!newSession.title || !newSession.start_time}
+                  disabled={!newSession.title}
                 >
                   <Save size={16} className="mr-2" />
                   {editingSession ? 'Update Session' : 'Add Session'}
@@ -401,6 +453,11 @@ export const AgendaModal = ({
                         <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-400">
                           <span className="flex items-center gap-1">
                             <Clock size={14} />
+                            {session.session_date && (() => {
+                              try {
+                                return format(parseISO(session.session_date), 'MMM d') + ' — ';
+                              } catch { return ''; }
+                            })()}
                             {session.start_time}
                             {session.end_time && ` - ${session.end_time}`}
                           </span>

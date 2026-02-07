@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback, lazy, Suspense, memo } from 'react';
+import type { Speaker } from '../../types/events';
 import {
   MessageCircle,
   Calendar,
@@ -107,6 +108,9 @@ export const MobileTripTabs = ({
 
   // Track local roster state for optimistic updates
   const [localParticipants, setLocalParticipants] = useState(participants);
+
+  // Lifted lineup state for auto-populate from Agenda speakers
+  const [lineupSpeakers, setLineupSpeakers] = useState<Speaker[]>(eventData?.speakers || []);
 
   // Sync local participants with prop changes
   React.useEffect(() => {
@@ -282,10 +286,15 @@ export const MobileTripTabs = ({
       // Event-specific tabs
       case 'agenda':
         return (
-          <EnhancedAgendaTab eventId={tripId} userRole={isEventAdmin ? 'organizer' : 'attendee'} />
+          <EnhancedAgendaTab
+            eventId={tripId}
+            userRole={isEventAdmin ? 'organizer' : 'attendee'}
+            onLineupUpdate={setLineupSpeakers}
+            existingLineup={lineupSpeakers}
+          />
         );
       case 'lineup':
-        return <LineupTab speakers={eventData?.speakers || []} permissions={{ canView: true, canCreate: isEventAdmin, canEdit: isEventAdmin, canDelete: isEventAdmin }} />;
+        return <LineupTab speakers={lineupSpeakers} permissions={{ canView: true, canCreate: isEventAdmin, canEdit: isEventAdmin, canDelete: isEventAdmin }} />;
       case 'tasks':
         // For events, use EventTasksTab; for other trips, use MobileTripTasks
         if (variant === 'event') {

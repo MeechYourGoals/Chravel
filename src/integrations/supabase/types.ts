@@ -513,6 +513,7 @@ export type Database = {
           event_id: string
           id: string
           location: string | null
+          session_date: string | null
           speakers: string[] | null
           start_time: string | null
           title: string
@@ -527,6 +528,7 @@ export type Database = {
           event_id: string
           id?: string
           location?: string | null
+          session_date?: string | null
           speakers?: string[] | null
           start_time?: string | null
           title: string
@@ -541,6 +543,7 @@ export type Database = {
           event_id?: string
           id?: string
           location?: string | null
+          session_date?: string | null
           speakers?: string[] | null
           start_time?: string | null
           title?: string
