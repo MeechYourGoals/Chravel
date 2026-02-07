@@ -251,15 +251,6 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
                 ? 'Add tasks for attendees to complete during the event'
                 : 'The organizer hasn\'t added any tasks yet'}
             </p>
-            {canCreate && (
-              <Button
-                onClick={() => setIsAddingTask(true)}
-                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
-              >
-                <Plus size={16} className="mr-2" />
-                Add First Task
-              </Button>
-            )}
           </CardContent>
         </Card>
       )}

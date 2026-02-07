@@ -278,15 +278,6 @@ export const LineupTab = ({ speakers: initialSpeakers, permissions }: LineupTabP
                 ? 'Add speakers, artists, or presenters to your event line-up'
                 : 'Speakers and performers will be announced soon'}
             </p>
-            {canCreate && (
-              <Button
-                onClick={() => setIsAddingMember(true)}
-                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
-              >
-                <Plus size={16} className="mr-2" />
-                Add First Member
-              </Button>
-            )}
           </CardContent>
         </Card>
       ) : (
