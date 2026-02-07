@@ -70,6 +70,7 @@ export interface EventAgendaItem {
   id: string;
   title: string;
   description?: string;
+  session_date?: string;
   start_time?: string;
   end_time?: string;
   location?: string;

@@ -72,6 +72,7 @@ export interface ExportTripData {
   }>;
   agenda?: Array<{
     title: string;
+    session_date?: string;
     start_time?: string;
     end_time?: string;
     location?: string;
@@ -431,12 +432,13 @@ export async function getExportData(
     if (sections.includes('agenda')) {
       const { data: agendaItems } = await supabase
         .from('event_agenda_items')
-        .select('title, start_time, end_time, location, track, speakers')
+        .select('title, session_date, start_time, end_time, location, track, speakers')
         .eq('event_id', tripId)
         .order('start_time', { ascending: true });
 
       result.agenda = agendaItems?.map(item => ({
         title: item.title,
+        session_date: (item as any).session_date || undefined,
         start_time: item.start_time || undefined,
         end_time: item.end_time || undefined,
         location: item.location || undefined,
