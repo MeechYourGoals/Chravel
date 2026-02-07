@@ -1,9 +1,11 @@
 import type { ExportSection } from '@/types/tripExport';
 
 export const DEFAULT_EXPORT_SECTION_ORDER: ExportSection[] = [
+  'agenda',
   'attachments',
   'broadcasts',
   'calendar',
+  'lineup',
   'payments',
   'places',
   'polls',

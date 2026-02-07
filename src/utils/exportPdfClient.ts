@@ -168,6 +168,20 @@ interface ExportData {
     uploaded_at: string;
     uploaded_by?: string;
   }>;
+  agenda?: Array<{
+    title: string;
+    start_time?: string;
+    end_time?: string;
+    location?: string;
+    track?: string;
+    speakers?: string[];
+  }>;
+  lineup?: Array<{
+    name: string;
+    title?: string;
+    company?: string;
+    type?: string;
+  }>;
 }
 
 /**
@@ -926,6 +940,142 @@ export async function generateClientPDF(
         doc.setTextColor(100);
         doc.text('Note: Download full attachments from the Chravel app', margin, yPos);
         yPos += 20;
+      }
+    }
+
+    // Agenda section (Event-specific)
+    if (section === 'agenda') {
+      yPos = checkPageBreak(doc, yPos, 60);
+
+      const agenda = data.agenda || [];
+      if (agenda.length > 0) {
+        const agendaChunks = agenda.length > maxItems ? chunkArray(agenda, maxItems) : [agenda];
+
+        for (let chunkIndex = 0; chunkIndex < agendaChunks.length; chunkIndex++) {
+          const chunk = agendaChunks[chunkIndex];
+
+          yPos = checkPageBreak(doc, yPos, 60);
+
+          if (chunkIndex === 0) {
+            doc.setFontSize(14);
+            doc.setFont('NotoSans', 'bold');
+            doc.setTextColor(0);
+            doc.text('Agenda', margin, yPos);
+            yPos += 20;
+          }
+
+          const agendaRows = chunk.map((item: any) => [
+            formatEventDateTime(item.start_time, item.end_time),
+            sanitizePdfText(item.title || 'Untitled'),
+            sanitizePdfText(item.location || 'N/A'),
+            sanitizePdfText(item.track || '—'),
+            sanitizePdfText((item.speakers || []).join(', ') || '—'),
+          ]);
+
+          autoTable(doc, {
+            startY: yPos,
+            head: [['Time', 'Session', 'Location', 'Track', 'Speakers']],
+            body: agendaRows,
+            theme: 'striped',
+            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+            margin: { left: margin, right: margin },
+            styles: { fontSize: 9 },
+            columnStyles: {
+              0: { cellWidth: contentWidth * 0.22 },
+              1: { cellWidth: contentWidth * 0.28 },
+              2: { cellWidth: contentWidth * 0.18 },
+              3: { cellWidth: contentWidth * 0.12 },
+              4: { cellWidth: contentWidth * 0.20 },
+            },
+          });
+
+          yPos = getFinalY(doc, yPos) + 10;
+
+          if (chunkIndex < agendaChunks.length - 1) {
+            yPos = checkPageBreak(doc, yPos, 30);
+            doc.setFontSize(9);
+            doc.setFont('NotoSans', 'italic');
+            doc.setTextColor(120);
+            doc.text(
+              `(Continued - showing ${(chunkIndex + 1) * maxItems} of ${agenda.length} sessions)`,
+              margin,
+              yPos,
+            );
+            yPos += 20;
+            doc.addPage();
+            yPos = margin;
+          }
+        }
+      } else {
+        doc.setFontSize(10);
+        doc.setFont('NotoSans', 'normal');
+        doc.setTextColor(120);
+        doc.text('No agenda sessions available', margin, yPos);
+        yPos += 30;
+      }
+    }
+
+    // Lineup section (Event-specific)
+    if (section === 'lineup') {
+      yPos = checkPageBreak(doc, yPos, 60);
+
+      const lineup = data.lineup || [];
+      if (lineup.length > 0) {
+        const lineupChunks = lineup.length > maxItems ? chunkArray(lineup, maxItems) : [lineup];
+
+        for (let chunkIndex = 0; chunkIndex < lineupChunks.length; chunkIndex++) {
+          const chunk = lineupChunks[chunkIndex];
+
+          yPos = checkPageBreak(doc, yPos, 60);
+
+          if (chunkIndex === 0) {
+            doc.setFontSize(14);
+            doc.setFont('NotoSans', 'bold');
+            doc.setTextColor(0);
+            doc.text('Lineup', margin, yPos);
+            yPos += 20;
+          }
+
+          const lineupRows = chunk.map((person: any) => [
+            sanitizePdfText(person.name || 'N/A'),
+            sanitizePdfText(person.title || '—'),
+            sanitizePdfText(person.company || '—'),
+            sanitizePdfText(person.type || '—'),
+          ]);
+
+          autoTable(doc, {
+            startY: yPos,
+            head: [['Name', 'Title', 'Company', 'Type']],
+            body: lineupRows,
+            theme: 'striped',
+            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+            margin: { left: margin, right: margin },
+            styles: { fontSize: 9 },
+          });
+
+          yPos = getFinalY(doc, yPos) + 10;
+
+          if (chunkIndex < lineupChunks.length - 1) {
+            yPos = checkPageBreak(doc, yPos, 30);
+            doc.setFontSize(9);
+            doc.setFont('NotoSans', 'italic');
+            doc.setTextColor(120);
+            doc.text(
+              `(Continued - showing ${(chunkIndex + 1) * maxItems} of ${lineup.length} people)`,
+              margin,
+              yPos,
+            );
+            yPos += 20;
+            doc.addPage();
+            yPos = margin;
+          }
+        }
+      } else {
+        doc.setFontSize(10);
+        doc.setFont('NotoSans', 'normal');
+        doc.setTextColor(120);
+        doc.text('No lineup data available', margin, yPos);
+        yPos += 30;
       }
     }
   }

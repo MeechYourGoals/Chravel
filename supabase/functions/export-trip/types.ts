@@ -11,7 +11,9 @@ export type ExportSection =
   | 'tasks'
   | 'roster'
   | 'broadcasts'
-  | 'attachments';
+  | 'attachments'
+  | 'agenda'
+  | 'lineup';
 
 export interface Member {
   id: string;
