@@ -1,145 +1,191 @@
 
+# Fix Agenda & Lineup Persistence + Lineup Session Detail Modal
 
-# Add Date Selector to Agenda Sessions + Rename Track to Category + Auto-Populate Lineup from Speakers
+## Problem Summary
 
-## Overview
+Three critical issues:
 
-Three connected changes to improve the agenda session editor for multi-day events and reduce manual data entry:
+1. **Agenda sessions don't persist** -- Both `AgendaModal.tsx` (desktop) and `EnhancedAgendaTab.tsx` (mobile) save sessions to `useState` only. The `event_agenda_items` database table exists with full RLS policies, but the UI never reads from or writes to it.
 
-1. **Add a Date field** to agenda sessions so multi-day events (Coachella, conferences) can assign sessions to specific days
-2. **Rename "Track/Category" to "Category"** throughout the UI (keeping the DB column as `track` to avoid migration complexity)
-3. **Auto-populate the Lineup tab** when speakers/performers are added to agenda sessions -- no more duplicate data entry
+2. **Lineup entries don't persist** -- There is no database table for lineup members. They exist only in React state (lifted to parent via `useState`). On page refresh, they vanish.
+
+3. **Lineup click shows edit form** -- Clicking a person in the Lineup should open a read-only modal showing all agenda sessions they appear in, not an editable form.
 
 ---
 
-## Part 1: Add Date Column to Database
+## Part 1: Create `event_lineup_members` Database Table
 
 **New Migration**
 
-Add a `session_date` column to `event_agenda_items`:
 ```sql
-ALTER TABLE event_agenda_items ADD COLUMN IF NOT EXISTS session_date date;
+CREATE TABLE IF NOT EXISTS event_lineup_members (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  event_id uuid NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  title text,
+  company text,
+  bio text,
+  avatar_url text,
+  performer_type text DEFAULT 'speaker',
+  created_by uuid REFERENCES profiles(user_id),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE event_lineup_members ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies (matching event_agenda_items pattern)
+CREATE POLICY "Event members can view lineup"
+  ON event_lineup_members FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM trip_members
+    WHERE trip_members.trip_id = event_lineup_members.event_id
+    AND trip_members.user_id = auth.uid()
+  ));
+
+CREATE POLICY "Event admins can insert lineup"
+  ON event_lineup_members FOR INSERT
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM trip_members
+      WHERE trip_members.trip_id = event_lineup_members.event_id
+      AND trip_members.user_id = auth.uid()
+      AND trip_members.role = 'admin')
+    OR EXISTS (SELECT 1 FROM trip_admins
+      WHERE trip_admins.trip_id = event_lineup_members.event_id
+      AND trip_admins.user_id = auth.uid())
+  );
+
+CREATE POLICY "Event admins can update lineup"
+  ON event_lineup_members FOR UPDATE
+  USING ( /* same admin check */ );
+
+CREATE POLICY "Event admins can delete lineup"
+  ON event_lineup_members FOR DELETE
+  USING ( /* same admin check */ );
 ```
 
-This is a nullable column so existing sessions remain valid. The Supabase types file will be regenerated to include the new field.
-
 ---
 
-## Part 2: Update the EventAgendaItem Type
-
-**File: `src/types/events.ts`**
-
-Add `session_date?: string` to the `EventAgendaItem` interface (between `description` and `start_time`).
-
----
-
-## Part 3: Redesign the Add/Edit Session Form Layout
-
-Both the desktop `AgendaModal.tsx` and mobile `EnhancedAgendaTab.tsx` need the same form changes.
-
-### New Form Layout (both files)
-
-Row 1: **Title** (full width -- unchanged)
-
-Row 2: **Date**, **Start Time**, **End Time** (3 columns on a single row)
-- Date uses `type="date"` input
-- Start and End time inputs stay as `type="time"`
-- On mobile, all three fit in a `grid-cols-3` row since each is compact
-
-Row 3: **Location** and **Category** (2 columns -- relabel "Track/Category" to just "Category")
-
-Row 4: **Speakers/Performers** (full width -- unchanged)
-
-Row 5: **Description** (full width -- unchanged)
+## Part 2: Wire Agenda Sessions to Supabase
 
 ### File: `src/components/events/AgendaModal.tsx`
 
-- Add `session_date` to `newSession` initial state (line 63-71)
-- Add `session_date` to `resetForm` (lines 198-206)
-- Add `session_date` to `handleSaveSession` output (lines 146-155)
-- Add `session_date` to `handleEditSession` mapping (lines 173-181)
-- Restructure the form grid (lines 268-371):
-  - Title stays full-width `md:col-span-2`
-  - Replace the current 2-column Start/End time layout with a 3-column `grid-cols-3` row containing Date, Start Time, End Time
-  - Location and Category stay as 2 columns
-  - Rename the "Track/Category" label to just "Category"
-- Update session list display (line 401-406): show date before time when present (e.g., "Jan 15 -- 12:00 - 1:30 PM")
-- Update sort logic (line 161): sort by `session_date` first, then by `start_time`
+**Load sessions from DB on mount:**
+- Add `useEffect` that calls `supabase.from('event_agenda_items').select('*').eq('event_id', eventId)` on mount
+- Populate `sessions` state from DB results (fallback to `initialSessions` for demo mode)
+- Import `supabase` client and `useAuth` hook
+
+**Save session to DB:**
+- In `handleSaveSession`, after validation:
+  - If editing: call `.update()` on the existing row
+  - If adding: call `.insert()` with `event_id: eventId` and `created_by: user.id`
+  - On success, refetch sessions from DB (or optimistically update state)
+
+**Delete session from DB:**
+- In `handleDeleteSession`: call `.delete().eq('id', sessionId)` then update local state
 
 ### File: `src/components/events/EnhancedAgendaTab.tsx`
 
-- Add `session_date` to the `AgendaSession` interface (line 10-17)
-- Add `session_date` to `newSession` state (line 38-44)
-- Add `session_date` to `handleAddSession` (line 81-88)
-- Restructure the form grid (lines 234-278):
-  - Title stays full-width
-  - Add 3-column row: Date, Start Time, End Time
-  - Location field stays; add a Category field (currently missing from this simpler form)
-- Update session list display (lines 314-320): show date before time
-- Update sort logic (line 90): sort by `session_date` first, then `start_time`
+Same pattern:
+- Load from `event_agenda_items` on mount
+- Insert/update/delete against the DB
+- Map the local `AgendaSession` type to match the DB schema (align field names: `time` becomes `start_time`, `endTime` becomes `end_time`)
 
 ---
 
-## Part 4: Rename Track to Category in Display
+## Part 3: Wire Lineup to Supabase
 
-### File: `src/components/events/AgendaModal.tsx`
+### File: `src/components/events/LineupTab.tsx`
 
-- Line 314: Change label from "Track/Category" to "Category"
-- Line 319: Keep placeholder as "e.g., Main Stage, Workshop"
-- Session list badge (line 394-397): no change needed -- it just displays the value
+**Load lineup from DB on mount:**
+- Add `useEffect` to fetch from `event_lineup_members` where `event_id = tripId`
+- Pass `eventId` as a new required prop (currently missing)
 
-### File: `src/components/events/ScheduleImporter.tsx`
+**Save to DB on add/edit/delete:**
+- `handleAddMember`: insert into `event_lineup_members`
+- `handleUpdateMember`: update the row
+- `handleDeleteMember`: delete the row
 
-- Keep accepting both `track` and `category` as CSV column headers (already does this on line 67)
-- No label changes needed (this is a background importer)
+**Auto-populate from agenda speakers:**
+- When `AgendaModal` or `EnhancedAgendaTab` calls `onLineupUpdate` with new speakers, the parent (`EventDetailContent` / `MobileTripTabs`) will insert those new names into `event_lineup_members` via Supabase, then the `LineupTab` will refetch or the parent will pass the updated list
 
----
+### Files: `src/components/events/EventDetailContent.tsx` and `src/components/mobile/MobileTripTabs.tsx`
 
-## Part 5: Auto-Populate Lineup from Agenda Speakers
-
-When a user adds speakers to an agenda session and saves, those speaker names should automatically appear in the Lineup tab. This avoids having to manually add every person twice.
-
-### Approach: Callback from AgendaModal/EnhancedAgendaTab to parent
-
-**A. Add an `onLineupUpdate` callback prop**
-
-Both `AgendaModal` and `EnhancedAgendaTab` will accept an optional `onLineupUpdate?: (speakers: Speaker[]) => void` callback.
-
-When `handleSaveSession` is called and `newSession.speakers` has entries:
-- For each speaker name, check if it already exists in the current lineup (passed down or tracked)
-- If not, create a new `Speaker` object with the name and add it
-- Call `onLineupUpdate` with the updated list
-
-**B. Wire it in the parent components**
-
-**File: `src/components/events/EventDetailContent.tsx` (Desktop)**
-
-- Add state: `const [lineupSpeakers, setLineupSpeakers] = useState<Speaker[]>(eventData.speakers || [])`
-- Pass `onLineupUpdate={setLineupSpeakers}` to `AgendaModal`
-- Pass `lineupSpeakers` (instead of `eventData.speakers`) to `LineupTab`
-
-**File: `src/components/mobile/MobileTripTabs.tsx` (Mobile)**
-
-- Same pattern: lift `lineupSpeakers` state
-- Pass `onLineupUpdate` to `EnhancedAgendaTab`
-- Pass `lineupSpeakers` to `LineupTab`
-
-**C. Update AgendaModal and EnhancedAgendaTab**
-
-In `handleSaveSession`, after saving the session, extract any new speaker names and call `onLineupUpdate` with deduplicated Speaker objects (merged with existing lineup data).
+- Replace the `useState<Speaker[]>` for lineup with a proper Supabase query (or a custom hook)
+- The `onLineupUpdate` callback from agenda components will now insert new speakers into `event_lineup_members` in the DB
+- Pass `eventId` to `LineupTab`
 
 ---
 
-## Part 6: Update Export Service
+## Part 4: Create `useEventAgenda` and `useEventLineup` Hooks
 
-**File: `src/services/tripExportDataService.ts`**
+To keep the components clean, create two reusable hooks:
 
-- Add `session_date` to the agenda query select (line 434)
-- Include `session_date` in the mapped agenda export data
+### `src/hooks/useEventAgenda.ts`
+- Fetches agenda items from `event_agenda_items` for a given `eventId`
+- Provides `addSession`, `updateSession`, `deleteSession` mutations
+- Uses TanStack Query for caching and refetch
+- Returns `{ sessions, isLoading, addSession, updateSession, deleteSession }`
 
-**File: `src/utils/exportPdfClient.ts`**
+### `src/hooks/useEventLineup.ts`
+- Fetches lineup members from `event_lineup_members` for a given `eventId`
+- Provides `addMember`, `updateMember`, `deleteMember`, `addMembersFromAgenda` mutations
+- `addMembersFromAgenda` handles deduplication: checks existing names before inserting
+- Returns `{ members, isLoading, addMember, updateMember, deleteMember, addMembersFromAgenda }`
 
-- Add a "Date" column to the Agenda PDF table rendering
+---
+
+## Part 5: Lineup Session Detail Modal (Read-Only)
+
+### File: `src/components/events/LineupTab.tsx`
+
+Replace the current click behavior (which opens an editable form) with a **read-only session detail modal**:
+
+**When a person's card is clicked:**
+1. Open a modal showing the person's name, title, company, and bio at the top
+2. Below that, show a "Sessions" section with all agenda sessions where their name appears in the `speakers` array
+3. Each session card displays: session title, date, start/end time, location, and category -- all read-only
+4. The modal has only a close button (X) -- no edit fields
+
+**How to find matching sessions:**
+- Accept the full `sessions` list as a prop (from the agenda data already loaded by the parent)
+- Filter sessions where `session.speakers?.includes(selectedPerson.name)` (case-insensitive)
+- If no sessions found, show "No scheduled sessions" message
+
+**Modal layout:**
+```text
++-----------------------------------+
+|  [Avatar] Person Name          [X]|
+|  Title                            |
+|  Company                          |
+|                                   |
+|  Bio text...                      |
+|                                   |
+|  --- Sessions (2) ---             |
+|                                   |
+|  [Card] Session Title             |
+|  Jan 15 -- 2:00 PM - 3:30 PM     |
+|  Location: Main Stage             |
+|  Category: Keynote                |
+|                                   |
+|  [Card] Session Title 2           |
+|  Jan 16 -- 10:00 AM - 11:00 AM   |
+|  Location: Room 201               |
+|  Category: Workshop               |
++-----------------------------------+
+```
+
+**Keep the edit/delete buttons** as hover overlays on the cards (for admin users), but clicking the card itself opens this read-only detail modal, not an edit form.
+
+---
+
+## Part 6: Pass Sessions to LineupTab
+
+Both `EventDetailContent.tsx` and `MobileTripTabs.tsx` need to pass the agenda sessions to `LineupTab` so it can display them in the detail modal:
+
+- Add `agendaSessions` prop to `LineupTab`
+- Parent components fetch sessions via `useEventAgenda` hook and pass them down
+- This avoids the LineupTab making a separate DB query for the same data
 
 ---
 
@@ -147,12 +193,12 @@ In `handleSaveSession`, after saving the session, extract any new speaker names 
 
 | File | Change |
 |------|--------|
-| New migration SQL | Add `session_date date` column to `event_agenda_items` |
-| `src/types/events.ts` | Add `session_date?: string` to `EventAgendaItem` |
-| `src/components/events/AgendaModal.tsx` | Add date input, 3-col Date/Start/End row, rename Track to Category, auto-push speakers to lineup callback |
-| `src/components/events/EnhancedAgendaTab.tsx` | Add date input, 3-col row, add Category field, auto-push speakers to lineup callback |
-| `src/components/events/EventDetailContent.tsx` | Lift lineup state, wire `onLineupUpdate` callback between Agenda and Lineup |
-| `src/components/mobile/MobileTripTabs.tsx` | Same lifted state + callback wiring for mobile |
-| `src/services/tripExportDataService.ts` | Include `session_date` in agenda export query |
-| `src/utils/exportPdfClient.ts` | Add Date column to agenda PDF table |
-
+| New migration SQL | Create `event_lineup_members` table with RLS |
+| `src/hooks/useEventAgenda.ts` (NEW) | TanStack Query hook for agenda CRUD against Supabase |
+| `src/hooks/useEventLineup.ts` (NEW) | TanStack Query hook for lineup CRUD against Supabase |
+| `src/components/events/AgendaModal.tsx` | Replace `useState` with `useEventAgenda` hook; DB persistence for all operations |
+| `src/components/events/EnhancedAgendaTab.tsx` | Replace `useState` with `useEventAgenda` hook; DB persistence for all operations |
+| `src/components/events/LineupTab.tsx` | Replace `useState` with `useEventLineup` hook; replace click-to-edit with read-only session detail modal; accept `agendaSessions` prop |
+| `src/components/events/EventDetailContent.tsx` | Use `useEventAgenda` + `useEventLineup` hooks; pass data to child tabs |
+| `src/components/mobile/MobileTripTabs.tsx` | Same hook integration for mobile |
+| `src/types/events.ts` | Add `EventLineupMember` interface if needed |
