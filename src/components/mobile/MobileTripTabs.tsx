@@ -1,5 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback, lazy, Suspense, memo } from 'react';
-import type { Speaker } from '../../types/events';
+import React, { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import {
   MessageCircle,
   Calendar,
@@ -20,6 +19,8 @@ import { useDemoMode } from '../../hooks/useDemoMode';
 import { usePrefetchTrip } from '../../hooks/usePrefetchTrip';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
+import { useEventAgenda } from '@/hooks/useEventAgenda';
+import { useEventLineup } from '@/hooks/useEventLineup';
 import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
 import { useRoleAssignments } from '../../hooks/useRoleAssignments';
 import { useTripRoles } from '../../hooks/useTripRoles';
@@ -27,7 +28,9 @@ import type { EventData } from '../../types/events';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
 // This significantly reduces initial bundle size - tabs load on demand
-const TripChat = lazy(() => import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })));
+const TripChat = lazy(() =>
+  import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })),
+);
 const MobileGroupCalendar = lazy(() =>
   import('./MobileGroupCalendar').then(m => ({ default: m.MobileGroupCalendar })),
 );
@@ -110,8 +113,27 @@ export const MobileTripTabs = ({
   const [localParticipants, setLocalParticipants] = useState(participants);
 
   // DB-backed lineup hook for auto-populating from agenda
-  const { addMembersFromAgenda: addLineupFromAgenda } = useEventLineup({ eventId: tripId, initialMembers: eventData?.speakers || [] });
-  const { sessions: agendaSessions } = useEventAgenda({ eventId: tripId, initialSessions: eventData?.agenda || [] });
+  const { members: lineupSpeakers, addMembersFromAgenda: addLineupFromAgenda } = useEventLineup({
+    eventId: tripId,
+    initialMembers: eventData?.speakers || [],
+    enabled: variant === 'event',
+  });
+  const { sessions: agendaSessions } = useEventAgenda({
+    eventId: tripId,
+    initialSessions: eventData?.agenda || [],
+    enabled: variant === 'event',
+  });
+
+  const handleLineupUpdate = useCallback(
+    async (speakerNames: string[]) => {
+      try {
+        await addLineupFromAgenda(speakerNames);
+      } catch {
+        // Error handled by hook toast
+      }
+    },
+    [addLineupFromAgenda],
+  );
 
   // Sync local participants with prop changes
   React.useEffect(() => {
@@ -123,7 +145,7 @@ export const MobileTripTabs = ({
 
   // Get event admin status for event variant
   const { isAdmin: isEventAdmin } = useEventPermissions(variant === 'event' ? tripId : '');
-  
+
   // Mark current tab as visited when it changes
   useEffect(() => {
     if (!visitedTabs.has(activeTab)) {
@@ -200,22 +222,28 @@ export const MobileTripTabs = ({
     };
   }, [activeTab]);
 
-  const handleTabPress = useCallback(async (tabId: string, enabled: boolean) => {
-    if (!enabled) {
-      toast.info('This feature is disabled for this trip', {
-        description: 'Contact trip admin to enable this feature',
-      });
-      return;
-    }
-    await hapticService.light();
-    onTabChange(tabId);
-  }, [onTabChange]);
+  const handleTabPress = useCallback(
+    async (tabId: string, enabled: boolean) => {
+      if (!enabled) {
+        toast.info('This feature is disabled for this trip', {
+          description: 'Contact trip admin to enable this feature',
+        });
+        return;
+      }
+      await hapticService.light();
+      onTabChange(tabId);
+    },
+    [onTabChange],
+  );
 
   // ⚡ PERFORMANCE: Prefetch tab data on hover/focus
   // ⚡ PERFORMANCE: Prefetch tab data on hover/focus
-  const handleTabHover = useCallback((tabId: string) => {
-    prefetchTab(tripId, tabId);
-  }, [tripId, prefetchTab]);
+  const handleTabHover = useCallback(
+    (tabId: string) => {
+      prefetchTab(tripId, tabId);
+    },
+    [tripId, prefetchTab],
+  );
 
   /**
    * Handle role assignment for a member in Pro trips.
@@ -244,7 +272,7 @@ export const MobileTripTabs = ({
 
         // Update local state optimistically for immediate UI feedback
         setLocalParticipants(prev =>
-          prev.map(p => (p.id === memberId ? { ...p, role: roleName } : p))
+          prev.map(p => (p.id === memberId ? { ...p, role: roleName } : p)),
         );
 
         toast.success(`Role assigned successfully`);
@@ -254,7 +282,7 @@ export const MobileTripTabs = ({
         throw error;
       }
     },
-    [tripId, localParticipants, assignRole, refetchRoles]
+    [tripId, localParticipants, assignRole, refetchRoles],
   );
 
   // ⚡ PERFORMANCE: Content-aware skeletons for lazy-loaded tabs
@@ -282,75 +310,117 @@ export const MobileTripTabs = ({
     }
   }, []);
 
-  const renderTabContent = useCallback((tabId: string) => {
-    switch (tabId) {
-      // Event-specific tabs
-      case 'agenda':
-        return (
-          <EnhancedAgendaTab
-            eventId={tripId}
-            userRole={isEventAdmin ? 'organizer' : 'attendee'}
-            onLineupUpdate={setLineupSpeakers}
-            existingLineup={lineupSpeakers}
-          />
-        );
-      case 'lineup':
-        return <LineupTab speakers={lineupSpeakers} permissions={{ canView: true, canCreate: isEventAdmin, canEdit: isEventAdmin, canDelete: isEventAdmin }} />;
-      case 'tasks':
-        // For events, use EventTasksTab; for other trips, use MobileTripTasks
-        if (variant === 'event') {
-          return <EventTasksTab eventId={tripId} permissions={{ canView: true, canCreate: isEventAdmin, canEdit: isEventAdmin, canDelete: isEventAdmin }} />;
-        }
-        return <MobileTripTasks tripId={tripId} />;
-      // Pro-specific tabs
-      case 'team':
-        return (
-          <div className="px-4 py-4 pb-safe overflow-y-auto h-full">
-            <TeamTab
-              roster={localParticipants.map(p => ({
-                id: p.id,
-                name: p.name,
-                role: p.role || 'member',
-                email: '',
-                avatar: '',
-                credentialLevel: 'Guest' as const,
-                permissions: []
-              }))}
-              userRole="admin"
-              isReadOnly={false}
-              category={(category || tripData?.proTripCategory || 'Sports – Pro, Collegiate, Youth') as any}
-              tripId={tripId}
-              tripCreatorId={tripCreatorId || tripData?.createdBy}
-              onUpdateMemberRole={handleUpdateMemberRole}
+  const renderTabContent = useCallback(
+    (tabId: string) => {
+      switch (tabId) {
+        // Event-specific tabs
+        case 'agenda':
+          return (
+            <EnhancedAgendaTab
+              eventId={tripId}
+              userRole={isEventAdmin ? 'organizer' : 'attendee'}
+              onLineupUpdate={handleLineupUpdate}
+              existingLineup={lineupSpeakers}
             />
-          </div>
-        );
-      // Common tabs
-      case 'chat':
-        return (
-          <TripChat
-            tripId={tripId}
-            isPro={variant === 'pro'}
-            isEvent={variant === 'event'}
-            participants={participants}
-          />
-        );
-      case 'calendar':
-        return <MobileGroupCalendar tripId={tripId} />;
-      case 'polls':
-        return <CommentsWall tripId={tripId} />;
-      case 'media':
-        return <MobileUnifiedMediaHub tripId={tripId} />;
-      case 'places':
-        return <PlacesSection tripId={tripId} />;
-      case 'payments':
-        return <MobileTripPayments tripId={tripId} />;
-      case 'concierge':
-        return <AIConciergeChat tripId={tripId} basecamp={basecamp} isDemoMode={isDemoMode} />;
-      default:
-        return <MobileTripChat tripId={tripId} />;
-    }
-  }, [tripId, variant, isEventAdmin, eventData, basecamp, isDemoMode, participants, localParticipants, handleUpdateMemberRole, category, tripCreatorId, tripData]);
+          );
+        case 'lineup':
+          return (
+            <LineupTab
+              eventId={tripId}
+              permissions={{
+                canView: true,
+                canCreate: isEventAdmin,
+                canEdit: isEventAdmin,
+                canDelete: isEventAdmin,
+              }}
+              agendaSessions={agendaSessions}
+              initialSpeakers={eventData?.speakers || []}
+            />
+          );
+        case 'tasks':
+          // For events, use EventTasksTab; for other trips, use MobileTripTasks
+          if (variant === 'event') {
+            return (
+              <EventTasksTab
+                eventId={tripId}
+                permissions={{
+                  canView: true,
+                  canCreate: isEventAdmin,
+                  canEdit: isEventAdmin,
+                  canDelete: isEventAdmin,
+                }}
+              />
+            );
+          }
+          return <MobileTripTasks tripId={tripId} />;
+        // Pro-specific tabs
+        case 'team':
+          return (
+            <div className="px-4 py-4 pb-safe overflow-y-auto h-full">
+              <TeamTab
+                roster={localParticipants.map(p => ({
+                  id: p.id,
+                  name: p.name,
+                  role: p.role || 'member',
+                  email: '',
+                  avatar: '',
+                  credentialLevel: 'Guest' as const,
+                  permissions: [],
+                }))}
+                userRole="admin"
+                isReadOnly={false}
+                category={
+                  (category ||
+                    tripData?.proTripCategory ||
+                    'Sports – Pro, Collegiate, Youth') as any
+                }
+                tripId={tripId}
+                tripCreatorId={tripCreatorId || tripData?.createdBy}
+                onUpdateMemberRole={handleUpdateMemberRole}
+              />
+            </div>
+          );
+        // Common tabs
+        case 'chat':
+          return (
+            <TripChat
+              tripId={tripId}
+              isPro={variant === 'pro'}
+              isEvent={variant === 'event'}
+              participants={participants}
+            />
+          );
+        case 'calendar':
+          return <MobileGroupCalendar tripId={tripId} />;
+        case 'polls':
+          return <CommentsWall tripId={tripId} />;
+        case 'media':
+          return <MobileUnifiedMediaHub tripId={tripId} />;
+        case 'places':
+          return <PlacesSection tripId={tripId} />;
+        case 'payments':
+          return <MobileTripPayments tripId={tripId} />;
+        case 'concierge':
+          return <AIConciergeChat tripId={tripId} basecamp={basecamp} isDemoMode={isDemoMode} />;
+        default:
+          return <MobileTripChat tripId={tripId} />;
+      }
+    },
+    [
+      tripId,
+      variant,
+      isEventAdmin,
+      eventData,
+      basecamp,
+      isDemoMode,
+      participants,
+      localParticipants,
+      handleUpdateMemberRole,
+      category,
+      tripCreatorId,
+      tripData,
+    ],
+  );
 
   return (
     <>
@@ -413,35 +483,37 @@ export const MobileTripTabs = ({
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {tabs.filter(t => t.enabled !== false).map(tab => {
-          const isActive = activeTab === tab.id;
-          const hasBeenVisited = visitedTabs.has(tab.id);
-          
-          // ⚡ CRITICAL FIX: Always mount the active tab immediately, even on first visit
-          // This prevents the "click away and back" race condition where useEffect
-          // updates visitedTabs AFTER the first render, causing the tab to not mount
-          if (!hasBeenVisited && !isActive) return null;
-          
-          return (
-            <div
-              key={tab.id}
-              style={{ 
-                display: isActive ? 'flex' : 'none',
-                flexDirection: 'column',
-                minHeight: isActive ? '100%' : 0,
-                overflow: isActive ? undefined : 'hidden'
-              }}
-              className={isActive ? 'h-full flex-1' : ''}
-            >
-              {/* ⚡ Per-tab error boundary: errors stay on failing tab, no bounce-back */}
-              <Suspense fallback={getSkeletonForTab(tab.id)}>
-                <FeatureErrorBoundary featureName={tab.label}>
-                  {renderTabContent(tab.id)}
-                </FeatureErrorBoundary>
-              </Suspense>
-            </div>
-          );
-        })}
+        {tabs
+          .filter(t => t.enabled !== false)
+          .map(tab => {
+            const isActive = activeTab === tab.id;
+            const hasBeenVisited = visitedTabs.has(tab.id);
+
+            // ⚡ CRITICAL FIX: Always mount the active tab immediately, even on first visit
+            // This prevents the "click away and back" race condition where useEffect
+            // updates visitedTabs AFTER the first render, causing the tab to not mount
+            if (!hasBeenVisited && !isActive) return null;
+
+            return (
+              <div
+                key={tab.id}
+                style={{
+                  display: isActive ? 'flex' : 'none',
+                  flexDirection: 'column',
+                  minHeight: isActive ? '100%' : 0,
+                  overflow: isActive ? undefined : 'hidden',
+                }}
+                className={isActive ? 'h-full flex-1' : ''}
+              >
+                {/* ⚡ Per-tab error boundary: errors stay on failing tab, no bounce-back */}
+                <Suspense fallback={getSkeletonForTab(tab.id)}>
+                  <FeatureErrorBoundary featureName={tab.label}>
+                    {renderTabContent(tab.id)}
+                  </FeatureErrorBoundary>
+                </Suspense>
+              </div>
+            );
+          })}
       </div>
     </>
   );
