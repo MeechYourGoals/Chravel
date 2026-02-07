@@ -1,77 +1,193 @@
 
 
-# Fix OG Preview Fallback: Use ChravelApp Logo Instead of Random Unsplash Photos
+# Default All Recap Sections + Add Event Card Visual Parity with Recap Support
 
-## Problem
+## Overview
 
-When a trip has no user-uploaded cover photo, shared links (iMessage, Slack, etc.) show a random Unsplash landscape image that has nothing to do with the trip. This is confusing for recipients. The same issue affects both Share Trip links and Invite links.
+Two related changes:
 
-The root cause is that four separate files all fall back to random Unsplash stock photos when `cover_image_url` is null in the database.
+1. **All 8 recap sections selected by default** for every trip type (consumer, pro, event) -- no more "proOnly" gating in the section list
+2. **Event cards get the same 4-button layout** as consumer/pro trip cards (Recap + View + Invite + Share) with a new Event Recap modal showing 6 event-specific sections
 
-## Solution
+---
 
-Replace every Unsplash fallback with the branded ChravelApp OG image that already exists in the project at `public/chravelapp-og-20251219.png` (hosted at `https://chravel.app/chravelapp-og-20251219.png`). This is the "Less Chaos More Coordination" globe logo, properly sized for OG previews (1200x630).
+## Part 1: Default All 8 Sections Selected
 
-The priority chain becomes:
-1. User-uploaded cover photo (if present) -- always preferred
-2. ChravelApp branded OG image -- the default for all trips without a cover photo
+### Current Behavior
+- `TripExportModal` initializes `selectedSections` with only 6 sections (missing Broadcasts and Roster)
+- Broadcasts and Roster are marked `proOnly: true`, making them disabled/unchecked for consumer trips
+- Users must manually check them even on pro/event trips
 
-No AI-generated images. No random stock photos.
+### Change
 
-## Files to Change
+**File: `src/components/trip/TripExportModal.tsx`**
 
-### 1. `supabase/functions/generate-trip-preview/index.ts` (Edge Function)
+- Add `'broadcasts'` and `'roster'` to the default `selectedSections` array (line 31-38)
+- Remove the `proOnly: true` flag from both Broadcasts and Roster in the `sections` definition (lines 50-51)
+- Remove the `disabled` logic that checks `section.proOnly && isConsumer` (line 194)
+- All 8 sections will be checked by default for all trip types
 
-**Line 585** -- Change the fallback when building `tripData` for real (non-demo) trips:
-
+Before:
 ```
-Before: trip.cover_image_url || 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=630&fit=crop'
-After:  trip.cover_image_url || 'https://chravel.app/chravelapp-og-20251219.png'
-```
-
-This affects all Share Trip previews in iMessage, Slack, Twitter, etc.
-
-### 2. `supabase/functions/generate-invite-preview/index.ts` (Edge Function)
-
-**Line 646** -- Same change for the invite preview:
-
-```
-Before: trip.cover_image_url || 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=630&fit=crop'
-After:  trip.cover_image_url || 'https://chravel.app/chravelapp-og-20251219.png'
+selectedSections = ['calendar', 'payments', 'polls', 'places', 'attachments', 'tasks']
+// broadcasts and roster marked proOnly: true
 ```
 
-This affects all Invite link previews when no cover photo exists.
-
-### 3. `supabase/functions/share-preview/index.ts` (Edge Function)
-
-**Line 14** -- Update the DEFAULT_IMAGE constant:
-
+After:
 ```
-Before: const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
-After:  const DEFAULT_IMAGE = 'https://chravel.app/chravelapp-og-20251219.png';
+selectedSections = ['calendar', 'payments', 'polls', 'places', 'attachments', 'tasks', 'broadcasts', 'roster']
+// No proOnly flags -- all sections always available
 ```
 
-This is used in multiple fallback paths within this function (invalid invites, expired invites, trip not found, errors).
+---
 
-### 4. `src/components/share/ShareTripModal.tsx` (Frontend)
+## Part 2: Event Cards -- Visual Parity with 4-Button Layout
 
-**Line 140** -- Update the in-app share modal's cover image fallback:
+### Current Event Card Layout
+Event cards (desktop `EventCard.tsx` and mobile `MobileEventCard.tsx`) only have 2 buttons:
+- View Event
+- Invite
 
+### Target Layout (matching TripCard/ProTripCard)
+2x2 grid:
+- **Row 1**: Recap + Invite
+- **Row 2**: View + Share
+
+### Files to Modify
+
+**A. `src/components/EventCard.tsx` (Desktop)**
+
+- Add imports for `FileDown`, `Share2`, `ShareTripModal`, `TripExportModal`
+- Add state: `showExportModal`, `showShareModal`
+- Add `handleExportPdf` callback (same pattern as ProTripCard -- fetch data, generate PDF, download)
+- Replace the 2-button `grid-cols-2` with a 4-button `grid-cols-2` layout:
+  - Recap button (opens TripExportModal)
+  - Invite button (existing)
+  - View button (existing)
+  - Share button (opens ShareTripModal)
+- Add `TripExportModal` and `ShareTripModal` at the bottom of the component
+- The TripExportModal receives the event's tripId so it can determine available sections
+
+**B. `src/components/MobileEventCard.tsx` (Mobile)**
+
+- Same changes as desktop EventCard but with mobile-appropriate sizing
+- Add imports, state, handler, 4-button layout, and modals
+
+---
+
+## Part 3: Event-Specific Recap Sections
+
+### Current Problem
+The `TripExportModal` shows sections designed for trips (Calendar, Payments, Polls, Places, Attachments, Tasks, Broadcasts, Roster). Events need different sections: **Agenda, Calendar, Broadcasts, Lineup, Polls, Tasks**.
+
+### Solution
+
+**A. Extend the `ExportSection` type**
+
+**File: `src/types/tripExport.ts`**
+
+Add two new section types to the `ExportSection` union:
+```typescript
+export type ExportSection = 
+  | 'calendar' 
+  | 'payments' 
+  | 'polls' 
+  | 'places' 
+  | 'tasks'
+  | 'roster'
+  | 'broadcasts'
+  | 'attachments'
+  | 'agenda'    // NEW - Event agenda/sessions
+  | 'lineup';   // NEW - Event speakers/performers
 ```
-Before: trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=300&fit=crop'
-After:  trip.coverPhoto || '/chravelapp-og-20251219.png'
-```
 
-This ensures the in-app share modal preview card also shows the branded logo when no cover photo is uploaded, matching what recipients will see.
+**B. Make TripExportModal context-aware**
 
-## What Stays the Same
+**File: `src/components/trip/TripExportModal.tsx`**
 
-- Demo trips keep their specific Supabase Storage cover images (already correctly configured)
-- Trips WITH an uploaded cover photo continue to use that photo (first priority)
-- The "invite not found" fallback in `generate-invite-preview` already references `chravel-logo.png` -- this stays as-is since it's a different scenario (broken invite, not a trip without a cover)
-- All OG tag structure, caching, and redirect behavior remains unchanged
+- Add a new optional prop `tripType?: 'consumer' | 'pro' | 'event'`
+- When `tripType === 'event'`, show event sections instead of trip sections:
+  - Agenda, Calendar, Broadcasts, Lineup, Polls, Tasks (all 6 default selected)
+- When `tripType` is not `'event'`, show the existing 8 trip sections (all selected by default)
+- Update header text: "Create Event Recap" vs "Create Trip Recap" based on trip type
 
-## After Deployment
+**C. Add agenda and lineup data fetching**
 
-The two Supabase edge functions (`generate-trip-preview`, `generate-invite-preview`, `share-preview`) need to be redeployed for the changes to take effect on live previews. Existing cached previews in iMessage/Slack may take up to 5 minutes to expire (based on the current `Cache-Control: max-age=300` setting).
+**File: `src/services/tripExportDataService.ts`**
+
+- Add `agenda` and `lineup` fields to `ExportTripData` interface:
+  ```typescript
+  agenda?: Array<{
+    title: string;
+    start_time?: string;
+    end_time?: string;
+    location?: string;
+    track?: string;
+    speakers?: string[];
+  }>;
+  lineup?: Array<{
+    name: string;
+    title?: string;
+    company?: string;
+    type?: string;
+  }>;
+  ```
+- Add Supabase fetch for `event_agenda_items` when `sections.includes('agenda')`
+- Add Supabase fetch for lineup/speakers from the event data when `sections.includes('lineup')`
+
+**D. Add PDF rendering for agenda and lineup sections**
+
+**File: `src/utils/exportPdfClient.ts`**
+
+- Add `agenda` and `lineup` fields to the `ExportData` interface
+- Add rendering functions for:
+  - **Agenda section**: Table with columns for Time, Session, Location, Track, Speakers
+  - **Lineup section**: Table with columns for Name, Title, Company, Type
+- Wire these into the main `generateClientPDF` function's section rendering loop
+
+**E. Update section ordering**
+
+**File: `src/utils/exportSectionOrder.ts`**
+
+- Add `'agenda'` and `'lineup'` to `DEFAULT_EXPORT_SECTION_ORDER`
+
+**F. Update edge function types**
+
+**File: `supabase/functions/export-trip/types.ts`**
+
+- Add `'agenda'` and `'lineup'` to the `ExportSection` type
+
+---
+
+## Part 4: Wire Event Cards to Recap
+
+**File: `src/components/EventCard.tsx`**
+
+- Pass `tripType="event"` to `TripExportModal` so it shows event-specific sections
+- The export handler fetches event data using the same `tripExportDataService` with the event's trip ID
+
+**File: `src/components/MobileEventCard.tsx`**
+
+- Same as above for mobile
+
+---
+
+## Summary of All Files
+
+| File | Change |
+|------|--------|
+| `src/types/tripExport.ts` | Add `'agenda'` and `'lineup'` to ExportSection type |
+| `src/components/trip/TripExportModal.tsx` | All 8 trip sections default ON; add `tripType` prop for event mode with 6 event sections |
+| `src/components/EventCard.tsx` | Add 4-button layout (Recap, Invite, View, Share) + modals + export handler |
+| `src/components/MobileEventCard.tsx` | Same 4-button layout for mobile + modals + export handler |
+| `src/services/tripExportDataService.ts` | Add agenda + lineup data fetching from Supabase |
+| `src/utils/exportPdfClient.ts` | Add agenda + lineup PDF rendering sections |
+| `src/utils/exportSectionOrder.ts` | Add agenda + lineup to ordering |
+| `supabase/functions/export-trip/types.ts` | Add agenda + lineup to ExportSection type |
+
+## Default Selections Summary
+
+**Trips (consumer, pro)**: Calendar, Payments, Polls, Places, Attachments, Tasks, Broadcasts, Roster -- all 8 ON
+
+**Events**: Agenda, Calendar, Broadcasts, Lineup, Polls, Tasks -- all 6 ON
 
