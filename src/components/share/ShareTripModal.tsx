@@ -137,7 +137,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
             <div
               className="h-24 bg-cover bg-center"
               style={{
-                backgroundImage: `url('${trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=300&fit=crop'}')`,
+                backgroundImage: `url('${trip.coverPhoto || '/chravelapp-og-20251219.png'}')`,
               }}
             />
             <div className="absolute inset-0 h-24 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
