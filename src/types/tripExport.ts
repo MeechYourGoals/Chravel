@@ -24,7 +24,9 @@ export type ExportSection =
   | 'tasks'
   | 'roster'
   | 'broadcasts'
-  | 'attachments';
+  | 'attachments'
+  | 'agenda'
+  | 'lineup';
 
 export type ExportLayout = 'onepager' | 'pro';
 

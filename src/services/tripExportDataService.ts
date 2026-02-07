@@ -70,6 +70,20 @@ export interface ExportTripData {
     uploaded_at: string;
     uploaded_by?: string;
   }>;
+  agenda?: Array<{
+    title: string;
+    start_time?: string;
+    end_time?: string;
+    location?: string;
+    track?: string;
+    speakers?: string[];
+  }>;
+  lineup?: Array<{
+    name: string;
+    title?: string;
+    company?: string;
+    type?: string;
+  }>;
 }
 
 export async function getExportData(
@@ -411,6 +425,47 @@ export async function getExportData(
           uploaded_at: f.created_at,
           uploaded_by: (f.profiles as any)?.display_name || 'Unknown',
         })) || [];
+    }
+
+    // Fetch agenda items if requested (event-specific)
+    if (sections.includes('agenda')) {
+      const { data: agendaItems } = await supabase
+        .from('event_agenda_items')
+        .select('title, start_time, end_time, location, track, speakers')
+        .eq('event_id', tripId)
+        .order('start_time', { ascending: true });
+
+      result.agenda = agendaItems?.map(item => ({
+        title: item.title,
+        start_time: item.start_time || undefined,
+        end_time: item.end_time || undefined,
+        location: item.location || undefined,
+        track: item.track || undefined,
+        speakers: item.speakers || undefined,
+      })) || [];
+    }
+
+    // Fetch lineup if requested (event-specific — derived from agenda speakers)
+    if (sections.includes('lineup')) {
+      const { data: agendaItems } = await supabase
+        .from('event_agenda_items')
+        .select('speakers, track')
+        .eq('event_id', tripId);
+
+      // Deduplicate speakers across all agenda items
+      const speakerMap = new Map<string, { name: string; type?: string }>();
+      (agendaItems || []).forEach(item => {
+        (item.speakers || []).forEach((speaker: string) => {
+          if (!speakerMap.has(speaker)) {
+            speakerMap.set(speaker, {
+              name: speaker,
+              type: item.track || undefined,
+            });
+          }
+        });
+      });
+
+      result.lineup = Array.from(speakerMap.values());
     }
 
     return result;

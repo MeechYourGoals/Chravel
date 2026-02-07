@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
@@ -10,6 +10,8 @@ import {
   Archive,
   EyeOff,
   Trash2,
+  FileDown,
+  Share2,
 } from 'lucide-react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
@@ -18,14 +20,21 @@ import {
   calculatePeopleCount,
   calculateDaysCount,
   calculateEventPlacesCount,
+  getPeopleCountValue,
 } from '../utils/tripStatsUtils';
 import { InviteModal } from './InviteModal';
+import { ShareTripModal } from './share/ShareTripModal';
+import { TripExportModal } from './trip/TripExportModal';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { useEvents } from '../hooks/useEvents';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../hooks/useAuth';
 import { getProTripColor } from '../utils/proTripColors';
+import { getExportData } from '../services/tripExportDataService';
+import { generateClientPDF } from '../utils/exportPdfClient';
+import { orderExportSections } from '../utils/exportSectionOrder';
+import { ExportSection } from '../types/tripExport';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +59,8 @@ export const MobileEventCard = ({
   const isMobile = useIsMobile();
   const { accentColors } = useTripVariant();
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -63,6 +74,41 @@ export const MobileEventCard = ({
   const handleViewEvent = () => {
     navigate(`/event/${event.id}`);
   };
+
+  const handleExportPdf = useCallback(async (sections: ExportSection[]) => {
+    const orderedSections = orderExportSections(sections);
+    const exportData = await getExportData(event.id.toString(), orderedSections);
+
+    const blob = await generateClientPDF(
+      {
+        tripId: event.id.toString(),
+        tripTitle: exportData.trip.title,
+        destination: exportData.trip.destination,
+        dateRange: exportData.trip.dateRange,
+        description: exportData.trip.description,
+        calendar: exportData.calendar,
+        payments: exportData.payments,
+        polls: exportData.polls,
+        tasks: exportData.tasks,
+        places: exportData.places,
+        roster: exportData.roster,
+        broadcasts: exportData.broadcasts,
+        attachments: exportData.attachments,
+        agenda: exportData.agenda,
+        lineup: exportData.lineup,
+      },
+      orderedSections,
+    );
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${exportData.trip.title.replace(/[^a-zA-Z0-9]/g, '_')}_Recap.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [event.id]);
 
   const handleArchiveEvent = async () => {
     try {
@@ -129,6 +175,17 @@ export const MobileEventCard = ({
     }
   };
 
+  // Build share trip data for ShareTripModal
+  const shareTripData = {
+    id: event.id,
+    title: event.title,
+    location: event.location,
+    dateRange: event.dateRange,
+    participants: [] as Array<{ id: number | string; name: string; avatar: string }>,
+    coverPhoto: (event as any).coverPhoto,
+    peopleCount: getPeopleCountValue(event),
+  };
+
   if (!isMobile) return null;
 
   return (
@@ -165,7 +222,7 @@ export const MobileEventCard = ({
             </div>
           </div>
 
-          {/* Menu Button - inline in header flex layout */}
+          {/* Menu Button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-xl shrink-0">
@@ -265,13 +322,14 @@ export const MobileEventCard = ({
           </span>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - 2x2 Grid matching TripCard/ProTripCard */}
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={handleViewEvent}
-            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 text-sm border border-white/10 shadow-lg shadow-yellow-500/25"
+            onClick={() => setShowExportModal(true)}
+            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 text-sm border border-white/10 flex items-center justify-center gap-2"
           >
-            View Event
+            <FileDown size={16} />
+            Recap
           </button>
           <button
             onClick={() => setShowInviteModal(true)}
@@ -279,6 +337,19 @@ export const MobileEventCard = ({
           >
             <UserPlus size={16} />
             Invite
+          </button>
+          <button
+            onClick={handleViewEvent}
+            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 text-sm border border-white/10 shadow-lg shadow-yellow-500/25"
+          >
+            View Event
+          </button>
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="bg-black/30 hover:bg-black/40 text-white py-3 rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-sm flex items-center justify-center gap-2"
+          >
+            <Share2 size={16} />
+            Share
           </button>
         </div>
       </div>
@@ -289,6 +360,21 @@ export const MobileEventCard = ({
         tripName={event.title}
         tripId={event.id}
         tripType="event"
+      />
+
+      <TripExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExportPdf}
+        tripName={event.title}
+        tripId={event.id.toString()}
+        tripType="event"
+      />
+
+      <ShareTripModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        trip={shareTripData}
       />
 
       <ArchiveConfirmDialog

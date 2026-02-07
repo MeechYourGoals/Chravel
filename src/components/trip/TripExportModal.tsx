@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Download, Loader2, FileText, Crown, Gift, Sparkles } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
@@ -12,7 +12,28 @@ interface TripExportModalProps {
   onExport: (sections: ExportSection[]) => Promise<void>;
   tripName: string;
   tripId: string;
+  tripType?: 'consumer' | 'pro' | 'event';
 }
+
+const TRIP_SECTIONS: Array<{ id: ExportSection; label: string }> = [
+  { id: 'calendar', label: 'Calendar' },
+  { id: 'payments', label: 'Payments' },
+  { id: 'polls', label: 'Polls' },
+  { id: 'places', label: 'Places' },
+  { id: 'attachments', label: 'Attachments' },
+  { id: 'tasks', label: 'Tasks' },
+  { id: 'broadcasts', label: 'Broadcast Log' },
+  { id: 'roster', label: 'Roster' },
+];
+
+const EVENT_SECTIONS: Array<{ id: ExportSection; label: string }> = [
+  { id: 'agenda', label: 'Agenda' },
+  { id: 'calendar', label: 'Calendar' },
+  { id: 'broadcasts', label: 'Broadcasts' },
+  { id: 'lineup', label: 'Lineup' },
+  { id: 'polls', label: 'Polls' },
+  { id: 'tasks', label: 'Tasks' },
+];
 
 export const TripExportModal: React.FC<TripExportModalProps> = ({
   isOpen,
@@ -20,36 +41,23 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   onExport,
   tripName,
   tripId,
+  tripType,
 }) => {
   const isConsumer = isConsumerTrip(tripId);
   const { upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
   const { usage, recordExport, getUsageStatus, isPaidUser, canExport } = usePdfExportUsage(tripId);
 
+  const isEvent = tripType === 'event';
+  const sections = isEvent ? EVENT_SECTIONS : TRIP_SECTIONS;
+
   // Free users get 1 export per trip, paid users get unlimited
   const hasExportAccess = isPaidUser || canExport;
 
-  const [selectedSections, setSelectedSections] = useState<ExportSection[]>([
-    'calendar',
-    'payments',
-    'polls',
-    'places',
-    'attachments',
-    'tasks',
-  ]);
+  const [selectedSections, setSelectedSections] = useState<ExportSection[]>(
+    sections.map(s => s.id),
+  );
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const sections = [
-    { id: 'calendar' as ExportSection, label: 'Calendar' },
-    { id: 'payments' as ExportSection, label: 'Payments' },
-    { id: 'polls' as ExportSection, label: 'Polls' },
-    { id: 'places' as ExportSection, label: 'Places' },
-    // Attachments are available for both consumer + pro trips (content still respects RLS).
-    { id: 'attachments' as ExportSection, label: 'Attachments' },
-    { id: 'tasks' as ExportSection, label: 'Tasks' },
-    { id: 'broadcasts' as ExportSection, label: 'Broadcast Log', proOnly: true },
-    { id: 'roster' as ExportSection, label: 'Roster', proOnly: true },
-  ];
 
   const toggleSection = (sectionId: ExportSection) => {
     setSelectedSections(prev =>
@@ -88,6 +96,8 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   const showFreeExportBanner = !isPaidUser && canExport;
   const showUpgradePrompt = !isPaidUser && !canExport;
 
+  const headerTitle = isEvent ? 'Create Event Recap' : 'Create Trip Recap';
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-2">
       <div className="bg-gray-900 rounded-t-2xl sm:rounded-xl shadow-2xl max-w-md w-full max-h-[80vh] sm:max-h-[85vh] border border-gray-700 flex flex-col">
@@ -100,7 +110,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
             <div className="bg-blue-600 p-1.5 rounded-lg">
               <FileText size={16} />
             </div>
-            <h2 className="text-base font-bold text-white">Create Trip Recap</h2>
+            <h2 className="text-base font-bold text-white">{headerTitle}</h2>
           </div>
           <button
             onClick={onClose}
@@ -182,7 +192,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
               )}
 
               <div className="mb-2">
-                <h3 className="text-white font-semibold text-xs mb-0.5">Trip: {tripName}</h3>
+                <h3 className="text-white font-semibold text-xs mb-0.5">
+                  {isEvent ? 'Event' : 'Trip'}: {tripName}
+                </h3>
                 <p className="text-gray-400 text-[10px]">
                   Select sections to include in your recap
                 </p>
@@ -190,38 +202,26 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
               {/* Section Selection */}
               <div className="grid grid-cols-2 gap-1.5 mb-2">
-                {sections.map(section => {
-                  const disabled = section.proOnly && isConsumer;
-
-                  return (
-                    <label
-                      key={section.id}
-                      className={`flex items-center gap-1.5 py-2 px-2.5 rounded-lg border transition-all h-10 ${
-                        disabled
-                          ? 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed'
-                          : selectedSections.includes(section.id)
-                            ? 'bg-blue-900/30 border-blue-500 cursor-pointer hover:border-blue-400'
-                            : 'bg-gray-800 border-gray-700 cursor-pointer hover:border-gray-600'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedSections.includes(section.id) && !disabled}
-                        onChange={() => !disabled && toggleSection(section.id)}
-                        disabled={disabled}
-                        className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 disabled:cursor-not-allowed flex-shrink-0"
-                      />
-                      <span
-                        className={`text-[11px] font-medium truncate ${disabled ? 'text-gray-400' : 'text-white'}`}
-                      >
-                        {section.label}
-                      </span>
-                      {disabled && (
-                        <span className="text-[9px] text-gray-500 ml-auto flex-shrink-0">PRO</span>
-                      )}
-                    </label>
-                  );
-                })}
+                {sections.map(section => (
+                  <label
+                    key={section.id}
+                    className={`flex items-center gap-1.5 py-2 px-2.5 rounded-lg border transition-all h-10 ${
+                      selectedSections.includes(section.id)
+                        ? 'bg-blue-900/30 border-blue-500 cursor-pointer hover:border-blue-400'
+                        : 'bg-gray-800 border-gray-700 cursor-pointer hover:border-gray-600'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSections.includes(section.id)}
+                      onChange={() => toggleSection(section.id)}
+                      className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 flex-shrink-0"
+                    />
+                    <span className="text-[11px] font-medium truncate text-white">
+                      {section.label}
+                    </span>
+                  </label>
+                ))}
               </div>
 
               {error && (
