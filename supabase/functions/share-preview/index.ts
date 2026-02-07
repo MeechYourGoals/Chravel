@@ -11,7 +11,7 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[SHARE-PREVIEW] ${step}${detailsStr}`);
 };
 
-const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
+const DEFAULT_IMAGE = 'https://chravel.app/chravelapp-og-20251219.png';
 const CHRAVEL_LOGO = 'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/assets/chravel-logo.png';
 
 function formatDateRange(startDate: string | null, endDate: string | null): string {

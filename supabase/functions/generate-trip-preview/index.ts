@@ -582,7 +582,7 @@ serve(async (req: Request): Promise<Response> => {
       location: trip.destination || 'Location TBD',
       dateRange,
       description: trip.description || 'An amazing adventure awaits!',
-      coverPhoto: trip.cover_image_url || 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=630&fit=crop',
+      coverPhoto: trip.cover_image_url || 'https://chravel.app/chravelapp-og-20251219.png',
       participantCount: participantCount || 1,
       tripType: trip.trip_type as 'consumer' | 'pro' | 'event' | undefined
     };
