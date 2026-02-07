@@ -5,10 +5,9 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Card, CardContent } from '../ui/card';
-import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { eventsMockData } from '@/data/eventsMockData';
-import { EventAgendaItem, Speaker } from '@/types/events';
+import { useEventAgenda } from '@/hooks/useEventAgenda';
+import { EventAgendaItem } from '@/types/events';
 import { format, parseISO } from 'date-fns';
 
 interface AgendaPermissions {
@@ -25,8 +24,8 @@ interface AgendaModalProps {
   initialSessions?: EventAgendaItem[];
   initialPdfUrl?: string;
   onClose?: () => void;
-  onLineupUpdate?: (speakers: Speaker[]) => void;
-  existingLineup?: Speaker[];
+  onLineupUpdate?: (speakerNames: string[]) => void;
+  existingLineup?: { name: string }[];
 }
 
 // Mock PDF URL for demo mode
@@ -42,7 +41,10 @@ export const AgendaModal = ({
   existingLineup = []
 }: AgendaModalProps) => {
   const { isDemoMode } = useDemoMode();
-  const { toast } = useToast();
+  const { sessions, addSession, updateSession, deleteSession, isAdding, isUpdating } = useEventAgenda({
+    eventId,
+    initialSessions,
+  });
   
   // In demo mode, always show admin controls
   const showAdminControls = isDemoMode || permissions.canCreate;
@@ -50,13 +52,6 @@ export const AgendaModal = ({
   const canDelete = isDemoMode || permissions.canDelete;
   const canUpload = isDemoMode || permissions.canUpload;
   
-  // Get demo data if in demo mode
-  const demoEventData = isDemoMode ? eventsMockData[eventId] : null;
-  const demoSessions: EventAgendaItem[] = demoEventData?.agenda || [];
-  
-  const [sessions, setSessions] = useState<EventAgendaItem[]>(
-    isDemoMode ? demoSessions : initialSessions
-  );
   const [pdfUrl, setPdfUrl] = useState<string | undefined>(
     isDemoMode ? DEMO_PDF_URL : initialPdfUrl
   );
@@ -83,40 +78,12 @@ export const AgendaModal = ({
     if (!file) return;
 
     const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-    if (!validTypes.includes(file.type)) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please upload a PDF, JPG, or PNG file',
-        variant: 'destructive'
-      });
-      return;
-    }
+    if (!validTypes.includes(file.type)) return;
 
     setIsUploadingFile(true);
     try {
-      if (isDemoMode) {
-        // Demo mode: create local URL
-        const url = URL.createObjectURL(file);
-        setPdfUrl(url);
-        toast({
-          title: 'File uploaded successfully',
-          description: 'Agenda file is now visible to attendees'
-        });
-      } else {
-        // TODO: Upload to Supabase storage
-        const url = URL.createObjectURL(file);
-        setPdfUrl(url);
-        toast({
-          title: 'File uploaded successfully',
-          description: 'Agenda file is now visible to attendees'
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Upload failed',
-        description: 'Please try again',
-        variant: 'destructive'
-      });
+      const url = URL.createObjectURL(file);
+      setPdfUrl(url);
     } finally {
       setIsUploadingFile(false);
     }
@@ -139,62 +106,33 @@ export const AgendaModal = ({
     }));
   };
 
-  const handleSaveSession = () => {
-    if (!newSession.title) {
-      toast({
-        title: 'Missing required fields',
-        description: 'Please fill in the title',
-        variant: 'destructive'
-      });
-      return;
-    }
+  const handleSaveSession = async () => {
+    if (!newSession.title) return;
 
-    const session: EventAgendaItem = {
-      id: editingSession?.id || Date.now().toString(),
+    const sessionData = {
       title: newSession.title,
-      session_date: newSession.session_date,
-      start_time: newSession.start_time,
-      end_time: newSession.end_time,
-      location: newSession.location,
-      description: newSession.description,
-      speakers: newSession.speakers,
-      track: newSession.track
+      session_date: newSession.session_date || undefined,
+      start_time: newSession.start_time || undefined,
+      end_time: newSession.end_time || undefined,
+      location: newSession.location || undefined,
+      description: newSession.description || undefined,
+      speakers: newSession.speakers || [],
+      track: newSession.track || undefined,
     };
 
-    if (editingSession) {
-      setSessions(prev => prev.map(s => s.id === editingSession.id ? session : s));
-      toast({ title: 'Session updated' });
-    } else {
-      setSessions(prev => [...prev, session].sort((a, b) => {
-        const dateCompare = (a.session_date || '').localeCompare(b.session_date || '');
-        if (dateCompare !== 0) return dateCompare;
-        return (a.start_time || '').localeCompare(b.start_time || '');
-      }));
-      toast({ title: 'Session added' });
-    }
+    try {
+      if (editingSession) {
+        await updateSession({ ...sessionData, id: editingSession.id });
+      } else {
+        await addSession(sessionData as Omit<EventAgendaItem, 'id'>);
+      }
 
-    // Auto-populate lineup with new speakers
-    if (onLineupUpdate && newSession.speakers && newSession.speakers.length > 0) {
-      const existingNames = new Set(existingLineup.map(s => s.name.toLowerCase()));
-      const newSpeakers: Speaker[] = [];
-      for (const name of newSession.speakers) {
-        if (!existingNames.has(name.toLowerCase())) {
-          existingNames.add(name.toLowerCase());
-          newSpeakers.push({
-            id: `agenda-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            name,
-            title: '',
-            company: '',
-            bio: '',
-            avatar: '',
-            sessions: [session.id],
-            performerType: 'speaker'
-          });
-        }
+      // Auto-populate lineup with new speakers
+      if (onLineupUpdate && sessionData.speakers && sessionData.speakers.length > 0) {
+        onLineupUpdate(sessionData.speakers);
       }
-      if (newSpeakers.length > 0) {
-        onLineupUpdate([...existingLineup, ...newSpeakers]);
-      }
+    } catch {
+      // Error handled by hook toast
     }
 
     resetForm();
@@ -216,28 +154,24 @@ export const AgendaModal = ({
     setIsAddingSession(true);
   };
 
-  const handleDeleteSession = (sessionId: string) => {
+  const handleDeleteSession = async (sessionId: string) => {
     if (!canDelete) return;
-    setSessions(prev => prev.filter(s => s.id !== sessionId));
-    toast({ title: 'Session removed' });
+    try {
+      await deleteSession(sessionId);
+    } catch {
+      // Error handled by hook toast
+    }
   };
 
   const handleDeleteFile = () => {
     if (!canDelete) return;
     setPdfUrl(undefined);
-    toast({ title: 'Agenda file removed' });
   };
 
   const resetForm = () => {
     setNewSession({
-      title: '',
-      session_date: '',
-      start_time: '',
-      end_time: '',
-      location: '',
-      description: '',
-      speakers: [],
-      track: ''
+      title: '', session_date: '', start_time: '', end_time: '',
+      location: '', description: '', speakers: [], track: ''
     });
     setSpeakerInput('');
     setIsAddingSession(false);
@@ -395,11 +329,7 @@ export const AgendaModal = ({
                           >
                             <User size={12} />
                             {speaker}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveSpeaker(index)}
-                              className="hover:text-red-400"
-                            >
+                            <button type="button" onClick={() => handleRemoveSpeaker(index)} className="hover:text-red-400">
                               <X size={12} />
                             </button>
                           </span>
@@ -425,10 +355,10 @@ export const AgendaModal = ({
                 <Button
                   onClick={handleSaveSession}
                   className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
-                  disabled={!newSession.title}
+                  disabled={!newSession.title || isAdding || isUpdating}
                 >
                   <Save size={16} className="mr-2" />
-                  {editingSession ? 'Update Session' : 'Add Session'}
+                  {isAdding || isUpdating ? 'Saving...' : editingSession ? 'Update Session' : 'Add Session'}
                 </Button>
               </CardContent>
             </Card>
@@ -454,9 +384,8 @@ export const AgendaModal = ({
                           <span className="flex items-center gap-1">
                             <Clock size={14} />
                             {session.session_date && (() => {
-                              try {
-                                return format(parseISO(session.session_date), 'MMM d') + ' — ';
-                              } catch { return ''; }
+                              try { return format(parseISO(session.session_date), 'MMM d') + ' — '; }
+                              catch { return ''; }
                             })()}
                             {session.start_time}
                             {session.end_time && ` - ${session.end_time}`}
@@ -485,22 +414,12 @@ export const AgendaModal = ({
                       {(canEdit || canDelete) && (
                         <div className="flex gap-1">
                           {canEdit && (
-                            <Button
-                              onClick={() => handleEditSession(session)}
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-gray-400 hover:text-white"
-                            >
+                            <Button onClick={() => handleEditSession(session)} variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
                               <Edit2 size={14} />
                             </Button>
                           )}
                           {canDelete && (
-                            <Button
-                              onClick={() => handleDeleteSession(session.id)}
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-gray-400 hover:text-red-400"
-                            >
+                            <Button onClick={() => handleDeleteSession(session.id)} variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-400">
                               <Trash2 size={14} />
                             </Button>
                           )}
@@ -517,9 +436,7 @@ export const AgendaModal = ({
                 <Clock size={48} className="text-gray-600 mx-auto mb-3" />
                 <h4 className="text-white font-medium mb-1">No Sessions Yet</h4>
                 <p className="text-gray-400 text-sm">
-                  {showAdminControls
-                    ? 'Add sessions to build your event schedule'
-                    : 'The organizer hasn\'t added sessions yet'}
+                  {showAdminControls ? 'Add sessions to build your event schedule' : 'The organizer hasn\'t added sessions yet'}
                 </p>
               </CardContent>
             </Card>
@@ -536,19 +453,8 @@ export const AgendaModal = ({
             {canUpload && (
               <div className="flex gap-2">
                 <label>
-                  <input
-                    type="file"
-                    accept=".pdf,image/jpeg,image/png,image/jpg"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    disabled={isUploadingFile}
-                  />
-                  <Button
-                    size="sm"
-                    className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold cursor-pointer"
-                    asChild
-                    disabled={isUploadingFile}
-                  >
+                  <input type="file" accept=".pdf,image/jpeg,image/png,image/jpg" onChange={handleFileUpload} className="hidden" disabled={isUploadingFile} />
+                  <Button size="sm" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold cursor-pointer" asChild disabled={isUploadingFile}>
                     <span>
                       <Upload size={16} className="mr-1" />
                       {isUploadingFile ? 'Uploading...' : 'Upload'}
@@ -556,12 +462,7 @@ export const AgendaModal = ({
                   </Button>
                 </label>
                 {pdfUrl && canDelete && (
-                  <Button
-                    onClick={handleDeleteFile}
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-400 hover:text-red-300"
-                  >
+                  <Button onClick={handleDeleteFile} size="sm" variant="ghost" className="text-red-400 hover:text-red-300">
                     <Trash2 size={16} />
                   </Button>
                 )}
@@ -572,25 +473,11 @@ export const AgendaModal = ({
           {pdfUrl ? (
             <div className="rounded-lg overflow-hidden border border-white/10 bg-white">
               {isPdfFile ? (
-                <iframe
-                  src={pdfUrl}
-                  className="w-full h-[500px]"
-                  title="Agenda PDF"
-                />
+                <iframe src={pdfUrl} className="w-full h-[500px]" title="Agenda PDF" />
               ) : (
                 <div className="relative">
-                  <img
-                    src={pdfUrl}
-                    alt="Agenda"
-                    className="w-full h-auto object-contain max-h-[500px]"
-                  />
-                  <a
-                    href={pdfUrl}
-                    download="agenda"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute bottom-4 right-4"
-                  >
+                  <img src={pdfUrl} alt="Agenda" className="w-full h-auto object-contain max-h-[500px]" />
+                  <a href={pdfUrl} download="agenda" target="_blank" rel="noopener noreferrer" className="absolute bottom-4 right-4">
                     <Button size="sm" variant="secondary">
                       <Download size={16} className="mr-1" />
                       Download
@@ -605,20 +492,15 @@ export const AgendaModal = ({
                 <Image size={48} className="text-gray-600 mx-auto mb-3" />
                 <h4 className="text-white font-medium mb-1">No Agenda File</h4>
                 <p className="text-gray-400 text-sm">
-                  {canUpload
-                    ? 'Upload a PDF or image of your event agenda'
-                    : 'The organizer hasn\'t uploaded an agenda file yet'}
+                  {canUpload ? 'Upload a PDF or image of your event agenda' : 'The organizer hasn\'t uploaded an agenda file yet'}
                 </p>
               </CardContent>
             </Card>
           )}
 
-          {/* Demo mode indicator */}
           {isDemoMode && (
             <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-              <p className="text-yellow-300 text-sm text-center">
-                📝 Demo Mode: All changes are temporary
-              </p>
+              <p className="text-yellow-300 text-sm text-center">📝 Demo Mode: All changes are temporary</p>
             </div>
           )}
         </div>

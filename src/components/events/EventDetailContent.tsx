@@ -1,14 +1,15 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense, useCallback } from 'react';
 import { Users, Calendar, MessageCircle, Camera, BarChart3, ClipboardList } from 'lucide-react';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useEventAgenda } from '@/hooks/useEventAgenda';
+import { useEventLineup } from '@/hooks/useEventLineup';
 
-import { EventData, Speaker } from '../../types/events';
+import { EventData } from '../../types/events';
 import { TripContext } from '@/types';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
-// This significantly reduces initial bundle size - tabs load on demand
 const TripChat = lazy(() => import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })));
 const GroupCalendar = lazy(() => import('../GroupCalendar').then(m => ({ default: m.GroupCalendar })));
 const UnifiedMediaHub = lazy(() => import('../UnifiedMediaHub').then(m => ({ default: m.UnifiedMediaHub })));
@@ -27,7 +28,6 @@ interface EventDetailContentProps {
   tripContext: TripContext;
 }
 
-// ⚡ PERFORMANCE: Skeleton loader for lazy-loaded tabs
 const TabSkeleton = () => (
   <div className="flex items-center justify-center h-full min-h-[300px]">
     <div className="flex flex-col items-center gap-3">
@@ -49,11 +49,20 @@ export const EventDetailContent = ({
   const { accentColors } = useTripVariant();
   const { eventPermissions, isOrganizer, isLoading: permissionsLoading } = useEventPermissions(tripId);
   const { isDemoMode } = useDemoMode();
-  
-  // Lifted lineup state for auto-populate from Agenda speakers
-  const [lineupSpeakers, setLineupSpeakers] = useState<Speaker[]>(eventData.speakers || []);
 
-  // Updated Event tabs: Agenda, Calendar, Chat, Media, Line-up, Polls, Tasks
+  // DB-backed agenda & lineup hooks
+  const { sessions: agendaSessions } = useEventAgenda({ eventId: tripId, initialSessions: eventData.agenda });
+  const { addMembersFromAgenda } = useEventLineup({ eventId: tripId, initialMembers: eventData.speakers });
+
+  // Callback: auto-push agenda speakers to lineup DB
+  const handleLineupUpdate = useCallback(async (speakerNames: string[]) => {
+    try {
+      await addMembersFromAgenda(speakerNames);
+    } catch {
+      // Error handled by hook
+    }
+  }, [addMembersFromAgenda]);
+
   const tabs = [
     { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true },
     { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
@@ -64,7 +73,6 @@ export const EventDetailContent = ({
     { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true },
   ];
 
-  // Filter tabs based on enabled settings
   const visibleTabs = tabs.filter(tab => tab.enabled);
 
   const renderTabContent = () => {
@@ -76,23 +84,22 @@ export const EventDetailContent = ({
             permissions={eventPermissions.agenda}
             initialSessions={eventData.agenda}
             initialPdfUrl={eventData.pdfScheduleUrl}
-            onLineupUpdate={setLineupSpeakers}
-            existingLineup={lineupSpeakers}
+            onLineupUpdate={handleLineupUpdate}
           />
         );
       case 'calendar':
         return <GroupCalendar tripId={tripId} />;
       case 'chat':
-        return (
-          <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />
-        );
+        return <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />;
       case 'media':
         return <UnifiedMediaHub tripId={tripId} />;
       case 'lineup':
         return (
           <LineupTab
-            speakers={lineupSpeakers}
+            eventId={tripId}
             permissions={eventPermissions.lineup}
+            agendaSessions={agendaSessions}
+            initialSpeakers={eventData.speakers}
           />
         );
       case 'polls':
@@ -106,8 +113,7 @@ export const EventDetailContent = ({
             permissions={eventPermissions.agenda}
             initialSessions={eventData.agenda}
             initialPdfUrl={eventData.pdfScheduleUrl}
-            onLineupUpdate={setLineupSpeakers}
-            existingLineup={lineupSpeakers}
+            onLineupUpdate={handleLineupUpdate}
           />
         );
     }
@@ -115,7 +121,6 @@ export const EventDetailContent = ({
 
   return (
     <>
-      {/* Enhanced Tab Navigation for Events */}
       <div className="flex whitespace-nowrap gap-2 mb-2 justify-start">
         {visibleTabs.map(tab => {
           const Icon = tab.icon;
@@ -136,9 +141,7 @@ export const EventDetailContent = ({
         })}
       </div>
 
-      {/* Tab Content - match sizing with TripTabs and ProTabContent */}
       <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-320px)] md:max-h-[1000px] md:min-h-[500px] flex flex-col">
-        {/* ⚡ PERFORMANCE: Suspense boundary for lazy-loaded tab components */}
         <Suspense fallback={<TabSkeleton />}>
           {renderTabContent()}
         </Suspense>

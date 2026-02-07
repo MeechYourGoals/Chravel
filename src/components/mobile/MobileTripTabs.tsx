@@ -109,8 +109,9 @@ export const MobileTripTabs = ({
   // Track local roster state for optimistic updates
   const [localParticipants, setLocalParticipants] = useState(participants);
 
-  // Lifted lineup state for auto-populate from Agenda speakers
-  const [lineupSpeakers, setLineupSpeakers] = useState<Speaker[]>(eventData?.speakers || []);
+  // DB-backed lineup hook for auto-populating from agenda
+  const { addMembersFromAgenda: addLineupFromAgenda } = useEventLineup({ eventId: tripId, initialMembers: eventData?.speakers || [] });
+  const { sessions: agendaSessions } = useEventAgenda({ eventId: tripId, initialSessions: eventData?.agenda || [] });
 
   // Sync local participants with prop changes
   React.useEffect(() => {
