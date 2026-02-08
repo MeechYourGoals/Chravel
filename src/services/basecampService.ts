@@ -191,7 +191,8 @@ class BasecampService {
     });
 
     try {
-      // First, verify the trip exists
+      // First, verify the trip exists. Only select `id` to avoid failures if
+      // optional columns (like basecamp_version) are missing on the remote DB.
       const { data: tripExists, error: tripCheckError } = await supabase
         .from('trips')
         .select('id, basecamp_version')
@@ -199,22 +200,49 @@ class BasecampService {
         .single();
 
       if (tripCheckError || !tripExists) {
-        console.error(this.LOG_PREFIX, 'setTripBasecamp: Trip not found or access denied', {
-          tripId,
-          error: tripCheckError?.message,
-          code: tripCheckError?.code,
-        });
-        return {
-          success: false,
-          error:
-            tripCheckError?.code === 'PGRST116'
-              ? 'Trip not found. It may have been deleted.'
-              : 'Unable to access trip. Check your permissions.',
-        };
+        // If the error is about an unknown column, try a simpler SELECT
+        if (tripCheckError?.message?.includes('basecamp_version')) {
+          console.warn(
+            this.LOG_PREFIX,
+            'setTripBasecamp: basecamp_version column not found, retrying without it',
+          );
+          const { data: tripExistsSimple, error: simpleCheckError } = await supabase
+            .from('trips')
+            .select('id')
+            .eq('id', tripId)
+            .single();
+
+          if (simpleCheckError || !tripExistsSimple) {
+            console.error(this.LOG_PREFIX, 'setTripBasecamp: Trip not found or access denied', {
+              tripId,
+              error: simpleCheckError?.message,
+            });
+            return {
+              success: false,
+              error:
+                simpleCheckError?.code === 'PGRST116'
+                  ? 'Trip not found. It may have been deleted.'
+                  : 'Unable to access trip. Check your permissions.',
+            };
+          }
+        } else {
+          console.error(this.LOG_PREFIX, 'setTripBasecamp: Trip not found or access denied', {
+            tripId,
+            error: tripCheckError?.message,
+            code: tripCheckError?.code,
+          });
+          return {
+            success: false,
+            error:
+              tripCheckError?.code === 'PGRST116'
+                ? 'Trip not found. It may have been deleted.'
+                : 'Unable to access trip. Check your permissions.',
+          };
+        }
       }
 
       // Get current version from the trip check (more reliable than separate call)
-      const currentVersion = options?.currentVersion ?? tripExists.basecamp_version ?? 1;
+      const currentVersion = options?.currentVersion ?? tripExists?.basecamp_version ?? 1;
 
       // No validation or geocoding - use provided coordinates (if any) or null
       const finalLatitude = basecamp.latitude || null;
@@ -230,18 +258,14 @@ class BasecampService {
         return { success: false, error: 'User not authenticated' };
       }
 
-      console.log(
-        this.LOG_PREFIX,
-        'setTripBasecamp: calling RPC update_trip_basecamp_with_version',
-        {
-          tripId,
-          userId: user.id,
-          currentVersion,
-          address: basecamp.address,
-        },
-      );
+      console.log(this.LOG_PREFIX, 'setTripBasecamp: Starting 3-tier save attempt', {
+        tripId,
+        userId: user.id,
+        currentVersion,
+        address: basecamp.address,
+      });
 
-      // Attempt 1: Use versioned update RPC
+      // ─── Attempt 1: Versioned RPC (preferred — optimistic locking) ───
       const rpcResult = await this.tryRpcBasecampUpdate(
         tripId,
         currentVersion,
@@ -255,9 +279,11 @@ class BasecampService {
         return rpcResult;
       }
 
-      // Attempt 2: If RPC fails (e.g., due to log_basecamp_change column mismatch),
-      // fall back to a direct UPDATE on the trips table. This provides immediate
-      // relief even before the DB migration fix is deployed.
+      if (rpcResult.success) {
+        console.log(this.LOG_PREFIX, 'setTripBasecamp: RPC succeeded');
+      }
+
+      // ─── Attempt 2: Direct UPDATE with verification ───
       if (!rpcResult.success) {
         console.warn(
           this.LOG_PREFIX,
@@ -272,19 +298,44 @@ class BasecampService {
           finalLongitude,
         );
 
-        if (!fallbackResult.success) {
-          console.error(this.LOG_PREFIX, 'setTripBasecamp: Both RPC and fallback failed', {
-            tripId,
-            rpcError: rpcResult.error,
-            fallbackError: fallbackResult.error,
-          });
-          return { success: false, error: rpcResult.error || fallbackResult.error };
+        if (fallbackResult.success) {
+          console.log(this.LOG_PREFIX, 'setTripBasecamp: Direct UPDATE fallback succeeded');
         }
 
-        // Fallback succeeded
-        console.log(this.LOG_PREFIX, 'setTripBasecamp: Direct UPDATE fallback succeeded', {
-          tripId,
-        });
+        // ─── Attempt 3: Minimal UPDATE (last resort) ───
+        if (!fallbackResult.success) {
+          console.warn(
+            this.LOG_PREFIX,
+            'setTripBasecamp: Direct UPDATE failed, attempting minimal UPDATE',
+            { tripId, fallbackError: fallbackResult.error },
+          );
+
+          const minimalResult = await this.tryMinimalBasecampUpdate(
+            tripId,
+            basecamp,
+            finalLatitude,
+            finalLongitude,
+          );
+
+          if (!minimalResult.success) {
+            console.error(this.LOG_PREFIX, 'setTripBasecamp: All 3 attempts failed', {
+              tripId,
+              rpcError: rpcResult.error,
+              directError: fallbackResult.error,
+              minimalError: minimalResult.error,
+            });
+            return {
+              success: false,
+              error:
+                fallbackResult.error ||
+                rpcResult.error ||
+                minimalResult.error ||
+                'Failed to save basecamp',
+            };
+          }
+
+          console.log(this.LOG_PREFIX, 'setTripBasecamp: Minimal UPDATE succeeded');
+        }
       }
 
       console.log(this.LOG_PREFIX, 'setTripBasecamp SUCCESS:', {
@@ -294,14 +345,22 @@ class BasecampService {
         timestamp: new Date().toISOString(),
       });
 
-      // Create system message for consumer trips
-      const userName = user?.email?.split('@')[0] || 'Someone';
-      systemMessageService.tripBaseCampUpdated(
-        tripId,
-        userName,
-        options?.previousAddress,
-        basecamp.address,
-      );
+      // Create system message for consumer trips (best-effort, never blocks save)
+      try {
+        const userName = user?.email?.split('@')[0] || 'Someone';
+        systemMessageService.tripBaseCampUpdated(
+          tripId,
+          userName,
+          options?.previousAddress,
+          basecamp.address,
+        );
+      } catch (sysMessageError) {
+        console.warn(
+          this.LOG_PREFIX,
+          'setTripBasecamp: System message failed (non-critical)',
+          sysMessageError,
+        );
+      }
 
       return {
         success: true,
@@ -445,10 +504,62 @@ class BasecampService {
   }
 
   /**
+   * Last-resort fallback: Minimal UPDATE that only sets the core basecamp columns.
+   * This avoids any dependency on basecamp_version or other optional columns.
+   * If this fails, the user truly doesn't have permission.
+   */
+  private async tryMinimalBasecampUpdate(
+    tripId: string,
+    basecamp: { name?: string; address: string },
+    latitude: number | null,
+    longitude: number | null,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log(this.LOG_PREFIX, 'tryMinimalBasecampUpdate: attempting minimal UPDATE', {
+        tripId,
+      });
+
+      // Use a minimal update payload — only the core columns that are guaranteed to exist
+      const { data, error } = await supabase
+        .from('trips')
+        .update({
+          basecamp_name: basecamp.name || null,
+          basecamp_address: basecamp.address,
+          basecamp_latitude: latitude,
+          basecamp_longitude: longitude,
+        } as Record<string, unknown>)
+        .eq('id', tripId)
+        .select('id');
+
+      if (error) {
+        console.error(this.LOG_PREFIX, 'tryMinimalBasecampUpdate: error', {
+          tripId,
+          error: error.message,
+          code: error.code,
+        });
+        return { success: false, error: error.message };
+      }
+
+      if (!data || data.length === 0) {
+        return {
+          success: false,
+          error: 'Unable to update trip basecamp. You may not have permission.',
+        };
+      }
+
+      return { success: true };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(this.LOG_PREFIX, 'tryMinimalBasecampUpdate: exception', { tripId, error: msg });
+      return { success: false, error: msg };
+    }
+  }
+
+  /**
    * Get the current basecamp version for a trip
    */
   async getBasecampVersion(tripId: string): Promise<number> {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('trips')
       .select('basecamp_version')
       .eq('id', tripId)
