@@ -1,82 +1,95 @@
 
-# Fix Calendar Import Failures + Improve Scraping Resilience
+# Fix URL Scraping for JavaScript-Rendered Sites (Trevor Noah, etc.)
 
-## Issue 1: Import Always Fails (Root Cause Found)
+## The Real Problem
 
-The database has two versions of the `should_send_notification` function:
-- **2-arg version**: `should_send_notification(uuid, text)` 
-- **3-arg version**: `should_send_notification(uuid, text, text DEFAULT 'push')`
+Trevor Noah's website (and most comedian/artist tour sites built on Squarespace, Wix, custom React/Next.js, etc.) renders show dates entirely via JavaScript **after** the page loads. When our edge function uses `fetch()`, it gets back a ~69K HTML shell that contains zero show data -- just framework code and contact info.
 
-When any event is inserted into `trip_events`, a trigger fires `notify_on_calendar_event` which calls `send_notification`, which calls `should_send_notification(user_id, type)` with 2 arguments. PostgreSQL cannot determine which function to use because the 3-arg version's default parameter means both match a 2-arg call. This causes **every single calendar event insert to fail** -- not just bulk imports.
+This is NOT a Gemini problem. Gemini never even sees the show data because the data is never in the HTML we send it. No amount of loosening restrictions or increasing character caps can fix this -- the data literally isn't there.
 
-### Fix
+**Proof**: Multiple independent tools (Lovable's own fetch, web scrapers, code search) all fail to see Trevor Noah's show dates from the raw HTML. Only tools with JavaScript rendering capability (like a real browser) can see the content shown in your screenshot.
 
-**Database**: Drop the older 2-arg version of `should_send_notification`. The 3-arg version with `DEFAULT 'push'` already handles all 2-arg calls identically. This is a single SQL command:
+## The Solution: Firecrawl Integration
+
+Firecrawl is a web scraping service with **headless browser rendering** -- it executes JavaScript just like a real browser, then returns the fully rendered HTML/markdown. It's available as a Lovable connector.
+
+The approach:
+1. Connect Firecrawl (one-time setup via connector)
+2. Update `scrape-schedule` and `scrape-agenda` to use Firecrawl FIRST for JavaScript rendering
+3. Fall back to raw `fetch()` if Firecrawl is not available (for simpler sites that don't need JS)
+4. Send the Firecrawl-rendered markdown directly to Gemini (cleaner than raw HTML, smaller payload)
+
+## How It Works
 
 ```text
-DROP FUNCTION IF EXISTS should_send_notification(uuid, text);
+Current (broken for JS sites):
+  URL --> fetch() --> empty HTML shell --> Gemini --> "no events found"
+
+With Firecrawl:
+  URL --> Firecrawl (headless browser) --> fully rendered markdown with show dates --> Gemini --> structured events
 ```
 
-This immediately unblocks all calendar event creation (manual, import, bulk).
+For trevornoah.com/shows, Firecrawl would return clean markdown like:
+```text
+FEB 9, 2026
+RYMAN AUDITORIUM    NASHVILLE, TN
+FEB 10, 2026
+RYMAN AUDITORIUM    NASHVILLE, TN
+FEB 12, 2026
+THE PALACE STAMFORD    STAMFORD, CT
+...
+```
 
-**Fallback in code** (`calendarService.ts`): Even after the DB fix, add a sequential one-by-one insert fallback. If the single bulk INSERT fails, insert events individually with a small delay between each. This ensures that even if one event fails (e.g., bad data), the rest still import successfully. The current code tries individual inserts but fires them all in parallel via `Promise.allSettled` -- change this to **sequential** to avoid overwhelming the trigger system with 20 simultaneous notification calls.
+Gemini would then easily extract every show date, venue, and city.
 
-Changes to `bulkCreateEvents`:
-- First attempt: single bulk INSERT (fast path for <= 20 events)
-- If that fails: sequential one-by-one inserts with 100ms delay between each
-- Each individual insert catches its own error so others can proceed
-- Log each failure reason for debugging
+## Changes
 
-## Issue 2: Trevor Noah and Similar Client-Rendered Sites
+### 1. Connect Firecrawl (User Action Required)
 
-Trevor Noah's website (`trevornoah.com/shows`) either blocks non-browser requests or renders show data entirely via JavaScript after page load. The edge function's `fetch()` receives a 69K HTML shell containing framework code (React/Next.js) but zero actual show data. Gemini correctly returns an empty array because the data simply isn't there.
+You will need to connect the Firecrawl service via the Lovable connector system. This gives the edge functions access to a `FIRECRAWL_API_KEY` environment variable. I will prompt this connection during implementation.
 
-This is a **fundamental limitation** of server-side `fetch()` -- it cannot execute JavaScript. Sites like nursejohnnshows.com work because their HTML contains the show data server-side.
+### 2. Update `supabase/functions/scrape-schedule/index.ts`
 
-### Improvements
+Add Firecrawl as the primary scraping method:
 
-**Better error detection** in `scrape-schedule` and `scrape-agenda`:
-- After Gemini returns an empty array, check if the HTML contains signals of a JS-rendered site (common patterns: `__NEXT_DATA__` with empty props, `<div id="root"></div>` with no content, `<noscript>` tags referencing JavaScript requirement)
-- If detected, return a specific error message: "This website loads its content dynamically and can't be read by our scanner. Try one of these alternatives: (1) Copy the schedule text from the page and paste it, or (2) Take a screenshot of the schedule and upload it."
-- This gives the user actionable next steps instead of a generic "no events found" message
+- **Step 1**: Check if `FIRECRAWL_API_KEY` is available
+- **Step 2 (Firecrawl path)**: Call `https://api.firecrawl.dev/v1/scrape` with the URL, requesting `markdown` format with `waitFor: 3000` (wait 3 seconds for JS to render). This returns the fully rendered page content as clean markdown.
+- **Step 3**: Send the Firecrawl markdown to Gemini (much smaller and cleaner than raw HTML -- typically 5-20KB vs 69-200KB)
+- **Fallback**: If Firecrawl is not configured or fails, fall back to the existing raw `fetch()` approach
+- Keep all existing protections: 45s AI timeout, future-date filtering, error handling
 
-**Improved User-Agent and headers** in both scrape functions:
-- Add `Sec-Fetch-Mode: navigate` and `Sec-Fetch-Site: none` headers to better mimic a real browser request
-- Some sites serve different (more complete) HTML to requests that look more like real navigation
+### 3. Update `supabase/functions/scrape-agenda/index.ts`
 
-## Issue 3: Mobile/PWA Optimization for Toast Notifications
+Same Firecrawl-first approach for agenda imports.
 
-The background import toast notifications need to work well on mobile:
-- Ensure toast actions ("View Events" / "Review Sessions") have touch-friendly tap targets (min 44px)
-- Position toasts at the bottom on mobile (they currently render at bottom-right on desktop)
-- Verify the toast persists across tab switches on both mobile and desktop views
+### 4. No Frontend Changes Needed
 
-### Changes
+The background import hooks, toast notifications, and modal UI all work correctly already. The fix is entirely in the edge functions -- once they return actual data, everything downstream works.
 
-**`useBackgroundImport.ts`** and **`useBackgroundAgendaImport.ts`**:
-- No code changes needed for mobile toast positioning -- Sonner handles responsive positioning automatically when configured with `position="bottom-center"` on mobile
-- Verify the Toaster component in the app root has proper mobile positioning (check `App.tsx` or layout root)
+## What This Solves
 
-## Summary of Changes
+| Site Type | Before | After |
+|-----------|--------|-------|
+| trevornoah.com (JS-rendered) | "No events found" | All show dates extracted |
+| nursejohnnshows.com (server-rendered) | Works | Still works (Firecrawl or raw fetch) |
+| NBA/NFL/ESPN (structured data) | Works | Still works (Firecrawl gives even cleaner data) |
+| Squarespace artist sites | "No events found" | Works via Firecrawl JS rendering |
+| Netflix Is A Joke Fest (tabbed) | Only first day | Gets default day via Firecrawl (multi-tab still needs manual supplement) |
 
-| File | Change | Purpose |
-|------|--------|--------|
-| Database SQL | Drop 2-arg `should_send_notification` function | Unblock ALL calendar event inserts |
-| `src/services/calendarService.ts` | Sequential one-by-one fallback in `batchInsertEvents` with 100ms delays | Reliable import even if individual events fail |
-| `supabase/functions/scrape-schedule/index.ts` | Better error messages for JS-rendered sites; improved request headers | Actionable user guidance instead of generic failure |
-| `supabase/functions/scrape-agenda/index.ts` | Same improvements as scrape-schedule | Consistent behavior across both scrapers |
+## What About Multi-Page/Tab Navigation?
 
-## What This Does NOT Change
+Firecrawl's `scrape` endpoint renders a single page with JavaScript execution. For sites like Netflix Is A Joke Fest where you need to click through day tabs:
+- Firecrawl will get the default/first day automatically (improvement over current zero results)
+- For additional days, users can still take screenshots and upload them -- the additive flow works perfectly
+- Future enhancement: Firecrawl's `crawl` feature could potentially navigate multiple pages if they have different URLs
 
-- The 1M character cap on HTML sent to Gemini stays (no restrictions on what Gemini receives)
-- Background import hooks and toast notifications stay as-is (they work correctly)
-- The Gemini model and prompts are unchanged
-- No changes to the import modal UI (it already works great as shown in the screenshots)
-- Agenda import (`AgendaImportModal`) is unaffected -- it uses `event_agenda_items` table which does not have the notification trigger issue
+## Files Modified
 
-## Expected Outcome
+| File | Change |
+|------|--------|
+| `supabase/functions/scrape-schedule/index.ts` | Add Firecrawl-first scraping with JS rendering, fallback to raw fetch |
+| `supabase/functions/scrape-agenda/index.ts` | Same Firecrawl-first approach |
 
-- **Nurse John import**: All 20 events insert successfully once the DB function is fixed
-- **Trevor Noah**: User gets a clear message suggesting they paste text or upload a screenshot instead
-- **All future imports**: Sequential fallback ensures partial success even when individual events have issues
-- **Mobile**: Toast notifications continue to work seamlessly across tab navigation on all devices
+## Cost Consideration
+
+Firecrawl charges per scrape (typically a few cents per page). For a GTM targeting comedians and artists, this is minimal compared to the manual data entry it replaces. Each import saves an organizer 15-30 minutes of work.
