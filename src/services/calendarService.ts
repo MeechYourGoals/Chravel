@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { CalendarEvent } from '@/types/calendar';
 import { demoModeService } from './demoModeService';
 import { demoTripEventsByTripId } from '@/mockData/demoTripEvents';
@@ -23,6 +24,7 @@ export interface TripEvent {
   created_by: string;
   created_at: string;
   updated_at: string;
+  version?: number;
 }
 
 export interface CreateEventData {
@@ -615,7 +617,7 @@ export const calendarService = {
       event_category: string;
       include_in_itinerary: boolean;
       source_type: string;
-      source_data: Record<string, unknown>;
+      source_data: Json;
     }> = events.map(e => ({
       trip_id: e.trip_id,
       title: e.title,
@@ -627,11 +629,11 @@ export const calendarService = {
       event_category: e.event_category || 'other',
       include_in_itinerary: e.include_in_itinerary ?? true,
       source_type: e.source_type || 'manual',
-      source_data: (e.source_data || {}) as Record<string, unknown>,
+      source_data: (e.source_data || {}) as Json,
     }));
 
     // 4. For small batches (<= 5), try a single insert first
-    if (rows.length <= 5) {
+    if (rows.length <= 20) {
       const { data, error } = await supabase.from('trip_events').insert(rows).select('*');
 
       if (!error && data && data.length > 0) {
@@ -671,10 +673,10 @@ export const calendarService = {
       event_category: string;
       include_in_itinerary: boolean;
       source_type: string;
-      source_data: Record<string, unknown>;
+      source_data: Json;
     }>,
   ): Promise<{ imported: number; failed: number; events: TripEvent[] }> {
-    const BATCH_SIZE = 5;
+    const BATCH_SIZE = 20;
     let imported = 0;
     let failed = 0;
     const allEvents: TripEvent[] = [];
