@@ -4,7 +4,10 @@ import { PersonBalanceCard } from './PersonBalanceCard';
 import { PaymentHistory } from './PaymentHistory';
 import { OutstandingPayments } from './OutstandingPayments';
 import { PaymentInput } from './PaymentInput';
-import { paymentBalanceService, BalanceSummary as BalanceSummaryType } from '../../services/paymentBalanceService';
+import {
+  paymentBalanceService,
+  BalanceSummary as BalanceSummaryType,
+} from '../../services/paymentBalanceService';
 import { useAuth } from '../../hooks/useAuth';
 import { usePayments } from '../../hooks/usePayments';
 import { useToast } from '../../hooks/use-toast';
@@ -32,17 +35,14 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const { isSuperAdmin } = useSuperAdmin();
 
   // Single source of truth for payment data
-  const {
-    tripPayments,
-    paymentsLoading,
-    demoActive,
-    refreshPayments,
-    createPaymentMessage,
-  } = usePayments(tripId);
+  const { tripPayments, paymentsLoading, demoActive, refreshPayments, createPaymentMessage } =
+    usePayments(tripId);
 
   const [balanceSummary, setBalanceSummary] = useState<BalanceSummaryType | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(true);
-  const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [tripMembers, setTripMembers] = useState<
+    Array<{ id: string; name: string; avatar?: string }>
+  >([]);
   const [membersLoading, setMembersLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
@@ -64,16 +64,18 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             const formattedMembers = mockTrip.participants.map(p => ({
               id: String(p.id),
               name: p.name,
-              avatar: p.avatar
+              avatar: p.avatar,
             }));
             setTripMembers(formattedMembers);
           } else {
             const demoMembers = demoModeService.getMockMembers(tripId);
-            setTripMembers(demoMembers.map(m => ({
-              id: m.user_id,
-              name: m.display_name,
-              avatar: m.avatar_url
-            })));
+            setTripMembers(
+              demoMembers.map(m => ({
+                id: m.user_id,
+                name: m.display_name,
+                avatar: m.avatar_url,
+              })),
+            );
           }
           setMembersLoading(false);
           return;
@@ -85,7 +87,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         const formattedMembers = membersData.map(m => ({
           id: m.user_id,
           name: m.profiles?.display_name || 'Former Member',
-          avatar: m.profiles?.avatar_url || undefined
+          avatar: m.profiles?.avatar_url || undefined,
         }));
 
         // Ensure current user is always in the members list
@@ -101,9 +103,9 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             {
               id: user.id,
               name: profile?.display_name || user.email?.split('@')[0] || 'Unknown',
-              avatar: profile?.avatar_url
+              avatar: profile?.avatar_url,
             },
-            ...formattedMembers
+            ...formattedMembers,
           ];
         }
 
@@ -124,27 +126,27 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
 
     const channel = supabase
       .channel(`payments-profiles-${tripId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'profiles' },
-        payload => {
-          const next = payload.new as { user_id?: string; display_name?: string | null; avatar_url?: string | null } | null;
-          const userId = next?.user_id;
-          if (!userId) return;
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
+        const next = payload.new as {
+          user_id?: string;
+          display_name?: string | null;
+          avatar_url?: string | null;
+        } | null;
+        const userId = next?.user_id;
+        if (!userId) return;
 
-          setTripMembers(prev =>
-            prev.map(m =>
-              m.id === userId
-                ? {
-                    ...m,
-                    name: next.display_name ?? m.name,
-                    avatar: next.avatar_url ?? m.avatar,
-                  }
-                : m,
-            ),
-          );
-        },
-      )
+        setTripMembers(prev =>
+          prev.map(m =>
+            m.id === userId
+              ? {
+                  ...m,
+                  name: next.display_name ?? m.name,
+                  avatar: next.avatar_url ?? m.avatar,
+                }
+              : m,
+          ),
+        );
+      })
       .subscribe();
 
     return () => {
@@ -157,9 +159,10 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     return tripPayments.filter(p => p.createdBy === user?.id).length;
   }, [tripPayments, user]);
 
-  const paymentLimit = isSuperAdmin ? -1 : (tier === 'free' ? 5 : -1);
+  const paymentLimit = isSuperAdmin ? -1 : tier === 'free' ? 5 : -1;
   const remainingPayments = paymentLimit === -1 ? -1 : Math.max(0, paymentLimit - userPaymentCount);
-  const canCreateMorePayments = isSuperAdmin || paymentLimit === -1 || userPaymentCount < paymentLimit;
+  const canCreateMorePayments =
+    isSuperAdmin || paymentLimit === -1 || userPaymentCount < paymentLimit;
 
   // Calculate payment summary from centralized data
   const paymentSummary = useMemo(() => {
@@ -169,7 +172,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         totalOwed: 0,
         totalOwedToYou: 0,
         totalYouOwe: 0,
-        isSettled: true
+        isSettled: true,
       };
     }
 
@@ -181,7 +184,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       if (payment.createdBy === user.id) {
         totalPaid += payment.amount;
         if (!payment.isSettled) {
-          totalOwedToYou += payment.amount / payment.splitCount * (payment.splitCount - 1);
+          totalOwedToYou += (payment.amount / payment.splitCount) * (payment.splitCount - 1);
         }
       } else {
         if (!payment.isSettled) {
@@ -219,11 +222,12 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             userId: m.user_id,
             userName: m.display_name,
             avatar: m.avatar_url,
-            amountOwed: (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
+            amountOwed:
+              (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
             amountOwedCurrency: 'USD',
             preferredPaymentMethod: null,
-            unsettledPayments: []
-          }))
+            unsettledPayments: [],
+          })),
         });
         setBalanceLoading(false);
         return;
@@ -235,7 +239,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           totalOwedToYou: 0,
           netBalance: 0,
           baseCurrency: 'USD',
-          balances: []
+          balances: [],
         });
         setBalanceLoading(false);
         return;
@@ -251,16 +255,20 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         if (error instanceof Error) {
           const msg = error.message.toLowerCase();
           // Transient auth errors - don't show "access denied", just log and retry later
-          if (msg.includes('authentication required') || msg.includes('jwt') || msg.includes('network')) {
+          if (
+            msg.includes('authentication required') ||
+            msg.includes('jwt') ||
+            msg.includes('network')
+          ) {
             console.warn('[PaymentsTab] Transient auth/network error, will retry on next render');
             // Don't show toast - user just needs to be authenticated
           } else if (msg.includes('unauthorized') || msg.includes('not a trip member')) {
             // Genuine permission issue - but verify auth is actually ready
             // If the user is logged in and still getting this, it's a real permission issue
             toast({
-              title: "Access Denied",
+              title: 'Access Denied',
               description: "You don't have permission to view payment balances for this trip.",
-              variant: "destructive"
+              variant: 'destructive',
             });
           }
         }
@@ -269,7 +277,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           totalOwedToYou: 0,
           netBalance: 0,
           baseCurrency: 'USD',
-          balances: []
+          balances: [],
         });
       } finally {
         setBalanceLoading(false);
@@ -302,8 +310,8 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           amountOwed: (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
           amountOwedCurrency: 'USD',
           preferredPaymentMethod: null,
-          unsettledPayments: []
-        }))
+          unsettledPayments: [],
+        })),
       });
       return;
     }
@@ -341,8 +349,8 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
 
       if (!demoActive) {
         toast({
-          title: "Payment created",
-          description: `${paymentData.description} - $${paymentData.amount.toFixed(2)}`
+          title: 'Payment created',
+          description: `${paymentData.description} - $${paymentData.amount.toFixed(2)}`,
         });
       }
     } else if (result.error) {
@@ -350,18 +358,26 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       const errorMessage = result.error.message;
 
       toast({
-        title: errorCode === 'SESSION_EXPIRED' ? "Session Expired" :
-               errorCode === 'RLS_VIOLATION' ? "Permission Denied" :
-               errorCode === 'VALIDATION_FAILED' ? "Validation Error" :
-               errorCode === 'NETWORK_ERROR' ? "Connection Error" : "Error",
+        title:
+          errorCode === 'SESSION_EXPIRED'
+            ? 'Session Expired'
+            : errorCode === 'RLS_VIOLATION'
+              ? 'Permission Denied'
+              : errorCode === 'VALIDATION_FAILED'
+                ? 'Validation Error'
+                : errorCode === 'NETWORK_ERROR'
+                  ? 'Connection Error'
+                  : 'Error',
         description: errorMessage,
-        variant: "destructive"
+        variant: 'destructive',
       });
     }
   };
 
-  // Loading state
-  const isLoading = paymentsLoading && balanceLoading;
+  // Loading state — use OR: show loader while EITHER payments or balances are loading
+  // Before the TanStack Query migration, both loaded at similar speeds.
+  // Now payments can resolve instantly from prefetch cache while balance is still fetching.
+  const isLoading = paymentsLoading || balanceLoading;
 
   if (isLoading) {
     return (
@@ -432,21 +448,24 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         </Card>
       ) : (
         <>
-          {tier === 'free' && !isSuperAdmin && remainingPayments > 0 && remainingPayments !== -1 && (
-            <div className="flex items-center justify-between bg-blue-900/20 border border-blue-500/30 rounded-lg px-4 py-2 mb-2">
-              <span className="text-sm text-blue-300">
-                {remainingPayments} of 5 payment requests remaining
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.location.href = '/settings?tab=subscription'}
-                className="text-blue-400 hover:text-blue-300 h-auto py-1"
-              >
-                Upgrade
-              </Button>
-            </div>
-          )}
+          {tier === 'free' &&
+            !isSuperAdmin &&
+            remainingPayments > 0 &&
+            remainingPayments !== -1 && (
+              <div className="flex items-center justify-between bg-blue-900/20 border border-blue-500/30 rounded-lg px-4 py-2 mb-2">
+                <span className="text-sm text-blue-300">
+                  {remainingPayments} of 5 payment requests remaining
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => (window.location.href = '/settings?tab=subscription')}
+                  className="text-blue-400 hover:text-blue-300 h-auto py-1"
+                >
+                  Upgrade
+                </Button>
+              </div>
+            )}
           <PaymentInput
             onSubmit={handlePaymentSubmit}
             tripMembers={tripMembers}
@@ -464,18 +483,12 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         <div className="space-y-2">
           <h3 className="text-base font-semibold text-foreground mb-1">Balance Breakdown</h3>
           {balanceSummary.balances.map(balance => (
-            <PersonBalanceCard
-              key={balance.userId}
-              balance={balance}
-              tripId={tripId}
-            />
+            <PersonBalanceCard key={balance.userId} balance={balance} tripId={tripId} />
           ))}
         </div>
       ) : (
         <div className="text-center py-4 bg-muted/50 rounded-lg border border-border">
-          <p className="text-sm text-muted-foreground">
-            All settled up! No outstanding payments.
-          </p>
+          <p className="text-sm text-muted-foreground">All settled up! No outstanding payments.</p>
         </div>
       )}
 
@@ -495,10 +508,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       />
 
       {/* Auth Modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-      />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 };
