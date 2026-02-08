@@ -37,35 +37,40 @@ export function useTripBasecamp(tripId: string | undefined) {
 
   return useQuery({
     queryKey: tripBasecampKeys.trip(tripId || 'unknown'),
-    queryFn: () => withTimeout((async (): Promise<BasecampLocation | null> => {
-      if (!tripId) {
-        console.warn(LOG_PREFIX, 'No tripId provided');
-        return null;
-      }
+    queryFn: () =>
+      withTimeout(
+        (async (): Promise<BasecampLocation | null> => {
+          if (!tripId) {
+            console.warn(LOG_PREFIX, 'No tripId provided');
+            return null;
+          }
 
-      console.log(LOG_PREFIX, 'Fetching basecamp for trip:', tripId, 'isDemoMode:', isDemoMode);
+          console.log(LOG_PREFIX, 'Fetching basecamp for trip:', tripId, 'isDemoMode:', isDemoMode);
 
-      if (isDemoMode) {
-        // Demo mode: use in-memory session storage (NOT localStorage)
-        const sessionBasecamp = demoModeService.getSessionTripBasecamp(tripId);
-        console.log(LOG_PREFIX, 'Demo mode result:', sessionBasecamp);
+          if (isDemoMode) {
+            // Demo mode: use in-memory session storage (NOT localStorage)
+            const sessionBasecamp = demoModeService.getSessionTripBasecamp(tripId);
+            console.log(LOG_PREFIX, 'Demo mode result:', sessionBasecamp);
 
-        if (sessionBasecamp) {
-          return {
-            address: sessionBasecamp.address,
-            name: sessionBasecamp.name,
-            type: 'other',
-            coordinates: undefined,
-          };
-        }
-        return null;
-      }
+            if (sessionBasecamp) {
+              return {
+                address: sessionBasecamp.address,
+                name: sessionBasecamp.name,
+                type: 'other',
+                coordinates: undefined,
+              };
+            }
+            return null;
+          }
 
-      // Authenticated mode: fetch from database
-      const dbBasecamp = await basecampService.getTripBasecamp(tripId);
-      console.log(LOG_PREFIX, 'DB result:', dbBasecamp);
-      return dbBasecamp;
-    })(), 10000, 'Failed to load trip basecamp: Timeout'),
+          // Authenticated mode: fetch from database
+          const dbBasecamp = await basecampService.getTripBasecamp(tripId);
+          console.log(LOG_PREFIX, 'DB result:', dbBasecamp);
+          return dbBasecamp;
+        })(),
+        10000,
+        'Failed to load trip basecamp: Timeout',
+      ),
     enabled: !!tripId,
     staleTime: 30_000, // Consider fresh for 30 seconds
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
@@ -222,6 +227,9 @@ export function useClearTripBasecamp(tripId: string | undefined) {
   const { isDemoMode } = useDemoMode();
 
   return useMutation({
+    // Disable retries to prevent hanging on repeated failures
+    retry: false,
+
     mutationFn: async () => {
       if (!tripId) {
         throw new Error('No tripId provided');
@@ -235,7 +243,7 @@ export function useClearTripBasecamp(tripId: string | undefined) {
       }
 
       // For authenticated mode, set to empty values
-      // The database RPC should handle this
+      // basecampService.setTripBasecamp now has 3-tier fallback
       const result = await basecampService.setTripBasecamp(tripId, {
         name: '',
         address: '',
@@ -273,15 +281,27 @@ export function useClearTripBasecamp(tripId: string | undefined) {
       toast.error('Failed to clear basecamp. Please try again.');
     },
 
-    onSettled: () => {
-      if (tripId) {
-        queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
-      }
-    },
-
     onSuccess: () => {
       console.log(LOG_PREFIX, 'Basecamp cleared');
       toast.success('Basecamp cleared');
+
+      // Confirm the null value in cache
+      if (tripId) {
+        queryClient.setQueryData(tripBasecampKeys.trip(tripId), null);
+      }
+
+      // Schedule a delayed refetch for consistency (same pattern as update)
+      if (tripId) {
+        setTimeout(() => {
+          console.log(LOG_PREFIX, 'Clear: delayed background refetch');
+          queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
+        }, 2000);
+      }
+    },
+
+    // onSettled: no immediate invalidation (avoid race condition, same as update)
+    onSettled: () => {
+      console.log(LOG_PREFIX, 'Clear mutation settled');
     },
   });
 }

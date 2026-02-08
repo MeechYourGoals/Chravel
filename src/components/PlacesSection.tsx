@@ -7,12 +7,7 @@ import { useTripVariant } from '../contexts/TripVariantContext';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import {
-  useTripBasecamp,
-  useUpdateTripBasecamp,
-  useClearTripBasecamp,
-  tripBasecampKeys,
-} from '@/hooks/useTripBasecamp';
+import { useTripBasecamp, tripBasecampKeys } from '@/hooks/useTripBasecamp';
 import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
@@ -38,9 +33,8 @@ export const PlacesSection = ({
   const queryClient = useQueryClient();
 
   // Use TanStack Query for trip basecamp (canonical source of truth)
-  const { data: tripBasecamp, isLoading: isBasecampLoading } = useTripBasecamp(tripId);
-  const updateBasecampMutation = useUpdateTripBasecamp(tripId);
-  const clearBasecampMutation = useClearTripBasecamp(tripId);
+  // Mutations are now handled self-contained inside BasecampsPanel
+  const { data: tripBasecamp, isLoading: _isBasecampLoading } = useTripBasecamp(tripId);
 
   // State
   const [activeTab, setActiveTab] = useState<TabView>('basecamps');
@@ -270,34 +264,33 @@ export const PlacesSection = ({
     };
   }, [tripId, isDemoMode, queryClient]);
 
-  const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
+  /**
+   * Notification-only callback for trip basecamp set.
+   * The actual save is now handled self-contained inside BasecampsPanel.
+   * This callback is used to debounce realtime notifications so the user
+   * doesn't see "updated by another member" toasts for their own saves.
+   */
+  const handleBasecampSetNotification = (newBasecamp: BasecampLocation) => {
     lastLocalUpdateRef.current = {
       timestamp: Date.now(),
       address: newBasecamp.address,
     };
 
-    await updateBasecampMutation.mutateAsync({
-      name: newBasecamp.name,
-      address: newBasecamp.address,
-      latitude: newBasecamp.coordinates?.lat,
-      longitude: newBasecamp.coordinates?.lng,
-    });
-
     if (import.meta.env.DEV) {
-      console.log('[PlacesSection] Trip basecamp persisted:', newBasecamp.address);
+      console.log('[PlacesSection] Trip basecamp set notification received:', newBasecamp.address);
     }
   };
 
-  const handleBasecampClear = async () => {
-    await clearBasecampMutation.mutateAsync();
+  /**
+   * Notification-only callback for trip basecamp clear.
+   * The actual clear is now handled self-contained inside BasecampsPanel.
+   */
+  const handleBasecampClearNotification = () => {
+    lastLocalUpdateRef.current = {
+      timestamp: Date.now(),
+      address: '',
+    };
   };
-
-  const toBasecampLocation = (pb: PersonalBasecamp): BasecampLocation => ({
-    address: pb.address || '',
-    name: pb.name,
-    type: 'other',
-    coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined,
-  });
 
   const handlePersonalBasecampUpdate = (basecamp: PersonalBasecamp | null) => {
     setPersonalBasecamp(basecamp);
@@ -338,8 +331,8 @@ export const PlacesSection = ({
           <BasecampsPanel
             tripId={tripId}
             tripBasecamp={tripBasecamp || null}
-            onTripBasecampSet={handleBasecampSet}
-            onTripBasecampClear={handleBasecampClear}
+            onTripBasecampSet={handleBasecampSetNotification}
+            onTripBasecampClear={handleBasecampClearNotification}
             personalBasecamp={personalBasecamp}
             onPersonalBasecampUpdate={handlePersonalBasecampUpdate}
           />

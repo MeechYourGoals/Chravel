@@ -7,13 +7,18 @@ import { demoModeService } from '@/services/demoModeService';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBasecamp } from '@/contexts/BasecampContext';
+import { useUpdateTripBasecamp, useClearTripBasecamp } from '@/hooks/useTripBasecamp';
 import { toast } from 'sonner';
 import { DirectionsEmbed } from './DirectionsEmbed';
+
+const LOG_PREFIX = '[BasecampsPanel]';
 
 export interface BasecampsPanelProps {
   tripId: string;
   tripBasecamp: BasecampLocation | null;
-  onTripBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
+  /** @deprecated Use is now handled internally. Kept for backward compat / parent notification. */
+  onTripBasecampSet?: (basecamp: BasecampLocation) => Promise<void> | void;
+  /** @deprecated Use is now handled internally. Kept for backward compat / parent notification. */
   onTripBasecampClear?: () => Promise<void> | void;
   personalBasecamp?: PersonalBasecamp | null;
   onPersonalBasecampUpdate?: (basecamp: PersonalBasecamp | null) => void;
@@ -30,6 +35,11 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { clearBasecamp } = useBasecamp();
+
+  // ─── Trip basecamp mutations (self-contained, like personal basecamp) ───
+  const updateTripBasecampMutation = useUpdateTripBasecamp(tripId);
+  const clearTripBasecampMutation = useClearTripBasecamp(tripId);
+
   const [internalPersonalBasecamp, setInternalPersonalBasecamp] = useState<PersonalBasecamp | null>(
     null,
   );
@@ -86,31 +96,134 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     loadPersonalBasecamp();
   }, [tripId, user, isDemoMode, effectiveUserId, externalPersonalBasecamp]);
 
+  /**
+   * Trip basecamp SET handler — self-contained, mirrors personal basecamp pattern.
+   *
+   * Primary path: useUpdateTripBasecamp mutation (TanStack Query).
+   * Fallback path: basecampService.setTripBasecamp() directly (bypasses query layer).
+   *
+   * After a successful save the optional parent callback is invoked for notification
+   * purposes (e.g., debouncing realtime toasts) but failures in that callback are
+   * isolated and never block the save.
+   */
   const handleTripBasecampSet = async (newBasecamp: BasecampLocation) => {
-    await onTripBasecampSet(newBasecamp);
-    setShowTripSelector(false);
+    console.log(LOG_PREFIX, 'handleTripBasecampSet called:', {
+      tripId,
+      address: newBasecamp.address,
+      name: newBasecamp.name,
+    });
+
+    try {
+      // Primary path: TanStack Query mutation with optimistic updates
+      await updateTripBasecampMutation.mutateAsync({
+        name: newBasecamp.name,
+        address: newBasecamp.address,
+        latitude: newBasecamp.coordinates?.lat,
+        longitude: newBasecamp.coordinates?.lng,
+      });
+
+      console.log(LOG_PREFIX, 'Trip basecamp saved via mutation');
+      setShowTripSelector(false);
+
+      // Notify parent (non-blocking) for backward compat / realtime debounce
+      if (onTripBasecampSet) {
+        try {
+          await Promise.resolve(onTripBasecampSet(newBasecamp));
+        } catch (notifyError) {
+          // Parent notification is best-effort — never block the save
+          console.warn(
+            LOG_PREFIX,
+            'Parent onTripBasecampSet notification failed (non-critical):',
+            notifyError,
+          );
+        }
+      }
+    } catch (mutationError) {
+      console.error(
+        LOG_PREFIX,
+        'Mutation save failed, trying direct service fallback:',
+        mutationError,
+      );
+
+      // Fallback: call service directly (mirrors personal basecamp pattern)
+      try {
+        const result = await basecampService.setTripBasecamp(tripId, {
+          name: newBasecamp.name,
+          address: newBasecamp.address,
+          latitude: newBasecamp.coordinates?.lat,
+          longitude: newBasecamp.coordinates?.lng,
+        });
+
+        if (result.success) {
+          console.log(LOG_PREFIX, 'Trip basecamp saved via direct service fallback');
+          setShowTripSelector(false);
+          toast.success('Trip basecamp saved');
+        } else {
+          console.error(LOG_PREFIX, 'Direct service fallback also failed:', result.error);
+          toast.error(result.error || 'Failed to save trip basecamp. Please try again.');
+        }
+      } catch (fallbackError) {
+        console.error(LOG_PREFIX, 'Both mutation and direct fallback failed:', fallbackError);
+        toast.error('Failed to save trip basecamp. Please try again.');
+      }
+    }
   };
 
+  /**
+   * Trip basecamp CLEAR handler — self-contained, mirrors personal basecamp delete.
+   */
   const handleTripBasecampClear = async () => {
     if (!tripBasecamp) return;
+
+    console.log(LOG_PREFIX, 'handleTripBasecampClear called:', { tripId });
 
     try {
       if (isDemoMode) {
         demoModeService.clearSessionTripBasecamp(tripId);
         clearBasecamp();
         toast.success('Trip basecamp cleared');
-      } else if (onTripBasecampClear) {
-        // Persist the clear to the database via the parent's mutation hook
-        await onTripBasecampClear();
+        return;
+      }
+
+      // Primary path: TanStack Query mutation
+      try {
+        await clearTripBasecampMutation.mutateAsync();
         clearBasecamp();
-        // Toast is handled by the mutation hook
-      } else {
-        // Fallback: only clear in-memory state (shouldn't happen if wired up correctly)
+        console.log(LOG_PREFIX, 'Trip basecamp cleared via mutation');
+
+        // Notify parent (non-blocking)
+        if (onTripBasecampClear) {
+          try {
+            await Promise.resolve(onTripBasecampClear());
+          } catch {
+            // Parent notification is best-effort
+          }
+        }
+        return;
+      } catch (mutationError) {
+        console.error(
+          LOG_PREFIX,
+          'Clear mutation failed, trying direct service fallback:',
+          mutationError,
+        );
+      }
+
+      // Fallback: call service directly
+      const result = await basecampService.setTripBasecamp(tripId, {
+        name: '',
+        address: '',
+      });
+
+      if (result.success) {
         clearBasecamp();
         toast.success('Trip basecamp cleared');
+        console.log(LOG_PREFIX, 'Trip basecamp cleared via direct service fallback');
+      } else {
+        console.error(LOG_PREFIX, 'Direct clear fallback failed:', result.error);
+        toast.error('Failed to clear trip basecamp');
       }
     } catch (error) {
-      console.error('Failed to clear trip basecamp:', error);
+      console.error(LOG_PREFIX, 'Failed to clear trip basecamp:', error);
       toast.error('Failed to clear trip basecamp');
     }
   };
