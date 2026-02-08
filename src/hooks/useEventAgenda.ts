@@ -11,6 +11,70 @@ interface UseEventAgendaOptions {
   enabled?: boolean;
 }
 
+/**
+ * Convert a time-only string ("HH:MM") to a full ISO timestamp by combining
+ * it with a date string. Required because the DB columns `start_time` and
+ * `end_time` are `timestamptz`, not plain `time`.
+ */
+function buildTimestamp(
+  time: string | undefined | null,
+  date: string | undefined | null,
+): string | null {
+  if (!time) return null;
+
+  // Already a full timestamp — pass through
+  if (time.includes('T') || time.length > 8) return time;
+
+  // Use the provided session_date, or fall back to today
+  const dateStr = date || new Date().toISOString().split('T')[0];
+  const timeStr = time.length === 5 ? `${time}:00` : time; // "HH:MM" → "HH:MM:SS"
+  return `${dateStr}T${timeStr}`;
+}
+
+/**
+ * Extract the "HH:MM" portion from a value that may be a full ISO timestamp
+ * (returned by the DB) or already a plain time string.
+ */
+function extractTime(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+
+  // Already in HH:MM or HH:MM:SS format
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(value)) return value.substring(0, 5);
+
+  // Full ISO timestamp — pull out the time component
+  const isoTimeMatch = value.match(/T(\d{2}:\d{2})/);
+  if (isoTimeMatch) return isoTimeMatch[1];
+
+  // Fallback: try Date parsing (handles various Postgres formats)
+  try {
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+  } catch {
+    // fall through
+  }
+
+  return undefined;
+}
+
+/**
+ * Extract "YYYY-MM-DD" from a value that may be a full ISO timestamp or
+ * already a date-only string.
+ */
+function extractDate(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+
+  // Already in YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+  // Full ISO timestamp — grab the date prefix
+  const dateMatch = value.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (dateMatch) return dateMatch[1];
+
+  return undefined;
+}
+
 export function useEventAgenda({
   eventId,
   initialSessions = [],
@@ -47,9 +111,9 @@ export function useEventAgenda({
         id: row.id,
         title: row.title,
         description: row.description ?? undefined,
-        session_date: row.session_date ?? undefined,
-        start_time: row.start_time ?? undefined,
-        end_time: row.end_time ?? undefined,
+        session_date: extractDate(row.session_date),
+        start_time: extractTime(row.start_time),
+        end_time: extractTime(row.end_time),
         location: row.location ?? undefined,
         track: row.track ?? undefined,
         speakers: row.speakers ?? undefined,
@@ -76,8 +140,8 @@ export function useEventAgenda({
           title: session.title,
           description: session.description || null,
           session_date: session.session_date || null,
-          start_time: session.start_time || null,
-          end_time: session.end_time || null,
+          start_time: buildTimestamp(session.start_time, session.session_date),
+          end_time: buildTimestamp(session.end_time, session.session_date),
           location: session.location || null,
           track: session.track || null,
           speakers: session.speakers || null,
@@ -92,9 +156,9 @@ export function useEventAgenda({
         id: data.id,
         title: data.title,
         description: data.description ?? undefined,
-        session_date: data.session_date ?? undefined,
-        start_time: data.start_time ?? undefined,
-        end_time: data.end_time ?? undefined,
+        session_date: extractDate(data.session_date),
+        start_time: extractTime(data.start_time),
+        end_time: extractTime(data.end_time),
         location: data.location ?? undefined,
         track: data.track ?? undefined,
         speakers: data.speakers ?? undefined,
@@ -121,8 +185,8 @@ export function useEventAgenda({
           title: session.title,
           description: session.description || null,
           session_date: session.session_date || null,
-          start_time: session.start_time || null,
-          end_time: session.end_time || null,
+          start_time: buildTimestamp(session.start_time, session.session_date),
+          end_time: buildTimestamp(session.end_time, session.session_date),
           location: session.location || null,
           track: session.track || null,
           speakers: session.speakers || null,
