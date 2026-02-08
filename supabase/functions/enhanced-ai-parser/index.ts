@@ -130,6 +130,8 @@ serve(async (req) => {
     switch (extractionType) {
       case 'calendar':
         return await extractCalendarEvents(messageText, fileUrl, fileType);
+      case 'agenda':
+        return await extractAgendaSessions(messageText, fileUrl, fileType);
       case 'todo':
         return await extractTodoItems(messageText, tripId);
       case 'photo_analysis':
@@ -224,6 +226,83 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
       success: true,
       extracted_data: extractedData,
       confidence: extractedData.confidence_overall || 0.8
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function extractAgendaSessions(messageText: string, fileUrl?: string, fileType?: string) {
+  if (!LOVABLE_API_KEY) {
+    throw new Error('Lovable API key not configured');
+  }
+
+  const systemPrompt = `You are an expert at extracting event agenda sessions from conference schedules, event programs, and agenda documents.
+
+Extract ALL sessions, talks, panels, workshops, performances, and scheduled items.
+
+For each session, extract ONLY the fields that are CLEARLY PRESENT in the source. Do NOT guess, fabricate, or infer missing data.
+
+Return JSON format:
+{
+  "sessions": [
+    {
+      "title": "string (REQUIRED)",
+      "description": "string (only if present)",
+      "session_date": "YYYY-MM-DD (only if present)",
+      "start_time": "HH:MM 24-hour (only if present)",
+      "end_time": "HH:MM 24-hour (only if present)",
+      "location": "string (only if present)",
+      "track": "string category/track (only if present)",
+      "speakers": ["array of names (only if present)"]
+    }
+  ]
+}
+
+CRITICAL RULES:
+1. Only include fields EXPLICITLY present in the source material.
+2. Do NOT fabricate descriptions, categories, or speaker names.
+3. Do NOT guess times or dates not clearly shown.
+4. If a field is not present, OMIT it entirely from the object.
+5. Extract ALL sessions, not just a sample.
+6. The "title" field is always required.`;
+
+  const userContent = buildUserMessage(
+    messageText || 'Extract all agenda sessions from this document.',
+    fileUrl,
+    fileType
+  );
+
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent }
+      ],
+      max_tokens: 16000,
+      temperature: 0.1,
+      response_format: { type: "json_object" }
+    }),
+    signal: AbortSignal.timeout(45000),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`AI API error: ${error}`);
+  }
+
+  const result = await response.json();
+  const extractedData = JSON.parse(result.choices[0].message.content);
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      sessions: extractedData.sessions || [],
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );

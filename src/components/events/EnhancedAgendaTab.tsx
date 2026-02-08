@@ -1,5 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { Calendar, Upload, Plus, FileText, Clock, MapPin, Trash2, Download, CheckCircle2, User, X, Edit2 } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { Calendar, Upload, Plus, FileText, Clock, MapPin, Trash2, Download, CheckCircle2, User, X, Edit2, Sparkles } from 'lucide-react';
+import { AgendaImportModal } from './AgendaImportModal';
+import { useBackgroundAgendaImport } from '@/features/calendar/hooks/useBackgroundAgendaImport';
+import { ParsedAgendaSession } from '@/utils/agendaImportParsers';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -26,6 +29,9 @@ export const EnhancedAgendaTab = ({
 }: EnhancedAgendaTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { sessions, addSession, updateSession, deleteSession, isAdding, isUpdating } = useEventAgenda({ eventId });
+
+  const [showImportModal, setShowImportModal] = useState(false);
+  const { pendingResult, startImport, clearResult } = useBackgroundAgendaImport();
 
   const [pdfScheduleUrl, setPdfScheduleUrl] = useState<string | undefined>(initialPdfUrl);
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
@@ -174,6 +180,14 @@ export const EnhancedAgendaTab = ({
                 </Button>
               </>
             )}
+            <Button
+              onClick={() => setShowImportModal(true)}
+              variant="outline"
+              className="flex-1 sm:flex-none border-primary/30 text-primary"
+            >
+              <Sparkles size={16} className="mr-2" />
+              Import Agenda
+            </Button>
             <Button onClick={() => setIsAddingSession(true)} className="flex-1 sm:flex-none bg-primary hover:bg-primary/90">
               <Plus size={16} className="mr-2" />
               Add Session
@@ -376,6 +390,25 @@ export const EnhancedAgendaTab = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Agenda Import Modal */}
+      <AgendaImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        eventId={eventId}
+        onImportSessions={async (importedSessions: ParsedAgendaSession[]) => {
+          for (const s of importedSessions) {
+            await addSession(s);
+          }
+        }}
+        pendingResult={pendingResult}
+        onClearPendingResult={clearResult}
+        onStartBackgroundImport={(url) => {
+          setShowImportModal(false);
+          startImport(url, () => setShowImportModal(true));
+        }}
+        onLineupUpdate={onLineupUpdate ? (names) => onLineupUpdate(names) : undefined}
+      />
     </div>
   );
 };

@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Calendar, Upload, Plus, FileText, Clock, MapPin, Trash2, Download, Edit2, X, Image, User, Save } from 'lucide-react';
+import { Calendar, Upload, Plus, FileText, Clock, MapPin, Trash2, Download, Edit2, X, Image, User, Save, Sparkles } from 'lucide-react';
+import { AgendaImportModal } from './AgendaImportModal';
+import { useBackgroundAgendaImport } from '@/features/calendar/hooks/useBackgroundAgendaImport';
+import { ParsedAgendaSession } from '@/utils/agendaImportParsers';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -45,6 +48,9 @@ export const AgendaModal = ({
     eventId,
     initialSessions,
   });
+
+  const [showImportModal, setShowImportModal] = useState(false);
+  const { pendingResult, startImport, clearResult, isBackgroundImporting } = useBackgroundAgendaImport();
   
   // In demo mode, always show admin controls
   const showAdminControls = isDemoMode || permissions.canCreate;
@@ -210,14 +216,25 @@ export const AgendaModal = ({
               Schedule
             </h3>
             {showAdminControls && !isAddingSession && (
-              <Button
-                onClick={() => setIsAddingSession(true)}
-                size="sm"
-                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
-              >
-                <Plus size={16} className="mr-1" />
-                Add Session
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowImportModal(true)}
+                  size="sm"
+                  variant="outline"
+                  className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                >
+                  <Sparkles size={16} className="mr-1" />
+                  Import Agenda
+                </Button>
+                <Button
+                  onClick={() => setIsAddingSession(true)}
+                  size="sm"
+                  className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
+                >
+                  <Plus size={16} className="mr-1" />
+                  Add Session
+                </Button>
+              </div>
             )}
           </div>
 
@@ -505,6 +522,25 @@ export const AgendaModal = ({
           )}
         </div>
       </div>
+
+      {/* Agenda Import Modal */}
+      <AgendaImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        eventId={eventId}
+        onImportSessions={async (importedSessions: ParsedAgendaSession[]) => {
+          for (const s of importedSessions) {
+            await addSession(s);
+          }
+        }}
+        pendingResult={pendingResult}
+        onClearPendingResult={clearResult}
+        onStartBackgroundImport={(url) => {
+          setShowImportModal(false);
+          startImport(url, () => setShowImportModal(true));
+        }}
+        onLineupUpdate={onLineupUpdate ? (names) => onLineupUpdate(names) : undefined}
+      />
     </div>
   );
 };

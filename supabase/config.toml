@@ -92,3 +92,6 @@ verify_jwt = true
 
 [functions.scrape-schedule]
 verify_jwt = true
+
+[functions.scrape-agenda]
+verify_jwt = true
