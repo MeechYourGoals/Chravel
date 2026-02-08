@@ -94,9 +94,14 @@ serve(async (req) => {
       const pageResponse = await fetch(url, {
         headers: {
           'User-Agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Cache-Control': 'no-cache',
         },
         signal: AbortSignal.timeout(15000),
       });
@@ -285,15 +290,27 @@ Example output:
     }
 
     if (futureEvents.length === 0) {
+      // Check if site is JS-rendered (common SPA patterns)
+      const isJsRendered =
+        (html.includes('__NEXT_DATA__') && !html.includes('"props":{"pageProps":{')) ||
+        (html.includes('<div id="root"></div>') || html.includes('<div id="app"></div>')) ||
+        (html.includes('<noscript>') && html.includes('JavaScript')) ||
+        (html.includes('window.__INITIAL_STATE__') && html.length < 100000) ||
+        (html.includes('react-root') && !html.includes('<article'));
+
+      const errorMessage = isJsRendered
+        ? 'This website loads its content dynamically with JavaScript and can\'t be read by our scanner. Try one of these alternatives:\n\n1. Copy the schedule text from the page and paste it using "Paste Text"\n2. Take a screenshot of the schedule and upload it using "Upload Image"'
+        : 'No schedule or events found on this page. Make sure the URL points to a schedule page with visible dates.';
+
       return new Response(
         JSON.stringify({
           success: false,
-          error:
-            'No schedule or events found on this page. Make sure the URL points to a schedule page.',
+          error: errorMessage,
           events: [],
           events_found: 0,
           events_filtered: 0,
           source_url: url,
+          is_js_rendered: isJsRendered,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
