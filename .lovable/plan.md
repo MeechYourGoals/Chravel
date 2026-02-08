@@ -1,122 +1,149 @@
 
 
-# Fix URL Import: Smart HTML Reduction + Background Processing
+# Smart Agenda Import: AI-Powered Session Extraction for Events
 
-## Why Your Concern About Stripping Scripts Is Correct
+## The Business Case
 
-You are right that blindly removing all `<script>` tags would break imports for many sites. Here is why:
+Event organizers (SXSW, Investfest, conferences) already have their agenda on a website, PDF, or image. Asking them to manually type in dozens of sessions creates massive friction. This feature lets them click "Import Agenda," paste a URL or upload a file/image, and have Gemini extract all sessions automatically -- filling only the fields that actually exist in the source material.
 
-- **NBA.com, ESPN, NFL.com**: Schedule data lives inside `<script type="application/ld+json">` (structured data) or `<script id="__NEXT_DATA__">` (Next.js hydration payload). Stripping ALL scripts would delete the actual schedule data.
-- **The current 800K limit exists for a reason**: It was specifically set to handle full-season schedules (82+ NBA games) from JS-heavy sports sites.
+This gives Chravel a direct competitive edge over white-label event apps that force manual data entry.
 
-## What Actually Happened with nursejohnnshows.com
+## What Changes
 
-I tested this site directly -- it **cannot be fetched at all** from a server. The site either:
-- Blocks non-browser requests (bot protection / Cloudflare)
-- Requires JavaScript execution to render any content (Squarespace/Wix)
-- Returns an empty shell or redirect loop
+### 1. New Edge Function: `scrape-agenda` (Backend)
 
-This means the edge function's `fetch()` either got zero usable HTML, or got a massive Squarespace JS bundle with zero actual show data in the HTML source. Either way, Gemini received garbage and spent minutes trying to make sense of it before the Supabase edge function timed out at 60 seconds -- which is what caused the freeze on your end.
+A new Supabase edge function specifically tuned for **agenda/session extraction** (different from `scrape-schedule` which is for calendar events like game schedules).
 
-## Revised Plan: Smart Reduction (Not Blind Stripping) + Background Processing
+The key difference from `scrape-schedule`:
+- Returns agenda-specific fields: title, description, date, start_time, end_time, location, track/category, speakers
+- Prompt instructs Gemini to **only fill fields that are clearly present** in the source -- no guessing, no fabricating descriptions or categories
+- Does NOT filter by future dates (conferences may list sessions without specific dates)
+- Uses the same smart HTML cleaning from `scrape-schedule`
+- Same 45-second AI timeout
+- Same content quality check with early exit for JS-only sites
 
-### Fix 1: Smart HTML Cleaning (Keep Data-Bearing Scripts, Remove Junk)
+Extracted session schema:
+```text
+{
+  title: string (required)
+  description?: string (only if present)
+  session_date?: string YYYY-MM-DD (only if present)
+  start_time?: string HH:MM (only if present)
+  end_time?: string HH:MM (only if present)
+  location?: string (only if present)
+  track?: string (only if present -- e.g., "Main Stage", "Workshop")
+  speakers?: string[] (only if present)
+}
+```
 
-**File**: `supabase/functions/scrape-schedule/index.ts`
+### 2. New Utility: `src/utils/agendaImportParsers.ts`
 
-Instead of stripping ALL scripts, use a **selective** approach:
+Handles all agenda import parsing, reusing patterns from `calendarImportParsers.ts`:
+- `parseAgendaFile(file)` -- routes PDF/Image to `enhanced-ai-parser` with a new `extractionType: 'agenda'`
+- `parseAgendaURL(url)` -- calls the new `scrape-agenda` edge function
+- `parseAgendaText(text)` -- sends pasted text to `enhanced-ai-parser` with `extractionType: 'agenda'`
 
-**KEEP these script types** (they contain actual schedule data):
-- `<script type="application/ld+json">` -- Google structured data, often has event listings
-- `<script id="__NEXT_DATA__">` -- Next.js data payload
-- `<script type="application/json">` -- generic data payloads
-- `<script>` blocks containing JSON arrays with date-like patterns
+All three return a unified `AgendaParseResult` with an array of `ParsedAgendaSession` objects matching the `EventAgendaItem` type.
 
-**REMOVE these** (they are always noise):
-- `<script src="...">` -- external JS bundles (React, jQuery, analytics)
-- `<style>...</style>` -- CSS rules
-- `<svg>...</svg>` -- icon definitions
-- HTML comments `<!-- ... -->`
-- `<noscript>...</noscript>` -- fallback content
-- Inline scripts that are clearly code (containing `function(`, `var `, `window.`, etc.)
+### 3. Update `enhanced-ai-parser` Edge Function
 
-This approach preserves the data Gemini needs while removing 60-80% of the noise. The key insight: **scripts with `src` attributes are always external bundles (safe to remove)**, while **inline scripts without src may contain data (inspect before removing)**.
+Add a new `case 'agenda':` branch in the extraction type switch. This branch uses a Gemini prompt tailored for event agendas:
+- Extracts session titles, times, locations, speakers, descriptions, categories
+- Only includes fields that are clearly present in the source
+- Does NOT fabricate or guess missing data
+- Returns `{ sessions: [...] }` instead of `{ events: [...] }`
 
-Additionally, add an **early-exit check**: if the cleaned HTML has less than 200 characters of actual text content (after stripping all tags), return an immediate error telling the user the site requires JavaScript rendering and suggesting they paste the schedule text instead. This prevents sending garbage to Gemini and waiting 60 seconds for a useless response.
+### 4. New Component: `AgendaImportModal.tsx`
 
-### Fix 2: Add 45-Second Timeout to Gemini Call
+A new modal component (similar to `CalendarImportModal`) that:
+- Supports file upload (PDF, Image), URL paste, and text paste
+- Shows the same drag-and-drop zone with format badges (PDF, Image, URL)
+- Has the same "Paste text instead" toggle
+- Preview state shows extracted sessions in a list with all available fields
+- Import action calls `useEventAgenda.addSession()` for each extracted session
+- Background import via toast (reuses the same pattern from `useBackgroundImport`)
 
-**File**: `supabase/functions/scrape-schedule/index.ts`
+### 5. Update `AgendaModal.tsx` -- Add "Import Agenda" Button
 
-The HTML fetch already has a 15-second timeout (line 97: `AbortSignal.timeout(15000)`), but the Gemini AI call on line 166 has **no timeout at all**. Add `signal: AbortSignal.timeout(45000)` to the Gemini fetch. This ensures:
+The existing "Upload" button on the right panel currently only uploads a static file for viewing. We modify this to give the organizer a **choice**:
 
-- HTML fetch: max 15 seconds
-- AI extraction: max 45 seconds  
-- Total worst case: ~60 seconds (within Supabase limits)
-- If Gemini hangs on bad HTML, the user gets a clear error instead of infinite spinning
+- **Current behavior preserved**: The "Upload" button in the Agenda File section on the right still lets organizers upload a file/image for attendees to view/download (static file viewer)
+- **New "Import Agenda" button**: Added next to "Add Session" on the left panel. Opens the new `AgendaImportModal` which extracts sessions with AI and creates them as individual agenda items
+- This gives organizers both options: a static viewable file AND/OR AI-extracted individual sessions
 
-### Fix 3: Background Import with Toast Notifications
+### 6. Background Import Hook: `useBackgroundAgendaImport.ts`
 
-This is the user-facing fix that eliminates the freeze regardless of how long the backend takes.
+Similar to `useBackgroundImport.ts` but adapted for agenda sessions:
+- Fires the URL or file parse in the background
+- Shows persistent Sonner toast: "Scanning agenda..."
+- On success: "Found X sessions" with a "Review Sessions" action button
+- Opens the `AgendaImportModal` in preview state when clicked
+- User can navigate to other event tabs while it processes
 
-**New file**: `src/features/calendar/hooks/useBackgroundImport.ts`
+### 7. Update `EnhancedAgendaTab.tsx`
 
-A hook that:
-- Accepts a URL and fires the `parseURLSchedule()` call
-- Immediately returns control to the user (they can navigate away)
-- Shows a persistent Sonner toast: "Scanning website for schedule..."
-- On success: updates toast to "Found X events from [domain]" with a "View Events" button
-- On failure: updates toast with the error message
-- Stores the parsed result so the modal can open in preview state
+Wire up the import functionality in the alternate agenda view:
+- Add "Import Agenda" button alongside "Upload Agenda" and "Add Session"
+- Same `AgendaImportModal` integration
 
-**Modified file**: `src/features/calendar/components/CalendarImportModal.tsx`
+## How the Flow Works for an Event Organizer
 
-- Add a new prop `pendingResult?: SmartParseResult` that, when provided, opens the modal directly in "preview" state (skipping the idle/parsing states)
-- Modify `handleUrlImport` to call the background hook instead of running synchronously:
-  - Close the modal
-  - Start the background import
-  - User navigates freely
-  - When the toast's "View Events" button is clicked, reopen the modal with the result
+1. Organizer clicks **"Import Agenda"** on the Agenda tab
+2. Modal opens with familiar drag-and-drop zone (same look as Calendar Import)
+3. Organizer either:
+   - Pastes a URL (e.g., `sxsw.com/schedule`)
+   - Uploads a PDF or screenshot of their agenda
+   - Toggles "Paste text instead" and pastes the schedule text
+4. Modal closes immediately (background processing)
+5. Toast shows: "Scanning sxsw.com for agenda sessions..."
+6. Organizer can navigate to Chat, Media, or any tab
+7. Toast updates: "Found 47 sessions from sxsw.com" with "Review Sessions" button
+8. Clicking "Review Sessions" opens modal in preview state showing all extracted sessions
+9. Organizer reviews and clicks "Import All" -- sessions are batch-inserted into `event_agenda_items`
+10. Speakers from imported sessions automatically populate the Lineup tab
 
-**Modified files**: `src/components/GroupCalendar.tsx` and `src/components/mobile/MobileGroupCalendar.tsx`
+## What Fields Gemini Fills (Only What's Available)
 
-- Wire the `useBackgroundImport` hook at the calendar level
-- Pass the `startBackgroundImport` function down to the modal
-- When a background result arrives and user clicks the toast action, set `showImportModal = true` and pass the pending result as a prop
+For a site like SXSW that has rich data:
+```text
+Title: "The Future of AI in Music"
+Date: 2026-03-14
+Start: 14:00
+End: 15:00
+Location: Austin Convention Center, Room 4AB
+Category: Interactive
+Speakers: ["Jane Doe", "John Smith"]
+Description: "A panel discussion exploring..."
+```
 
-### Fix 4: Content Quality Check Before Sending to AI
+For a site that only has basic info:
+```text
+Title: "Opening Ceremony"
+Start: 09:00
+Location: Main Stage
+```
 
-**File**: `supabase/functions/scrape-schedule/index.ts`
+No empty placeholders, no fabricated data.
 
-After cleaning the HTML, extract just the visible text content (strip all remaining tags) and check:
+## Files to Create/Modify
 
-1. If text content is less than 200 characters: return immediately with a helpful error -- "This website requires a browser to load its content. Try copying the schedule text from the page and pasting it instead."
-2. If text content is less than 500 characters but contains common "enable JavaScript" messages: same early exit with clear messaging
-3. Log the cleaned HTML size for debugging: `console.log('[scrape-schedule] Cleaned HTML: X chars, text content: Y chars')`
+| File | Action | Purpose |
+|------|--------|---------|
+| `supabase/functions/scrape-agenda/index.ts` | Create | New edge function for agenda URL scraping with agenda-specific Gemini prompt |
+| `src/utils/agendaImportParsers.ts` | Create | Agenda parsing utilities (file, URL, text) |
+| `src/features/calendar/hooks/useBackgroundAgendaImport.ts` | Create | Background import hook with toast notifications for agenda |
+| `src/components/events/AgendaImportModal.tsx` | Create | Import modal with drag-and-drop, URL input, preview, and batch insert |
+| `src/components/events/AgendaModal.tsx` | Modify | Add "Import Agenda" button next to "Add Session" |
+| `src/components/events/EnhancedAgendaTab.tsx` | Modify | Add "Import Agenda" button |
+| `supabase/functions/enhanced-ai-parser/index.ts` | Modify | Add `case 'agenda'` extraction type |
+| `supabase/config.toml` | Modify | Register new `scrape-agenda` function |
 
-This prevents wasting 45+ seconds on sites that clearly have no server-rendered content.
+## What This Does NOT Change
 
----
+- The existing "Upload" button for static agenda file viewing stays exactly as-is
+- Calendar import (`CalendarImportModal`) is completely untouched
+- The `scrape-schedule` edge function is untouched
+- Manual "Add Session" form remains available
+- No schema changes needed -- `event_agenda_items` already has all required columns
+- Lineup auto-population from speakers still works (existing `onLineupUpdate` callback)
 
-## Summary of Changes
-
-| File | Change | Impact |
-|------|--------|--------|
-| `supabase/functions/scrape-schedule/index.ts` | Smart HTML cleaning (keep data scripts, remove junk); 45s AI timeout; content quality check with early exit | Faster AI processing; immediate error for empty/JS-only sites; no more infinite hangs |
-| `src/features/calendar/hooks/useBackgroundImport.ts` | New hook for background URL import with toast notifications | Users can navigate away during import |
-| `src/features/calendar/components/CalendarImportModal.tsx` | Accept `pendingResult` prop; delegate URL imports to background hook | Modal closes immediately on URL import; reopens in preview state when ready |
-| `src/components/GroupCalendar.tsx` | Wire `useBackgroundImport` hook; pass result to modal | Background import persists across tab navigation |
-| `src/components/mobile/MobileGroupCalendar.tsx` | Same wiring as desktop | Mobile parity |
-
-## What This Does NOT Do (Protecting What Works)
-
-- Does NOT reduce `MAX_HTML_LENGTH` below 200,000 for cleaned HTML (preserving ability to capture full seasons)
-- Does NOT strip `<script type="application/ld+json">` or `__NEXT_DATA__` (preserving structured data extraction from sports sites)
-- Does NOT change the Gemini model or prompt (those work correctly when given good data)
-- Does NOT break existing ICS, CSV, Excel, PDF, or text import flows (those are untouched)
-
-## Expected Outcome
-
-- Sites with server-rendered content (NBA, ESPN, most schedule pages): Import completes in 5-15 seconds with cleaned HTML
-- Sites that block server fetch or require JS rendering (nursejohnnshows.com, some Squarespace sites): User gets an immediate clear error within 2-3 seconds suggesting they paste the text instead -- no more minutes of spinning
-- All URL imports run in the background: user can switch to Chat, Concierge, or any tab and get a toast when done
