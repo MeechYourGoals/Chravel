@@ -1,184 +1,100 @@
 
 
-# Speed Up Slow Travel Tabs: Payments, Places, Links, and Polls
+# Fix URL Import: Smart HTML Reduction + Background Processing
 
-## Root Cause Analysis
+## Why Your Concern About Stripping Scripts Is Correct
 
-After a deep dive into every tab's data fetching pattern, here is why some tabs load fast and others feel sluggish:
+You are right that blindly removing all `<script>` tags would break imports for many sites. Here is why:
 
-### Why Chat, Calendar, and Concierge Load Fast
-- **Chat** and **Calendar** use TanStack Query with prefetching baked in. When you open a trip, the system immediately pre-loads chat messages and calendar events in the background. By the time you tap those tabs, the data is already cached.
-- **Concierge** is stateless -- it renders instantly with no data to fetch.
+- **NBA.com, ESPN, NFL.com**: Schedule data lives inside `<script type="application/ld+json">` (structured data) or `<script id="__NEXT_DATA__">` (Next.js hydration payload). Stripping ALL scripts would delete the actual schedule data.
+- **The current 800K limit exists for a reason**: It was specifically set to handle full-season schedules (82+ NBA games) from JS-heavy sports sites.
 
-### Why Payments Is Slow (3 Sequential Waterfalls)
-The Payments tab makes **4 sequential network calls** that cannot start until the previous one finishes:
+## What Actually Happened with nursejohnnshows.com
 
-```text
-1. usePayments hook -> paymentService.getTripPaymentMessages()  [waits for auth]
-2. PaymentsTab useEffect -> tripService.getTripMembers()         [sequential]
-3. PaymentsTab useEffect -> supabase profiles query              [waits for #2]
-4. PaymentsTab useEffect -> paymentBalanceService.getBalanceSummary()  [waits for #1]
-```
+I tested this site directly -- it **cannot be fetched at all** from a server. The site either:
+- Blocks non-browser requests (bot protection / Cloudflare)
+- Requires JavaScript execution to render any content (Squarespace/Wix)
+- Returns an empty shell or redirect loop
 
-Inside `getBalanceSummary()` there are **5 more sequential queries**:
-```text
-a. auth.getUser()                    [verify auth]
-b. trip_members SELECT               [verify membership]
-c. trip_payment_messages SELECT       [get payments]
-d. payment_splits SELECT              [get splits - waits for c]
-e. profiles_public + user_payment_methods SELECT  [waits for c+d for user IDs]
-f. Currency conversion API calls      [per-currency, sequential]
-```
+This means the edge function's `fetch()` either got zero usable HTML, or got a massive Squarespace JS bundle with zero actual show data in the HTML source. Either way, Gemini received garbage and spent minutes trying to make sense of it before the Supabase edge function timed out at 60 seconds -- which is what caused the freeze on your end.
 
-That is up to **9 sequential round-trips** before anything renders. Additionally, `usePayments` uses raw `useState`/`useEffect` instead of TanStack Query, so it does not benefit from prefetching, caching, or stale-while-revalidate.
+## Revised Plan: Smart Reduction (Not Blind Stripping) + Background Processing
 
-### Why Places Is Slow (Nested Waterfalls + Links Sub-Tab Remounts)
-The Places tab has two problems:
+### Fix 1: Smart HTML Cleaning (Keep Data-Bearing Scripts, Remove Junk)
 
-1. **PlacesSection loads 3 things sequentially**: trip basecamp query, places data from `trip_link_index`, and personal basecamp -- all in separate `useEffect` calls that run one after another.
+**File**: `supabase/functions/scrape-schedule/index.ts`
 
-2. **Links sub-tab remounts every time**: When you switch between "Base Camps" and "Links" inside Places, the `LinksPanel` and `TripLinksDisplay` components are conditionally rendered (`{activeTab === 'links' && ...}`). This means **every time you click Links, it unmounts and remounts**, triggering a fresh `getTripLinks()` fetch. There is no caching or keep-alive.
+Instead of stripping ALL scripts, use a **selective** approach:
 
-3. **TripLinksDisplay uses raw useState/useEffect** instead of TanStack Query, so switching away and back always refetches from scratch.
+**KEEP these script types** (they contain actual schedule data):
+- `<script type="application/ld+json">` -- Google structured data, often has event listings
+- `<script id="__NEXT_DATA__">` -- Next.js data payload
+- `<script type="application/json">` -- generic data payloads
+- `<script>` blocks containing JSON arrays with date-like patterns
 
-### Why Polls Is Slow (Offline Cache + Mock Data Processing)
-The polls hook (`useTripPolls`) does use TanStack Query, which is good. But:
+**REMOVE these** (they are always noise):
+- `<script src="...">` -- external JS bundles (React, jQuery, analytics)
+- `<style>...</style>` -- CSS rules
+- `<svg>...</svg>` -- icon definitions
+- HTML comments `<!-- ... -->`
+- `<noscript>...</noscript>` -- fallback content
+- Inline scripts that are clearly code (containing `function(`, `var `, `window.`, etc.)
 
-1. In demo mode, it reads mock poll votes from **async platform storage** (`getStorageItem`), processes mock data, and merges storage polls -- all synchronously blocking render.
-2. In authenticated mode, it reads from **IndexedDB offline cache first** (`getCachedEntities`), which is an async operation that adds latency even when online.
-3. The prefetch for polls (`prefetchTab` in `usePrefetchTrip`) uses a **dynamic import** (`await import(...)`) before it can even start fetching, adding ~100-200ms of overhead.
+This approach preserves the data Gemini needs while removing 60-80% of the noise. The key insight: **scripts with `src` attributes are always external bundles (safe to remove)**, while **inline scripts without src may contain data (inspect before removing)**.
 
----
+Additionally, add an **early-exit check**: if the cleaned HTML has less than 200 characters of actual text content (after stripping all tags), return an immediate error telling the user the site requires JavaScript rendering and suggesting they paste the schedule text instead. This prevents sending garbage to Gemini and waiting 60 seconds for a useless response.
 
-## Fix Plan
+### Fix 2: Add 45-Second Timeout to Gemini Call
 
-### Fix 1: Convert Payments to TanStack Query with Parallel Fetching
+**File**: `supabase/functions/scrape-schedule/index.ts`
 
-**Files**: `src/hooks/usePayments.ts`, `src/components/payments/PaymentsTab.tsx`
+The HTML fetch already has a 15-second timeout (line 97: `AbortSignal.timeout(15000)`), but the Gemini AI call on line 166 has **no timeout at all**. Add `signal: AbortSignal.timeout(45000)` to the Gemini fetch. This ensures:
 
-**Current**: `usePayments` uses `useState` + `useEffect` with sequential fetches. `PaymentsTab` has 3 additional `useEffect` blocks that waterfall.
+- HTML fetch: max 15 seconds
+- AI extraction: max 45 seconds  
+- Total worst case: ~60 seconds (within Supabase limits)
+- If Gemini hangs on bad HTML, the user gets a clear error instead of infinite spinning
 
-**Change**:
-- Rewrite `usePayments` to use `useQuery` from TanStack Query with key `tripKeys.payments(tripId)`. This enables prefetching to work (the prefetch hook already targets this key but the actual hook never consumes it).
-- In `PaymentsTab`, replace the 3 separate `useEffect` calls (members, balance, profiles) with a **single parallel fetch** using `Promise.all()`:
-  ```
-  const [members, balanceSummary] = await Promise.all([
-    tripService.getTripMembers(tripId),
-    paymentBalanceService.getBalanceSummary(tripId, userId)
-  ]);
-  ```
-- Move the members query into the same TanStack Query hook (or use `useQuery` for members separately with `tripKeys.members(tripId)` which is already prefetched on trip load).
+### Fix 3: Background Import with Toast Notifications
 
-**Inside `paymentBalanceService.getBalanceSummary()`**:
-- Combine the 5 sequential queries into 2 parallel batches:
-  - Batch 1 (auth): `auth.getUser()` + `trip_members` membership check (parallel)
-  - Batch 2 (data): `trip_payment_messages` + `profiles_public` + `user_payment_methods` (parallel, after auth passes)
-  - `payment_splits` can run after we have payment IDs, but overlap with the profiles fetch
+This is the user-facing fix that eliminates the freeze regardless of how long the backend takes.
 
-This reduces the waterfall from 9 sequential calls to 3 sequential batches.
+**New file**: `src/features/calendar/hooks/useBackgroundImport.ts`
 
-### Fix 2: Keep Places Sub-Tabs Mounted (No Remount on Switch)
+A hook that:
+- Accepts a URL and fires the `parseURLSchedule()` call
+- Immediately returns control to the user (they can navigate away)
+- Shows a persistent Sonner toast: "Scanning website for schedule..."
+- On success: updates toast to "Found X events from [domain]" with a "View Events" button
+- On failure: updates toast with the error message
+- Stores the parsed result so the modal can open in preview state
 
-**File**: `src/components/PlacesSection.tsx`
+**Modified file**: `src/features/calendar/components/CalendarImportModal.tsx`
 
-**Current**: `{activeTab === 'links' && <LinksPanel ... />}` -- conditional rendering causes full remount.
+- Add a new prop `pendingResult?: SmartParseResult` that, when provided, opens the modal directly in "preview" state (skipping the idle/parsing states)
+- Modify `handleUrlImport` to call the background hook instead of running synchronously:
+  - Close the modal
+  - Start the background import
+  - User navigates freely
+  - When the toast's "View Events" button is clicked, reopen the modal with the result
 
-**Change**: Use the same `display: none` pattern already proven in `MountedTabs.tsx`:
-```
-<div style={{ display: activeTab === 'basecamps' ? 'block' : 'none' }}>
-  <BasecampsPanel ... />
-</div>
-<div style={{ display: activeTab === 'links' ? 'block' : 'none' }}>
-  <LinksPanel ... />
-</div>
-```
+**Modified files**: `src/components/GroupCalendar.tsx` and `src/components/mobile/MobileGroupCalendar.tsx`
 
-This keeps both sub-tabs mounted after first visit. Switching between "Base Camps" and "Links" becomes instant -- no refetching, no remounting.
+- Wire the `useBackgroundImport` hook at the calendar level
+- Pass the `startBackgroundImport` function down to the modal
+- When a background result arrives and user clicks the toast action, set `showImportModal = true` and pass the pending result as a prop
 
-### Fix 3: Convert TripLinksDisplay to TanStack Query
+### Fix 4: Content Quality Check Before Sending to AI
 
-**File**: `src/components/places/TripLinksDisplay.tsx`
+**File**: `supabase/functions/scrape-schedule/index.ts`
 
-**Current**: Uses `useState` + `useEffect` with `loadLinks()` that calls `getTripLinks()` on every mount.
+After cleaning the HTML, extract just the visible text content (strip all remaining tags) and check:
 
-**Change**: Replace with `useQuery`:
-```
-const { data: links = [], isLoading } = useQuery({
-  queryKey: ['tripLinks', tripId],
-  queryFn: () => getTripLinks(tripId, isDemoMode),
-  staleTime: 2 * 60 * 1000,  // 2 minutes
-  gcTime: 10 * 60 * 1000,     // 10 minutes
-});
-```
+1. If text content is less than 200 characters: return immediately with a helpful error -- "This website requires a browser to load its content. Try copying the schedule text from the page and pasting it instead."
+2. If text content is less than 500 characters but contains common "enable JavaScript" messages: same early exit with clear messaging
+3. Log the cleaned HTML size for debugging: `console.log('[scrape-schedule] Cleaned HTML: X chars, text content: Y chars')`
 
-Benefits: cached across remounts, prefetchable, stale-while-revalidate behavior. Combined with Fix 2 (keep mounted), the Links panel will load once and stay cached.
-
-### Fix 4: Parallel Data Loading in PlacesSection
-
-**File**: `src/components/PlacesSection.tsx`
-
-**Current**: Three separate `useEffect` blocks that each independently fetch data (places, personal basecamp, realtime subscription). The places fetch and personal basecamp fetch run in parallel by accident (separate effects) but both block their own render paths.
-
-**Change**: Combine the places + personal basecamp fetches into a single `useEffect` with `Promise.all()`:
-```
-useEffect(() => {
-  const loadData = async () => {
-    const [placesResult, basecampResult] = await Promise.all([
-      loadPlaces(),
-      loadPersonalBasecamp()
-    ]);
-    setPlaces(placesResult);
-    setPersonalBasecamp(basecampResult);
-  };
-  loadData();
-}, [tripId, isDemoMode]);
-```
-
-### Fix 5: Remove Polls Offline-Cache Overhead When Online
-
-**File**: `src/hooks/useTripPolls.ts`
-
-**Current**: Even when online, the polls query first reads from IndexedDB cache (`getCachedEntities`), adding ~50-200ms of latency before the actual Supabase fetch starts.
-
-**Change**: Skip the IndexedDB read when `navigator.onLine === true`:
-```
-// Only read from cache when offline
-if (navigator.onLine === false) {
-  const cachedEntities = await getCachedEntities(...);
-  if (cachedEntities.length > 0) return cachedPolls;
-}
-
-// Online: go straight to Supabase
-const { data, error } = await supabase.from('trip_polls')...
-```
-
-Still cache results for offline use after fetching, but don't block the online path.
-
-### Fix 6: Add Places to Prefetch Pipeline
-
-**File**: `src/hooks/usePrefetchTrip.ts`
-
-**Current**: The `prefetchTab` function has `case 'places': break;` (no-op). Places data is never prefetched.
-
-**Change**: Add prefetch for trip links when hovering/visiting the Places tab:
-```
-case 'places': {
-  queryClient.prefetchQuery({
-    queryKey: ['tripLinks', tripId],
-    queryFn: () => getTripLinks(tripId, false),
-    staleTime: QUERY_CACHE_CONFIG.places.staleTime,
-  });
-  break;
-}
-```
-
-### Fix 7: Remove Dynamic Imports from Prefetch
-
-**File**: `src/hooks/usePrefetchTrip.ts`
-
-**Current**: Several prefetch cases use `await import(...)` before they can start fetching. This adds module-load latency to what should be a fast cache-warming operation.
-
-**Change**: Import `supabase` at the top of the file (it is already imported transitively through services) and use it directly in prefetch cases, removing the 5 dynamic imports.
+This prevents wasting 45+ seconds on sites that clearly have no server-rendered content.
 
 ---
 
@@ -186,13 +102,21 @@ case 'places': {
 
 | File | Change | Impact |
 |------|--------|--------|
-| `src/hooks/usePayments.ts` | Convert to TanStack Query | Payments benefits from prefetch cache; no re-fetch on tab revisit |
-| `src/components/payments/PaymentsTab.tsx` | `Promise.all()` for members + balance | Removes 3 sequential waterfalls |
-| `src/services/paymentBalanceService.ts` | Parallel query batches inside `getBalanceSummary` | Cuts 9 round-trips to 3 batches |
-| `src/components/PlacesSection.tsx` | `display:none` instead of conditional render; `Promise.all()` for parallel loading | Instant sub-tab switching; faster initial load |
-| `src/components/places/TripLinksDisplay.tsx` | Convert to `useQuery` | Links cached across visits; prefetchable |
-| `src/hooks/useTripPolls.ts` | Skip IndexedDB read when online | Removes 50-200ms overhead for polls |
-| `src/hooks/usePrefetchTrip.ts` | Add places prefetch; remove dynamic imports | Places data pre-warmed; faster prefetch across all tabs |
+| `supabase/functions/scrape-schedule/index.ts` | Smart HTML cleaning (keep data scripts, remove junk); 45s AI timeout; content quality check with early exit | Faster AI processing; immediate error for empty/JS-only sites; no more infinite hangs |
+| `src/features/calendar/hooks/useBackgroundImport.ts` | New hook for background URL import with toast notifications | Users can navigate away during import |
+| `src/features/calendar/components/CalendarImportModal.tsx` | Accept `pendingResult` prop; delegate URL imports to background hook | Modal closes immediately on URL import; reopens in preview state when ready |
+| `src/components/GroupCalendar.tsx` | Wire `useBackgroundImport` hook; pass result to modal | Background import persists across tab navigation |
+| `src/components/mobile/MobileGroupCalendar.tsx` | Same wiring as desktop | Mobile parity |
 
-**Expected outcome**: Every tab (Chat, Calendar, Concierge, Media, Payments, Places, Polls, Tasks) loads within 200-300ms of first click. Links and Base Camps sub-tabs within Places switch instantly. Revisiting any tab is near-instant due to TanStack Query cache.
+## What This Does NOT Do (Protecting What Works)
 
+- Does NOT reduce `MAX_HTML_LENGTH` below 200,000 for cleaned HTML (preserving ability to capture full seasons)
+- Does NOT strip `<script type="application/ld+json">` or `__NEXT_DATA__` (preserving structured data extraction from sports sites)
+- Does NOT change the Gemini model or prompt (those work correctly when given good data)
+- Does NOT break existing ICS, CSV, Excel, PDF, or text import flows (those are untouched)
+
+## Expected Outcome
+
+- Sites with server-rendered content (NBA, ESPN, most schedule pages): Import completes in 5-15 seconds with cleaned HTML
+- Sites that block server fetch or require JS rendering (nursejohnnshows.com, some Squarespace sites): User gets an immediate clear error within 2-3 seconds suggesting they paste the text instead -- no more minutes of spinning
+- All URL imports run in the background: user can switch to Chat, Concierge, or any tab and get a toast when done
