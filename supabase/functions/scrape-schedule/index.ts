@@ -1,12 +1,11 @@
 /**
  * Scrape Schedule Edge Function
  *
- * Fetches webpage HTML from a URL, sends it to Gemini for extraction,
+ * Fetches webpage HTML from a URL, sends raw HTML to Gemini for extraction,
  * and returns structured schedule events (future-only).
  *
- * Uses smart HTML cleaning to preserve data-bearing scripts while
- * removing junk (external bundles, CSS, SVGs). Includes content quality
- * checks and AI timeout for reliability.
+ * Sends raw HTML to Gemini (up to 1M chars) — no cleaning/stripping.
+ * Includes 45s AI timeout and 15s fetch timeout for reliability.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -24,99 +23,8 @@ interface ScheduleEvent {
   location?: string;
 }
 
-// ─── Smart HTML Cleaning ─────────────────────────────────────────────────────
-
-/**
- * Selectively clean HTML: keep data-bearing scripts, remove noise.
- *
- * KEEPS:
- * - <script type="application/ld+json"> (Google structured data)
- * - <script id="__NEXT_DATA__"> (Next.js hydration payload)
- * - <script type="application/json"> (generic data payloads)
- * - Inline scripts containing JSON-like data with date patterns
- *
- * REMOVES:
- * - <script src="..."> (external JS bundles)
- * - <style>...</style> (CSS rules)
- * - <svg>...</svg> (icon definitions)
- * - <noscript>...</noscript> (fallback content)
- * - HTML comments
- * - Inline scripts that are clearly code (function(, var , window., etc.)
- */
-function smartCleanHtml(rawHtml: string): string {
-  let html = rawHtml;
-
-  // 1. Extract and preserve data-bearing scripts before cleaning
-  const preservedScripts: string[] = [];
-
-  // Preserve <script type="application/ld+json">...</script>
-  const ldJsonRegex = /<script[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let match: RegExpExecArray | null;
-  while ((match = ldJsonRegex.exec(html)) !== null) {
-    preservedScripts.push(`<!-- PRESERVED_LD_JSON -->\n${match[1]}\n<!-- /PRESERVED_LD_JSON -->`);
-  }
-
-  // Preserve <script id="__NEXT_DATA__">...</script>
-  const nextDataRegex = /<script[^>]*id\s*=\s*["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/gi;
-  while ((match = nextDataRegex.exec(html)) !== null) {
-    preservedScripts.push(`<!-- PRESERVED_NEXT_DATA -->\n${match[1]}\n<!-- /PRESERVED_NEXT_DATA -->`);
-  }
-
-  // Preserve <script type="application/json">...</script>
-  const appJsonRegex = /<script[^>]*type\s*=\s*["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  while ((match = appJsonRegex.exec(html)) !== null) {
-    preservedScripts.push(`<!-- PRESERVED_APP_JSON -->\n${match[1]}\n<!-- /PRESERVED_APP_JSON -->`);
-  }
-
-  // 2. Remove external script bundles (<script src="...">)
-  html = html.replace(/<script[^>]*\bsrc\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/script>/gi, '');
-
-  // 3. Remove inline scripts that are clearly code (not data)
-  // Match <script> blocks and check content for code patterns
-  html = html.replace(/<script(?![^>]*type\s*=\s*["']application\/(ld\+json|json)["'])(?![^>]*id\s*=\s*["']__NEXT_DATA__["'])[^>]*>([\s\S]*?)<\/script>/gi, (_fullMatch, _attrs, content) => {
-    const trimmed = (content || '').trim();
-    // Keep if it looks like JSON data (starts with { or [)
-    if (/^\s*[\[{]/.test(trimmed) && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(trimmed)) {
-      preservedScripts.push(`<!-- PRESERVED_DATA_SCRIPT -->\n${trimmed}\n<!-- /PRESERVED_DATA_SCRIPT -->`);
-      return '';
-    }
-    // Remove if it's clearly code
-    return '';
-  });
-
-  // 4. Remove <style>...</style>
-  html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-
-  // 5. Remove <svg>...</svg>
-  html = html.replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, '');
-
-  // 6. Remove <noscript>...</noscript>
-  html = html.replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '');
-
-  // 7. Remove HTML comments (but not our preserved markers)
-  html = html.replace(/<!--(?!\s*\/?PRESERVED_)[\s\S]*?-->/g, '');
-
-  // 8. Collapse excessive whitespace (3+ newlines → 2)
-  html = html.replace(/\n{3,}/g, '\n\n');
-  html = html.replace(/[ \t]{3,}/g, '  ');
-
-  // 9. Append preserved data scripts at the end
-  if (preservedScripts.length > 0) {
-    html += '\n\n' + preservedScripts.join('\n\n');
-  }
-
-  return html.trim();
-}
-
-/**
- * Extract visible text from HTML (strip all tags) for content quality check.
- */
-function extractTextContent(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+/** Max characters of raw HTML to send to Gemini (1M token model) */
+const MAX_HTML_LENGTH = 1_000_000;
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -180,7 +88,7 @@ serve(async (req) => {
 
     console.log(`[scrape-schedule] Fetching URL: ${url}`);
 
-    // ── Fetch the webpage ──
+    // ── Fetch the webpage (15s timeout) ──
     let html: string;
     try {
       const pageResponse = await fetch(url, {
@@ -217,47 +125,16 @@ serve(async (req) => {
 
     console.log(`[scrape-schedule] Raw HTML: ${html.length} characters`);
 
-    // ── Smart HTML Cleaning ──
-    const cleanedHtml = smartCleanHtml(html);
-    console.log(`[scrape-schedule] Cleaned HTML: ${cleanedHtml.length} characters (${Math.round((1 - cleanedHtml.length / html.length) * 100)}% reduction)`);
-
-    // ── Content Quality Check ──
-    const textContent = extractTextContent(cleanedHtml);
-    console.log(`[scrape-schedule] Text content: ${textContent.length} characters`);
-
-    if (textContent.length < 200) {
-      console.log(`[scrape-schedule] Too little text content (${textContent.length} chars), early exit`);
-      return new Response(
-        JSON.stringify({
-          error: 'This website requires a browser to load its content. Try copying the schedule text from the page and pasting it instead.',
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    // Check for common "enable JavaScript" messages
-    const jsRequiredPatterns = /enable javascript|javascript is required|javascript must be enabled|please turn on javascript|browser doesn.t support/i;
-    if (textContent.length < 500 && jsRequiredPatterns.test(textContent)) {
-      console.log(`[scrape-schedule] JS-required page detected, early exit`);
-      return new Response(
-        JSON.stringify({
-          error: 'This website requires JavaScript to display its content. Try copying the schedule text from the page and pasting it instead.',
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    // Apply size limit to cleaned HTML (200K is plenty for cleaned content)
-    const MAX_HTML_LENGTH = 200000;
-    let finalHtml = cleanedHtml;
+    // ── Cap raw HTML at 1M characters (no cleaning) ──
+    let finalHtml = html;
     if (finalHtml.length > MAX_HTML_LENGTH) {
-      console.log(`[scrape-schedule] Truncating cleaned HTML from ${finalHtml.length} to ${MAX_HTML_LENGTH} chars`);
+      console.log(`[scrape-schedule] Truncating raw HTML from ${finalHtml.length} to ${MAX_HTML_LENGTH} chars`);
       finalHtml = finalHtml.substring(0, MAX_HTML_LENGTH);
     }
 
-    console.log(`[scrape-schedule] Final HTML for AI: ${finalHtml.length} characters`);
+    console.log(`[scrape-schedule] Sending ${finalHtml.length} chars to Gemini`);
 
-    // ── Send to Gemini for extraction ──
+    // ── Send to Gemini for extraction (45s timeout) ──
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: 'AI service not configured' }), {
@@ -284,6 +161,7 @@ CRITICAL RULES:
 4. If no start time is clearly listed on the page, OMIT start_time entirely. Do NOT guess times.
 5. Return ONLY a valid JSON array of objects. No markdown, no explanation, just the JSON array.
 6. If no schedule/events are found, return an empty array: []
+7. Look through ALL the HTML content including embedded scripts, JSON data, and structured data to find events.
 
 Example output:
 [
@@ -291,7 +169,6 @@ Example output:
   {"title": "Pacers at Lakers", "date": "2026-02-15", "location": "Lakers"}
 ]`;
 
-    // 45-second timeout on AI call to prevent indefinite hangs
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
