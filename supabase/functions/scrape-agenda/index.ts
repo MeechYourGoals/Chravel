@@ -1,15 +1,13 @@
 /**
  * Scrape Agenda Edge Function
  *
- * Fetches webpage HTML from a URL, sends raw HTML to Gemini for extraction,
- * and returns structured agenda sessions for event organizers.
+ * Uses Firecrawl (headless browser) as primary scraper for full JS rendering,
+ * falls back to raw fetch() for sites that don't need JS.
+ * Sends content to Gemini for structured agenda session extraction.
  *
  * Key differences from scrape-schedule:
  * - Returns agenda-specific fields: title, description, date, start_time, end_time, location, track, speakers
- * - Gemini prompt fills ONLY fields clearly present in the source (no guessing)
  * - Does NOT filter by future dates (conferences may list undated sessions)
- * - Sends raw HTML to Gemini (up to 1M chars) — no cleaning/stripping
- * - 45s AI timeout, 15s fetch timeout
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -31,8 +29,93 @@ interface AgendaSession {
   speakers?: string[];
 }
 
-/** Max characters of raw HTML to send to Gemini (1M token model) */
-const MAX_HTML_LENGTH = 1_000_000;
+/** Max characters of content to send to Gemini */
+const MAX_CONTENT_LENGTH = 1_000_000;
+
+/**
+ * Attempt to scrape a URL using Firecrawl's headless browser.
+ * Returns rendered markdown content, or null if Firecrawl is not configured or fails.
+ */
+async function scrapeWithFirecrawl(url: string): Promise<{ markdown: string; method: 'firecrawl' } | null> {
+  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+  if (!apiKey) {
+    console.log('[scrape-agenda] FIRECRAWL_API_KEY not set, skipping Firecrawl');
+    return null;
+  }
+
+  try {
+    console.log('[scrape-agenda] Attempting Firecrawl scrape...');
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url,
+        formats: ['markdown'],
+        onlyMainContent: true,
+        waitFor: 3000, // Wait 3s for JS to render
+      }),
+      signal: AbortSignal.timeout(20000), // 20s timeout for Firecrawl
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`[scrape-agenda] Firecrawl error ${response.status}:`, errorData);
+      return null;
+    }
+
+    const data = await response.json();
+    const markdown = data?.data?.markdown || data?.markdown || '';
+
+    if (!markdown || markdown.trim().length < 50) {
+      console.log('[scrape-agenda] Firecrawl returned empty/minimal content, falling back');
+      return null;
+    }
+
+    console.log(`[scrape-agenda] Firecrawl success: ${markdown.length} chars of markdown`);
+    return { markdown, method: 'firecrawl' };
+  } catch (err) {
+    console.error('[scrape-agenda] Firecrawl failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Fallback: fetch raw HTML with browser-like headers.
+ */
+async function scrapeWithFetch(url: string): Promise<{ html: string; method: 'fetch' } | null> {
+  try {
+    console.log('[scrape-agenda] Falling back to raw fetch...');
+    const pageResponse = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'no-cache',
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!pageResponse.ok) {
+      console.error(`[scrape-agenda] HTTP ${pageResponse.status} from ${url}`);
+      return null;
+    }
+
+    const html = await pageResponse.text();
+    console.log(`[scrape-agenda] Raw fetch: ${html.length} chars`);
+    return { html, method: 'fetch' };
+  } catch (err) {
+    console.error('[scrape-agenda] Fetch error:', err);
+    return null;
+  }
+}
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -85,52 +168,37 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[scrape-agenda] Fetching URL: ${url}`);
+    console.log(`[scrape-agenda] Processing URL: ${url}`);
 
-    // ── Fetch the webpage (15s timeout) ──
-    let html: string;
-    try {
-      const pageResponse = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Sec-Fetch-User': '?1',
-          'Cache-Control': 'no-cache',
-        },
-        signal: AbortSignal.timeout(15000),
-      });
+    // ── Scrape: Firecrawl first, then raw fetch fallback ──
+    let contentForAI = '';
+    let scrapeMethod = 'unknown';
 
-      if (!pageResponse.ok) {
-        console.error(`[scrape-agenda] HTTP ${pageResponse.status} from ${url}`);
+    const firecrawlResult = await scrapeWithFirecrawl(url);
+    if (firecrawlResult) {
+      contentForAI = firecrawlResult.markdown;
+      scrapeMethod = 'firecrawl';
+    } else {
+      const fetchResult = await scrapeWithFetch(url);
+      if (!fetchResult) {
         return new Response(
-          JSON.stringify({ error: `Could not access this website (HTTP ${pageResponse.status}). Try uploading a screenshot or PDF instead.` }),
+          JSON.stringify({
+            error: 'Could not access this website. The site may block automated requests. Try uploading a screenshot or PDF instead.',
+          }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
-
-      html = await pageResponse.text();
-    } catch (fetchErr) {
-      console.error(`[scrape-agenda] Fetch error:`, fetchErr);
-      return new Response(
-        JSON.stringify({ error: 'Could not access this website. The site may block automated requests. Try uploading a screenshot or PDF instead.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      contentForAI = fetchResult.html;
+      scrapeMethod = 'fetch';
     }
 
-    console.log(`[scrape-agenda] Raw HTML: ${html.length} characters`);
-
-    // ── Cap raw HTML at 1M characters (no cleaning) ──
-    let finalHtml = html;
-    if (finalHtml.length > MAX_HTML_LENGTH) {
-      console.log(`[scrape-agenda] Truncating raw HTML from ${finalHtml.length} to ${MAX_HTML_LENGTH} chars`);
-      finalHtml = finalHtml.substring(0, MAX_HTML_LENGTH);
+    // ── Cap content ──
+    if (contentForAI.length > MAX_CONTENT_LENGTH) {
+      console.log(`[scrape-agenda] Truncating from ${contentForAI.length} to ${MAX_CONTENT_LENGTH} chars`);
+      contentForAI = contentForAI.substring(0, MAX_CONTENT_LENGTH);
     }
 
-    console.log(`[scrape-agenda] Sending ${finalHtml.length} chars to Gemini`);
+    console.log(`[scrape-agenda] Sending ${contentForAI.length} chars to Gemini (via ${scrapeMethod})`);
 
     // ── Send to Gemini for extraction (45s timeout) ──
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -141,9 +209,11 @@ serve(async (req) => {
       });
     }
 
+    const contentType = scrapeMethod === 'firecrawl' ? 'rendered webpage content (markdown)' : 'webpage HTML';
+
     const systemPrompt = `You are an expert at extracting event agenda sessions, show dates, tour dates, and scheduled performances from websites.
 
-Extract ALL sessions, talks, panels, workshops, performances, shows, tour dates, and scheduled items from this webpage.
+Extract ALL sessions, talks, panels, workshops, performances, shows, tour dates, and scheduled items from this ${contentType}.
 
 For each session, extract ONLY the fields that are CLEARLY PRESENT in the source. Do NOT guess, fabricate, or infer missing data.
 
@@ -165,7 +235,7 @@ CRITICAL RULES:
 5. Return ONLY a valid JSON array of objects. No markdown, no explanation, just the JSON array.
 6. If no sessions are found, return an empty array: []
 7. Extract ALL sessions, not just a sample. Include every session you can find.
-8. Look through ALL the HTML content including embedded scripts, JSON data, __NEXT_DATA__, application/ld+json, and structured data to find events.
+8. Look through ALL the content to find events — check every section, table, list, and data block.
 9. For tour/show websites, each show date at a different venue counts as a separate session.
 
 Example output (showing different levels of available data):
@@ -186,7 +256,7 @@ Example output (showing different levels of available data):
         model: 'google/gemini-3-flash-preview',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Extract ALL agenda sessions, show dates, and scheduled events from this webpage HTML:\n\n${finalHtml}` },
+          { role: 'user', content: `Extract ALL agenda sessions, show dates, and scheduled events from this ${contentType}:\n\n${contentForAI}` },
         ],
         temperature: 0.1,
         max_tokens: 32000,
@@ -264,28 +334,16 @@ Example output (showing different levels of available data):
       );
     }
 
-    console.log(`[scrape-agenda] Found ${sessions.length} sessions`);
+    console.log(`[scrape-agenda] Found ${sessions.length} sessions (via ${scrapeMethod})`);
 
     if (sessions.length === 0) {
-      // Check if site is JS-rendered (common SPA patterns)
-      const isJsRendered =
-        (html.includes('__NEXT_DATA__') && !html.includes('"props":{"pageProps":{')) ||
-        (html.includes('<div id="root"></div>') || html.includes('<div id="app"></div>')) ||
-        (html.includes('<noscript>') && html.includes('JavaScript')) ||
-        (html.includes('window.__INITIAL_STATE__') && html.length < 100000) ||
-        (html.includes('react-root') && !html.includes('<article'));
-
-      const errorMessage = isJsRendered
-        ? 'This website loads its content dynamically with JavaScript and can\'t be read by our scanner. Try one of these alternatives:\n\n1. Copy the agenda text from the page and paste it\n2. Take a screenshot of the agenda and upload it using "Upload Image"'
-        : 'No agenda sessions found on this page. Make sure the URL points to an agenda or schedule page.';
-
       return new Response(
         JSON.stringify({
           success: false,
-          error: errorMessage,
+          error: 'No agenda sessions found on this page. Make sure the URL points to an agenda or schedule page.',
           sessions: [],
           source_url: url,
-          is_js_rendered: isJsRendered,
+          scrape_method: scrapeMethod,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
@@ -297,14 +355,15 @@ Example output (showing different levels of available data):
         sessions,
         sessions_found: sessions.length,
         source_url: url,
+        scrape_method: scrapeMethod,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     if (error instanceof DOMException && error.name === 'TimeoutError') {
-      console.error('[scrape-agenda] AI request timed out after 45s');
+      console.error('[scrape-agenda] Request timed out');
       return new Response(
-        JSON.stringify({ error: 'The AI took too long to process this page. Try a simpler URL or upload a screenshot/PDF instead.' }),
+        JSON.stringify({ error: 'The request took too long to process. Try a simpler URL or upload a screenshot/PDF instead.' }),
         { status: 408, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
       );
     }
