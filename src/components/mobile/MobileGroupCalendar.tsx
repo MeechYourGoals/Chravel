@@ -29,6 +29,7 @@ import {
 import { CreateEventModal } from './CreateEventModal';
 import { CalendarImportModal } from '@/features/calendar/components/CalendarImportModal';
 import { useCalendarEvents } from '@/features/calendar/hooks/useCalendarEvents';
+import { useBackgroundImport } from '@/features/calendar/hooks/useBackgroundImport';
 import { toast } from 'sonner';
 import { calendarExporter } from '../../utils/calendarExport';
 import { openOrDownloadBlob } from '../../utils/download';
@@ -81,6 +82,21 @@ export const MobileGroupCalendar = ({
   const [editingEvent, setEditingEvent] = useState<any>(null);
   // Internal view mode state when no external handler provided
   const [internalViewMode, setInternalViewMode] = useState<CalendarViewMode>('list');
+
+  // Background URL import
+  const {
+    pendingResult: backgroundPendingResult,
+    startImport: startBackgroundImport,
+    clearResult: clearBackgroundResult,
+  } = useBackgroundImport();
+
+  const handleBackgroundImportComplete = useCallback(() => {
+    setIsImportModalOpen(true);
+  }, []);
+
+  const handleStartBackgroundImport = useCallback((url: string) => {
+    startBackgroundImport(url, handleBackgroundImportComplete);
+  }, [startBackgroundImport, handleBackgroundImportComplete]);
 
   // Use external view mode if provided, otherwise use internal state
   const currentViewMode = externalViewMode ?? internalViewMode;
@@ -629,6 +645,9 @@ export const MobileGroupCalendar = ({
         tripId={tripId}
         existingEvents={tripEvents}
         onImportComplete={handleImportComplete}
+        pendingResult={backgroundPendingResult}
+        onClearPendingResult={clearBackgroundResult}
+        onStartBackgroundImport={handleStartBackgroundImport}
       />
 
       {/* Event Detail Drawer */}
