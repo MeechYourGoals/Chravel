@@ -1,14 +1,15 @@
 /**
  * Scrape Agenda Edge Function
  *
- * Fetches webpage HTML from a URL, sends it to Gemini for extraction,
+ * Fetches webpage HTML from a URL, sends raw HTML to Gemini for extraction,
  * and returns structured agenda sessions for event organizers.
  *
  * Key differences from scrape-schedule:
  * - Returns agenda-specific fields: title, description, date, start_time, end_time, location, track, speakers
  * - Gemini prompt fills ONLY fields clearly present in the source (no guessing)
  * - Does NOT filter by future dates (conferences may list undated sessions)
- * - Uses same smart HTML cleaning, 45s AI timeout, content quality check
+ * - Sends raw HTML to Gemini (up to 1M chars) — no cleaning/stripping
+ * - 45s AI timeout, 15s fetch timeout
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -30,62 +31,8 @@ interface AgendaSession {
   speakers?: string[];
 }
 
-// ─── Smart HTML Cleaning (shared logic with scrape-schedule) ─────────────────
-
-function smartCleanHtml(rawHtml: string): string {
-  let html = rawHtml;
-
-  const preservedScripts: string[] = [];
-
-  // Preserve <script type="application/ld+json">
-  const ldJsonRegex = /<script[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let match: RegExpExecArray | null;
-  while ((match = ldJsonRegex.exec(html)) !== null) {
-    preservedScripts.push(`<!-- PRESERVED_LD_JSON -->\n${match[1]}\n<!-- /PRESERVED_LD_JSON -->`);
-  }
-
-  // Preserve <script id="__NEXT_DATA__">
-  const nextDataRegex = /<script[^>]*id\s*=\s*["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/gi;
-  while ((match = nextDataRegex.exec(html)) !== null) {
-    preservedScripts.push(`<!-- PRESERVED_NEXT_DATA -->\n${match[1]}\n<!-- /PRESERVED_NEXT_DATA -->`);
-  }
-
-  // Preserve <script type="application/json">
-  const appJsonRegex = /<script[^>]*type\s*=\s*["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  while ((match = appJsonRegex.exec(html)) !== null) {
-    preservedScripts.push(`<!-- PRESERVED_APP_JSON -->\n${match[1]}\n<!-- /PRESERVED_APP_JSON -->`);
-  }
-
-  // Remove external script bundles
-  html = html.replace(/<script[^>]*\bsrc\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/script>/gi, '');
-
-  // Remove inline scripts that are clearly code
-  html = html.replace(/<script(?![^>]*type\s*=\s*["']application\/(ld\+json|json)["'])(?![^>]*id\s*=\s*["']__NEXT_DATA__["'])[^>]*>([\s\S]*?)<\/script>/gi, (_fullMatch, _attrs, content) => {
-    const trimmed = (content || '').trim();
-    if (/^\s*[\[{]/.test(trimmed) && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(trimmed)) {
-      preservedScripts.push(`<!-- PRESERVED_DATA_SCRIPT -->\n${trimmed}\n<!-- /PRESERVED_DATA_SCRIPT -->`);
-      return '';
-    }
-    return '';
-  });
-
-  html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-  html = html.replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, '');
-  html = html.replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '');
-  html = html.replace(/<!--(?!\s*\/?PRESERVED_)[\s\S]*?-->/g, '');
-  html = html.replace(/\n{3,}/g, '\n\n');
-  html = html.replace(/[ \t]{3,}/g, '  ');
-
-  if (preservedScripts.length > 0) {
-    html += '\n\n' + preservedScripts.join('\n\n');
-  }
-
-  return html.trim();
-}
-
-function extractTextContent(html: string): string {
-  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-}
+/** Max characters of raw HTML to send to Gemini (1M token model) */
+const MAX_HTML_LENGTH = 1_000_000;
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -140,7 +87,7 @@ serve(async (req) => {
 
     console.log(`[scrape-agenda] Fetching URL: ${url}`);
 
-    // ── Fetch the webpage ──
+    // ── Fetch the webpage (15s timeout) ──
     let html: string;
     try {
       const pageResponse = await fetch(url, {
@@ -171,37 +118,16 @@ serve(async (req) => {
 
     console.log(`[scrape-agenda] Raw HTML: ${html.length} characters`);
 
-    // ── Smart HTML Cleaning ──
-    const cleanedHtml = smartCleanHtml(html);
-    console.log(`[scrape-agenda] Cleaned HTML: ${cleanedHtml.length} characters (${Math.round((1 - cleanedHtml.length / html.length) * 100)}% reduction)`);
-
-    // ── Content Quality Check ──
-    const textContent = extractTextContent(cleanedHtml);
-    console.log(`[scrape-agenda] Text content: ${textContent.length} characters`);
-
-    if (textContent.length < 200) {
-      return new Response(
-        JSON.stringify({ error: 'This website requires a browser to load its content. Try uploading a screenshot or PDF of the agenda instead.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    const jsRequiredPatterns = /enable javascript|javascript is required|javascript must be enabled|please turn on javascript|browser doesn.t support/i;
-    if (textContent.length < 500 && jsRequiredPatterns.test(textContent)) {
-      return new Response(
-        JSON.stringify({ error: 'This website requires JavaScript to display its content. Try uploading a screenshot or PDF of the agenda instead.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
-
-    const MAX_HTML_LENGTH = 200000;
-    let finalHtml = cleanedHtml;
+    // ── Cap raw HTML at 1M characters (no cleaning) ──
+    let finalHtml = html;
     if (finalHtml.length > MAX_HTML_LENGTH) {
-      console.log(`[scrape-agenda] Truncating cleaned HTML from ${finalHtml.length} to ${MAX_HTML_LENGTH} chars`);
+      console.log(`[scrape-agenda] Truncating raw HTML from ${finalHtml.length} to ${MAX_HTML_LENGTH} chars`);
       finalHtml = finalHtml.substring(0, MAX_HTML_LENGTH);
     }
 
-    // ── Send to Gemini for extraction ──
+    console.log(`[scrape-agenda] Sending ${finalHtml.length} chars to Gemini`);
+
+    // ── Send to Gemini for extraction (45s timeout) ──
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: 'AI service not configured' }), {
@@ -210,21 +136,21 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = `You are an expert at extracting event agenda sessions from conference and event websites.
+    const systemPrompt = `You are an expert at extracting event agenda sessions, show dates, tour dates, and scheduled performances from websites.
 
-Extract ALL sessions, talks, panels, workshops, performances, and scheduled items from this webpage.
+Extract ALL sessions, talks, panels, workshops, performances, shows, tour dates, and scheduled items from this webpage.
 
 For each session, extract ONLY the fields that are CLEARLY PRESENT in the source. Do NOT guess, fabricate, or infer missing data.
 
 Available fields:
-- title (REQUIRED): The session/talk/panel name exactly as shown
+- title (REQUIRED): The session/talk/show/performance name exactly as shown
 - description: Session description IF explicitly present. OMIT if not shown.
 - session_date: YYYY-MM-DD format IF a specific date is shown. OMIT if not shown.
 - start_time: HH:MM in 24-hour format IF clearly listed. OMIT if not shown.
 - end_time: HH:MM in 24-hour format IF clearly listed. OMIT if not shown.
-- location: Room name, stage name, or venue IF shown. OMIT if not shown.
+- location: Room name, stage name, venue, or city IF shown. OMIT if not shown.
 - track: Category/track name IF shown (e.g., "Interactive", "Music", "Workshop", "Main Stage"). OMIT if not shown.
-- speakers: Array of speaker/presenter names IF listed. OMIT if not shown.
+- speakers: Array of speaker/presenter/performer names IF listed. OMIT if not shown.
 
 CRITICAL RULES:
 1. Only include fields that are EXPLICITLY present in the source material.
@@ -234,10 +160,13 @@ CRITICAL RULES:
 5. Return ONLY a valid JSON array of objects. No markdown, no explanation, just the JSON array.
 6. If no sessions are found, return an empty array: []
 7. Extract ALL sessions, not just a sample. Include every session you can find.
+8. Look through ALL the HTML content including embedded scripts, JSON data, __NEXT_DATA__, application/ld+json, and structured data to find events.
+9. For tour/show websites, each show date at a different venue counts as a separate session.
 
 Example output (showing different levels of available data):
 [
   {"title": "The Future of AI in Music", "session_date": "2026-03-14", "start_time": "14:00", "end_time": "15:00", "location": "Room 4AB", "track": "Interactive", "speakers": ["Jane Doe", "John Smith"], "description": "A panel discussion exploring how AI is transforming music creation."},
+  {"title": "Nurse John Live", "session_date": "2026-05-10", "start_time": "20:00", "location": "The Improv, Hollywood CA"},
   {"title": "Opening Ceremony", "start_time": "09:00", "location": "Main Stage"},
   {"title": "Networking Lunch"}
 ]`;
@@ -252,7 +181,7 @@ Example output (showing different levels of available data):
         model: 'google/gemini-3-flash-preview',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Extract ALL agenda sessions from this event webpage HTML:\n\n${finalHtml}` },
+          { role: 'user', content: `Extract ALL agenda sessions, show dates, and scheduled events from this webpage HTML:\n\n${finalHtml}` },
         ],
         temperature: 0.1,
         max_tokens: 32000,
