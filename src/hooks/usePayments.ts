@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '../services/paymentService';
 import { PaymentMethod, PaymentMessage } from '../types/payments';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
 import { demoModeService } from '../services/demoModeService';
+import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 
 export const usePayments = (tripId?: string) => {
+  const queryClient = useQueryClient();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [tripPayments, setTripPayments] = useState<PaymentMessage[]>([]);
-  const [paymentsLoading, setPaymentsLoading] = useState(true);
   const [methodsLoading, setMethodsLoading] = useState(false);
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
@@ -22,7 +23,41 @@ export const usePayments = (tripId?: string) => {
   const isDemoTrip = isNumericOnly && !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
   const demoActive = isDemoMode && isDemoTrip;
 
-  // Load user payment methods
+  // ⚡ Trip payments via TanStack Query — enables prefetch cache + stale-while-revalidate
+  const { data: tripPayments = [], isLoading: paymentsLoading } = useQuery({
+    queryKey: tripKeys.payments(tripId || ''),
+    queryFn: async (): Promise<PaymentMessage[]> => {
+      if (!tripId) return [];
+
+      if (demoActive) {
+        const mockPayments = demoModeService.getMockPayments(tripId, false);
+        const sessionPayments = demoModeService.getSessionPayments(tripId);
+
+        return [...mockPayments, ...sessionPayments].map(p => ({
+          id: p.id,
+          tripId: p.trip_id,
+          messageId: null,
+          amount: p.amount,
+          currency: p.currency || 'USD',
+          description: p.description,
+          splitCount: p.split_count,
+          splitParticipants: p.split_participants || [],
+          paymentMethods: p.payment_methods || [],
+          createdBy: p.created_by,
+          createdAt: p.created_at,
+          isSettled: p.is_settled || false,
+        }));
+      }
+
+      return await paymentService.getTripPaymentMessages(tripId);
+    },
+    enabled: !!tripId,
+    staleTime: QUERY_CACHE_CONFIG.payments.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.payments.gcTime,
+    refetchOnWindowFocus: QUERY_CACHE_CONFIG.payments.refetchOnWindowFocus,
+  });
+
+  // Load user payment methods (user-level, kept as useState)
   useEffect(() => {
     if (!userId) return;
 
@@ -41,57 +76,7 @@ export const usePayments = (tripId?: string) => {
     loadPaymentMethods();
   }, [userId]);
 
-  // Load trip payments (handles both demo and authenticated modes)
-  const loadTripPayments = useCallback(async () => {
-    if (!tripId) return;
-
-    setPaymentsLoading(true);
-    try {
-      if (demoActive) {
-        // Demo mode: combine mock and session payments
-        const mockPayments = demoModeService.getMockPayments(tripId, false);
-        const sessionPayments = demoModeService.getSessionPayments(tripId);
-
-        // Convert to PaymentMessage format
-        const allPayments: PaymentMessage[] = [...mockPayments, ...sessionPayments].map(p => ({
-          id: p.id,
-          tripId: p.trip_id,
-          messageId: null,
-          amount: p.amount,
-          currency: p.currency || 'USD',
-          description: p.description,
-          splitCount: p.split_count,
-          splitParticipants: p.split_participants || [],
-          paymentMethods: p.payment_methods || [],
-          createdBy: p.created_by,
-          createdAt: p.created_at,
-          isSettled: p.is_settled || false,
-        }));
-
-        setTripPayments(allPayments);
-      } else {
-        // Authenticated mode: fetch from Supabase
-        const payments = await paymentService.getTripPaymentMessages(tripId);
-        setTripPayments(payments);
-      }
-    } catch (error) {
-      console.error('Error loading trip payments:', error);
-    } finally {
-      setPaymentsLoading(false);
-    }
-  }, [tripId, demoActive]);
-
-  // Initial load of trip payments
-  useEffect(() => {
-    loadTripPayments();
-  }, [loadTripPayments]);
-
-  // Manual refresh function
-  const refreshPayments = useCallback(async () => {
-    await loadTripPayments();
-  }, [loadTripPayments]);
-
-  // Real-time subscription for authenticated mode
+  // Real-time subscription — invalidates TanStack Query cache instead of manual refetch
   useEffect(() => {
     if (!tripId || demoActive) return;
 
@@ -106,8 +91,7 @@ export const usePayments = (tripId?: string) => {
           filter: `trip_id=eq.${tripId}`,
         },
         () => {
-          // Refresh payments on any change
-          loadTripPayments();
+          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
         }
       )
       .on(
@@ -118,8 +102,7 @@ export const usePayments = (tripId?: string) => {
           table: 'payment_splits',
         },
         () => {
-          // Refresh payments when splits are updated
-          loadTripPayments();
+          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
         }
       )
       .subscribe();
@@ -127,7 +110,14 @@ export const usePayments = (tripId?: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, demoActive, loadTripPayments]);
+  }, [tripId, demoActive, queryClient]);
+
+  // Refresh via cache invalidation (instant if data is already cached)
+  const refreshPayments = useCallback(async () => {
+    if (tripId) {
+      await queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+    }
+  }, [tripId, queryClient]);
 
   const addPaymentMethod = async (method: Omit<PaymentMethod, 'id'>) => {
     if (!userId) return false;
@@ -202,7 +192,6 @@ export const usePayments = (tripId?: string) => {
 
     const result = await paymentService.createPaymentMessage(tripId, userId, paymentData);
     if (result.success && result.paymentId) {
-      // Refresh trip payments after creation
       await refreshPayments();
     }
     return result;

@@ -325,9 +325,9 @@ export const PlacesSection = ({
         <div className="flex-none w-[100px]"></div>
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content — ⚡ display:none keeps both sub-tabs mounted for instant switching */}
       <div className="w-full px-0 mb-2 md:mb-6">
-        {activeTab === 'basecamps' && (
+        <div style={{ display: activeTab === 'basecamps' ? 'block' : 'none' }}>
           <BasecampsPanel
             tripId={tripId}
             tripBasecamp={tripBasecamp || null}
@@ -336,9 +336,9 @@ export const PlacesSection = ({
             personalBasecamp={personalBasecamp}
             onPersonalBasecampUpdate={handlePersonalBasecampUpdate}
           />
-        )}
+        </div>
 
-        {activeTab === 'links' && (
+        <div style={{ display: activeTab === 'links' ? 'block' : 'none' }}>
           <LinksPanel
             tripId={tripId}
             places={places}
@@ -360,7 +360,7 @@ export const PlacesSection = ({
               // Event added to calendar (reserved for future use)
             }}
           />
-        )}
+        </div>
       </div>
     </div>
   );

@@ -30,8 +30,7 @@ export interface BalanceSummary {
 export const paymentBalanceService = {
   /**
    * Calculate personal balance summary for a user in a trip
-   * Returns who owes what to whom with their preferred payment methods
-   * Supports multi-currency by normalizing all amounts to USD
+   * ⚡ Optimized: Uses Promise.all for parallel queries to minimize round-trips
    */
   async getBalanceSummary(
     tripId: string, 
@@ -39,35 +38,36 @@ export const paymentBalanceService = {
     baseCurrency: string = 'USD'
   ): Promise<BalanceSummary> {
     try {
-      // Security: Verify current user is a trip member before accessing payment data
+      // Step 1: Auth (required before any DB queries)
       const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !currentUser) {
         throw new Error('Unauthorized: Authentication required');
       }
 
-      const { data: membership, error: membershipError } = await supabase
-        .from('trip_members')
-        .select('id')
-        .eq('trip_id', tripId)
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
+      // Step 2: ⚡ PARALLEL — membership check + payment messages at the same time
+      const [membershipResult, messagesResult] = await Promise.all([
+        supabase
+          .from('trip_members')
+          .select('id')
+          .eq('trip_id', tripId)
+          .eq('user_id', currentUser.id)
+          .maybeSingle(),
+        supabase
+          .from('trip_payment_messages')
+          .select('*')
+          .eq('trip_id', tripId),
+      ]);
 
-      if (membershipError) {
-        throw new Error(`Failed to verify trip membership: ${membershipError.message}`);
+      if (membershipResult.error) {
+        throw new Error(`Failed to verify trip membership: ${membershipResult.error.message}`);
       }
-
-      if (!membership) {
+      if (!membershipResult.data) {
         throw new Error('Unauthorized: Not a trip member');
       }
+      if (messagesResult.error) throw messagesResult.error;
 
-      // Fetch all payment messages for this trip
-      const { data: paymentMessages, error: messagesError } = await supabase
-        .from('trip_payment_messages')
-        .select('*')
-        .eq('trip_id', tripId);
-
-      if (messagesError) throw messagesError;
+      const paymentMessages = messagesResult.data;
 
       // Early return if no payments
       if (!paymentMessages || paymentMessages.length === 0) {
@@ -80,43 +80,45 @@ export const paymentBalanceService = {
         };
       }
 
-      // Fetch all payment splits for these payments
+      // Step 3: Payment splits (needs message IDs from step 2)
       const { data: paymentSplits, error: splitsError } = await supabase
         .from('payment_splits')
         .select('*, confirmation_status, confirmed_by, confirmed_at')
-        .in('payment_message_id', paymentMessages?.map(m => m.id) || []);
+        .in('payment_message_id', paymentMessages.map(m => m.id));
 
       if (splitsError) throw splitsError;
 
-      // Fetch user profiles for all involved users (use public view for co-member data)
+      // Build user ID set for profile + methods lookup
       const allUserIds = new Set<string>();
-      paymentMessages?.forEach(m => allUserIds.add(m.created_by));
+      paymentMessages.forEach(m => allUserIds.add(m.created_by));
       paymentSplits?.forEach(s => allUserIds.add(s.debtor_user_id));
+      const userIdArray = Array.from(allUserIds);
 
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles_public')
-        .select('user_id, display_name, resolved_display_name, avatar_url')
-        .in('user_id', Array.from(allUserIds));
+      // Step 4: ⚡ PARALLEL — profiles + payment methods at the same time
+      const [profilesResult, methodsResult] = await Promise.all([
+        supabase
+          .from('profiles_public')
+          .select('user_id, display_name, resolved_display_name, avatar_url')
+          .in('user_id', userIdArray),
+        supabase
+          .from('user_payment_methods')
+          .select('*')
+          .in('user_id', userIdArray),
+      ]);
 
-      if (profilesError) throw profilesError;
+      if (profilesResult.error) throw profilesResult.error;
+      if (methodsResult.error) throw methodsResult.error;
 
-      // Fetch all payment methods for all users
-      const { data: paymentMethods, error: methodsError } = await supabase
-        .from('user_payment_methods')
-        .select('*')
-        .in('user_id', Array.from(allUserIds));
-
-      if (methodsError) throw methodsError;
+      const profiles = profilesResult.data;
+      const paymentMethods = methodsResult.data;
 
       // Helper to get primary payment method
       const getPrimaryMethod = (methods: PaymentMethod[]) => {
         if (!methods || methods.length === 0) return null;
         
-        // First check for preferred
         const preferred = methods.find(m => m.is_preferred);
         if (preferred) return preferred;
         
-        // Then by priority order
         const priority = ['venmo', 'cashapp', 'zelle', 'paypal', 'applecash', 'cash', 'other'];
         const sorted = [...methods].sort((a, b) => {
           const aIdx = priority.indexOf(a.method_type);
@@ -153,7 +155,6 @@ export const paymentBalanceService = {
         confirmationStatus: 'none' | 'pending' | 'confirmed';
       }>();
 
-      // Initialize current user in ledger
       ledger.set(userId, { netAmount: 0, payments: [], confirmationStatus: 'none' });
 
       // Collect all conversions needed
@@ -233,9 +234,9 @@ export const paymentBalanceService = {
         const entry = ledger.get(targetUserId)!;
         
         if (isDebtor) {
-          entry.netAmount -= normalizedAmount; // You owe them
+          entry.netAmount -= normalizedAmount;
         } else {
-          entry.netAmount += normalizedAmount; // They owe you
+          entry.netAmount += normalizedAmount;
         }
         
         entry.confirmationStatus = confirmStatus;
@@ -254,7 +255,7 @@ export const paymentBalanceService = {
       let totalOwedToYou = 0;
 
       ledger.forEach((entry, personUserId) => {
-        if (personUserId === userId) return; // Skip self
+        if (personUserId === userId) return;
 
         const profile = profiles?.find(p => p.user_id === personUserId);
         const userMethods = paymentMethods?.filter(m => m.user_id === personUserId) || [];
@@ -280,7 +281,6 @@ export const paymentBalanceService = {
           confirmationStatus: entry.confirmationStatus
         });
 
-        // Calculate totals
         if (entry.netAmount < 0) {
           totalOwed += Math.abs(entry.netAmount);
         } else if (entry.netAmount > 0) {
@@ -288,7 +288,6 @@ export const paymentBalanceService = {
         }
       });
 
-      // Sort by amount owed (descending)
       balances.sort((a, b) => a.amountOwed - b.amountOwed);
 
       return {
@@ -296,10 +295,9 @@ export const paymentBalanceService = {
         totalOwedToYou,
         netBalance: totalOwedToYou - totalOwed,
         baseCurrency,
-        balances: balances.filter(b => b.amountOwed !== 0) // Only show non-zero balances
+        balances: balances.filter(b => b.amountOwed !== 0)
       };
     } catch (error) {
-      // Re-throw authorization errors - they should be handled by the caller
       if (error instanceof Error && error.message.includes('Unauthorized')) {
         throw error;
       }

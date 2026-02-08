@@ -2,10 +2,11 @@
  * TripLinksDisplay Component
  * 
  * Displays trip links from database with CRUD operations and drag-and-drop reordering
- * Redesigned to match demo mode Places tab design
+ * ⚡ Uses TanStack Query for cached data loading — instant on revisit
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link2, ExternalLink, Edit, Trash2, Plus, Globe, Calendar, GripVertical } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -170,8 +171,17 @@ const SortableLinkItem = ({
 export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const [links, setLinks] = useState<TripLink[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // ⚡ TanStack Query — cached across remounts, prefetchable, stale-while-revalidate
+  const { data: links = [], isLoading: loading } = useQuery({
+    queryKey: ['tripLinks', tripId],
+    queryFn: () => getTripLinks(tripId, isDemoMode),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!tripId,
+  });
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<TripLink | null>(null);
 
@@ -205,23 +215,6 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
   const effectiveUserId = user?.id || getDemoUserId();
 
-  // Load links
-  useEffect(() => {
-    loadLinks();
-  }, [tripId, isDemoMode]);
-
-  const loadLinks = async () => {
-    setLoading(true);
-    try {
-      const fetchedLinks = await getTripLinks(tripId, isDemoMode);
-      setLinks(fetchedLinks);
-    } catch (error) {
-      console.error('[TripLinksDisplay] Failed to load links:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
@@ -230,9 +223,9 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
       const newIndex = links.findIndex(link => link.id === over.id);
       
       const newLinks = arrayMove(links, oldIndex, newIndex);
-      setLinks(newLinks);
+      // Optimistic update via query cache
+      queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], newLinks);
       
-      // Save new order
       const orderedIds = newLinks.map(l => l.id);
       await updateTripLinksOrder(tripId, orderedIds, isDemoMode);
     }
@@ -257,7 +250,8 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     );
 
     if (result) {
-      setLinks(prev => [result, ...prev]);
+      // Optimistic update via query cache
+      queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], old => [result, ...(old || [])]);
       setIsAddModalOpen(false);
       resetForm();
     }
@@ -278,8 +272,9 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     );
 
     if (success) {
-      setLinks(prev =>
-        prev.map(link =>
+      // Optimistic update via query cache
+      queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], old =>
+        (old || []).map(link =>
           link.id === editingLink.id
             ? { ...link, title: formTitle, description: formDescription, category: formCategory }
             : link
@@ -293,7 +288,10 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
   const handleDeleteLink = async (linkId: string) => {
     const success = await deleteTripLink(linkId, tripId, isDemoMode);
     if (success) {
-      setLinks(prev => prev.filter(link => link.id !== linkId));
+      // Optimistic update via query cache
+      queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], old =>
+        (old || []).filter(link => link.id !== linkId)
+      );
     }
   };
 
@@ -314,12 +312,10 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
   const handleAddToCalendar = async (eventData: AddToCalendarData, link: TripLink) => {
     try {
-      // Combine date and time into ISO string
       const startDate = new Date(eventData.date);
       const [hours, minutes] = eventData.time.split(':');
       startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
 
-      // Calculate end time if provided
       let endTime: string | undefined;
       if (eventData.endTime) {
         const endDate = new Date(eventData.date);
@@ -328,7 +324,6 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
         endTime = endDate.toISOString();
       }
 
-      // Add URL to description
       const description = `${eventData.description || ''}\n\nLink: ${link.url}`.trim();
 
       const created = await calendarService.createEvent({
@@ -365,7 +360,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
   return (
     <div className="space-y-4">
-      {/* Header with Add Button - Redesigned to match demo mode */}
+      {/* Header with Add Button */}
       <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 md:p-6 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
