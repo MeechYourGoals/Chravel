@@ -1,149 +1,82 @@
 
+# Fix Calendar Import Failures + Improve Scraping Resilience
 
-# Smart Agenda Import: AI-Powered Session Extraction for Events
+## Issue 1: Import Always Fails (Root Cause Found)
 
-## The Business Case
+The database has two versions of the `should_send_notification` function:
+- **2-arg version**: `should_send_notification(uuid, text)` 
+- **3-arg version**: `should_send_notification(uuid, text, text DEFAULT 'push')`
 
-Event organizers (SXSW, Investfest, conferences) already have their agenda on a website, PDF, or image. Asking them to manually type in dozens of sessions creates massive friction. This feature lets them click "Import Agenda," paste a URL or upload a file/image, and have Gemini extract all sessions automatically -- filling only the fields that actually exist in the source material.
+When any event is inserted into `trip_events`, a trigger fires `notify_on_calendar_event` which calls `send_notification`, which calls `should_send_notification(user_id, type)` with 2 arguments. PostgreSQL cannot determine which function to use because the 3-arg version's default parameter means both match a 2-arg call. This causes **every single calendar event insert to fail** -- not just bulk imports.
 
-This gives Chravel a direct competitive edge over white-label event apps that force manual data entry.
+### Fix
 
-## What Changes
+**Database**: Drop the older 2-arg version of `should_send_notification`. The 3-arg version with `DEFAULT 'push'` already handles all 2-arg calls identically. This is a single SQL command:
 
-### 1. New Edge Function: `scrape-agenda` (Backend)
-
-A new Supabase edge function specifically tuned for **agenda/session extraction** (different from `scrape-schedule` which is for calendar events like game schedules).
-
-The key difference from `scrape-schedule`:
-- Returns agenda-specific fields: title, description, date, start_time, end_time, location, track/category, speakers
-- Prompt instructs Gemini to **only fill fields that are clearly present** in the source -- no guessing, no fabricating descriptions or categories
-- Does NOT filter by future dates (conferences may list sessions without specific dates)
-- Uses the same smart HTML cleaning from `scrape-schedule`
-- Same 45-second AI timeout
-- Same content quality check with early exit for JS-only sites
-
-Extracted session schema:
 ```text
-{
-  title: string (required)
-  description?: string (only if present)
-  session_date?: string YYYY-MM-DD (only if present)
-  start_time?: string HH:MM (only if present)
-  end_time?: string HH:MM (only if present)
-  location?: string (only if present)
-  track?: string (only if present -- e.g., "Main Stage", "Workshop")
-  speakers?: string[] (only if present)
-}
+DROP FUNCTION IF EXISTS should_send_notification(uuid, text);
 ```
 
-### 2. New Utility: `src/utils/agendaImportParsers.ts`
+This immediately unblocks all calendar event creation (manual, import, bulk).
 
-Handles all agenda import parsing, reusing patterns from `calendarImportParsers.ts`:
-- `parseAgendaFile(file)` -- routes PDF/Image to `enhanced-ai-parser` with a new `extractionType: 'agenda'`
-- `parseAgendaURL(url)` -- calls the new `scrape-agenda` edge function
-- `parseAgendaText(text)` -- sends pasted text to `enhanced-ai-parser` with `extractionType: 'agenda'`
+**Fallback in code** (`calendarService.ts`): Even after the DB fix, add a sequential one-by-one insert fallback. If the single bulk INSERT fails, insert events individually with a small delay between each. This ensures that even if one event fails (e.g., bad data), the rest still import successfully. The current code tries individual inserts but fires them all in parallel via `Promise.allSettled` -- change this to **sequential** to avoid overwhelming the trigger system with 20 simultaneous notification calls.
 
-All three return a unified `AgendaParseResult` with an array of `ParsedAgendaSession` objects matching the `EventAgendaItem` type.
+Changes to `bulkCreateEvents`:
+- First attempt: single bulk INSERT (fast path for <= 20 events)
+- If that fails: sequential one-by-one inserts with 100ms delay between each
+- Each individual insert catches its own error so others can proceed
+- Log each failure reason for debugging
 
-### 3. Update `enhanced-ai-parser` Edge Function
+## Issue 2: Trevor Noah and Similar Client-Rendered Sites
 
-Add a new `case 'agenda':` branch in the extraction type switch. This branch uses a Gemini prompt tailored for event agendas:
-- Extracts session titles, times, locations, speakers, descriptions, categories
-- Only includes fields that are clearly present in the source
-- Does NOT fabricate or guess missing data
-- Returns `{ sessions: [...] }` instead of `{ events: [...] }`
+Trevor Noah's website (`trevornoah.com/shows`) either blocks non-browser requests or renders show data entirely via JavaScript after page load. The edge function's `fetch()` receives a 69K HTML shell containing framework code (React/Next.js) but zero actual show data. Gemini correctly returns an empty array because the data simply isn't there.
 
-### 4. New Component: `AgendaImportModal.tsx`
+This is a **fundamental limitation** of server-side `fetch()` -- it cannot execute JavaScript. Sites like nursejohnnshows.com work because their HTML contains the show data server-side.
 
-A new modal component (similar to `CalendarImportModal`) that:
-- Supports file upload (PDF, Image), URL paste, and text paste
-- Shows the same drag-and-drop zone with format badges (PDF, Image, URL)
-- Has the same "Paste text instead" toggle
-- Preview state shows extracted sessions in a list with all available fields
-- Import action calls `useEventAgenda.addSession()` for each extracted session
-- Background import via toast (reuses the same pattern from `useBackgroundImport`)
+### Improvements
 
-### 5. Update `AgendaModal.tsx` -- Add "Import Agenda" Button
+**Better error detection** in `scrape-schedule` and `scrape-agenda`:
+- After Gemini returns an empty array, check if the HTML contains signals of a JS-rendered site (common patterns: `__NEXT_DATA__` with empty props, `<div id="root"></div>` with no content, `<noscript>` tags referencing JavaScript requirement)
+- If detected, return a specific error message: "This website loads its content dynamically and can't be read by our scanner. Try one of these alternatives: (1) Copy the schedule text from the page and paste it, or (2) Take a screenshot of the schedule and upload it."
+- This gives the user actionable next steps instead of a generic "no events found" message
 
-The existing "Upload" button on the right panel currently only uploads a static file for viewing. We modify this to give the organizer a **choice**:
+**Improved User-Agent and headers** in both scrape functions:
+- Add `Sec-Fetch-Mode: navigate` and `Sec-Fetch-Site: none` headers to better mimic a real browser request
+- Some sites serve different (more complete) HTML to requests that look more like real navigation
 
-- **Current behavior preserved**: The "Upload" button in the Agenda File section on the right still lets organizers upload a file/image for attendees to view/download (static file viewer)
-- **New "Import Agenda" button**: Added next to "Add Session" on the left panel. Opens the new `AgendaImportModal` which extracts sessions with AI and creates them as individual agenda items
-- This gives organizers both options: a static viewable file AND/OR AI-extracted individual sessions
+## Issue 3: Mobile/PWA Optimization for Toast Notifications
 
-### 6. Background Import Hook: `useBackgroundAgendaImport.ts`
+The background import toast notifications need to work well on mobile:
+- Ensure toast actions ("View Events" / "Review Sessions") have touch-friendly tap targets (min 44px)
+- Position toasts at the bottom on mobile (they currently render at bottom-right on desktop)
+- Verify the toast persists across tab switches on both mobile and desktop views
 
-Similar to `useBackgroundImport.ts` but adapted for agenda sessions:
-- Fires the URL or file parse in the background
-- Shows persistent Sonner toast: "Scanning agenda..."
-- On success: "Found X sessions" with a "Review Sessions" action button
-- Opens the `AgendaImportModal` in preview state when clicked
-- User can navigate to other event tabs while it processes
+### Changes
 
-### 7. Update `EnhancedAgendaTab.tsx`
+**`useBackgroundImport.ts`** and **`useBackgroundAgendaImport.ts`**:
+- No code changes needed for mobile toast positioning -- Sonner handles responsive positioning automatically when configured with `position="bottom-center"` on mobile
+- Verify the Toaster component in the app root has proper mobile positioning (check `App.tsx` or layout root)
 
-Wire up the import functionality in the alternate agenda view:
-- Add "Import Agenda" button alongside "Upload Agenda" and "Add Session"
-- Same `AgendaImportModal` integration
+## Summary of Changes
 
-## How the Flow Works for an Event Organizer
-
-1. Organizer clicks **"Import Agenda"** on the Agenda tab
-2. Modal opens with familiar drag-and-drop zone (same look as Calendar Import)
-3. Organizer either:
-   - Pastes a URL (e.g., `sxsw.com/schedule`)
-   - Uploads a PDF or screenshot of their agenda
-   - Toggles "Paste text instead" and pastes the schedule text
-4. Modal closes immediately (background processing)
-5. Toast shows: "Scanning sxsw.com for agenda sessions..."
-6. Organizer can navigate to Chat, Media, or any tab
-7. Toast updates: "Found 47 sessions from sxsw.com" with "Review Sessions" button
-8. Clicking "Review Sessions" opens modal in preview state showing all extracted sessions
-9. Organizer reviews and clicks "Import All" -- sessions are batch-inserted into `event_agenda_items`
-10. Speakers from imported sessions automatically populate the Lineup tab
-
-## What Fields Gemini Fills (Only What's Available)
-
-For a site like SXSW that has rich data:
-```text
-Title: "The Future of AI in Music"
-Date: 2026-03-14
-Start: 14:00
-End: 15:00
-Location: Austin Convention Center, Room 4AB
-Category: Interactive
-Speakers: ["Jane Doe", "John Smith"]
-Description: "A panel discussion exploring..."
-```
-
-For a site that only has basic info:
-```text
-Title: "Opening Ceremony"
-Start: 09:00
-Location: Main Stage
-```
-
-No empty placeholders, no fabricated data.
-
-## Files to Create/Modify
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `supabase/functions/scrape-agenda/index.ts` | Create | New edge function for agenda URL scraping with agenda-specific Gemini prompt |
-| `src/utils/agendaImportParsers.ts` | Create | Agenda parsing utilities (file, URL, text) |
-| `src/features/calendar/hooks/useBackgroundAgendaImport.ts` | Create | Background import hook with toast notifications for agenda |
-| `src/components/events/AgendaImportModal.tsx` | Create | Import modal with drag-and-drop, URL input, preview, and batch insert |
-| `src/components/events/AgendaModal.tsx` | Modify | Add "Import Agenda" button next to "Add Session" |
-| `src/components/events/EnhancedAgendaTab.tsx` | Modify | Add "Import Agenda" button |
-| `supabase/functions/enhanced-ai-parser/index.ts` | Modify | Add `case 'agenda'` extraction type |
-| `supabase/config.toml` | Modify | Register new `scrape-agenda` function |
+| File | Change | Purpose |
+|------|--------|--------|
+| Database SQL | Drop 2-arg `should_send_notification` function | Unblock ALL calendar event inserts |
+| `src/services/calendarService.ts` | Sequential one-by-one fallback in `batchInsertEvents` with 100ms delays | Reliable import even if individual events fail |
+| `supabase/functions/scrape-schedule/index.ts` | Better error messages for JS-rendered sites; improved request headers | Actionable user guidance instead of generic failure |
+| `supabase/functions/scrape-agenda/index.ts` | Same improvements as scrape-schedule | Consistent behavior across both scrapers |
 
 ## What This Does NOT Change
 
-- The existing "Upload" button for static agenda file viewing stays exactly as-is
-- Calendar import (`CalendarImportModal`) is completely untouched
-- The `scrape-schedule` edge function is untouched
-- Manual "Add Session" form remains available
-- No schema changes needed -- `event_agenda_items` already has all required columns
-- Lineup auto-population from speakers still works (existing `onLineupUpdate` callback)
+- The 1M character cap on HTML sent to Gemini stays (no restrictions on what Gemini receives)
+- Background import hooks and toast notifications stay as-is (they work correctly)
+- The Gemini model and prompts are unchanged
+- No changes to the import modal UI (it already works great as shown in the screenshots)
+- Agenda import (`AgendaImportModal`) is unaffected -- it uses `event_agenda_items` table which does not have the notification trigger issue
 
+## Expected Outcome
+
+- **Nurse John import**: All 20 events insert successfully once the DB function is fixed
+- **Trevor Noah**: User gets a clear message suggesting they paste text or upload a screenshot instead
+- **All future imports**: Sequential fallback ensures partial success even when individual events have issues
+- **Mobile**: Toast notifications continue to work seamlessly across tab navigation on all devices
