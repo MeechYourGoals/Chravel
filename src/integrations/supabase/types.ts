@@ -3747,19 +3747,14 @@ export type Database = {
         }
         Returns: undefined
       }
-      should_send_notification:
-        | {
-            Args: { p_notification_type: string; p_user_id: string }
-            Returns: boolean
-          }
-        | {
-            Args: {
-              p_channel?: string
-              p_notification_type: string
-              p_user_id: string
-            }
-            Returns: boolean
-          }
+      should_send_notification: {
+        Args: {
+          p_channel?: string
+          p_notification_type: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       toggle_task_status: {
         Args: {
           p_completed: boolean

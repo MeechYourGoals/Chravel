@@ -657,9 +657,9 @@ export const calendarService = {
   },
 
   /**
-   * Insert events in sequential batches of parallel individual inserts.
-   * Each batch inserts up to 5 events in parallel, then waits before
-   * starting the next batch. This is reliable for any number of events.
+   * Insert events sequentially one-by-one with a delay between each.
+   * This avoids overwhelming the notification trigger system and ensures
+   * partial success — if one event fails, the rest still import.
    */
   async batchInsertEvents(
     rows: Array<{
@@ -676,65 +676,52 @@ export const calendarService = {
       source_data: Json;
     }>,
   ): Promise<{ imported: number; failed: number; events: TripEvent[] }> {
-    const BATCH_SIZE = 20;
     let imported = 0;
     let failed = 0;
     const allEvents: TripEvent[] = [];
     const failedReasons: string[] = [];
 
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      const batch = rows.slice(i, i + BATCH_SIZE);
-      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
+    // Sequential one-by-one inserts with delay to avoid trigger overload
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        const { data, error } = await supabase
+          .from('trip_events')
+          .insert(row)
+          .select('*')
+          .single();
 
-      const results = await Promise.allSettled(
-        batch.map(async row => {
-          const { data, error } = await supabase
-            .from('trip_events')
-            .insert(row)
-            .select('*')
-            .single();
-
-          if (error) {
-            console.error(
-              `[calendarService] Insert failed for "${row.title}": ${error.message} (code: ${error.code})`,
-            );
-            throw error;
-          }
-
-          if (!data) {
-            throw new Error('Insert returned no data');
-          }
-
-          return data;
-        }),
-      );
-
-      let batchImported = 0;
-      let batchFailed = 0;
-
-      for (const result of results) {
-        if (result.status === 'fulfilled' && result.value) {
+        if (error) {
+          console.error(
+            `[calendarService] Insert ${i + 1}/${rows.length} failed for "${row.title}": ${error.message} (code: ${error.code})`,
+          );
+          failed++;
+          failedReasons.push(`${row.title}: ${error.message}`);
+        } else if (data) {
           imported++;
-          batchImported++;
-          allEvents.push(result.value);
+          allEvents.push(data);
         } else {
           failed++;
-          batchFailed++;
-          if (result.status === 'rejected') {
-            const reason = result.reason?.message || 'Unknown error';
-            failedReasons.push(reason);
-            console.warn(`[calendarService] Batch ${batchNum} item failed: ${reason}`);
-          }
+          failedReasons.push(`${row.title}: Insert returned no data`);
         }
-      }
-
-      if (import.meta.env.DEV) {
-        console.info(
-          `[calendarService] Batch ${batchNum}/${totalBatches}: ${batchImported} imported, ${batchFailed} failed`,
+      } catch (err) {
+        failed++;
+        const reason = err instanceof Error ? err.message : 'Unknown error';
+        failedReasons.push(`${row.title}: ${reason}`);
+        console.error(
+          `[calendarService] Insert ${i + 1}/${rows.length} threw for "${row.title}": ${reason}`,
         );
       }
+
+      // 100ms delay between inserts to let notification triggers complete
+      if (i < rows.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
+
+    console.info(
+      `[calendarService] Sequential import complete: ${imported} imported, ${failed} failed out of ${rows.length}`,
+    );
 
     if (allEvents.length > 0) {
       this.cacheEventsInBackground(allEvents);
