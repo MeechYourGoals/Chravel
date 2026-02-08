@@ -14,6 +14,7 @@ import { exportTripEventsToICal } from '@/services/calendarSync';
 import { useToast } from '@/hooks/use-toast';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useBackgroundImport } from '@/features/calendar/hooks/useBackgroundImport';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -50,8 +51,24 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   // Demo mode available for future conditional rendering
   const { isDemoMode: _isDemoMode } = useDemoMode();
 
+  // Background URL import
+  const {
+    pendingResult: backgroundPendingResult,
+    startImport: startBackgroundImport,
+    clearResult: clearBackgroundResult,
+  } = useBackgroundImport();
+
   // ICS Import modal state
   const [showImportModal, setShowImportModal] = useState(false);
+
+  // Callback for background import: opens the modal with results when the toast action is clicked
+  const handleBackgroundImportComplete = useCallback(() => {
+    setShowImportModal(true);
+  }, []);
+
+  const handleStartBackgroundImport = useCallback((url: string) => {
+    startBackgroundImport(url, handleBackgroundImportComplete);
+  }, [startBackgroundImport, handleBackgroundImportComplete]);
 
   const handleImport = useCallback(() => {
     // Check permissions (will return true in Demo Mode)
@@ -197,6 +214,9 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           tripId={tripId}
           existingEvents={tripEvents}
           onImportComplete={handleImportComplete}
+          pendingResult={backgroundPendingResult}
+          onClearPendingResult={clearBackgroundResult}
+          onStartBackgroundImport={handleStartBackgroundImport}
         />
       </div>
     );
@@ -221,6 +241,9 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           tripId={tripId}
           existingEvents={tripEvents}
           onImportComplete={handleImportComplete}
+          pendingResult={backgroundPendingResult}
+          onClearPendingResult={clearBackgroundResult}
+          onStartBackgroundImport={handleStartBackgroundImport}
         />
       </div>
     );
@@ -308,6 +331,9 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         tripId={tripId}
         existingEvents={tripEvents}
         onImportComplete={handleImportComplete}
+        pendingResult={backgroundPendingResult}
+        onClearPendingResult={clearBackgroundResult}
+        onStartBackgroundImport={handleStartBackgroundImport}
       />
     </div>
   );

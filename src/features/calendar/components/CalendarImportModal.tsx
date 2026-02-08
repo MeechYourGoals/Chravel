@@ -39,6 +39,12 @@ interface CalendarImportModalProps {
   tripId: string;
   existingEvents: TripEvent[];
   onImportComplete?: () => void;
+  /** Pre-loaded result from background import — opens directly in preview */
+  pendingResult?: SmartParseResult | null;
+  /** Called when clearing a pending result */
+  onClearPendingResult?: () => void;
+  /** Called to start a background URL import (closes modal immediately) */
+  onStartBackgroundImport?: (url: string) => void;
 }
 
 type ImportState = 'idle' | 'parsing' | 'preview' | 'importing' | 'complete';
@@ -61,6 +67,9 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   tripId,
   existingEvents,
   onImportComplete,
+  pendingResult: externalPendingResult,
+  onClearPendingResult,
+  onStartBackgroundImport,
 }) => {
   const [state, setState] = useState<ImportState>('idle');
   const [parseResult, setParseResult] = useState<SmartParseResult | null>(null);
@@ -88,8 +97,9 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
   const handleClose = useCallback(() => {
     resetState();
+    onClearPendingResult?.();
     onClose();
-  }, [resetState, onClose]);
+  }, [resetState, onClose, onClearPendingResult]);
 
   const processParseResult = useCallback(
     (result: SmartParseResult) => {
@@ -117,6 +127,13 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
     },
     [existingEvents],
   );
+
+  // Load external pending result (from background import) when modal opens
+  React.useEffect(() => {
+    if (isOpen && externalPendingResult && externalPendingResult.isValid && externalPendingResult.events.length > 0) {
+      processParseResult(externalPendingResult);
+    }
+  }, [isOpen, externalPendingResult, processParseResult]);
 
   const handleFileSelect = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,11 +170,20 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
     const trimmed = urlInput.trim();
     if (!trimmed) return;
 
+    // If background import handler is available, use it (close modal, import in background)
+    if (onStartBackgroundImport) {
+      onStartBackgroundImport(trimmed);
+      resetState();
+      onClose();
+      return;
+    }
+
+    // Fallback: synchronous import (kept for safety)
     setParsingSource('url');
     setState('parsing');
     const result = await parseURLSchedule(trimmed);
     processParseResult(result);
-  }, [urlInput, processParseResult]);
+  }, [urlInput, processParseResult, onStartBackgroundImport, resetState, onClose]);
 
   const handleImport = useCallback(async () => {
     if (!parseResult) return;
