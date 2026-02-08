@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 import { PaymentMethod, PaymentMessage, PaymentSplit } from '../types/payments';
-import { demoModeService } from './demoModeService';
 import { mockPayments } from '@/mockData/payments';
 import { recordPaymentSplitPattern } from './chatAnalysisService';
 
@@ -31,14 +30,14 @@ export const paymentService = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       return data.map(method => ({
         id: method.id,
         type: method.method_type as PaymentMethod['type'],
         identifier: method.identifier,
         displayName: method.display_name,
         isPreferred: method.is_preferred,
-        isVisible: method.is_visible
+        isVisible: method.is_visible,
       }));
     } catch (error) {
       console.error('Error fetching payment methods:', error);
@@ -48,16 +47,14 @@ export const paymentService = {
 
   async savePaymentMethod(userId: string, method: Omit<PaymentMethod, 'id'>): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('user_payment_methods')
-        .insert({
-          user_id: userId,
-          method_type: method.type,
-          identifier: method.identifier,
-          display_name: method.displayName,
-          is_preferred: method.isPreferred,
-          is_visible: method.isVisible,
-        });
+      const { error } = await supabase.from('user_payment_methods').insert({
+        user_id: userId,
+        method_type: method.type,
+        identifier: method.identifier,
+        display_name: method.displayName,
+        is_preferred: method.isPreferred,
+        is_visible: method.isVisible,
+      });
 
       return !error;
     } catch (error) {
@@ -88,10 +85,7 @@ export const paymentService = {
 
   async deletePaymentMethod(methodId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('user_payment_methods')
-        .delete()
-        .eq('id', methodId);
+      const { error } = await supabase.from('user_payment_methods').delete().eq('id', methodId);
 
       return !error;
     } catch (error) {
@@ -102,8 +96,8 @@ export const paymentService = {
 
   // Trip Payment Messages - Error result type for better error handling
   async createPaymentMessage(
-    tripId: string, 
-    userId: string, 
+    tripId: string,
+    userId: string,
     paymentData: {
       amount: number;
       currency: string;
@@ -111,7 +105,7 @@ export const paymentService = {
       splitCount: number;
       splitParticipants: string[];
       paymentMethods: string[];
-    }
+    },
   ): Promise<{ success: boolean; paymentId?: string; error?: { code: string; message: string } }> {
     try {
       // Validate session before attempting RPC
@@ -121,8 +115,8 @@ export const paymentService = {
           success: false,
           error: {
             code: 'SESSION_EXPIRED',
-            message: 'Your session has expired. Please sign in again.'
-          }
+            message: 'Your session has expired. Please sign in again.',
+          },
         };
       }
 
@@ -132,8 +126,8 @@ export const paymentService = {
           success: false,
           error: {
             code: 'VALIDATION_FAILED',
-            message: 'Amount must be greater than zero.'
-          }
+            message: 'Amount must be greater than zero.',
+          },
         };
       }
 
@@ -142,8 +136,8 @@ export const paymentService = {
           success: false,
           error: {
             code: 'VALIDATION_FAILED',
-            message: 'Description is required.'
-          }
+            message: 'Description is required.',
+          },
         };
       }
 
@@ -152,35 +146,34 @@ export const paymentService = {
           success: false,
           error: {
             code: 'VALIDATION_FAILED',
-            message: 'Please select at least one participant.'
-          }
+            message: 'Please select at least one participant.',
+          },
         };
       }
 
       // Use enhanced v2 function with audit trail and transaction safety
-      const { data: paymentId, error } = await supabase
-        .rpc('create_payment_with_splits_v2', {
-          p_trip_id: tripId,
-          p_amount: paymentData.amount,
-          p_currency: paymentData.currency,
-          p_description: paymentData.description,
-          p_split_count: paymentData.splitCount,
-          p_split_participants: paymentData.splitParticipants,
-          p_payment_methods: paymentData.paymentMethods,
-          p_created_by: userId
-        });
+      const { data: paymentId, error } = await supabase.rpc('create_payment_with_splits_v2', {
+        p_trip_id: tripId,
+        p_amount: paymentData.amount,
+        p_currency: paymentData.currency,
+        p_description: paymentData.description,
+        p_split_count: paymentData.splitCount,
+        p_split_participants: paymentData.splitParticipants,
+        p_payment_methods: paymentData.paymentMethods,
+        p_created_by: userId,
+      });
 
       if (error) {
         console.error('[paymentService] RPC error:', error);
-        
+
         // Detect RLS violation
         if (error.message?.includes('row-level security') || error.code === '42501') {
           return {
             success: false,
             error: {
               code: 'RLS_VIOLATION',
-              message: 'You do not have permission to create payments for this trip.'
-            }
+              message: 'You do not have permission to create payments for this trip.',
+            },
           };
         }
 
@@ -190,8 +183,8 @@ export const paymentService = {
             success: false,
             error: {
               code: 'NETWORK_ERROR',
-              message: 'Network error. Please check your connection and try again.'
-            }
+              message: 'Network error. Please check your connection and try again.',
+            },
           };
         }
 
@@ -199,8 +192,8 @@ export const paymentService = {
           success: false,
           error: {
             code: 'UNKNOWN',
-            message: error.message || 'Failed to create payment. Please try again.'
-          }
+            message: error.message || 'Failed to create payment. Please try again.',
+          },
         };
       }
 
@@ -209,17 +202,16 @@ export const paymentService = {
           success: false,
           error: {
             code: 'UNKNOWN',
-            message: 'Payment creation failed. No payment ID returned.'
-          }
+            message: 'Payment creation failed. No payment ID returned.',
+          },
         };
       }
 
       // Record payment split patterns for ML-based suggestions (non-blocking)
       if (paymentData.splitParticipants.length > 0) {
-        recordPaymentSplitPattern(tripId, userId, paymentData.splitParticipants)
-          .catch(err => {
-            console.debug('[paymentService] Failed to record split pattern:', err);
-          });
+        recordPaymentSplitPattern(tripId, userId, paymentData.splitParticipants).catch(err => {
+          console.debug('[paymentService] Failed to record split pattern:', err);
+        });
       }
 
       return { success: true, paymentId };
@@ -229,34 +221,43 @@ export const paymentService = {
         success: false,
         error: {
           code: 'UNKNOWN',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred.'
-        }
+          message: error instanceof Error ? error.message : 'An unexpected error occurred.',
+        },
       };
     }
   },
 
   async getTripPaymentMessages(tripId: string): Promise<PaymentMessage[]> {
     try {
-      // Only use mock data for demo mode trips (1-12) when explicitly in demo mode
+      // Quick synchronous demo check — avoids the async secureStorageService round-trip.
+      // All callers (usePayments, MobileTripPayments, prefetchTab) already gate on demo mode,
+      // so this is a defense-in-depth fallback only.
       const tripIdNum = parseInt(tripId);
-      const isDemoMode = await demoModeService.isDemoModeEnabled();
       const isDemoTrip = !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
-      
+      let isDemoMode = false;
+      try {
+        isDemoMode = localStorage.getItem('TRIPS_DEMO_VIEW') === 'app-preview';
+      } catch {
+        // localStorage unavailable (SSR/test) — fall through to DB path
+      }
+
       if (isDemoMode && isDemoTrip) {
-        return mockPayments.filter(p => p.trip_id === tripId).map((payment: MockPayment) => ({
-          id: payment.id,
-          tripId: payment.trip_id,
-          messageId: null,
-          amount: payment.amount,
-          currency: payment.currency,
-          description: payment.description,
-          splitCount: payment.split_count,
-          splitParticipants: payment.split_participants,
-          paymentMethods: payment.payment_methods,
-          createdBy: payment.created_by,
-          createdAt: payment.created_at,
-          isSettled: payment.is_settled,
-        }));
+        return mockPayments
+          .filter(p => p.trip_id === tripId)
+          .map((payment: MockPayment) => ({
+            id: payment.id,
+            tripId: payment.trip_id,
+            messageId: null,
+            amount: payment.amount,
+            currency: payment.currency,
+            description: payment.description,
+            splitCount: payment.split_count,
+            splitParticipants: payment.split_participants,
+            paymentMethods: payment.payment_methods,
+            createdBy: payment.created_by,
+            createdAt: payment.created_at,
+            isSettled: payment.is_settled,
+          }));
       }
 
       const { data, error } = await supabase
@@ -275,8 +276,10 @@ export const paymentService = {
         currency: msg.currency,
         description: msg.description,
         splitCount: msg.split_count,
-        splitParticipants: Array.isArray(msg.split_participants) ? msg.split_participants as string[] : [],
-        paymentMethods: Array.isArray(msg.payment_methods) ? msg.payment_methods as string[] : [],
+        splitParticipants: Array.isArray(msg.split_participants)
+          ? (msg.split_participants as string[])
+          : [],
+        paymentMethods: Array.isArray(msg.payment_methods) ? (msg.payment_methods as string[]) : [],
         createdBy: msg.created_by,
         createdAt: msg.created_at,
         isSettled: msg.is_settled,
@@ -298,7 +301,7 @@ export const paymentService = {
         .single();
 
       if (fetchError) throw fetchError;
-      
+
       if (currentSplit.is_settled) {
         throw new Error('Payment has already been settled by another user.');
       }
@@ -336,7 +339,7 @@ export const paymentService = {
         .single();
 
       if (fetchError) throw fetchError;
-      
+
       if (!currentSplit.is_settled) {
         return true; // Already unsettled
       }
@@ -388,7 +391,10 @@ export const paymentService = {
   },
 
   // Update payment message (creator only)
-  async updatePaymentMessage(paymentId: string, updates: { amount?: number; description?: string }): Promise<boolean> {
+  async updatePaymentMessage(
+    paymentId: string,
+    updates: { amount?: number; description?: string },
+  ): Promise<boolean> {
     try {
       const updateData: Record<string, any> = {};
       if (updates.amount !== undefined) updateData.amount = updates.amount;
@@ -430,22 +436,13 @@ export const paymentService = {
   async deletePaymentMessage(paymentId: string): Promise<boolean> {
     try {
       // First delete related splits
-      await supabase
-        .from('payment_splits')
-        .delete()
-        .eq('payment_message_id', paymentId);
+      await supabase.from('payment_splits').delete().eq('payment_message_id', paymentId);
 
       // Delete audit log entries
-      await supabase
-        .from('payment_audit_log')
-        .delete()
-        .eq('payment_message_id', paymentId);
+      await supabase.from('payment_audit_log').delete().eq('payment_message_id', paymentId);
 
       // Delete the payment message
-      const { error } = await supabase
-        .from('trip_payment_messages')
-        .delete()
-        .eq('id', paymentId);
+      const { error } = await supabase.from('trip_payment_messages').delete().eq('id', paymentId);
 
       return !error;
     } catch (error) {
@@ -465,13 +462,15 @@ export const paymentService = {
   }> {
     try {
       const paymentMessages = await this.getTripPaymentMessages(tripId);
-      
+
       const { data: splits, error } = await supabase
         .from('payment_splits')
-        .select(`
+        .select(
+          `
           *,
           payment_message:trip_payment_messages!inner(trip_id, created_by, amount)
-        `)
+        `,
+        )
         .eq('payment_message.trip_id', tripId);
 
       if (error) throw error;
@@ -481,7 +480,7 @@ export const paymentService = {
 
       paymentMessages.forEach(payment => {
         totalExpenses += payment.amount;
-        
+
         if (!userBalances[payment.createdBy]) {
           userBalances[payment.createdBy] = 0;
         }
@@ -506,7 +505,7 @@ export const paymentService = {
             settlementSuggestions.push({
               from: debtorId,
               to: creditorId,
-              amount
+              amount,
             });
           }
         });
@@ -515,15 +514,15 @@ export const paymentService = {
       return {
         totalExpenses,
         userBalances,
-        settlementSuggestions
+        settlementSuggestions,
       };
     } catch (error) {
       console.error('Error getting payment summary:', error);
       return {
         totalExpenses: 0,
         userBalances: {},
-        settlementSuggestions: []
+        settlementSuggestions: [],
       };
     }
-  }
+  },
 };

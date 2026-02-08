@@ -184,6 +184,11 @@ export const usePrefetchTrip = () => {
 
   /**
    * ⚡ MOBILE/PWA: Prefetch high-priority tabs on trip load
+   *
+   * NOTE: Payments is intentionally excluded from priority prefetch.
+   * It requires auth verification + 4 rounds of DB calls, which competes
+   * with other tabs (especially Media) for network bandwidth.
+   * Payments is still prefetched on hover/adjacent-tab navigation.
    */
   const prefetchPriorityTabs = useCallback(
     (tripId: string) => {
@@ -195,12 +200,10 @@ export const usePrefetchTrip = () => {
       // After 200ms: Calendar (second most used)
       setTimeout(() => prefetchTab(tripId, 'calendar'), 200);
 
-      // After 400ms: Tasks, Payments, and Places
+      // After 500ms: Tasks (lightweight)
       setTimeout(() => {
         prefetchTab(tripId, 'tasks');
-        prefetchTab(tripId, 'payments');
-        prefetchTab(tripId, 'places');
-      }, 400);
+      }, 500);
     },
     [isDemoMode, prefetchTab],
   );
