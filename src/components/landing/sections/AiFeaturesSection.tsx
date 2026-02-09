@@ -36,7 +36,7 @@ export const AiFeaturesSection = () => {
       icon: <Upload className="text-accent" size={28} />,
       title: 'Smart Import',
       description:
-        'AI: Automatically Import tours, game schedules, & more to the calendar with a URL or Upload',
+        'Calendar AI: Automatically Import tours, conferences, & game schedules with just a URL or upload',
     },
     {
       icon: <ScrollText className="text-primary" size={28} />,
