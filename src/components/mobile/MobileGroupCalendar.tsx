@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 import {
   Plus,
   ChevronLeft,
@@ -120,7 +122,10 @@ export const MobileGroupCalendar = ({
     }
   };
 
+  const queryClient = useQueryClient();
+
   const handleImportComplete = async () => {
+    await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
     await refreshEvents();
   };
 

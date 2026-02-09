@@ -7,6 +7,7 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useToast } from '@/hooks/use-toast';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { withTimeout } from '@/utils/timeout';
+import { supabase } from '@/integrations/supabase/client';
 
 export type ViewMode = 'calendar' | 'itinerary' | 'grid';
 
@@ -56,6 +57,46 @@ export const useCalendarManagement = (tripId: string) => {
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.calendar.refetchOnWindowFocus,
   });
+
+  // ⚡ REALTIME: Subscribe to trip_events changes for live updates during import
+  useEffect(() => {
+    if (!tripId || isDemoMode) return;
+
+    const channel = supabase
+      .channel(`calendar_mgmt_${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'trip_events',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            queryClient.setQueryData<TripEvent[]>(tripKeys.calendar(tripId), (prev) => {
+              if (!prev) return [payload.new as TripEvent];
+              // Avoid duplicates (optimistic update may already have it)
+              if (prev.some(e => e.id === (payload.new as TripEvent).id)) return prev;
+              return [...prev, payload.new as TripEvent];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            queryClient.setQueryData<TripEvent[]>(tripKeys.calendar(tripId), (prev) =>
+              prev?.map(e => e.id === (payload.new as TripEvent).id ? payload.new as TripEvent : e) ?? []
+            );
+          } else if (payload.eventType === 'DELETE') {
+            queryClient.setQueryData<TripEvent[]>(tripKeys.calendar(tripId), (prev) =>
+              prev?.filter(e => e.id !== (payload.old as TripEvent).id) ?? []
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, isDemoMode, queryClient]);
 
   // Convert TripEvents to CalendarEvents for UI
   const events: CalendarEvent[] = tripEvents.map(calendarService.convertToCalendarEvent);
