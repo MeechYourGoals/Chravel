@@ -1,51 +1,69 @@
 
-# Fix: Pro Trip and Event Creation Blocked by Database Constraint
+# Multi-Fix Plan: Persistent Toast, Import UI Polish, and Pro Category Editing
 
-## Root Cause (Confirmed from Edge Function Logs)
+## 1. Persistent Import Toast Notifications
 
-The error is:
-```
-new row for relation "trips" violates check constraint "valid_enabled_features"
-```
+**Problem**: The "Found X events" toast disappears after 10 seconds. If the user is on another tab (Chat, Payments, etc.), they miss it and must restart the import.
 
-The database has a CHECK constraint called `valid_enabled_features` that only allows these 8 values:
-```
-chat, calendar, concierge, media, payments, places, polls, tasks
-```
+**Fix**: Change `duration: 10000` to `duration: Infinity` in both background import hooks. Add a close button so users can dismiss manually. The toast persists until the user clicks "View Events" or closes it with X.
 
-But the `create-trip` edge function sends these additional features:
-- **Pro trips**: `team`
-- **Event trips**: `agenda`, `lineup`
+**Files**:
+- `src/features/calendar/hooks/useBackgroundImport.ts` (line 85) -- change `duration: 10000` to `duration: Infinity`
+- `src/features/calendar/hooks/useBackgroundAgendaImport.ts` (line 63) -- change `duration: 10000` to `duration: Infinity`
 
-These 3 values are rejected by the constraint, causing every Pro trip and Event creation to fail with a 500 error.
+---
 
-Consumer trips work fine because their feature set (`chat, calendar, concierge, media, payments, places, polls, tasks`) is an exact match.
+## 2. URL Input Field -- Gold Border and Button Height Parity
 
-## Fix
+**Problem**: The URL input field blends into the dark background and is hard to identify as an input. The Import button is slightly shorter than the input.
 
-**One database migration** -- update the CHECK constraint to include all valid feature values:
+**Fix**: Add a gold/amber border to the URL input (`border-amber-500/60`) and ensure both the input and button use `h-11` for matching heights.
 
-```sql
-ALTER TABLE trips DROP CONSTRAINT valid_enabled_features;
+**File**: `src/features/calendar/components/CalendarImportModal.tsx` (lines 372-393)
+- Input: add `border-amber-500/60 focus:border-amber-400 h-11`
+- Button: change `min-h-[40px]` to `h-11`
 
-ALTER TABLE trips ADD CONSTRAINT valid_enabled_features
-  CHECK (enabled_features <@ ARRAY[
-    'agenda', 'calendar', 'chat', 'concierge',
-    'lineup', 'media', 'payments', 'places',
-    'polls', 'tasks', 'team'
-  ]::text[]);
-```
+---
 
-That is the entire fix. No code changes needed -- the edge function, frontend forms, and feature configs are all correct. The constraint is the sole blocker.
+## 3. Paste Schedule Text -- Confirmation
 
-## Why This is Safe
+The "Paste schedule text instead" feature routes through the `parseTextWithAI` function which calls the `enhanced-ai-parser` edge function with the raw text. This function uses Gemini to extract only date/event data and ignores irrelevant text. So yes, pasting an entire webpage's content works -- the AI extracts only valid events. No code changes needed.
 
-- The constraint still validates that only known feature names can be stored (no typos, no injection)
-- Consumer trips are unaffected (their features are a subset of the expanded list)
-- No code changes means zero regression risk to existing functionality
-- The `proCategories.ts` config already lists `team` as a required tab for all Pro categories
-- The edge function's `DEFAULT_FEATURES_BY_TYPE` already defines the correct feature sets
+---
 
-## Verification
+## 4. File Import Formats (ICS, CSV, Excel, PDF, Image)
 
-After the migration, creating a Pro trip with the exact form data shown in the screenshot ("Nurse John Europe Tour", Tour category, Overseas location) will succeed immediately.
+The `parseCalendarFile` function in `calendarImportParsers.ts` already has dedicated parsers for all five formats:
+- **ICS**: Native parser via `parseICSFile`
+- **CSV**: `parseCSVCalendar` -- reads CSV, maps columns
+- **Excel**: `parseExcelCalendar` -- uses the `xlsx` library
+- **PDF/Image**: `parseWithAI` -- uploads to storage, calls `enhanced-ai-parser` edge function with Gemini
+
+All paths are wired and functional. No code changes needed for the parsers themselves. The accepted file types in the modal already include all formats.
+
+---
+
+## 5. Pro Trip Category in Edit Modal
+
+**Problem**: The Edit Trip Details modal has no category selector for Pro trips. Users cannot change a trip's category after creation (e.g., fixing "Sports" to "Tour").
+
+**Fix**: Add a category dropdown to `EditTripModal.tsx` for Pro trips, positioned after the Card Color picker. The category is stored in the `categories` JSONB column on the `trips` table (currently `[]` for all pro trips based on DB check). The update will write `[{"type": "pro_category", "value": "Tour..."}]` to the categories field and the `handleSave` function will include it in the Supabase update.
+
+**File**: `src/components/EditTripModal.tsx`
+- Import `ProTripCategory, getAllCategories, getCategoryConfig` from `types/proCategories`
+- Add `proCategory` state initialized from `trip.categories`
+- Add category selector UI after Card Color section (Pro trips only)
+- Include `categories` in the save payload
+
+---
+
+## Technical Summary
+
+| File | Change |
+|------|--------|
+| `useBackgroundImport.ts` | `duration: Infinity` on success toast |
+| `useBackgroundAgendaImport.ts` | `duration: Infinity` on success toast |
+| `CalendarImportModal.tsx` | Gold border on URL input, matched button height |
+| `EditTripModal.tsx` | Add Pro category selector, persist to `categories` JSONB |
+
+No changes to parsers, edge functions, or database schema required.
