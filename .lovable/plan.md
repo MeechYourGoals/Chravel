@@ -1,95 +1,79 @@
 
-# Fix URL Scraping for JavaScript-Rendered Sites (Trevor Noah, etc.)
+# Instant Calendar Update After Import (No Refresh Required)
 
-## The Real Problem
+## Root Cause
 
-Trevor Noah's website (and most comedian/artist tour sites built on Squarespace, Wix, custom React/Next.js, etc.) renders show dates entirely via JavaScript **after** the page loads. When our edge function uses `fetch()`, it gets back a ~69K HTML shell that contains zero show data -- just framework code and contact info.
+When you import events, the data IS saved to the database successfully — but the calendar UI doesn't update immediately because of how the cache layer works:
 
-This is NOT a Gemini problem. Gemini never even sees the show data because the data is never in the HTML we send it. No amount of loosening restrictions or increasing character caps can fix this -- the data literally isn't there.
+1. **Mobile (`MobileGroupCalendar`)**: The `handleImportComplete` callback only calls `refreshEvents()` without first invalidating the query cache. TanStack Query's `refetch()` respects the 60-second `staleTime` and may return the stale cached data instead of fetching fresh data from the server.
 
-**Proof**: Multiple independent tools (Lovable's own fetch, web scrapers, code search) all fail to see Trevor Noah's show dates from the raw HTML. Only tools with JavaScript rendering capability (like a real browser) can see the content shown in your screenshot.
+2. **Desktop (`GroupCalendar`)**: This one correctly calls `invalidateQueries()` first (which marks the cache as stale) then `refreshEvents()`. However, this happens asynchronously AFTER the modal closes — and there's no guarantee the UI re-renders with the new data before the user sees the calendar.
 
-## The Solution: Firecrawl Integration
+3. **Realtime subscription gap**: The `useCalendarEvents` hook (used by mobile) has a Supabase realtime subscription that should catch INSERT events. However, `useCalendarManagement` (used by desktop) does NOT have a realtime subscription at all. For bulk imports (20 sequential inserts with 100ms delays), the realtime events may arrive with some lag.
 
-Firecrawl is a web scraping service with **headless browser rendering** -- it executes JavaScript just like a real browser, then returns the fully rendered HTML/markdown. It's available as a Lovable connector.
+## Solution
 
-The approach:
-1. Connect Firecrawl (one-time setup via connector)
-2. Update `scrape-schedule` and `scrape-agenda` to use Firecrawl FIRST for JavaScript rendering
-3. Fall back to raw `fetch()` if Firecrawl is not available (for simpler sites that don't need JS)
-4. Send the Firecrawl-rendered markdown directly to Gemini (cleaner than raw HTML, smaller payload)
+Three targeted changes to ensure events appear instantly after import on both desktop and mobile, with zero refresh needed:
 
-## How It Works
+### 1. Fix `MobileGroupCalendar.tsx` — Add cache invalidation before refetch
 
-```text
-Current (broken for JS sites):
-  URL --> fetch() --> empty HTML shell --> Gemini --> "no events found"
+The mobile `handleImportComplete` currently only calls `refreshEvents()`. Change it to invalidate the query cache first (matching what desktop already does), then refetch:
 
-With Firecrawl:
-  URL --> Firecrawl (headless browser) --> fully rendered markdown with show dates --> Gemini --> structured events
+```typescript
+// Before (mobile):
+const handleImportComplete = async () => {
+  await refreshEvents();
+};
+
+// After (mobile):
+const handleImportComplete = async () => {
+  await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+  await refreshEvents();
+};
 ```
 
-For trevornoah.com/shows, Firecrawl would return clean markdown like:
-```text
-FEB 9, 2026
-RYMAN AUDITORIUM    NASHVILLE, TN
-FEB 10, 2026
-RYMAN AUDITORIUM    NASHVILLE, TN
-FEB 12, 2026
-THE PALACE STAMFORD    STAMFORD, CT
-...
+This requires adding `useQueryClient` and `tripKeys` imports to `MobileGroupCalendar.tsx`.
+
+### 2. Add realtime subscription to `useCalendarManagement.ts` (desktop)
+
+The desktop calendar hook has no realtime subscription. Add the same Supabase channel listener that `useCalendarEvents.ts` already uses. This ensures that when bulk import inserts events one-by-one, each INSERT fires a realtime event that updates the cache directly — the calendar UI updates live as events are imported, with no explicit refresh needed.
+
+Changes to `useCalendarManagement.ts`:
+- Add a `useEffect` that subscribes to `postgres_changes` on `trip_events` for the current `tripId`
+- On INSERT: append the new event to the cached data via `queryClient.setQueryData`
+- On UPDATE: replace the matching event in the cache
+- On DELETE: remove the matching event from the cache
+- Clean up the channel subscription on unmount
+
+### 3. Force-invalidate in `CalendarImportModal.tsx` after bulk insert completes
+
+The import modal currently calls `onImportComplete()` after all inserts finish. Add an explicit `queryClient.invalidateQueries` call directly inside the modal's import handler BEFORE calling `onImportComplete`. This ensures that regardless of which parent component (mobile or desktop) is using the modal, the cache is always invalidated:
+
+```typescript
+// In CalendarImportModal.tsx, after successful bulk insert:
+// Force invalidate before notifying parent
+const queryClient = useQueryClient();
+await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+
+// Then notify parent
+if (onImportComplete) {
+  await onImportComplete();
+}
 ```
 
-Gemini would then easily extract every show date, venue, and city.
+This creates a "belt and suspenders" approach — the modal itself ensures cache invalidation, and the parent components also invalidate as a backup.
 
-## Changes
+## Summary of File Changes
 
-### 1. Connect Firecrawl (User Action Required)
+| File | Change | Purpose |
+|------|--------|---------|
+| `src/components/mobile/MobileGroupCalendar.tsx` | Add `invalidateQueries` before `refreshEvents` in `handleImportComplete` | Mobile calendar updates immediately after import |
+| `src/features/calendar/hooks/useCalendarManagement.ts` | Add Supabase realtime subscription for `trip_events` | Desktop calendar updates live as events are inserted one-by-one |
+| `src/features/calendar/components/CalendarImportModal.tsx` | Add explicit `invalidateQueries` after bulk insert completes | Guarantees cache is refreshed regardless of which parent uses the modal |
 
-You will need to connect the Firecrawl service via the Lovable connector system. This gives the edge functions access to a `FIRECRAWL_API_KEY` environment variable. I will prompt this connection during implementation.
+## Expected Outcome
 
-### 2. Update `supabase/functions/scrape-schedule/index.ts`
-
-Add Firecrawl as the primary scraping method:
-
-- **Step 1**: Check if `FIRECRAWL_API_KEY` is available
-- **Step 2 (Firecrawl path)**: Call `https://api.firecrawl.dev/v1/scrape` with the URL, requesting `markdown` format with `waitFor: 3000` (wait 3 seconds for JS to render). This returns the fully rendered page content as clean markdown.
-- **Step 3**: Send the Firecrawl markdown to Gemini (much smaller and cleaner than raw HTML -- typically 5-20KB vs 69-200KB)
-- **Fallback**: If Firecrawl is not configured or fails, fall back to the existing raw `fetch()` approach
-- Keep all existing protections: 45s AI timeout, future-date filtering, error handling
-
-### 3. Update `supabase/functions/scrape-agenda/index.ts`
-
-Same Firecrawl-first approach for agenda imports.
-
-### 4. No Frontend Changes Needed
-
-The background import hooks, toast notifications, and modal UI all work correctly already. The fix is entirely in the edge functions -- once they return actual data, everything downstream works.
-
-## What This Solves
-
-| Site Type | Before | After |
-|-----------|--------|-------|
-| trevornoah.com (JS-rendered) | "No events found" | All show dates extracted |
-| nursejohnnshows.com (server-rendered) | Works | Still works (Firecrawl or raw fetch) |
-| NBA/NFL/ESPN (structured data) | Works | Still works (Firecrawl gives even cleaner data) |
-| Squarespace artist sites | "No events found" | Works via Firecrawl JS rendering |
-| Netflix Is A Joke Fest (tabbed) | Only first day | Gets default day via Firecrawl (multi-tab still needs manual supplement) |
-
-## What About Multi-Page/Tab Navigation?
-
-Firecrawl's `scrape` endpoint renders a single page with JavaScript execution. For sites like Netflix Is A Joke Fest where you need to click through day tabs:
-- Firecrawl will get the default/first day automatically (improvement over current zero results)
-- For additional days, users can still take screenshots and upload them -- the additive flow works perfectly
-- Future enhancement: Firecrawl's `crawl` feature could potentially navigate multiple pages if they have different URLs
-
-## Files Modified
-
-| File | Change |
-|------|--------|
-| `supabase/functions/scrape-schedule/index.ts` | Add Firecrawl-first scraping with JS rendering, fallback to raw fetch |
-| `supabase/functions/scrape-agenda/index.ts` | Same Firecrawl-first approach |
-
-## Cost Consideration
-
-Firecrawl charges per scrape (typically a few cents per page). For a GTM targeting comedians and artists, this is minimal compared to the manual data entry it replaces. Each import saves an organizer 15-30 minutes of work.
+- After clicking "Import" in the modal and seeing the success toast, the calendar will immediately show all imported events — no refresh needed
+- On desktop: realtime subscription updates the UI live as each event is inserted during sequential import
+- On mobile: cache invalidation + refetch ensures fresh data is pulled from the server
+- Both platforms: the import modal itself forces cache invalidation as an additional safety net
