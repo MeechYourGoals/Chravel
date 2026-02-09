@@ -32,6 +32,8 @@ import {
 import { calendarService, TripEvent } from '@/services/calendarService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 
 interface CalendarImportModalProps {
   isOpen: boolean;
@@ -80,6 +82,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const [urlInput, setUrlInput] = useState('');
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const resetState = useCallback(() => {
     setState('idle');
@@ -257,6 +260,13 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
       toast.error('Import failed', { description: 'No events could be imported' });
     }
 
+    // Force-invalidate cache before notifying parent — ensures UI updates regardless of parent implementation
+    try {
+      await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+    } catch (cacheError) {
+      console.warn('Failed to invalidate calendar cache:', cacheError);
+    }
+
     if (onImportComplete) {
       try {
         await onImportComplete();
@@ -264,7 +274,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
         console.warn('Failed to refresh events after import:', refreshError);
       }
     }
-  }, [parseResult, duplicateIndices, tripId, onImportComplete]);
+  }, [parseResult, duplicateIndices, tripId, onImportComplete, queryClient]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
