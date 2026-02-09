@@ -8,6 +8,7 @@ import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useTripBasecamp, tripBasecampKeys } from '@/hooks/useTripBasecamp';
+import { usePersonalBasecamp } from '@/hooks/usePersonalBasecamp';
 import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
@@ -33,8 +34,10 @@ export const PlacesSection = ({
   const queryClient = useQueryClient();
 
   // Use TanStack Query for trip basecamp (canonical source of truth)
-  // Mutations are now handled self-contained inside BasecampsPanel
   const { data: tripBasecamp, isLoading: _isBasecampLoading } = useTripBasecamp(tripId);
+
+  // ⚡ PERFORMANCE: Use TanStack Query for personal basecamp (loads in parallel with trip basecamp)
+  const { data: personalBasecampData } = usePersonalBasecamp(tripId);
 
   // State
   const [activeTab, setActiveTab] = useState<TabView>('basecamps');
@@ -194,29 +197,13 @@ export const PlacesSection = ({
     loadPlaces();
   }, [tripId, isDemoMode]);
 
-  // Load personal basecamp
+  // ⚡ PERFORMANCE: Sync personal basecamp from TanStack Query to local state
+  // This replaces the sequential useEffect fetch with parallel query loading
   useEffect(() => {
-    const loadPersonalBasecamp = async () => {
-      try {
-        if (isDemoMode) {
-          const sessionBasecamp = demoModeService.getSessionPersonalBasecamp(
-            tripId,
-            effectiveUserId,
-          );
-          setPersonalBasecamp(sessionBasecamp);
-        } else if (user) {
-          const dbBasecamp = await basecampService.getPersonalBasecamp(tripId, user.id);
-          setPersonalBasecamp(dbBasecamp);
-        }
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('Failed to load personal basecamp:', error);
-        }
-      }
-    };
-
-    loadPersonalBasecamp();
-  }, [tripId, user, isDemoMode, effectiveUserId]);
+    if (personalBasecampData !== undefined) {
+      setPersonalBasecamp(personalBasecampData);
+    }
+  }, [personalBasecampData]);
 
   // Track local updates to prevent toast spam
   const lastLocalUpdateRef = useRef<{ timestamp: number; address: string } | null>(null);
