@@ -66,7 +66,7 @@ export const AiFeaturesSection = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-0 flex flex-col items-center justify-start md:justify-center min-h-screen space-y-8 md:space-y-12">
+    <div className="container mx-auto px-4 py-8 tablet:py-0 flex flex-col items-center justify-start tablet:justify-center min-h-screen space-y-8 tablet:space-y-12">
       {/* Headline - bold white text with shadow for contrast */}
       <motion.div
         className="text-center space-y-4 max-w-4xl"
@@ -91,9 +91,9 @@ export const AiFeaturesSection = () => {
       </motion.div>
 
       {/* Split Layout: 2 Rows with Screenshot + 3 Pills each */}
-      <div className="max-w-7xl w-full space-y-6 md:space-y-8">
+      <div className="max-w-7xl w-full space-y-6 tablet:space-y-8">
         {/* Row 1: AI Concierge Screenshot + 3 Pills */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 tablet:gap-8 items-stretch">
           {/* Left: AI Concierge Screenshot */}
           <motion.div
             className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300 min-h-[300px] lg:min-h-[380px]"
@@ -142,7 +142,7 @@ export const AiFeaturesSection = () => {
         </div>
 
         {/* Row 2: Places Screenshot + 3 Pills */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 tablet:gap-8 items-stretch">
           {/* Left: Places Screenshot */}
           <motion.div
             className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-accent/30 transition-all duration-300 min-h-[300px] lg:min-h-[380px]"

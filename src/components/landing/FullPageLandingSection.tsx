@@ -16,37 +16,46 @@ interface FullPageLandingSectionProps {
     position: 'top' | 'bottom' | 'center';
     opacity?: number;
   };
-  goldOverlay?: 'hero' | 'waves' | 'triangles' | 'diamonds' | 'circles' | 'mesh' | 'aurora' | 'footer' | 'none';
+  goldOverlay?:
+    | 'hero'
+    | 'waves'
+    | 'triangles'
+    | 'diamonds'
+    | 'circles'
+    | 'mesh'
+    | 'aurora'
+    | 'footer'
+    | 'none';
 }
 
 export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
   id,
-  enableSnapScroll = true,
+  enableSnapScroll: _enableSnapScroll = true,
   minHeight = '100vh',
   children,
   className,
-  backgroundStyle = 'gradient',
+  backgroundStyle: _backgroundStyle = 'gradient',
   gradientColors = ['#000000', '#0a0a0a'],
   gradientDirection = 'diagonal',
   accentGlow,
-  goldOverlay = 'waves'
+  goldOverlay = 'waves',
 }) => {
   // Build the gradient based on direction and colors
   const getGradientStyle = () => {
     const [start, end, mid] = gradientColors;
-    
+
     if (gradientDirection === 'radial') {
-      return mid 
+      return mid
         ? `radial-gradient(ellipse at center, ${mid} 0%, ${start} 50%, ${end} 100%)`
         : `radial-gradient(ellipse at center bottom, ${start} 0%, ${end} 100%)`;
     }
-    
+
     if (gradientDirection === 'vertical') {
       return mid
         ? `linear-gradient(180deg, ${start} 0%, ${mid} 50%, ${end} 100%)`
         : `linear-gradient(180deg, ${start} 0%, ${end} 100%)`;
     }
-    
+
     // Default: diagonal
     return mid
       ? `linear-gradient(135deg, ${start} 0%, ${mid} 50%, ${end} 100%)`
@@ -56,10 +65,12 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
   // Build accent glow overlay with dramatic gold sweeps
   const getAccentGlowStyle = () => {
     if (!accentGlow) return null;
-    
+
     const { color, position, opacity = 0.15 } = accentGlow;
-    const hexOpacity = Math.round(opacity * 255).toString(16).padStart(2, '0');
-    
+    const hexOpacity = Math.round(opacity * 255)
+      .toString(16)
+      .padStart(2, '0');
+
     // Create more dramatic curved gold gradients inspired by the reference
     if (position === 'top') {
       return `
@@ -68,14 +79,14 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
         radial-gradient(ellipse 60% 25% at 80% 5%, rgba(255,215,0,0.06) 0%, transparent 35%)
       `;
     }
-    
+
     if (position === 'bottom') {
       return `
         radial-gradient(ellipse 120% 50% at 50% 100%, ${color}${hexOpacity} 0%, transparent 50%),
         radial-gradient(ellipse 80% 30% at 80% 90%, rgba(244,178,58,0.08) 0%, transparent 40%)
       `;
     }
-    
+
     // Center position - subtle ambient glow
     return `
       radial-gradient(ellipse 100% 60% at 50% 50%, ${color}${hexOpacity} 0%, transparent 55%),
@@ -90,43 +101,38 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
       id={id}
       className={cn(
         'relative w-full flex',
-        // Mobile: content flows from top naturally. Desktop: vertically centered
-        'items-start md:items-center justify-center',
-        // Mobile: fill viewport so content starts at top. Desktop: use CSS variable for min-height
-        'min-h-screen md:min-h-[var(--section-desktop-min-height,100vh)]',
+        // Mobile/phone: content flows from top naturally. Tablet+: vertically centered
+        'items-start tablet:items-center justify-center',
+        // Mobile/phone: fill viewport so content starts at top. Tablet+: use CSS variable for min-height
+        'min-h-screen tablet:min-h-[var(--section-desktop-min-height,100vh)]',
         // Add top padding on mobile to account for header and safe areas
-        'pt-20 md:pt-0',
-        className
+        'pt-20 tablet:pt-0',
+        className,
       )}
       style={{
         ['--section-desktop-min-height' as string]: minHeight,
-        background: getGradientStyle()
+        background: getGradientStyle(),
       }}
     >
       {/* Accent glow overlay */}
       {accentStyle && (
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: accentStyle }}
-        />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: accentStyle }} />
       )}
 
       {/* Gold decorative overlay */}
       {goldOverlay !== 'none' && <GoldAccentOverlay variant={goldOverlay} />}
 
       {/* Subtle noise texture overlay */}
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none opacity-[0.03]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'repeat'
+          backgroundRepeat: 'repeat',
         }}
       />
 
       {/* Content */}
-      <div className="relative z-10 w-full">
-        {children}
-      </div>
+      <div className="relative z-10 w-full">{children}</div>
     </section>
   );
 };
