@@ -94,7 +94,7 @@ export const MobileTripTabs = ({
 }: MobileTripTabsProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
-  const { prefetchTab } = usePrefetchTrip();
+  const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
   const contentRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const features = useFeatureToggle(tripData || {});
@@ -146,6 +146,14 @@ export const MobileTripTabs = ({
   // Get event admin status for event variant
   const { isAdmin: isEventAdmin } = useEventPermissions(variant === 'event' ? tripId : '');
 
+  // ⚡ MOBILE/PWA OPTIMIZATION: Prefetch priority tabs on mount
+  // Since mobile users can't hover, we prefetch commonly used tabs immediately
+  useEffect(() => {
+    if (tripId) {
+      prefetchPriorityTabs(tripId);
+    }
+  }, [tripId, prefetchPriorityTabs]);
+
   // Mark current tab as visited when it changes
   useEffect(() => {
     if (!visitedTabs.has(activeTab)) {
@@ -189,6 +197,14 @@ export const MobileTripTabs = ({
   };
 
   const tabs = getTabsForVariant();
+
+  // ⚡ MOBILE OPTIMIZATION: Prefetch adjacent tabs when user visits a tab
+  const enabledTabIds = tabs.filter(t => t.enabled !== false).map(t => t.id);
+  useEffect(() => {
+    if (tripId) {
+      prefetchAdjacentTabs(tripId, activeTab, enabledTabIds);
+    }
+  }, [activeTab, tripId, prefetchAdjacentTabs]);
 
   // Scroll active tab into view and set CSS var for tabs height
   useEffect(() => {

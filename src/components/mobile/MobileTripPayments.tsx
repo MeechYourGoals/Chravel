@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Plus, DollarSign, CheckCircle, Clock, AlertCircle, Lock, Loader2, ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { hapticService } from '@/services/hapticService';
 import { safeReload } from '@/utils/safeReload';
 import { CreatePaymentModal } from './CreatePaymentModal';
@@ -15,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getConsistentAvatar, getInitials } from '@/utils/avatarUtils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 
 interface Payment {
   id: string;
@@ -43,12 +45,8 @@ interface MobileTripPaymentsProps {
 export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [tripMembers, setTripMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [balanceSummary, setBalanceSummary] = useState<BalanceSummaryType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [membersLoading, setMembersLoading] = useState(true);
   const { isDemoMode, isLoading: demoLoading } = useDemoMode();
   const { tier, upgradeToTier } = useConsumerSubscription();
   
@@ -61,6 +59,189 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const tripIdNum = parseInt(tripId, 10);
   const isConsumerDemoTrip = isNumericOnly && !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
   const demoActive = isDemoMode && isConsumerDemoTrip;
+
+  // ⚡ PERFORMANCE: TanStack Query for authenticated payment data
+  // This enables prefetch cache warming + instant re-visits
+  const { data: authPaymentData, isLoading: authQueryLoading, refetch: refetchPayments } = useQuery({
+    queryKey: tripKeys.payments(tripId),
+    queryFn: async () => {
+      // ⚡ Parallel fetch: members + payments + user profile + balance summary all at once
+      const [membersData, paymentsData, userProfileResult] = await Promise.all([
+        tripService.getTripMembers(tripId),
+        paymentService.getTripPaymentMessages(tripId),
+        // Pre-fetch user profile in parallel (in case user isn't in members list)
+        user ? supabase
+          .from('profiles')
+          .select('display_name, avatar_url')
+          .eq('user_id', user.id)
+          .single() : Promise.resolve({ data: null }),
+      ]);
+
+      // Format members
+      const formattedMembers = membersData.map(m => ({
+        id: m.user_id,
+        name: m.profiles?.display_name || 'Former Member',
+        avatar: m.profiles?.avatar_url || undefined,
+      }));
+
+      // Ensure current user is always in members list
+      let finalMembers = formattedMembers;
+      if (user && !formattedMembers.find(m => m.id === user.id)) {
+        const profile = userProfileResult?.data;
+        finalMembers = [
+          {
+            id: user.id,
+            name: profile?.display_name || user.email?.split('@')[0] || 'Unknown',
+            avatar: profile?.avatar_url || undefined,
+          },
+          ...formattedMembers,
+        ];
+      }
+
+      // Convert Supabase payments to Payment format
+      const convertedPayments: Payment[] = paymentsData.map(p => {
+        const payerProfile = finalMembers.find(m => m.id === p.createdBy);
+        return {
+          id: p.id,
+          payer: payerProfile?.name || 'Unknown',
+          payerId: p.createdBy,
+          payerAvatar: payerProfile?.avatar || getConsistentAvatar(payerProfile?.name || 'Unknown'),
+          amount: p.amount,
+          currency: p.currency,
+          description: p.description,
+          status: p.isSettled ? ('settled' as const) : ('pending' as const),
+          splitWith: p.splitParticipants,
+          splitCount: p.splitCount,
+          date: p.createdAt,
+          isSettled: p.isSettled,
+        };
+      });
+
+      // ⚡ Fetch balance summary in parallel with the rest
+      let balanceSummary: BalanceSummaryType | null = null;
+      if (user?.id) {
+        try {
+          balanceSummary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
+        } catch (error) {
+          console.error('Error loading balance summary:', error);
+          balanceSummary = {
+            totalOwed: 0,
+            totalOwedToYou: 0,
+            netBalance: 0,
+            baseCurrency: 'USD',
+            balances: [],
+          };
+        }
+      }
+
+      return { members: finalMembers, payments: convertedPayments, balanceSummary };
+    },
+    enabled: !demoActive && !demoLoading && !!user,
+    staleTime: QUERY_CACHE_CONFIG.payments.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.payments.gcTime,
+    refetchOnWindowFocus: QUERY_CACHE_CONFIG.payments.refetchOnWindowFocus,
+  });
+
+  // Demo mode state (unchanged logic, just separated from auth flow)
+  const [demoMembers, setDemoMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [demoPayments, setDemoPayments] = useState<Payment[]>([]);
+  const [demoBalance, setDemoBalance] = useState<BalanceSummaryType | null>(null);
+  const [demoDataLoaded, setDemoDataLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!demoActive || demoLoading) return;
+
+    const mockTrip = getTripById(tripIdNum);
+    const mockMembers = demoModeService.getMockMembers(tripId);
+
+    let formattedMembers: Array<{ id: string; name: string; avatar?: string }>;
+    if (mockTrip && mockTrip.participants) {
+      formattedMembers = mockTrip.participants.map(p => ({
+        id: String(p.id),
+        name: p.name,
+        avatar: p.avatar,
+      }));
+    } else {
+      formattedMembers = mockMembers.map(m => ({
+        id: m.user_id,
+        name: m.display_name,
+        avatar: m.avatar_url,
+      }));
+    }
+    setDemoMembers(formattedMembers);
+
+    const getPayerName = (createdBy: string, createdByName?: string): string => {
+      if (createdByName) return createdByName;
+      const member = formattedMembers.find(m => m.id === createdBy);
+      if (member) return member.name;
+      const mockMember = mockMembers.find(m => m.user_id === createdBy);
+      return mockMember?.display_name || 'Unknown';
+    };
+
+    const rawDemoPayments = demoModeService.getMockPayments(tripId, false);
+    const sessionPayments = demoModeService.getSessionPayments(tripId);
+
+    const convertedSessionPayments: Payment[] = sessionPayments.map(p => ({
+      id: p.id,
+      payer: p.createdByName || getPayerName(p.created_by),
+      payerId: p.created_by || 'demo-user',
+      payerAvatar: getConsistentAvatar(p.createdByName || getPayerName(p.created_by)),
+      amount: p.amount,
+      currency: p.currency || 'USD',
+      description: p.description,
+      status: p.is_settled ? ('settled' as const) : ('pending' as const),
+      splitWith: p.split_participants || [],
+      splitCount: p.split_count || 1,
+      date: p.created_at,
+      isSettled: p.is_settled || false,
+    }));
+
+    const convertedMockPayments: Payment[] = rawDemoPayments.map(p => ({
+      id: p.id,
+      payer: getPayerName(p.created_by),
+      payerId: p.created_by,
+      payerAvatar: getConsistentAvatar(getPayerName(p.created_by)),
+      amount: p.amount,
+      currency: p.currency || 'USD',
+      description: p.description,
+      status: p.is_settled ? ('settled' as const) : ('pending' as const),
+      splitWith: p.split_participants || [],
+      splitCount: p.split_count || 1,
+      date: p.created_at,
+      isSettled: p.is_settled || false,
+    }));
+
+    setDemoPayments([...convertedSessionPayments, ...convertedMockPayments]);
+
+    const allDemoPayments = [...sessionPayments, ...rawDemoPayments];
+    const totalAmount = allDemoPayments.reduce((sum, p) => sum + p.amount, 0);
+    const avgPerPerson = totalAmount / Math.max(mockMembers.length, 1);
+
+    setDemoBalance({
+      totalOwed: avgPerPerson * 0.6,
+      totalOwedToYou: avgPerPerson * 0.4,
+      netBalance: avgPerPerson * 0.2,
+      baseCurrency: 'USD',
+      balances: mockMembers.slice(0, 3).map((m, i) => ({
+        userId: m.user_id,
+        userName: m.display_name,
+        avatar: m.avatar_url,
+        amountOwed: (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
+        amountOwedCurrency: 'USD',
+        preferredPaymentMethod: null,
+        unsettledPayments: [],
+      })),
+    });
+
+    setDemoDataLoaded(true);
+  }, [tripId, demoActive, demoLoading, tripIdNum]);
+
+  // ⚡ Unified data accessors — demo or auth
+  const tripMembers = demoActive ? demoMembers : (authPaymentData?.members ?? []);
+  const payments = demoActive ? demoPayments : (authPaymentData?.payments ?? []);
+  const balanceSummary = demoActive ? demoBalance : (authPaymentData?.balanceSummary ?? null);
+  const isLoading = demoActive ? (!demoDataLoaded && !demoLoading) : authQueryLoading;
+  const membersLoading = isLoading;
 
   // Count user's payment requests
   const userPaymentCount = useMemo(() => {
@@ -101,205 +282,14 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   // Retry function for timeout state
   const handleRetryAfterTimeout = useCallback(() => {
     setHasTimedOut(false);
-    setIsLoading(true);
-    // Re-trigger the useEffect fetch by changing a dependency (Capacitor-safe)
-    safeReload();
-  }, []);
+    if (demoActive) {
+      safeReload();
+    } else {
+      refetchPayments();
+    }
+  }, [demoActive, refetchPayments]);
 
-  // Load trip members and payments - matching desktop PaymentsTab logic
-  useEffect(() => {
-    if (demoLoading) return;
-
-    const fetchData = async () => {
-      setIsLoading(true);
-      setMembersLoading(true);
-
-      try {
-        // 🎭 DEMO MODE: Load from tripsData and demoModeService
-        if (demoActive) {
-          const mockTrip = getTripById(tripIdNum);
-          const mockMembers = demoModeService.getMockMembers(tripId);
-          
-          // Build members list
-          let formattedMembers: Array<{ id: string; name: string; avatar?: string }>;
-          if (mockTrip && mockTrip.participants) {
-            formattedMembers = mockTrip.participants.map(p => ({
-              id: String(p.id),
-              name: p.name,
-              avatar: p.avatar
-            }));
-          } else {
-            formattedMembers = mockMembers.map(m => ({
-              id: m.user_id,
-              name: m.display_name,
-              avatar: m.avatar_url
-            }));
-          }
-          setTripMembers(formattedMembers);
-
-          // Helper to get payer name from created_by ID
-          const getPayerName = (createdBy: string, createdByName?: string): string => {
-            if (createdByName) return createdByName;
-            const member = formattedMembers.find(m => m.id === createdBy);
-            if (member) return member.name;
-            const mockMember = mockMembers.find(m => m.user_id === createdBy);
-            return mockMember?.display_name || 'Unknown';
-          };
-
-          // Demo payments from demoModeService
-          const demoPayments = demoModeService.getMockPayments(tripId, false);
-          const sessionPayments = demoModeService.getSessionPayments(tripId);
-          
-          // Convert session payments (have createdByName)
-          const convertedSessionPayments: Payment[] = sessionPayments.map(p => ({
-            id: p.id,
-            payer: p.createdByName || getPayerName(p.created_by),
-            payerId: p.created_by || 'demo-user',
-            payerAvatar: getConsistentAvatar(p.createdByName || getPayerName(p.created_by)),
-            amount: p.amount,
-            currency: p.currency || 'USD',
-            description: p.description,
-            status: p.is_settled ? 'settled' as const : 'pending' as const,
-            splitWith: p.split_participants || [],
-            splitCount: p.split_count || 1,
-            date: p.created_at,
-            isSettled: p.is_settled || false
-          }));
-
-          // Convert mock payments (need to look up name)
-          const convertedMockPayments: Payment[] = demoPayments.map(p => ({
-            id: p.id,
-            payer: getPayerName(p.created_by),
-            payerId: p.created_by,
-            payerAvatar: getConsistentAvatar(getPayerName(p.created_by)),
-            amount: p.amount,
-            currency: p.currency || 'USD',
-            description: p.description,
-            status: p.is_settled ? 'settled' as const : 'pending' as const,
-            splitWith: p.split_participants || [],
-            splitCount: p.split_count || 1,
-            date: p.created_at,
-            isSettled: p.is_settled || false
-          }));
-          
-          setPayments([...convertedSessionPayments, ...convertedMockPayments]);
-          setMembersLoading(false);
-
-          // Demo balance summary
-          const allDemoPayments = [...sessionPayments, ...demoPayments];
-          const totalAmount = allDemoPayments.reduce((sum, p) => sum + p.amount, 0);
-          const avgPerPerson = totalAmount / Math.max(mockMembers.length, 1);
-          
-          setBalanceSummary({
-            totalOwed: avgPerPerson * 0.6,
-            totalOwedToYou: avgPerPerson * 0.4,
-            netBalance: avgPerPerson * 0.2,
-            baseCurrency: 'USD',
-            balances: mockMembers.slice(0, 3).map((m, i) => ({
-              userId: m.user_id,
-              userName: m.display_name,
-              avatar: m.avatar_url,
-              amountOwed: (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
-              amountOwedCurrency: 'USD',
-              preferredPaymentMethod: null,
-              unsettledPayments: []
-            }))
-          });
-          
-          setIsLoading(false);
-          return;
-        }
-
-        // 🔐 AUTHENTICATED MODE: Query Supabase (same as desktop PaymentsTab)
-        const [membersData, paymentsData] = await Promise.all([
-          tripService.getTripMembers(tripId),
-          paymentService.getTripPaymentMessages(tripId)
-        ]);
-
-        // Format members
-        const formattedMembers = membersData.map(m => ({
-          id: m.user_id,
-          name: m.profiles?.display_name || 'Former Member',
-          avatar: m.profiles?.avatar_url || undefined
-        }));
-
-        // Ensure current user is always in members list
-        let finalMembers = formattedMembers;
-        if (user && !formattedMembers.find(m => m.id === user.id)) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('display_name, avatar_url')
-            .eq('user_id', user.id)
-            .single();
-
-          finalMembers = [
-            {
-              id: user.id,
-              name: profile?.display_name || user.email?.split('@')[0] || 'Unknown',
-              avatar: profile?.avatar_url
-            },
-            ...formattedMembers
-          ];
-        }
-
-        setTripMembers(finalMembers);
-
-        // Convert Supabase payments to Payment format
-        const convertedPayments: Payment[] = paymentsData.map(p => {
-          const payerProfile = finalMembers.find(m => m.id === p.createdBy);
-          return {
-            id: p.id,
-            payer: payerProfile?.name || 'Unknown',
-            payerId: p.createdBy,
-            payerAvatar: payerProfile?.avatar || getConsistentAvatar(payerProfile?.name || 'Unknown'),
-            amount: p.amount,
-            currency: p.currency,
-            description: p.description,
-            status: p.isSettled ? 'settled' as const : 'pending' as const,
-            splitWith: p.splitParticipants,
-            splitCount: p.splitCount,
-            date: p.createdAt,
-            isSettled: p.isSettled
-          };
-        });
-
-        setPayments(convertedPayments);
-        setMembersLoading(false);
-
-        // Load balance summary from Supabase
-        if (user?.id) {
-          try {
-            const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
-            setBalanceSummary(summary);
-          } catch (error) {
-            console.error('Error loading balance summary:', error);
-            setBalanceSummary({
-              totalOwed: 0,
-              totalOwedToYou: 0,
-              netBalance: 0,
-              baseCurrency: 'USD',
-              balances: []
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error loading payment data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load payment information",
-          variant: "destructive"
-        });
-        setPayments([]);
-      } finally {
-        setIsLoading(false);
-        setMembersLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [tripId, user, demoActive, demoLoading, toast]);
-
-  // Subscribe to profile updates so avatar/name changes propagate into payments UI immediately.
+  // Subscribe to profile updates — invalidate query cache for instant avatar/name refresh
   useEffect(() => {
     if (!tripId || demoActive) return;
 
@@ -308,22 +298,9 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        payload => {
-          const next = payload.new as { user_id?: string; display_name?: string | null; avatar_url?: string | null } | null;
-          const userId = next?.user_id;
-          if (!userId) return;
-
-          setTripMembers(prev =>
-            prev.map(m =>
-              m.id === userId
-                ? {
-                    ...m,
-                    name: next.display_name ?? m.name,
-                    avatar: next.avatar_url ?? m.avatar,
-                  }
-                : m,
-            ),
-          );
+        () => {
+          // Invalidate the payments query so it refetches with updated profile data
+          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
         },
       )
       .subscribe();
@@ -333,7 +310,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         // ignore
       });
     };
-  }, [tripId, demoActive]);
+  }, [tripId, demoActive, queryClient]);
 
   const handleAddPayment = async () => {
     await hapticService.medium();
@@ -341,13 +318,12 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   };
 
   const handlePaymentCreated = useCallback(async () => {
-    // Refresh payments after creation
     if (demoActive) {
-      const demoPayments = demoModeService.getMockPayments(tripId, false);
+      // Re-trigger demo data load
+      const rawDemoPayments = demoModeService.getMockPayments(tripId, false);
       const sessionPayments = demoModeService.getSessionPayments(tripId);
       const mockMembers = demoModeService.getMockMembers(tripId);
-      
-      // Helper to get payer name from created_by ID
+
       const getPayerName = (createdBy: string, createdByName?: string): string => {
         if (createdByName) return createdByName;
         const member = tripMembers.find(m => m.id === createdBy);
@@ -355,8 +331,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         const mockMember = mockMembers.find(m => m.user_id === createdBy);
         return mockMember?.display_name || 'Unknown';
       };
-      
-      // Convert session payments (have createdByName)
+
       const convertedSessionPayments: Payment[] = sessionPayments.map(p => ({
         id: p.id,
         payer: p.createdByName || getPayerName(p.created_by),
@@ -365,15 +340,14 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         amount: p.amount,
         currency: p.currency || 'USD',
         description: p.description,
-        status: p.is_settled ? 'settled' as const : 'pending' as const,
+        status: p.is_settled ? ('settled' as const) : ('pending' as const),
         splitWith: p.split_participants || [],
         splitCount: p.split_count || 1,
         date: p.created_at,
-        isSettled: p.is_settled || false
+        isSettled: p.is_settled || false,
       }));
 
-      // Convert mock payments (need to look up name)
-      const convertedMockPayments: Payment[] = demoPayments.map(p => ({
+      const convertedMockPayments: Payment[] = rawDemoPayments.map(p => ({
         id: p.id,
         payer: getPayerName(p.created_by),
         payerId: p.created_by,
@@ -381,47 +355,19 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         amount: p.amount,
         currency: p.currency || 'USD',
         description: p.description,
-        status: p.is_settled ? 'settled' as const : 'pending' as const,
+        status: p.is_settled ? ('settled' as const) : ('pending' as const),
         splitWith: p.split_participants || [],
         splitCount: p.split_count || 1,
         date: p.created_at,
-        isSettled: p.is_settled || false
+        isSettled: p.is_settled || false,
       }));
-      
-      setPayments([...convertedSessionPayments, ...convertedMockPayments]);
-    } else {
-      // Refresh from Supabase
-      const paymentsData = await paymentService.getTripPaymentMessages(tripId);
-      const convertedPayments: Payment[] = paymentsData.map(p => {
-        const payerProfile = tripMembers.find(m => m.id === p.createdBy);
-        return {
-          id: p.id,
-          payer: payerProfile?.name || 'Unknown',
-          payerId: p.createdBy,
-          payerAvatar: payerProfile?.avatar || getConsistentAvatar(payerProfile?.name || 'Unknown'),
-          amount: p.amount,
-          currency: p.currency,
-          description: p.description,
-          status: p.isSettled ? 'settled' as const : 'pending' as const,
-          splitWith: p.splitParticipants,
-          splitCount: p.splitCount,
-          date: p.createdAt,
-          isSettled: p.isSettled
-        };
-      });
-      setPayments(convertedPayments);
 
-      // Refresh balance summary
-      if (user?.id) {
-        try {
-          const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
-          setBalanceSummary(summary);
-        } catch (error) {
-          console.error('Error refreshing balance summary:', error);
-        }
-      }
+      setDemoPayments([...convertedSessionPayments, ...convertedMockPayments]);
+    } else {
+      // ⚡ Invalidate TanStack Query cache — refetches members + payments + balance in one call
+      await queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
     }
-  }, [tripId, demoActive, tripMembers, user]);
+  }, [tripId, demoActive, tripMembers, queryClient]);
 
   const handlePaymentTap = async (paymentId: string) => {
     await hapticService.light();
