@@ -1,8 +1,11 @@
-import { getCorsHeaders, corsHeaders } from "./cors.ts";
+import { getCorsHeaders } from './cors.ts';
 
 // Enhanced security headers for all edge functions
+// Defaults to production domain instead of wildcard CORS
 export const securityHeaders = {
-  ...corsHeaders,
+  'Access-Control-Allow-Origin': 'https://chravel.app',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Content-Type': 'application/json',
   // Prevent MIME type sniffing
   'X-Content-Type-Options': 'nosniff',
@@ -13,11 +16,12 @@ export const securityHeaders = {
   // Control referrer information
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   // Content Security Policy
-  'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:;",
+  'Content-Security-Policy':
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:;",
   // HTTP Strict Transport Security (HSTS)
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   // Permissions Policy (formerly Feature Policy)
-  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()'
+  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
 };
 
 /**
@@ -32,9 +36,10 @@ export function getSecurityHeaders(req?: Request): Record<string, string> {
     'X-Frame-Options': 'DENY',
     'X-XSS-Protection': '1; mode=block',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:;",
+    'Content-Security-Policy':
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:;",
     'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-    'Permissions-Policy': 'geolocation=(), microphone=(), camera=()'
+    'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
   };
 }
 
@@ -43,36 +48,35 @@ export function createSecureResponse(
   body: unknown,
   status: number = 200,
   additionalHeaders: Record<string, string> = {},
-  req?: Request
+  req?: Request,
 ): Response {
-  return new Response(
-    JSON.stringify(body),
-    {
-      status,
-      headers: {
-        ...(req ? getSecurityHeaders(req) : securityHeaders),
-        ...additionalHeaders
-      }
-    }
-  );
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      ...(req ? getSecurityHeaders(req) : securityHeaders),
+      ...additionalHeaders,
+    },
+  });
 }
 
 // Helper for error responses
 export function createErrorResponse(
   error: string | Error,
   status: number = 400,
-  req?: Request
+  req?: Request,
 ): Response {
   const message = typeof error === 'string' ? error : error.message;
-  return createSecureResponse(
-    { error: message },
-    status,
-    {},
-    req
-  );
+  return createSecureResponse({ error: message }, status, {}, req);
 }
 
 // Helper for OPTIONS (CORS preflight) responses
 export function createOptionsResponse(req?: Request): Response {
-  return new Response(null, { headers: req ? getCorsHeaders(req) : corsHeaders });
+  const headers = req
+    ? getCorsHeaders(req)
+    : {
+        'Access-Control-Allow-Origin': 'https://chravel.app',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      };
+  return new Response(null, { headers });
 }

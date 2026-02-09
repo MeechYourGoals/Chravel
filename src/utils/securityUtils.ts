@@ -5,9 +5,14 @@ export class InputValidator {
     if (typeof input !== 'string') return '';
 
     return input
-      .replace(/[<>'"]/g, '') // Remove potentially dangerous characters
-      .replace(/javascript:/gi, '') // Remove javascript: protocol
-      .replace(/on\w+=/gi, '') // Remove event handlers
+      .replace(/[<>'"`]/g, '') // Remove potentially dangerous characters including backticks
+      .replace(/javascript\s*:/gi, '') // Remove javascript: protocol (with optional whitespace)
+      .replace(/vbscript\s*:/gi, '') // Remove vbscript: protocol
+      .replace(/data\s*:/gi, '') // Remove data: protocol
+      .replace(/on\w+\s*=/gi, '') // Remove event handlers (with optional whitespace before =)
+      .replace(/&#/g, '') // Remove HTML entity encoding attempts
+      .replace(/%3[cC]/g, '') // Remove URL-encoded <
+      .replace(/%3[eE]/g, '') // Remove URL-encoded >
       .trim()
       .substring(0, 1000); // Limit length
   }
@@ -46,9 +51,14 @@ export class InputValidator {
     return div.innerHTML;
   }
 
-  // Validate trip ID format
+  // Validate trip ID format (UUIDs or short alphanumeric IDs)
   static isValidTripId(id: string): boolean {
-    return /^[a-zA-Z0-9_-]+$/.test(id) && id.length > 0 && id.length <= 50;
+    if (!id || id.length === 0 || id.length > 50) return false;
+    // Accept UUID format (standard for Supabase)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(id)) return true;
+    // Also accept short alphanumeric IDs for legacy/demo trips
+    return /^[a-zA-Z0-9_-]+$/.test(id);
   }
 
   // Rate limiting check (simple client-side implementation)
@@ -119,10 +129,14 @@ export class CSPHelper {
   }
 
   private static isSafeCSSValue(value: string): boolean {
-    // Block javascript and data URLs
+    const lower = value.toLowerCase();
+    // Block dangerous CSS values
     return (
-      !value.toLowerCase().includes('javascript:') &&
-      !value.toLowerCase().includes('data:') &&
+      !lower.includes('javascript:') &&
+      !lower.includes('data:') &&
+      !lower.includes('expression(') &&
+      !lower.includes('-moz-binding') &&
+      !lower.includes('url(') &&
       !value.includes('<') &&
       !value.includes('>')
     );

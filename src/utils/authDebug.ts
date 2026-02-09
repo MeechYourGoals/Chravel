@@ -36,10 +36,10 @@ function hasAuthDebugQueryParam(): boolean {
 }
 
 export function isAuthDebugEnabled(): boolean {
-  // Dev should always be noisy; prod should require explicit opt-in.
-  if (import.meta.env.DEV) return true;
-  if (hasAuthDebugQueryParam()) return true;
-  return safeGetLocalStorageItem('chravel_auth_debug') === '1';
+  // Only allow auth debug logging in development mode.
+  // Production debug via query param was removed for security (information leakage risk).
+  if (!import.meta.env.DEV) return false;
+  return true;
 }
 
 export function setAuthDebugEnabled(enabled: boolean): void {
@@ -84,11 +84,9 @@ declare global {
     | undefined;
 }
 
-// Convenience helpers for production debugging:
-// In DevTools console you can run:
-//   chravelAuthDebug.enable(); location.reload();
-//   chravelAuthDebug.breadcrumbs(50);
-if (typeof globalThis !== 'undefined') {
+// Debug helpers only available in development mode.
+// Removed from production to prevent information leakage.
+if (typeof globalThis !== 'undefined' && import.meta.env.DEV) {
   globalThis.chravelAuthDebug = {
     enable: () => setAuthDebugEnabled(true),
     disable: () => setAuthDebugEnabled(false),
