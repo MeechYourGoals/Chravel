@@ -374,7 +374,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                       placeholder="Paste a schedule URL (team's site, tour dates, etc.)"
                       value={urlInput}
                       onChange={e => setUrlInput(e.target.value)}
-                      className="flex-1 text-sm rounded-lg min-h-[40px]"
+                      className="flex-1 text-sm rounded-lg h-11 border-amber-500/60 focus:border-amber-400"
                       onKeyDown={e => {
                         if (e.key === 'Enter' && isValidUrl(urlInput.trim())) {
                           handleUrlImport();
@@ -386,7 +386,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                       size="sm"
                       onClick={handleUrlImport}
                       disabled={!urlInput.trim() || !isValidUrl(urlInput.trim())}
-                      className="min-h-[40px] shrink-0"
+                      className="h-11 shrink-0"
                     >
                       <Globe className="w-4 h-4 mr-1.5" />
                       Import

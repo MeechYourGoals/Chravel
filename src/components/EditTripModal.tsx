@@ -8,7 +8,9 @@ import {
   Image as ImageIcon,
   Palette,
   Users,
+  Tag,
 } from 'lucide-react';
+import { ProTripCategory, getAllCategories, getCategoryConfig } from '@/types/proCategories';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseDateRange, formatDateRange } from '@/utils/dateFormatters';
 import { tripService, Trip } from '@/services/tripService';
@@ -34,6 +36,7 @@ interface EditTripModalProps {
     trip_type?: 'consumer' | 'pro' | 'event';
     card_color?: string;
     organizer_display_name?: string;
+    categories?: Array<{ type: string; value: string }>;
   };
   onUpdate?: (updates: Partial<EditTripModalProps['trip']>) => void;
 }
@@ -56,8 +59,14 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
   const [selectedCardColor, setSelectedCardColor] = useState<string | undefined>(trip.card_color);
 
   const availableColors = getAllProTripColors();
-  const isProOrEvent = trip.trip_type === 'pro' || trip.trip_type === 'event';
+  const isPro = trip.trip_type === 'pro';
+  const isProOrEvent = isPro || trip.trip_type === 'event';
   const isEvent = trip.trip_type === 'event';
+
+  // Pro category state
+  const allCategories = getAllCategories();
+  const initialCategory = (trip.categories?.find(c => c.type === 'pro_category')?.value as ProTripCategory) || 'Other';
+  const [proCategory, setProCategory] = useState<ProTripCategory>(initialCategory);
 
   // Initialize form data when modal opens
   useEffect(() => {
@@ -71,6 +80,8 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         organizer_display_name: trip.organizer_display_name || '',
       });
       setSelectedCardColor(trip.card_color);
+      const cat = (trip.categories?.find(c => c.type === 'pro_category')?.value as ProTripCategory) || 'Other';
+      setProCategory(cat);
     }
   }, [isOpen, trip]);
 
@@ -113,6 +124,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         end_date: formData.end_date,
         ...(isProOrEvent && { card_color: selectedCardColor }),
         ...(isEvent && { organizer_display_name: formData.organizer_display_name.trim() || null }),
+        ...(isPro && { categories: [{ type: 'pro_category', value: proCategory }] }),
       };
 
       // Convert to mock format for UI callback
@@ -125,6 +137,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         ...(isEvent && {
           organizer_display_name: formData.organizer_display_name.trim() || undefined,
         }),
+        ...(isPro && { categories: [{ type: 'pro_category', value: proCategory }] }),
       };
 
       // Demo mode: store in localStorage
@@ -249,7 +262,32 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
             </div>
           )}
 
-          {/* Trip Name */}
+          {/* Pro Trip Category */}
+          {isPro && (
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                <Tag size={16} />
+                Trip Category
+              </label>
+              <select
+                value={proCategory}
+                onChange={e => setProCategory(e.target.value as ProTripCategory)}
+                disabled={loading}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none"
+              >
+                {allCategories.map(cat => (
+                  <option key={cat} value={cat} className="bg-gray-900 text-white">
+                    {cat}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-400 mt-1">
+                {getCategoryConfig(proCategory).description}
+              </p>
+            </div>
+          )}
+
+
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
               <Type size={16} />
