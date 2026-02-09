@@ -1,79 +1,89 @@
 
-# Instant Calendar Update After Import (No Refresh Required)
+# Speed Optimization Plan for Chravel (PWA / Mobile / Capacitor)
 
-## Root Cause
+## Problem Summary
 
-When you import events, the data IS saved to the database successfully — but the calendar UI doesn't update immediately because of how the cache layer works:
+After thorough codebase analysis, I identified **5 concrete bottlenecks** causing perceived slowness when switching between tabs and loading sub-features. The good news: your architecture already has strong foundations (lazy loading, MountedTabs with `display:none`, TanStack Query caching, content-aware skeletons). The issues are gaps in that architecture.
 
-1. **Mobile (`MobileGroupCalendar`)**: The `handleImportComplete` callback only calls `refreshEvents()` without first invalidating the query cache. TanStack Query's `refetch()` respects the 60-second `staleTime` and may return the stale cached data instead of fetching fresh data from the server.
+---
 
-2. **Desktop (`GroupCalendar`)**: This one correctly calls `invalidateQueries()` first (which marks the cache as stale) then `refreshEvents()`. However, this happens asynchronously AFTER the modal closes — and there's no guarantee the UI re-renders with the new data before the user sees the calendar.
+## Bottleneck 1: Mobile Does NOT Prefetch Priority Tabs on Trip Load
 
-3. **Realtime subscription gap**: The `useCalendarEvents` hook (used by mobile) has a Supabase realtime subscription that should catch INSERT events. However, `useCalendarManagement` (used by desktop) does NOT have a realtime subscription at all. For bulk imports (20 sequential inserts with 100ms delays), the realtime events may arrive with some lag.
+**Impact**: Every tab click on mobile triggers a fresh network request the first time.
 
-## Solution
+Desktop (`TripTabs.tsx` line 74-78) calls `prefetchPriorityTabs(tripId)` on mount, which pre-loads Chat, Calendar, and Tasks data in the background. Mobile (`MobileTripTabs.tsx`) only prefetches on hover/focus -- which doesn't happen on touch devices. Users tap, then wait.
 
-Three targeted changes to ensure events appear instantly after import on both desktop and mobile, with zero refresh needed:
+**Fix**: Add `prefetchPriorityTabs(tripId)` call to `MobileTripTabs.tsx` on mount, matching the desktop pattern. This means by the time someone taps Calendar or Tasks, the data is already cached.
 
-### 1. Fix `MobileGroupCalendar.tsx` — Add cache invalidation before refetch
+---
 
-The mobile `handleImportComplete` currently only calls `refreshEvents()`. Change it to invalidate the query cache first (matching what desktop already does), then refetch:
+## Bottleneck 2: Payments Uses Raw useEffect/useState Instead of TanStack Query
 
-```typescript
-// Before (mobile):
-const handleImportComplete = async () => {
-  await refreshEvents();
-};
+**Impact**: Payments data is fetched from scratch every time the tab mounts. No cache, no prefetch, no instant re-visit.
 
-// After (mobile):
-const handleImportComplete = async () => {
-  await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
-  await refreshEvents();
-};
-```
+`MobileTripPayments.tsx` (702 lines) uses a manual `useEffect` + `useState` pattern with `setIsLoading(true)` to fetch members, payments, and balance summary. Because this bypasses TanStack Query entirely:
+- The prefetch system (`usePrefetchTrip`) can't pre-warm the data
+- Tab re-visits re-fetch everything from scratch
+- There's a custom 10-second timeout with `safeReload()` as the retry mechanism
 
-This requires adding `useQueryClient` and `tripKeys` imports to `MobileGroupCalendar.tsx`.
+**Fix**: Migrate the core data fetching in `MobileTripPayments` to use `useQuery` with the existing `tripKeys.payments(tripId)` cache key. This is a targeted refactor of the fetch logic only -- the UI rendering stays identical. After this change, the prefetch system will automatically warm the Payments cache, and re-visiting the tab will be instant.
 
-### 2. Add realtime subscription to `useCalendarManagement.ts` (desktop)
+---
 
-The desktop calendar hook has no realtime subscription. Add the same Supabase channel listener that `useCalendarEvents.ts` already uses. This ensures that when bulk import inserts events one-by-one, each INSERT fires a realtime event that updates the cache directly — the calendar UI updates live as events are imported, with no explicit refresh needed.
+## Bottleneck 3: Payments Makes Sequential Waterfall Requests
 
-Changes to `useCalendarManagement.ts`:
-- Add a `useEffect` that subscribes to `postgres_changes` on `trip_events` for the current `tripId`
-- On INSERT: append the new event to the cached data via `queryClient.setQueryData`
-- On UPDATE: replace the matching event in the cache
-- On DELETE: remove the matching event from the cache
-- Clean up the channel subscription on unmount
+**Impact**: 3-4 round trips before the tab renders (members, then payments, then balance summary, then optionally user profile).
 
-### 3. Force-invalidate in `CalendarImportModal.tsx` after bulk insert completes
+In authenticated mode (`MobileTripPayments.tsx` line 214-284), the flow is:
+1. `Promise.all([members, payments])` -- good, parallel
+2. Then checks if user is in members list -- if not, fires another query for user profile
+3. Then fires `paymentBalanceService.getBalanceSummary()` -- sequential after step 2
 
-The import modal currently calls `onImportComplete()` after all inserts finish. Add an explicit `queryClient.invalidateQueries` call directly inside the modal's import handler BEFORE calling `onImportComplete`. This ensures that regardless of which parent component (mobile or desktop) is using the modal, the cache is always invalidated:
+**Fix**: Move the user profile lookup into the initial `Promise.all`, and fire the balance summary fetch in parallel with members+payments. This collapses 3 sequential round trips into 1 parallel batch.
 
-```typescript
-// In CalendarImportModal.tsx, after successful bulk insert:
-// Force invalidate before notifying parent
-const queryClient = useQueryClient();
-await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+---
 
-// Then notify parent
-if (onImportComplete) {
-  await onImportComplete();
-}
-```
+## Bottleneck 4: PlacesSection Personal Basecamp Fetched Sequentially
 
-This creates a "belt and suspenders" approach — the modal itself ensures cache invalidation, and the parent components also invalidate as a backup.
+**Impact**: Places tab loads trip basecamp first, then personal basecamp in a separate `useEffect`, creating a visible "pop-in" delay.
 
-## Summary of File Changes
+`PlacesSection.tsx` uses `useTripBasecamp(tripId)` via TanStack Query (good), but the personal basecamp is fetched in a separate `useEffect` that runs after mount. These could be parallelized.
 
-| File | Change | Purpose |
-|------|--------|---------|
-| `src/components/mobile/MobileGroupCalendar.tsx` | Add `invalidateQueries` before `refreshEvents` in `handleImportComplete` | Mobile calendar updates immediately after import |
-| `src/features/calendar/hooks/useCalendarManagement.ts` | Add Supabase realtime subscription for `trip_events` | Desktop calendar updates live as events are inserted one-by-one |
-| `src/features/calendar/components/CalendarImportModal.tsx` | Add explicit `invalidateQueries` after bulk insert completes | Guarantees cache is refreshed regardless of which parent uses the modal |
+**Fix**: Create a small `usePersonalBasecamp` hook that uses `useQuery`, letting both basecamps load in parallel via TanStack Query's automatic deduplication. This also enables the prefetch system to warm personal basecamp data.
 
-## Expected Outcome
+---
 
-- After clicking "Import" in the modal and seeing the success toast, the calendar will immediately show all imported events — no refresh needed
-- On desktop: realtime subscription updates the UI live as each event is inserted during sequential import
-- On mobile: cache invalidation + refetch ensures fresh data is pulled from the server
-- Both platforms: the import modal itself forces cache invalidation as an additional safety net
+## Bottleneck 5: No Adjacent-Tab Prefetch on Mobile
+
+**Impact**: When a user taps Calendar, the adjacent tabs (Chat and Concierge) aren't pre-warmed for the likely next tap.
+
+Desktop calls `prefetchAdjacentTabs` when a tab changes. Mobile does not. On mobile, where every millisecond matters (especially on Capacitor/PWA), this is a missed opportunity.
+
+**Fix**: Add `prefetchAdjacentTabs` call to the `handleTabPress` callback in `MobileTripTabs.tsx`.
+
+---
+
+## Summary of Changes
+
+| File | Change | Expected Impact |
+|------|--------|----------------|
+| `MobileTripTabs.tsx` | Add `prefetchPriorityTabs` on mount + `prefetchAdjacentTabs` on tab switch | Chat/Calendar/Tasks instant on first tap |
+| `MobileTripPayments.tsx` | Migrate fetch logic to `useQuery` with `tripKeys.payments` | Payments tab benefits from prefetch cache, instant re-visits |
+| `MobileTripPayments.tsx` | Parallelize balance summary + user profile with initial fetch | ~500ms faster Payments first load |
+| `PlacesSection.tsx` | Extract personal basecamp to `useQuery` hook for parallel loading | Places sub-tabs load ~200ms faster |
+
+## What This Does NOT Change
+
+- No UI/layout changes (strict read-only on visual behavior)
+- No hook consolidation (per project policy)
+- No TypeScript strict mode changes
+- MountedTabs architecture stays identical
+- All existing error boundaries, skeletons, and timeouts preserved
+- Demo mode logic untouched
+
+## Expected Results
+
+- **First tab tap on mobile**: ~300-800ms faster (data already cached from prefetch)
+- **Payments tab**: ~500ms faster first load, instant re-visits
+- **Places tab**: ~200ms faster sub-tab rendering
+- **Tab switching overall**: Near-instant for visited tabs (already working), significantly faster for first visits
