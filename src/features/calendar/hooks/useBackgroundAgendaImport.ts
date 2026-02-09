@@ -60,7 +60,7 @@ export function useBackgroundAgendaImport() {
         if (result.isValid && result.sessions.length > 0) {
           toast.success(`Found ${result.sessions.length} session${result.sessions.length !== 1 ? 's' : ''} from ${domain}`, {
             description: 'Review and import them into your agenda.',
-            duration: 10000,
+            duration: Infinity,
             action: onComplete
               ? { label: 'Review Sessions', onClick: onComplete }
               : undefined,

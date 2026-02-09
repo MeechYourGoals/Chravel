@@ -82,7 +82,7 @@ export function useBackgroundImport() {
         if (result.isValid && result.events.length > 0) {
           toast.success(`Found ${result.events.length} event${result.events.length !== 1 ? 's' : ''} from ${domain}`, {
             description: 'Open the import modal to review and add them to your calendar.',
-            duration: 10000,
+            duration: Infinity,
             action: onComplete
               ? {
                   label: 'View Events',
