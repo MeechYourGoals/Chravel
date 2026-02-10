@@ -185,6 +185,10 @@ const Index = () => {
   // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { trips: userTripsRaw, loading: tripsLoading, refreshTrips } = useTrips();
 
+  // Fetch pending join requests for the current user (for "Requests" counter)
+  // Must be declared before handleRefresh which depends on refetchPendingTrips
+  const { pendingTrips: myPendingRequests, refetch: refetchPendingTrips } = useMyPendingTrips();
+
   // Callback to refresh trip list when a trip is archived/hidden/deleted
   const handleTripStateChange = useCallback(() => {
     if (isDemoMode) {
@@ -209,9 +213,6 @@ const Index = () => {
     threshold: 80,
     maxPullDistance: 120,
   });
-
-  // Fetch pending join requests for the current user (for "Requests" counter)
-  const { pendingTrips: myPendingRequests, refetch: refetchPendingTrips } = useMyPendingTrips();
 
   // Use centralized trip data - demo data or real user data converted to mock format
   // ✅ FILTER: Only consumer trips in allTrips (Pro/Event filtered separately below)
