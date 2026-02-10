@@ -152,8 +152,11 @@ export interface PurchaseResult {
 /**
  * Purchase request
  */
+export type PurchaseType = 'subscription' | 'pass';
+
 export interface PurchaseRequest {
   productId: string;
   tier: SubscriptionTier;
   billingCycle: 'monthly' | 'annual';
+  purchaseType?: PurchaseType;
 }

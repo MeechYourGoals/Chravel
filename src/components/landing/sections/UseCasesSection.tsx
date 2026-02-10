@@ -81,7 +81,7 @@ export const UseCasesSection = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-start pt-8 pb-12 md:pb-16 space-y-4 md:space-y-6">
+    <div className="relative min-h-screen flex flex-col items-center justify-start pt-8 pb-12 tablet:pb-16 space-y-4 tablet:space-y-6">
       <div className="container mx-auto px-4 relative z-10 flex flex-col items-center space-y-12">
         {/* Headline - positioned higher to avoid towel overlap */}
         <div className="text-center space-y-4 max-w-4xl">
@@ -102,8 +102,8 @@ export const UseCasesSection = () => {
           </div>
         </div>
 
-        {/* Scenarios Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 max-w-7xl w-full">
+        {/* Scenarios Grid — single column on phones, 2-col on tablets (768px+), 3-col on desktop */}
+        <div className="grid grid-cols-1 tablet:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 tablet:gap-6 max-w-7xl w-full">
           {scenarios.map((scenario, index) => {
             const isExpanded = expandedCards.has(index);
 
@@ -112,7 +112,7 @@ export const UseCasesSection = () => {
                 key={index}
                 onClick={() => toggleCard(index)}
                 className={cn(
-                  'bg-card/50 backdrop-blur-sm border rounded-2xl p-4 sm:p-5 md:p-6 transition-all duration-300 cursor-pointer max-w-md mx-auto md:max-w-none',
+                  'bg-card/50 backdrop-blur-sm border rounded-2xl p-4 sm:p-5 tablet:p-6 transition-all duration-300 cursor-pointer max-w-md mx-auto tablet:max-w-none',
                   isExpanded ? 'border-primary/50 bg-card/60' : 'hover:border-primary/30',
                   scenario.isHero
                     ? 'border-primary/40 ring-2 ring-primary/20 shadow-lg shadow-primary/10'
@@ -121,7 +121,7 @@ export const UseCasesSection = () => {
               >
                 {/* Header */}
                 <div className="mb-4">
-                  <h3 className="font-bold text-xl md:text-2xl leading-tight break-words">
+                  <h3 className="font-bold text-xl tablet:text-2xl leading-snug break-words">
                     {scenario.title}
                   </h3>
                   <p className="text-xs sm:text-sm text-muted-foreground break-words">
@@ -134,7 +134,7 @@ export const UseCasesSection = () => {
                   <div className="text-xs sm:text-sm font-bold text-red-400 mb-1 uppercase tracking-wide">
                     Before: Chaos
                   </div>
-                  <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words">
+                  <p className="text-sm sm:text-base tablet:text-lg text-foreground leading-relaxed break-words">
                     {scenario.before}
                   </p>
                 </div>
@@ -171,7 +171,7 @@ export const UseCasesSection = () => {
                           <div className="text-xs sm:text-sm font-bold text-green-400 mb-1 uppercase tracking-wide">
                             After: Coordinated
                           </div>
-                          <p className="text-sm sm:text-base md:text-lg text-foreground leading-relaxed break-words">
+                          <p className="text-sm sm:text-base tablet:text-lg text-foreground leading-relaxed break-words">
                             {scenario.after}
                           </p>
                         </div>

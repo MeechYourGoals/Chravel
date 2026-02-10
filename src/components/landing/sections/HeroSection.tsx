@@ -9,7 +9,7 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
   return (
     <div
-      className="relative container mx-auto px-4 flex flex-col min-h-[85vh] md:min-h-[90vh] text-center pb-8 md:pb-6"
+      className="relative container mx-auto px-4 flex flex-col min-h-[85vh] tablet:min-h-[90vh] text-center pb-8 tablet:pb-6"
       style={{
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}
@@ -33,10 +33,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       </div>
 
       {/* Top Section: Pain-First Headline + Subtitle + Brand */}
-      <div className="flex-shrink-0 pt-4 md:pt-8">
+      <div className="flex-shrink-0 pt-4 tablet:pt-8">
         {/* Pain-First Headline */}
-        <div className="w-full flex items-center justify-center px-2 md:px-4 mb-2 md:mb-3">
-          <h1 
+        <div className="w-full flex items-center justify-center px-2 tablet:px-4 mb-2 tablet:mb-3">
+          <h1
             className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight animate-fade-in text-center w-full"
             style={{
               textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',
@@ -48,14 +48,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
         {/* New Subtitle */}
         <p
-          className="text-sm sm:text-base md:text-lg lg:text-xl text-white/80 font-medium max-w-3xl mx-auto mb-3 md:mb-4 animate-fade-in"
+          className="text-sm sm:text-base md:text-lg lg:text-xl text-white/80 font-medium max-w-3xl mx-auto mb-3 tablet:mb-4 animate-fade-in"
           style={{
             animationDelay: '0.05s',
             textShadow: '0 2px 4px rgba(0,0,0,0.4)',
           }}
         >
-          For Friends, Families, Sports, Tours, Work Trips & More.<br className="hidden sm:inline" />
-          Planning is Frustrating. <span className="text-[#F4B23A] font-semibold">Get UnFrustrated.</span>
+          For Friends, Families, Sports, Tours, Work Trips & More.
+          <br className="hidden sm:inline" />
+          Planning is Frustrating.{' '}
+          <span className="text-[#F4B23A] font-semibold">Get UnFrustrated.</span>
         </p>
 
         {/* Brand Name */}
@@ -69,7 +71,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           <h2
             className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight"
             style={{
-              background: 'linear-gradient(135deg, #4F8CFF 0%, #F4B23A 40%, #F4B23A 60%, #4F8CFF 100%)',
+              background:
+                'linear-gradient(135deg, #4F8CFF 0%, #F4B23A 40%, #F4B23A 60%, #4F8CFF 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -81,10 +84,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       </div>
 
       {/* Demo Preview Image - fills the middle space */}
-      <div className="flex-1 flex flex-col items-center justify-center py-2 md:py-3">
-        <div className="w-full max-w-6xl mx-auto px-2 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+      <div className="flex-1 flex flex-col items-center justify-center py-2 tablet:py-3">
+        <div
+          className="w-full max-w-6xl mx-auto px-2 animate-fade-in"
+          style={{ animationDelay: '0.1s' }}
+        >
           <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40 border border-white/10">
-            <img 
+            <img
               src={demoPreviewHero}
               alt="ChravelApp trip dashboard preview"
               className="w-full h-auto"
@@ -118,7 +124,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           <h3
             className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-bold leading-tight"
             style={{
-              background: 'linear-gradient(135deg, #4F8CFF 0%, #F4B23A 40%, #F4B23A 60%, #4F8CFF 100%)',
+              background:
+                'linear-gradient(135deg, #4F8CFF 0%, #F4B23A 40%, #F4B23A 60%, #4F8CFF 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -130,7 +137,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
         {/* Subheadline */}
         <p
-          className="text-base sm:text-lg md:text-xl lg:text-2xl text-white font-bold max-w-4xl animate-fade-in mt-3 md:mt-4"
+          className="text-base sm:text-lg md:text-xl lg:text-2xl text-white font-bold max-w-4xl animate-fade-in mt-3 tablet:mt-4"
           style={{
             animationDelay: '0.15s',
             textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)',

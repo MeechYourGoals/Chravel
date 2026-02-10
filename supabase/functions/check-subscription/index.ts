@@ -114,8 +114,31 @@ serve(async req => {
     });
 
     if (subscriptions.data.length === 0) {
-      logStep('No active subscription');
+      logStep("No active subscription, checking for Trip Pass");
+      
+      // Check for active Trip Pass in user_entitlements
+      const { data: passData } = await supabaseClient
+        .from('user_entitlements')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('purchase_type', 'pass')
+        .eq('status', 'active')
+        .maybeSingle();
+      
+      if (passData && passData.current_period_end && new Date(passData.current_period_end) > new Date()) {
+        const passTier = passData.plan || 'explorer';
+        logStep("Active Trip Pass found", { tier: passTier, expires: passData.current_period_end });
+        
+        return createSecureResponse({
+          subscribed: true,
+          tier: passTier,
+          product_id: null,
+          subscription_end: passData.current_period_end,
+          purchase_type: 'pass',
+        });
+      }
 
+      // No active pass either — truly free
       // Clear subscription info
       await supabaseClient
         .from('profiles')
@@ -131,6 +154,7 @@ serve(async req => {
         tier: 'free',
         product_id: null,
         subscription_end: null,
+        purchase_type: null,
       });
     }
 
@@ -163,6 +187,7 @@ serve(async req => {
       tier: tier,
       product_id: productId,
       subscription_end: subscriptionEnd,
+      purchase_type: 'subscription',
     });
   } catch (error) {
     logError('CHECK_SUBSCRIPTION', error);
