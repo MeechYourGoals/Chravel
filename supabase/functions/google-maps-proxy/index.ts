@@ -17,7 +17,7 @@ serve(async req => {
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {

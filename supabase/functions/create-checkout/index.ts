@@ -37,7 +37,7 @@ const PRICE_IDS: Record<string, string> = {
 
 serve(async req => {
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {

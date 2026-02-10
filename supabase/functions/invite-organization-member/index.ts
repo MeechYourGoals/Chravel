@@ -1,14 +1,23 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { validateInput, InviteOrganizationMemberSchema, sanitizeEmail } from "../_shared/validation.ts";
-import { createSecureResponse, createErrorResponse, createOptionsResponse } from "../_shared/securityHeaders.ts";
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import {
+  validateInput,
+  InviteOrganizationMemberSchema,
+  sanitizeEmail,
+} from '../_shared/validation.ts';
+import {
+  createSecureResponse,
+  createErrorResponse,
+  createOptionsResponse,
+} from '../_shared/securityHeaders.ts';
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
@@ -22,9 +31,10 @@ serve(async (req) => {
       return createErrorResponse('No authorization header', 401);
     }
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (userError || !user) {
       return createErrorResponse('Unauthorized', 401);
@@ -33,7 +43,7 @@ serve(async (req) => {
     // Parse and validate request body
     const body = await req.json();
     const validation = validateInput(InviteOrganizationMemberSchema, body);
-    
+
     if (!validation.success) {
       return createErrorResponse(`Validation error: ${validation.error}`, 400);
     }
@@ -41,7 +51,12 @@ serve(async (req) => {
     const { organizationId, email, role } = validation.data;
     const sanitizedEmail = sanitizeEmail(email);
 
-    console.log('Inviting member:', { organizationId, email: sanitizedEmail, role, invitedBy: user.id });
+    console.log('Inviting member:', {
+      organizationId,
+      email: sanitizedEmail,
+      role,
+      invitedBy: user.id,
+    });
 
     // Verify user is admin of the organization
     const { data: membership, error: membershipError } = await supabase
@@ -52,7 +67,11 @@ serve(async (req) => {
       .eq('status', 'active')
       .single();
 
-    if (membershipError || !membership || (membership.role !== 'admin' && membership.role !== 'owner')) {
+    if (
+      membershipError ||
+      !membership ||
+      (membership.role !== 'admin' && membership.role !== 'owner')
+    ) {
       throw new Error('Only organization admins can invite members');
     }
 
@@ -71,7 +90,7 @@ serve(async (req) => {
         invited_by: user.id,
         token,
         expires_at: expiresAt.toISOString(),
-        status: 'pending'
+        status: 'pending',
       })
       .select()
       .single();
@@ -89,24 +108,23 @@ serve(async (req) => {
       .single();
 
     const inviteLink = `https://20feaa04-0946-4c68-a68d-0eb88cc1b9c4.lovableproject.com/accept-invite/${token}`;
-    
+
     console.log('Invite created successfully:', {
       inviteId: invite.id,
       email: sanitizedEmail,
       organizationName: org?.display_name,
-      inviteLink
+      inviteLink,
     });
 
-    return createSecureResponse({ 
-      success: true, 
+    return createSecureResponse({
+      success: true,
       invite: {
         id: invite.id,
         token,
         expiresAt: expiresAt.toISOString(),
-        inviteLink
-      }
+        inviteLink,
+      },
     });
-
   } catch (error) {
     console.error('Error in invite-organization-member:', error);
     return createErrorResponse(error instanceof Error ? error : new Error('Unknown error'));

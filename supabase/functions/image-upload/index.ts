@@ -18,7 +18,7 @@ serve(async req => {
     await import('../_shared/securityHeaders.ts');
 
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
