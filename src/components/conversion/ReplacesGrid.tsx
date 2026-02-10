@@ -12,7 +12,7 @@ export const ReplacesGrid = () => {
   return (
     <section className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-12 pt-8 sm:pt-6 pb-12 sm:pb-16">
       {/* Header with FAQ-style bold typography */}
-      <div className="text-center mb-8 md:mb-12 space-y-4 max-w-4xl mx-auto px-2">
+      <div className="text-center mb-8 tablet:mb-12 space-y-4 max-w-4xl mx-auto px-2">
         <h2
           className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
@@ -38,8 +38,8 @@ export const ReplacesGrid = () => {
           return (
             <AccordionItem key={category.key} value={category.key} className="border-none">
               <AccordionTrigger className="px-2 sm:px-4 py-5 sm:py-4 hover:no-underline hover:bg-white/[0.03] transition-colors group [&[data-state=open]>div>svg]:rotate-180 [&[data-state=open]>div>div>svg]:rotate-180">
-                {/* Desktop/Tablet: 3-column grid (md and up) */}
-                <div className="hidden md:grid grid-cols-[200px_1fr_40px] lg:grid-cols-[220px_1fr_40px] gap-4 items-center w-full">
+                {/* Desktop/Tablet: 3-column grid (tablet 768px and up) */}
+                <div className="hidden tablet:grid grid-cols-[200px_1fr_40px] lg:grid-cols-[220px_1fr_40px] gap-4 items-center w-full">
                   <span
                     className="text-xl lg:text-2xl font-bold text-white text-left"
                     style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
@@ -59,8 +59,8 @@ export const ReplacesGrid = () => {
                   <ChevronDown className="h-5 w-5 shrink-0 text-white transition-transform duration-200 justify-self-end" />
                 </div>
 
-                {/* Mobile: Center-aligned, full-width layout */}
-                <div className="flex flex-col w-full md:hidden text-center">
+                {/* Mobile/Phone: Center-aligned, full-width layout (hidden on tablet+) */}
+                <div className="flex flex-col w-full tablet:hidden text-center">
                   {/* Feature Name - Large, bold, pure white with glow */}
                   <h3
                     className="text-2xl sm:text-3xl font-bold text-white mb-2"
@@ -98,8 +98,8 @@ export const ReplacesGrid = () => {
 
               {/* Expanded Content */}
               <AccordionContent className="px-2 sm:px-4 pb-5">
-                {/* Mobile: Center-aligned chips */}
-                <div className="md:hidden">
+                {/* Mobile/Phone: Center-aligned chips (hidden on tablet+) */}
+                <div className="tablet:hidden">
                   <p className="text-xs text-white/60 uppercase tracking-wider mb-3 mt-1 font-semibold text-center">
                     Replaces:
                   </p>
@@ -116,8 +116,8 @@ export const ReplacesGrid = () => {
                   </div>
                 </div>
 
-                {/* Desktop/Tablet: Left-aligned chips */}
-                <div className="hidden md:block">
+                {/* Desktop/Tablet: Left-aligned chips (visible on tablet+ 768px) */}
+                <div className="hidden tablet:block">
                   <p className="text-xs text-white/50 uppercase tracking-wider mb-3 mt-2 font-medium">
                     Replaces:
                   </p>
@@ -140,7 +140,7 @@ export const ReplacesGrid = () => {
       </Accordion>
 
       {/* Bottom text */}
-      <div className="text-center mt-8 md:mt-12 max-w-4xl mx-auto px-2">
+      <div className="text-center mt-8 tablet:mt-12 max-w-4xl mx-auto px-2">
         <p
           className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white font-bold"
           style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4)' }}
