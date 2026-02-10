@@ -6,12 +6,49 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-/**
- * 🔒 SECURITY: Validates image/file URLs to prevent SSRF attacks
- * Only allows:
- * - Supabase storage URLs
- * - Public HTTPS URLs (but blocks localhost/internal IPs)
- */
+// ─── Safe JSON Parser ────────────────────────────────────────────────────────
+
+function safeParseJSON(raw: string): any {
+  // 1. Strip markdown code fences
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?\s*```\s*$/i, '');
+  cleaned = cleaned.trim();
+
+  // 2. Try direct parse
+  try {
+    return JSON.parse(cleaned);
+  } catch (_) {
+    // continue to fallback
+  }
+
+  // 3. Remove trailing commas before } or ]
+  const noTrailing = cleaned.replace(/,\s*([}\]])/g, '$1');
+  try {
+    return JSON.parse(noTrailing);
+  } catch (_) {
+    // continue to regex fallback
+  }
+
+  // 4. Regex fallback: extract first JSON object/array
+  const jsonMatch = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  if (jsonMatch) {
+    try {
+      return JSON.parse(jsonMatch[1]);
+    } catch (_) {
+      // try trailing comma fix on extracted block
+      try {
+        return JSON.parse(jsonMatch[1].replace(/,\s*([}\]])/g, '$1'));
+      } catch (_) {
+        // give up
+      }
+    }
+  }
+
+  throw new Error(`Failed to parse AI response as JSON. Raw content starts with: ${raw.substring(0, 100)}`);
+}
+
+// ─── URL Validation (SSRF Prevention) ────────────────────────────────────────
+
 function validateImageUrl(url: string): { valid: boolean; error?: string } {
   if (!url || typeof url !== 'string') {
     return { valid: false, error: 'Invalid URL format' };
@@ -20,63 +57,65 @@ function validateImageUrl(url: string): { valid: boolean; error?: string } {
   try {
     const urlObj = new URL(url);
 
-    // Must be HTTPS
     if (urlObj.protocol !== 'https:') {
       return { valid: false, error: 'Only HTTPS URLs are allowed' };
     }
 
-    // Extract Supabase project ID from SUPABASE_URL
     const supabaseUrlObj = new URL(SUPABASE_URL);
     const projectId = supabaseUrlObj.hostname.split('.')[0];
 
-    // Allow Supabase storage URLs
     const storagePattern = new RegExp(`^https://${projectId}\\.supabase\\.co/storage/`);
-    if (storagePattern.test(url)) {
-      return { valid: true };
-    }
+    if (storagePattern.test(url)) return { valid: true };
+    if (url.includes('/storage/v1/object/public/')) return { valid: true };
 
-    // Also allow the full storage path format
-    if (url.includes('/storage/v1/object/public/')) {
-      return { valid: true };
-    }
-
-    // Block localhost and internal IPs
     const hostname = urlObj.hostname.toLowerCase();
     const blockedHosts = [
-      'localhost',
-      '127.0.0.1',
-      '0.0.0.0',
-      '::1',
-      '[::1]',
-      '169.254.169.254', // AWS metadata service
-      'metadata.google.internal', // GCP metadata service
+      'localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]',
+      '169.254.169.254', 'metadata.google.internal',
     ];
-
     if (blockedHosts.includes(hostname)) {
       return { valid: false, error: 'Localhost and internal IPs are not allowed' };
     }
 
-    // Block private IP ranges
-    const privateIpPatterns = [
-      /^10\./,
-      /^172\.(1[6-9]|2[0-9]|3[01])\./,
-      /^192\.168\./,
-      /^fc00:/,
-      /^fe80:/,
-    ];
-
+    const privateIpPatterns = [/^10\./, /^172\.(1[6-9]|2[0-9]|3[01])\./, /^192\.168\./, /^fc00:/, /^fe80:/];
     for (const pattern of privateIpPatterns) {
       if (pattern.test(hostname)) {
         return { valid: false, error: 'Private IP ranges are not allowed' };
       }
     }
 
-    // Allow other public HTTPS URLs
     return { valid: true };
-  } catch (error) {
+  } catch (_error) {
     return { valid: false, error: 'Invalid URL format' };
   }
 }
+
+// ─── PDF Content Fetcher ─────────────────────────────────────────────────────
+
+async function fetchFileAsBase64(fileUrl: string): Promise<{ base64: string; mimeType: string } | null> {
+  try {
+    const response = await fetch(fileUrl);
+    if (!response.ok) return null;
+
+    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    const arrayBuffer = await response.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+
+    // Convert to base64
+    let binary = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binary += String.fromCharCode(uint8Array[i]);
+    }
+    const base64 = btoa(binary);
+
+    return { base64, mimeType: contentType.split(';')[0].trim() };
+  } catch (error) {
+    console.error('Failed to fetch file for base64 encoding:', error);
+    return null;
+  }
+}
+
+// ─── Main Handler ────────────────────────────────────────────────────────────
 
 serve(async (req) => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
@@ -86,13 +125,11 @@ serve(async (req) => {
   }
 
   try {
-    // 🔒 SECURITY: Verify JWT authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return createErrorResponse('Unauthorized - authentication required', 401);
     }
 
-    // Create authenticated client to verify user
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
       auth: { persistSession: false }
@@ -105,7 +142,6 @@ serve(async (req) => {
 
     const { messageText, fileUrl, fileType, extractionType, tripId } = await req.json();
 
-    // 🔒 SECURITY: Validate fileUrl if provided (prevent SSRF)
     if (fileUrl) {
       const urlValidation = validateImageUrl(fileUrl);
       if (!urlValidation.valid) {
@@ -113,7 +149,6 @@ serve(async (req) => {
       }
     }
 
-    // 🔒 SECURITY: Verify trip membership if tripId is provided
     if (tripId) {
       const { data: membershipCheck, error: membershipError } = await supabase
         .from('trip_members')
@@ -153,25 +188,29 @@ serve(async (req) => {
   }
 });
 
+// ─── Calendar Event Extraction ───────────────────────────────────────────────
+
 async function extractCalendarEvents(messageText: string, fileUrl?: string, fileType?: string) {
   if (!LOVABLE_API_KEY) {
     throw new Error('Lovable API key not configured');
   }
 
+  const userContent = await buildUserMessage(messageText, fileUrl, fileType);
+
   const messages = [
     {
       role: 'system',
-      content: `You are an expert at extracting calendar events from travel documents, emails, and messages. 
-      Extract events with high confidence scores and return structured JSON data.
+      content: `You are an expert at extracting scheduled events from any source — travel documents, show schedules, festival lineups, conference agendas, sports calendars, concert listings, spreadsheet screenshots, and general event lists.
       
-      Focus on:
-      - Flight bookings with confirmation codes
-      - Hotel reservations with check-in/out dates
-      - Restaurant reservations with times
-      - Activity bookings with dates/times
-      - Transportation bookings
-      - Tour schedules
-      - Meeting times
+      Extract ALL scheduled events you can find. This includes but is not limited to:
+      - Concerts, shows, performances, comedy acts, DJ sets
+      - Conferences, talks, panels, workshops, seminars
+      - Sports games, matches, tournaments
+      - Festival events, parades, exhibitions
+      - Flight bookings, hotel reservations, restaurant reservations
+      - Activity bookings, tour schedules, transportation
+      - Meetings, appointments, deadlines
+      - Any other time-bound scheduled event
       
       Return JSON format:
       {
@@ -182,7 +221,7 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
             "start_time": "HH:MM",
             "end_time": "HH:MM",
             "location": "string",
-            "category": "dining|lodging|activity|transportation|entertainment|business",
+            "category": "dining|lodging|activity|transportation|entertainment|other",
             "confirmation_number": "string",
             "confidence": 0.95,
             "source_text": "original text that led to this extraction",
@@ -190,11 +229,19 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
           }
         ],
         "confidence_overall": 0.9
-      }`
+      }
+      
+      CRITICAL RULES:
+      1. Extract ALL events, not just a sample. If there are 50 events, return all 50.
+      2. Only include fields that are EXPLICITLY present in the source material.
+      3. Do NOT fabricate or hallucinate events. Only extract what is clearly shown.
+      4. Use "entertainment" for shows, concerts, comedy, performances, festivals.
+      5. Use "other" when an event doesn't fit the standard categories.
+      6. If no events are found, return {"events": [], "confidence_overall": 0}`
     },
     {
       role: 'user',
-      content: buildUserMessage(messageText, fileUrl, fileType)
+      content: userContent,
     }
   ];
 
@@ -207,7 +254,7 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
     body: JSON.stringify({
       model: 'google/gemini-2.5-flash',
       messages,
-      max_tokens: 2000,
+      max_tokens: 16000,
       temperature: 0.1,
       response_format: { type: "json_object" }
     })
@@ -219,7 +266,7 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
   }
 
   const result = await response.json();
-  const extractedData = JSON.parse(result.choices[0].message.content);
+  const extractedData = safeParseJSON(result.choices[0].message.content);
   
   return new Response(
     JSON.stringify({
@@ -230,6 +277,8 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
+
+// ─── Agenda Session Extraction ───────────────────────────────────────────────
 
 async function extractAgendaSessions(messageText: string, fileUrl?: string, fileType?: string) {
   if (!LOVABLE_API_KEY) {
@@ -266,7 +315,7 @@ CRITICAL RULES:
 5. Extract ALL sessions, not just a sample.
 6. The "title" field is always required.`;
 
-  const userContent = buildUserMessage(
+  const userContent = await buildUserMessage(
     messageText || 'Extract all agenda sessions from this document.',
     fileUrl,
     fileType
@@ -297,7 +346,7 @@ CRITICAL RULES:
   }
 
   const result = await response.json();
-  const extractedData = JSON.parse(result.choices[0].message.content);
+  const extractedData = safeParseJSON(result.choices[0].message.content);
 
   return new Response(
     JSON.stringify({
@@ -307,6 +356,8 @@ CRITICAL RULES:
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
+
+// ─── Todo Extraction ─────────────────────────────────────────────────────────
 
 async function extractTodoItems(messageText: string, tripId: string) {
   if (!LOVABLE_API_KEY) {
@@ -358,7 +409,7 @@ async function extractTodoItems(messageText: string, tripId: string) {
   }
 
   const result = await response.json();
-  const extractedData = JSON.parse(result.choices[0].message.content);
+  const extractedData = safeParseJSON(result.choices[0].message.content);
   
   return new Response(
     JSON.stringify({
@@ -369,12 +420,13 @@ async function extractTodoItems(messageText: string, tripId: string) {
   );
 }
 
+// ─── Photo Analysis ──────────────────────────────────────────────────────────
+
 async function analyzePhoto(fileUrl: string) {
   if (!LOVABLE_API_KEY) {
     throw new Error('Lovable API key not configured');
   }
 
-  // 🔒 SECURITY: Validate URL before fetching (prevent SSRF)
   const urlValidation = validateImageUrl(fileUrl);
   if (!urlValidation.valid) {
     throw new Error(`Invalid image URL: ${urlValidation.error}`);
@@ -432,7 +484,7 @@ async function analyzePhoto(fileUrl: string) {
   }
 
   const result = await response.json();
-  const analysis = JSON.parse(result.choices[0].message.content);
+  const analysis = safeParseJSON(result.choices[0].message.content);
   
   return new Response(
     JSON.stringify({
@@ -443,18 +495,21 @@ async function analyzePhoto(fileUrl: string) {
   );
 }
 
+// ─── Document Parsing ────────────────────────────────────────────────────────
+
 async function parseDocument(fileUrl: string, fileType: string) {
   if (!LOVABLE_API_KEY) {
     throw new Error('Lovable API key not configured');
   }
 
-  // 🔒 SECURITY: Validate URL before fetching (prevent SSRF)
   const urlValidation = validateImageUrl(fileUrl);
   if (!urlValidation.valid) {
     throw new Error(`Invalid document URL: ${urlValidation.error}`);
   }
 
-  // 🆕 Enhanced document parsing with better OCR and structure extraction
+  // For PDFs, fetch and send as inline data so Gemini can actually read the content
+  const userContent = await buildDocumentMessage(fileUrl, fileType);
+
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -516,16 +571,7 @@ async function parseDocument(fileUrl: string, fileType: string) {
         },
         {
           role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Perform high-accuracy OCR and parsing on this ${fileType} document. Extract ALL visible text, structure data, detect tables, and identify key travel information:`
-            },
-            {
-              type: 'image_url',
-              image_url: { url: fileUrl }
-            }
-          ]
+          content: userContent
         }
       ],
       max_tokens: 4000,
@@ -540,7 +586,7 @@ async function parseDocument(fileUrl: string, fileType: string) {
   }
 
   const result = await response.json();
-  const parsedData = JSON.parse(result.choices[0].message.content);
+  const parsedData = safeParseJSON(result.choices[0].message.content);
   
   return new Response(
     JSON.stringify({
@@ -552,24 +598,78 @@ async function parseDocument(fileUrl: string, fileType: string) {
   );
 }
 
-function buildUserMessage(messageText: string, fileUrl?: string, fileType?: string): any {
-  const content = [
+// ─── Message Builders ────────────────────────────────────────────────────────
+
+async function buildUserMessage(messageText: string, fileUrl?: string, fileType?: string): Promise<any> {
+  const content: any[] = [
     {
       type: 'text',
-      text: `Analyze this content and extract calendar events: ${messageText || 'See attached content'}`
+      text: `Analyze this content and extract all scheduled events: ${messageText || 'See attached content'}`
     }
   ];
 
   if (fileUrl) {
     if (fileType?.startsWith('image/')) {
+      // Images: send as image_url directly
       content.push({
-        type: 'image_url' as const,
+        type: 'image_url',
         image_url: { url: fileUrl }
-      } as any); // Type assertion for Gemini API compatibility
+      });
+    } else if (fileType === 'application/pdf') {
+      // PDFs: fetch content and send as inline_data so Gemini can read it
+      console.log('[AI Parser] Fetching PDF for inline encoding...');
+      const fileData = await fetchFileAsBase64(fileUrl);
+      if (fileData) {
+        content.push({
+          type: 'image_url',
+          image_url: {
+            url: `data:${fileData.mimeType};base64,${fileData.base64}`
+          }
+        });
+        console.log('[AI Parser] PDF sent as inline base64 data');
+      } else {
+        // Fallback: tell AI we couldn't read it
+        content[0].text += `\n\n[Note: A PDF file was provided but could not be read. The URL was: ${fileUrl}]`;
+        console.warn('[AI Parser] Failed to fetch PDF, falling back to URL reference');
+      }
     } else {
+      // Other file types: append URL as text context
       content[0].text += `\nFile URL: ${fileUrl} (Type: ${fileType})`;
     }
   }
 
   return content;
+}
+
+async function buildDocumentMessage(fileUrl: string, fileType: string): Promise<any> {
+  // For PDFs and images, try to send as inline data
+  if (fileType === 'application/pdf' || fileType?.startsWith('image/')) {
+    const fileData = await fetchFileAsBase64(fileUrl);
+    if (fileData) {
+      return [
+        {
+          type: 'text',
+          text: `Perform high-accuracy OCR and parsing on this ${fileType} document. Extract ALL visible text, structure data, detect tables, and identify key travel information:`
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: `data:${fileData.mimeType};base64,${fileData.base64}`
+          }
+        }
+      ];
+    }
+  }
+
+  // Fallback: send as image_url (works for images, won't work great for PDFs)
+  return [
+    {
+      type: 'text',
+      text: `Perform high-accuracy OCR and parsing on this ${fileType} document. Extract ALL visible text, structure data, detect tables, and identify key travel information:`
+    },
+    {
+      type: 'image_url',
+      image_url: { url: fileUrl }
+    }
+  ];
 }
