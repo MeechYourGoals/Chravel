@@ -303,15 +303,15 @@ serve(async (req) => {
     // Verify user is a member of the trip before proceeding
     const { data: membershipCheck, error: membershipError } = await supabaseClient
       .from('trip_members')
-      .select('user_id, status')
+      .select('user_id')
       .eq('trip_id', tripId)
       .eq('user_id', (await supabaseClient.auth.getUser()).data.user?.id)
-      .single();
+      .maybeSingle();
 
-    if (membershipError || !membershipCheck || membershipCheck.status !== 'active') {
+    if (membershipError || !membershipCheck) {
       logStep("Forbidden - not a trip member", { tripId, error: membershipError?.message });
       return new Response(
-        JSON.stringify({ error: 'Forbidden - you must be an active member of this trip to export it' }),
+        JSON.stringify({ error: 'Forbidden - you must be a member of this trip to export it' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
