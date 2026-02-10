@@ -28,12 +28,13 @@ USING (
   -- Users can always see their own location
   auth.uid() = user_id
   OR
-  -- Trip co-members can see each other's locations
+  -- Trip co-members can see each other's locations for that specific trip
   EXISTS (
     SELECT 1 FROM public.trip_members tm1
     JOIN public.trip_members tm2 ON tm1.trip_id = tm2.trip_id
     WHERE tm1.user_id = auth.uid()
       AND tm2.user_id = user_locations.user_id
+      AND tm1.trip_id = user_locations.trip_id
   )
 );
 
