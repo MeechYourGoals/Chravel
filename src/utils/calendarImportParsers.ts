@@ -28,10 +28,10 @@ export interface SmartParseResult extends ICSParseResult {
 
 const COLUMN_PATTERNS = {
   date: /^(date|start|when|day|scheduled|begins|game.?date|show.?date|event.?date)$/i,
-  title: /^(title|name|event|summary|subject|what|activity|opponent|show|game|match|description)$/i,
+  title: /^(title|name|event|summary|subject|what|activity|opponent|show|game|match|artist|act|performer|event.?name|headliner|band)$/i,
   time: /^(time|start.?time|hour|begins|from|at|game.?time|show.?time|doors)$/i,
   endTime: /^(end.?time|ends|to|until|through|end)$/i,
-  location: /^(location|venue|where|place|address|site|arena|stadium|city)$/i,
+  location: /^(location|venue|where|place|address|site|arena|stadium|city|theater|theatre|club|room)$/i,
   description: /^(description|details|notes|info|about|memo|comments)$/i,
 };
 
@@ -70,6 +70,47 @@ function detectColumns(headers: string[]): ColumnMapping | null {
   }
 
   return mapping as ColumnMapping;
+}
+
+/**
+ * Scan the first N rows of data to find the best header row.
+ * Returns the 0-based row index of the best header candidate + its mapping.
+ */
+function findBestHeaderRow(
+  data: unknown[][],
+  maxScan: number = 10,
+): { rowIndex: number; mapping: ColumnMapping } | null {
+  let bestRow = -1;
+  let bestMapping: ColumnMapping | null = null;
+  let bestScore = 0;
+
+  const limit = Math.min(data.length, maxScan);
+
+  for (let i = 0; i < limit; i++) {
+    const row = data[i] ?? [];
+    const headers = row.map(h => String(h ?? '').trim()).filter(h => h.length > 0);
+    if (headers.length < 2) continue;
+
+    const mapping = detectColumns(headers);
+    if (!mapping) continue;
+
+    // Score: count how many optional columns also matched
+    let score = 2; // date + title are required
+    if (mapping.time !== undefined) score++;
+    if (mapping.endTime !== undefined) score++;
+    if (mapping.location !== undefined) score++;
+    if (mapping.description !== undefined) score++;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestRow = i;
+      bestMapping = mapping;
+    }
+  }
+
+  if (bestRow === -1 || !bestMapping) return null;
+
+  return { rowIndex: bestRow, mapping: bestMapping };
 }
 
 // ─── Date Parsing ────────────────────────────────────────────────────────────
@@ -271,30 +312,32 @@ export async function parseExcelCalendar(file: File): Promise<SmartParseResult> 
     };
   }
 
-  // First row is headers
-  const firstRow = jsonData[0] ?? [];
-  const headers = firstRow.map(h => String(h ?? ''));
-  const mapping = detectColumns(headers);
+  // Scan first 10 rows for the best header row (handles title rows, blank rows, etc.)
+  const headerResult = findBestHeaderRow(jsonData);
 
-  if (!mapping) {
+  if (!headerResult) {
+    // Fallback: show what we found for debugging
+    const firstRowHeaders = (jsonData[0] ?? []).map(h => String(h ?? ''));
     return {
       events: [],
       errors: [
-        `Could not detect required columns (date + title). Found headers: ${headers.join(', ')}`,
+        `Could not detect required columns (date + title). First row values: ${firstRowHeaders.join(', ')}`,
       ],
       isValid: false,
       sourceFormat: 'excel',
     };
   }
 
+  const { rowIndex: headerRowIndex, mapping } = headerResult;
+
   const events: ICSParsedEvent[] = [];
   const errors: string[] = [];
 
-  for (let i = 1; i < jsonData.length; i++) {
+  // Data rows start after the header row
+  for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
     const rawRow = jsonData[i] ?? [];
     const row = rawRow.map(cell => {
       if (cell instanceof Date) {
-        // Format dates from xlsx as ISO strings for our parser
         return cell.toISOString().split('T')[0];
       }
       return String(cell ?? '');
@@ -303,7 +346,11 @@ export async function parseExcelCalendar(file: File): Promise<SmartParseResult> 
     if (event) {
       events.push(event);
     } else {
-      errors.push(`Row ${i + 1}: Could not parse date or title`);
+      // Only log errors for non-empty rows
+      const hasContent = row.some(c => c.trim().length > 0);
+      if (hasContent) {
+        errors.push(`Row ${i + 1}: Could not parse date or title`);
+      }
     }
   }
 
@@ -374,7 +421,6 @@ export async function parseWithAI(file: File): Promise<SmartParseResult> {
   const sourceFormat: ImportSourceFormat = file.type === 'application/pdf' ? 'pdf' : 'image';
 
   try {
-    // 1. Upload file to Supabase storage (temp bucket)
     const fileExt = file.name.split('.').pop() ?? 'bin';
     const filePath = `calendar-imports/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
 
@@ -394,20 +440,18 @@ export async function parseWithAI(file: File): Promise<SmartParseResult> {
       };
     }
 
-    // 2. Get public URL
     const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(filePath);
 
-    // 3. Call enhanced-ai-parser edge function
     const { data, error } = await supabase.functions.invoke('enhanced-ai-parser', {
       body: {
         fileUrl: urlData.publicUrl,
         fileType: file.type,
         extractionType: 'calendar',
-        messageText: `Extract calendar events from this ${sourceFormat === 'pdf' ? 'PDF document' : 'image'}.`,
+        messageText: `Extract ALL scheduled events from this ${sourceFormat === 'pdf' ? 'PDF document' : 'image'}. Include shows, concerts, performances, festivals, meetings, and any time-bound events.`,
       },
     });
 
-    // 4. Cleanup uploaded file
+    // Cleanup uploaded file
     await supabase.storage.from('trip-media').remove([filePath]);
 
     if (error) {

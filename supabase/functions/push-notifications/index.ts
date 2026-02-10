@@ -45,20 +45,19 @@ serve(async req => {
     const { action, ...payload } = await req.json();
 
     // Override userId in payload with authenticated user ID from JWT
-    // This prevents any caller from impersonating another user
     const securePayload = { ...payload, userId: authenticatedUserId };
 
     switch (action) {
       case 'send_push':
-        return await sendPushNotification(securePayload);
+        return await sendPushNotification(securePayload, corsHeaders);
       case 'send_email':
-        return await sendEmailNotification(securePayload);
+        return await sendEmailNotification(securePayload, corsHeaders);
       case 'send_sms':
-        return await sendSMSNotification(securePayload);
+        return await sendSMSNotification(securePayload, corsHeaders);
       case 'save_token':
-        return await savePushToken(securePayload);
+        return await savePushToken(securePayload, corsHeaders);
       case 'remove_token':
-        return await removePushToken(securePayload);
+        return await removePushToken(securePayload, corsHeaders);
       default:
         throw new Error('Invalid action');
     }
@@ -74,7 +73,10 @@ serve(async req => {
   }
 });
 
-async function sendPushNotification({ userId, tokens, title, body, data, icon, badge }: any) {
+async function sendPushNotification(
+  { userId, tokens, title, body, data, icon, badge }: any,
+  corsHeaders: Record<string, string>,
+) {
   const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
 
   if (!fcmServerKey) {
@@ -114,7 +116,6 @@ async function sendPushNotification({ userId, tokens, title, body, data, icon, b
 
   const result = await response.json();
 
-  // Log notification in database
   await supabase.from('notification_logs').insert({
     user_id: userId,
     type: 'push',
@@ -131,7 +132,10 @@ async function sendPushNotification({ userId, tokens, title, body, data, icon, b
   });
 }
 
-async function sendEmailNotification({ userId, email, subject, content, template }: any) {
+async function sendEmailNotification(
+  { userId, email, subject, content, template }: any,
+  corsHeaders: Record<string, string>,
+) {
   const sendgridApiKey = Deno.env.get('SENDGRID_API_KEY');
 
   if (!sendgridApiKey) {
@@ -171,7 +175,6 @@ async function sendEmailNotification({ userId, email, subject, content, template
     throw new Error(`SendGrid error: ${error}`);
   }
 
-  // Log notification in database
   await supabase.from('notification_logs').insert({
     user_id: userId,
     type: 'email',
@@ -186,19 +189,22 @@ async function sendEmailNotification({ userId, email, subject, content, template
   });
 }
 
-async function sendSMSNotification({
-  userId,
-  phoneNumber,
-  message,
-  category,
-  templateData,
-}: {
-  userId: string;
-  phoneNumber: string;
-  message?: string;
-  category?: string;
-  templateData?: SmsTemplateData;
-}) {
+async function sendSMSNotification(
+  {
+    userId,
+    phoneNumber,
+    message,
+    category,
+    templateData,
+  }: {
+    userId: string;
+    phoneNumber: string;
+    message?: string;
+    category?: string;
+    templateData?: SmsTemplateData;
+  },
+  corsHeaders: Record<string, string>,
+) {
   const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
   const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
@@ -206,7 +212,6 @@ async function sendSMSNotification({
   if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
     console.error('[SMS] Twilio credentials not configured');
 
-    // Log the failure
     await supabase.from('notification_logs').insert({
       user_id: userId,
       type: 'sms',
@@ -235,7 +240,6 @@ async function sendSMSNotification({
   if (rateLimit && !rateLimit.allowed) {
     console.warn(`[SMS] Rate limit exceeded for user ${userId}. Remaining: ${rateLimit.remaining}`);
 
-    // Log rate-limited attempt
     await supabase.from('notification_logs').insert({
       user_id: userId,
       type: 'sms',
@@ -258,7 +262,6 @@ async function sendSMSNotification({
     );
   }
 
-  // Generate templated message if category is provided
   let finalMessage = message || '';
   if (category && isSmsEligibleCategory(category) && templateData) {
     finalMessage = generateSmsMessage(category, templateData);
@@ -292,7 +295,6 @@ async function sendSMSNotification({
   if (!response.ok) {
     console.error(`[SMS] Twilio error (${response.status}):`, responseText);
 
-    // Log the failure
     await supabase.from('notification_logs').insert({
       user_id: userId,
       type: 'sms',
@@ -310,10 +312,8 @@ async function sendSMSNotification({
   const result = JSON.parse(responseText);
   console.log(`[SMS] Sent successfully. SID: ${result.sid}`);
 
-  // Increment the user's SMS counter
   await supabase.rpc('increment_sms_counter', { p_user_id: userId });
 
-  // Log successful notification
   await supabase.from('notification_logs').insert({
     user_id: userId,
     type: 'sms',
@@ -338,7 +338,10 @@ async function sendSMSNotification({
   );
 }
 
-async function savePushToken({ userId, token, platform }: any) {
+async function savePushToken(
+  { userId, token, platform }: any,
+  corsHeaders: Record<string, string>,
+) {
   const { data, error } = await supabase
     .from('push_tokens')
     .upsert(
@@ -362,7 +365,10 @@ async function savePushToken({ userId, token, platform }: any) {
   });
 }
 
-async function removePushToken({ userId, token }: any) {
+async function removePushToken(
+  { userId, token }: any,
+  corsHeaders: Record<string, string>,
+) {
   const { error } = await supabase
     .from('push_tokens')
     .delete()
