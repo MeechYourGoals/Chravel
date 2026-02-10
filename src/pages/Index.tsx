@@ -53,6 +53,9 @@ import {
 } from '../utils/semanticTripFilter';
 import { useOnboarding } from '../hooks/useOnboarding';
 import { shouldShowOnboarding, capturePendingDestination } from '../utils/onboardingUtils';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '../components/mobile/PullToRefreshIndicator';
+import { clearDataCaches } from '../utils/pwaCacheUtils';
 import { X } from 'lucide-react';
 
 const Index = () => {
@@ -182,6 +185,10 @@ const Index = () => {
   // The hook handles demo mode internally, returning empty arrays when in demo mode
   const { trips: userTripsRaw, loading: tripsLoading, refreshTrips } = useTrips();
 
+  // Fetch pending join requests for the current user (for "Requests" counter)
+  // Must be declared before handleRefresh which depends on refetchPendingTrips
+  const { pendingTrips: myPendingRequests, refetch: refetchPendingTrips } = useMyPendingTrips();
+
   // Callback to refresh trip list when a trip is archived/hidden/deleted
   const handleTripStateChange = useCallback(() => {
     if (isDemoMode) {
@@ -192,8 +199,20 @@ const Index = () => {
     }
   }, [isDemoMode, refreshTrips]);
 
-  // Fetch pending join requests for the current user (for "Requests" counter)
-  const { pendingTrips: myPendingRequests } = useMyPendingTrips();
+  // Pull-to-refresh: clears PWA cache and refetches trips/pro/events
+  const handleRefresh = useCallback(async () => {
+    await clearDataCaches();
+    if (user) {
+      await refreshTrips();
+      await refetchPendingTrips();
+    }
+  }, [user, refreshTrips, refetchPendingTrips]);
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    maxPullDistance: 120,
+  });
 
   // Use centralized trip data - demo data or real user data converted to mock format
   // ✅ FILTER: Only consumer trips in allTrips (Pro/Event filtered separately below)
@@ -983,6 +1002,14 @@ const Index = () => {
         </div>
       )}
       <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
+        {/* Pull-to-refresh indicator (mobile/PWA) - clears cache + refetches trips */}
+        {isMobile && (isRefreshing || pullDistance > 0) && (
+          <PullToRefreshIndicator
+            isRefreshing={isRefreshing}
+            pullDistance={pullDistance}
+            threshold={80}
+          />
+        )}
         {/* Desktop floating auth button */}
         {!isMobile && (
           <DesktopHeader

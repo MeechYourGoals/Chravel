@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
 import { BasecampLocation, PlaceWithDistance, PlaceCategory } from '../types/basecamp';
@@ -44,6 +46,19 @@ export const PlacesSection = ({
   const [places, setPlaces] = useState<PlaceWithDistance[]>([]);
   const [linkedPlaceIds, setLinkedPlaceIds] = useState<Set<string>>(new Set());
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
+  const [placesRefreshTrigger, setPlacesRefreshTrigger] = useState(0);
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
+    await queryClient.invalidateQueries({ queryKey: ['personalBasecamp', tripId] });
+    setPlacesRefreshTrigger(prev => prev + 1);
+  }, [queryClient, tripId]);
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    maxPullDistance: 120,
+  });
 
   const { createLinkFromPlace, removeLinkByPlaceId } = usePlacesLinkSync();
 
@@ -195,7 +210,7 @@ export const PlacesSection = ({
     };
 
     loadPlaces();
-  }, [tripId, isDemoMode]);
+  }, [tripId, isDemoMode, placesRefreshTrigger]);
 
   // ⚡ PERFORMANCE: Sync personal basecamp from TanStack Query to local state
   // This replaces the sequential useEffect fetch with parallel query loading
@@ -284,7 +299,14 @@ export const PlacesSection = ({
   };
 
   return (
-    <div className="mb-12 mobile-safe-scroll">
+    <div className="relative mb-12 mobile-safe-scroll">
+      {(isRefreshing || pullDistance > 0) && (
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          threshold={80}
+        />
+      )}
       {/* ROW 1: Header with LEFT-aligned title and CENTERED tabs */}
       <div className="mb-6 flex flex-row items-center justify-between w-full px-0 relative">
         <h2 className="flex-none text-3xl font-bold text-white">Places</h2>

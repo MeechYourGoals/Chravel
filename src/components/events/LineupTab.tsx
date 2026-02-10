@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Search, Users, X, Mic, Calendar, Plus, Edit2, Trash2, Clock, MapPin } from 'lucide-react';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
+import { useQueryClient } from '@tanstack/react-query';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
@@ -26,8 +29,19 @@ interface LineupTabProps {
 
 export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSpeakers = [] }: LineupTabProps) => {
   const { isDemoMode } = useDemoMode();
+  const queryClient = useQueryClient();
   const { members, addMember, updateMember, deleteMember } = useEventLineup({ eventId, initialMembers: initialSpeakers });
-  
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['event-lineup', eventId] });
+  }, [queryClient, eventId]);
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    maxPullDistance: 120,
+  });
+
   const canCreate = isDemoMode || permissions.canCreate;
   const canEdit = isDemoMode || permissions.canEdit;
   const canDelete = isDemoMode || permissions.canDelete;
@@ -107,7 +121,14 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
   const memberSessions = selectedMember ? getSessionsForMember(selectedMember.name) : [];
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="relative p-4 space-y-4">
+      {(isRefreshing || pullDistance > 0) && (
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          threshold={80}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

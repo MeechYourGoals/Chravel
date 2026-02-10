@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Plus, DollarSign, CheckCircle, Clock, AlertCircle, Lock, Loader2, ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { hapticService } from '@/services/hapticService';
 import { safeReload } from '@/utils/safeReload';
@@ -374,6 +376,20 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     // TODO: Open payment detail modal
   };
 
+  const handleRefresh = useCallback(async () => {
+    if (demoActive) {
+      handleRetryAfterTimeout();
+    } else {
+      await refetchPayments();
+    }
+  }, [demoActive, handleRetryAfterTimeout, refetchPayments]);
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    maxPullDistance: 120,
+  });
+
   const getStatusIcon = (status: Payment['status']) => {
     switch (status) {
       case 'settled':
@@ -423,7 +439,14 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-black">
+    <div className="relative flex flex-col h-full bg-black">
+      {(isRefreshing || pullDistance > 0) && (
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          threshold={80}
+        />
+      )}
       {/* Balance Summary Card - Matching desktop structure */}
       <div className="px-4 pt-4 pb-2">
         <div className="bg-card/50 border border-border rounded-xl p-4">

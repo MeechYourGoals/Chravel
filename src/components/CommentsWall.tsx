@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { MessageCircle, BarChart3, Plus, Vote, Clock, ListChecks } from 'lucide-react';
 import { Button } from './ui/button';
 import { PollComponent } from './PollComponent';
 import { useTripVariant } from '@/contexts/TripVariantContext';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface PollPermissions {
   canView: boolean;
@@ -20,7 +23,18 @@ interface CommentsWallProps {
 export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
   const [showCreatePoll, setShowCreatePoll] = useState(false);
   const { accentColors } = useTripVariant();
-  
+  const queryClient = useQueryClient();
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+  }, [queryClient, tripId]);
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    maxPullDistance: 120,
+  });
+
   // Default permissions for non-Event trips (full access)
   const effectivePermissions: PollPermissions = permissions ?? {
     canView: true,
@@ -31,7 +45,14 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
   };
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="relative p-4 space-y-3">
+      {(isRefreshing || pullDistance > 0) && (
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          threshold={80}
+        />
+      )}
       {/* Row 1: Header + Create Poll Button */}
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-white flex items-center gap-2">
