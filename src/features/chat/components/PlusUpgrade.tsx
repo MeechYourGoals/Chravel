@@ -40,7 +40,7 @@ export const PlusUpgrade = () => {
         <div className="flex gap-3 items-center">
           <input
             type="text"
-            placeholder="Ask me anything about your trip..."
+            placeholder="Ask me anything about travel..."
             className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white"
             disabled
           />

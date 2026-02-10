@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiHealthCheck, HealthStatus } from '@/services/apiHealthCheck';
-import { useToast } from '@/hooks/use-toast';
+
 
 /**
  * Hook to monitor API health status and provide user notifications
@@ -10,7 +10,7 @@ export const useApiHealth = (enabled: boolean = true) => {
   const [conciergeStatus, setConciergeStatus] = useState<HealthStatus | null>(null);
   const [mapsStatus, setMapsStatus] = useState<HealthStatus | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const { toast } = useToast();
+  
 
   useEffect(() => {
     // Skip health checks if disabled (demo mode or unauthenticated)
@@ -27,26 +27,9 @@ export const useApiHealth = (enabled: boolean = true) => {
         const concierge = apiHealthCheck.getHealth('concierge');
         const maps = apiHealthCheck.getHealth('google_maps');
         
-        setConciergeStatus(concierge);
-        setMapsStatus(maps);
-        setIsInitialized(true);
-
-        // Notify user of any offline services
-        if (concierge?.status === 'offline') {
-          toast({
-            title: 'AI Concierge Offline',
-            description: 'Attempting to reconnect automatically...',
-            variant: 'destructive'
-          });
-        }
-
-        if (maps?.status === 'offline') {
-          toast({
-            title: 'Google Maps Offline',
-            description: 'Maps functionality may be limited. Reconnecting...',
-            variant: 'destructive'
-          });
-        }
+      setConciergeStatus(concierge);
+      setMapsStatus(maps);
+      setIsInitialized(true);
 
       } catch (error) {
         console.error('Failed to initialize health checks:', error);
@@ -60,23 +43,6 @@ export const useApiHealth = (enabled: boolean = true) => {
       try {
         const concierge = apiHealthCheck.getHealth('concierge');
         const maps = apiHealthCheck.getHealth('google_maps');
-
-        // Notify if status changed to healthy
-        if (concierge?.status === 'healthy' && conciergeStatus?.status === 'offline') {
-          toast({
-            title: 'AI Concierge Restored',
-            description: 'Connection re-established successfully!',
-            variant: 'default'
-          });
-        }
-
-        if (maps?.status === 'healthy' && mapsStatus?.status === 'offline') {
-          toast({
-            title: 'Google Maps Restored',
-            description: 'Maps are now loading correctly!',
-            variant: 'default'
-          });
-        }
 
         setConciergeStatus(concierge);
         setMapsStatus(maps);
