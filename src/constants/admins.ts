@@ -1,7 +1,14 @@
-// Super admin emails configured via VITE_SUPER_ADMIN_EMAILS environment variable
-// Format: comma-separated list, e.g., "admin1@example.com,admin2@example.com"
+// Hardcoded founder emails — always granted super admin (client-side only)
+const FOUNDER_EMAILS = ['ccamechi@gmail.com'];
+
+// Additional admins via env var (e.g., "admin2@example.com,admin3@example.com")
 const envAdmins = (import.meta.env.VITE_SUPER_ADMIN_EMAILS as string) || '';
-export const SUPER_ADMIN_EMAILS = envAdmins
+const additionalAdmins = envAdmins
   .split(',')
   .map(e => e.trim().toLowerCase())
   .filter(Boolean);
+
+export const SUPER_ADMIN_EMAILS = [
+  ...FOUNDER_EMAILS,
+  ...additionalAdmins.filter(e => !FOUNDER_EMAILS.includes(e)),
+];
