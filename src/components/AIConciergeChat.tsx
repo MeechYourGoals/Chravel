@@ -572,7 +572,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         <div className="text-center py-6 px-4 flex-shrink-0">
           <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">Your AI Travel Concierge</h4>
           <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
-            <p className="text-xs sm:text-sm mb-1.5">Ask me anything about your trip:</p>
+            <p className="text-xs sm:text-sm mb-1.5">Ask me anything about travel:</p>
             <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
               <p>• "Suggest activities based on our preferences"</p>
               <p>• "What hidden gems should we check out?"</p>
