@@ -2,6 +2,7 @@ import { Trip as MockTrip } from '@/data/tripsData';
 import { Trip as SupabaseTrip } from '@/services/tripService';
 import { format } from 'date-fns';
 import { ProTripData } from '@/types/pro';
+import { ProTripCategory } from '@/types/proCategories';
 import { EventData } from '@/types/events';
 
 /**
@@ -60,7 +61,9 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
     description: mockTrip.description || '',
     location: mockTrip.location,
     dateRange: mockTrip.dateRange,
-    proTripCategory: 'Other',
+    proTripCategory: (((supabaseTrip as any).categories?.find(
+      (c: any) => c.type === 'pro_category'
+    )?.value as string) || 'Other') as ProTripCategory,
     tags: [],
     participants: [],
     budget: {

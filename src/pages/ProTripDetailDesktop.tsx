@@ -83,7 +83,7 @@ export const ProTripDetailDesktop = () => {
       ...convertedTrip,
       participants: fetchedParticipants.length > 0 ? fetchedParticipants : [],
       roster: fetchedParticipants.length > 0 ? fetchedParticipants : [],
-      proTripCategory: 'Sports – Pro, Collegiate, Youth',
+      
       enabled_features: supabaseTrip.enabled_features || [
         'chat',
         'calendar',
