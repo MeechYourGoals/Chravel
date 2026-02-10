@@ -34,8 +34,10 @@ import { safeReload } from '@/utils/safeReload';
 import { parseJwtPayload } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
 
-// Trip recovery utilities (exposes debugTrips, searchAllTrips, recoverTrip to window)
-import '@/utils/tripRecovery';
+// Trip recovery utilities only available in development
+if (import.meta.env.DEV) {
+  import('@/utils/tripRecovery');
+}
 
 // Lazy load pages for better performance
 // Enhanced retry mechanism with exponential backoff and better error handling
@@ -251,9 +253,7 @@ const App = () => {
 
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
-        errorTracking.setUser(data.user.id, {
-          email: data.user.email,
-        });
+        errorTracking.setUser(data.user.id);
       }
     });
   }, []);

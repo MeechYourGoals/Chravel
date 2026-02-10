@@ -27,20 +27,22 @@ This audit identified **67 security findings** across the Chravel codebase:
 
 | Severity | Total Found | Fixed by Claude Code | Remaining for Humans |
 |----------|------------|---------------------|---------------------|
-| CRITICAL | 9 | 0 | 9 |
-| HIGH | 18 | 5 | 13 |
-| MEDIUM | 24 | 5 | 19 |
-| LOW | 16 | 2 | 14 |
-| **TOTAL** | **67** | **12** | **55** |
+| CRITICAL | 9 | 2 | 7 |
+| HIGH | 18 | 11 | 7 |
+| MEDIUM | 24 | 11 | 13 |
+| LOW | 16 | 7 | 9 |
+| **TOTAL** | **67** | **31** | **36** |
 
-### Key Risk Areas
-1. **RLS Policy Gaps** -- Real-time GPS locations readable by anyone; profiles privacy reverted
-2. **Edge Function Authorization** -- push-notifications, file-upload, send-push lack authorization checks
-3. **Client-Side Privilege Escalation** -- `switchRole()` allows any user to grant themselves admin permissions
-4. **Demo Mode Auth Bypass** -- Any user can activate demo mode via localStorage, bypassing all auth
-5. **No Route-Level Auth Guards** -- All routes accessible without authentication wrapper
+### Key Risk Areas (Remaining)
+1. **RLS Policy Gaps** -- Real-time GPS locations readable by anyone; profiles privacy reverted (requires SQL migrations)
+2. **Edge Function Authorization** -- push-notifications, send-push lack authorization (may have server-to-server callers)
+3. **Client-Side Privilege Escalation** -- `switchRole()` allows any user to grant themselves admin permissions (requires server-side role endpoint)
+4. **Demo Mode Auth Bypass** -- Any user can activate demo mode via localStorage (requires product decision on demo gating)
+5. **No Route-Level Auth Guards** -- All routes accessible without authentication wrapper (requires careful route classification)
 
-### What Was Fixed (This Session)
+### What Was Fixed (This Session) -- 31 Total
+
+**Round 1 (12 fixes):**
 - Hardened XSS sanitization with additional bypass prevention
 - Removed production debug mode activation (query param + global window object)
 - Fixed wildcard CORS in security headers fallback
@@ -51,6 +53,27 @@ This audit identified **67 security findings** across the Chravel codebase:
 - Improved `.gitignore` to cover `.env.*` patterns
 - Upgraded ESLint `no-explicit-any` from `off` to `warn`
 - Migrated verify-identity function from wildcard to validated CORS
+
+**Round 2 (19 additional fixes):**
+- **CRITICAL:** file-upload edge function -- added JWT auth, use `user.id` from token instead of client-supplied `userId`
+- **CRITICAL:** update-location edge function -- added trip membership verification before location upsert
+- **HIGH:** create-trip -- migrated from wildcard CORS to `getCorsHeaders(req)`
+- **HIGH:** create-trip -- moved hardcoded admin email to `SUPER_ADMIN_EMAILS` env var
+- **HIGH:** create-checkout -- validated `origin` header against allowlist to prevent open redirect
+- **HIGH:** create-checkout -- removed PII (email) from server logs
+- **HIGH:** create-checkout -- removed account email from comment header
+- **HIGH:** ProTripDetailDesktop -- replaced hardcoded Supabase URL and anon key with centralized client
+- **HIGH:** google-maps-proxy -- removed 8 console.log statements that logged user addresses, search queries, and API responses
+- **MEDIUM:** rate limit (_shared/security.ts) -- changed from fail-open to fail-closed
+- **MEDIUM:** constants/stripe.ts -- removed personal email and test publishable key from code comments
+- **MEDIUM:** config/revenuecat.ts -- replaced hardcoded API key with `VITE_REVENUECAT_API_KEY` env var
+- **MEDIUM:** config/revenuecat.ts -- removed user ID from production logs
+- **MEDIUM:** constants/admins.ts -- replaced hardcoded admin email with `VITE_SUPER_ADMIN_EMAILS` env var
+- **LOW:** App.tsx -- gated tripRecovery debug utilities behind `import.meta.env.DEV`
+- **LOW:** App.tsx -- removed user email from error tracking `setUser()` call (PII reduction)
+- **LOW:** file-upload -- replaced wildcard CORS with validated `getCorsHeaders(req)`
+- **LOW:** file-upload -- sanitized error response (generic message instead of raw error)
+- **LOW:** create-trip -- removed admin email from console.log
 
 ---
 
@@ -409,17 +432,17 @@ DROP POLICY IF EXISTS "Authenticated can insert trip_chat_messages" ON public.tr
 - **Impact:** Compiler won't catch null dereferences. Security implications when accessing `.id` on null user objects.
 - **Recommended fix:** Enable incrementally per-module using `// @ts-strict` comments
 
-### E2. Dev Route Accessible in Production
+### ~~E2. Dev Route Accessible in Production~~ (Remains -- needs ProtectedRoute infrastructure from C4)
 - **File:** `src/App.tsx:713-720` (`/dev/device-matrix`)
-- **Recommended fix:** Gate behind `import.meta.env.DEV`
+- **Recommended fix:** Gate behind `import.meta.env.DEV` or ProtectedRoute
 
-### E3. Trip Recovery Debug Utils Exposed Globally
+### ~~E3. Trip Recovery Debug Utils Exposed Globally~~ **FIXED**
 - **File:** `src/App.tsx:38`
-- **Recommended fix:** Gate `import '@/utils/tripRecovery'` behind `import.meta.env.DEV`
+- **Fix applied:** Gated `import('@/utils/tripRecovery')` behind `import.meta.env.DEV`
 
-### E4. User Email Sent to Error Tracking Without Consent
+### ~~E4. User Email Sent to Error Tracking Without Consent~~ **FIXED**
 - **File:** `src/App.tsx:249-258`
-- **Recommended fix:** Gate behind consent mechanism or anonymize
+- **Fix applied:** Removed `email` from `errorTracking.setUser()` call -- only user ID sent now
 
 ### E5. Loading Timeout Could Bypass Auth Gate
 - **File:** `src/hooks/useAuth.tsx:430-435`
@@ -550,19 +573,30 @@ The codebase demonstrates strong security fundamentals in several areas:
 
 ---
 
-## Appendix: Files Changed in This Audit
+## Appendix: Files Changed in This Audit (20 files)
 
 | File | Change |
 |------|--------|
 | `.gitignore` | Added `.env.*` coverage |
+| `eslint.config.js` | `no-explicit-any` changed to `warn` |
 | `src/utils/authDebug.ts` | Restricted debug to DEV mode only |
 | `src/utils/securityUtils.ts` | Hardened XSS sanitization, trip ID validation, CSS value checking |
 | `src/utils/tokenValidation.ts` | Required `exp` claim for token validity |
-| `eslint.config.js` | `no-explicit-any` changed to `warn` |
+| `src/constants/admins.ts` | Replaced hardcoded admin email with `VITE_SUPER_ADMIN_EMAILS` env var |
+| `src/constants/stripe.ts` | Removed personal email and test key from code comments |
+| `src/config/revenuecat.ts` | Replaced hardcoded API key with env var, removed user ID from logs |
+| `src/pages/ProTripDetailDesktop.tsx` | Replaced hardcoded Supabase URL/key with centralized client |
+| `src/App.tsx` | Gated tripRecovery behind DEV, removed email from error tracking |
 | `supabase/functions/_shared/securityHeaders.ts` | Replaced wildcard CORS with production domain default |
-| `supabase/functions/verify-identity/index.ts` | Migrated to `getCorsHeaders(req)`, removed error details from responses |
+| `supabase/functions/_shared/security.ts` | Changed rate limit from fail-open to fail-closed |
+| `supabase/functions/verify-identity/index.ts` | Migrated to `getCorsHeaders(req)`, removed error details |
 | `supabase/functions/export-user-data/index.ts` | Removed stack trace from error response |
-| `supabase/functions/image-upload/index.ts` | Added auth header null check, aligned file size limit to 5MB |
+| `supabase/functions/image-upload/index.ts` | Added auth header null check, aligned file size limit |
+| `supabase/functions/file-upload/index.ts` | Added JWT auth, use `user.id` from token, validated CORS |
+| `supabase/functions/update-location/index.ts` | Added trip membership verification |
+| `supabase/functions/create-trip/index.ts` | Validated CORS, moved admin email to env var |
+| `supabase/functions/create-checkout/index.ts` | Validated origin, removed PII from logs/comments |
+| `supabase/functions/google-maps-proxy/index.ts` | Removed 8 user-data log statements |
 
 ---
 
