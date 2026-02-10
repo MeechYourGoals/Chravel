@@ -28,6 +28,10 @@ const PRODUCT_TO_TIER: Record<string, string> = {
   'prod_Tc0YVR1N0fmtDG': 'pro-starter',
   'prod_Tc0afc0pIUt87D': 'pro-growth',
   'prod_Tc0cJshKNpvxV0': 'pro-enterprise',
+
+  // Trip Pass Products
+  'prod_Tx0AZIWAubAWD3': 'explorer',
+  'prod_Tx0Ap1aT22IGl2': 'frequent-chraveler',
 };
 
 serve(async (req) => {
@@ -93,6 +97,10 @@ serve(async (req) => {
         await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice, supabaseClient);
         break;
 
+      case 'charge.refunded':
+        await handleChargeRefunded(event.data.object as Stripe.Charge, supabaseClient);
+        break;
+
       default:
         logStep("Unhandled event type", { type: event.type });
     }
@@ -108,8 +116,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
   logStep("Processing checkout.session.completed", { sessionId: session.id });
   
   const userId = session.metadata?.user_id;
-  const customerEmail = session.customer_email;
   const customerId = session.customer as string;
+  const purchaseType = session.metadata?.purchase_type || 'subscription';
   
   if (!userId) {
     logStep("No user_id in session metadata");
@@ -122,7 +130,56 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabas
     .upsert({ id: userId, stripe_customer_id: customerId })
     .select();
 
-  logStep("Checkout completed, customer linked", { userId, customerId });
+  // Handle Trip Pass purchase
+  if (purchaseType === 'pass') {
+    const tier = session.metadata?.tier || 'explorer';
+    const durationDays = parseInt(session.metadata?.duration_days || '45', 10);
+    
+    logStep("Processing Trip Pass purchase", { userId, tier, durationDays });
+
+    // Check for existing active pass to extend
+    const { data: existing } = await supabase
+      .from('user_entitlements')
+      .select('current_period_end')
+      .eq('user_id', userId)
+      .eq('purchase_type', 'pass')
+      .eq('status', 'active')
+      .eq('plan', tier)
+      .maybeSingle();
+
+    const now = new Date();
+    const baseDate = existing?.current_period_end && new Date(existing.current_period_end) > now
+      ? new Date(existing.current_period_end)
+      : now;
+    const expiresAt = new Date(baseDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+    // Upsert entitlement
+    await supabase
+      .from('user_entitlements')
+      .upsert({
+        user_id: userId,
+        plan: tier,
+        status: 'active',
+        source: 'stripe',
+        purchase_type: 'pass',
+        current_period_end: expiresAt.toISOString(),
+        updated_at: now.toISOString(),
+      }, { onConflict: 'user_id' });
+
+    // Notify user
+    const tierName = tier === 'explorer' ? 'Explorer' : 'Frequent Chraveler';
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      type: 'subscription',
+      title: '🎫 Trip Pass Activated!',
+      message: `Your ${tierName} Trip Pass is active for ${durationDays} days — enjoy full premium access until ${expiresAt.toLocaleDateString()}.`,
+      metadata: { tier, purchase_type: 'pass', expires_at: expiresAt.toISOString() },
+    });
+
+    logStep("Trip Pass granted", { userId, tier, expiresAt: expiresAt.toISOString() });
+  } else {
+    logStep("Checkout completed (subscription), customer linked", { userId, customerId });
+  }
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supabase: any) {
@@ -297,4 +354,59 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
     });
 
   logStep("Payment failure recorded", { userId });
+}
+
+async function handleChargeRefunded(charge: Stripe.Charge, supabase: any) {
+  logStep("Processing charge refund", { chargeId: charge.id });
+
+  const customerId = charge.customer as string;
+  if (!customerId) {
+    logStep("No customer on refunded charge");
+    return;
+  }
+
+  const { data: profiles } = await supabase
+    .from('private_profiles')
+    .select('id')
+    .eq('stripe_customer_id', customerId)
+    .limit(1);
+
+  if (!profiles || profiles.length === 0) {
+    logStep("Customer not found for refund", { customerId });
+    return;
+  }
+
+  const userId = profiles[0].id;
+
+  // Check if this user has a Trip Pass — expire it on refund
+  const { data: passEntitlement } = await supabase
+    .from('user_entitlements')
+    .select('id, purchase_type')
+    .eq('user_id', userId)
+    .eq('purchase_type', 'pass')
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (passEntitlement) {
+    await supabase
+      .from('user_entitlements')
+      .update({
+        status: 'expired',
+        current_period_end: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', passEntitlement.id);
+
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      type: 'subscription',
+      title: '🔄 Trip Pass Refunded',
+      message: 'Your Trip Pass has been refunded and access has been revoked.',
+      metadata: { action: 'pass_refunded' },
+    });
+
+    logStep("Trip Pass revoked due to refund", { userId });
+  } else {
+    logStep("Refund processed — no active pass found, subscription handler will manage", { userId });
+  }
 }

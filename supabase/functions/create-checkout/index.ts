@@ -29,6 +29,22 @@ const PRICE_IDS: Record<string, string> = {
   'pro-starter': 'price_1SemXF3EeswiMlDCL1Unj0Er',
   'pro-growth': 'price_1SemYw3EeswiMlDCv27XvDMY',
   'pro-enterprise': 'price_1Semar3EeswiMlDCmEPBAvIt',
+
+  // Trip Passes (one-time)
+  'pass-explorer-45': 'price_1Sz6A53EeswiMlDCF51s1XOi',
+  'pass-frequent-90': 'price_1Sz6A63EeswiMlDCGFASMBft',
+};
+
+// Duration mapping for Trip Passes
+const PASS_DURATION_DAYS: Record<string, number> = {
+  'pass-explorer-45': 45,
+  'pass-frequent-90': 90,
+};
+
+// Tier mapping for Trip Passes
+const PASS_TIER: Record<string, string> = {
+  'pass-explorer-45': 'explorer',
+  'pass-frequent-90': 'frequent-chraveler',
 };
 
 serve(async (req) => {
@@ -59,21 +75,28 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Parse request
-    const { tier, billing_cycle = 'monthly' } = await req.json();
-    logStep("Request parsed", { tier, billing_cycle });
+    const { tier, billing_cycle = 'monthly', purchase_type = 'subscription' } = await req.json();
+    logStep("Request parsed", { tier, billing_cycle, purchase_type });
 
-    // Normalize tier - strip 'consumer-' prefix if present
-    const normalizedTier = tier.replace('consumer-', '');
-    logStep("Normalized tier", { original: tier, normalized: normalizedTier });
+    const isPass = purchase_type === 'pass';
 
     // Build price ID key
     let priceIdKey: string;
-    if (normalizedTier === 'explorer' || normalizedTier === 'frequent-chraveler') {
-      priceIdKey = `${normalizedTier}-${billing_cycle}`;
-    } else if (normalizedTier.startsWith('pro-')) {
-      priceIdKey = normalizedTier;
+    if (isPass) {
+      // Trip Pass: tier is already the pass key like 'pass-explorer-45'
+      priceIdKey = tier;
     } else {
-      throw new Error(`Invalid tier: ${tier}`);
+      // Subscription: normalize tier
+      const normalizedTier = tier.replace('consumer-', '');
+      logStep("Normalized tier", { original: tier, normalized: normalizedTier });
+
+      if (normalizedTier === 'explorer' || normalizedTier === 'frequent-chraveler') {
+        priceIdKey = `${normalizedTier}-${billing_cycle}`;
+      } else if (normalizedTier.startsWith('pro-')) {
+        priceIdKey = normalizedTier;
+      } else {
+        throw new Error(`Invalid tier: ${tier}`);
+      }
     }
 
     const priceId = PRICE_IDS[priceIdKey];
@@ -98,25 +121,34 @@ serve(async (req) => {
 
     // Create checkout session
     const origin = req.headers.get("origin") || "https://chravel.app";
-    const session = await stripe.checkout.sessions.create({
+    
+    const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
-      mode: "subscription",
-      success_url: `${origin}/settings?checkout=success&tier=${tier}`,
+      mode: isPass ? "payment" : "subscription",
+      success_url: `${origin}/settings?checkout=success&tier=${isPass ? (PASS_TIER[priceIdKey] || tier) : tier}&purchase_type=${purchase_type}`,
       cancel_url: `${origin}/settings?checkout=cancelled`,
       metadata: {
         user_id: user.id,
-        tier: tier,
-        billing_cycle: billing_cycle,
+        tier: isPass ? (PASS_TIER[priceIdKey] || tier) : tier,
+        billing_cycle: isPass ? 'one-time' : billing_cycle,
+        purchase_type: purchase_type,
+        duration_days: isPass ? String(PASS_DURATION_DAYS[priceIdKey] || 0) : '0',
       },
-      subscription_data: {
+    };
+
+    // Only add subscription_data for subscriptions
+    if (!isPass) {
+      sessionParams.subscription_data = {
         metadata: {
           user_id: user.id,
           tier: tier,
         },
-      },
-    });
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 

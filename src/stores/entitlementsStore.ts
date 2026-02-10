@@ -7,7 +7,7 @@
  */
 
 import { create } from 'zustand';
-import type { SubscriptionTier, EntitlementId } from '@/billing/types';
+import type { SubscriptionTier, EntitlementId, PurchaseType } from '@/billing/types';
 import { supabase } from '@/integrations/supabase/client';
 import { TIER_ENTITLEMENTS } from '@/billing/config';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
@@ -25,17 +25,19 @@ interface EntitlementsState {
   isLoading: boolean;
   lastSyncedAt: Date | null;
   error: string | null;
+  purchaseType: PurchaseType;
   
   // Computed helpers
   isSubscribed: boolean;
   isPro: boolean;
   isSuperAdmin: boolean;
+  daysRemaining: number | null;
   
   // Actions
   refreshEntitlements: (userId: string, userEmail?: string) => Promise<void>;
   setSuperAdminMode: () => void;
   setDemoMode: (enabled: boolean) => void;
-  setFromStripe: (data: { tier: SubscriptionTier; status: string; periodEnd?: Date }) => void;
+  setFromStripe: (data: { tier: SubscriptionTier; status: string; periodEnd?: Date; purchaseType?: PurchaseType }) => void;
   clear: () => void;
 }
 
@@ -51,6 +53,8 @@ const DEFAULT_STATE = {
   isSubscribed: false,
   isPro: false,
   isSuperAdmin: false,
+  purchaseType: 'subscription' as PurchaseType,
+  daysRemaining: null as number | null,
 };
 
 // Super admin gets all entitlements from the highest tier
@@ -135,12 +139,15 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
         const plan = data.plan as SubscriptionTier;
         const status = data.status as EntitlementStatus;
         const tierEntitlements = TIER_ENTITLEMENTS[plan] || [];
+        const pType = (data.purchase_type as PurchaseType) || 'subscription';
+        const periodEnd = data.current_period_end ? new Date(data.current_period_end) : null;
+        const daysLeft = periodEnd ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
         
         set({
           plan,
           status,
           source: data.source as EntitlementSource,
-          currentPeriodEnd: data.current_period_end ? new Date(data.current_period_end) : null,
+          currentPeriodEnd: periodEnd,
           entitlements: new Set(tierEntitlements),
           isLoading: false,
           lastSyncedAt: new Date(),
@@ -148,6 +155,8 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
           isSubscribed: status === 'active' || status === 'trialing',
           isPro: plan.startsWith('pro-') || plan === 'frequent-chraveler',
           isSuperAdmin: false,
+          purchaseType: pType,
+          daysRemaining: pType === 'pass' ? daysLeft : null,
         });
       } else {
         // No entitlements record - default to free
@@ -206,18 +215,23 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
     const status = data.status === 'active' || data.status === 'trialing' 
       ? data.status as EntitlementStatus 
       : 'expired';
+    const pType = data.purchaseType || 'subscription';
+    const periodEnd = data.periodEnd || null;
+    const daysLeft = periodEnd ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
     
     set({
       plan: data.tier,
       status,
       source: 'stripe',
-      currentPeriodEnd: data.periodEnd || null,
+      currentPeriodEnd: periodEnd,
       entitlements: new Set(tierEntitlements),
       isLoading: false,
       lastSyncedAt: new Date(),
       error: null,
       isSubscribed: status === 'active' || status === 'trialing',
       isPro: data.tier.startsWith('pro-') || data.tier === 'frequent-chraveler',
+      purchaseType: pType,
+      daysRemaining: pType === 'pass' ? daysLeft : null,
     });
   },
   
