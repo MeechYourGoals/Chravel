@@ -18,7 +18,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   NotificationCategory,
   NotificationPreferences,
@@ -74,7 +74,9 @@ interface CreateNotificationResponse {
 // Main Handler
 // ============================================================================
 
-Deno.serve(async (req) => {
+Deno.serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -90,23 +92,26 @@ Deno.serve(async (req) => {
     // ========================================================================
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Verify caller's identity
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
+      global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user: caller }, error: authError } = await userClient.auth.getUser();
+    const {
+      data: { user: caller },
+      error: authError,
+    } = await userClient.auth.getUser();
     if (authError || !caller) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Service role client for database operations
@@ -118,19 +123,19 @@ Deno.serve(async (req) => {
     const body: CreateNotificationRequest = await req.json();
 
     if (!body.type || !body.title || !body.message) {
-      return new Response(
-        JSON.stringify({ error: 'type, title, and message are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'type, title, and message are required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Normalize the notification type to a category
     const category = normalizeCategory(body.type);
     if (!category) {
-      return new Response(
-        JSON.stringify({ error: `Unknown notification type: ${body.type}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: `Unknown notification type: ${body.type}` }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log(`[create-notification] Type: ${body.type} -> Category: ${category}`);
@@ -149,9 +154,9 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: 'tripId is required. This endpoint is for sending notifications to trip members.',
-          hint: 'For chat messages, use the chat feature. For system notifications, use database triggers.'
+          hint: 'For chat messages, use the chat feature. For system notifications, use database triggers.',
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -165,21 +170,27 @@ Deno.serve(async (req) => {
 
     if (memberError) {
       console.error('[create-notification] Error checking membership:', memberError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to verify authorization' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Failed to verify authorization' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (!membership || !NOTIFICATION_SENDER_ROLES.includes(membership.role)) {
-      console.warn(`[create-notification] Unauthorized: User ${caller.id} is not an organizer/admin of trip ${body.tripId}`);
+      console.warn(
+        `[create-notification] Unauthorized: User ${caller.id} is not an organizer/admin of trip ${body.tripId}`,
+      );
       return new Response(
-        JSON.stringify({ error: 'You must be a trip organizer or admin to send notifications to this trip' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error: 'You must be a trip organizer or admin to send notifications to this trip',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    console.log(`[create-notification] Authorized: User ${caller.id} has role '${membership.role}' in trip ${body.tripId}`);
+    console.log(
+      `[create-notification] Authorized: User ${caller.id} has role '${membership.role}' in trip ${body.tripId}`,
+    );
 
     // ========================================================================
     // Determine Target Users (all trip members)
@@ -191,10 +202,10 @@ Deno.serve(async (req) => {
 
     if (membersError) {
       console.error('[create-notification] Error fetching trip members:', membersError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch trip members' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Failed to fetch trip members' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     let targetUserIds = (members || []).map(m => m.user_id);
@@ -216,7 +227,7 @@ Deno.serve(async (req) => {
           smsSent: 0,
           skipped: 0,
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -379,7 +390,10 @@ Deno.serve(async (req) => {
       const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, email')
-        .in('user_id', emailUsers.map(u => u.userId));
+        .in(
+          'user_id',
+          emailUsers.map(u => u.userId),
+        );
 
       for (const profile of profiles || []) {
         if (profile.email) {
@@ -417,7 +431,7 @@ Deno.serve(async (req) => {
           eventTime: body.metadata?.event_time as string | undefined,
           preview: body.message?.substring(0, 60),
         };
-        
+
         await supabase.functions.invoke('push-notifications', {
           body: {
             action: 'send_sms',
@@ -466,16 +480,14 @@ Deno.serve(async (req) => {
       skipped: response.skipped,
     });
 
-    return new Response(
-      JSON.stringify(response),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('[create-notification] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });

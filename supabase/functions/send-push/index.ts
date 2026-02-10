@@ -1,28 +1,31 @@
 /**
  * Send Push Notification Edge Function
- * 
+ *
  * Sends push notifications to users via FCM (Android/Web) and APNs (iOS).
- * 
+ *
  * Required secrets (to be configured in Supabase):
  * - FCM_SERVER_KEY: Firebase Cloud Messaging server key for Android/Web
  * - APNS_KEY_ID: Apple Push Notification service key ID
  * - APNS_TEAM_ID: Apple Developer Team ID
  * - APNS_PRIVATE_KEY: APNs private key (.p8 file contents)
  * - APNS_BUNDLE_ID: iOS app bundle ID (e.g., com.chravel.app)
- * 
+ *
  * @see docs/mobile/PUSH_NOTIFICATIONS.md for setup instructions
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 // Push notification payload types
 interface PushPayload {
-  type: 'chat_message' | 'trip_update' | 'poll_update' | 'task_update' | 'calendar_event' | 'broadcast';
+  type:
+    | 'chat_message'
+    | 'trip_update'
+    | 'poll_update'
+    | 'task_update'
+    | 'calendar_event'
+    | 'broadcast';
   tripId: string;
   threadId?: string;
   messageId?: string;
@@ -42,7 +45,7 @@ interface SendPushRequest {
   userIds?: string[];
   tripId?: string;
   excludeUserId?: string; // Exclude sender from receiving notification
-  
+
   // Notification content
   notification: NotificationContent;
 }
@@ -67,9 +70,12 @@ interface SendResult {
 // FCM (Firebase Cloud Messaging) - Android & Web
 // ============================================================================
 
-async function sendFCM(tokens: string[], notification: NotificationContent): Promise<{ success: string[]; failed: string[] }> {
+async function sendFCM(
+  tokens: string[],
+  notification: NotificationContent,
+): Promise<{ success: string[]; failed: string[] }> {
   const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
-  
+
   if (!fcmServerKey) {
     console.warn('[send-push] FCM_SERVER_KEY not configured, skipping FCM delivery');
     return { success: [], failed: tokens };
@@ -80,7 +86,7 @@ async function sendFCM(tokens: string[], notification: NotificationContent): Pro
 
   // TODO: Implement actual FCM HTTP v1 API call
   // For now, log and mark as failed until FCM is configured
-  // 
+  //
   // Reference: https://firebase.google.com/docs/cloud-messaging/send-message
   //
   // const response = await fetch('https://fcm.googleapis.com/fcm/send', {
@@ -99,8 +105,10 @@ async function sendFCM(tokens: string[], notification: NotificationContent): Pro
   //   }),
   // });
 
-  console.log(`[send-push] FCM: Would send to ${tokens.length} tokens (TODO: implement FCM integration)`);
-  
+  console.log(
+    `[send-push] FCM: Would send to ${tokens.length} tokens (TODO: implement FCM integration)`,
+  );
+
   // Mark all as failed until implemented
   failed.push(...tokens);
 
@@ -121,7 +129,7 @@ let cachedApnsJwt: { token: string; expiresAt: number } | null = null;
 async function generateApnsJwt(
   keyId: string,
   teamId: string,
-  privateKeyPem: string
+  privateKeyPem: string,
 ): Promise<string> {
   // Check cache first
   const now = Math.floor(Date.now() / 1000);
@@ -167,14 +175,14 @@ async function generateApnsJwt(
     keyData,
     { name: 'ECDSA', namedCurve: 'P-256' },
     false,
-    ['sign']
+    ['sign'],
   );
 
   // Sign the JWT
   const signature = await crypto.subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' },
     privateKey,
-    encoder.encode(signingInput)
+    encoder.encode(signingInput),
   );
 
   const signatureB64 = base64url(new Uint8Array(signature));
@@ -213,9 +221,8 @@ async function sendAPNs(tokens: string[], notification: NotificationContent): Pr
     const jwt = await generateApnsJwt(apnsKeyId, apnsTeamId, apnsPrivateKey);
 
     // APNs endpoint (production vs sandbox)
-    const apnsHost = apnsEnvironment === 'production'
-      ? 'api.push.apple.com'
-      : 'api.sandbox.push.apple.com';
+    const apnsHost =
+      apnsEnvironment === 'production' ? 'api.push.apple.com' : 'api.sandbox.push.apple.com';
 
     // Build the APNs payload
     const payload = JSON.stringify({
@@ -237,11 +244,11 @@ async function sendAPNs(tokens: string[], notification: NotificationContent): Pr
     // Send to each device token
     // Note: In production, consider batching or using HTTP/2 multiplexing
     const results = await Promise.allSettled(
-      tokens.map(async (token) => {
+      tokens.map(async token => {
         const response = await fetch(`https://${apnsHost}/3/device/${token}`, {
           method: 'POST',
           headers: {
-            'authorization': `bearer ${jwt}`,
+            authorization: `bearer ${jwt}`,
             'apns-topic': apnsBundleId,
             'apns-push-type': 'alert',
             'apns-priority': '10',
@@ -271,7 +278,7 @@ async function sendAPNs(tokens: string[], notification: NotificationContent): Pr
         }
 
         return { token, success: false, invalid: false, error: `${status}: ${errorBody}` };
-      })
+      }),
     );
 
     for (const result of results) {
@@ -290,8 +297,9 @@ async function sendAPNs(tokens: string[], notification: NotificationContent): Pr
       }
     }
 
-    console.log(`[send-push] APNs complete: ${success.length} sent, ${failed.length} failed, ${invalidTokens.length} invalid`);
-
+    console.log(
+      `[send-push] APNs complete: ${success.length} sent, ${failed.length} failed, ${invalidTokens.length} invalid`,
+    );
   } catch (error) {
     console.error('[send-push] APNs error:', error);
     failed.push(...tokens);
@@ -304,14 +312,19 @@ async function sendAPNs(tokens: string[], notification: NotificationContent): Pr
 // Web Push (for PWA / browser notifications)
 // ============================================================================
 
-async function sendWebPush(tokens: string[], notification: NotificationContent): Promise<{ success: string[]; failed: string[] }> {
+async function sendWebPush(
+  tokens: string[],
+  notification: NotificationContent,
+): Promise<{ success: string[]; failed: string[] }> {
   // TODO: Implement Web Push using VAPID
   // Requires: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY secrets
   //
   // Reference: https://web.dev/push-notifications-overview/
-  
-  console.log(`[send-push] WebPush: Would send to ${tokens.length} tokens (TODO: implement Web Push)`);
-  
+
+  console.log(
+    `[send-push] WebPush: Would send to ${tokens.length} tokens (TODO: implement Web Push)`,
+  );
+
   return { success: [], failed: tokens };
 }
 
@@ -319,7 +332,9 @@ async function sendWebPush(tokens: string[], notification: NotificationContent):
 // Main Handler
 // ============================================================================
 
-Deno.serve(async (req) => {
+Deno.serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -331,23 +346,56 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Authenticate the caller via JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !userData.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const callerUserId = userData.user.id;
+
     // Parse request
     const body: SendPushRequest = await req.json();
-    console.log('[send-push] Request:', JSON.stringify(body, null, 2));
+
+    // Authorization: If sending to a trip, verify the caller is a trip member
+    if (body.tripId) {
+      const { data: membership, error: memberError } = await supabase
+        .from('trip_members')
+        .select('id')
+        .eq('trip_id', body.tripId)
+        .eq('user_id', callerUserId)
+        .maybeSingle();
+      if (memberError || !membership) {
+        return new Response(
+          JSON.stringify({ error: 'You must be a trip member to send notifications' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
 
     // Validate request
     if (!body.notification?.title || !body.notification?.body) {
       return new Response(
         JSON.stringify({ error: 'notification.title and notification.body are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     if (!body.userIds?.length && !body.tripId) {
-      return new Response(
-        JSON.stringify({ error: 'Either userIds or tripId is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Either userIds or tripId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Resolve target user IDs
@@ -362,10 +410,10 @@ Deno.serve(async (req) => {
 
       if (membersError) {
         console.error('[send-push] Failed to fetch trip members:', membersError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch trip members' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: 'Failed to fetch trip members' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       targetUserIds = (members || []).map(m => m.user_id);
@@ -378,10 +426,9 @@ Deno.serve(async (req) => {
 
     if (targetUserIds.length === 0) {
       console.log('[send-push] No target users after filtering');
-      return new Response(
-        JSON.stringify({ success: true, sent: 0, failed: 0, errors: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: true, sent: 0, failed: 0, errors: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log(`[send-push] Targeting ${targetUserIds.length} users`);
@@ -395,10 +442,10 @@ Deno.serve(async (req) => {
 
     if (tokensError) {
       console.error('[send-push] Failed to fetch device tokens:', tokensError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch device tokens' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Failed to fetch device tokens' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const deviceTokens = (tokens || []) as DeviceToken[];
@@ -406,8 +453,14 @@ Deno.serve(async (req) => {
 
     if (deviceTokens.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, sent: 0, failed: 0, errors: [], message: 'No device tokens registered' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: true,
+          sent: 0,
+          failed: 0,
+          errors: [],
+          message: 'No device tokens registered',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -416,7 +469,9 @@ Deno.serve(async (req) => {
     const androidTokens = deviceTokens.filter(t => t.platform === 'android').map(t => t.token);
     const webTokens = deviceTokens.filter(t => t.platform === 'web').map(t => t.token);
 
-    console.log(`[send-push] Platforms: iOS=${iosTokens.length}, Android=${androidTokens.length}, Web=${webTokens.length}`);
+    console.log(
+      `[send-push] Platforms: iOS=${iosTokens.length}, Android=${androidTokens.length}, Web=${webTokens.length}`,
+    );
 
     // Send to each platform
     const results: SendResult = { success: true, sent: 0, failed: 0, errors: [] };
@@ -454,16 +509,14 @@ Deno.serve(async (req) => {
 
     console.log(`[send-push] Complete: sent=${results.sent}, failed=${results.failed}`);
 
-    return new Response(
-      JSON.stringify(results),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify(results), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('[send-push] Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });

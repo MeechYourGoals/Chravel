@@ -7,14 +7,18 @@
  * - Structured data extraction (vendor, amount, date)
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
-import { corsHeaders } from '../_shared/cors.ts';
-import { ReceiptOCRSchema, validateInput, validateExternalHttpsUrl } from '../_shared/validation.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import {
+  ReceiptOCRSchema,
+  validateInput,
+  validateExternalHttpsUrl,
+} from '../_shared/validation.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 );
 
 interface OCRRequest {
@@ -35,8 +39,10 @@ interface OCRResult {
   redactedFields: string[];
 }
 
-serve(async (req) => {
-  const { createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
+serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
+  const { createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
 
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -48,9 +54,10 @@ serve(async (req) => {
       return createErrorResponse('No authorization header', 401);
     }
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (userError || !user) {
       return createErrorResponse('Unauthorized', 401);
@@ -59,7 +66,7 @@ serve(async (req) => {
     // Validate request body with Zod schema (SSRF protection)
     const rawBody = await req.json();
     const validation = validateInput(ReceiptOCRSchema, rawBody);
-    
+
     if (!validation.success) {
       return createErrorResponse(validation.error, 400);
     }
@@ -68,7 +75,10 @@ serve(async (req) => {
 
     // Additional defense-in-depth: validate imageUrl if provided
     if (payload.imageUrl && !validateExternalHttpsUrl(payload.imageUrl)) {
-      return createErrorResponse('Image URL must be HTTPS and external (no internal/private networks)', 400);
+      return createErrorResponse(
+        'Image URL must be HTTPS and external (no internal/private networks)',
+        400,
+      );
     }
 
     // Get user's subscription tier
@@ -83,7 +93,7 @@ serve(async (req) => {
     // Check rate limit
     const { data: rateLimitCheck } = await supabase.rpc('check_ocr_rate_limit', {
       p_user_id: user.id,
-      p_tier: tier
+      p_tier: tier,
     });
 
     if (rateLimitCheck && rateLimitCheck.length > 0) {
@@ -92,7 +102,7 @@ serve(async (req) => {
       if (!allowed) {
         return createErrorResponse(
           `OCR rate limit exceeded. ${remaining} requests remaining. Resets at ${reset_at}`,
-          429
+          429,
         );
       }
     }
@@ -129,19 +139,21 @@ serve(async (req) => {
     // Increment OCR usage
     await supabase.rpc('increment_ocr_usage', {
       p_user_id: user.id,
-      p_tier: tier
+      p_tier: tier,
     });
 
     // Perform OCR
     const provider = payload.provider || 'google-vision';
-    
+
     let imageUrlToFetch = payload.imageUrl || receipt.image_url;
     // Handle relative paths by generating a signed URL (assuming trip-files bucket)
     if (imageUrlToFetch && !imageUrlToFetch.startsWith('http')) {
-       const { data } = await supabase.storage.from('trip-files').createSignedUrl(imageUrlToFetch, 60);
-       if (data?.signedUrl) imageUrlToFetch = data.signedUrl;
+      const { data } = await supabase.storage
+        .from('trip-files')
+        .createSignedUrl(imageUrlToFetch, 60);
+      if (data?.signedUrl) imageUrlToFetch = data.signedUrl;
     }
-    
+
     const imageData = payload.imageBase64 || (await fetchImageAsBase64(imageUrlToFetch));
 
     let ocrResult: OCRResult;
@@ -166,16 +178,19 @@ serve(async (req) => {
         .from('receipts')
         .update({
           processing_status: 'failed',
-          ocr_error: error instanceof Error ? error.message : String(error)
+          ocr_error: error instanceof Error ? error.message : String(error),
         })
         .eq('id', payload.receiptId);
 
-      return createErrorResponse(`OCR processing failed: ${error instanceof Error ? error.message : String(error)}`, 500);
+      return createErrorResponse(
+        `OCR processing failed: ${error instanceof Error ? error.message : String(error)}`,
+        500,
+      );
     }
 
     // Redact PII from OCR text
     const { data: redacted } = await supabase.rpc('redact_pii_from_text', {
-      p_text: ocrResult.text
+      p_text: ocrResult.text,
     });
 
     const redactedText = redacted?.[0]?.redacted_text || ocrResult.text;
@@ -196,8 +211,8 @@ serve(async (req) => {
         extractedAmount: ocrResult.amount,
         extractedCurrency: ocrResult.currency,
         extractedDate: ocrResult.date,
-        extractedCategory: ocrResult.category
-      }
+        extractedCategory: ocrResult.category,
+      },
     };
 
     // Update structured fields if extracted
@@ -207,10 +222,7 @@ serve(async (req) => {
     if (ocrResult.date) updateData.receipt_date = ocrResult.date;
     if (ocrResult.category) updateData.category = ocrResult.category;
 
-    await supabase
-      .from('receipts')
-      .update(updateData)
-      .eq('id', payload.receiptId);
+    await supabase.from('receipts').update(updateData).eq('id', payload.receiptId);
 
     return createSecureResponse(
       JSON.stringify({
@@ -223,15 +235,14 @@ serve(async (req) => {
           amount: ocrResult.amount,
           currency: ocrResult.currency,
           date: ocrResult.date,
-          category: ocrResult.category
+          category: ocrResult.category,
         },
         piiRedacted: redactedFields.length > 0,
-        redactedFields
+        redactedFields,
       }),
       200,
-      { 'Content-Type': 'application/json' }
+      { 'Content-Type': 'application/json' },
     );
-
   } catch (error) {
     console.error('OCR processing error:', error);
     return createErrorResponse(error instanceof Error ? error.message : String(error), 500);
@@ -247,14 +258,14 @@ async function fetchImageAsBase64(url: string): Promise<string> {
   const response = await fetch(url, {
     signal: AbortSignal.timeout(30000), // 30 second timeout
     headers: {
-      'User-Agent': 'Chravel-ReceiptOCR/1.0'
-    }
+      'User-Agent': 'Chravel-ReceiptOCR/1.0',
+    },
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to fetch image: ${response.statusText}`);
   }
-  
+
   const arrayBuffer = await response.arrayBuffer();
   const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
   return base64;
@@ -267,22 +278,18 @@ async function processWithGoogleVision(imageBase64: string): Promise<OCRResult> 
     throw new Error('Google Vision API key not configured');
   }
 
-  const response = await fetch(
-    `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requests: [{
+  const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      requests: [
+        {
           image: { content: imageBase64 },
-          features: [
-            { type: 'TEXT_DETECTION' },
-            { type: 'DOCUMENT_TEXT_DETECTION' }
-          ]
-        }]
-      })
-    }
-  );
+          features: [{ type: 'TEXT_DETECTION' }, { type: 'DOCUMENT_TEXT_DETECTION' }],
+        },
+      ],
+    }),
+  });
 
   if (!response.ok) {
     throw new Error(`Google Vision API error: ${await response.text()}`);
@@ -305,7 +312,7 @@ async function processWithGoogleVision(imageBase64: string): Promise<OCRResult> 
     text: fullText,
     confidence,
     ...extracted,
-    redactedFields: []
+    redactedFields: [],
   };
 }
 
@@ -337,10 +344,12 @@ function extractStructuredData(text: string): Partial<OCRResult> {
   const amountMatches = text.match(amountPattern);
   if (amountMatches && amountMatches.length > 0) {
     // Take the largest amount found (likely the total)
-    const amounts = amountMatches.map(m => {
-      const cleaned = m.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
-      return parseFloat(cleaned);
-    }).filter(a => !isNaN(a));
+    const amounts = amountMatches
+      .map(m => {
+        const cleaned = m.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+        return parseFloat(cleaned);
+      })
+      .filter(a => !isNaN(a));
 
     if (amounts.length > 0) {
       result.amount = Math.max(...amounts);
@@ -349,7 +358,8 @@ function extractStructuredData(text: string): Partial<OCRResult> {
   }
 
   // Extract date (looks for MM/DD/YYYY, DD/MM/YYYY, etc.)
-  const datePattern = /(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})|((Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{1,2},?\\s+\\d{2,4})/gi;
+  const datePattern =
+    /(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})|((Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{1,2},?\\s+\\d{2,4})/gi;
   const dateMatch = text.match(datePattern);
   if (dateMatch) {
     try {
@@ -379,7 +389,7 @@ function extractStructuredData(text: string): Partial<OCRResult> {
     { keywords: ['gas', 'fuel', 'station', 'exxon', 'shell'], category: 'transportation' },
     { keywords: ['uber', 'lyft', 'taxi', 'cab'], category: 'transportation' },
     { keywords: ['grocery', 'market', 'walmart', 'target'], category: 'groceries' },
-    { keywords: ['pharmacy', 'cvs', 'walgreens', 'drug'], category: 'health' }
+    { keywords: ['pharmacy', 'cvs', 'walgreens', 'drug'], category: 'health' },
   ];
 
   const lowerText = text.toLowerCase();
