@@ -392,7 +392,7 @@ export const ProTripDetailDesktop = () => {
           exportData.attachments = demoModeService.getMockAttachments(proTripId || '1');
         }
 
-        blob = await generateClientPDF(exportData, orderedSections);
+        blob = await generateClientPDF(exportData as any, orderedSections);
       } else {
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token || '';
