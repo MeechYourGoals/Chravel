@@ -117,13 +117,13 @@ serve(async (req) => {
     if (tripId) {
       const { data: membershipCheck, error: membershipError } = await supabase
         .from('trip_members')
-        .select('user_id, status')
+        .select('user_id')
         .eq('trip_id', tripId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (membershipError || !membershipCheck || membershipCheck.status !== 'active') {
-        return createErrorResponse('Forbidden - you must be an active member of this trip', 403);
+      if (membershipError || !membershipCheck) {
+        return createErrorResponse('Forbidden - you must be a member of this trip', 403);
       }
     }
     

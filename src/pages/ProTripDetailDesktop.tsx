@@ -425,42 +425,25 @@ export const ProTripDetailDesktop = () => {
           console.error('[PRO-EXPORT] Edge function failed:', errorMsg);
           toast.error('Live export failed, generating offline PDF.');
 
-          // Lazy load PDF generation for fallback
+          // Use shared export data service (same as mobile) to fetch real DB data
+          const { getExportData } = await import('../services/tripExportDataService');
+          const realData = await getExportData(proTripId || '', orderedSections);
           const { generateClientPDF: fallbackPDF } = await import('../utils/exportPdfClient');
           blob = await fallbackPDF(
             {
               tripId: proTripId || '',
-              tripTitle: tripData.title,
-              destination: tripData.location,
-              dateRange: tripData.dateRange,
-              description: tripData.description || '',
-              calendar:
-                tripData.schedule?.map(s => ({
-                  title: s.title || 'Event',
-                  start_time: s.startTime || new Date().toISOString(),
-                  location: s.location,
-                  description: s.notes,
-                })) || [],
-              payments:
-                tripData.settlement && tripData.settlement.length > 0
-                  ? {
-                      items: tripData.settlement.map(p => ({
-                        description: p.venue || 'Payment',
-                        amount: p.finalPayout || 0,
-                        currency: 'USD',
-                        split_count: 1,
-                        is_settled: p.status === 'paid',
-                      })),
-                      total: tripData.settlement.reduce((sum, p) => sum + (p.finalPayout || 0), 0),
-                      currency: 'USD',
-                    }
-                  : undefined,
-              roster:
-                tripData.roster?.map(r => ({
-                  name: r.name,
-                  email: r.email,
-                  role: r.role,
-                })) || [],
+              tripTitle: realData.trip.title || tripData.title,
+              destination: realData.trip.destination || tripData.location,
+              dateRange: realData.trip.dateRange || tripData.dateRange,
+              description: realData.trip.description || tripData.description || '',
+              calendar: realData.calendar || [],
+              payments: realData.payments,
+              polls: realData.polls,
+              tasks: realData.tasks,
+              places: realData.places,
+              roster: realData.roster || [],
+              broadcasts: (realData as any).broadcasts,
+              attachments: (realData as any).attachments,
             },
             orderedSections,
           );
