@@ -1,10 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import { CreateTripSchema, validateInput } from '../_shared/validation.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -69,14 +70,15 @@ serve(async req => {
       .eq('user_id', user.id)
       .single();
 
-    // Super admin bypass - ccamechi@gmail.com has unlimited access
-    const SUPER_ADMIN_EMAILS = ['ccamechi@gmail.com'];
+    // Super admin bypass - configured via environment variable for security
+    const superAdminEmails = (Deno.env.get('SUPER_ADMIN_EMAILS') || '')
+      .split(',')
+      .map(e => e.trim().toLowerCase())
+      .filter(Boolean);
     const authEmail = user.email?.toLowerCase();
-    const isSuperAdmin = authEmail ? SUPER_ADMIN_EMAILS.includes(authEmail) : false;
+    const isSuperAdmin = authEmail ? superAdminEmails.includes(authEmail) : false;
 
-    if (isSuperAdmin) {
-      console.log(`[create-trip] Super admin bypass for: ${authEmail}`);
-    } else {
+    if (!isSuperAdmin) {
       const subscriptionStatus = profile?.subscription_status;
       const productId = profile?.subscription_product_id;
       const freeProTripsUsed = profile?.free_pro_trips_used || 0;

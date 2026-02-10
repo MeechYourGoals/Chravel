@@ -84,12 +84,15 @@ export function validateToken(token: string): { valid: boolean; reason?: string 
     return { valid: false, reason: 'MISSING_SUB_CLAIM' };
   }
 
+  // All Supabase JWTs must have an expiration claim
+  if (!payload.exp) {
+    return { valid: false, reason: 'MISSING_EXP_CLAIM' };
+  }
+
   // Check if token is expired
-  if (payload.exp) {
-    const expiresAt = payload.exp * 1000;
-    if (Date.now() > expiresAt) {
-      return { valid: false, reason: 'TOKEN_EXPIRED' };
-    }
+  const expiresAt = payload.exp * 1000;
+  if (Date.now() > expiresAt) {
+    return { valid: false, reason: 'TOKEN_EXPIRED' };
   }
 
   // Validate sub is a valid UUID format (basic check)

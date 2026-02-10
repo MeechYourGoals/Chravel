@@ -17,6 +17,7 @@ import { ConsumerSubscriptionProvider } from './hooks/useConsumerSubscription';
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyRoute } from './components/LazyRoute';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { performanceService } from './services/performanceService';
 import { useDemoModeStore } from './store/demoModeStore';
 import { errorTracking } from './services/errorTracking';
@@ -34,8 +35,10 @@ import { safeReload } from '@/utils/safeReload';
 import { parseJwtPayload } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
 
-// Trip recovery utilities (exposes debugTrips, searchAllTrips, recoverTrip to window)
-import '@/utils/tripRecovery';
+// Trip recovery utilities only available in development
+if (import.meta.env.DEV) {
+  import('@/utils/tripRecovery');
+}
 
 // Lazy load pages for better performance
 // Enhanced retry mechanism with exponential backoff and better error handling
@@ -251,9 +254,7 @@ const App = () => {
 
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
-        errorTracking.setUser(data.user.id, {
-          email: data.user.email,
-        });
+        errorTracking.setUser(data.user.id);
       }
     });
   }, []);
@@ -658,7 +659,9 @@ const App = () => {
                         path="/profile"
                         element={
                           <LazyRoute>
-                            <ProfilePage />
+                            <ProtectedRoute>
+                              <ProfilePage />
+                            </ProtectedRoute>
                           </LazyRoute>
                         }
                       />
@@ -666,7 +669,9 @@ const App = () => {
                         path="/settings"
                         element={
                           <LazyRoute>
-                            <SettingsPage />
+                            <ProtectedRoute>
+                              <SettingsPage />
+                            </ProtectedRoute>
                           </LazyRoute>
                         }
                       />
@@ -674,7 +679,9 @@ const App = () => {
                         path="/archive"
                         element={
                           <LazyRoute>
-                            <ArchivePage />
+                            <ProtectedRoute>
+                              <ArchivePage />
+                            </ProtectedRoute>
                           </LazyRoute>
                         }
                       />
@@ -682,7 +689,9 @@ const App = () => {
                         path="/admin/scheduled-messages"
                         element={
                           <LazyRoute>
-                            <AdminDashboard />
+                            <ProtectedRoute>
+                              <AdminDashboard />
+                            </ProtectedRoute>
                           </LazyRoute>
                         }
                       />
@@ -690,7 +699,9 @@ const App = () => {
                         path="/organizations"
                         element={
                           <LazyRoute>
-                            <OrganizationsHub />
+                            <ProtectedRoute>
+                              <OrganizationsHub />
+                            </ProtectedRoute>
                           </LazyRoute>
                         }
                       />
@@ -698,7 +709,9 @@ const App = () => {
                         path="/organization/:orgId"
                         element={
                           <LazyRoute>
-                            <OrganizationDashboard />
+                            <ProtectedRoute>
+                              <OrganizationDashboard />
+                            </ProtectedRoute>
                           </LazyRoute>
                         }
                       />
@@ -710,14 +723,16 @@ const App = () => {
                           </LazyRoute>
                         }
                       />
-                      <Route
-                        path="/dev/device-matrix"
-                        element={
-                          <LazyRoute>
-                            <DeviceTestMatrix />
-                          </LazyRoute>
-                        }
-                      />
+                      {import.meta.env.DEV && (
+                        <Route
+                          path="/dev/device-matrix"
+                          element={
+                            <LazyRoute>
+                              <DeviceTestMatrix />
+                            </LazyRoute>
+                          }
+                        />
+                      )}
                       <Route
                         path="*"
                         element={

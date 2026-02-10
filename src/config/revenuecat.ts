@@ -1,6 +1,6 @@
 import { Purchases } from '@revenuecat/purchases-js';
 
-const REVENUECAT_API_KEY = 'test_QqVXiOnWgmxTHaMKTUiCrOpYMDm';
+const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || '';
 
 /**
  * Generates a unique anonymous user ID for RevenueCat.
@@ -19,13 +19,13 @@ const generateAnonymousUserId = (): string => {
  */
 const getOrCreateUserId = (): string => {
   const STORAGE_KEY = 'revenuecat_user_id';
-  
+
   try {
     const existingId = localStorage.getItem(STORAGE_KEY);
     if (existingId) {
       return existingId;
     }
-    
+
     const newId = generateAnonymousUserId();
     localStorage.setItem(STORAGE_KEY, newId);
     return newId;
@@ -49,12 +49,12 @@ export const initRevenueCat = async (): Promise<void> => {
 
   try {
     const userId = getOrCreateUserId();
-    console.log('[RevenueCat] Initializing with user ID:', userId);
-    
+    // RevenueCat initialization (user ID redacted from logs)
+
     Purchases.configure(REVENUECAT_API_KEY, userId);
     isInitialized = true;
-    
-    console.log('[RevenueCat] SDK initialized successfully');
+
+    // RevenueCat SDK initialized
   } catch (error) {
     console.error('[RevenueCat] Failed to initialize:', error);
     throw error;

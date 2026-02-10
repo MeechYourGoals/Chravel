@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,12 +14,13 @@ interface IngestRequest {
   content?: string;
 }
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
@@ -28,18 +29,18 @@ serve(async (req) => {
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
     if (!openaiApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
-      }
+        persistSession: false,
+      },
     });
 
     const { source, sourceId, tripId, content }: IngestRequest = await req.json();
@@ -50,24 +51,24 @@ serve(async (req) => {
         ingestTripMessages(supabase, tripId),
         ingestTripPolls(supabase, tripId),
         ingestTripFiles(supabase, tripId),
-        ingestTripLinks(supabase, tripId)
+        ingestTripLinks(supabase, tripId),
       ]);
-      
+
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           message: 'Batch ingestion completed',
-          results: batchResults
+          results: batchResults,
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     if (!source || !sourceId || !tripId) {
-      return new Response(
-        JSON.stringify({ error: 'Source, sourceId, and tripId are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Source, sourceId, and tripId are required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     let textContent = content || '';
@@ -93,7 +94,9 @@ serve(async (req) => {
             .eq('id', sourceId)
             .single();
           if (poll) {
-            const options = Array.isArray(poll.options) ? poll.options.map((opt: any) => opt.text || opt).join(', ') : '';
+            const options = Array.isArray(poll.options)
+              ? poll.options.map((opt: any) => opt.text || opt).join(', ')
+              : '';
             textContent = `POLL: ${poll.question}\nOptions: ${options}\nTotal votes: ${poll.total_votes}`;
           }
           break;
@@ -131,17 +134,17 @@ serve(async (req) => {
     }
 
     if (!textContent.trim()) {
-      return new Response(
-        JSON.stringify({ error: 'No content to ingest' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'No content to ingest' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Generate embedding
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        Authorization: `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -160,68 +163,65 @@ serve(async (req) => {
     // Create or update knowledge base document
     const { data: doc, error: docError } = await supabase
       .from('kb_documents')
-      .upsert({
-        trip_id: tripId,
-        source: source,
-        source_id: sourceId,
-        modality: 'text',
-        plain_text: textContent,
-        metadata: { source, sourceId, ingested_at: new Date().toISOString() },
-        chunk_count: 1
-      }, {
-        onConflict: 'source,source_id,trip_id'
-      })
+      .upsert(
+        {
+          trip_id: tripId,
+          source: source,
+          source_id: sourceId,
+          modality: 'text',
+          plain_text: textContent,
+          metadata: { source, sourceId, ingested_at: new Date().toISOString() },
+          chunk_count: 1,
+        },
+        {
+          onConflict: 'source,source_id,trip_id',
+        },
+      )
       .select()
       .single();
 
     if (docError) {
       console.error('Error creating document:', docError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to create document' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Failed to create document' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Delete existing chunks for this document
-    await supabase
-      .from('kb_chunks')
-      .delete()
-      .eq('doc_id', doc.id);
+    await supabase.from('kb_chunks').delete().eq('doc_id', doc.id);
 
     // Create new chunk with embedding
-    const { error: chunkError } = await supabase
-      .from('kb_chunks')
-      .insert({
-        doc_id: doc.id,
-        chunk_index: 0,
-        content: textContent,
-        embedding: embedding,
-        modality: 'text'
-      });
+    const { error: chunkError } = await supabase.from('kb_chunks').insert({
+      doc_id: doc.id,
+      chunk_index: 0,
+      content: textContent,
+      embedding: embedding,
+      modality: 'text',
+    });
 
     if (chunkError) {
       console.error('Error creating chunk:', chunkError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to create chunk' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Failed to create chunk' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         docId: doc.id,
-        contentLength: textContent.length 
+        contentLength: textContent.length,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
-
   } catch (error) {
     console.error('Error in ai-ingest function:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
 
@@ -231,74 +231,79 @@ async function ingestTripMessages(supabase: any, tripId: string) {
     .from('trip_chat_messages')
     .select('*')
     .eq('trip_id', tripId);
-    
+
   if (!messages?.length) return { type: 'messages', count: 0 };
-  
+
   const results = await Promise.all(
-    messages.map((msg: any) => ingestSingleItem(supabase, 'trip_chat_messages', msg.id, tripId, `${msg.author_name}: ${msg.content}`))
+    messages.map((msg: any) =>
+      ingestSingleItem(
+        supabase,
+        'trip_chat_messages',
+        msg.id,
+        tripId,
+        `${msg.author_name}: ${msg.content}`,
+      ),
+    ),
   );
-  
+
   return { type: 'messages', count: results.length };
 }
 
 async function ingestTripPolls(supabase: any, tripId: string) {
-  const { data: polls } = await supabase
-    .from('trip_polls')
-    .select('*')
-    .eq('trip_id', tripId);
-    
+  const { data: polls } = await supabase.from('trip_polls').select('*').eq('trip_id', tripId);
+
   if (!polls?.length) return { type: 'polls', count: 0 };
-  
+
   const results = await Promise.all(
     polls.map((poll: any) => {
       const content = `Poll: ${poll.question}. Options: ${JSON.stringify(poll.options)}. Status: ${poll.status}. Total votes: ${poll.total_votes}`;
       return ingestSingleItem(supabase, 'trip_polls', poll.id, tripId, content);
-    })
+    }),
   );
-  
+
   return { type: 'polls', count: results.length };
 }
 
 async function ingestTripFiles(supabase: any, tripId: string) {
-  const { data: files } = await supabase
-    .from('trip_files')
-    .select('*')
-    .eq('trip_id', tripId);
-    
+  const { data: files } = await supabase.from('trip_files').select('*').eq('trip_id', tripId);
+
   if (!files?.length) return { type: 'files', count: 0 };
-  
+
   const results = await Promise.all(
     files.map((file: any) => {
       const content = `File: ${file.name} (${file.file_type}). Summary: ${file.ai_summary || 'No summary'}. Content: ${file.content_text || 'No text content'}`;
       return ingestSingleItem(supabase, 'trip_files', file.id, tripId, content);
-    })
+    }),
   );
-  
+
   return { type: 'files', count: results.length };
 }
 
 async function ingestTripLinks(supabase: any, tripId: string) {
-  const { data: links } = await supabase
-    .from('trip_links')
-    .select('*')
-    .eq('trip_id', tripId);
-    
+  const { data: links } = await supabase.from('trip_links').select('*').eq('trip_id', tripId);
+
   if (!links?.length) return { type: 'links', count: 0 };
-  
+
   const results = await Promise.all(
     links.map((link: any) => {
       const content = `Link: ${link.title}. URL: ${link.url}. Description: ${link.description || 'No description'}. Category: ${link.category || 'uncategorized'}. Votes: ${link.votes}`;
       return ingestSingleItem(supabase, 'trip_links', link.id, tripId, content);
-    })
+    }),
   );
-  
+
   return { type: 'links', count: results.length };
 }
 
-async function ingestSingleItem(supabase: any, source: string, sourceId: string, tripId: string, content: string) {
+async function ingestSingleItem(
+  supabase: any,
+  source: string,
+  sourceId: string,
+  tripId: string,
+  content: string,
+) {
   try {
     const embedding = await generateEmbedding(content);
-    
+
     const { data: doc, error: docError } = await supabase
       .from('kb_documents')
       .upsert({
@@ -306,29 +311,24 @@ async function ingestSingleItem(supabase: any, source: string, sourceId: string,
         source: source,
         source_id: sourceId,
         plain_text: content,
-        metadata: { ingested_at: new Date().toISOString() }
+        metadata: { ingested_at: new Date().toISOString() },
       })
       .select()
       .single();
 
     if (docError) throw docError;
 
-    await supabase
-      .from('kb_chunks')
-      .delete()
-      .eq('doc_id', doc.id);
+    await supabase.from('kb_chunks').delete().eq('doc_id', doc.id);
 
-    const { error: chunkError } = await supabase
-      .from('kb_chunks')
-      .insert({
-        doc_id: doc.id,
-        content: content,
-        embedding: embedding,
-        chunk_index: 0
-      });
+    const { error: chunkError } = await supabase.from('kb_chunks').insert({
+      doc_id: doc.id,
+      content: content,
+      embedding: embedding,
+      chunk_index: 0,
+    });
 
     if (chunkError) throw chunkError;
-    
+
     return { success: true, docId: doc.id };
   } catch (error) {
     console.error(`Error ingesting ${source} ${sourceId}:`, error);
@@ -339,11 +339,11 @@ async function ingestSingleItem(supabase: any, source: string, sourceId: string,
 
 async function generateEmbedding(text: string) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
-  
+
   const response = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
+      Authorization: `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({

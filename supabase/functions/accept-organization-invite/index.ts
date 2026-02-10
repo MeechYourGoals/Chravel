@@ -1,14 +1,19 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { validateInput, AcceptInviteSchema } from "../_shared/validation.ts";
-import { createSecureResponse, createErrorResponse, createOptionsResponse } from "../_shared/securityHeaders.ts";
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { validateInput, AcceptInviteSchema } from '../_shared/validation.ts';
+import {
+  createSecureResponse,
+  createErrorResponse,
+  createOptionsResponse,
+} from '../_shared/securityHeaders.ts';
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
@@ -22,9 +27,10 @@ serve(async (req) => {
       return createErrorResponse('No authorization header', 401);
     }
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (userError || !user) {
       return createErrorResponse('Unauthorized', 401);
@@ -33,7 +39,7 @@ serve(async (req) => {
     // Parse and validate request body
     const body = await req.json();
     const validation = validateInput(AcceptInviteSchema, body);
-    
+
     if (!validation.success) {
       return createErrorResponse(`Validation error: ${validation.error}`, 400);
     }
@@ -56,11 +62,8 @@ serve(async (req) => {
 
     // Check if invite has expired
     if (new Date(invite.expires_at) < new Date()) {
-      await supabase
-        .from('organization_invites')
-        .update({ status: 'expired' })
-        .eq('id', invite.id);
-      
+      await supabase.from('organization_invites').update({ status: 'expired' }).eq('id', invite.id);
+
       throw new Error('Invitation has expired');
     }
 
@@ -83,7 +86,7 @@ serve(async (req) => {
         .from('organization_invites')
         .update({ status: 'accepted' })
         .eq('id', invite.id);
-      
+
       throw new Error('You are already a member of this organization');
     }
 
@@ -106,16 +109,14 @@ serve(async (req) => {
     const seatId = `seat-${String(org.seats_used + 1).padStart(3, '0')}`;
 
     // Create organization membership
-    const { error: memberError } = await supabase
-      .from('organization_members')
-      .insert({
-        organization_id: invite.organization_id,
-        user_id: user.id,
-        role: invite.role,
-        invited_by: invite.invited_by,
-        seat_id: seatId,
-        status: 'active'
-      });
+    const { error: memberError } = await supabase.from('organization_members').insert({
+      organization_id: invite.organization_id,
+      user_id: user.id,
+      role: invite.role,
+      invited_by: invite.invited_by,
+      seat_id: seatId,
+      status: 'active',
+    });
 
     if (memberError) {
       console.error('Error creating membership:', memberError);
@@ -137,28 +138,25 @@ serve(async (req) => {
       .from('user_roles')
       .insert({
         user_id: user.id,
-        role: 'pro'
+        role: 'pro',
       })
       .select();
 
-    if (roleError && roleError.code !== '23505') { // Ignore duplicate key error
+    if (roleError && roleError.code !== '23505') {
+      // Ignore duplicate key error
       console.error('Error granting pro role:', roleError);
     }
 
     // Mark invite as accepted
-    await supabase
-      .from('organization_invites')
-      .update({ status: 'accepted' })
-      .eq('id', invite.id);
+    await supabase.from('organization_invites').update({ status: 'accepted' }).eq('id', invite.id);
 
     console.log('Invite accepted successfully');
 
-    return createSecureResponse({ 
+    return createSecureResponse({
       success: true,
       organizationId: invite.organization_id,
-      seatId
+      seatId,
     });
-
   } catch (error) {
     console.error('Error in accept-organization-invite:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';

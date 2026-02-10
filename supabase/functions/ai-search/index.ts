@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,12 +9,13 @@ const corsHeaders = {
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
@@ -22,44 +23,47 @@ serve(async (req) => {
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     if (!LOVABLE_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'Service not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Service not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Create Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
-      }
+        persistSession: false,
+      },
     });
 
     // Get user from request
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const { query, tripId, limit = 16 } = await req.json();
 
     if (!query || !tripId) {
-      return new Response(
-        JSON.stringify({ error: 'Query and tripId are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Query and tripId are required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Check if user is member of trip
@@ -71,22 +75,21 @@ serve(async (req) => {
       .single();
 
     if (!membership) {
-      return new Response(
-        JSON.stringify({ error: 'Not a member of this trip' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Not a member of this trip' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Fetch all trip data for semantic search
     const { data: tripData } = await supabase.rpc('get_trip_search_data', {
-      p_trip_id: tripId
+      p_trip_id: tripId,
     });
 
     if (!tripData) {
-      return new Response(
-        JSON.stringify({ results: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ results: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Use Gemini to perform intelligent search across trip data
@@ -114,7 +117,7 @@ Return up to ${limit} results, ranked by relevance.`;
     const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -122,17 +125,18 @@ Return up to ${limit} results, ranked by relevance.`;
         messages: [
           {
             role: 'system',
-            content: 'You are a search assistant. Analyze trip data and return the most relevant results for user queries. Always return valid JSON.'
+            content:
+              'You are a search assistant. Analyze trip data and return the most relevant results for user queries. Always return valid JSON.',
           },
           {
             role: 'user',
-            content: searchPrompt
-          }
+            content: searchPrompt,
+          },
         ],
         max_tokens: 2000,
         temperature: 0.3,
-        response_format: { type: "json_object" }
-      })
+        response_format: { type: 'json_object' },
+      }),
     });
 
     if (!geminiResponse.ok) {
@@ -154,7 +158,7 @@ Return up to ${limit} results, ranked by relevance.`;
       score: result.score || 0.7,
       deepLink: `#${result.objectType}`,
       matchReason: result.matchReason || 'Content match',
-      metadata: result.metadata || {}
+      metadata: result.metadata || {},
     }));
 
     // Log the query for analytics
@@ -162,19 +166,17 @@ Return up to ${limit} results, ranked by relevance.`;
       trip_id: tripId,
       user_id: user.id,
       query_text: query,
-      source_count: results.length
+      source_count: results.length,
     });
 
-    return new Response(
-      JSON.stringify({ results }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ results }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Error in ai-search function:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', results: [] }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error', results: [] }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

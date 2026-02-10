@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 
 const corsHeaders = {
@@ -6,12 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
@@ -26,8 +27,11 @@ serve(async (req) => {
 
     // Get user from auth token
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
     if (authError || !user) {
       throw new Error('Invalid authentication token');
     }
@@ -57,10 +61,12 @@ serve(async (req) => {
     // Build query for broadcasts
     let query = supabase
       .from('broadcasts')
-      .select(`
+      .select(
+        `
         *,
         reactions:broadcast_reactions(*)
-      `)
+      `,
+      )
       .eq('trip_id', trip_id)
       .order('created_at', { ascending: false });
 
@@ -83,7 +89,7 @@ serve(async (req) => {
     // Process broadcasts to include reaction counts and user's reaction
     const processedBroadcasts = broadcasts?.map(broadcast => {
       const reactions = broadcast.reactions || [];
-      
+
       const counts = {
         coming: reactions.filter((r: any) => r.reaction_type === 'coming').length,
         wait: reactions.filter((r: any) => r.reaction_type === 'wait').length,
@@ -101,23 +107,19 @@ serve(async (req) => {
     });
 
     return new Response(
-      JSON.stringify({ 
-        broadcasts: processedBroadcasts || []
+      JSON.stringify({
+        broadcasts: processedBroadcasts || [],
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
-
   } catch (error) {
     console.error('Error in broadcasts-fetch function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

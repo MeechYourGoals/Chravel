@@ -1,15 +1,19 @@
 /**
  * Fetch OG Metadata Edge Function
- * 
+ *
  * Fetches Open Graph metadata from URLs to avoid CORS issues
  * Used by Media > URLs tab to show rich previews
- * 
+ *
  * @module supabase/functions/fetch-og-metadata
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from '../_shared/cors.ts';
-import { FetchOGMetadataSchema, validateInput, validateExternalHttpsUrl } from '../_shared/validation.ts';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import {
+  FetchOGMetadataSchema,
+  validateInput,
+  validateExternalHttpsUrl,
+} from '../_shared/validation.ts';
 
 interface OGMetadata {
   title?: string;
@@ -21,7 +25,9 @@ interface OGMetadata {
   error?: string;
 }
 
-serve(async (req) => {
+serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -30,15 +36,12 @@ serve(async (req) => {
     // Validate request body with Zod schema (SSRF protection)
     const rawBody = await req.json();
     const validation = validateInput(FetchOGMetadataSchema, rawBody);
-    
+
     if (!validation.success) {
-      return new Response(
-        JSON.stringify({ error: validation.error }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      return new Response(JSON.stringify({ error: validation.error }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const { url } = validation.data;
@@ -47,10 +50,10 @@ serve(async (req) => {
     if (!validateExternalHttpsUrl(url)) {
       return new Response(
         JSON.stringify({ error: 'URL must be HTTPS and external (no internal/private networks)' }),
-        { 
+        {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       );
     }
 
@@ -70,25 +73,30 @@ serve(async (req) => {
     const metadata: OGMetadata = {};
 
     // Extract OG tags using regex (simple but effective)
-    const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i) ||
-                         html.match(/<meta\s+name=["']twitter:title["']\s+content=["']([^"']+)["']/i) ||
-                         html.match(/<title>([^<]+)<\/title>/i);
+    const ogTitleMatch =
+      html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i) ||
+      html.match(/<meta\s+name=["']twitter:title["']\s+content=["']([^"']+)["']/i) ||
+      html.match(/<title>([^<]+)<\/title>/i);
     if (ogTitleMatch) metadata.title = ogTitleMatch[1].trim();
 
-    const ogDescriptionMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i) ||
-                                html.match(/<meta\s+name=["']twitter:description["']\s+content=["']([^"']+)["']/i) ||
-                                html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i);
+    const ogDescriptionMatch =
+      html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i) ||
+      html.match(/<meta\s+name=["']twitter:description["']\s+content=["']([^"']+)["']/i) ||
+      html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i);
     if (ogDescriptionMatch) metadata.description = ogDescriptionMatch[1].trim();
 
-    const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
-                         html.match(/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i);
+    const ogImageMatch =
+      html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
+      html.match(/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i);
     if (ogImageMatch) {
       const imageUrl = ogImageMatch[1].trim();
       // Resolve relative URLs
       metadata.image = imageUrl.startsWith('http') ? imageUrl : new URL(imageUrl, url).toString();
     }
 
-    const ogSiteNameMatch = html.match(/<meta\s+property=["']og:site_name["']\s+content=["']([^"']+)["']/i);
+    const ogSiteNameMatch = html.match(
+      /<meta\s+property=["']og:site_name["']\s+content=["']([^"']+)["']/i,
+    );
     if (ogSiteNameMatch) metadata.siteName = ogSiteNameMatch[1].trim();
 
     const ogTypeMatch = html.match(/<meta\s+property=["']og:type["']\s+content=["']([^"']+)["']/i);
@@ -96,22 +104,19 @@ serve(async (req) => {
 
     metadata.url = url;
 
-    return new Response(
-      JSON.stringify(metadata),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    return new Response(JSON.stringify(metadata), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('[fetch-og-metadata] Error:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error instanceof Error ? error.message : 'Unknown error',
       }),
-      { 
+      {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     );
   }
 });

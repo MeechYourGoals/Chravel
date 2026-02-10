@@ -1,11 +1,11 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { 
-  ImageUploadSchema, 
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import {
+  ImageUploadSchema,
   validateInput,
   isBlockedExtension,
   isValidFileType,
-  ALLOWED_FILE_TYPES
+  ALLOWED_FILE_TYPES,
 } from '../_shared/validation.ts';
 
 const corsHeaders = {
@@ -13,32 +13,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
+      { auth: { persistSession: false } },
     );
 
-    const authHeader = req.headers.get('Authorization')!;
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const token = authHeader.replace('Bearer ', '');
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    
+
     if (userError || !userData.user) {
       throw new Error('User not authenticated');
     }
 
     const formData = await req.formData();
     const file = formData.get('file') as File;
-    const folder = formData.get('folder') as string || 'ad-images';
-    
+    const folder = (formData.get('folder') as string) || 'ad-images';
+
     if (!file) {
       throw new Error('No file provided');
     }
@@ -46,52 +53,46 @@ serve(async (req) => {
     // Validate using Zod schema
     const validation = validateInput(ImageUploadSchema, { file, folder });
     if (!validation.success) {
-      return new Response(
-        JSON.stringify({ error: validation.error }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      return new Response(JSON.stringify({ error: validation.error }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Additional explicit checks for better error messages
     // Check file extension (block executables and scripts)
     if (isBlockedExtension(file.name)) {
       return new Response(
-        JSON.stringify({ 
-          error: `File type not allowed: ${file.name.split('.').pop()} files are blocked for security reasons` 
+        JSON.stringify({
+          error: `File type not allowed: ${file.name.split('.').pop()} files are blocked for security reasons`,
         }),
-        { 
+        {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       );
     }
 
     // Validate file type (only images)
     if (!isValidFileType(file.type, ALLOWED_FILE_TYPES.images)) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed.' 
+        JSON.stringify({
+          error: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed.',
         }),
-        { 
+        {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       );
     }
 
-    // Validate file size (10MB max - matches TripCoverPhotoUpload UI)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      return new Response(
-        JSON.stringify({ error: 'File too large. Maximum size is 5MB.' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      return new Response(JSON.stringify({ error: 'File too large. Maximum size is 5MB.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Generate unique filename
@@ -108,7 +109,7 @@ serve(async (req) => {
       .upload(filePath, fileBuffer, {
         contentType: file.type,
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
       });
 
     if (error) {
@@ -117,31 +118,28 @@ serve(async (req) => {
     }
 
     // Get public URL
-    const { data: publicData } = supabase.storage
-      .from('advertiser-assets')
-      .getPublicUrl(filePath);
+    const { data: publicData } = supabase.storage.from('advertiser-assets').getPublicUrl(filePath);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         url: publicData.publicUrl,
         path: filePath,
         size: file.size,
-        type: file.type
+        type: file.type,
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
+        status: 200,
+      },
     );
-
   } catch (error) {
     console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
-      { 
+      {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     );
   }
 });

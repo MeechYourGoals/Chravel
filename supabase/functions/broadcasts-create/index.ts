@@ -1,13 +1,17 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
-import { createSecureResponse, createErrorResponse, createOptionsResponse } from "../_shared/securityHeaders.ts";
-import { BroadcastCreateSchema, validateInput } from "../_shared/validation.ts";
-import { sanitizeErrorForClient, logError } from "../_shared/errorHandling.ts";
+import {
+  createSecureResponse,
+  createErrorResponse,
+  createOptionsResponse,
+} from '../_shared/securityHeaders.ts';
+import { BroadcastCreateSchema, validateInput } from '../_shared/validation.ts';
+import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 
-serve(async (req) => {
+serve(async req => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
@@ -22,8 +26,11 @@ serve(async (req) => {
 
     // Get user from auth token
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
     if (authError || !user) {
       return createErrorResponse('Unauthorized', 401);
     }
@@ -31,7 +38,7 @@ serve(async (req) => {
     // Validate and sanitize input
     const requestBody = await req.json();
     const validation = validateInput(BroadcastCreateSchema, requestBody);
-    
+
     if (!validation.success) {
       logError('BROADCAST_CREATE_VALIDATION', validation.error, { userId: user.id });
       return createErrorResponse(validation.error, 400);
@@ -83,11 +90,10 @@ serve(async (req) => {
       throw new Error('Failed to create broadcast');
     }
 
-    return createSecureResponse({ 
-      success: true, 
-      broadcast 
+    return createSecureResponse({
+      success: true,
+      broadcast,
     });
-
   } catch (error) {
     logError('BROADCAST_CREATE', error);
     return createErrorResponse(sanitizeErrorForClient(error), 500);

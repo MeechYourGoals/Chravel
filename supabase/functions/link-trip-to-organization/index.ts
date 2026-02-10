@@ -1,14 +1,19 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { validateInput, LinkTripToOrgSchema } from "../_shared/validation.ts";
-import { createSecureResponse, createErrorResponse, createOptionsResponse } from "../_shared/securityHeaders.ts";
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { validateInput, LinkTripToOrgSchema } from '../_shared/validation.ts';
+import {
+  createSecureResponse,
+  createErrorResponse,
+  createOptionsResponse,
+} from '../_shared/securityHeaders.ts';
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
@@ -22,9 +27,10 @@ serve(async (req) => {
       return createErrorResponse('No authorization header', 401);
     }
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (userError || !user) {
       return createErrorResponse('Unauthorized', 401);
@@ -33,7 +39,7 @@ serve(async (req) => {
     // Parse and validate request body
     const body = await req.json();
     const validation = validateInput(LinkTripToOrgSchema, body);
-    
+
     if (!validation.success) {
       return createErrorResponse(`Validation error: ${validation.error}`, 400);
     }
@@ -92,7 +98,7 @@ serve(async (req) => {
       .insert({
         trip_id: tripId,
         organization_id: organizationId,
-        created_by: user.id
+        created_by: user.id,
       })
       .select()
       .single();
@@ -104,11 +110,10 @@ serve(async (req) => {
 
     console.log('Trip linked successfully:', link.id);
 
-    return createSecureResponse({ 
+    return createSecureResponse({
       success: true,
-      linkId: link.id
+      linkId: link.id,
     });
-
   } catch (error) {
     console.error('Error in link-trip-to-organization:', error);
     return createErrorResponse(error instanceof Error ? error : new Error('Unknown error'));

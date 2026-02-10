@@ -23,6 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.*
+!.env.example
+!.env.production.example
 
 # MCP Configuration (contains API keys)
 .mcp.json

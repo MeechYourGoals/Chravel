@@ -463,8 +463,7 @@ serve(async req => {
     });
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : 'Export failed',
-        details: error instanceof Error ? error.stack : String(error),
+        error: 'Data export failed. Please try again later.',
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );

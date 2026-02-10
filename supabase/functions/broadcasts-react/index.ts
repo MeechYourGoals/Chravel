@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 
 const corsHeaders = {
@@ -6,12 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return createOptionsResponse();
+    return createOptionsResponse(req);
   }
 
   try {
@@ -26,8 +27,11 @@ serve(async (req) => {
 
     // Get user from auth token
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
     if (authError || !user) {
       throw new Error('Invalid authentication token');
     }
@@ -54,15 +58,18 @@ serve(async (req) => {
     // Upsert reaction (update if exists, insert if not)
     const { data: reaction, error: reactionError } = await supabase
       .from('broadcast_reactions')
-      .upsert({
-        broadcast_id,
-        user_id: user.id,
-        user_name: userName,
-        reaction_type,
-        created_at: new Date().toISOString(),
-      }, {
-        onConflict: 'broadcast_id,user_id'
-      })
+      .upsert(
+        {
+          broadcast_id,
+          user_id: user.id,
+          user_name: userName,
+          reaction_type,
+          created_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'broadcast_id,user_id',
+        },
+      )
       .select()
       .single();
 
@@ -89,25 +96,21 @@ serve(async (req) => {
     };
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         reaction,
-        counts
+        counts,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
-
   } catch (error) {
     console.error('Error in broadcasts-react function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

@@ -1,12 +1,10 @@
 /**
  * Stripe Configuration - Single Source of Truth
- * 
+ *
  * IMPORTANT: After creating products in Stripe Dashboard, update the
  * product_id and price_id values below with the actual IDs from Stripe.
- * 
- * Account: christian@chravelapp.com
- * Environment: TEST MODE
- * Publishable Key: pk_test_51SEwpx3EeswiMlDCJa7mXUSDaiVFWY4CBcVGPtGI6XboGtFHGTlhBwhHaJMIbjGS5FpZ56mCO98wckXaYoW13mDB00vqLDRCZp
+ *
+ * Environment: Configured via VITE_STRIPE_PUBLISHABLE_KEY env var
  */
 
 // ============================================================
@@ -105,24 +103,27 @@ export const PRO_PLANS = {
 // PRICE ID LOOKUP (for checkout)
 // ============================================================
 
-export function getPriceId(tier: string, billingCycle: 'monthly' | 'annual' = 'monthly'): string | null {
+export function getPriceId(
+  tier: string,
+  billingCycle: 'monthly' | 'annual' = 'monthly',
+): string | null {
   // Consumer plans
   if (tier === 'explorer') {
-    return billingCycle === 'annual' 
-      ? CONSUMER_PLANS.explorer.annual.price_id 
+    return billingCycle === 'annual'
+      ? CONSUMER_PLANS.explorer.annual.price_id
       : CONSUMER_PLANS.explorer.monthly.price_id;
   }
   if (tier === 'frequent-chraveler') {
-    return billingCycle === 'annual' 
-      ? CONSUMER_PLANS['frequent-chraveler'].annual.price_id 
+    return billingCycle === 'annual'
+      ? CONSUMER_PLANS['frequent-chraveler'].annual.price_id
       : CONSUMER_PLANS['frequent-chraveler'].monthly.price_id;
   }
-  
+
   // Pro plans (monthly only)
   if (tier === 'pro-starter') return PRO_PLANS.starter.price_id;
   if (tier === 'pro-growth') return PRO_PLANS.growth.price_id;
   if (tier === 'pro-enterprise') return PRO_PLANS.enterprise.price_id;
-  
+
   return null;
 }
 
@@ -134,12 +135,12 @@ export function getTierFromProductId(productId: string): string {
   // Consumer plans
   if (productId === CONSUMER_PLANS.explorer.product_id) return 'explorer';
   if (productId === CONSUMER_PLANS['frequent-chraveler'].product_id) return 'frequent-chraveler';
-  
+
   // Pro plans
   if (productId === PRO_PLANS.starter.product_id) return 'pro-starter';
   if (productId === PRO_PLANS.growth.product_id) return 'pro-growth';
   if (productId === PRO_PLANS.enterprise.product_id) return 'pro-enterprise';
-  
+
   return 'free';
 }
 
@@ -192,8 +193,8 @@ export const STRIPE_PRODUCTS = {
 export type StripeTier = keyof typeof STRIPE_PRODUCTS;
 
 export const SUBSCRIPTION_TIER_MAP = {
-  'starter': 'pro-starter',
-  'growing': 'pro-growing',
-  'enterprise': 'pro-enterprise',
+  starter: 'pro-starter',
+  growing: 'pro-growing',
+  enterprise: 'pro-enterprise',
   'enterprise-plus': 'pro-enterprise',
 } as const;
