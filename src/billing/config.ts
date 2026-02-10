@@ -180,6 +180,40 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 };
 
 /**
+ * Trip Pass product configurations (one-time purchases)
+ */
+export interface TripPassConfig {
+  name: string;
+  stripeProductId: string;
+  stripePriceId: string;
+  durationDays: number;
+  tier: SubscriptionTier;
+  price: number;
+  entitlements: EntitlementId[];
+}
+
+export const TRIP_PASS_PRODUCTS: Record<string, TripPassConfig> = {
+  'pass-explorer-45': {
+    name: 'Explorer Trip Pass (45 days)',
+    stripeProductId: 'prod_Tx0AZIWAubAWD3',
+    stripePriceId: 'price_1Sz6A53EeswiMlDCF51s1XOi',
+    durationDays: 45,
+    tier: 'explorer',
+    price: 29.99,
+    entitlements: BILLING_PRODUCTS['consumer-explorer'].entitlements,
+  },
+  'pass-frequent-90': {
+    name: 'Frequent Chraveler Trip Pass (90 days)',
+    stripeProductId: 'prod_Tx0Ap1aT22IGl2',
+    stripePriceId: 'price_1Sz6A63EeswiMlDCGFASMBft',
+    durationDays: 90,
+    tier: 'frequent-chraveler',
+    price: 74.99,
+    entitlements: BILLING_PRODUCTS['consumer-frequent-chraveler'].entitlements,
+  },
+};
+
+/**
  * Map tier names to product keys
  */
 export const TIER_TO_PRODUCT: Record<SubscriptionTier, string | null> = {

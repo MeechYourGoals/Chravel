@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
+import { TripPassModal } from './TripPassModal';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import {
@@ -259,6 +260,11 @@ const _faqItems = [
     answer:
       "Unlike your current stack where texts don't know what's in your emails, and your spreadsheet doesn't know what's in your group chat—ChravelApp's 8 tabs are fully interconnected. Your AI concierge can search your chat history, reference your itinerary, know your saved places, and factor in who owes what. One context-aware trip brain instead of 8 disconnected apps.",
   },
+  {
+    question: 'What is a Trip Pass?',
+    answer:
+      'A Trip Pass gives you full premium access for a fixed window — 45 days (Explorer) or 90 days (Frequent Chraveler). Perfect for one-off trips without a monthly commitment. Your exports and trip data stay forever, even after the pass expires. If you travel often, Annual is the better deal.',
+  },
 ];
 
 const _testimonials = [
@@ -289,6 +295,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [activeTab, setActiveTab] = useState<'consumer' | 'pro'>('consumer');
   const [_openFaq, _setOpenFaq] = useState<number | null>(null);
+  const [tripPassOpen, setTripPassOpen] = useState(false);
 
   const handlePlanSelect = (planId: string, tier?: PricingTier) => {
     // If tier has custom action, use it
@@ -430,6 +437,18 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
                 Save 17%
               </Badge>
             )}
+          </div>
+        )}
+
+        {/* Trip Pass CTA */}
+        {activeTab === 'consumer' && (
+          <div className="text-center">
+            <button
+              onClick={() => setTripPassOpen(true)}
+              className="text-sm text-primary hover:text-primary/80 underline underline-offset-4 transition-colors"
+            >
+              🎫 Only need ChravelApp for a trip or two? Get a Trip Pass.
+            </button>
           </div>
         )}
       </div>
@@ -574,6 +593,9 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
           </div>
         ))}
       </div>
+
+      {/* Trip Pass Modal */}
+      <TripPassModal open={tripPassOpen} onOpenChange={setTripPassOpen} />
     </div>
   );
 };

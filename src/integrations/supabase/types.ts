@@ -3171,6 +3171,7 @@ export type Database = {
           current_period_end: string | null
           entitlements: Json
           plan: string
+          purchase_type: string
           revenuecat_customer_id: string | null
           source: string
           status: string
@@ -3183,6 +3184,7 @@ export type Database = {
           current_period_end?: string | null
           entitlements?: Json
           plan?: string
+          purchase_type?: string
           revenuecat_customer_id?: string | null
           source: string
           status?: string
@@ -3195,6 +3197,7 @@ export type Database = {
           current_period_end?: string | null
           entitlements?: Json
           plan?: string
+          purchase_type?: string
           revenuecat_customer_id?: string | null
           source?: string
           status?: string
