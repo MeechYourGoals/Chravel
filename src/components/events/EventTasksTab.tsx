@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ClipboardList, Plus, Trash2, GripVertical, Edit2, Check, X } from 'lucide-react';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -46,6 +48,18 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
   
   const [tasks, setTasks] = useState<EventTask[]>(isDemoMode ? DEMO_TASKS : []);
   const [isAddingTask, setIsAddingTask] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    if (isDemoMode) {
+      setTasks([...DEMO_TASKS]);
+    }
+  }, [isDemoMode]);
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    maxPullDistance: 120,
+  });
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [newTask, setNewTask] = useState({ title: '', description: '' });
   const [editTask, setEditTask] = useState({ title: '', description: '' });
@@ -97,7 +111,14 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="relative p-4 space-y-4">
+      {(isRefreshing || pullDistance > 0) && (
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          threshold={80}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

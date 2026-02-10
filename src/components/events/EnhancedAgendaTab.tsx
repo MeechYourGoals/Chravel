@@ -1,5 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Calendar, Upload, Plus, FileText, Clock, MapPin, Trash2, Download, CheckCircle2, User, X, Edit2, Sparkles } from 'lucide-react';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
+import { useQueryClient } from '@tanstack/react-query';
 import { AgendaImportModal } from './AgendaImportModal';
 import { useBackgroundAgendaImport } from '@/features/calendar/hooks/useBackgroundAgendaImport';
 import { ParsedAgendaSession } from '@/utils/agendaImportParsers';
@@ -28,7 +31,18 @@ export const EnhancedAgendaTab = ({
   existingLineup = []
 }: EnhancedAgendaTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
   const { sessions, addSession, updateSession, deleteSession, isAdding, isUpdating } = useEventAgenda({ eventId });
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['event-agenda', eventId] });
+  }, [queryClient, eventId]);
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    maxPullDistance: 120,
+  });
 
   const [showImportModal, setShowImportModal] = useState(false);
   const { pendingResult, startImport, clearResult } = useBackgroundAgendaImport();
@@ -145,7 +159,14 @@ export const EnhancedAgendaTab = ({
   const isOrganizer = userRole === 'organizer';
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+    <div className="relative p-4 md:p-6 space-y-4 md:space-y-6">
+      {(isRefreshing || pullDistance > 0) && (
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          threshold={80}
+        />
+      )}
       {/* Header */}
       <div className="space-y-4">
         <div className="flex items-start gap-3">

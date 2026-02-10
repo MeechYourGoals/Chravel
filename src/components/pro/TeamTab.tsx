@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { RolesView } from './team/RolesView';
 import { Button } from '@/components/ui/button';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
 import { CreateRoleDialog } from './admin/CreateRoleDialog';
 import { AssignRoleDialog } from './admin/AssignRoleDialog';
 import { useProTripAdmin } from '@/hooks/useProTripAdmin';
@@ -45,7 +47,7 @@ export const TeamTab = ({
   // Super admins never have read-only restrictions
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
 
-  const loadRoles = async () => {
+  const loadRoles = useCallback(async () => {
     if (!tripId) return;
 
     setIsLoadingRoles(true);
@@ -77,11 +79,21 @@ export const TeamTab = ({
     } finally {
       setIsLoadingRoles(false);
     }
-  };
+  }, [tripId]);
 
   useEffect(() => {
     loadRoles();
-  }, [tripId]);
+  }, [loadRoles]);
+
+  const handleRefresh = useCallback(async () => {
+    await loadRoles();
+  }, [loadRoles]);
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    maxPullDistance: 120,
+  });
 
   const handleRoleCreated = () => {
     loadRoles();
@@ -97,7 +109,14 @@ export const TeamTab = ({
     isSuperAdmin || (isAdmin && hasPermission('can_manage_roles')) || isDemoMode;
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="relative space-y-6 w-full">
+      {(isRefreshing || pullDistance > 0) && (
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          threshold={80}
+        />
+      )}
       {/* Roles View */}
       <RolesView
         roster={roster}
