@@ -7,61 +7,82 @@ interface PullToRefreshOptions {
   maxPullDistance?: number;
 }
 
+/**
+ * Pull-to-refresh gesture hook.
+ *
+ * Gesture state lives in refs so the event listeners are registered once
+ * and never torn down mid-gesture. React state is only used for the two
+ * values the UI reads: `isRefreshing` and `pullDistance`.
+ */
 export const usePullToRefresh = ({
   onRefresh,
   threshold = 80,
-  maxPullDistance = 120
+  maxPullDistance = 120,
 }: PullToRefreshOptions) => {
-  const [isPulling, setIsPulling] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
-  const startY = useRef(0);
-  const currentY = useRef(0);
+
+  // Refs for gesture tracking — read by stable event handlers
+  const isPullingRef = useRef(false);
+  const isRefreshingRef = useRef(false);
+  const startYRef = useRef(0);
+  const pullDistanceRef = useRef(0);
+  const onRefreshRef = useRef(onRefresh);
+
+  // Keep callback ref current without re-running the effect
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
 
   useEffect(() => {
-    let rafId: number;
-
     const handleTouchStart = (e: TouchEvent) => {
+      if (isRefreshingRef.current) return;
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       if (scrollTop === 0) {
-        startY.current = e.touches[0].clientY;
-        setIsPulling(true);
+        startYRef.current = e.touches[0].clientY;
+        isPullingRef.current = true;
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling || isRefreshing) return;
+      if (!isPullingRef.current || isRefreshingRef.current) return;
 
-      currentY.current = e.touches[0].clientY;
-      const distance = currentY.current - startY.current;
+      const distance = e.touches[0].clientY - startYRef.current;
 
       if (distance > 0) {
         e.preventDefault();
+        const prevDistance = pullDistanceRef.current;
         const cappedDistance = Math.min(distance * 0.5, maxPullDistance);
+        pullDistanceRef.current = cappedDistance;
         setPullDistance(cappedDistance);
 
-        // Haptic feedback at threshold
-        if (cappedDistance >= threshold && pullDistance < threshold) {
+        // Haptic feedback when crossing threshold
+        if (cappedDistance >= threshold && prevDistance < threshold) {
           hapticService.medium();
         }
       }
     };
 
     const handleTouchEnd = async () => {
-      if (!isPulling) return;
+      if (!isPullingRef.current) return;
 
-      if (pullDistance >= threshold) {
+      const distance = pullDistanceRef.current;
+      isPullingRef.current = false;
+
+      if (distance >= threshold) {
+        isRefreshingRef.current = true;
         setIsRefreshing(true);
         await hapticService.success();
-        
+
         try {
-          await onRefresh();
+          await onRefreshRef.current();
         } finally {
+          isRefreshingRef.current = false;
           setIsRefreshing(false);
         }
       }
 
-      setIsPulling(false);
+      pullDistanceRef.current = 0;
       setPullDistance(0);
     };
 
@@ -73,14 +94,13 @@ export const usePullToRefresh = ({
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
-      if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [isPulling, isRefreshing, pullDistance, threshold, maxPullDistance, onRefresh]);
+  }, [threshold, maxPullDistance]);
 
   return {
-    isPulling,
+    isPulling: pullDistance > 0,
     isRefreshing,
     pullDistance,
-    shouldTrigger: pullDistance >= threshold
+    shouldTrigger: pullDistance >= threshold,
   };
 };
