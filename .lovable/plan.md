@@ -1,60 +1,90 @@
 
 
-# Fix: AI Concierge "Offline" Toast + Placeholder Text + Trip Context Capabilities
+# Fix: Calendar Import Pipeline (All Formats) + Build Error
 
-## Problem 1: False "AI Concierge Offline" Toast
+## Build Error Fix
 
-**Root Cause**: On app startup, `AppInitializer` runs `apiHealthCheck.checkConciergeHealth()`, which invokes `lovable-concierge` with a `{ message: 'ping' }` POST. If the edge function has a cold start, network hiccup, or any transient error, the health check marks the service as "offline" and fires a destructive red toast: "AI Concierge Offline -- Attempting to reconnect automatically..."
+The `push-notifications/index.ts` function creates a local `corsHeaders` variable inside the `serve()` handler via `getCorsHeaders(req)`, but the sub-functions (`sendPushNotification`, `sendEmailNotification`, `sendSMSNotification`, `savePushToken`, `removePushToken`) reference `corsHeaders` without having access to it -- they're standalone functions outside the `serve()` closure.
 
-This is a false alarm. The concierge is a cloud service backed by Gemini -- it is never truly "offline." Cold starts, transient 5xx responses, and network delays do not mean the service is down. Showing a destructive toast for a startup ping is alarmist and misleading.
+**Fix**: Pass `corsHeaders` as a parameter to each sub-function, or restructure so they're inside the closure.
 
-**Fix**: Remove the destructive "offline" toast entirely from `useApiHealth.tsx`. The health check can still run in the background for logging/metrics, but it should never show a red toast to users. If the concierge truly fails when the user sends a message, the chat component already handles that error inline with a retry mechanism -- that is the right place for error feedback, not a startup ping.
+## Calendar Import Failures (5 Root Causes)
 
-Changes:
-- **`src/hooks/useApiHealth.tsx`**: Remove the `toast()` calls for concierge offline status (lines 35-41). Keep the health check logic for internal monitoring but suppress user-facing toasts. Also remove the periodic polling toast notifications for status changes.
+### Issue 1: Text Import -- JSON Parse Crash
 
-## Problem 2: Placeholder Text Still Says "Ask me anything about your trip"
+**Root Cause**: The edge function at line 222 does `JSON.parse(result.choices[0].message.content)` with no error handling. When Gemini returns slightly malformed JSON (markdown fences, trailing commas, etc.), it crashes with a `SyntaxError`. The logs confirm this: `"Expected double-quoted property name in JSON at position 5508"`.
 
-**Root Cause**: The empty state in `AIConciergeChat.tsx` (line 575) still reads "Ask me anything about your trip:" -- this was supposed to be updated when the AI scope was loosened to handle general travel questions. The input placeholder (line 609ish) was updated to "Ask me anything about travel..." but the empty state heading was missed.
+**Fix**: Add robust JSON extraction that strips markdown code fences and handles common JSON malformations before parsing. Wrap in try/catch with a regex fallback.
 
-**Fix**: Update the empty state copy in `AIConciergeChat.tsx` to match the broadened scope:
-- Change "Ask me anything about your trip:" to "Ask me anything about travel:"
-- The example questions are good and should stay -- they demonstrate trip-context capabilities
-- Add one general travel example to show the broader scope
+### Issue 2: PDF Import -- Returns Hallucinated Mock Data
 
-Changes:
-- **`src/components/AIConciergeChat.tsx`**: Update line 575 from "Ask me anything about your trip:" to "Ask me anything about travel:"
+**Root Cause**: The `buildUserMessage()` function (line 555-575) appends a PDF URL as `image_url` only if the fileType starts with `image/`. For PDFs, it just appends the URL as text: `"File URL: https://... (Type: application/pdf)"`. Gemini cannot read a PDF from a URL in a text message -- it has no access to the file content. So it hallucinates generic travel events ("Flight to London", "Hotel Check-in", "Dinner Reservation").
 
-## Problem 3: Ensuring Trip Context Questions Actually Work
+**Fix**: For PDF files, extract the text content server-side first (fetch the PDF, use a text extraction approach), then send the extracted text to Gemini instead of just a URL string. Alternatively, since the Lovable AI gateway supports Gemini which can process PDFs via `file_data`, we can use that format.
 
-**Current State**: The backend infrastructure is already solid. The `contextBuilder.ts` fetches calendar events (`trip_events`), tasks (`trip_tasks`), payments (`trip_payment_messages`), polls (`trip_polls`), broadcasts, messages, and places. The system prompt explicitly instructs the AI to answer calendar, task, and payment questions. The RAG pipeline (hybrid search with embeddings) also retrieves relevant context.
+### Issue 3: Excel Import -- Header Row Not on Row 1
 
-**Verification**: No code changes needed here. The `TripContextBuilder` already:
-- Fetches ALL calendar events from `trip_events` (line 348-370)
-- Fetches ALL tasks from `trip_tasks` with assignee names (line 372-391)
-- Fetches ALL payments from `trip_payment_messages` with payer names (line 394-414)
-- Fetches polls, broadcasts, messages, places, and user preferences
+**Root Cause**: The Excel file has "NIAJ 2026 Shows" as a title in cell A1, with the actual column headers ("Show Date", "Artist", "Venue", "Notes") on row 3. The parser (`parseExcelCalendar`) always treats row 1 as headers. Since "NIAJ 2026 Shows" doesn't match any column patterns (date, title, time, etc.), `detectColumns()` returns null and the import fails with "Could not detect required columns".
 
-The system prompt (line 741-833) explicitly instructs the AI to answer these questions with source citations. The example questions listed in the empty state are fully supported by the existing context pipeline.
+**Fix**: Scan the first 10 rows looking for the best header row (the one that matches the most column patterns). Also add "artist" and "show" to the title pattern, and "show date" / "show.?date" to the date pattern (already partially there but the compound header "Show Date" has a space that the pattern handles).
 
-## Also: PlusUpgrade.tsx Placeholder
+### Issue 4: Image Import -- AI Prompt Too Narrow
 
-The `PlusUpgrade.tsx` component (shown to free users who hit their limit) also has a hardcoded "Ask me anything about your trip..." placeholder. This should match the new wording.
+**Root Cause**: The `extractCalendarEvents` system prompt focuses exclusively on travel bookings: "Flight bookings, Hotel reservations, Restaurant reservations, Activity bookings, Transportation bookings, Tour schedules, Meeting times." A screenshot of a comedy festival spreadsheet doesn't match any of these categories, so Gemini either returns nothing or hallucinates travel data.
 
-Changes:
-- **`src/features/chat/components/PlusUpgrade.tsx`**: Update placeholder from "Ask me anything about your trip..." to "Ask me anything about travel..."
+**Fix**: Broaden the system prompt to extract ANY scheduled events, not just travel-specific ones. Include: "concerts, shows, performances, conferences, meetings, sports events, festivals" etc.
 
-## Summary of Changes
+### Issue 5: AI Prompt Category Mismatch
+
+**Root Cause**: The category enum in the extraction prompt is `"dining|lodging|activity|transportation|entertainment|business"` which doesn't match the actual database enum that includes `"other"`. Events that don't fit these categories get forced into wrong categories.
+
+**Fix**: Add `"other"` to the category enum and broaden the extraction instruction.
+
+## Implementation Plan
+
+### Step 1: Fix build error in `push-notifications/index.ts`
+
+Pass the `corsHeaders` object to each sub-function as a parameter, so they have access to the CORS headers created from the request.
+
+### Step 2: Fix JSON parsing in `enhanced-ai-parser/index.ts`
+
+Add a `safeParseJSON()` helper that:
+- Strips markdown code fences (` ```json ... ``` `)
+- Handles trailing commas
+- Falls back to regex extraction if `JSON.parse` fails
+
+Apply this to all `JSON.parse(result.choices[0].message.content)` calls (lines 222, 300, 361, 435, 543).
+
+### Step 3: Fix PDF handling in `enhanced-ai-parser/index.ts`
+
+For PDFs, fetch the file content and convert to base64, then send as inline data to Gemini using the `file_data` or `inline_data` format that the Lovable AI gateway supports. This allows Gemini to actually read the PDF content instead of seeing just a URL string.
+
+### Step 4: Broaden the calendar extraction prompt
+
+Update the system prompt in `extractCalendarEvents()` to extract ALL types of scheduled events -- not just travel bookings. Include shows, concerts, festivals, conferences, sports events, etc.
+
+### Step 5: Fix Excel header detection
+
+Update `parseExcelCalendar()` to scan the first 10 rows for the best header row instead of assuming row 1. Also add common column name variants ("Artist", "Show", "Show Date", "Act", "Performer", "Event Name") to the detection patterns.
+
+### Step 6: Ensure Gemini-only fallback works
+
+The URL import path uses Firecrawl with Gemini as the AI layer. If Firecrawl credits run out, it should fall back to raw fetch + Gemini. Verify this fallback path is intact in `scrape-schedule`.
+
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/hooks/useApiHealth.tsx` | Remove destructive toast notifications for offline services; keep health checks for internal monitoring only |
-| `src/components/AIConciergeChat.tsx` | Update empty state copy from "your trip" to "travel" |
-| `src/features/chat/components/PlusUpgrade.tsx` | Update placeholder text to match |
+| `supabase/functions/push-notifications/index.ts` | Pass `corsHeaders` to sub-functions as parameter |
+| `supabase/functions/enhanced-ai-parser/index.ts` | (a) Add `safeParseJSON()` helper, (b) fix PDF handling to send actual content, (c) broaden calendar prompt to all event types |
+| `src/utils/calendarImportParsers.ts` | (a) Scan first 10 rows for header row in Excel, (b) add more column name variants to detection patterns |
 
-## Why This Prevents Recurrence
+## Testing Checklist
 
-- The "offline" toast is removed at the source -- no health check failure will ever produce a user-facing red toast again
-- Error handling for actual AI failures remains in the chat component where it belongs (inline retry, not a global toast)
-- The placeholder text is updated in both locations where it appears
+After implementation, test all import formats with the Netflix Festival data:
+1. **Text paste**: The CSV-formatted text with 21 comedy shows
+2. **PDF upload**: The NIAJ 2026 Shows PDF (should extract 50+ shows)
+3. **Excel upload**: The NIAJ_2026_Shows.xlsx file (should handle title row and find headers on row 3)
+4. **Image upload**: Screenshot of the Excel grid (should extract visible shows)
+5. **URL import**: Verify Firecrawl path still works and Gemini-only fallback is intact
 
