@@ -120,11 +120,13 @@ export const useBalanceSummary = (tripId?: string) => {
   }, [tripId, demoActive, userId, queryClient]);
 
   const refreshBalanceSummary = async () => {
-    if (tripId && userId) {
-      await queryClient.invalidateQueries({
-        queryKey: tripKeys.paymentBalances(tripId, userId),
-      });
-    }
+    if (!tripId) return;
+    // Invalidate using the same key shape the query was created with.
+    // In demo mode userId may be undefined (anonymous user), so we pass ''
+    // to match the query key constructed on line 41.
+    await queryClient.invalidateQueries({
+      queryKey: tripKeys.paymentBalances(tripId, userId || ''),
+    });
   };
 
   return {

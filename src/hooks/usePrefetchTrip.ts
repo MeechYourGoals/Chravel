@@ -138,13 +138,15 @@ export const usePrefetchTrip = () => {
           break;
 
         case 'payments':
-          queryClient.prefetchQuery({
-            queryKey: tripKeys.payments(tripId),
-            queryFn: () => paymentService.getTripPaymentMessages(tripId),
-            staleTime: QUERY_CACHE_CONFIG.payments.staleTime,
-          });
-          // ⚡ Also prefetch balance summary (previously uncached, caused slow tab loads)
+          // ⚡ Only prefetch payments when authenticated — unauthenticated fetches
+          // cache an empty [] under the shared key, causing a temporary "no payments"
+          // flash if the user signs in before staleness expires.
           if (user?.id) {
+            queryClient.prefetchQuery({
+              queryKey: tripKeys.payments(tripId),
+              queryFn: () => paymentService.getTripPaymentMessages(tripId),
+              staleTime: QUERY_CACHE_CONFIG.payments.staleTime,
+            });
             queryClient.prefetchQuery({
               queryKey: tripKeys.paymentBalances(tripId, user.id),
               queryFn: () => paymentBalanceService.getBalanceSummary(tripId, user.id),
