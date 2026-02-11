@@ -1,115 +1,149 @@
 
 
-# Fix Grok Voice: Direct API Key + Correct Protocol
+# Switch Voice from xAI Grok to Gemini Live API
 
-## Root Cause Analysis (First Principles)
+## Why Grok Voice Has Never Worked (and Cannot Work in This Stack)
 
-Three compounding issues explain why voice has never connected, despite multiple fix attempts:
-
-1. **Wrong WebSocket URL**: The code connects to `wss://api.x.ai/v1/realtime?model=grok-3-fast`. The xAI Voice Agent API docs specify `wss://api.x.ai/v1/realtime` with NO model parameter. `grok-3-fast` is a text model -- the voice agent endpoint auto-selects the voice-capable model. xAI likely rejects the handshake immediately.
-
-2. **Ephemeral token layer adds untestable complexity**: The edge function calls `POST /v1/realtime/client_secrets` to mint an ephemeral token, then the client uses it via `Sec-WebSocket-Protocol`. If anything goes wrong in this chain (wrong request format, unexpected response shape, xAI endpoint behavior), the WebSocket silently fails. Edge function logs show zero request traces, making it impossible to diagnose.
-
-3. **Mismatched session.update payload**: The code sends a hybrid of OpenAI and xAI format fields that the xAI server may reject silently.
-
-## The Fix: Direct API Key via Edge Function
-
-Eliminate the ephemeral token entirely. Instead:
-- Edge function returns the `XAI_API_KEY` directly (still behind auth + tier gating)
-- Client uses it with `Sec-WebSocket-Protocol` subprotocol auth (standard pattern)
-- Remove the model param from the URL
-- Use the exact `session.update` format from xAI docs
-- Set voice to **Rex** (Recs = Recommendations -- love it)
-
-### Security Model (why this is acceptable)
-
-- API key is never in client code or bundle -- only returned at runtime via authenticated edge function
-- Tier-gated: only Frequent Chraveler, Pro, and Super Admin users can retrieve it
-- xAI has server-side rate limits per key
-- Key is rotatable if compromised
-- This is the same pattern OpenAI's own Realtime Console uses (user provides API key, browser connects directly)
-
-## Implementation (3 files)
-
-### File 1: `supabase/functions/xai-voice-session/index.ts`
-
-Remove the ephemeral token minting. After auth + tier check, simply return the API key:
+The root cause is **architectural**, not a code bug. From the official xAI documentation:
 
 ```text
-Before: POST to xAI /v1/realtime/client_secrets -> return ephemeral token
-After:  Return { api_key: XAI_API_KEY } directly
+Browser (React) <--WebSocket--> Backend (FastAPI/Express) <--WebSocket--> xAI API
 ```
 
-All existing auth, tier gating, and super admin logic stays exactly the same.
+The xAI Grok Voice Agent API **requires a persistent backend WebSocket proxy server**. The browser cannot connect directly to `wss://api.x.ai/v1/realtime` -- xAI's server rejects direct browser WebSocket handshakes regardless of auth method (subprotocol, query param, etc.). Every example in xAI's own cookbook and docs shows a Python/Node.js backend server maintaining a long-lived WebSocket to xAI and relaying audio.
 
-### File 2: `src/hooks/useGrokVoice.ts`
+Supabase Edge Functions are HTTP request/response handlers -- they cannot maintain persistent bidirectional WebSocket connections as a relay server. This means **xAI Grok Voice is architecturally impossible** in the Lovable + Supabase stack without adding a separate always-on server infrastructure (like LiveKit Cloud, a dedicated VPS, etc.).
 
-Major changes:
+No amount of code fixes to `useGrokVoice.ts` can solve this. The connection will always fail at the WebSocket handshake level.
 
-**A) Fix WebSocket URL**
+## Why Gemini Live API Is the Right Move
+
+The Gemini Live API supports **direct browser-to-Google WebSocket connections**:
+
 ```text
-Before: wss://api.x.ai/v1/realtime?model=grok-3-fast
-After:  wss://api.x.ai/v1/realtime
+wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key={API_KEY}
 ```
 
-**B) Use API key directly instead of ephemeral token**
+No backend proxy needed. The browser connects directly, streams audio both ways, and gets real-time voice responses. This is confirmed by multiple working browser-only implementations (Google's own multimodal-live-api-web-console, jsalsman/gemini-live, etc.).
+
+Additional benefits:
+- **Stack consistency**: Gemini already powers Smart Import, AI Search, AI Concierge text, and file parsing
+- **Single vendor**: One API key for all AI features instead of managing xAI + Google separately
+- **Native audio model**: `gemini-live-2.5-flash-native-audio` is purpose-built for voice-to-voice
+- **VAD built-in**: Server-side voice activity detection, automatic turn-taking
+- **30+ voices and languages** out of the box
+- **Direct browser WebSocket**: No proxy infrastructure needed
+
+## Implementation Plan
+
+### Step 1: Get Gemini API Key
+
+Before any code changes, you'll need to provide your Google AI (Gemini) API key. This will be stored securely as a Supabase secret called `GEMINI_API_KEY`.
+
+- Get it from https://aistudio.google.com/apikey
+- It needs Gemini Live API access enabled
+
+### Step 2: Create Edge Function `gemini-voice-session`
+
+Repurpose the existing `xai-voice-session` edge function pattern:
+- Keep ALL existing auth + tier gating logic (super admin, Frequent Chraveler, Pro plans)
+- Return `{ api_key: GEMINI_API_KEY }` instead of `XAI_API_KEY`
+- Same security model: key never in client bundle, only returned at runtime after auth
+
+### Step 3: Rewrite `useGrokVoice.ts` as `useGeminiVoice.ts`
+
+Complete rewrite of the voice hook to use Gemini Live API WebSocket protocol:
+
+**Connection**: Direct browser WebSocket to:
 ```text
-Before: Parse data.client_secret.value from edge function response
-After:  Parse data.api_key from edge function response
+wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}
 ```
 
-The subprotocol auth stays the same pattern:
-```text
-new WebSocket(url, ['realtime', 'openai-insecure-api-key.${apiKey}'])
-```
-
-**C) Fix session.update to match xAI docs exactly**
-```text
+**Session setup**: First message after connection sends configuration:
+```json
 {
-  "type": "session.update",
-  "session": {
-    "voice": "Rex",
-    "instructions": "You are Chravel AI Concierge...",
-    "turn_detection": { "type": "server_vad" },
-    "audio": {
-      "input": { "format": { "type": "audio/pcm", "rate": 24000 } },
-      "output": { "format": { "type": "audio/pcm", "rate": 24000 } }
+  "setup": {
+    "model": "models/gemini-2.5-flash-native-audio",
+    "generationConfig": {
+      "responseModalities": ["AUDIO", "TEXT"],
+      "speechConfig": {
+        "voiceConfig": {
+          "prebuiltVoiceConfig": {
+            "voiceName": "Kore"
+          }
+        }
+      }
+    },
+    "systemInstruction": {
+      "parts": [{ "text": "You are Chravel AI Concierge..." }]
     }
   }
 }
 ```
 
-Remove the redundant top-level `input_audio_format`, `output_audio_format`, `input_audio_transcription`, and `modalities` fields that are not in the xAI spec.
+**Audio streaming**: Send mic PCM data as base64 in `realtimeInput` messages:
+```json
+{
+  "realtimeInput": {
+    "mediaChunks": [{
+      "mimeType": "audio/pcm;rate=16000",
+      "data": "<base64 PCM>"
+    }]
+  }
+}
+```
 
-**D) Simplify subprotocol fallback**
+**Receiving audio**: Listen for `serverContent` messages with `inlineData` audio parts, decode and play via AudioContext queue (reuse existing playback queue logic).
 
-Keep just `openai-insecure-api-key` prefix (xAI docs confirm compatibility with OpenAI Realtime API spec). Remove the `xai-insecure-api-key` fallback to reduce connection attempt time.
+**VAD + Turn-taking**: Gemini Live API has built-in server-side VAD. When the user stops speaking, the model automatically generates a response -- no manual `commit` + `response.create` needed.
 
-### File 3: Voice set to Rex
+**Interruption**: Gemini supports barge-in natively. When user starts speaking during assistant playback, the server sends a turn-complete signal and the client cancels playback.
 
-In the `session.update` payload, change `voice: 'Ara'` to `voice: 'Rex'`.
+**What carries over from current code**:
+- `VoiceState` type and state machine (idle, connecting, listening, thinking, speaking, error)
+- Audio playback queue with `nextPlayTimeRef` scheduling
+- PCM encoding/decoding helpers (adjusted for 16kHz instead of 24kHz)
+- Mic capture via ScriptProcessorNode
+- Connection timeout logic
+- Cleanup and resource management
+- `shouldStreamRef` gate for mic during playback
 
-## What stays the same (zero regressions)
+### Step 4: Update Imports in Consuming Components
 
-- VoiceButton component (purple gradient, state visuals) -- no changes needed
-- AiChatInput layout (mic left, send right) -- no changes needed
-- AIConciergeChat integration (transcript streaming, error display) -- no changes needed
-- Tier gating logic in edge function -- stays identical
-- Mic capture, audio playback queue, VAD turn-taking -- all stay
-- All existing text chat behavior -- untouched
+These files import from `useGrokVoice` and need import path updates:
+- `src/components/AIConciergeChat.tsx` -- change `useGrokVoice` to `useGeminiVoice`
+- `src/features/chat/components/VoiceButton.tsx` -- update `VoiceState` import path
+- `src/features/chat/components/AiChatInput.tsx` -- update `VoiceState` import path
+
+No behavioral changes to these components -- the hook exposes the same interface.
+
+### Step 5: Clean Up xAI Voice Artifacts
+
+- Delete `supabase/functions/xai-voice-session/index.ts` (or repurpose as `gemini-voice-session`)
+- Remove `xai-voice-session` from `supabase/config.toml`
+- Delete `src/hooks/useGrokVoice.ts` after the new hook is created
+- Update `src/billing/types.ts` comment from "Grok Voice" to "Gemini Voice"
+- `XAI_API_KEY` secret can remain (not harmful), or be cleaned up later
+
+## Voice Selection
+
+Gemini Live API offers multiple voices. Since the "Rex = Recs = Recommendations" nod was for xAI specifically, for Gemini we should pick a voice that sounds authoritative and warm for a travel concierge. Options include Aoede, Charon, Fenrir, Kore, Puck, and others. We can set whichever you prefer -- Kore is a good default (warm, clear) but this is easily configurable.
 
 ## Files Changed Summary
 
-| File | Change |
+| File | Action |
 |------|--------|
-| `supabase/functions/xai-voice-session/index.ts` | Remove ephemeral token minting, return API key directly |
-| `src/hooks/useGrokVoice.ts` | Fix URL (remove model param), use API key, fix session.update format, voice = Rex |
+| `supabase/functions/gemini-voice-session/index.ts` | Create (reuse auth/tier logic from xai-voice-session) |
+| `src/hooks/useGeminiVoice.ts` | Create (full Gemini Live API WebSocket implementation) |
+| `src/components/AIConciergeChat.tsx` | Update import from useGrokVoice to useGeminiVoice |
+| `src/features/chat/components/VoiceButton.tsx` | Update VoiceState import path |
+| `src/features/chat/components/AiChatInput.tsx` | Update VoiceState import path |
+| `src/hooks/useGrokVoice.ts` | Delete |
+| `supabase/functions/xai-voice-session/index.ts` | Delete |
+| `supabase/config.toml` | Remove xai-voice-session, add gemini-voice-session |
+| `src/billing/types.ts` | Update comment |
 
-## Verification
+## Next Step
 
-After implementation:
-1. Tap mic -- should transition Connecting -> Listening within 2-3 seconds
-2. Speak -- user transcript appears, assistant responds with audio + text
-3. Edge function logs should show successful requests
-4. Browser DevTools Network tab: confirm WS connects to `wss://api.x.ai/v1/realtime` (no model param)
+Before I can implement, I need you to provide your Gemini API key so I can store it as a Supabase secret. Go to https://aistudio.google.com/apikey to get one, then let me know and I'll use the secure secrets tool to store it.
 
