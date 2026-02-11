@@ -289,8 +289,35 @@ export function useGeminiVoice(
         }
         return;
       }
+
+      // Session resumption updates (informational, ignore)
+      if (msg.sessionResumptionUpdate) {
+        return;
+      }
+
+      // GoAway - server requesting disconnect
+      if (msg.goAway) {
+        console.warn('[useGeminiVoice] Server sent goAway, reconnect needed:', msg.goAway);
+        setErrorMessage('Voice session expired. Tap to reconnect.');
+        setVoiceState('error');
+        cleanup();
+        return;
+      }
+
+      // Google error response - this is the critical catch-all
+      if (msg.error) {
+        const errMsg = msg.error?.message || msg.error?.status || JSON.stringify(msg.error);
+        console.error('[useGeminiVoice] Server error:', msg.error);
+        setErrorMessage(`Voice error: ${errMsg}`);
+        setVoiceState('error');
+        cleanup();
+        return;
+      }
+
+      // Unknown message type - log it so we never fly blind
+      console.warn('[useGeminiVoice] Unhandled server message:', JSON.stringify(msg).slice(0, 500));
     },
-    [onAssistantMessage, playAudioChunk, cancelPlayback],
+    [onAssistantMessage, playAudioChunk, cancelPlayback, cleanup],
   );
 
   // ---------- mic capture ----------
@@ -313,10 +340,10 @@ export function useGeminiVoice(
 
       ws.send(JSON.stringify({
         realtimeInput: {
-          mediaChunks: [{
+          audio: {
             mimeType: `audio/pcm;rate=${GEMINI_SAMPLE_RATE}`,
             data: base64Audio,
-          }],
+          },
         },
       }));
     };
@@ -421,7 +448,7 @@ export function useGeminiVoice(
         // Send setup message
         ws.send(JSON.stringify({
           setup: {
-            model: 'models/gemini-2.5-flash-native-audio',
+            model: 'models/gemini-2.5-flash-native-audio-preview-12-2025',
             generationConfig: {
               responseModalities: ['AUDIO', 'TEXT'],
               speechConfig: {
@@ -457,10 +484,13 @@ export function useGeminiVoice(
         }
       };
 
-      ws.onerror = () => {
+      ws.onerror = (event) => {
         clearTimeout(connectTimeout);
-        if (import.meta.env.DEV) {
-          console.error('[useGeminiVoice] WebSocket error');
+        console.error('[useGeminiVoice] WebSocket error:', event);
+        if (!activeRef.current && voiceState === 'connecting') {
+          setErrorMessage('Voice connection failed');
+          setVoiceState('error');
+          cleanup();
         }
       };
 
