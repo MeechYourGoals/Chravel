@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 export type VoiceState = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
 
 export interface VoiceDebugInfo {
+  selectedModel: string;
   selectedVoiceName: string;
   gateAllowed: boolean | null;
   gateStatus: number | null;
@@ -84,8 +85,11 @@ function downsampleBuffer(
 const CONNECT_TIMEOUT_MS = 10000;
 const GEMINI_SAMPLE_RATE = 16000; // Gemini Live uses 16kHz PCM
 const PLAYBACK_SAMPLE_RATE = 24000; // Gemini outputs 24kHz PCM
+const MIC_PROCESSOR_BUFFER_SIZE = 1024; // ~20-25ms chunks on common device sample rates
 const GEMINI_WS_URL =
   'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+const GEMINI_LIVE_MODEL = (import.meta.env.VITE_GEMINI_LIVE_MODEL ||
+  'models/gemini-2.5-flash-native-audio-preview-12-2025') as string;
 const GEMINI_VOICE_NAME = (import.meta.env.VITE_GEMINI_VOICE_NAME || 'Kore').trim();
 
 const SYSTEM_INSTRUCTION = `You are Chravel AI Concierge — a world-class travel expert with encyclopedic knowledge of destinations, cuisines, activities, logistics, and cultural tips worldwide. You help travelers with recommendations, planning, and real-time travel advice. You're warm, knowledgeable, and efficient. Keep responses conversational and concise since this is a voice conversation. When giving recommendations, be specific with names and addresses when possible.`;
@@ -135,6 +139,7 @@ export function useGeminiVoice(
   const [assistantTranscript, setAssistantTranscript] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<VoiceDebugInfo>({
+    selectedModel: GEMINI_LIVE_MODEL,
     selectedVoiceName: GEMINI_VOICE_NAME,
     gateAllowed: null,
     gateStatus: null,
@@ -382,7 +387,7 @@ export function useGeminiVoice(
     }
     audioCtxRef.current = audioCtx;
     const source = audioCtx.createMediaStreamSource(stream);
-    const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+    const processor = audioCtx.createScriptProcessor(MIC_PROCESSOR_BUFFER_SIZE, 1, 1);
     const silentGain = audioCtx.createGain();
     silentGain.gain.value = 0;
     processorRef.current = processor;
@@ -428,6 +433,7 @@ export function useGeminiVoice(
     setAssistantTranscript('');
     assistantTextRef.current = '';
     updateDebugInfo({
+      selectedModel: GEMINI_LIVE_MODEL,
       selectedVoiceName: GEMINI_VOICE_NAME,
       gateAllowed: null,
       gateStatus: null,
@@ -543,14 +549,14 @@ export function useGeminiVoice(
         updateDebugInfo({ wsPhase: 'open' });
 
         console.log(
-          `[useGeminiVoice] WebSocket connected, sending setup (voice=${GEMINI_VOICE_NAME})`,
+          `[useGeminiVoice] WebSocket connected, sending setup (model=${GEMINI_LIVE_MODEL}, voice=${GEMINI_VOICE_NAME})`,
         );
 
         // Send setup message
         ws.send(
           JSON.stringify({
             setup: {
-              model: 'models/gemini-2.5-flash-native-audio-preview-12-2025',
+              model: GEMINI_LIVE_MODEL,
               generationConfig: {
                 responseModalities: ['AUDIO', 'TEXT'],
                 speechConfig: {
