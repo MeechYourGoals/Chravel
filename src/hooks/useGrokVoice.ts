@@ -80,7 +80,7 @@ async function parseInvokeError(error: unknown): Promise<ParsedInvokeError> {
   parsed.status = context.status;
 
   try {
-    const body = await context.clone().json() as { error?: string; message?: string };
+    const body = (await context.clone().json()) as { error?: string; message?: string };
     if (typeof body?.error === 'string' && body.error.trim()) {
       parsed.code = body.error;
     }
@@ -94,10 +94,16 @@ async function parseInvokeError(error: unknown): Promise<ParsedInvokeError> {
   return parsed;
 }
 
-function openRealtimeSocket(url: string, protocols: string[], timeoutMs: number): Promise<WebSocket> {
+function openRealtimeSocket(
+  url: string,
+  protocols: string[],
+  timeoutMs: number,
+  onSocketCreated?: (socket: WebSocket) => void,
+): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     let settled = false;
     const ws = new WebSocket(url, protocols);
+    onSocketCreated?.(ws);
     ws.binaryType = 'arraybuffer';
 
     const timeout = setTimeout(() => {
@@ -151,12 +157,15 @@ export function useGrokVoice(
   const openedRef = useRef(false); // tracks if WS ever opened
   const assistantTextRef = useRef('');
   const assistantDeliveredRef = useRef(false);
+  const connectionAttemptRef = useRef(0); // invalidates in-flight startVoice attempts
+  const pendingSocketRef = useRef<WebSocket | null>(null); // handshake socket before wsRef assignment
   const shouldStreamRef = useRef(false); // gate mic streaming
   const nextPlayTimeRef = useRef(0); // audio queue scheduler
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]); // for interrupt
 
   // ---------- cleanup ----------
   const cleanup = useCallback(() => {
+    connectionAttemptRef.current += 1;
     activeRef.current = false;
     openedRef.current = false;
     shouldStreamRef.current = false;
@@ -175,9 +184,19 @@ export function useGrokVoice(
     }
     wsRef.current = null;
 
+    // Cancel pending handshake socket (connecting state)
+    if (pendingSocketRef.current && pendingSocketRef.current.readyState <= WebSocket.OPEN) {
+      pendingSocketRef.current.close();
+    }
+    pendingSocketRef.current = null;
+
     // Stop all playing audio sources
     activeSourcesRef.current.forEach(s => {
-      try { s.stop(); } catch { /* already stopped */ }
+      try {
+        s.stop();
+      } catch {
+        /* already stopped */
+      }
     });
     activeSourcesRef.current = [];
     nextPlayTimeRef.current = 0;
@@ -234,110 +253,125 @@ export function useGrokVoice(
 
   const cancelPlayback = useCallback(() => {
     activeSourcesRef.current.forEach(s => {
-      try { s.stop(); } catch { /* noop */ }
+      try {
+        s.stop();
+      } catch {
+        /* noop */
+      }
     });
     activeSourcesRef.current = [];
     nextPlayTimeRef.current = 0;
   }, []);
 
   // ---------- server event handler ----------
-  const handleServerEvent = useCallback((msg: any) => {
-    const type: string = msg.type || '';
+  const handleServerEvent = useCallback(
+    (msg: any) => {
+      const type: string = msg.type || '';
 
-    // Normalize xAI / OpenAI event name variants
-    if (type === 'input_audio_buffer.speech_started') {
-      setVoiceState('listening');
-      return;
-    }
-
-    if (type === 'input_audio_buffer.speech_stopped') {
-      setVoiceState('thinking');
-      shouldStreamRef.current = false;
-      assistantTextRef.current = '';
-      assistantDeliveredRef.current = false;
-      setAssistantTranscript('');
-      // VAD-driven: auto-commit + request response
-      const ws = wsRef.current;
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-        ws.send(JSON.stringify({
-          type: 'response.create',
-          response: { modalities: ['text', 'audio'] },
-        }));
-      }
-      return;
-    }
-
-    if (type === 'conversation.item.input_audio_transcription.completed') {
-      if (msg.transcript) {
-        setUserTranscript(msg.transcript);
-        onUserMessage?.(msg.transcript);
-      }
-      return;
-    }
-
-    // Assistant transcript delta (both naming conventions)
-    if (type === 'response.audio_transcript.delta' || type === 'response.output_audio_transcript.delta') {
-      if (msg.delta) {
-        assistantTextRef.current += msg.delta;
-        setAssistantTranscript(assistantTextRef.current);
-        setVoiceState('speaking');
-        // Pause mic during speaking
-        shouldStreamRef.current = false;
-      }
-      return;
-    }
-
-    // Assistant audio delta (both naming conventions)
-    if (type === 'response.audio.delta' || type === 'response.output_audio.delta') {
-      if (msg.delta) {
-        playAudioChunk(msg.delta);
-        setVoiceState('speaking');
-        shouldStreamRef.current = false;
-      }
-      return;
-    }
-
-    if (type === 'response.audio_transcript.done' || type === 'response.output_audio_transcript.done') {
-      if (assistantTextRef.current && !assistantDeliveredRef.current) {
-        assistantDeliveredRef.current = true;
-        onAssistantMessage?.(assistantTextRef.current);
-      }
-      return;
-    }
-
-    if (type === 'response.done') {
-      if (assistantTextRef.current && !assistantDeliveredRef.current) {
-        assistantDeliveredRef.current = true;
-        onAssistantMessage?.(assistantTextRef.current);
-      }
-      assistantTextRef.current = '';
-      assistantDeliveredRef.current = false;
-      setAssistantTranscript('');
-      if (activeRef.current) {
+      // Normalize xAI / OpenAI event name variants
+      if (type === 'input_audio_buffer.speech_started') {
         setVoiceState('listening');
-        shouldStreamRef.current = true; // resume mic
+        return;
       }
-      return;
-    }
 
-    if (type === 'error') {
-      if (import.meta.env.DEV) {
-        console.error('[useGrokVoice] Server error:', msg.error);
+      if (type === 'input_audio_buffer.speech_stopped') {
+        setVoiceState('thinking');
+        shouldStreamRef.current = false;
+        assistantTextRef.current = '';
+        assistantDeliveredRef.current = false;
+        setAssistantTranscript('');
+        // VAD-driven: auto-commit + request response
+        const ws = wsRef.current;
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+          ws.send(
+            JSON.stringify({
+              type: 'response.create',
+              response: { modalities: ['text', 'audio'] },
+            }),
+          );
+        }
+        return;
       }
-      setErrorMessage(msg.error?.message || 'Voice error');
-      shouldStreamRef.current = false;
-      setVoiceState('error');
-      return;
-    }
 
-    if (type === 'session.created' || type === 'session.updated') {
-      if (import.meta.env.DEV) {
-        console.log('[useGrokVoice] Session event:', type);
+      if (type === 'conversation.item.input_audio_transcription.completed') {
+        if (msg.transcript) {
+          setUserTranscript(msg.transcript);
+          onUserMessage?.(msg.transcript);
+        }
+        return;
       }
-      return;
-    }
-  }, [onUserMessage, onAssistantMessage, playAudioChunk]);
+
+      // Assistant transcript delta (both naming conventions)
+      if (
+        type === 'response.audio_transcript.delta' ||
+        type === 'response.output_audio_transcript.delta'
+      ) {
+        if (msg.delta) {
+          assistantTextRef.current += msg.delta;
+          setAssistantTranscript(assistantTextRef.current);
+          setVoiceState('speaking');
+          // Pause mic during speaking
+          shouldStreamRef.current = false;
+        }
+        return;
+      }
+
+      // Assistant audio delta (both naming conventions)
+      if (type === 'response.audio.delta' || type === 'response.output_audio.delta') {
+        if (msg.delta) {
+          playAudioChunk(msg.delta);
+          setVoiceState('speaking');
+          shouldStreamRef.current = false;
+        }
+        return;
+      }
+
+      if (
+        type === 'response.audio_transcript.done' ||
+        type === 'response.output_audio_transcript.done'
+      ) {
+        if (assistantTextRef.current && !assistantDeliveredRef.current) {
+          assistantDeliveredRef.current = true;
+          onAssistantMessage?.(assistantTextRef.current);
+        }
+        return;
+      }
+
+      if (type === 'response.done') {
+        if (assistantTextRef.current && !assistantDeliveredRef.current) {
+          assistantDeliveredRef.current = true;
+          onAssistantMessage?.(assistantTextRef.current);
+        }
+        assistantTextRef.current = '';
+        assistantDeliveredRef.current = false;
+        setAssistantTranscript('');
+        if (activeRef.current) {
+          setVoiceState('listening');
+          shouldStreamRef.current = true; // resume mic
+        }
+        return;
+      }
+
+      if (type === 'error') {
+        if (import.meta.env.DEV) {
+          console.error('[useGrokVoice] Server error:', msg.error);
+        }
+        setErrorMessage(msg.error?.message || 'Voice error');
+        shouldStreamRef.current = false;
+        setVoiceState('error');
+        return;
+      }
+
+      if (type === 'session.created' || type === 'session.updated') {
+        if (import.meta.env.DEV) {
+          console.log('[useGrokVoice] Session event:', type);
+        }
+        return;
+      }
+    },
+    [onUserMessage, onAssistantMessage, playAudioChunk],
+  );
 
   // ---------- mic capture ----------
   const startMicCapture = useCallback((ws: WebSocket, stream: MediaStream) => {
@@ -347,7 +381,7 @@ export function useGrokVoice(
     const processor = audioCtx.createScriptProcessor(4096, 1, 1);
     processorRef.current = processor;
 
-    processor.onaudioprocess = (e) => {
+    processor.onaudioprocess = e => {
       if (!activeRef.current || ws.readyState !== WebSocket.OPEN) return;
       // Only stream mic data when we should (not during playback)
       if (!shouldStreamRef.current) return;
@@ -355,10 +389,12 @@ export function useGrokVoice(
       const inputData = e.inputBuffer.getChannelData(0);
       const pcm16 = float32ToInt16(inputData);
       const base64Audio = arrayBufferToBase64(pcm16.buffer as ArrayBuffer);
-      ws.send(JSON.stringify({
-        type: 'input_audio_buffer.append',
-        audio: base64Audio,
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'input_audio_buffer.append',
+          audio: base64Audio,
+        }),
+      );
     };
 
     source.connect(processor);
@@ -367,7 +403,11 @@ export function useGrokVoice(
 
   // ---------- start voice ----------
   const startVoice = useCallback(async () => {
-    if (activeRef.current) return;
+    if (activeRef.current || voiceState === 'connecting') return;
+    const attemptId = connectionAttemptRef.current + 1;
+    connectionAttemptRef.current = attemptId;
+    const isStaleAttempt = () => attemptId !== connectionAttemptRef.current;
+
     setVoiceState('connecting');
     setErrorMessage(null);
     setUserTranscript('');
@@ -380,8 +420,15 @@ export function useGrokVoice(
         body: {},
       });
 
+      if (isStaleAttempt()) {
+        return;
+      }
+
       if (error) {
         const invokeError = await parseInvokeError(error);
+        if (isStaleAttempt()) {
+          return;
+        }
         if (invokeError.code === 'VOICE_NOT_INCLUDED' || invokeError.status === 403) {
           setErrorMessage('Voice is available on Frequent Chraveler and Pro plans');
           setVoiceState('error');
@@ -402,11 +449,10 @@ export function useGrokVoice(
       }
 
       // Support both response shapes: { client_secret: { value } } or { value }
-      const ephemeralToken = (
+      const ephemeralToken =
         data?.client_secret?.value ||
         (typeof data?.client_secret === 'string' ? data.client_secret : null) ||
-        data?.value
-      );
+        data?.value;
       if (!ephemeralToken) {
         throw new Error('No session token received');
       }
@@ -423,8 +469,15 @@ export function useGrokVoice(
           },
         });
       } catch {
-        setErrorMessage('Microphone access denied. Please allow microphone in your browser settings.');
+        setErrorMessage(
+          'Microphone access denied. Please allow microphone in your browser settings.',
+        );
         setVoiceState('error');
+        return;
+      }
+
+      if (isStaleAttempt()) {
+        stream.getTracks().forEach(track => track.stop());
         return;
       }
       streamRef.current = stream;
@@ -439,15 +492,28 @@ export function useGrokVoice(
             REALTIME_WS_URL,
             ['realtime', `${authPrefix}.${ephemeralToken}`],
             CONNECT_TIMEOUT_MS,
+            socket => {
+              pendingSocketRef.current = socket;
+            },
           );
+          pendingSocketRef.current = null;
+          if (isStaleAttempt()) {
+            ws.close();
+            return;
+          }
           if (import.meta.env.DEV) {
             console.log(`[useGrokVoice] Connected with auth prefix: ${authPrefix}`);
           }
           break;
         } catch (connectError) {
-          lastConnectError = connectError instanceof Error
-            ? connectError
-            : new Error('Unable to connect to voice service');
+          pendingSocketRef.current = null;
+          if (isStaleAttempt()) {
+            return;
+          }
+          lastConnectError =
+            connectError instanceof Error
+              ? connectError
+              : new Error('Unable to connect to voice service');
           if (import.meta.env.DEV) {
             console.warn(
               `[useGrokVoice] WS connect attempt failed (${authPrefix})`,
@@ -466,6 +532,7 @@ export function useGrokVoice(
       assistantDeliveredRef.current = false;
 
       ws.onmessage = event => {
+        if (isStaleAttempt()) return;
         if (typeof event.data !== 'string') return;
         try {
           const msg = JSON.parse(event.data);
@@ -476,12 +543,14 @@ export function useGrokVoice(
       };
 
       ws.onerror = () => {
+        if (isStaleAttempt()) return;
         setErrorMessage('Voice connection failed. Please try again.');
         setVoiceState('error');
         cleanup();
       };
 
       ws.onclose = event => {
+        if (isStaleAttempt()) return;
         if (import.meta.env.DEV) {
           console.log('[useGrokVoice] WS closed:', event.code, event.reason);
         }
@@ -492,23 +561,31 @@ export function useGrokVoice(
         openedRef.current = false;
       };
 
+      if (isStaleAttempt()) {
+        ws.close();
+        return;
+      }
+
       // Send session.update with full voice agent config
-      ws.send(JSON.stringify({
-        type: 'session.update',
-        session: {
-          modalities: ['text', 'audio'],
-          voice: 'Ara',
-          instructions: 'You are Chravel AI Concierge, a world-class travel expert. Be concise, travel-smart, and action-oriented. Prefer actionable answers and bullets. Keep responses under 30 seconds of speech. Answer travel-related questions with enthusiasm.',
-          turn_detection: { type: 'server_vad' },
-          input_audio_format: 'pcm16',
-          output_audio_format: 'pcm16',
-          input_audio_transcription: { model: 'grok-3-mini' },
-          audio: {
-            input: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },
-            output: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },
+      ws.send(
+        JSON.stringify({
+          type: 'session.update',
+          session: {
+            modalities: ['text', 'audio'],
+            voice: 'Ara',
+            instructions:
+              'You are Chravel AI Concierge, a world-class travel expert. Be concise, travel-smart, and action-oriented. Prefer actionable answers and bullets. Keep responses under 30 seconds of speech. Answer travel-related questions with enthusiasm.',
+            turn_detection: { type: 'server_vad' },
+            input_audio_format: 'pcm16',
+            output_audio_format: 'pcm16',
+            input_audio_transcription: { model: 'grok-3-mini' },
+            audio: {
+              input: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },
+              output: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },
+            },
           },
-        },
-      }));
+        }),
+      );
 
       // Start mic capture
       shouldStreamRef.current = true;
@@ -517,6 +594,9 @@ export function useGrokVoice(
 
       wsRef.current = ws;
     } catch (err: unknown) {
+      if (isStaleAttempt()) {
+        return;
+      }
       if (import.meta.env.DEV) {
         console.error('[useGrokVoice] Start error:', err);
       }
@@ -525,7 +605,7 @@ export function useGrokVoice(
       setVoiceState('error');
       cleanup();
     }
-  }, [cleanup, startMicCapture, handleServerEvent]);
+  }, [cleanup, startMicCapture, handleServerEvent, voiceState]);
 
   // ---------- stop voice ----------
   const stopVoice = useCallback(() => {
@@ -552,10 +632,12 @@ export function useGrokVoice(
         assistantDeliveredRef.current = false;
         setAssistantTranscript('');
         ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-        ws.send(JSON.stringify({
-          type: 'response.create',
-          response: { modalities: ['text', 'audio'] },
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'response.create',
+            response: { modalities: ['text', 'audio'] },
+          }),
+        );
       }
       setVoiceState('thinking');
     } else if (voiceState === 'speaking') {
