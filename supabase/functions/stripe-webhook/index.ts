@@ -38,6 +38,16 @@ const PRODUCT_TO_TIER: Record<string, string> = {
   prod_Tx0Ap1aT22IGl2: 'frequent-chraveler',
 };
 
+type StripeEntitlementStatus = 'active' | 'trialing' | 'expired' | 'canceled';
+
+function mapStripeStatusToEntitlementStatus(status: string): StripeEntitlementStatus {
+  if (status === 'active') return 'active';
+  if (status === 'trialing') return 'trialing';
+  if (status === 'canceled') return 'canceled';
+  // Treat non-billable/failed states as expired for feature gating.
+  return 'expired';
+}
+
 serve(async req => {
   if (req.method === 'OPTIONS') {
     return createOptionsResponse(req);
@@ -241,6 +251,28 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
     return;
   }
 
+  const entitlementStatus = mapStripeStatusToEntitlementStatus(subscription.status);
+  const entitlementPlan =
+    entitlementStatus === 'active' || entitlementStatus === 'trialing' ? tier : 'free';
+
+  const { error: entitlementsError } = await supabase.from('user_entitlements').upsert(
+    {
+      user_id: userId,
+      source: 'stripe',
+      plan: entitlementPlan,
+      status: entitlementStatus,
+      purchase_type: 'subscription',
+      current_period_end:
+        entitlementStatus === 'active' || entitlementStatus === 'trialing' ? subscriptionEnd : null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' },
+  );
+
+  if (entitlementsError) {
+    logError('STRIPE_WEBHOOK', entitlementsError);
+  }
+
   // Create notification for user
   await supabase.from('notifications').insert({
     user_id: userId,
@@ -255,7 +287,13 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
     },
   });
 
-  logStep('Subscription updated', { userId, tier, status: subscription.status });
+  logStep('Subscription updated', {
+    userId,
+    tier,
+    status: subscription.status,
+    entitlementStatus,
+    entitlementPlan,
+  });
 }
 
 function getNotificationTitle(status: string): string {
@@ -330,6 +368,19 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
     })
     .eq('user_id', userId);
 
+  await supabase.from('user_entitlements').upsert(
+    {
+      user_id: userId,
+      source: 'stripe',
+      plan: 'free',
+      status: 'canceled',
+      purchase_type: 'subscription',
+      current_period_end: null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' },
+  );
+
   logStep('Subscription deleted', { userId });
 }
 
@@ -358,6 +409,17 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
   const userId = profiles[0].id;
 
   await supabase.from('profiles').update({ subscription_status: 'past_due' }).eq('user_id', userId);
+  await supabase
+    .from('user_entitlements')
+    .update({
+      plan: 'free',
+      status: 'expired',
+      purchase_type: 'subscription',
+      current_period_end: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+    .eq('source', 'stripe');
 
   // Notify user of payment failure
   await supabase.from('notifications').insert({
