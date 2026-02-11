@@ -1,90 +1,218 @@
 
 
-# Fix: Calendar Import Pipeline (All Formats) + Build Error
+# Grok Voice for AI Concierge (Frequent Chraveler + Pro Tiers)
 
-## Build Error Fix
+## Overview
 
-The `push-notifications/index.ts` function creates a local `corsHeaders` variable inside the `serve()` handler via `getCorsHeaders(req)`, but the sub-functions (`sendPushNotification`, `sendEmailNotification`, `sendSMSNotification`, `savePushToken`, `removePushToken`) reference `corsHeaders` without having access to it -- they're standalone functions outside the `serve()` closure.
+Add real-time voice conversation powered by xAI's Grok Voice Agent API to the AI Concierge. Voice is feature-gated: Free/Explorer = text only (mic visible but locked); Frequent Chraveler + Pro = voice + text. The xAI API key is stored server-side only, and the client authenticates via ephemeral tokens minted by a new edge function.
 
-**Fix**: Pass `corsHeaders` as a parameter to each sub-function, or restructure so they're inside the closure.
+## Pre-Requisite: Build Errors
 
-## Calendar Import Failures (5 Root Causes)
+There are existing TypeScript build errors in `useWebPush.ts`, `pushNotifications.ts`, `notificationService.ts`, and `productionNotificationService.ts` -- all referencing `pushManager` on `ServiceWorkerRegistration`. These must be fixed first (add type assertion `(registration as any).pushManager`) to unblock deployment.
 
-### Issue 1: Text Import -- JSON Parse Crash
+## Pre-Requisite: XAI_API_KEY Secret
 
-**Root Cause**: The edge function at line 222 does `JSON.parse(result.choices[0].message.content)` with no error handling. When Gemini returns slightly malformed JSON (markdown fences, trailing commas, etc.), it crashes with a `SyntaxError`. The logs confirm this: `"Expected double-quoted property name in JSON at position 5508"`.
+Before implementation, we need the `XAI_API_KEY` stored in Supabase Edge Function secrets. You mentioned you'll provide this -- we'll add it via the secrets tool before deploying the edge function.
 
-**Fix**: Add robust JSON extraction that strips markdown code fences and handles common JSON malformations before parsing. Wrap in try/catch with a regex fallback.
+## Architecture
 
-### Issue 2: PDF Import -- Returns Hallucinated Mock Data
+```text
+  Browser (Chravel PWA)
+  +-----------------------------------------+
+  |  AIConciergeChat                        |
+  |    +-- VoiceButton (mic icon)           |
+  |    +-- useGrokVoice() hook              |
+  |         |                               |
+  |   1. POST /xai-voice-session            |
+  |         |                               |
+  |   2. Open WebSocket to xAI              |
+  |      wss://api.x.ai/v1/realtime        |
+  |         |                               |
+  |   3. Stream mic audio (PCM base64)      |
+  |   4. Receive audio + transcript deltas  |
+  +-----------------------------------------+
 
-**Root Cause**: The `buildUserMessage()` function (line 555-575) appends a PDF URL as `image_url` only if the fileType starts with `image/`. For PDFs, it just appends the URL as text: `"File URL: https://... (Type: application/pdf)"`. Gemini cannot read a PDF from a URL in a text message -- it has no access to the file content. So it hallucinates generic travel events ("Flight to London", "Hotel Check-in", "Dinner Reservation").
+  Supabase Edge Function
+  +-----------------------------------+
+  | xai-voice-session/index.ts        |
+  |  - Verify auth (Supabase JWT)     |
+  |  - Check tier (frequent/pro)      |
+  |  - Mint ephemeral token from xAI  |
+  |  - Return token to client         |
+  +-----------------------------------+
+```
 
-**Fix**: For PDF files, extract the text content server-side first (fetch the PDF, use a text extraction approach), then send the extracted text to Gemini instead of just a URL string. Alternatively, since the Lovable AI gateway supports Gemini which can process PDFs via `file_data`, we can use that format.
+## Implementation Steps
 
-### Issue 3: Excel Import -- Header Row Not on Row 1
+### Step 1: Fix Existing Build Errors (3 files)
 
-**Root Cause**: The Excel file has "NIAJ 2026 Shows" as a title in cell A1, with the actual column headers ("Show Date", "Artist", "Venue", "Notes") on row 3. The parser (`parseExcelCalendar`) always treats row 1 as headers. Since "NIAJ 2026 Shows" doesn't match any column patterns (date, title, time, etc.), `detectColumns()` returns null and the import fails with "Could not detect required columns".
+Add `(registration as any).pushManager` type assertions in:
+- `src/hooks/useWebPush.ts` (lines 203, 205, 250, 277)
+- `src/platform/pushNotifications.ts` (line 48)
+- `src/services/notificationService.ts` (lines 159, 163, 615)
+- `src/services/productionNotificationService.ts` (lines 94, 324)
 
-**Fix**: Scan the first 10 rows looking for the best header row (the one that matches the most column patterns). Also add "artist" and "show" to the title pattern, and "show date" / "show.?date" to the date pattern (already partially there but the compound header "Show Date" has a space that the pattern handles).
+### Step 2: Add XAI_API_KEY Secret
 
-### Issue 4: Image Import -- AI Prompt Too Narrow
+Request the xAI API key from the user and store it in Supabase secrets. This key is never exposed to the client.
 
-**Root Cause**: The `extractCalendarEvents` system prompt focuses exclusively on travel bookings: "Flight bookings, Hotel reservations, Restaurant reservations, Activity bookings, Transportation bookings, Tour schedules, Meeting times." A screenshot of a comedy festival spreadsheet doesn't match any of these categories, so Gemini either returns nothing or hallucinates travel data.
+### Step 3: Create Edge Function `xai-voice-session`
 
-**Fix**: Broaden the system prompt to extract ANY scheduled events, not just travel-specific ones. Include: "concerts, shows, performances, conferences, meetings, sports events, festivals" etc.
+**File**: `supabase/functions/xai-voice-session/index.ts`
 
-### Issue 5: AI Prompt Category Mismatch
+Responsibilities:
+- Authenticate the user via Supabase JWT
+- Check subscription tier: allow only `frequent-chraveler`, `pro-starter`, `pro-growth`, `pro-enterprise`, or super admin
+- Call `POST https://api.x.ai/v1/realtime/client_secrets` with the server-side `XAI_API_KEY`
+- Return the ephemeral token (expires in 300 seconds) to the client
+- Return 403 with `{ error: "VOICE_NOT_INCLUDED" }` for ineligible tiers
 
-**Root Cause**: The category enum in the extraction prompt is `"dining|lodging|activity|transportation|entertainment|business"` which doesn't match the actual database enum that includes `"other"`. Events that don't fit these categories get forced into wrong categories.
+Add to `supabase/config.toml`:
+```toml
+[functions.xai-voice-session]
+verify_jwt = true
+```
 
-**Fix**: Add `"other"` to the category enum and broaden the extraction instruction.
+### Step 4: Create Voice State Machine Hook
 
-## Implementation Plan
+**File**: `src/hooks/useGrokVoice.ts`
 
-### Step 1: Fix build error in `push-notifications/index.ts`
+A React hook that manages the entire voice lifecycle:
 
-Pass the `corsHeaders` object to each sub-function as a parameter, so they have access to the CORS headers created from the request.
+**States**: `idle` | `connecting` | `listening` | `thinking` | `speaking` | `error`
 
-### Step 2: Fix JSON parsing in `enhanced-ai-parser/index.ts`
+**Core logic**:
+1. `startVoice()`: Call the edge function to get ephemeral token, open WebSocket to `wss://api.x.ai/v1/realtime`, send `session.update` with voice config (voice: "Ara", server VAD, PCM 24kHz, Chravel concierge instructions)
+2. `stopVoice()`: Close mic, close WebSocket, clean up audio context
+3. Mic capture: Use `navigator.mediaDevices.getUserMedia()` + `AudioWorkletNode` to capture PCM 16-bit samples, base64-encode, send via `input_audio_buffer.append`
+4. Handle server events:
+   - `conversation.item.input_audio_transcription.completed` -- user transcript
+   - `response.output_audio_transcript.delta` -- assistant text streaming
+   - `response.output_audio.delta` -- play audio via Web Audio API
+   - `response.done` -- transition back to idle
+5. Interrupt: If user taps mic during `speaking`, stop playback and start listening
+6. Error handling: On WebSocket close/error, transition to `error` state, drop any partial transcript into the text input as fallback
+7. Cleanup on unmount: Close mic, stop audio, close WebSocket
 
-Add a `safeParseJSON()` helper that:
-- Strips markdown code fences (` ```json ... ``` `)
-- Handles trailing commas
-- Falls back to regex extraction if `JSON.parse` fails
+**Voice config sent in `session.update`**:
+```json
+{
+  "type": "session.update",
+  "session": {
+    "instructions": "You are Chravel AI Concierge. Be concise, travel-smart, and action-oriented. Prefer actionable answers and bullets. Keep responses under 30 seconds of speech.",
+    "voice": "Ara",
+    "turn_detection": { "type": "server_vad" },
+    "audio": {
+      "input": { "format": { "type": "audio/pcm", "rate": 24000 } },
+      "output": { "format": { "type": "audio/pcm", "rate": 24000 } }
+    }
+  }
+}
+```
 
-Apply this to all `JSON.parse(result.choices[0].message.content)` calls (lines 222, 300, 361, 435, 543).
+### Step 5: Create Voice Button Component
 
-### Step 3: Fix PDF handling in `enhanced-ai-parser/index.ts`
+**File**: `src/features/chat/components/VoiceButton.tsx`
 
-For PDFs, fetch the file content and convert to base64, then send as inline data to Gemini using the `file_data` or `inline_data` format that the Lovable AI gateway supports. This allows Gemini to actually read the PDF content instead of seeing just a URL string.
+A circular button that sits left of the Send button in the input row. Visual states:
 
-### Step 4: Broaden the calendar extraction prompt
+| State | Icon | Style |
+|-------|------|-------|
+| Idle (eligible) | Mic icon | Glass style, matches send button |
+| Idle (ineligible) | Mic + Lock badge | Dimmed, tooltip "Voice (Pro)" |
+| Listening | Animated mic with pulsing ring | Green accent |
+| Thinking | Spinner | Purple accent |
+| Speaking | Sound wave + "Tap to interrupt" | Blue accent |
+| Error | Mic with X | Red, auto-resets to idle |
 
-Update the system prompt in `extractCalendarEvents()` to extract ALL types of scheduled events -- not just travel bookings. Include shows, concerts, festivals, conferences, sports events, etc.
+Tap behavior:
+- Idle + eligible: Start voice session
+- Idle + ineligible: Show upgrade modal
+- Listening: Commit audio buffer and request response
+- Speaking: Interrupt playback, start listening again
 
-### Step 5: Fix Excel header detection
+### Step 6: Update AiChatInput Component
 
-Update `parseExcelCalendar()` to scan the first 10 rows for the best header row instead of assuming row 1. Also add common column name variants ("Artist", "Show", "Show Date", "Act", "Performer", "Event Name") to the detection patterns.
+**File**: `src/features/chat/components/AiChatInput.tsx`
 
-### Step 6: Ensure Gemini-only fallback works
+- Add `VoiceButton` between textarea and send button
+- Add new props: `voiceState`, `onVoiceToggle`, `isVoiceEligible`, `onVoiceUpgrade`
+- Voice button is always visible but gated by tier
 
-The URL import path uses Firecrawl with Gemini as the AI layer. If Firecrawl credits run out, it should fall back to raw fetch + Gemini. Verify this fallback path is intact in `scrape-schedule`.
+### Step 7: Update AIConciergeChat Component
+
+**File**: `src/components/AIConciergeChat.tsx`
+
+- Import and use `useGrokVoice()` hook
+- Determine voice eligibility: `tier === 'frequent-chraveler' || isPro || isSuperAdmin`
+- Pass voice state and handlers to `AiChatInput`
+- When voice transcript arrives (user or assistant), append to the messages array just like text messages
+- Update header status indicator to show voice states ("Listening...", "Thinking...", "Speaking...")
+- On voice error, fall back gracefully: drop partial transcript into text input
+
+### Step 8: Add Voice Entitlement
+
+**File**: `src/billing/types.ts`
+
+Add new entitlement:
+```typescript
+| 'voice_concierge'         // Grok Voice in AI Concierge
+```
+
+**File**: `src/hooks/useUnifiedEntitlements.ts`
+
+Add to FEATURE_LIMITS:
+```typescript
+voice_concierge: { free: 0, explorer: 0, 'frequent-chraveler': -1, 'pro-starter': -1 },
+```
+
+Add `'voice_concierge'` to `FeatureName` type in `src/billing/types.ts`.
+
+### Step 9: Empty State Enhancement
+
+In the empty state section of `AIConciergeChat.tsx`, add:
+- If voice eligible: A "Try Voice" button that starts listening
+- If not eligible: A "Voice is Pro" chip linking to upgrade
+
+## Feature Gating Summary
+
+| Tier | Text Chat | Voice |
+|------|-----------|-------|
+| Free | 5/trip | Locked (mic visible, shows upgrade) |
+| Explorer | 10/trip | Locked (mic visible, shows upgrade) |
+| Frequent Chraveler | Unlimited | Enabled |
+| Pro (all tiers) | Unlimited | Enabled |
+| Super Admin | Unlimited | Enabled |
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/push-notifications/index.ts` | Pass `corsHeaders` to sub-functions as parameter |
-| `supabase/functions/enhanced-ai-parser/index.ts` | (a) Add `safeParseJSON()` helper, (b) fix PDF handling to send actual content, (c) broaden calendar prompt to all event types |
-| `src/utils/calendarImportParsers.ts` | (a) Scan first 10 rows for header row in Excel, (b) add more column name variants to detection patterns |
+| `src/hooks/useWebPush.ts` | Fix pushManager type errors |
+| `src/platform/pushNotifications.ts` | Fix pushManager type errors |
+| `src/services/notificationService.ts` | Fix pushManager type errors |
+| `src/services/productionNotificationService.ts` | Fix pushManager type errors |
+| `supabase/functions/xai-voice-session/index.ts` | NEW: Ephemeral token minting endpoint |
+| `supabase/config.toml` | Add xai-voice-session config |
+| `src/hooks/useGrokVoice.ts` | NEW: Voice state machine + WebSocket + audio |
+| `src/features/chat/components/VoiceButton.tsx` | NEW: Mic button with state-based visuals |
+| `src/features/chat/components/AiChatInput.tsx` | Add VoiceButton to input row |
+| `src/components/AIConciergeChat.tsx` | Integrate voice hook, gating, header states |
+| `src/billing/types.ts` | Add voice_concierge entitlement + feature name |
+| `src/hooks/useUnifiedEntitlements.ts` | Add voice_concierge to FEATURE_LIMITS |
 
-## Testing Checklist
+## Security Guarantees
 
-After implementation, test all import formats with the Netflix Festival data:
-1. **Text paste**: The CSV-formatted text with 21 comedy shows
-2. **PDF upload**: The NIAJ 2026 Shows PDF (should extract 50+ shows)
-3. **Excel upload**: The NIAJ_2026_Shows.xlsx file (should handle title row and find headers on row 3)
-4. **Image upload**: Screenshot of the Excel grid (should extract visible shows)
-5. **URL import**: Verify Firecrawl path still works and Gemini-only fallback is intact
+- XAI_API_KEY exists ONLY in Supabase Edge Function secrets -- never in client code, VITE_ vars, or network responses
+- Client receives only ephemeral tokens (300s TTL)
+- Edge function validates Supabase JWT + tier before minting tokens
+- One active voice session at a time (enforced in hook)
+- Mic permission denial shows clear message with guidance
+
+## Mobile/PWA Considerations
+
+- Bottom input bar respects `env(safe-area-inset-bottom)` (already implemented)
+- Mic button sized for touch targets (min 44x44px)
+- Audio playback uses Web Audio API (works in iOS Safari PWA)
+- Falls back gracefully if `getUserMedia` is blocked
 
