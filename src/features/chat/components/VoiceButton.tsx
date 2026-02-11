@@ -1,7 +1,7 @@
 import React from 'react';
 import { Mic, MicOff, Loader2, Volume2, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import type { VoiceState } from '@/hooks/useGrokVoice';
+import type { VoiceState } from '@/hooks/useGeminiVoice';
 
 interface VoiceButtonProps {
   voiceState: VoiceState;
