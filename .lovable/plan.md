@@ -1,99 +1,83 @@
 
 
-# Fix Gemini Voice: Three Root Causes Identified
+# Fix Gemini Voice: The Real Root Cause -- Stale Closure Bug
 
-## What Went Wrong
+## What Actually Went Wrong (First Principles)
 
-After reading every documentation link, Google's official WebSocket API reference, and Google's own React live-api-web-console source code, I found three compounding bugs that explain the infinite "Connecting" spinner:
+Every previous fix attempt (correct model name, error handling, deprecated field fix) was technically correct but **invisible** because of a fundamental React bug that prevents ALL error recovery.
 
-### Root Cause 1: Wrong Model Name (the killer bug)
+### The Bug: Stale Closure in `startVoice`
 
-The code sends `models/gemini-2.5-flash-native-audio` in the setup message. **This model ID does not exist.** Google's documentation across every page consistently uses:
+`startVoice` is a `useCallback` that captures `voiceState` in its closure. When the user clicks the mic button:
 
+1. `voiceState` is `'idle'` -- this is what the closure captures
+2. `setVoiceState('connecting')` is called -- React schedules a state update, but the closure still holds `'idle'`
+3. WebSocket is created and handlers are registered
+4. If anything goes wrong (bad model, network error, etc.), `ws.onerror` fires
+5. `ws.onerror` checks: `voiceState === 'connecting'` -- but `voiceState` in the closure is `'idle'`, so this is **always false**
+6. Error is swallowed, UI stays on "Connecting" forever
+
+The same stale closure affects the 10-second timeout handler. Both paths that should recover from errors are broken.
+
+### Why This Escaped Detection
+
+- Console logs would show the error being logged (`console.error('[useGeminiVoice] WebSocket error:', event)`)
+- But the state transition (`setVoiceState('error')`) never executes because of the false condition
+- The user sees zero console output because production builds gate logs behind `import.meta.env.DEV`
+- No edge function logs appear because either: the edge function call succeeds but the WS fails, OR the whole flow dies before the invoke
+
+## The Fix (Two Changes)
+
+### Change 1: Remove stale `voiceState` checks from error handlers
+
+Replace all references to the stale `voiceState` closure with refs or unconditional error handling:
+
+**ws.onerror** (line 487-495):
 ```
-models/gemini-2.5-flash-native-audio-preview-12-2025
-```
-
-When you send an invalid model name, Google's server responds with an error message -- but our code silently drops it (see Root Cause 2), so `setupComplete` never fires and the button spins forever.
-
-### Root Cause 2: Silent Error Swallowing
-
-The `handleServerMessage` function only handles three message types: `setupComplete`, `serverContent`, and `toolCall`. Any other message (including **error responses from Google**) is silently ignored. We literally throw away the error telling us what's wrong.
-
-The `ws.onerror` handler just logs `"WebSocket error"` with zero details. We're flying blind.
-
-### Root Cause 3: Deprecated `mediaChunks` Field
-
-The WebSocket API reference explicitly states:
-
-> `mediaChunks[]` -- DEPRECATED: Use one of `audio`, `video`, or `text` instead.
-
-Our code sends `realtimeInput.mediaChunks`. While this may still work, the correct format per current docs is `realtimeInput.audio`.
-
-## The Fix (Surgical, 3 Changes)
-
-### Change 1: Fix the model name
-
-```
-Before: 'models/gemini-2.5-flash-native-audio'
-After:  'models/gemini-2.5-flash-native-audio-preview-12-2025'
-```
-
-This is the single change that will unblock the connection.
-
-### Change 2: Add comprehensive error handling for ALL server messages
-
-Add logging and error state handling for unrecognized messages from Google. This means if something goes wrong in the future, we'll see the actual error instead of spinning forever:
-
-- Log ALL incoming WebSocket messages that don't match known types
-- Parse and display Google's error messages to the user
-- Specifically handle `goAway` and `sessionResumptionUpdate` message types from the spec
-- Improve `ws.onerror` to include the error event details
-
-### Change 3: Fix deprecated `mediaChunks` to `audio`
-
-Update the mic streaming code from:
-
-```json
-{
-  "realtimeInput": {
-    "mediaChunks": [{ "mimeType": "audio/pcm;rate=16000", "data": "..." }]
-  }
-}
+Before: if (!activeRef.current && voiceState === 'connecting') {
+After:  Always set error state when WS errors during connection
 ```
 
-To the current API format:
-
-```json
-{
-  "realtimeInput": {
-    "audio": { "mimeType": "audio/pcm;rate=16000", "data": "..." }
-  }
-}
+**Timeout handler** (line 426-435):
 ```
+Before: if (activeRef.current || voiceState === 'connecting') {
+After:  if (ws.readyState !== WebSocket.OPEN) { -- just close and error unconditionally }
+```
+
+### Change 2: Remove `voiceState` from `startVoice` dependency array
+
+Line 521: `[voiceState, cleanup, handleServerMessage, startMicCapture, onAssistantMessage]`
+
+Remove `voiceState` from the deps. The function doesn't need it as a dependency since we're eliminating all uses of the stale value inside it. This also prevents unnecessary re-creation of the callback on every state change.
+
+### Change 3: Force all error logs to run unconditionally (not just DEV)
+
+Remove the `if (import.meta.env.DEV)` gates on critical error logging so you can see what Google's server actually responds when things go wrong. This is essential for debugging in the preview environment.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/hooks/useGeminiVoice.ts` | Fix model name, add error handling for all server messages, fix deprecated mediaChunks to audio |
+| `src/hooks/useGeminiVoice.ts` | Fix stale closure in ws.onerror and timeout, remove voiceState from deps, unconditional error logging |
 
-That's it. One file. The edge function is fine -- it correctly returns the API key. The UI components are fine. The WebSocket URL is correct. The setup message structure is correct (model, generationConfig, systemInstruction all match the spec). The only issues are the wrong model name, swallowed errors, and deprecated field name.
+## Why This Will Work
 
-## Why I'm Confident This Will Work
+1. The edge function is deployed and working (confirmed: returns 401 without auth, which is correct)
+2. The `GEMINI_API_KEY` secret is configured
+3. The model name `gemini-2.5-flash-native-audio-preview-12-2025` is correct per Google's docs
+4. The WebSocket URL matches Google's API reference exactly
+5. The setup message format matches the `BidiGenerateContentSetup` spec
+6. The `realtimeInput.audio` format matches the current (non-deprecated) API
+7. The ONLY remaining issue is that error handlers can't fire due to the stale closure -- this fix eliminates that
 
-1. The WebSocket URL format (`wss://generativelanguage.googleapis.com/ws/...?key=API_KEY`) is confirmed correct by Google's API reference for client-to-server connections
-2. The setup message format matches the `BidiGenerateContentSetup` spec exactly (model, generationConfig with responseModalities and speechConfig, systemInstruction with parts)
-3. Google's own React web console uses this exact same raw WebSocket pattern (they wrap it in their SDK, but the underlying protocol is identical)
-4. The audio format (16kHz PCM in, 24kHz PCM out) matches the spec
-5. The only thing wrong was the model identifier -- a typo-level bug that caused a silent server-side rejection
+After this fix, one of two things will happen:
+- **Success**: setupComplete fires, state transitions to "Listening", voice works
+- **Visible failure**: If Google rejects the connection for any reason, the error message will appear immediately instead of spinning forever, giving us the exact error to diagnose
 
-## What Stays Unchanged (zero regressions)
+## What Stays Unchanged
 
-- Edge function `gemini-voice-session` -- working correctly
-- VoiceButton component -- no changes
-- AiChatInput component -- no changes
-- AIConciergeChat integration -- no changes
-- Tier gating / auth -- no changes
-- Voice: Kore (warm, clear concierge voice)
+- Edge function `gemini-voice-session` -- confirmed working
+- VoiceButton, AiChatInput, AIConciergeChat -- no changes
+- Model name, voice (Kore), audio format -- all confirmed correct
+- Tier gating, auth flow -- no changes
 
