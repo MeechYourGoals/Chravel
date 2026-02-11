@@ -47,7 +47,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     refreshEvents,
   } = useCalendarManagement(tripId);
   const { toast } = useToast();
-  const { canPerformAction } = useRolePermissions(tripId);
+  const { canPerformAction, isLoading: permissionsLoading } = useRolePermissions(tripId);
   // Demo mode available for future conditional rendering
   const { isDemoMode: _isDemoMode } = useDemoMode();
 
@@ -71,8 +71,8 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   }, [startBackgroundImport, handleBackgroundImportComplete]);
 
   const handleImport = useCallback(() => {
-    // Check permissions (will return true in Demo Mode)
-    if (!canPerformAction('calendar', 'can_edit_events')) {
+    // Allow action optimistically while permissions are still loading
+    if (!permissionsLoading && !canPerformAction('calendar', 'can_edit_events')) {
       toast({
         title: 'Permission denied',
         description: 'You do not have permission to import events',
@@ -81,7 +81,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       return;
     }
     setShowImportModal(true);
-  }, [canPerformAction, toast]);
+  }, [canPerformAction, permissionsLoading, toast]);
 
   const handleImportComplete = useCallback(async () => {
     // Invalidate cache before refetch to ensure we pull the latest events

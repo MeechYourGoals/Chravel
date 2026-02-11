@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { FeaturePermissions, PermissionLevel } from '@/types/roleChannels';
+import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 
 /**
  * Hook to manage role-based permissions for Pro trips
@@ -17,6 +18,21 @@ export const useRolePermissions = (tripId: string) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const loadPermissions = useCallback(async () => {
+    // Super admin bypass — synchronous, no async queries needed
+    if (isSuperAdminEmail(user?.email)) {
+      setPermissionLevel('admin');
+      setIsTripMember(true);
+      setFeaturePermissions({
+        channels: { can_view: true, can_post: true, can_edit_messages: true, can_delete_messages: true, can_manage_members: true },
+        calendar: { can_view: true, can_create_events: true, can_edit_events: true, can_delete_events: true },
+        tasks: { can_view: true, can_create: true, can_assign: true, can_complete: true, can_delete: true },
+        media: { can_view: true, can_upload: true, can_delete_own: true, can_delete_any: true },
+        payments: { can_view: true, can_create: true, can_approve: true },
+      });
+      setIsLoading(false);
+      return;
+    }
+
     // In Demo Mode, grant full permissions
     if (isDemoMode) {
       setPermissionLevel('admin');
