@@ -1,6 +1,6 @@
 /**
  * useGrokVoice – Realtime voice hook for xAI Grok Voice Agent API
- * Manages: ephemeral token, WebSocket (subprotocol auth), mic capture,
+ * Manages: API key retrieval, WebSocket (subprotocol auth), mic capture,
  * scheduled audio playback queue, VAD-driven turn-taking, state machine.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -50,8 +50,7 @@ function base64ToInt16Array(base64: string): Int16Array {
 // ---------- Constants ----------
 const CONNECT_TIMEOUT_MS = 8000;
 const SAMPLE_RATE = 24000;
-const REALTIME_WS_URL = 'wss://api.x.ai/v1/realtime?model=grok-3-fast';
-const WS_AUTH_PREFIXES = ['openai-insecure-api-key', 'xai-insecure-api-key'] as const;
+const REALTIME_WS_URL = 'wss://api.x.ai/v1/realtime';
 
 interface ParsedInvokeError {
   status?: number;
@@ -415,7 +414,7 @@ export function useGrokVoice(
     assistantTextRef.current = '';
 
     try {
-      // 1. Get ephemeral token from edge function
+      // 1. Get API key from edge function (auth + tier gated)
       const { data, error } = await supabase.functions.invoke('xai-voice-session', {
         body: {},
       });
@@ -448,13 +447,9 @@ export function useGrokVoice(
         return;
       }
 
-      // Support both response shapes: { client_secret: { value } } or { value }
-      const ephemeralToken =
-        data?.client_secret?.value ||
-        (typeof data?.client_secret === 'string' ? data.client_secret : null) ||
-        data?.value;
-      if (!ephemeralToken) {
-        throw new Error('No session token received');
+      const apiKey = data?.api_key;
+      if (!apiKey) {
+        throw new Error('No API key received');
       }
 
       // 2. Request mic permission
@@ -482,49 +477,31 @@ export function useGrokVoice(
       }
       streamRef.current = stream;
 
-      // 3. Connect WebSocket with protocol fallback for browser auth compatibility
-      let ws: WebSocket | null = null;
-      let lastConnectError: Error | null = null;
-
-      for (const authPrefix of WS_AUTH_PREFIXES) {
-        try {
-          ws = await openRealtimeSocket(
-            REALTIME_WS_URL,
-            ['realtime', `${authPrefix}.${ephemeralToken}`],
-            CONNECT_TIMEOUT_MS,
-            socket => {
-              pendingSocketRef.current = socket;
-            },
-          );
-          pendingSocketRef.current = null;
-          if (isStaleAttempt()) {
-            ws.close();
-            return;
-          }
-          if (import.meta.env.DEV) {
-            console.log(`[useGrokVoice] Connected with auth prefix: ${authPrefix}`);
-          }
-          break;
-        } catch (connectError) {
-          pendingSocketRef.current = null;
-          if (isStaleAttempt()) {
-            return;
-          }
-          lastConnectError =
-            connectError instanceof Error
-              ? connectError
-              : new Error('Unable to connect to voice service');
-          if (import.meta.env.DEV) {
-            console.warn(
-              `[useGrokVoice] WS connect attempt failed (${authPrefix})`,
-              lastConnectError.message,
-            );
-          }
+      // 3. Connect WebSocket with direct API key auth via subprotocol
+      let ws: WebSocket;
+      try {
+        ws = await openRealtimeSocket(
+          REALTIME_WS_URL,
+          ['realtime', `openai-insecure-api-key.${apiKey}`],
+          CONNECT_TIMEOUT_MS,
+          socket => {
+            pendingSocketRef.current = socket;
+          },
+        );
+        pendingSocketRef.current = null;
+        if (isStaleAttempt()) {
+          ws.close();
+          return;
         }
-      }
-
-      if (!ws) {
-        throw lastConnectError ?? new Error('Unable to connect to voice service');
+        if (import.meta.env.DEV) {
+          console.log('[useGrokVoice] WebSocket connected');
+        }
+      } catch (connectError) {
+        pendingSocketRef.current = null;
+        if (isStaleAttempt()) return;
+        throw connectError instanceof Error
+          ? connectError
+          : new Error('Unable to connect to voice service');
       }
 
       openedRef.current = true;
@@ -566,18 +543,15 @@ export function useGrokVoice(
         return;
       }
 
-      // Send session.update with full voice agent config
+      // Send session.update matching xAI Voice Agent API docs exactly
       ws.send(
         JSON.stringify({
           type: 'session.update',
           session: {
-            modalities: ['text', 'audio'],
-            voice: 'Ara',
+            voice: 'Rex',
             instructions:
               'You are Chravel AI Concierge, a world-class travel expert. Be concise, travel-smart, and action-oriented. Prefer actionable answers and bullets. Keep responses under 30 seconds of speech. Answer travel-related questions with enthusiasm.',
             turn_detection: { type: 'server_vad' },
-            input_audio_format: 'pcm16',
-            output_audio_format: 'pcm16',
             input_audio_transcription: { model: 'grok-3-mini' },
             audio: {
               input: { format: { type: 'audio/pcm', rate: SAMPLE_RATE } },

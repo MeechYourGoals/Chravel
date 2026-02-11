@@ -134,36 +134,13 @@ Deno.serve(async req => {
       );
     }
 
-    const xaiResponse = await fetch("https://api.x.ai/v1/realtime/client_secrets", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${xaiApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        expires_after: { seconds: 300 },
-      }),
-    });
-
-    if (!xaiResponse.ok) {
-      const errorText = await xaiResponse.text();
-      console.error(
-        "[xai-voice-session] xAI token mint failed:",
-        xaiResponse.status,
-        errorText,
-      );
-      return new Response(
-        JSON.stringify({ error: "XAI_SESSION_CREATE_FAILED" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const sessionData = await xaiResponse.json();
-
-    return new Response(JSON.stringify(sessionData), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Return the API key directly — no ephemeral token minting.
+    // Security: key is behind auth + tier gating, never in client bundle,
+    // and xAI enforces server-side rate limits per key.
+    return new Response(
+      JSON.stringify({ api_key: xaiApiKey }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (error) {
     console.error("[xai-voice-session] Unexpected error:", error);
     return new Response(
