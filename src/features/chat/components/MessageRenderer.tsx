@@ -1,5 +1,6 @@
 import React from 'react';
 import { FileText, Link, Download, Play, Maximize2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from './types';
 import { cn } from '@/lib/utils';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
@@ -133,7 +134,8 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
   };
 
   const isOwnMessage = message.type === 'user';
-  
+  const isAssistant = message.type === 'assistant';
+
   return (
     <div className={cn(
       "flex w-full gap-2",
@@ -145,7 +147,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
           <span className="text-xs text-white">AI</span>
         </div>
       )}
-      
+
       <div className={cn(
         "flex flex-col",
         isOwnMessage ? 'items-end' : 'items-start',
@@ -157,17 +159,90 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
             ? 'bg-blue-600 text-white border-blue-600/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
             : 'bg-muted/80 text-white border-border shadow-sm rounded-bl-sm'
         )}>
-          {/* Message content - only show if not a pure media message */}
-          {message.content && (
+          {/* Message content */}
+          {message.content && isAssistant ? (
+            <div className="text-sm leading-relaxed ai-markdown-content">
+              <ReactMarkdown
+                components={{
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors"
+                    >
+                      {children}
+                    </a>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold text-white">{children}</strong>
+                  ),
+                  em: ({ children }) => (
+                    <em className="italic text-gray-300">{children}</em>
+                  ),
+                  p: ({ children }) => (
+                    <p className="mb-2 last:mb-0">{children}</p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="list-disc list-inside mb-2 space-y-1 last:mb-0">{children}</ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal list-inside mb-2 space-y-1 last:mb-0">{children}</ol>
+                  ),
+                  li: ({ children }) => (
+                    <li className="text-gray-200">{children}</li>
+                  ),
+                  h1: ({ children }) => (
+                    <h3 className="text-base font-bold text-white mb-1">{children}</h3>
+                  ),
+                  h2: ({ children }) => (
+                    <h4 className="text-sm font-bold text-white mb-1">{children}</h4>
+                  ),
+                  h3: ({ children }) => (
+                    <h5 className="text-sm font-semibold text-white mb-1">{children}</h5>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-2 border-blue-400/50 pl-3 my-2 text-gray-300 italic">
+                      {children}
+                    </blockquote>
+                  ),
+                  code: ({ children }) => (
+                    <code className="bg-black/30 text-blue-300 px-1.5 py-0.5 rounded text-xs font-mono">
+                      {children}
+                    </code>
+                  ),
+                  img: ({ src, alt }) => (
+                    <div className="my-2 rounded-lg overflow-hidden">
+                      <img
+                        src={src}
+                        alt={alt || 'Preview'}
+                        className="rounded-lg max-w-full h-auto object-cover"
+                        style={{ maxHeight: '200px' }}
+                        onError={(e) => {
+                          // Hide broken images gracefully
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  ),
+                  hr: () => (
+                    <hr className="border-white/10 my-2" />
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          ) : message.content ? (
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-          )}
-          
+          ) : null}
+
           {/* Render media content inline */}
           {renderMediaContent()}
-          
+
           {/* Render file attachments */}
           {renderFileAttachments()}
-          
+
           {/* Render link preview */}
           {renderLinkPreview()}
         </div>
@@ -178,9 +253,9 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
             "text-[10px] text-muted-foreground/70 mt-1 px-1",
             isOwnMessage ? 'text-right' : 'text-left'
           )}>
-            {new Date(message.timestamp).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
+            {new Date(message.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit'
             })}
           </span>
         )}
