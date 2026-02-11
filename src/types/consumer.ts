@@ -1,6 +1,6 @@
 
 export interface ConsumerSubscription {
-  tier: 'free' | 'explorer' | 'frequent-chraveler';
+  tier: 'free' | 'explorer' | 'frequent-chraveler' | 'pro-starter' | 'pro-growth' | 'pro-enterprise';
   status: 'active' | 'trial' | 'expired' | 'cancelled';
   trialEndsAt?: string;
   subscriptionEndsAt?: string;
