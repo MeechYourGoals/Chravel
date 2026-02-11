@@ -9,9 +9,9 @@ const faqItems = [
       'Anybody organizing a group that wants to simplify sharing information: Work, Personal, Sports, Tours, Conferences, Vacations, Travel, or even local events.',
   },
   {
-    question: "Isn't this just another app to download?",
+    question: 'Why not just use the apps I already have?',
     answer:
-      "Unlike your current stack where texts don't know what's in your emails, and your spreadsheet doesn't know what's in your group chat—ChravelApp's 8 tabs are fully interconnected. Your AI concierge can search your chat history, reference your itinerary, know your saved places, and factor in who owes what. One context-aware trip brain instead of 8 disconnected apps.",
+      "Unlike your current stack where texts don't know what's in your emails, and your spreadsheet doesn't know what's in your group chat—ChravelApp's 8 tabs are fully interconnected. Your AI concierge can search your calendar, polls, and outstanding tasks, and more. One context-aware trip brain instead of 8 disconnected apps.",
   },
   {
     question: 'What happens when I hit my 3-trip limit?',
