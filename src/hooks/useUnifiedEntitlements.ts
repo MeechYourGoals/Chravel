@@ -33,6 +33,7 @@ const FEATURE_LIMITS: Record<FeatureName, Partial<Record<SubscriptionTier, numbe
   approvals: { free: 0, 'pro-enterprise': -1 },
   quickbooks: { free: 0, 'pro-enterprise': -1 },
   audit: { free: 0, 'pro-enterprise': -1 },
+  voice_concierge: { free: 0, explorer: 0, 'frequent-chraveler': -1, 'pro-starter': -1 },
 };
 
 export interface UseUnifiedEntitlementsReturn {

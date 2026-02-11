@@ -91,7 +91,7 @@ export class ProductionNotificationService {
     }
 
     try {
-      const subscription = await this.serviceWorker.pushManager.subscribe({
+      const subscription = await (this.serviceWorker as any).pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(this.fcmVapidKey)
       });
@@ -321,7 +321,7 @@ export class ProductionNotificationService {
   async unsubscribe(userId: string): Promise<void> {
     try {
       if (this.serviceWorker) {
-        const subscription = await this.serviceWorker.pushManager.getSubscription();
+        const subscription = await (this.serviceWorker as any).pushManager.getSubscription();
         if (subscription) {
           await subscription.unsubscribe();
 

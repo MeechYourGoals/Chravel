@@ -224,6 +224,7 @@ const FEATURE_TO_ENTITLEMENTS: Record<FeatureName, EntitlementId[]> = {
   approvals: ['approval_workflows'],
   quickbooks: ['quickbooks_integration'],
   audit: ['compliance_audit'],
+  voice_concierge: ['voice_concierge'],
 };
 
 /**
@@ -349,6 +350,14 @@ const FEATURE_LIMITS: Record<FeatureName, Partial<Record<SubscriptionTier, numbe
     'frequent-chraveler': 0,
     'pro-starter': 0,
     'pro-growth': 0,
+    'pro-enterprise': -1,
+  },
+  voice_concierge: {
+    free: 0,
+    explorer: 0,
+    'frequent-chraveler': -1,
+    'pro-starter': -1,
+    'pro-growth': -1,
     'pro-enterprise': -1,
   },
 };

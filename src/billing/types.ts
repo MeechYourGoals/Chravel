@@ -49,7 +49,8 @@ export type EntitlementId =
   | 'logistics_management'    // Equipment/venue tracking
   | 'approval_workflows'      // Request approval flows
   | 'quickbooks_integration'  // Accounting integration
-  | 'compliance_audit';       // Audit logs
+  | 'compliance_audit'        // Audit logs
+  | 'voice_concierge';       // Grok Voice in AI Concierge
 
 /**
  * User subscription tiers
@@ -113,7 +114,8 @@ export type FeatureName =
   | 'logistics'
   | 'approvals'
   | 'quickbooks'
-  | 'audit';
+  | 'audit'
+  | 'voice_concierge';
 
 /**
  * Context for feature checks (usage counts, limits, etc.)

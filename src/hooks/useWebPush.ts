@@ -200,9 +200,9 @@ export function useWebPush(): UseWebPushReturn {
         return false;
       }
 
-      let subscription = await registration.pushManager.getSubscription();
+      let subscription = await (registration as any).pushManager.getSubscription();
       if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
+        subscription = await (registration as any).pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         });
@@ -247,7 +247,7 @@ export function useWebPush(): UseWebPushReturn {
 
     try {
       const registration = await getRegistration();
-      const subscription = await registration?.pushManager.getSubscription();
+      const subscription = await (registration as any)?.pushManager?.getSubscription();
       
       if (subscription) {
         await supabase.from('web_push_subscriptions')
@@ -274,7 +274,7 @@ export function useWebPush(): UseWebPushReturn {
       
       try {
         const registration = await getRegistration();
-        const subscription = await registration?.pushManager.getSubscription();
+        const subscription = await (registration as any)?.pushManager?.getSubscription();
         setState(prev => ({ ...prev, isSubscribed: !!subscription }));
       } catch {
         // Ignore

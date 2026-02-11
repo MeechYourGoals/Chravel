@@ -156,11 +156,11 @@ export class NotificationService {
 
     try {
       // Check for existing subscription
-      let subscription = await this.serviceWorker.pushManager.getSubscription();
+      let subscription = await (this.serviceWorker as any).pushManager.getSubscription();
       
       // Create new subscription if none exists
       if (!subscription) {
-        subscription = await this.serviceWorker.pushManager.subscribe({
+        subscription = await (this.serviceWorker as any).pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
@@ -612,7 +612,7 @@ export class NotificationService {
   async unsubscribe(userId: string): Promise<void> {
     try {
       if (this.serviceWorker) {
-        const subscription = await this.serviceWorker.pushManager.getSubscription();
+        const subscription = await (this.serviceWorker as any).pushManager.getSubscription();
         if (subscription) {
           // Remove from database
           await supabase

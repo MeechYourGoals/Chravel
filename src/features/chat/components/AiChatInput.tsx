@@ -1,6 +1,8 @@
 import React from 'react';
 import { Send, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { VoiceButton } from './VoiceButton';
+import type { VoiceState } from '@/hooks/useGrokVoice';
 
 interface AiChatInputProps {
   inputMessage: string;
@@ -15,6 +17,10 @@ interface AiChatInputProps {
     color: string;
   };
   onUpgradeClick?: () => void;
+  voiceState?: VoiceState;
+  isVoiceEligible?: boolean;
+  onVoiceToggle?: () => void;
+  onVoiceUpgrade?: () => void;
 }
 
 export const AiChatInput = ({ 
@@ -25,7 +31,11 @@ export const AiChatInput = ({
   isTyping,
   disabled = false,
   usageStatus,
-  onUpgradeClick
+  onUpgradeClick,
+  voiceState = 'idle',
+  isVoiceEligible = false,
+  onVoiceToggle,
+  onVoiceUpgrade,
 }: AiChatInputProps) => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -61,7 +71,7 @@ export const AiChatInput = ({
         </div>
       )}
 
-      <div className="chat-composer flex gap-3 items-end">
+      <div className="chat-composer flex gap-2 items-end">
         <textarea
           value={inputMessage}
           onChange={(e) => onInputChange(e.target.value)}
@@ -71,6 +81,14 @@ export const AiChatInput = ({
           disabled={disabled || isLimitReached}
           className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
         />
+        {onVoiceToggle && (
+          <VoiceButton
+            voiceState={voiceState}
+            isEligible={isVoiceEligible}
+            onToggle={onVoiceToggle}
+            onUpgrade={onVoiceUpgrade}
+          />
+        )}
         <button
           onClick={onSendMessage}
           disabled={!inputMessage.trim() || isTyping || disabled || isLimitReached}
