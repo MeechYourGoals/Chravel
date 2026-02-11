@@ -82,10 +82,16 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
     }]);
   }, []);
 
-  const { voiceState, userTranscript, assistantTranscript, errorMessage: voiceError, toggleVoice, stopVoice } = useGrokVoice(
+  const { voiceState, assistantTranscript, errorMessage: voiceError, toggleVoice, stopVoice } = useGrokVoice(
     handleVoiceUserMessage,
     handleVoiceAssistantMessage,
   );
+
+  useEffect(() => {
+    return () => {
+      stopVoice();
+    };
+  }, [stopVoice]);
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
