@@ -49,7 +49,11 @@ function base64ToInt16Array(base64: string): Int16Array {
 }
 
 // Downsample from browser sample rate to 16kHz for Gemini
-function downsampleBuffer(buffer: Float32Array, inputSampleRate: number, outputSampleRate: number): Float32Array {
+function downsampleBuffer(
+  buffer: Float32Array,
+  inputSampleRate: number,
+  outputSampleRate: number,
+): Float32Array {
   if (inputSampleRate === outputSampleRate) return buffer;
   const ratio = inputSampleRate / outputSampleRate;
   const newLength = Math.round(buffer.length / ratio);
@@ -65,7 +69,9 @@ function downsampleBuffer(buffer: Float32Array, inputSampleRate: number, outputS
 const CONNECT_TIMEOUT_MS = 10000;
 const GEMINI_SAMPLE_RATE = 16000; // Gemini Live uses 16kHz PCM
 const PLAYBACK_SAMPLE_RATE = 24000; // Gemini outputs 24kHz PCM
-const GEMINI_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+const GEMINI_WS_URL =
+  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+const GEMINI_VOICE_NAME = (import.meta.env.VITE_GEMINI_VOICE_NAME || 'Kore').trim();
 
 const SYSTEM_INSTRUCTION = `You are Chravel AI Concierge — a world-class travel expert with encyclopedic knowledge of destinations, cuisines, activities, logistics, and cultural tips worldwide. You help travelers with recommendations, planning, and real-time travel advice. You're warm, knowledgeable, and efficient. Keep responses conversational and concise since this is a voice conversation. When giving recommendations, be specific with names and addresses when possible.`;
 
@@ -145,7 +151,11 @@ export function useGeminiVoice(
     wsRef.current = null;
 
     activeSourcesRef.current.forEach(s => {
-      try { s.stop(); } catch { /* already stopped */ }
+      try {
+        s.stop();
+      } catch {
+        /* already stopped */
+      }
     });
     activeSourcesRef.current = [];
     nextPlayTimeRef.current = 0;
@@ -201,7 +211,11 @@ export function useGeminiVoice(
 
   const cancelPlayback = useCallback(() => {
     activeSourcesRef.current.forEach(s => {
-      try { s.stop(); } catch { /* noop */ }
+      try {
+        s.stop();
+      } catch {
+        /* noop */
+      }
     });
     activeSourcesRef.current = [];
     nextPlayTimeRef.current = 0;
@@ -336,14 +350,16 @@ export function useGeminiVoice(
       const pcm16 = float32ToInt16(downsampled);
       const base64Audio = arrayBufferToBase64(pcm16.buffer as ArrayBuffer);
 
-      ws.send(JSON.stringify({
-        realtimeInput: {
-          audio: {
-            mimeType: `audio/pcm;rate=${GEMINI_SAMPLE_RATE}`,
-            data: base64Audio,
+      ws.send(
+        JSON.stringify({
+          realtimeInput: {
+            audio: {
+              mimeType: `audio/pcm;rate=${GEMINI_SAMPLE_RATE}`,
+              data: base64Audio,
+            },
           },
-        },
-      }));
+        }),
+      );
     };
 
     source.connect(processor);
@@ -405,7 +421,9 @@ export function useGeminiVoice(
           },
         });
       } catch {
-        setErrorMessage('Microphone access denied. Please allow microphone in your browser settings.');
+        setErrorMessage(
+          'Microphone access denied. Please allow microphone in your browser settings.',
+        );
         setVoiceState('error');
         return;
       }
@@ -438,27 +456,31 @@ export function useGeminiVoice(
           return;
         }
 
-        console.log('[useGeminiVoice] WebSocket connected, sending setup');
+        console.log(
+          `[useGeminiVoice] WebSocket connected, sending setup (voice=${GEMINI_VOICE_NAME})`,
+        );
 
         // Send setup message
-        ws.send(JSON.stringify({
-          setup: {
-            model: 'models/gemini-2.5-flash-native-audio-preview-12-2025',
-            generationConfig: {
-              responseModalities: ['AUDIO', 'TEXT'],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: {
-                    voiceName: 'Kore',
+        ws.send(
+          JSON.stringify({
+            setup: {
+              model: 'models/gemini-2.5-flash-native-audio-preview-12-2025',
+              generationConfig: {
+                responseModalities: ['AUDIO', 'TEXT'],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: {
+                      voiceName: GEMINI_VOICE_NAME,
+                    },
                   },
                 },
               },
+              systemInstruction: {
+                parts: [{ text: SYSTEM_INSTRUCTION }],
+              },
             },
-            systemInstruction: {
-              parts: [{ text: SYSTEM_INSTRUCTION }],
-            },
-          },
-        }));
+          }),
+        );
 
         wsRef.current = ws;
         activeRef.current = true;
@@ -466,18 +488,16 @@ export function useGeminiVoice(
         startMicCapture(ws, stream);
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = event => {
         try {
-          const msg = typeof event.data === 'string'
-            ? JSON.parse(event.data)
-            : null;
+          const msg = typeof event.data === 'string' ? JSON.parse(event.data) : null;
           if (msg) handleServerMessage(msg);
         } catch (err) {
           console.warn('[useGeminiVoice] Failed to parse message:', err);
         }
       };
 
-      ws.onerror = (event) => {
+      ws.onerror = event => {
         clearTimeout(connectTimeout);
         console.error('[useGeminiVoice] WebSocket error:', event);
         // Always transition to error — no stale voiceState check
@@ -486,7 +506,7 @@ export function useGeminiVoice(
         cleanup();
       };
 
-      ws.onclose = (event) => {
+      ws.onclose = event => {
         clearTimeout(connectTimeout);
         console.log('[useGeminiVoice] WebSocket closed:', event.code, event.reason);
         if (activeRef.current) {
@@ -500,7 +520,6 @@ export function useGeminiVoice(
           cleanup();
         }
       };
-
     } catch (err) {
       if (isStaleAttempt()) return;
       const message = err instanceof Error ? err.message : 'Failed to start voice';
