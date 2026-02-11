@@ -29,6 +29,10 @@ const DEFAULT_SUPER_ADMIN_EMAILS = [
   'demetriusmills8@gmail.com',
   'meech@chravel.com',
 ];
+const GEMINI_EPHEMERAL_ENDPOINT = 'https://generativelanguage.googleapis.com/v1alpha/auth_tokens';
+const DEFAULT_TOKEN_USES = 1;
+const DEFAULT_TOKEN_EXPIRE_MINUTES = 30;
+const DEFAULT_NEW_SESSION_EXPIRE_SECONDS = 60;
 
 function parseSuperAdminAllowlist(): Set<string> {
   const envList = (Deno.env.get('SUPER_ADMIN_EMAILS') ?? '')
@@ -60,6 +64,76 @@ function isEligibleFromLegacyProfile(
   return ['frequent', 'pro-starter', 'pro-growth', 'pro-enterprise', 'consumer-frequent'].some(
     flag => productKey.includes(flag),
   );
+}
+
+function readBoundedIntEnv(envKey: string, fallback: number, min: number, max: number): number {
+  const rawValue = Deno.env.get(envKey);
+  if (!rawValue) return fallback;
+
+  const parsed = Number.parseInt(rawValue, 10);
+  if (Number.isNaN(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+interface GeminiAuthTokenResponse {
+  name?: string;
+  expireTime?: string;
+  newSessionExpireTime?: string;
+}
+
+async function createGeminiEphemeralToken(geminiApiKey: string) {
+  const expiresInMinutes = readBoundedIntEnv(
+    'GEMINI_EPHEMERAL_EXPIRE_MINUTES',
+    DEFAULT_TOKEN_EXPIRE_MINUTES,
+    1,
+    1200,
+  );
+  const newSessionExpiresInSeconds = readBoundedIntEnv(
+    'GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS',
+    DEFAULT_NEW_SESSION_EXPIRE_SECONDS,
+    10,
+    600,
+  );
+  const uses = readBoundedIntEnv('GEMINI_EPHEMERAL_USES', DEFAULT_TOKEN_USES, 1, 10);
+
+  const nowMs = Date.now();
+  const requestedExpireTime = new Date(nowMs + expiresInMinutes * 60 * 1000).toISOString();
+  const requestedNewSessionExpireTime = new Date(
+    nowMs + newSessionExpiresInSeconds * 1000,
+  ).toISOString();
+
+  const response = await fetch(
+    `${GEMINI_EPHEMERAL_ENDPOINT}?key=${encodeURIComponent(geminiApiKey)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uses,
+        expireTime: requestedExpireTime,
+        newSessionExpireTime: requestedNewSessionExpireTime,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    throw new Error(
+      `Token provisioning failed (${response.status}): ${responseText.slice(0, 500)}`,
+    );
+  }
+
+  const payload = (await response.json()) as GeminiAuthTokenResponse;
+  const tokenName = typeof payload?.name === 'string' ? payload.name.trim() : '';
+  if (!tokenName.startsWith('auth_tokens/')) {
+    throw new Error('Token provisioning succeeded but returned an invalid token name');
+  }
+
+  return {
+    tokenName,
+    expireTime: payload.expireTime ?? requestedExpireTime,
+    newSessionExpireTime: payload.newSessionExpireTime ?? requestedNewSessionExpireTime,
+    uses,
+  };
 }
 
 Deno.serve(async req => {
@@ -152,11 +226,36 @@ Deno.serve(async req => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    try {
+      const token = await createGeminiEphemeralToken(geminiApiKey);
 
-    return new Response(JSON.stringify({ api_key: geminiApiKey }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      return new Response(
+        JSON.stringify({
+          access_token: token.tokenName,
+          token_type: 'ephemeral',
+          api_version: 'v1alpha',
+          expire_time: token.expireTime,
+          new_session_expire_time: token.newSessionExpireTime,
+          uses: token.uses,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    } catch (tokenError) {
+      console.error('[gemini-voice-session] Failed to create ephemeral token:', tokenError);
+      return new Response(
+        JSON.stringify({
+          error: 'VOICE_TOKEN_CREATION_FAILED',
+          message: 'Unable to start secure voice session right now. Please try again.',
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
   } catch (error) {
     console.error('[gemini-voice-session] Unexpected error:', error);
     return new Response(JSON.stringify({ error: 'INTERNAL_SERVER_ERROR' }), {

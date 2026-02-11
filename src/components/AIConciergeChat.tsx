@@ -669,7 +669,7 @@ export const AIConciergeChat = ({
                 <div className="mt-2 rounded-md border border-white/20 bg-black/30 px-2 py-1 text-[10px] font-mono text-gray-300 space-y-0.5">
                   <div>
                     model={voiceDebugInfo.selectedModel} voice={voiceDebugInfo.selectedVoiceName}{' '}
-                    gate=
+                    auth={voiceDebugInfo.authMode ?? 'pending'} gate=
                     {voiceDebugInfo.gateAllowed === null
                       ? 'pending'
                       : voiceDebugInfo.gateAllowed

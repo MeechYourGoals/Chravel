@@ -1,17 +1,19 @@
 /**
  * useGeminiVoice – Realtime voice hook for Gemini Live API
  * Direct browser-to-Google WebSocket. No backend proxy needed.
- * Manages: API key retrieval, WebSocket, mic capture,
+ * Manages: ephemeral token retrieval, WebSocket, mic capture,
  * scheduled audio playback queue, server-side VAD, state machine.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export type VoiceState = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
+type VoiceAuthMode = 'ephemeral' | 'api_key';
 
 export interface VoiceDebugInfo {
   selectedModel: string;
   selectedVoiceName: string;
+  authMode: VoiceAuthMode | null;
   gateAllowed: boolean | null;
   gateStatus: number | null;
   gateCode: string | null;
@@ -86,8 +88,7 @@ const CONNECT_TIMEOUT_MS = 10000;
 const GEMINI_SAMPLE_RATE = 16000; // Gemini Live uses 16kHz PCM
 const PLAYBACK_SAMPLE_RATE = 24000; // Gemini outputs 24kHz PCM
 const MIC_PROCESSOR_BUFFER_SIZE = 1024; // ~20-25ms chunks on common device sample rates
-const GEMINI_WS_URL =
-  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+const GEMINI_WS_BASE_URL = 'wss://generativelanguage.googleapis.com/ws';
 const GEMINI_LIVE_MODEL = (import.meta.env.VITE_GEMINI_LIVE_MODEL ||
   'models/gemini-2.5-flash-native-audio-preview-12-2025') as string;
 const GEMINI_VOICE_NAME = (import.meta.env.VITE_GEMINI_VOICE_NAME || 'Kore').trim();
@@ -98,6 +99,13 @@ interface ParsedInvokeError {
   status?: number;
   code?: string;
   message: string;
+}
+
+interface LiveWebSocketConfig {
+  url: string;
+  apiVersion: 'v1alpha' | 'v1beta';
+  method: 'BidiGenerateContentConstrained' | 'BidiGenerateContent';
+  authMode: VoiceAuthMode;
 }
 
 async function parseInvokeError(error: unknown): Promise<ParsedInvokeError> {
@@ -127,6 +135,23 @@ async function parseInvokeError(error: unknown): Promise<ParsedInvokeError> {
   return parsed;
 }
 
+function buildLiveWebSocketConfig(authCredential: string): LiveWebSocketConfig {
+  const isEphemeralToken = authCredential.startsWith('auth_tokens/');
+  const apiVersion: LiveWebSocketConfig['apiVersion'] = isEphemeralToken ? 'v1alpha' : 'v1beta';
+  const method: LiveWebSocketConfig['method'] = isEphemeralToken
+    ? 'BidiGenerateContentConstrained'
+    : 'BidiGenerateContent';
+  const queryKey = isEphemeralToken ? 'access_token' : 'key';
+  const url = `${GEMINI_WS_BASE_URL}/google.ai.generativelanguage.${apiVersion}.GenerativeService.${method}?${queryKey}=${encodeURIComponent(authCredential)}`;
+
+  return {
+    url,
+    apiVersion,
+    method,
+    authMode: isEphemeralToken ? 'ephemeral' : 'api_key',
+  };
+}
+
 export function useGeminiVoice(
   onUserMessage?: (text: string) => void,
   onAssistantMessage?: (text: string) => void,
@@ -141,6 +166,7 @@ export function useGeminiVoice(
   const [debugInfo, setDebugInfo] = useState<VoiceDebugInfo>({
     selectedModel: GEMINI_LIVE_MODEL,
     selectedVoiceName: GEMINI_VOICE_NAME,
+    authMode: null,
     gateAllowed: null,
     gateStatus: null,
     gateCode: null,
@@ -435,6 +461,7 @@ export function useGeminiVoice(
     updateDebugInfo({
       selectedModel: GEMINI_LIVE_MODEL,
       selectedVoiceName: GEMINI_VOICE_NAME,
+      authMode: null,
       gateAllowed: null,
       gateStatus: null,
       gateCode: null,
@@ -448,7 +475,7 @@ export function useGeminiVoice(
     });
 
     try {
-      // 1. Get Gemini API key from edge function (auth + tier gated)
+      // 1. Get ephemeral Live token from edge function (auth + tier gated)
       const { data, error } = await supabase.functions.invoke('gemini-voice-session', {
         body: {},
       });
@@ -487,9 +514,14 @@ export function useGeminiVoice(
         return;
       }
 
-      const apiKey = data?.api_key;
-      if (!apiKey) throw new Error('No API key received');
+      const accessTokenFromEdge =
+        typeof data?.access_token === 'string' ? data.access_token.trim() : '';
+      const apiKeyFallback = typeof data?.api_key === 'string' ? data.api_key.trim() : '';
+      const authCredential = accessTokenFromEdge || apiKeyFallback;
+      if (!authCredential) throw new Error('No Live auth credential received');
+      const wsConfig = buildLiveWebSocketConfig(authCredential);
       updateDebugInfo({
+        authMode: wsConfig.authMode,
         gateAllowed: true,
         gateStatus: 200,
         gateCode: null,
@@ -525,7 +557,7 @@ export function useGeminiVoice(
       streamRef.current = stream;
 
       // 3. Connect WebSocket directly to Gemini Live API
-      const wsUrl = `${GEMINI_WS_URL}?key=${apiKey}`;
+      const wsUrl = wsConfig.url;
       const ws = new WebSocket(wsUrl);
       ws.binaryType = 'arraybuffer';
       updateDebugInfo({ wsPhase: 'connecting' });
@@ -549,7 +581,7 @@ export function useGeminiVoice(
         updateDebugInfo({ wsPhase: 'open' });
 
         console.log(
-          `[useGeminiVoice] WebSocket connected, sending setup (model=${GEMINI_LIVE_MODEL}, voice=${GEMINI_VOICE_NAME})`,
+          `[useGeminiVoice] WebSocket connected, sending setup (apiVersion=${wsConfig.apiVersion}, method=${wsConfig.method}, model=${GEMINI_LIVE_MODEL}, voice=${GEMINI_VOICE_NAME})`,
         );
 
         // Send setup message
