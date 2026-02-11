@@ -38,20 +38,20 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
 
   const getStyle = () => {
     if (!isEligible) {
-      return 'bg-white/5 text-neutral-500 cursor-pointer hover:bg-white/10';
+      return 'bg-gradient-to-br from-amber-500/40 to-yellow-600/40 text-neutral-400 cursor-pointer hover:from-amber-500/50 hover:to-yellow-600/50';
     }
     switch (voiceState) {
       case 'listening':
-        return 'bg-green-500/20 text-green-400 ring-2 ring-green-500/40 animate-pulse';
+        return 'bg-gradient-to-br from-green-400 to-emerald-500 text-white ring-2 ring-green-400/50 animate-pulse shadow-lg shadow-green-500/30';
       case 'thinking':
       case 'connecting':
-        return 'bg-purple-500/20 text-purple-400';
+        return 'bg-gradient-to-br from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-500/30';
       case 'speaking':
-        return 'bg-blue-500/20 text-blue-400 ring-2 ring-blue-500/40';
+        return 'bg-gradient-to-br from-blue-400 to-cyan-500 text-white ring-2 ring-blue-400/50 shadow-lg shadow-blue-500/30';
       case 'error':
-        return 'bg-red-500/20 text-red-400';
+        return 'bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30';
       default:
-        return 'bg-white/5 text-white hover:bg-white/10';
+        return 'bg-gradient-to-br from-amber-400 to-yellow-500 text-white hover:from-amber-300 hover:to-yellow-400 shadow-lg shadow-amber-500/25';
     }
   };
 
@@ -73,12 +73,12 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
         <TooltipTrigger asChild>
           <button
             onClick={handleClick}
-            className={`relative size-10 rounded-full flex items-center justify-center transition-all duration-200 ${getStyle()}`}
+            className={`relative size-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${getStyle()}`}
             aria-label={getTooltip()}
           >
             {getIcon()}
             {!isEligible && (
-              <Lock size={8} className="absolute -top-0.5 -right-0.5 text-amber-400" />
+              <Lock size={8} className="absolute -top-0.5 -right-0.5 text-white drop-shadow-md" />
             )}
           </button>
         </TooltipTrigger>
