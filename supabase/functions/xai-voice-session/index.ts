@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Use documented client_secrets endpoint for ephemeral tokens
     const xaiResponse = await fetch("https://api.x.ai/v1/realtime/sessions", {
       method: "POST",
       headers: {
@@ -93,10 +94,12 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "grok-3-fast",
         voice: "Sage",
+        modalities: ["text", "audio"],
         instructions: "You are Chravel AI Concierge. Be concise, travel-smart, and action-oriented. Prefer actionable answers and bullets. Keep responses under 30 seconds of speech.",
         turn_detection: { type: "server_vad" },
         input_audio_format: "pcm16",
         output_audio_format: "pcm16",
+        input_audio_transcription: { model: "grok-3-mini" },
       }),
     });
 

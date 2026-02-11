@@ -38,7 +38,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
 
   const getStyle = () => {
     if (!isEligible) {
-      return 'bg-gradient-to-br from-amber-500/40 to-yellow-600/40 text-neutral-400 cursor-pointer hover:from-amber-500/50 hover:to-yellow-600/50';
+      return 'bg-gradient-to-r from-indigo-600/40 to-purple-600/40 text-neutral-400 cursor-pointer hover:from-indigo-600/50 hover:to-purple-600/50';
     }
     switch (voiceState) {
       case 'listening':
@@ -51,7 +51,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
       case 'error':
         return 'bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30';
       default:
-        return 'bg-gradient-to-br from-amber-400 to-yellow-500 text-white hover:from-amber-300 hover:to-yellow-400 shadow-lg shadow-amber-500/25';
+        return 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:opacity-90 shadow-lg shadow-purple-500/25';
     }
   };
 
