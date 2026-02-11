@@ -45,7 +45,7 @@ class WebPushNotificationService implements PushNotificationService {
 
     try {
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.subscribe({
+      const subscription = await (registration as any).pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(
           import.meta.env.VITE_VAPID_PUBLIC_KEY || ''

@@ -95,3 +95,6 @@ verify_jwt = true
 
 [functions.scrape-agenda]
 verify_jwt = true
+
+[functions.xai-voice-session]
+verify_jwt = false

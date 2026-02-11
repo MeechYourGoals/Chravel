@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { CheckCircle, Search, AlertCircle, Crown, Clock, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { CheckCircle, Search, AlertCircle, Crown, Clock, Sparkles, Mic } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
 import { TripContextService } from '../services/tripContextService';
@@ -13,6 +13,8 @@ import { conciergeRateLimitService } from '../services/conciergeRateLimitService
 import { useAuth } from '../hooks/useAuth';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
+import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
+import { useGrokVoice } from '../hooks/useGrokVoice';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { conciergeCacheService } from '../services/conciergeCacheService';
@@ -50,6 +52,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const { user } = useAuth();
   const { usage, getUsageStatus, isFreeUser, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
+  const { canUse, isPro, isSuperAdmin } = useUnifiedEntitlements();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -57,6 +60,32 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const [remainingQueries, setRemainingQueries] = useState<number>(Infinity);
   const [isUsingCachedResponse, setIsUsingCachedResponse] = useState(false);
   const [initTimedOut, setInitTimedOut] = useState(false);
+
+  // Voice: eligibility and hook
+  const isVoiceEligible = canUse('voice_concierge') || isPro || isSuperAdmin || isDemoMode;
+
+  const handleVoiceUserMessage = useCallback((text: string) => {
+    setMessages(prev => [...prev, {
+      id: `voice-user-${Date.now()}`,
+      type: 'user',
+      content: `🎤 ${text}`,
+      timestamp: new Date().toISOString(),
+    }]);
+  }, []);
+
+  const handleVoiceAssistantMessage = useCallback((text: string) => {
+    setMessages(prev => [...prev, {
+      id: `voice-assistant-${Date.now()}`,
+      type: 'assistant',
+      content: text,
+      timestamp: new Date().toISOString(),
+    }]);
+  }, []);
+
+  const { voiceState, userTranscript, assistantTranscript, errorMessage: voiceError, toggleVoice, stopVoice } = useGrokVoice(
+    handleVoiceUserMessage,
+    handleVoiceAssistantMessage,
+  );
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
@@ -466,10 +495,29 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         </div>
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-white">AI Concierge</h3>
-          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
-              <CheckCircle size={16} className="text-green-400" />
-              <span className="text-xs text-green-400">Ready with Web Search</span>
+              {voiceState === 'listening' ? (
+                <>
+                  <Mic size={16} className="text-green-400 animate-pulse" />
+                  <span className="text-xs text-green-400">Listening...</span>
+                </>
+              ) : voiceState === 'thinking' ? (
+                <>
+                  <Mic size={16} className="text-purple-400" />
+                  <span className="text-xs text-purple-400">Thinking...</span>
+                </>
+              ) : voiceState === 'speaking' ? (
+                <>
+                  <Mic size={16} className="text-blue-400" />
+                  <span className="text-xs text-blue-400">Speaking... Tap to interrupt</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} className="text-green-400" />
+                  <span className="text-xs text-green-400">Ready with Web Search</span>
+                </>
+              )}
             </div>
             
             {/* Usage status for free users */}
@@ -609,6 +657,10 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             disabled={aiStatus === 'error' || (isFreeUser && usage?.isLimitReached)}
             usageStatus={getUsageStatus()}
             onUpgradeClick={() => window.location.href = upgradeUrl}
+            voiceState={voiceState}
+            isVoiceEligible={isVoiceEligible}
+            onVoiceToggle={toggleVoice}
+            onVoiceUpgrade={() => window.location.href = upgradeUrl}
           />
           <div className="text-center mt-1">
             <span className="text-xs text-gray-500">🔒 This conversation is private to you</span>
