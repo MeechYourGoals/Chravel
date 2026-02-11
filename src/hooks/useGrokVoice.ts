@@ -100,7 +100,11 @@ export function useGrokVoice(
 
     // Stop all playing audio sources
     activeSourcesRef.current.forEach(s => {
-      try { s.stop(); } catch { /* already stopped */ }
+      try {
+        s.stop();
+      } catch {
+        /* already stopped */
+      }
     });
     activeSourcesRef.current = [];
     nextPlayTimeRef.current = 0;
@@ -157,99 +161,114 @@ export function useGrokVoice(
 
   const cancelPlayback = useCallback(() => {
     activeSourcesRef.current.forEach(s => {
-      try { s.stop(); } catch { /* noop */ }
+      try {
+        s.stop();
+      } catch {
+        /* noop */
+      }
     });
     activeSourcesRef.current = [];
     nextPlayTimeRef.current = 0;
   }, []);
 
   // ---------- server event handler ----------
-  const handleServerEvent = useCallback((msg: any) => {
-    const type: string = msg.type || '';
+  const handleServerEvent = useCallback(
+    (msg: any) => {
+      const type: string = msg.type || '';
 
-    // Normalize xAI / OpenAI event name variants
-    if (type === 'input_audio_buffer.speech_started') {
-      setVoiceState('listening');
-      return;
-    }
-
-    if (type === 'input_audio_buffer.speech_stopped') {
-      setVoiceState('thinking');
-      // VAD-driven: auto-commit + request response
-      const ws = wsRef.current;
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-        ws.send(JSON.stringify({
-          type: 'response.create',
-          response: { modalities: ['text', 'audio'] },
-        }));
-      }
-      return;
-    }
-
-    if (type === 'conversation.item.input_audio_transcription.completed') {
-      if (msg.transcript) {
-        setUserTranscript(msg.transcript);
-        onUserMessage?.(msg.transcript);
-      }
-      return;
-    }
-
-    // Assistant transcript delta (both naming conventions)
-    if (type === 'response.audio_transcript.delta' || type === 'response.output_audio_transcript.delta') {
-      if (msg.delta) {
-        assistantTextRef.current += msg.delta;
-        setAssistantTranscript(assistantTextRef.current);
-        setVoiceState('speaking');
-        // Pause mic during speaking
-        shouldStreamRef.current = false;
-      }
-      return;
-    }
-
-    // Assistant audio delta (both naming conventions)
-    if (type === 'response.audio.delta' || type === 'response.output_audio.delta') {
-      if (msg.delta) {
-        playAudioChunk(msg.delta);
-        setVoiceState('speaking');
-        shouldStreamRef.current = false;
-      }
-      return;
-    }
-
-    if (type === 'response.audio_transcript.done' || type === 'response.output_audio_transcript.done') {
-      if (assistantTextRef.current) {
-        onAssistantMessage?.(assistantTextRef.current);
-      }
-      return;
-    }
-
-    if (type === 'response.done') {
-      assistantTextRef.current = '';
-      setAssistantTranscript('');
-      if (activeRef.current) {
+      // Normalize xAI / OpenAI event name variants
+      if (type === 'input_audio_buffer.speech_started') {
         setVoiceState('listening');
-        shouldStreamRef.current = true; // resume mic
+        return;
       }
-      return;
-    }
 
-    if (type === 'error') {
-      if (import.meta.env.DEV) {
-        console.error('[useGrokVoice] Server error:', msg.error);
+      if (type === 'input_audio_buffer.speech_stopped') {
+        setVoiceState('thinking');
+        // VAD-driven: auto-commit + request response
+        const ws = wsRef.current;
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+          ws.send(
+            JSON.stringify({
+              type: 'response.create',
+              response: { modalities: ['text', 'audio'] },
+            }),
+          );
+        }
+        return;
       }
-      setErrorMessage(msg.error?.message || 'Voice error');
-      setVoiceState('error');
-      return;
-    }
 
-    if (type === 'session.created' || type === 'session.updated') {
-      if (import.meta.env.DEV) {
-        console.log('[useGrokVoice] Session event:', type);
+      if (type === 'conversation.item.input_audio_transcription.completed') {
+        if (msg.transcript) {
+          setUserTranscript(msg.transcript);
+          onUserMessage?.(msg.transcript);
+        }
+        return;
       }
-      return;
-    }
-  }, [onUserMessage, onAssistantMessage, playAudioChunk]);
+
+      // Assistant transcript delta (both naming conventions)
+      if (
+        type === 'response.audio_transcript.delta' ||
+        type === 'response.output_audio_transcript.delta'
+      ) {
+        if (msg.delta) {
+          assistantTextRef.current += msg.delta;
+          setAssistantTranscript(assistantTextRef.current);
+          setVoiceState('speaking');
+          // Pause mic during speaking
+          shouldStreamRef.current = false;
+        }
+        return;
+      }
+
+      // Assistant audio delta (both naming conventions)
+      if (type === 'response.audio.delta' || type === 'response.output_audio.delta') {
+        if (msg.delta) {
+          playAudioChunk(msg.delta);
+          setVoiceState('speaking');
+          shouldStreamRef.current = false;
+        }
+        return;
+      }
+
+      if (
+        type === 'response.audio_transcript.done' ||
+        type === 'response.output_audio_transcript.done'
+      ) {
+        if (assistantTextRef.current) {
+          onAssistantMessage?.(assistantTextRef.current);
+        }
+        return;
+      }
+
+      if (type === 'response.done') {
+        assistantTextRef.current = '';
+        setAssistantTranscript('');
+        if (activeRef.current) {
+          setVoiceState('listening');
+          shouldStreamRef.current = true; // resume mic
+        }
+        return;
+      }
+
+      if (type === 'error') {
+        if (import.meta.env.DEV) {
+          console.error('[useGrokVoice] Server error:', msg.error);
+        }
+        setErrorMessage(msg.error?.message || 'Voice error');
+        setVoiceState('error');
+        return;
+      }
+
+      if (type === 'session.created' || type === 'session.updated') {
+        if (import.meta.env.DEV) {
+          console.log('[useGrokVoice] Session event:', type);
+        }
+        return;
+      }
+    },
+    [onUserMessage, onAssistantMessage, playAudioChunk],
+  );
 
   // ---------- mic capture ----------
   const startMicCapture = useCallback((ws: WebSocket, stream: MediaStream) => {
@@ -259,7 +278,7 @@ export function useGrokVoice(
     const processor = audioCtx.createScriptProcessor(4096, 1, 1);
     processorRef.current = processor;
 
-    processor.onaudioprocess = (e) => {
+    processor.onaudioprocess = e => {
       if (!activeRef.current || ws.readyState !== WebSocket.OPEN) return;
       // Only stream mic data when we should (not during playback)
       if (!shouldStreamRef.current) return;
@@ -267,10 +286,12 @@ export function useGrokVoice(
       const inputData = e.inputBuffer.getChannelData(0);
       const pcm16 = float32ToInt16(inputData);
       const base64Audio = arrayBufferToBase64(pcm16.buffer as ArrayBuffer);
-      ws.send(JSON.stringify({
-        type: 'input_audio_buffer.append',
-        audio: base64Audio,
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'input_audio_buffer.append',
+          audio: base64Audio,
+        }),
+      );
     };
 
     source.connect(processor);
@@ -293,13 +314,16 @@ export function useGrokVoice(
       });
 
       if (error) {
-        throw new Error((error as any)?.message || 'Failed to start voice session');
-      }
-
-      if (data?.error === 'VOICE_NOT_INCLUDED') {
-        setErrorMessage('Voice is available on Frequent Chraveler and Pro plans');
-        setVoiceState('error');
-        return;
+        // For non-2xx responses, Supabase puts the parsed body in error.context
+        const errorBody = (error as any)?.context;
+        if (errorBody?.error === 'VOICE_NOT_INCLUDED') {
+          setErrorMessage('Voice is available on Frequent Chraveler and Pro plans');
+          setVoiceState('error');
+          return;
+        }
+        throw new Error(
+          errorBody?.error || (error as any)?.message || 'Failed to start voice session',
+        );
       }
 
       // Support both response shapes: { client_secret: { value } } or { value }
@@ -320,7 +344,9 @@ export function useGrokVoice(
           },
         });
       } catch {
-        setErrorMessage('Microphone access denied. Please allow microphone in your browser settings.');
+        setErrorMessage(
+          'Microphone access denied. Please allow microphone in your browser settings.',
+        );
         setVoiceState('error');
         return;
       }
@@ -328,10 +354,7 @@ export function useGrokVoice(
 
       // 3. Connect WebSocket with subprotocol auth (OpenAI-compatible)
       const wsUrl = 'wss://api.x.ai/v1/realtime?model=grok-3-fast';
-      const ws = new WebSocket(wsUrl, [
-        'realtime',
-        `openai-insecure-api-key.${ephemeralToken}`,
-      ]);
+      const ws = new WebSocket(wsUrl, ['realtime', `openai-insecure-api-key.${ephemeralToken}`]);
       ws.binaryType = 'arraybuffer';
 
       // Connection timeout
@@ -355,18 +378,21 @@ export function useGrokVoice(
         }
 
         // Send session.update with full voice agent config
-        ws.send(JSON.stringify({
-          type: 'session.update',
-          session: {
-            modalities: ['text', 'audio'],
-            voice: 'Sage',
-            instructions: 'You are Chravel AI Concierge, a world-class travel expert. Be concise, travel-smart, and action-oriented. Prefer actionable answers and bullets. Keep responses under 30 seconds of speech. Answer travel-related questions with enthusiasm.',
-            input_audio_format: 'pcm16',
-            output_audio_format: 'pcm16',
-            input_audio_transcription: { model: 'grok-3-mini' },
-            turn_detection: { type: 'server_vad' },
-          },
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'session.update',
+            session: {
+              modalities: ['text', 'audio'],
+              voice: 'Sage',
+              instructions:
+                'You are Chravel AI Concierge, a world-class travel expert. Be concise, travel-smart, and action-oriented. Prefer actionable answers and bullets. Keep responses under 30 seconds of speech. Answer travel-related questions with enthusiasm.',
+              input_audio_format: 'pcm16',
+              output_audio_format: 'pcm16',
+              input_audio_transcription: { model: 'grok-3-mini' },
+              turn_detection: { type: 'server_vad' },
+            },
+          }),
+        );
 
         // Start mic capture
         shouldStreamRef.current = true;
@@ -374,7 +400,7 @@ export function useGrokVoice(
         setVoiceState('listening');
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = event => {
         if (typeof event.data !== 'string') return;
         try {
           const msg = JSON.parse(event.data);
@@ -393,7 +419,7 @@ export function useGrokVoice(
         }
       };
 
-      ws.onclose = (event) => {
+      ws.onclose = event => {
         if (import.meta.env.DEV) {
           console.log('[useGrokVoice] WS closed:', event.code, event.reason);
         }
@@ -439,10 +465,12 @@ export function useGrokVoice(
       const ws = wsRef.current;
       if (ws?.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-        ws.send(JSON.stringify({
-          type: 'response.create',
-          response: { modalities: ['text', 'audio'] },
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'response.create',
+            response: { modalities: ['text', 'audio'] },
+          }),
+        );
       }
       setVoiceState('thinking');
     } else if (voiceState === 'speaking') {

@@ -81,6 +81,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'pro_trip_creation',
       'events_create',
       'events_attendees_100',
+      'voice_concierge',
     ],
   },
 
@@ -122,6 +123,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'channels_enabled',
       'roles_enabled',
       'roster_management',
+      'voice_concierge',
     ],
   },
 
@@ -147,6 +149,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'logistics_management',
       'events_create',
       'events_attendees_200',
+      'voice_concierge',
     ],
   },
 
@@ -175,6 +178,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
       'approval_workflows',
       'quickbooks_integration',
       'compliance_audit',
+      'voice_concierge',
     ],
   },
 };
@@ -311,8 +315,8 @@ export function requiresIAPOnIOS(productKey: string): boolean {
  * Map of tiers to their entitlements (for unified store)
  */
 export const TIER_ENTITLEMENTS: Record<SubscriptionTier, EntitlementId[]> = {
-  'free': FREE_ENTITLEMENTS,
-  'explorer': BILLING_PRODUCTS['consumer-explorer'].entitlements,
+  free: FREE_ENTITLEMENTS,
+  explorer: BILLING_PRODUCTS['consumer-explorer'].entitlements,
   'frequent-chraveler': BILLING_PRODUCTS['consumer-frequent-chraveler'].entitlements,
   'pro-starter': BILLING_PRODUCTS['pro-starter'].entitlements,
   'pro-growth': BILLING_PRODUCTS['pro-growth'].entitlements,

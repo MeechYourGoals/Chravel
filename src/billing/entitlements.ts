@@ -1,20 +1,16 @@
 /**
  * Entitlements Engine
- * 
+ *
  * Core functions for checking user entitlements and feature access.
  * Platform-agnostic - works the same on web, iOS, and Android.
  */
 
 import { supabase } from '@/integrations/supabase/client';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
-import { 
-  BILLING_PRODUCTS, 
-  FREE_ENTITLEMENTS,
-  getTierFromStripeProductId,
-} from './config';
-import type { 
-  EntitlementId, 
-  UserEntitlements, 
+import { BILLING_PRODUCTS, FREE_ENTITLEMENTS, getTierFromStripeProductId } from './config';
+import type {
+  EntitlementId,
+  UserEntitlements,
   SubscriptionTier,
   FeatureName,
   FeatureContext,
@@ -23,35 +19,37 @@ import type {
 
 /**
  * Get entitlements for a user
- * 
+ *
  * Checks Supabase profile for subscription data, then maps to entitlements.
  * In the future, this will also check Apple/Google receipts for native purchases.
  */
 export async function getEntitlements(userId: string): Promise<UserEntitlements> {
   try {
     // Get user email for super admin check
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     const email = user?.email?.toLowerCase();
-    
+
     // Super admins get all entitlements
     if (email && SUPER_ADMIN_EMAILS.includes(email)) {
       return createSuperAdminEntitlements();
     }
-    
+
     // Check subscription via Edge Function
     const { data, error } = await supabase.functions.invoke('check-subscription');
-    
+
     if (error) {
       console.error('[Entitlements] Error checking subscription:', error);
       return createFreeEntitlements();
     }
-    
+
     const { subscribed, product_id, tier, subscription_end, stripe_customer_id } = data;
-    
+
     if (!subscribed) {
       return createFreeEntitlements();
     }
-    
+
     // Determine tier from response or product_id
     let userTier: SubscriptionTier = 'free';
     if (tier) {
@@ -59,10 +57,10 @@ export async function getEntitlements(userId: string): Promise<UserEntitlements>
     } else if (product_id) {
       userTier = getTierFromStripeProductId(product_id);
     }
-    
+
     // Get entitlements for this tier
     const entitlements = getEntitlementsForTier(userTier);
-    
+
     return {
       entitlements: new Set(entitlements),
       tier: userTier,
@@ -82,17 +80,17 @@ export async function getEntitlements(userId: string): Promise<UserEntitlements>
 export function canUseFeature(
   feature: FeatureName,
   entitlements: UserEntitlements | null,
-  context?: FeatureContext
+  context?: FeatureContext,
 ): boolean {
   if (!entitlements) {
     return canUseFreeFeature(feature, context);
   }
-  
+
   const requiredEntitlements = FEATURE_TO_ENTITLEMENTS[feature];
   if (!requiredEntitlements || requiredEntitlements.length === 0) {
     return true; // Feature doesn't require any entitlements
   }
-  
+
   // Check if user has ANY of the required entitlements
   return requiredEntitlements.some(ent => entitlements.entitlements.has(ent));
 }
@@ -103,11 +101,11 @@ export function canUseFeature(
  */
 export function getFeatureLimit(
   feature: FeatureName,
-  entitlements: UserEntitlements | null
+  entitlements: UserEntitlements | null,
 ): number {
   const limits = FEATURE_LIMITS[feature];
   if (!limits) return -1; // No limits defined = unlimited
-  
+
   const tier = entitlements?.tier || 'free';
   return limits[tier] ?? limits.free ?? -1;
 }
@@ -117,22 +115,22 @@ export function getFeatureLimit(
  */
 function canUseFreeFeature(feature: FeatureName, context?: FeatureContext): boolean {
   const freeLimit = FEATURE_LIMITS[feature]?.free;
-  
+
   // No limit defined = not available to free users
   if (freeLimit === undefined || freeLimit === 0) {
     return false;
   }
-  
+
   // Unlimited for free
   if (freeLimit === -1) {
     return true;
   }
-  
+
   // Check usage context
   if (context?.usageCount !== undefined) {
     return context.usageCount < freeLimit;
   }
-  
+
   return true;
 }
 
@@ -143,23 +141,23 @@ export function getEntitlementsForTier(tier: SubscriptionTier): EntitlementId[] 
   if (tier === 'free') {
     return [...FREE_ENTITLEMENTS];
   }
-  
+
   // Find the product for this tier
   for (const [key, product] of Object.entries(BILLING_PRODUCTS)) {
     const tierKeys = Object.entries({
-      'explorer': 'consumer-explorer',
+      explorer: 'consumer-explorer',
       'frequent-chraveler': 'consumer-frequent-chraveler',
       'pro-starter': 'pro-starter',
       'pro-growth': 'pro-growth',
       'pro-enterprise': 'pro-enterprise',
     });
-    
+
     const match = tierKeys.find(([t, pk]) => t === tier && pk === key);
     if (match) {
       return [...product.entitlements];
     }
   }
-  
+
   return [...FREE_ENTITLEMENTS];
 }
 
@@ -195,8 +193,9 @@ function createSuperAdminEntitlements(): UserEntitlements {
     'approval_workflows',
     'quickbooks_integration',
     'compliance_audit',
+    'voice_concierge',
   ];
-  
+
   return {
     entitlements: new Set(allEntitlements),
     tier: 'pro-enterprise',
