@@ -1,88 +1,118 @@
 
 
-# Fix Smart Import Hang + Permission Race Condition
+# Voice Assistant Options + Build Error Fix
 
-## Issue 1: Smart Import Hangs at "Importing 29 events..."
+## Build Error Fix (Quick)
 
-### Root Cause
+The TypeScript error on line 90 of `useConsumerSubscription.tsx` is a type mismatch: `userTier` can be `'pro-starter' | 'pro-growth' | 'pro-enterprise'` but `ConsumerSubscription.tier` in `src/types/consumer.ts` only allows `'free' | 'explorer' | 'frequent-chraveler'`. Fix: widen the `ConsumerSubscription.tier` type to include pro tiers.
 
-The `bulkCreateEvents` method in `calendarService.ts` has a threshold at line 636: `if (rows.length <= 20)` it tries a single bulk insert. For 29 events (above 20), it falls through to `batchInsertEvents` which does **sequential one-by-one inserts with 100ms delays**.
-
-29 individual network round trips (each 200-500ms) + 2.8s delays = ~8-17 seconds under ideal conditions. However, the actual hang ("several minutes") points to a deeper problem:
-
-1. **No unique constraint on trip_events**: The database has no unique index on `(trip_id, title, start_time)`. Your previous Lakers import already inserted these events. The `findDuplicateEvents` function checks against `existingEvents` passed as a prop -- but this is populated from the calendar query cache, which may not include all events (e.g., if only the current month's events are loaded, or the 1000-row Supabase default limit is hit).
-
-2. **RLS policy overhead per insert**: Each individual INSERT triggers the RLS `WITH CHECK` policy which runs a subquery against `trip_members` AND `trips`. 29 sequential subqueries add latency.
-
-3. **No timeout or progress feedback**: The modal shows a static "This should only take a moment" with no progress indicator, no timeout, and no way to cancel. If any single insert hangs (network issue, RLS evaluation delay), the entire chain stalls silently.
-
-### Fix
-
-**A. Raise the bulk insert threshold from 20 to 50** so 29 events use the fast single-insert path instead of sequential one-by-one.
-
-**B. Allow duplicates (skip-on-conflict at DB level is not possible without a unique constraint, so we just insert and let them through)**. This matches your preference: "allow duplicates to make sure imports don't fail." The client-side `findDuplicateEvents` will still flag known duplicates in the preview, but it won't block the import if some slip through.
-
-**C. Add a 30-second timeout to the entire import** so it never hangs forever. If the timeout fires, report partial progress.
-
-**D. Add a progress counter** to the importing state so users see "Importing 5/29..." instead of a static message.
-
-**E. Wrap the entire import in a try/catch with guaranteed state transition** to `complete` (or `error`), so the modal never gets stuck.
+| File | Change |
+|------|--------|
+| `src/types/consumer.ts` | Add `'pro-starter' \| 'pro-growth' \| 'pro-enterprise'` to the `tier` field |
 
 ---
 
-## Issue 2: "Permission denied" Toast When Clicking Smart Import Immediately
+## Voice Assistant: Your Three Options
 
-### Root Cause
+### Option A: Web Speech API (FREE, Zero Dependencies, Works Today)
 
-Found it in `src/components/GroupCalendar.tsx` lines 73-84:
+The browser has a built-in speech engine. No API keys, no WebSockets, no edge functions, no new packages.
 
-```typescript
-const handleImport = useCallback(() => {
-  if (!canPerformAction('calendar', 'can_edit_events')) {
-    toast({ title: 'Permission denied', ... });
-    return;
-  }
-  setShowImportModal(true);
-}, [canPerformAction, toast]);
-```
+How it works:
+1. User taps mic -> browser's `SpeechRecognition` captures speech to text
+2. That text is sent through your **existing** AI Concierge text pipeline (the `gemini-chat` / `lovable-concierge` edge function that already works)
+3. Browser's `SpeechSynthesis` reads the response aloud
 
-`canPerformAction` comes from `useRolePermissions(tripId)` which is **async** -- it starts in `isLoading: true` state and `featurePermissions: null`. While loading, `canPerformAction` returns `false` because it hits the `if (!featurePermissions) return false` check at line 126.
+Pros:
+- Zero cost, zero setup, zero new API keys
+- Works offline for the STT portion
+- Reuses your existing concierge backend (proven working)
+- Can be implemented in ~150 lines replacing the 700-line Gemini voice hook
 
-The super admin bypass is completely missing from `useRolePermissions`. It only checks for demo mode and explicit role data from the `user_trip_roles` table. If the super admin doesn't have a row in `user_trip_roles`, permissions depend on the `trip_members` query, which is async.
+Cons:
+- Voice quality is "browser quality" (robotic on some devices, decent on iOS/Chrome)
+- Not available in all browsers (Safari has quirks, Firefox limited)
+- No real-time conversation feel -- it's speak-then-wait, like Siri
 
-### Fix
+### Option B: ElevenLabs Conversational AI (Premium, Simple SDK)
 
-**A. Add super admin bypass to `useRolePermissions`**: Import `SUPER_ADMIN_EMAILS` and check the user's email synchronously. If super admin, immediately set `permissionLevel: 'admin'` and full permissions without waiting for async queries.
+ElevenLabs has a React SDK (`@elevenlabs/react`) with a `useConversation` hook that handles all WebRTC/audio complexity in ~30 lines. This is the easiest path to a natural, high-quality voice assistant.
 
-**B. Guard import button against loading state**: In `GroupCalendar.tsx`, check `isLoading` from `useRolePermissions` before denying -- if still loading, either wait or optimistically allow for known paid/admin users.
+How it works:
+1. Create an agent in ElevenLabs dashboard (configure personality, voice, tools)
+2. Edge function generates a conversation token
+3. `useConversation` hook manages WebRTC connection, mic, playback -- everything
+
+Pros:
+- Production-quality voices (29 languages, customizable)
+- WebRTC handles all audio codec complexity (no PCM, no manual WebSocket)
+- Barge-in support, natural conversation flow
+- Simple React hook -- far less code than current Gemini attempt
+
+Cons:
+- Requires ElevenLabs account + API key ($5/mo starter)
+- Agent must be configured in the ElevenLabs web UI
+- AI responses come from ElevenLabs' agent, not your existing concierge pipeline (though you can configure the agent's system prompt to match)
+
+### Option C: Remove Voice Entirely
+
+Surgically remove all Gemini voice code and the Grok remnants. Keep the mic button but repurpose it or hide it. Focus on making the text concierge richer with:
+- Clickable place links with preview cards
+- Inline map widgets
+- Photo thumbnails for recommendations
+- Markdown rendering (already partially implemented)
 
 ---
 
-## Technical Changes
+## My Recommendation: Option A (Web Speech API)
 
-### File 1: `src/services/calendarService.ts`
+Here's why:
+1. It works **today** with zero new infrastructure
+2. It reuses your proven concierge backend -- no new AI pipeline to debug
+3. Zero cost, zero API keys
+4. If you later want premium voice (Option B), it's an additive upgrade, not a rewrite
+5. For the a16z demo, "tap mic, speak, get answer read back" is functionally identical to what Gemini Live would have done
 
-- Raise bulk insert threshold from 20 to 50
-- Add `onProgress` callback parameter to `bulkCreateEvents` and `batchInsertEvents`
-- Add 30-second timeout wrapper around the entire import
-- Ensure guaranteed return (never hang)
+The implementation replaces the 700-line `useGeminiVoice.ts` with a ~150-line `useWebSpeechVoice.ts` that:
+- Uses `webkitSpeechRecognition` / `SpeechRecognition` for STT
+- Sends transcribed text through the existing concierge (same `supabase.functions.invoke('gemini-chat')` path)
+- Uses `SpeechSynthesis` to speak the response
+- Keeps the same `VoiceState` type so VoiceButton and AiChatInput need zero changes
 
-### File 2: `src/features/calendar/components/CalendarImportModal.tsx`
+## Technical Plan (Option A)
 
-- Pass progress callback to `bulkCreateEvents` to update a counter
-- Show "Importing 5/29..." with real-time count instead of static text
-- Add 30-second client-side timeout with error state transition
-- Ensure `setState('complete')` or `setState('idle')` always fires (no stuck modal)
+### File 1: `src/hooks/useWebSpeechVoice.ts` (NEW)
 
-### File 3: `src/hooks/useRolePermissions.ts`
+Create a clean hook using the browser's Web Speech API:
+- Same exported types (`VoiceState`, `UseGeminiVoiceReturn`) for drop-in compatibility
+- `startVoice`: request mic permission, start `SpeechRecognition`, transition to 'listening'
+- On speech result: transition to 'thinking', call existing concierge via `supabase.functions.invoke('gemini-chat')`
+- On AI response: transition to 'speaking', use `SpeechSynthesis.speak()` to read it aloud
+- On speech end: transition back to 'idle'
+- Error handling: immediate state transitions, no WebSocket complexity
 
-- Import `SUPER_ADMIN_EMAILS` from `@/constants/admins`
-- At the top of `loadPermissions`, check if user email is in `SUPER_ADMIN_EMAILS`
-- If yes, immediately grant full admin permissions and return (no async queries needed)
-- This is a synchronous check that runs before any Supabase calls
+### File 2: `src/hooks/useGeminiVoice.ts` (DELETE or gut)
 
-### File 4: `src/components/GroupCalendar.tsx`
+Remove the 700-line Gemini Live WebSocket implementation entirely.
 
-- Read `isLoading` from `useRolePermissions`
-- In `handleImport`: if `isLoading` is true, allow the action (optimistic) rather than blocking with "Permission denied"
+### File 3: `src/components/AIConciergeChat.tsx`
+
+Change import from `useGeminiVoice` to `useWebSpeechVoice`. Everything else stays the same because the hook interface is identical.
+
+### File 4: `src/features/chat/components/VoiceButton.tsx`
+
+No changes needed -- it already works with the `VoiceState` type.
+
+### File 5: `src/features/chat/components/AiChatInput.tsx`
+
+No changes needed -- same interface.
+
+### File 6: `src/types/consumer.ts`
+
+Widen `ConsumerSubscription.tier` to include pro tiers to fix the build error.
+
+### Cleanup: Remove Gemini Voice Remnants
+
+- `supabase/functions/gemini-voice-session/index.ts` -- can be deleted (no longer needed)
+- `XAI_API_KEY` secret -- leftover from Grok attempt, can be removed later
 
