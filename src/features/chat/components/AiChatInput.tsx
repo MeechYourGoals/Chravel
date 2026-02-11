@@ -2,7 +2,7 @@ import React from 'react';
 import { Send, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { VoiceButton } from './VoiceButton';
-import type { VoiceState } from '@/hooks/useGeminiVoice';
+import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 
 interface AiChatInputProps {
   inputMessage: string;

@@ -13,7 +13,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
-import { useGeminiVoice } from '../hooks/useGeminiVoice';
+import { useWebSpeechVoice as useGeminiVoice } from '../hooks/useWebSpeechVoice';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { conciergeCacheService } from '../services/conciergeCacheService';
