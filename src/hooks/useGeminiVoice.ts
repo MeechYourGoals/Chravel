@@ -1,19 +1,37 @@
 /**
  * useGeminiVoice – Realtime voice hook for Gemini Live API
  * Direct browser-to-Google WebSocket. No backend proxy needed.
- * Manages: API key retrieval, WebSocket, mic capture,
+ * Manages: ephemeral token retrieval, WebSocket, mic capture,
  * scheduled audio playback queue, server-side VAD, state machine.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export type VoiceState = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
+type VoiceAuthMode = 'ephemeral' | 'api_key';
+
+export interface VoiceDebugInfo {
+  selectedModel: string;
+  selectedVoiceName: string;
+  authMode: VoiceAuthMode | null;
+  gateAllowed: boolean | null;
+  gateStatus: number | null;
+  gateCode: string | null;
+  gateMessage: string | null;
+  setupComplete: boolean;
+  wsPhase: 'idle' | 'connecting' | 'open' | 'closed' | 'error';
+  wsCloseCode: number | null;
+  wsCloseReason: string | null;
+  mediaDevicesSupported: boolean;
+  lastMediaErrorName: string | null;
+}
 
 export interface UseGeminiVoiceReturn {
   voiceState: VoiceState;
   userTranscript: string;
   assistantTranscript: string;
   errorMessage: string | null;
+  debugInfo: VoiceDebugInfo;
   startVoice: () => Promise<void>;
   stopVoice: () => void;
   toggleVoice: () => void;
@@ -49,7 +67,11 @@ function base64ToInt16Array(base64: string): Int16Array {
 }
 
 // Downsample from browser sample rate to 16kHz for Gemini
-function downsampleBuffer(buffer: Float32Array, inputSampleRate: number, outputSampleRate: number): Float32Array {
+function downsampleBuffer(
+  buffer: Float32Array,
+  inputSampleRate: number,
+  outputSampleRate: number,
+): Float32Array {
   if (inputSampleRate === outputSampleRate) return buffer;
   const ratio = inputSampleRate / outputSampleRate;
   const newLength = Math.round(buffer.length / ratio);
@@ -65,7 +87,11 @@ function downsampleBuffer(buffer: Float32Array, inputSampleRate: number, outputS
 const CONNECT_TIMEOUT_MS = 10000;
 const GEMINI_SAMPLE_RATE = 16000; // Gemini Live uses 16kHz PCM
 const PLAYBACK_SAMPLE_RATE = 24000; // Gemini outputs 24kHz PCM
-const GEMINI_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+const MIC_PROCESSOR_BUFFER_SIZE = 1024; // ~20-25ms chunks on common device sample rates
+const GEMINI_WS_BASE_URL = 'wss://generativelanguage.googleapis.com/ws';
+const GEMINI_LIVE_MODEL = (import.meta.env.VITE_GEMINI_LIVE_MODEL ||
+  'models/gemini-2.5-flash-native-audio-preview-12-2025') as string;
+const GEMINI_VOICE_NAME = (import.meta.env.VITE_GEMINI_VOICE_NAME || 'Kore').trim();
 
 const SYSTEM_INSTRUCTION = `You are Chravel AI Concierge — a world-class travel expert with encyclopedic knowledge of destinations, cuisines, activities, logistics, and cultural tips worldwide. You help travelers with recommendations, planning, and real-time travel advice. You're warm, knowledgeable, and efficient. Keep responses conversational and concise since this is a voice conversation. When giving recommendations, be specific with names and addresses when possible.`;
 
@@ -73,6 +99,13 @@ interface ParsedInvokeError {
   status?: number;
   code?: string;
   message: string;
+}
+
+interface LiveWebSocketConfig {
+  url: string;
+  apiVersion: 'v1alpha' | 'v1beta';
+  method: 'BidiGenerateContentConstrained' | 'BidiGenerateContent';
+  authMode: VoiceAuthMode;
 }
 
 async function parseInvokeError(error: unknown): Promise<ParsedInvokeError> {
@@ -102,14 +135,49 @@ async function parseInvokeError(error: unknown): Promise<ParsedInvokeError> {
   return parsed;
 }
 
+function buildLiveWebSocketConfig(authCredential: string): LiveWebSocketConfig {
+  const isEphemeralToken = authCredential.startsWith('auth_tokens/');
+  const apiVersion: LiveWebSocketConfig['apiVersion'] = isEphemeralToken ? 'v1alpha' : 'v1beta';
+  const method: LiveWebSocketConfig['method'] = isEphemeralToken
+    ? 'BidiGenerateContentConstrained'
+    : 'BidiGenerateContent';
+  const queryKey = isEphemeralToken ? 'access_token' : 'key';
+  const url = `${GEMINI_WS_BASE_URL}/google.ai.generativelanguage.${apiVersion}.GenerativeService.${method}?${queryKey}=${encodeURIComponent(authCredential)}`;
+
+  return {
+    url,
+    apiVersion,
+    method,
+    authMode: isEphemeralToken ? 'ephemeral' : 'api_key',
+  };
+}
+
 export function useGeminiVoice(
   onUserMessage?: (text: string) => void,
   onAssistantMessage?: (text: string) => void,
 ): UseGeminiVoiceReturn {
+  const mediaDevicesSupported =
+    typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
+
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [userTranscript, setUserTranscript] = useState('');
   const [assistantTranscript, setAssistantTranscript] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<VoiceDebugInfo>({
+    selectedModel: GEMINI_LIVE_MODEL,
+    selectedVoiceName: GEMINI_VOICE_NAME,
+    authMode: null,
+    gateAllowed: null,
+    gateStatus: null,
+    gateCode: null,
+    gateMessage: null,
+    setupComplete: false,
+    wsPhase: 'idle',
+    wsCloseCode: null,
+    wsCloseReason: null,
+    mediaDevicesSupported,
+    lastMediaErrorName: null,
+  });
 
   const wsRef = useRef<WebSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -124,6 +192,10 @@ export function useGeminiVoice(
   const shouldStreamRef = useRef(false);
   const nextPlayTimeRef = useRef(0);
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
+
+  const updateDebugInfo = useCallback((patch: Partial<VoiceDebugInfo>) => {
+    setDebugInfo(prev => ({ ...prev, ...patch }));
+  }, []);
 
   // ---------- cleanup ----------
   const cleanup = useCallback(() => {
@@ -145,7 +217,11 @@ export function useGeminiVoice(
     wsRef.current = null;
 
     activeSourcesRef.current.forEach(s => {
-      try { s.stop(); } catch { /* already stopped */ }
+      try {
+        s.stop();
+      } catch {
+        /* already stopped */
+      }
     });
     activeSourcesRef.current = [];
     nextPlayTimeRef.current = 0;
@@ -201,7 +277,11 @@ export function useGeminiVoice(
 
   const cancelPlayback = useCallback(() => {
     activeSourcesRef.current.forEach(s => {
-      try { s.stop(); } catch { /* noop */ }
+      try {
+        s.stop();
+      } catch {
+        /* noop */
+      }
     });
     activeSourcesRef.current = [];
     nextPlayTimeRef.current = 0;
@@ -213,6 +293,7 @@ export function useGeminiVoice(
       // Setup complete acknowledgement
       if (msg.setupComplete) {
         setupCompleteRef.current = true;
+        updateDebugInfo({ setupComplete: true });
         console.log('[useGeminiVoice] Setup complete, ready for audio');
         setVoiceState('listening');
         shouldStreamRef.current = true;
@@ -305,6 +386,10 @@ export function useGeminiVoice(
       // Google error response - this is the critical catch-all
       if (msg.error) {
         const errMsg = msg.error?.message || msg.error?.status || JSON.stringify(msg.error);
+        updateDebugInfo({
+          wsPhase: 'error',
+          gateMessage: errMsg,
+        });
         console.error('[useGeminiVoice] Server error:', msg.error);
         setErrorMessage(`Voice error: ${errMsg}`);
         setVoiceState('error');
@@ -315,15 +400,22 @@ export function useGeminiVoice(
       // Unknown message type - log it so we never fly blind
       console.warn('[useGeminiVoice] Unhandled server message:', JSON.stringify(msg).slice(0, 500));
     },
-    [onAssistantMessage, playAudioChunk, cancelPlayback, cleanup],
+    [onAssistantMessage, playAudioChunk, cancelPlayback, cleanup, updateDebugInfo],
   );
 
   // ---------- mic capture ----------
   const startMicCapture = useCallback((ws: WebSocket, stream: MediaStream) => {
     const audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {
+        // Best-effort resume (not all browsers allow immediate resume here).
+      });
+    }
     audioCtxRef.current = audioCtx;
     const source = audioCtx.createMediaStreamSource(stream);
-    const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+    const processor = audioCtx.createScriptProcessor(MIC_PROCESSOR_BUFFER_SIZE, 1, 1);
+    const silentGain = audioCtx.createGain();
+    silentGain.gain.value = 0;
     processorRef.current = processor;
 
     processor.onaudioprocess = e => {
@@ -336,18 +428,22 @@ export function useGeminiVoice(
       const pcm16 = float32ToInt16(downsampled);
       const base64Audio = arrayBufferToBase64(pcm16.buffer as ArrayBuffer);
 
-      ws.send(JSON.stringify({
-        realtimeInput: {
-          audio: {
-            mimeType: `audio/pcm;rate=${GEMINI_SAMPLE_RATE}`,
-            data: base64Audio,
+      ws.send(
+        JSON.stringify({
+          realtimeInput: {
+            audio: {
+              mimeType: `audio/pcm;rate=${GEMINI_SAMPLE_RATE}`,
+              data: base64Audio,
+            },
           },
-        },
-      }));
+        }),
+      );
     };
 
     source.connect(processor);
-    processor.connect(audioCtx.destination);
+    // ScriptProcessor must be connected to run; route to a muted gain node to avoid feedback.
+    processor.connect(silentGain);
+    silentGain.connect(audioCtx.destination);
   }, []);
 
   // ---------- start voice ----------
@@ -362,9 +458,24 @@ export function useGeminiVoice(
     setUserTranscript('');
     setAssistantTranscript('');
     assistantTextRef.current = '';
+    updateDebugInfo({
+      selectedModel: GEMINI_LIVE_MODEL,
+      selectedVoiceName: GEMINI_VOICE_NAME,
+      authMode: null,
+      gateAllowed: null,
+      gateStatus: null,
+      gateCode: null,
+      gateMessage: null,
+      setupComplete: false,
+      wsPhase: 'connecting',
+      wsCloseCode: null,
+      wsCloseReason: null,
+      mediaDevicesSupported,
+      lastMediaErrorName: null,
+    });
 
     try {
-      // 1. Get Gemini API key from edge function (auth + tier gated)
+      // 1. Get ephemeral Live token from edge function (auth + tier gated)
       const { data, error } = await supabase.functions.invoke('gemini-voice-session', {
         body: {},
       });
@@ -373,6 +484,12 @@ export function useGeminiVoice(
 
       if (error) {
         const invokeError = await parseInvokeError(error);
+        updateDebugInfo({
+          gateAllowed: false,
+          gateStatus: invokeError.status ?? null,
+          gateCode: invokeError.code ?? null,
+          gateMessage: invokeError.message ?? null,
+        });
         if (isStaleAttempt()) return;
         if (invokeError.code === 'VOICE_NOT_INCLUDED' || invokeError.status === 403) {
           setErrorMessage('Voice is available on Frequent Chraveler and Pro plans');
@@ -386,13 +503,30 @@ export function useGeminiVoice(
       }
 
       if (data?.error === 'VOICE_NOT_INCLUDED') {
+        updateDebugInfo({
+          gateAllowed: false,
+          gateStatus: 403,
+          gateCode: 'VOICE_NOT_INCLUDED',
+          gateMessage: 'Voice is available on Frequent Chraveler and Pro plans',
+        });
         setErrorMessage('Voice is available on Frequent Chraveler and Pro plans');
         setVoiceState('error');
         return;
       }
 
-      const apiKey = data?.api_key;
-      if (!apiKey) throw new Error('No API key received');
+      const accessTokenFromEdge =
+        typeof data?.access_token === 'string' ? data.access_token.trim() : '';
+      const apiKeyFallback = typeof data?.api_key === 'string' ? data.api_key.trim() : '';
+      const authCredential = accessTokenFromEdge || apiKeyFallback;
+      if (!authCredential) throw new Error('No Live auth credential received');
+      const wsConfig = buildLiveWebSocketConfig(authCredential);
+      updateDebugInfo({
+        authMode: wsConfig.authMode,
+        gateAllowed: true,
+        gateStatus: 200,
+        gateCode: null,
+        gateMessage: null,
+      });
 
       // 2. Request mic permission
       let stream: MediaStream;
@@ -404,8 +538,14 @@ export function useGeminiVoice(
             noiseSuppression: true,
           },
         });
-      } catch {
-        setErrorMessage('Microphone access denied. Please allow microphone in your browser settings.');
+      } catch (mediaError) {
+        updateDebugInfo({
+          lastMediaErrorName:
+            mediaError instanceof DOMException ? mediaError.name : 'UnknownMediaError',
+        });
+        setErrorMessage(
+          'Microphone access denied. Please allow microphone in your browser settings.',
+        );
         setVoiceState('error');
         return;
       }
@@ -417,9 +557,10 @@ export function useGeminiVoice(
       streamRef.current = stream;
 
       // 3. Connect WebSocket directly to Gemini Live API
-      const wsUrl = `${GEMINI_WS_URL}?key=${apiKey}`;
+      const wsUrl = wsConfig.url;
       const ws = new WebSocket(wsUrl);
       ws.binaryType = 'arraybuffer';
+      updateDebugInfo({ wsPhase: 'connecting' });
 
       const connectTimeout = setTimeout(() => {
         if (ws.readyState !== WebSocket.OPEN) {
@@ -437,28 +578,33 @@ export function useGeminiVoice(
           ws.close();
           return;
         }
+        updateDebugInfo({ wsPhase: 'open' });
 
-        console.log('[useGeminiVoice] WebSocket connected, sending setup');
+        console.log(
+          `[useGeminiVoice] WebSocket connected, sending setup (apiVersion=${wsConfig.apiVersion}, method=${wsConfig.method}, model=${GEMINI_LIVE_MODEL}, voice=${GEMINI_VOICE_NAME})`,
+        );
 
         // Send setup message
-        ws.send(JSON.stringify({
-          setup: {
-            model: 'models/gemini-2.5-flash-native-audio-preview-12-2025',
-            generationConfig: {
-              responseModalities: ['AUDIO', 'TEXT'],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: {
-                    voiceName: 'Kore',
+        ws.send(
+          JSON.stringify({
+            setup: {
+              model: GEMINI_LIVE_MODEL,
+              generationConfig: {
+                responseModalities: ['AUDIO', 'TEXT'],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: {
+                      voiceName: GEMINI_VOICE_NAME,
+                    },
                   },
                 },
               },
+              systemInstruction: {
+                parts: [{ text: SYSTEM_INSTRUCTION }],
+              },
             },
-            systemInstruction: {
-              parts: [{ text: SYSTEM_INSTRUCTION }],
-            },
-          },
-        }));
+          }),
+        );
 
         wsRef.current = ws;
         activeRef.current = true;
@@ -466,19 +612,18 @@ export function useGeminiVoice(
         startMicCapture(ws, stream);
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = event => {
         try {
-          const msg = typeof event.data === 'string'
-            ? JSON.parse(event.data)
-            : null;
+          const msg = typeof event.data === 'string' ? JSON.parse(event.data) : null;
           if (msg) handleServerMessage(msg);
         } catch (err) {
           console.warn('[useGeminiVoice] Failed to parse message:', err);
         }
       };
 
-      ws.onerror = (event) => {
+      ws.onerror = event => {
         clearTimeout(connectTimeout);
+        updateDebugInfo({ wsPhase: 'error' });
         console.error('[useGeminiVoice] WebSocket error:', event);
         // Always transition to error — no stale voiceState check
         setErrorMessage('Voice connection failed');
@@ -486,9 +631,23 @@ export function useGeminiVoice(
         cleanup();
       };
 
-      ws.onclose = (event) => {
+      ws.onclose = event => {
         clearTimeout(connectTimeout);
+        if (isStaleAttempt()) return;
+        updateDebugInfo({
+          wsPhase: 'closed',
+          wsCloseCode: event.code,
+          wsCloseReason: event.reason || null,
+        });
         console.log('[useGeminiVoice] WebSocket closed:', event.code, event.reason);
+        // Connection failed before session became active.
+        if (!activeRef.current) {
+          const reason = event.reason ? ` (${event.reason})` : '';
+          setErrorMessage(`Voice connection closed before setup [${event.code}]${reason}`);
+          setVoiceState('error');
+          cleanup();
+          return;
+        }
         if (activeRef.current) {
           // Deliver any pending transcript
           if (assistantTextRef.current && !assistantDeliveredRef.current) {
@@ -500,7 +659,6 @@ export function useGeminiVoice(
           cleanup();
         }
       };
-
     } catch (err) {
       if (isStaleAttempt()) return;
       const message = err instanceof Error ? err.message : 'Failed to start voice';
@@ -508,7 +666,14 @@ export function useGeminiVoice(
       setVoiceState('error');
       cleanup();
     }
-  }, [cleanup, handleServerMessage, startMicCapture, onAssistantMessage]);
+  }, [
+    cleanup,
+    handleServerMessage,
+    startMicCapture,
+    onAssistantMessage,
+    updateDebugInfo,
+    mediaDevicesSupported,
+  ]);
 
   // ---------- stop voice ----------
   const stopVoice = useCallback(() => {
@@ -539,6 +704,7 @@ export function useGeminiVoice(
     userTranscript,
     assistantTranscript,
     errorMessage,
+    debugInfo,
     startVoice,
     stopVoice,
     toggleVoice,

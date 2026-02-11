@@ -53,6 +53,8 @@
 	<string>Chravel needs access to your photo library so you can upload photos and videos to trip chats and shared albums.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Chravel uses your location (only while you're using the app) for optional location sharing and to help coordinate meetups during a trip.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Chravel uses your microphone for AI Concierge voice conversations when you tap the mic.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CFBundleURLTypes</key>

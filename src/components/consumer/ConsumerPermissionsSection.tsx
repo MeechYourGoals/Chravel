@@ -92,8 +92,9 @@ export const ConsumerPermissionsSection = () => {
       {
         id: 'microphone',
         title: 'Microphone',
-        description: 'Not currently used by Chravel. If we add voice features later, this will be requested then.',
-        icon: <Mic size={18} className="text-gray-300" />,
+        description:
+          'Used for AI Concierge voice conversations when you tap the mic button in chat.',
+        icon: <Mic size={18} className="text-indigo-300" />,
       },
     ],
     [],
@@ -211,7 +212,6 @@ export const ConsumerPermissionsSection = () => {
           const showEnable =
             (state === 'prompt' || state === 'unknown') &&
             canRequest &&
-            card.id !== 'microphone' &&
             card.id !== 'photos_files';
           const showOpenSettings = state === 'denied' && canOpenSettings;
 
