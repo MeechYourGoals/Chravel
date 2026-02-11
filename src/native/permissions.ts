@@ -67,6 +67,35 @@ async function requestGeolocationPermission(): Promise<PermissionState> {
   });
 }
 
+async function queryMicrophonePermission(): Promise<PermissionState> {
+  const permissions = (navigator as unknown as { permissions?: Permissions }).permissions;
+  if (!permissions?.query) return 'unknown';
+
+  try {
+    const result = await permissions.query({ name: 'microphone' as PermissionName });
+    return normalizePermissionState(result.state);
+  } catch {
+    return 'unknown';
+  }
+}
+
+async function requestMicrophonePermission(): Promise<PermissionState> {
+  const mediaDevices = navigator.mediaDevices;
+  if (!mediaDevices?.getUserMedia) return 'unavailable';
+
+  try {
+    const stream = await mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(track => track.stop());
+    return 'granted';
+  } catch (error) {
+    if (error instanceof DOMException) {
+      if (error.name === 'NotAllowedError' || error.name === 'SecurityError') return 'denied';
+      if (error.name === 'NotFoundError') return 'unavailable';
+    }
+    return 'unknown';
+  }
+}
+
 /**
  * Opens the native iOS settings screen for this app.
  * Only works when running inside a native shell (Capacitor).
@@ -191,13 +220,16 @@ export async function getPermissionStatus(id: PermissionId): Promise<PermissionS
     }
 
     case 'microphone': {
-      // Microphone is currently not used by the web app (no audio recording / voice chat).
+      const state = await queryMicrophonePermission();
       return {
         id,
-        state: 'not_applicable',
-        canRequest: false,
-        canOpenSettings: false,
-        detail: 'Chravel does not currently use the microphone.',
+        state,
+        canRequest: state === 'prompt' || state === 'unknown',
+        canOpenSettings: state === 'denied' && isIOSNative(),
+        detail:
+          state === 'unknown'
+            ? 'Microphone status may only be available after your first voice request.'
+            : undefined,
       };
     }
 
@@ -228,7 +260,7 @@ export async function requestPermission(id: PermissionId): Promise<PermissionSta
       return selected ? 'granted' : 'unknown';
     }
     case 'microphone': {
-      return 'not_applicable';
+      return requestMicrophonePermission();
     }
     default: {
       const exhaustiveCheck: never = id;
