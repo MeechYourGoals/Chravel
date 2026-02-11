@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, Search, AlertCircle, Crown, Clock, Sparkles, Mic } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
@@ -46,46 +45,87 @@ interface ChatMessage {
   googleMapsWidget?: string; // 🆕 Widget context token
 }
 
-export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = false, isEvent = false }: AIConciergeChatProps) => {
-  const { isPlus } = useConsumerSubscription();
+export const AIConciergeChat = ({
+  tripId,
+  basecamp,
+  preferences,
+  isDemoMode = false,
+  isEvent = false,
+}: AIConciergeChatProps) => {
+  const {
+    isPlus,
+    tier: consumerTier,
+    isLoading: isConsumerSubscriptionLoading,
+  } = useConsumerSubscription();
   const { basecamp: globalBasecamp } = useBasecamp();
   const { user } = useAuth();
   const { usage, getUsageStatus, isFreeUser, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
-  const { canUse, isPro, isSuperAdmin } = useUnifiedEntitlements();
+  const {
+    canUse,
+    isPro,
+    isSuperAdmin,
+    plan: entitlementPlan,
+    status: entitlementStatus,
+    source: entitlementSource,
+    isLoading: isEntitlementsLoading,
+  } = useUnifiedEntitlements();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [aiStatus, setAiStatus] = useState<'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'>('connected');
+  const [aiStatus, setAiStatus] = useState<
+    'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
+  >('connected');
   const [remainingQueries, setRemainingQueries] = useState<number>(Infinity);
   const [isUsingCachedResponse, setIsUsingCachedResponse] = useState(false);
-  const [initTimedOut, setInitTimedOut] = useState(false);
 
   // Voice: eligibility and hook
-  const isVoiceEligible = canUse('voice_concierge') || isPro || isSuperAdmin || isDemoMode;
+  const hasLegacySubscriptionVoiceAccess =
+    String(consumerTier) === 'frequent-chraveler' || String(consumerTier).startsWith('pro-');
+  // Keep client-side gating optimistic to avoid false negatives from entitlement sync lag.
+  // The edge function remains the source of truth and will still return VOICE_NOT_INCLUDED when required.
+  const isVoiceEligible =
+    isEntitlementsLoading ||
+    isConsumerSubscriptionLoading ||
+    canUse('voice_concierge') ||
+    isPlus ||
+    isPro ||
+    isSuperAdmin ||
+    isDemoMode ||
+    hasLegacySubscriptionVoiceAccess;
 
   const handleVoiceUserMessage = useCallback((text: string) => {
-    setMessages(prev => [...prev, {
-      id: `voice-user-${Date.now()}`,
-      type: 'user',
-      content: `🎤 ${text}`,
-      timestamp: new Date().toISOString(),
-    }]);
+    setMessages(prev => [
+      ...prev,
+      {
+        id: `voice-user-${Date.now()}`,
+        type: 'user',
+        content: `🎤 ${text}`,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
   }, []);
 
   const handleVoiceAssistantMessage = useCallback((text: string) => {
-    setMessages(prev => [...prev, {
-      id: `voice-assistant-${Date.now()}`,
-      type: 'assistant',
-      content: text,
-      timestamp: new Date().toISOString(),
-    }]);
+    setMessages(prev => [
+      ...prev,
+      {
+        id: `voice-assistant-${Date.now()}`,
+        type: 'assistant',
+        content: text,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
   }, []);
 
-  const { voiceState, assistantTranscript, errorMessage: voiceError, toggleVoice, stopVoice } = useGeminiVoice(
-    handleVoiceUserMessage,
-    handleVoiceAssistantMessage,
-  );
+  const {
+    voiceState,
+    assistantTranscript,
+    errorMessage: voiceError,
+    debugInfo: voiceDebugInfo,
+    toggleVoice,
+    stopVoice,
+  } = useGeminiVoice(handleVoiceUserMessage, handleVoiceAssistantMessage);
 
   useEffect(() => {
     return () => {
@@ -97,11 +137,11 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const isMounted = useRef(true);
 
   // Helper to convert isPlus boolean to tier string
-  const getUserTier = (): 'free' | 'plus' | 'pro' => {
+  const getUserTier = useCallback((): 'free' | 'plus' | 'pro' => {
     if (user?.isPro) return 'pro';
     if (isPlus) return 'plus';
     return 'free';
-  };
+  }, [user?.isPro, isPlus]);
 
   // PHASE 1 BUG FIX #7: Set up cleanup to track component mount state
   useEffect(() => {
@@ -115,25 +155,24 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   useEffect(() => {
     // If we're already connected or have messages, no need for timeout
     if (aiStatus === 'connected' || messages.length > 0) {
-      setInitTimedOut(false);
       return;
     }
-    
+
     const timeout = setTimeout(() => {
       if (isMounted.current && aiStatus === 'checking') {
         console.warn('[AIConciergeChat] Initialization timeout - showing fallback');
         setAiStatus('timeout');
-        setInitTimedOut(true);
       }
     }, 8000);
-    
+
     return () => clearTimeout(timeout);
   }, [aiStatus, messages.length]);
 
   // Initialize remaining queries for events and load cached messages
   useEffect(() => {
     if (isEvent && user) {
-      conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier())
+      conciergeRateLimitService
+        .getRemainingQueries(user.id, tripId, getUserTier())
         .then(remaining => {
           // PHASE 1 BUG FIX #7: Only update state if component is still mounted
           if (isMounted.current) {
@@ -146,13 +185,13 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           }
         });
     }
-    
+
     // Load cached messages for offline mode (user-isolated)
     const cachedMessages = conciergeCacheService.getCachedMessages(tripId, user?.id);
     if (cachedMessages && cachedMessages.length > 0 && isMounted.current) {
       setMessages(cachedMessages);
     }
-  }, [isEvent, user, tripId, isPlus]);
+  }, [isEvent, user, tripId, isPlus, getUserTier]);
 
   // Monitor offline status
   useEffect(() => {
@@ -161,7 +200,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
     } else if (aiStatus === 'offline') {
       setAiStatus('connected');
     }
-  }, [isOffline]);
+  }, [isOffline, aiStatus]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isTyping) return;
@@ -169,33 +208,46 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
     // Check offline mode first
     if (isOffline) {
       // Try to get cached response for similar query (user-isolated)
-      const cachedResponse = conciergeCacheService.getCachedResponse(tripId, inputMessage, user?.id);
+      const cachedResponse = conciergeCacheService.getCachedResponse(
+        tripId,
+        inputMessage,
+        user?.id,
+      );
       if (cachedResponse) {
         setIsUsingCachedResponse(true);
-        setMessages(prev => [...prev, {
-          id: Date.now().toString(),
-          type: 'user',
-          content: inputMessage,
-          timestamp: new Date().toISOString()
-        }, {
-          ...cachedResponse,
-          id: (Date.now() + 1).toString(),
-          timestamp: new Date().toISOString()
-        }]);
+        setMessages(prev => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            type: 'user',
+            content: inputMessage,
+            timestamp: new Date().toISOString(),
+          },
+          {
+            ...cachedResponse,
+            id: (Date.now() + 1).toString(),
+            timestamp: new Date().toISOString(),
+          },
+        ]);
         setInputMessage('');
         return;
       } else {
-        setMessages(prev => [...prev, {
-          id: Date.now().toString(),
-          type: 'user',
-          content: inputMessage,
-          timestamp: new Date().toISOString()
-        }, {
-          id: (Date.now() + 1).toString(),
-          type: 'assistant',
-          content: '📡 **Offline Mode**\n\nI\'m currently offline and don\'t have a cached response for this query. Please check your connection and try again when online.',
-          timestamp: new Date().toISOString()
-        }]);
+        setMessages(prev => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            type: 'user',
+            content: inputMessage,
+            timestamp: new Date().toISOString(),
+          },
+          {
+            id: (Date.now() + 1).toString(),
+            type: 'assistant',
+            content:
+              "📡 **Offline Mode**\n\nI'm currently offline and don't have a cached response for this query. Please check your connection and try again when online.",
+            timestamp: new Date().toISOString(),
+          },
+        ]);
         setInputMessage('');
         return;
       }
@@ -205,12 +257,15 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
     if (isEvent && user) {
       const canQuery = await conciergeRateLimitService.canQuery(user.id, tripId, getUserTier());
       if (!canQuery) {
-        setMessages(prev => [...prev, {
-          id: Date.now().toString(),
-          type: 'assistant',
-          content: `⚠️ **Trip Limit Reached**\n\nYou've used all ${getUserTier() === 'free' ? 5 : 10} AI Concierge queries for this trip.\n\n💎 Upgrade to ${getUserTier() === 'free' ? 'Explorer for 10 queries per trip' : 'Frequent Chraveler for unlimited AI assistance'}!`,
-          timestamp: new Date().toISOString()
-        }]);
+        setMessages(prev => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            type: 'assistant',
+            content: `⚠️ **Trip Limit Reached**\n\nYou've used all ${getUserTier() === 'free' ? 5 : 10} AI Concierge queries for this trip.\n\n💎 Upgrade to ${getUserTier() === 'free' ? 'Explorer for 10 queries per trip' : 'Frequent Chraveler for unlimited AI assistance'}!`,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
         return;
       }
     }
@@ -219,7 +274,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       id: Date.now().toString(),
       type: 'user',
       content: inputMessage,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -257,7 +312,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             currentDate: new Date().toISOString().split('T')[0],
             upcomingEvents: [],
             recentUpdates: [],
-            confirmationNumbers: {}
+            confirmationNumbers: {},
           };
         }
       }
@@ -266,26 +321,31 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       const MAX_MESSAGE_LENGTH = 3000; // Keep under 20000 limit with room for multiple messages
       const chatHistory = messages.slice(-6).map(msg => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
-        content: msg.content.length > MAX_MESSAGE_LENGTH 
-          ? msg.content.substring(0, MAX_MESSAGE_LENGTH) + '...[truncated]'
-          : msg.content
+        content:
+          msg.content.length > MAX_MESSAGE_LENGTH
+            ? msg.content.substring(0, MAX_MESSAGE_LENGTH) + '...[truncated]'
+            : msg.content,
       }));
 
       // Prepare basecamp location (already declared above)
-      basecampLocation = globalBasecamp ? {
-        name: globalBasecamp.name || 'Basecamp',
-        address: globalBasecamp.address
-      } : (basecamp ? {
-        name: basecamp.name || 'Basecamp',
-        address: basecamp.address
-      } : undefined);
+      basecampLocation = globalBasecamp
+        ? {
+            name: globalBasecamp.name || 'Basecamp',
+            address: globalBasecamp.address,
+          }
+        : basecamp
+          ? {
+              name: basecamp.name || 'Basecamp',
+              address: basecamp.address,
+            }
+          : undefined;
 
       // Send to Lovable AI Concierge with retry logic and graceful degradation
       let retryCount = 0;
       const MAX_RETRIES = 2;
       let data, error;
       let lastError: any = null;
-      
+
       while (retryCount <= MAX_RETRIES) {
         try {
           const response = await supabase.functions.invoke('lovable-concierge', {
@@ -295,8 +355,8 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
               basecampLocation,
               preferences,
               chatHistory,
-              isDemoMode
-            }
+              isDemoMode,
+            },
           });
 
           data = response.data;
@@ -317,7 +377,6 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
 
           // Success - exit retry loop
           break;
-
         } catch (attemptError) {
           lastError = attemptError;
           if (retryCount < MAX_RETRIES) {
@@ -336,17 +395,21 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           console.warn('AI service unavailable, using graceful degradation');
         }
         setAiStatus('degraded');
-        
+
         // Try to provide context-aware fallback response
-        const fallbackResponse = generateFallbackResponse(currentInput, tripContext, basecampLocation);
-        
+        const fallbackResponse = generateFallbackResponse(
+          currentInput,
+          tripContext,
+          basecampLocation,
+        );
+
         const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           type: 'assistant',
           content: fallbackResponse,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
-        
+
         setMessages(prev => [...prev, assistantMessage]);
         conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id);
         setIsTyping(false);
@@ -360,7 +423,11 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       if (isEvent && user) {
         try {
           await conciergeRateLimitService.incrementUsage(user.id, tripId, getUserTier());
-          const remaining = await conciergeRateLimitService.getRemainingQueries(user.id, tripId, getUserTier());
+          const remaining = await conciergeRateLimitService.getRemainingQueries(
+            user.id,
+            tripId,
+            getUserTier(),
+          );
           // PHASE 1 BUG FIX #7: Only update state if component is still mounted
           if (isMounted.current) {
             setRemainingQueries(remaining);
@@ -379,28 +446,31 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         timestamp: new Date().toISOString(),
         usage: data.usage,
         sources: data.sources || data.citations,
-        googleMapsWidget: data.googleMapsWidget // 🆕 Pass widget token
+        googleMapsWidget: data.googleMapsWidget, // 🆕 Pass widget token
       };
-      
+
       setMessages(prev => [...prev, assistantMessage]);
-      
+
       // Cache the response for offline mode (user-isolated)
       conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id);
-
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('❌ AI Concierge error:', error);
       }
       setAiStatus('error');
-      
+
       // Try graceful degradation
       try {
-        const fallbackResponse = generateFallbackResponse(currentInput, tripContext, basecampLocation);
+        const fallbackResponse = generateFallbackResponse(
+          currentInput,
+          tripContext,
+          basecampLocation,
+        );
         const errorMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           type: 'assistant',
           content: `⚠️ **AI Service Temporarily Unavailable**\n\n${fallbackResponse}\n\n*Note: This is a basic response. Full AI features will return once the service is restored.*`,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
         setMessages(prev => [...prev, errorMessage]);
         conciergeCacheService.cacheMessage(tripId, currentInput, errorMessage, user?.id);
@@ -410,7 +480,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
           id: (Date.now() + 1).toString(),
           type: 'assistant',
           content: `I'm having trouble connecting to my AI services right now. Please try again in a moment.`,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
         setMessages(prev => [...prev, errorMessage]);
       }
@@ -423,10 +493,10 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
   const generateFallbackResponse = (
     query: string,
     tripContext: any,
-    basecampLocation?: { name: string; address: string }
+    basecampLocation?: { name: string; address: string },
   ): string => {
     const lowerQuery = query.toLowerCase();
-    
+
     // Location-based queries
     if (lowerQuery.match(/\b(where|location|address|directions|near|around|close)\b/)) {
       if (basecampLocation) {
@@ -434,7 +504,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       }
       return `📍 I can help with location queries once the AI service is restored. For now, you can use the Places tab to search for locations.`;
     }
-    
+
     // Calendar/event queries
     if (lowerQuery.match(/\b(when|time|schedule|calendar|event|agenda|upcoming)\b/)) {
       if (tripContext?.itinerary?.length || tripContext?.calendar?.length) {
@@ -451,7 +521,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       }
       return `📅 Check the Calendar tab for your trip schedule.`;
     }
-    
+
     // Payment queries - provide actual payment data from context
     if (lowerQuery.match(/\b(payment|money|owe|spent|cost|budget|expense)\b/)) {
       if (tripContext?.payments?.length) {
@@ -473,12 +543,12 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
       }
       return `💰 No payment data available yet. Add expenses in the Payments tab to track who owes what.`;
     }
-    
+
     // Task queries
     if (lowerQuery.match(/\b(task|todo|complete|done|pending|assigned)\b/)) {
       return `✅ Check the Tasks tab to see what needs to be completed.`;
     }
-    
+
     // Default helpful response
     return `I'm temporarily unavailable, but you can:\n\n• Use the **Places** tab to find locations\n• Check the **Calendar** for your schedule\n• View **Payments** for expense tracking\n• See **Tasks** for what needs to be done\n\nFull AI assistance will return shortly!`;
   };
@@ -496,170 +566,213 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
         {/* Header */}
         <div className="border-b border-white/10 bg-black/30 p-3 flex-shrink-0">
           <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-          <Search size={20} className="text-white" />
-        </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-white">AI Concierge</h3>
-            <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              {voiceState === 'listening' ? (
-                <>
-                  <Mic size={16} className="text-green-400 animate-pulse" />
-                  <span className="text-xs text-green-400">Listening...</span>
-                </>
-              ) : voiceState === 'thinking' ? (
-                <>
-                  <Mic size={16} className="text-purple-400" />
-                  <span className="text-xs text-purple-400">Thinking...</span>
-                </>
-              ) : voiceState === 'speaking' ? (
-                <>
-                  <Mic size={16} className="text-blue-400" />
-                  <span className="text-xs text-blue-400">Speaking... Tap to interrupt</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={16} className="text-green-400" />
-                  <span className="text-xs text-green-400">Ready with Web Search</span>
-                </>
-              )}
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+              <Search size={20} className="text-white" />
             </div>
-            
-            {/* Usage status for free users */}
-            {isFreeUser && usage && (
-              <div className="flex items-center gap-2 ml-2">
-                <Badge 
-                  variant={getUsageStatus().status === 'limit_reached' ? 'destructive' : 
-                          getUsageStatus().status === 'warning' ? 'secondary' : 'default'}
-                  className="text-xs"
-                >
-                  {getUsageStatus().message}
-                </Badge>
-                {getUsageStatus().status === 'limit_reached' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-xs h-6 px-2"
-                    onClick={() => window.open(upgradeUrl, '_blank')}
-                  >
-                    <Crown size={12} className="mr-1" />
-                    Upgrade
-                  </Button>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white">AI Concierge</h3>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  {voiceState === 'listening' ? (
+                    <>
+                      <Mic size={16} className="text-green-400 animate-pulse" />
+                      <span className="text-xs text-green-400">Listening...</span>
+                    </>
+                  ) : voiceState === 'thinking' ? (
+                    <>
+                      <Mic size={16} className="text-purple-400" />
+                      <span className="text-xs text-purple-400">Thinking...</span>
+                    </>
+                  ) : voiceState === 'speaking' ? (
+                    <>
+                      <Mic size={16} className="text-blue-400" />
+                      <span className="text-xs text-blue-400">Speaking... Tap to interrupt</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={16} className="text-green-400" />
+                      <span className="text-xs text-green-400">Ready with Web Search</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Usage status for free users */}
+                {isFreeUser && usage && (
+                  <div className="flex items-center gap-2 ml-2">
+                    <Badge
+                      variant={
+                        getUsageStatus().status === 'limit_reached'
+                          ? 'destructive'
+                          : getUsageStatus().status === 'warning'
+                            ? 'secondary'
+                            : 'default'
+                      }
+                      className="text-xs"
+                    >
+                      {getUsageStatus().message}
+                    </Badge>
+                    {getUsageStatus().status === 'limit_reached' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-6 px-2"
+                        onClick={() => window.open(upgradeUrl, '_blank')}
+                      >
+                        <Crown size={12} className="mr-1" />
+                        Upgrade
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {/* Rate limit indicator for events */}
+                {isEvent && !isPlus && user && remainingQueries !== Infinity && (
+                  <div className="flex items-center gap-1 ml-2">
+                    <AlertCircle
+                      size={16}
+                      className={remainingQueries <= 2 ? 'text-orange-400' : 'text-blue-400'}
+                    />
+                    <span
+                      className={`text-xs ${remainingQueries <= 2 ? 'text-orange-400' : 'text-blue-400'}`}
+                    >
+                      {remainingQueries} {remainingQueries === 1 ? 'query' : 'queries'} left for
+                      this trip
+                    </span>
+                  </div>
+                )}
+
+                {/* Offline indicator */}
+                {isOffline && (
+                  <div className="flex items-center gap-1 ml-2">
+                    <AlertCircle size={16} className="text-yellow-400" />
+                    <span className="text-xs text-yellow-400">Offline Mode</span>
+                  </div>
+                )}
+
+                {/* Degraded mode indicator */}
+                {aiStatus === 'degraded' && (
+                  <div className="flex items-center gap-1 ml-2">
+                    <AlertCircle size={16} className="text-orange-400" />
+                    <span className="text-xs text-orange-400">Limited Mode</span>
+                  </div>
+                )}
+
+                {/* Cached response indicator */}
+                {isUsingCachedResponse && (
+                  <div className="flex items-center gap-1 ml-2">
+                    <Clock size={16} className="text-blue-400" />
+                    <span className="text-xs text-blue-400">Cached</span>
+                  </div>
                 )}
               </div>
-            )}
-            
-            {/* Rate limit indicator for events */}
-            {isEvent && !isPlus && user && remainingQueries !== Infinity && (
-              <div className="flex items-center gap-1 ml-2">
-                <AlertCircle size={16} className={remainingQueries <= 2 ? 'text-orange-400' : 'text-blue-400'} />
-                <span className={`text-xs ${remainingQueries <= 2 ? 'text-orange-400' : 'text-blue-400'}`}>
-                  {remainingQueries} {remainingQueries === 1 ? 'query' : 'queries'} left for this trip
-                </span>
-              </div>
-            )}
-            
-            {/* Offline indicator */}
-            {isOffline && (
-              <div className="flex items-center gap-1 ml-2">
-                <AlertCircle size={16} className="text-yellow-400" />
-                <span className="text-xs text-yellow-400">Offline Mode</span>
-              </div>
-            )}
-            
-            {/* Degraded mode indicator */}
-            {aiStatus === 'degraded' && (
-              <div className="flex items-center gap-1 ml-2">
-                <AlertCircle size={16} className="text-orange-400" />
-                <span className="text-xs text-orange-400">Limited Mode</span>
-              </div>
-            )}
-            
-            {/* Cached response indicator */}
-            {isUsingCachedResponse && (
-              <div className="flex items-center gap-1 ml-2">
-                <Clock size={16} className="text-blue-400" />
-                <span className="text-xs text-blue-400">Cached</span>
-              </div>
-            )}
-          </div>
-        </div>
+              {import.meta.env.DEV && (
+                <div className="mt-2 rounded-md border border-white/20 bg-black/30 px-2 py-1 text-[10px] font-mono text-gray-300 space-y-0.5">
+                  <div>
+                    voice={voiceDebugInfo.selectedVoiceName} gate=
+                    {voiceDebugInfo.gateAllowed === null
+                      ? 'pending'
+                      : voiceDebugInfo.gateAllowed
+                        ? 'allowed'
+                        : `${voiceDebugInfo.gateCode ?? 'unknown'}:${voiceDebugInfo.gateStatus ?? '-'}`}
+                  </div>
+                  <div>
+                    ws={voiceDebugInfo.wsPhase}
+                    {voiceDebugInfo.wsCloseCode !== null ? `(${voiceDebugInfo.wsCloseCode})` : ''}
+                    setup={voiceDebugInfo.setupComplete ? '1' : '0'} media=
+                    {voiceDebugInfo.mediaDevicesSupported ? 'ok' : 'missing'}
+                    {voiceDebugInfo.lastMediaErrorName
+                      ? `/${voiceDebugInfo.lastMediaErrorName}`
+                      : ''}
+                  </div>
+                  <div>
+                    entitlements={entitlementPlan}/{entitlementStatus}/{entitlementSource}{' '}
+                    consumerTier=
+                    {String(consumerTier)} localEligible={isVoiceEligible ? '1' : '0'}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Usage Limit Reached State */}
         {isFreeUser && usage?.isLimitReached && (
-        <div className="text-center py-6 px-4 mb-4 flex-shrink-0">
-          <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Crown size={24} className="text-white" />
+          <div className="text-center py-6 px-4 mb-4 flex-shrink-0">
+            <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Crown size={24} className="text-white" />
+            </div>
+            <h4 className="text-white font-medium mb-2">Trip Limit Reached</h4>
+            <p className="text-sm text-gray-300 mb-4 max-w-sm mx-auto">
+              You've used all {usage.limit} free AI queries for this trip. Upgrade to keep planning!
+            </p>
+            <div className="flex flex-col gap-2 max-w-xs mx-auto">
+              <Button
+                onClick={() => (window.location.href = upgradeUrl)}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full"
+              >
+                <Crown size={16} className="mr-2" />
+                Explorer - 10 Queries/Trip ($9.99/mo)
+              </Button>
+              <Button
+                onClick={() => (window.location.href = upgradeUrl)}
+                variant="outline"
+                className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-500/50 hover:bg-purple-500/30 w-full"
+              >
+                <Sparkles size={16} className="mr-2" />
+                Frequent Chraveler - Unlimited ($19.99/mo)
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
+              Your previous conversations are saved and will remain accessible.
+            </p>
           </div>
-          <h4 className="text-white font-medium mb-2">Trip Limit Reached</h4>
-          <p className="text-sm text-gray-300 mb-4 max-w-sm mx-auto">
-            You've used all {usage.limit} free AI queries for this trip. Upgrade to keep planning!
-          </p>
-          <div className="flex flex-col gap-2 max-w-xs mx-auto">
-            <Button
-              onClick={() => window.location.href = upgradeUrl}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full"
-            >
-              <Crown size={16} className="mr-2" />
-              Explorer - 10 Queries/Trip ($9.99/mo)
-            </Button>
-            <Button
-              onClick={() => window.location.href = upgradeUrl}
-              variant="outline"
-              className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-500/50 hover:bg-purple-500/30 w-full"
-            >
-              <Sparkles size={16} className="mr-2" />
-              Frequent Chraveler - Unlimited ($19.99/mo)
-            </Button>
-          </div>
-          <p className="text-xs text-gray-500 mt-3">
-            Your previous conversations are saved and will remain accessible.
-          </p>
-        </div>
         )}
 
         {/* Empty State - Compact for Mobile */}
         {messages.length === 0 && !(isFreeUser && usage?.isLimitReached) && (
-        <div className="text-center py-6 px-4 flex-shrink-0">
-          <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">Your AI Travel Concierge</h4>
-          <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
-            <p className="text-xs sm:text-sm mb-1.5">Ask me anything about travel:</p>
-            <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
-              <p>• "Suggest activities based on our preferences"</p>
-              <p>• "What hidden gems should we check out?"</p>
-              <p>• "What's in the calendar agenda for the rest of the week"</p>
-              <p>• "What tasks still need to be completed"</p>
-              <p>• "Can you summarize my payments owed?"</p>
-            </div>
-            <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
-              ✨ Powered by AI - ask me anything!
+          <div className="text-center py-6 px-4 flex-shrink-0">
+            <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
+              Your AI Travel Concierge
+            </h4>
+            <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
+              <p className="text-xs sm:text-sm mb-1.5">Ask me anything about travel:</p>
+              <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
+                <p>• "Suggest activities based on our preferences"</p>
+                <p>• "What hidden gems should we check out?"</p>
+                <p>• "What's in the calendar agenda for the rest of the week"</p>
+                <p>• "What tasks still need to be completed"</p>
+                <p>• "Can you summarize my payments owed?"</p>
+              </div>
+              <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
+                ✨ Powered by AI - ask me anything!
+              </div>
             </div>
           </div>
-        </div>
         )}
 
         {/* Chat Messages + Streaming Voice Transcript */}
         <div className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll">
           {messages.length > 0 && (
-            <ChatMessages 
+            <ChatMessages
               messages={[
                 ...messages,
                 // Show streaming assistant transcript as a live bubble
-                ...(assistantTranscript ? [{
-                  id: 'voice-streaming',
-                  type: 'assistant' as const,
-                  content: `🔊 ${assistantTranscript}`,
-                  timestamp: new Date().toISOString(),
-                }] : []),
-              ]} 
+                ...(assistantTranscript
+                  ? [
+                      {
+                        id: 'voice-streaming',
+                        type: 'assistant' as const,
+                        content: `🔊 ${assistantTranscript}`,
+                        timestamp: new Date().toISOString(),
+                      },
+                    ]
+                  : []),
+              ]}
               isTyping={isTyping || voiceState === 'thinking'}
               showMapWidgets={true}
             />
           )}
-          
+
           {/* Voice error inline display */}
           {voiceError && voiceState === 'error' && (
             <div className="flex items-center gap-2 px-3 py-2 mt-2 rounded-lg bg-red-500/10 border border-red-500/20">
@@ -679,11 +792,11 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
             isTyping={isTyping}
             disabled={aiStatus === 'error' || (isFreeUser && usage?.isLimitReached)}
             usageStatus={getUsageStatus()}
-            onUpgradeClick={() => window.location.href = upgradeUrl}
+            onUpgradeClick={() => (window.location.href = upgradeUrl)}
             voiceState={voiceState}
             isVoiceEligible={isVoiceEligible}
             onVoiceToggle={toggleVoice}
-            onVoiceUpgrade={() => window.location.href = upgradeUrl}
+            onVoiceUpgrade={() => (window.location.href = upgradeUrl)}
           />
           <div className="text-center mt-1">
             <span className="text-xs text-gray-500">🔒 This conversation is private to you</span>
