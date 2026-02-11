@@ -586,7 +586,10 @@ export const calendarService = {
    * For <= 5 events: single insert (fast path).
    * For >5 events: sequential batches of 5 parallel inserts each.
    */
-  async bulkCreateEvents(events: CreateEventData[]): Promise<{
+  async bulkCreateEvents(
+    events: CreateEventData[],
+    onProgress?: (completed: number, total: number) => void,
+  ): Promise<{
     imported: number;
     failed: number;
     events: TripEvent[];
@@ -632,8 +635,8 @@ export const calendarService = {
       source_data: (e.source_data || {}) as Json,
     }));
 
-    // 4. For small batches (<= 5), try a single insert first
-    if (rows.length <= 20) {
+    // 4. For batches <= 50, try a single bulk insert first
+    if (rows.length <= 50) {
       const { data, error } = await supabase.from('trip_events').insert(rows).select('*');
 
       if (!error && data && data.length > 0) {
@@ -653,7 +656,7 @@ export const calendarService = {
     }
 
     // 5. For larger batches or failed single insert, use sequential batches
-    return await this.batchInsertEvents(rows);
+    return await this.batchInsertEvents(rows, onProgress);
   },
 
   /**
@@ -675,6 +678,7 @@ export const calendarService = {
       source_type: string;
       source_data: Json;
     }>,
+    onProgress?: (completed: number, total: number) => void,
   ): Promise<{ imported: number; failed: number; events: TripEvent[] }> {
     let imported = 0;
     let failed = 0;
@@ -712,6 +716,9 @@ export const calendarService = {
           `[calendarService] Insert ${i + 1}/${rows.length} threw for "${row.title}": ${reason}`,
         );
       }
+
+      // Report progress
+      onProgress?.(i + 1, rows.length);
 
       // 100ms delay between inserts to let notification triggers complete
       if (i < rows.length - 1) {

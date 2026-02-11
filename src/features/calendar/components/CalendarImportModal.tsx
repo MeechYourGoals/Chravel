@@ -77,6 +77,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const [parseResult, setParseResult] = useState<SmartParseResult | null>(null);
   const [duplicateIndices, setDuplicateIndices] = useState<Set<number>>(new Set());
   const [importProgress, setImportProgress] = useState({ imported: 0, skipped: 0, failed: 0 });
+  const [importingProgress, setImportingProgress] = useState({ completed: 0, total: 0 });
   const [showPasteInput, setShowPasteInput] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [urlInput, setUrlInput] = useState('');
@@ -225,19 +226,30 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
     const skipped = duplicateIndices.size;
     setImportProgress({ imported: 0, skipped, failed: 0 });
+    setImportingProgress({ completed: 0, total: eventsToInsert.length });
 
     let imported = 0;
     let failed = 0;
 
     try {
       if (eventsToInsert.length > 0) {
-        const result = await calendarService.bulkCreateEvents(eventsToInsert);
+        // 30-second timeout to prevent infinite hang
+        const importPromise = calendarService.bulkCreateEvents(eventsToInsert, (completed, total) => {
+          setImportingProgress({ completed, total });
+        });
+        
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Import timed out after 30 seconds')), 30000);
+        });
+
+        const result = await Promise.race([importPromise, timeoutPromise]);
         imported = result.imported;
         failed = result.failed;
       }
     } catch (error) {
       console.error('Bulk import failed:', error);
-      failed = eventsToInsert.length;
+      // On timeout or error, report whatever progress we had
+      failed = eventsToInsert.length - imported;
     }
 
     setImportProgress({ imported, skipped, failed });
@@ -558,9 +570,15 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
             <div className="flex flex-col items-center justify-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
               <p className="text-muted-foreground mb-2">
-                Importing {eventsToImport} event{eventsToImport !== 1 ? 's' : ''}...
+                {importingProgress.total > 0
+                  ? `Importing ${importingProgress.completed}/${importingProgress.total} events...`
+                  : `Importing ${eventsToImport} event${eventsToImport !== 1 ? 's' : ''}...`}
               </p>
-              <p className="text-xs text-muted-foreground">This should only take a moment</p>
+              <p className="text-xs text-muted-foreground">
+                {importingProgress.total > 0 && importingProgress.completed > 0
+                  ? 'Almost there...'
+                  : 'This should only take a moment'}
+              </p>
             </div>
           )}
 
