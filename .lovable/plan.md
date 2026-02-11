@@ -1,218 +1,213 @@
 
+## Scope + decisions (Gate 1)
 
-# Grok Voice for AI Concierge (Frequent Chraveler + Pro Tiers)
+### Objective
+Fix Grok Voice so the mic button reliably starts a real-time, low-latency voice conversation (not “dictation”), and update the mic button styling to match the send button’s purple gradient.
 
-## Overview
+### Success criteria (what “done” means)
+1. Mic button (idle state) uses the **same purple gradient as Send** (and keeps premium hover/press).
+2. Tapping mic transitions **Idle → Connecting → Listening** within a few seconds (no infinite “Connecting”).
+3. Voice round-trip works end-to-end: speak → transcription appears as a user message → assistant transcript streams as text → assistant audio plays.
+4. Interrupt works: tap mic during Speaking cancels playback and returns to Listening quickly.
+5. Failures surface clearly: connection/auth errors show an inline error + auto-reset; no silent hangs.
+6. Assistant responses are **always visible in text** (accessibility + trust), in addition to voice.
 
-Add real-time voice conversation powered by xAI's Grok Voice Agent API to the AI Concierge. Voice is feature-gated: Free/Explorer = text only (mic visible but locked); Frequent Chraveler + Pro = voice + text. The xAI API key is stored server-side only, and the client authenticates via ephemeral tokens minted by a new edge function.
+### Key finding (root cause)
+In `src/hooks/useGrokVoice.ts`, we successfully mint an ephemeral token (`data.client_secret.value`) but **never use it to authenticate the WebSocket**. The WS is created as:
+- `new WebSocket("wss://api.x.ai/v1/realtime?model=grok-3-fast")`
 
-## Pre-Requisite: Build Errors
+So xAI rejects/terminates the handshake. Because `onclose` only sets state when `activeRef.current === true` (which is only set in `onopen`), a failed handshake can leave the UI stuck in **Connecting** indefinitely.
 
-There are existing TypeScript build errors in `useWebPush.ts`, `pushNotifications.ts`, `notificationService.ts`, and `productionNotificationService.ts` -- all referencing `pushManager` on `ServiceWorkerRegistration`. These must be fixed first (add type assertion `(registration as any).pushManager`) to unblock deployment.
+Secondary issues that will block “OpenAI Voice Mode”-level experience even after connect:
+- Missing/partial `session.update` (no voice, instructions, server_vad, modalities)
+- Event type mismatches (your handler listens for `response.audio.delta` / `response.audio_transcript.delta`, but xAI/OpenAI-spec commonly uses `response.output_audio.delta` / `response.output_audio_transcript.delta`)
+- Mic audio keeps streaming during Speaking (risk of feedback + confusing turn-taking)
+- Audio playback is not queued/scheduled; chunk playback will be jittery
 
-## Pre-Requisite: XAI_API_KEY Secret
+---
 
-Before implementation, we need the `XAI_API_KEY` stored in Supabase Edge Function secrets. You mentioned you'll provide this -- we'll add it via the secrets tool before deploying the edge function.
+## Target manifest (Gate 2)
 
-## Architecture
+### Files to change
+1. `src/features/chat/components/VoiceButton.tsx`
+   - Change the idle/primary gradient from amber→yellow to **send button’s purple gradient**.
+   - Keep state-specific colors (listening green, speaking blue, error red) unless you want full purple everywhere.
 
-```text
-  Browser (Chravel PWA)
-  +-----------------------------------------+
-  |  AIConciergeChat                        |
-  |    +-- VoiceButton (mic icon)           |
-  |    +-- useGrokVoice() hook              |
-  |         |                               |
-  |   1. POST /xai-voice-session            |
-  |         |                               |
-  |   2. Open WebSocket to xAI              |
-  |      wss://api.x.ai/v1/realtime        |
-  |         |                               |
-  |   3. Stream mic audio (PCM base64)      |
-  |   4. Receive audio + transcript deltas  |
-  +-----------------------------------------+
+2. `src/hooks/useGrokVoice.ts`
+   - Fix authentication for browser WebSocket using the ephemeral token.
+   - Add connection timeout + better close/error handling (no infinite “Connecting”).
+   - Send full `session.update` for voice agent configuration.
+   - Support both xAI/OpenAI-spec event names (robust parsing).
+   - Implement “voice-mode” turn-taking (VAD-driven commits + response.create), pause mic streaming during Speaking, and add audio playback queue.
 
-  Supabase Edge Function
-  +-----------------------------------+
-  | xai-voice-session/index.ts        |
-  |  - Verify auth (Supabase JWT)     |
-  |  - Check tier (frequent/pro)      |
-  |  - Mint ephemeral token from xAI  |
-  |  - Return token to client         |
-  +-----------------------------------+
-```
+3. `src/components/AIConciergeChat.tsx`
+   - Render streaming transcripts in the thread (not only finalized assistant transcript).
+   - Surface `voiceError` in an inline toast/badge so failures are obvious.
+   - Ensure assistant responses are always shown as text (already true at “done”, but we’ll make streaming visible too).
 
-## Implementation Steps
+### Optional (only if needed after the WS fix)
+4. `supabase/functions/xai-voice-session/index.ts`
+   - Either keep current `POST /v1/realtime/sessions` approach, or switch to docs-recommended `POST /v1/realtime/client_secrets`.
+   - If we switch: update the client to accept both response shapes (`data.client_secret.value` OR `data.value`), so it’s backward compatible.
 
-### Step 1: Fix Existing Build Errors (3 files)
+---
 
-Add `(registration as any).pushManager` type assertions in:
-- `src/hooks/useWebPush.ts` (lines 203, 205, 250, 277)
-- `src/platform/pushNotifications.ts` (line 48)
-- `src/services/notificationService.ts` (lines 159, 163, 615)
-- `src/services/productionNotificationService.ts` (lines 94, 324)
+## Implementation plan (Gate 3)
 
-### Step 2: Add XAI_API_KEY Secret
+### A) UI: make mic idle gradient purple (fast, low-risk)
+- In `VoiceButton.tsx`, update the `default` style (eligible + idle) to match Send:
+  - Use the same class string as Send: `bg-gradient-to-r from-indigo-600 to-purple-600 ...`
+- Keep the existing hover/active micro-interactions (`hover:scale-105 active:scale-95`) and `size-11` so it stays symmetric.
 
-Request the xAI API key from the user and store it in Supabase secrets. This key is never exposed to the client.
+Notes:
+- For **ineligible** state, we can keep a slightly dimmed purple gradient + lock badge so it doesn’t disappear on dark backgrounds.
 
-### Step 3: Create Edge Function `xai-voice-session`
+---
 
-**File**: `supabase/functions/xai-voice-session/index.ts`
+### B) Fix “Connecting forever” (core reliability)
+In `useGrokVoice.ts`:
 
-Responsibilities:
-- Authenticate the user via Supabase JWT
-- Check subscription tier: allow only `frequent-chraveler`, `pro-starter`, `pro-growth`, `pro-enterprise`, or super admin
-- Call `POST https://api.x.ai/v1/realtime/client_secrets` with the server-side `XAI_API_KEY`
-- Return the ephemeral token (expires in 300 seconds) to the client
-- Return 403 with `{ error: "VOICE_NOT_INCLUDED" }` for ineligible tiers
+#### B1) Authenticate the WebSocket using the ephemeral token
+Implement browser-safe auth via `Sec-WebSocket-Protocol` (subprotocols), consistent with the OpenAI Realtime WebSocket pattern (xAI states compatibility with OpenAI Realtime spec).
 
-Add to `supabase/config.toml`:
-```toml
-[functions.xai-voice-session]
-verify_jwt = true
-```
+Proposed connection attempts (most → least likely to work):
+1. `new WebSocket(url, ['realtime', `openai-insecure-api-key.${token}`])`
+2. If (1) closes before open: retry with `new WebSocket(url, ['realtime', `xai-insecure-api-key.${token}`])`
+3. If still failing: final fallback using query param (ephemeral only):
+   - `wss://api.x.ai/v1/realtime?model=...&access_token=${token}` (exact param name TBD; only used if docs confirm / if subprotocol retries fail)
 
-### Step 4: Create Voice State Machine Hook
+We’ll implement the retries deterministically:
+- Attempt #1, wait up to N seconds for `onopen`, else close and try #2.
+- If #2 fails, throw a clear error so UI shows a useful message instead of hanging.
 
-**File**: `src/hooks/useGrokVoice.ts`
+#### B2) Add “connect timeout” + correct onclose behavior
+- Start a timer when creating WS; if `onopen` hasn’t fired within e.g. 6–8 seconds:
+  - `setVoiceState('error')`
+  - `setErrorMessage('Unable to connect to voice service. Please try again.')`
+  - `cleanup()`
+- In `ws.onclose`, if we never reached `onopen`, treat it as a connection failure and set error state (do not leave state as `connecting`).
 
-A React hook that manages the entire voice lifecycle:
+---
 
-**States**: `idle` | `connecting` | `listening` | `thinking` | `speaking` | `error`
+### C) Make it actually “Voice Mode” (not dictation)
+Once connected, update the protocol + turn model:
 
-**Core logic**:
-1. `startVoice()`: Call the edge function to get ephemeral token, open WebSocket to `wss://api.x.ai/v1/realtime`, send `session.update` with voice config (voice: "Ara", server VAD, PCM 24kHz, Chravel concierge instructions)
-2. `stopVoice()`: Close mic, close WebSocket, clean up audio context
-3. Mic capture: Use `navigator.mediaDevices.getUserMedia()` + `AudioWorkletNode` to capture PCM 16-bit samples, base64-encode, send via `input_audio_buffer.append`
-4. Handle server events:
-   - `conversation.item.input_audio_transcription.completed` -- user transcript
-   - `response.output_audio_transcript.delta` -- assistant text streaming
-   - `response.output_audio.delta` -- play audio via Web Audio API
-   - `response.done` -- transition back to idle
-5. Interrupt: If user taps mic during `speaking`, stop playback and start listening
-6. Error handling: On WebSocket close/error, transition to `error` state, drop any partial transcript into the text input as fallback
-7. Cleanup on unmount: Close mic, stop audio, close WebSocket
+#### C1) Send a full `session.update` immediately on open
+Include:
+- `voice: 'Ara'` (or keep current server-configured voice if you prefer)
+- `instructions` (Chravel concierge)
+- `turn_detection: { type: 'server_vad' }`
+- audio formats, sample rate expectations if supported
+- `response` defaults with modalities `[ 'text', 'audio' ]` where spec supports it
 
-**Voice config sent in `session.update`**:
-```json
-{
-  "type": "session.update",
-  "session": {
-    "instructions": "You are Chravel AI Concierge. Be concise, travel-smart, and action-oriented. Prefer actionable answers and bullets. Keep responses under 30 seconds of speech.",
-    "voice": "Ara",
-    "turn_detection": { "type": "server_vad" },
-    "audio": {
-      "input": { "format": { "type": "audio/pcm", "rate": 24000 } },
-      "output": { "format": { "type": "audio/pcm", "rate": 24000 } }
-    }
-  }
-}
-```
+(We will keep the payload compatible with your current server session settings: `pcm16`, 24k).
 
-### Step 5: Create Voice Button Component
+#### C2) VAD-driven “end of speech” => auto-response
+Today, you set state to Thinking on `input_audio_buffer.speech_stopped`, but you do not automatically commit/request a response. Add:
+- On `speech_stopped`: send
+  - `input_audio_buffer.commit`
+  - `response.create` with `modalities: ['text','audio']`
+- This makes it feel like OpenAI/Gemini voice mode: user talks naturally, model responds without extra taps.
 
-**File**: `src/features/chat/components/VoiceButton.tsx`
+#### C3) Pause mic streaming while Speaking
+To prevent feedback + accidental capture of assistant audio:
+- Only stream mic chunks when `voiceState === 'listening'` (or a `shouldStreamMicRef.current` boolean).
+- When we enter Speaking, stop sending audio (keep the MediaStream alive; just stop appending).
 
-A circular button that sits left of the Send button in the input row. Visual states:
+#### C4) Audio playback queue (reduce jitter)
+Replace “play each chunk immediately” with a simple queue:
+- Track `nextStartTimeRef`
+- Schedule each chunk with `source.start(Math.max(ctx.currentTime, nextStartTimeRef))`
+- Advance `nextStartTimeRef += buffer.duration`
+- On interrupt/cancel: stop all scheduled sources + reset queue time.
 
-| State | Icon | Style |
-|-------|------|-------|
-| Idle (eligible) | Mic icon | Glass style, matches send button |
-| Idle (ineligible) | Mic + Lock badge | Dimmed, tooltip "Voice (Pro)" |
-| Listening | Animated mic with pulsing ring | Green accent |
-| Thinking | Spinner | Purple accent |
-| Speaking | Sound wave + "Tap to interrupt" | Blue accent |
-| Error | Mic with X | Red, auto-resets to idle |
+This is the biggest perceived-quality win after “it connects”.
 
-Tap behavior:
-- Idle + eligible: Start voice session
-- Idle + ineligible: Show upgrade modal
-- Listening: Commit audio buffer and request response
-- Speaking: Interrupt playback, start listening again
+---
 
-### Step 6: Update AiChatInput Component
+### D) Fix event compatibility (xAI vs OpenAI naming)
+In `handleServerEvent`, support multiple possible event names:
+- User transcription:
+  - `conversation.item.input_audio_transcription.completed` (keep)
+- Assistant transcript deltas:
+  - `response.output_audio_transcript.delta`
+  - `response.audio_transcript.delta` (current)
+- Assistant audio deltas:
+  - `response.output_audio.delta`
+  - `response.audio.delta` (current)
+- Completion:
+  - `response.done` (keep)
 
-**File**: `src/features/chat/components/AiChatInput.tsx`
+We’ll implement a small normalizer:
+- If `msg.type` is one of the known variants, route to the same handler.
 
-- Add `VoiceButton` between textarea and send button
-- Add new props: `voiceState`, `onVoiceToggle`, `isVoiceEligible`, `onVoiceUpgrade`
-- Voice button is always visible but gated by tier
+---
 
-### Step 7: Update AIConciergeChat Component
+### E) Transcript-first UI (answering your question + improving trust)
+#### Opinion + product direction
+Yes: voice responses should also be shown in text, always.
+- Trust: users can verify what the assistant “thinks it heard”
+- Accessibility: silent environments, hearing impaired, read-back
+- Utility: copy/share/search in chat history
+- Recovery: if audio fails, user still gets the answer
 
-**File**: `src/components/AIConciergeChat.tsx`
+#### Implementation
+In `AIConciergeChat.tsx`:
+- While assistant transcript is streaming (hook’s `assistantTranscript`):
+  - show/update a “live assistant message bubble” (single message ID) instead of only adding a final message at `.done`.
+- Similarly, once the user transcription completes, show as a user message (already done).
+- If voice fails mid-turn, drop the last user transcript into the text input (optional but recommended), so they can press Send.
 
-- Import and use `useGrokVoice()` hook
-- Determine voice eligibility: `tier === 'frequent-chraveler' || isPro || isSuperAdmin`
-- Pass voice state and handlers to `AiChatInput`
-- When voice transcript arrives (user or assistant), append to the messages array just like text messages
-- Update header status indicator to show voice states ("Listening...", "Thinking...", "Speaking...")
-- On voice error, fall back gracefully: drop partial transcript into text input
+---
 
-### Step 8: Add Voice Entitlement
+## Verification plan (Gate 4)
 
-**File**: `src/billing/types.ts`
+### Manual acceptance tests (Desktop Chrome)
+1. Mic idle gradient matches send gradient (purple).
+2. Tap mic:
+   - within 1–8s: transitions to Listening (no infinite Connecting).
+3. Speak 1–2 sentences, stop:
+   - user transcript appears as a user message
+   - assistant transcript starts streaming (text updates in-place)
+   - assistant audio plays with minimal jitter
+4. During assistant speaking: tap mic
+   - audio stops quickly
+   - state returns to Listening
+5. Turn off mic / stop voice:
+   - closes WS and mic stream cleanly (no continuing audio capture)
 
-Add new entitlement:
-```typescript
-| 'voice_concierge'         // Grok Voice in AI Concierge
-```
+### Mobile (iOS Safari / PWA)
+1. Tap mic triggers permission prompt; deny shows clear message.
+2. Approve mic: audio playback works from user gesture (no silent failure).
+3. Bottom composer not clipped; safe-area respected (already in `pb-[env(safe-area-inset-bottom)]`).
 
-**File**: `src/hooks/useUnifiedEntitlements.ts`
+### Security checks
+- Confirm no `XAI_API_KEY` in client bundle or network calls.
+- Only ephemeral token used client-side.
 
-Add to FEATURE_LIMITS:
-```typescript
-voice_concierge: { free: 0, explorer: 0, 'frequent-chraveler': -1, 'pro-starter': -1 },
-```
+### Observability (for debugging)
+- Add DEV-only logs for WS close codes/reasons and session token presence (never log the token value).
+- Check Edge Function logs for `xai-voice-session` to confirm token minting is called when tapping mic.
 
-Add `'voice_concierge'` to `FeatureName` type in `src/billing/types.ts`.
+---
 
-### Step 9: Empty State Enhancement
+## Risks / mitigations (Gate 1+4)
+- **Auth mechanism mismatch**: If xAI doesn’t accept the OpenAI-style subprotocol, we may need to:
+  - use a lightweight WS proxy edge function (backend connects with headers; browser connects to Supabase WS endpoint), or
+  - use a documented query-param token method if available.
+  Mitigation: implement retry strategy + clear error states; keep changes localized to `useGrokVoice`.
 
-In the empty state section of `AIConciergeChat.tsx`, add:
-- If voice eligible: A "Try Voice" button that starts listening
-- If not eligible: A "Voice is Pro" chip linking to upgrade
+- **Model mismatch** (`grok-3-fast` vs voice agent model): If WS rejects the model:
+  - fallback to a known voice model name (from docs) and/or read model from the server response if provided.
 
-## Feature Gating Summary
+---
 
-| Tier | Text Chat | Voice |
-|------|-----------|-------|
-| Free | 5/trip | Locked (mic visible, shows upgrade) |
-| Explorer | 10/trip | Locked (mic visible, shows upgrade) |
-| Frequent Chraveler | Unlimited | Enabled |
-| Pro (all tiers) | Unlimited | Enabled |
-| Super Admin | Unlimited | Enabled |
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `src/hooks/useWebPush.ts` | Fix pushManager type errors |
-| `src/platform/pushNotifications.ts` | Fix pushManager type errors |
-| `src/services/notificationService.ts` | Fix pushManager type errors |
-| `src/services/productionNotificationService.ts` | Fix pushManager type errors |
-| `supabase/functions/xai-voice-session/index.ts` | NEW: Ephemeral token minting endpoint |
-| `supabase/config.toml` | Add xai-voice-session config |
-| `src/hooks/useGrokVoice.ts` | NEW: Voice state machine + WebSocket + audio |
-| `src/features/chat/components/VoiceButton.tsx` | NEW: Mic button with state-based visuals |
-| `src/features/chat/components/AiChatInput.tsx` | Add VoiceButton to input row |
-| `src/components/AIConciergeChat.tsx` | Integrate voice hook, gating, header states |
-| `src/billing/types.ts` | Add voice_concierge entitlement + feature name |
-| `src/hooks/useUnifiedEntitlements.ts` | Add voice_concierge to FEATURE_LIMITS |
-
-## Security Guarantees
-
-- XAI_API_KEY exists ONLY in Supabase Edge Function secrets -- never in client code, VITE_ vars, or network responses
-- Client receives only ephemeral tokens (300s TTL)
-- Edge function validates Supabase JWT + tier before minting tokens
-- One active voice session at a time (enforced in hook)
-- Mic permission denial shows clear message with guidance
-
-## Mobile/PWA Considerations
-
-- Bottom input bar respects `env(safe-area-inset-bottom)` (already implemented)
-- Mic button sized for touch targets (min 44x44px)
-- Audio playback uses Web Audio API (works in iOS Safari PWA)
-- Falls back gracefully if `getUserMedia` is blocked
+## Delivery checklist (Gate 5)
+- [ ] Mic idle gradient purple, symmetrical with Send
+- [ ] No more “Connecting forever”
+- [ ] Real voice loop: VAD stop → response → auto ready for next turn
+- [ ] Streaming transcript visible in thread (not just final)
+- [ ] Interrupt cancels audio + continues
+- [ ] Mobile permission + playback handled
+- [ ] Edge logs + UI error handling clear
 
