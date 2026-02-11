@@ -213,9 +213,7 @@ export function useGeminiVoice(
       // Setup complete acknowledgement
       if (msg.setupComplete) {
         setupCompleteRef.current = true;
-        if (import.meta.env.DEV) {
-          console.log('[useGeminiVoice] Setup complete, ready for audio');
-        }
+        console.log('[useGeminiVoice] Setup complete, ready for audio');
         setVoiceState('listening');
         shouldStreamRef.current = true;
         return;
@@ -425,12 +423,11 @@ export function useGeminiVoice(
 
       const connectTimeout = setTimeout(() => {
         if (ws.readyState !== WebSocket.OPEN) {
+          console.error('[useGeminiVoice] Connection timeout — readyState:', ws.readyState);
           ws.close();
-          if (activeRef.current || voiceState === 'connecting') {
-            setErrorMessage('Voice connection timed out');
-            setVoiceState('error');
-            cleanup();
-          }
+          setErrorMessage('Voice connection timed out');
+          setVoiceState('error');
+          cleanup();
         }
       }, CONNECT_TIMEOUT_MS);
 
@@ -441,9 +438,7 @@ export function useGeminiVoice(
           return;
         }
 
-        if (import.meta.env.DEV) {
-          console.log('[useGeminiVoice] WebSocket connected, sending setup');
-        }
+        console.log('[useGeminiVoice] WebSocket connected, sending setup');
 
         // Send setup message
         ws.send(JSON.stringify({
@@ -478,27 +473,22 @@ export function useGeminiVoice(
             : null;
           if (msg) handleServerMessage(msg);
         } catch (err) {
-          if (import.meta.env.DEV) {
-            console.warn('[useGeminiVoice] Failed to parse message:', err);
-          }
+          console.warn('[useGeminiVoice] Failed to parse message:', err);
         }
       };
 
       ws.onerror = (event) => {
         clearTimeout(connectTimeout);
         console.error('[useGeminiVoice] WebSocket error:', event);
-        if (!activeRef.current && voiceState === 'connecting') {
-          setErrorMessage('Voice connection failed');
-          setVoiceState('error');
-          cleanup();
-        }
+        // Always transition to error — no stale voiceState check
+        setErrorMessage('Voice connection failed');
+        setVoiceState('error');
+        cleanup();
       };
 
       ws.onclose = (event) => {
         clearTimeout(connectTimeout);
-        if (import.meta.env.DEV) {
-          console.log('[useGeminiVoice] WebSocket closed:', event.code, event.reason);
-        }
+        console.log('[useGeminiVoice] WebSocket closed:', event.code, event.reason);
         if (activeRef.current) {
           // Deliver any pending transcript
           if (assistantTextRef.current && !assistantDeliveredRef.current) {
@@ -518,7 +508,7 @@ export function useGeminiVoice(
       setVoiceState('error');
       cleanup();
     }
-  }, [voiceState, cleanup, handleServerMessage, startMicCapture, onAssistantMessage]);
+  }, [cleanup, handleServerMessage, startMicCapture, onAssistantMessage]);
 
   // ---------- stop voice ----------
   const stopVoice = useCallback(() => {
