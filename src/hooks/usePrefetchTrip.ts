@@ -4,8 +4,10 @@ import { tripService } from '@/services/tripService';
 import { calendarService } from '@/services/calendarService';
 import { supabase } from '@/integrations/supabase/client';
 import { paymentService } from '@/services/paymentService';
+import { paymentBalanceService } from '@/services/paymentBalanceService';
 import { getTripLinks } from '@/services/tripLinksService';
 import { useDemoMode } from './useDemoMode';
+import { useAuth } from './useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 
 /**
@@ -17,6 +19,7 @@ import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 export const usePrefetchTrip = () => {
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
 
   const prefetch = useCallback(
     (tripId: string) => {
@@ -140,6 +143,14 @@ export const usePrefetchTrip = () => {
             queryFn: () => paymentService.getTripPaymentMessages(tripId),
             staleTime: QUERY_CACHE_CONFIG.payments.staleTime,
           });
+          // ⚡ Also prefetch balance summary (previously uncached, caused slow tab loads)
+          if (user?.id) {
+            queryClient.prefetchQuery({
+              queryKey: tripKeys.paymentBalances(tripId, user.id),
+              queryFn: () => paymentBalanceService.getBalanceSummary(tripId, user.id),
+              staleTime: QUERY_CACHE_CONFIG.paymentBalances.staleTime,
+            });
+          }
           break;
 
         case 'places':
@@ -156,7 +167,7 @@ export const usePrefetchTrip = () => {
           break;
       }
     },
-    [isDemoMode, queryClient],
+    [isDemoMode, queryClient, user?.id],
   );
 
   /**
@@ -185,10 +196,9 @@ export const usePrefetchTrip = () => {
   /**
    * ⚡ MOBILE/PWA: Prefetch high-priority tabs on trip load
    *
-   * NOTE: Payments is intentionally excluded from priority prefetch.
-   * It requires auth verification + 4 rounds of DB calls, which competes
-   * with other tabs (especially Media) for network bandwidth.
-   * Payments is still prefetched on hover/adjacent-tab navigation.
+   * Payments messages are prefetched at 800ms (lightweight query).
+   * Balance summary is prefetched via prefetchTab when hovering or
+   * visiting adjacent tabs, since it involves multiple DB round-trips.
    */
   const prefetchPriorityTabs = useCallback(
     (tripId: string) => {
@@ -201,9 +211,10 @@ export const usePrefetchTrip = () => {
       setTimeout(() => prefetchTab(tripId, 'calendar'), 200);
 
       // After 500ms: Tasks (lightweight)
-      setTimeout(() => {
-        prefetchTab(tripId, 'tasks');
-      }, 500);
+      setTimeout(() => prefetchTab(tripId, 'tasks'), 500);
+
+      // After 800ms: Payments (messages are lightweight; balance prefetched via prefetchTab)
+      setTimeout(() => prefetchTab(tripId, 'payments'), 800);
     },
     [isDemoMode, prefetchTab],
   );

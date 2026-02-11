@@ -1,23 +1,17 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { BalanceSummary } from './BalanceSummary';
 import { PersonBalanceCard } from './PersonBalanceCard';
 import { PaymentHistory } from './PaymentHistory';
 import { OutstandingPayments } from './OutstandingPayments';
 import { PaymentInput } from './PaymentInput';
-import {
-  paymentBalanceService,
-  BalanceSummary as BalanceSummaryType,
-} from '../../services/paymentBalanceService';
 import { useAuth } from '../../hooks/useAuth';
 import { usePayments } from '../../hooks/usePayments';
+import { useBalanceSummary } from '../../hooks/useBalanceSummary';
+import { useTripMembersQuery } from '../../hooks/useTripMembersQuery';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 import { useSuperAdmin } from '../../hooks/useSuperAdmin';
-import { supabase } from '../../integrations/supabase/client';
-import { getTripById } from '../../data/tripsData';
-import { demoModeService } from '../../services/demoModeService';
-import { tripService } from '../../services/tripService';
 import { AuthModal } from '../AuthModal';
 import { Loader2, LogIn, Lock, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -34,125 +28,23 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const { tier, isLoading: tierLoading, upgradeToTier } = useConsumerSubscription();
   const { isSuperAdmin } = useSuperAdmin();
 
-  // Single source of truth for payment data
+  // ⚡ TanStack Query: payment data (cached, prefetchable)
   const { tripPayments, paymentsLoading, demoActive, refreshPayments, createPaymentMessage } =
     usePayments(tripId);
 
-  const [balanceSummary, setBalanceSummary] = useState<BalanceSummaryType | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(true);
-  const [tripMembers, setTripMembers] = useState<
-    Array<{ id: string; name: string; avatar?: string }>
-  >([]);
-  const [membersLoading, setMembersLoading] = useState(true);
+  // ⚡ TanStack Query: balance summary (previously useState/useEffect with 4 DB round-trips)
+  const { balanceSummary, balanceLoading, refreshBalanceSummary } = useBalanceSummary(tripId);
+
+  // ⚡ TanStack Query: trip members (reuses shared cache instead of separate fetch)
+  const { tripMembers: rawMembers, loading: membersLoading } = useTripMembersQuery(tripId);
+
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Demo mode values
-  const isNumericOnly = /^\d+$/.test(tripId);
-  const tripIdNum = parseInt(tripId, 10);
-
-  // Fetch trip members (separate from payments)
-  useEffect(() => {
-    const fetchMembers = async () => {
-      if (!tripId) return;
-
-      setMembersLoading(true);
-      try {
-        if (demoActive) {
-          const mockTrip = getTripById(tripIdNum);
-
-          if (mockTrip && mockTrip.participants) {
-            const formattedMembers = mockTrip.participants.map(p => ({
-              id: String(p.id),
-              name: p.name,
-              avatar: p.avatar,
-            }));
-            setTripMembers(formattedMembers);
-          } else {
-            const demoMembers = demoModeService.getMockMembers(tripId);
-            setTripMembers(
-              demoMembers.map(m => ({
-                id: m.user_id,
-                name: m.display_name,
-                avatar: m.avatar_url,
-              })),
-            );
-          }
-          setMembersLoading(false);
-          return;
-        }
-
-        // Authenticated mode: Query Supabase
-        const membersData = await tripService.getTripMembers(tripId);
-
-        const formattedMembers = membersData.map(m => ({
-          id: m.user_id,
-          name: m.profiles?.display_name || 'Former Member',
-          avatar: m.profiles?.avatar_url || undefined,
-        }));
-
-        // Ensure current user is always in the members list
-        let finalMembers = formattedMembers;
-        if (user && !formattedMembers.find(m => m.id === user.id)) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('display_name, avatar_url')
-            .eq('user_id', user.id)
-            .single();
-
-          finalMembers = [
-            {
-              id: user.id,
-              name: profile?.display_name || user.email?.split('@')[0] || 'Unknown',
-              avatar: profile?.avatar_url,
-            },
-            ...formattedMembers,
-          ];
-        }
-
-        setTripMembers(finalMembers);
-      } catch (error) {
-        console.error('Error loading trip members:', error);
-      } finally {
-        setMembersLoading(false);
-      }
-    };
-
-    fetchMembers();
-  }, [tripId, user, demoActive, tripIdNum]);
-
-  // Subscribe to profile updates for name/avatar changes
-  useEffect(() => {
-    if (!tripId || demoActive) return;
-
-    const channel = supabase
-      .channel(`payments-profiles-${tripId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
-        const next = payload.new as {
-          user_id?: string;
-          display_name?: string | null;
-          avatar_url?: string | null;
-        } | null;
-        const userId = next?.user_id;
-        if (!userId) return;
-
-        setTripMembers(prev =>
-          prev.map(m =>
-            m.id === userId
-              ? {
-                  ...m,
-                  name: next.display_name ?? m.name,
-                  avatar: next.avatar_url ?? m.avatar,
-                }
-              : m,
-          ),
-        );
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel).catch(() => {});
-    };
-  }, [tripId, demoActive]);
+  // Map TripMember[] to the shape PaymentInput expects
+  const tripMembers = useMemo(
+    () => rawMembers.map(m => ({ id: m.id, name: m.name, avatar: m.avatar })),
+    [rawMembers],
+  );
 
   // Count user's payment requests for freemium limits
   const userPaymentCount = useMemo(() => {
@@ -199,137 +91,9 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     return { totalPaid, totalOwed, totalOwedToYou, totalYouOwe, isSettled };
   }, [tripPayments, user]);
 
-  // Load balance summary
-  useEffect(() => {
-    if (demoLoading) return;
-
-    const loadBalances = async () => {
-      if (demoActive) {
-        const mockPayments = demoModeService.getMockPayments(tripId, false);
-        const sessionPayments = demoModeService.getSessionPayments(tripId);
-        const allPayments = [...mockPayments, ...sessionPayments];
-        const mockMembers = demoModeService.getMockMembers(tripId);
-
-        const totalAmount = allPayments.reduce((sum, p) => sum + p.amount, 0);
-        const avgPerPerson = totalAmount / Math.max(mockMembers.length, 1);
-
-        setBalanceSummary({
-          totalOwed: avgPerPerson * 0.6,
-          totalOwedToYou: avgPerPerson * 0.4,
-          netBalance: avgPerPerson * 0.2,
-          baseCurrency: 'USD',
-          balances: mockMembers.slice(0, 3).map((m, i) => ({
-            userId: m.user_id,
-            userName: m.display_name,
-            avatar: m.avatar_url,
-            amountOwed:
-              (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
-            amountOwedCurrency: 'USD',
-            preferredPaymentMethod: null,
-            unsettledPayments: [],
-          })),
-        });
-        setBalanceLoading(false);
-        return;
-      }
-
-      if (!user?.id) {
-        setBalanceSummary({
-          totalOwed: 0,
-          totalOwedToYou: 0,
-          netBalance: 0,
-          baseCurrency: 'USD',
-          balances: [],
-        });
-        setBalanceLoading(false);
-        return;
-      }
-
-      setBalanceLoading(true);
-      try {
-        const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
-        setBalanceSummary(summary);
-      } catch (error) {
-        console.error('Error loading balance summary:', error);
-        // Only show access denied for actual permission issues (not transient auth/network errors)
-        if (error instanceof Error) {
-          const msg = error.message.toLowerCase();
-          // Transient auth errors - don't show "access denied", just log and retry later
-          if (
-            msg.includes('authentication required') ||
-            msg.includes('jwt') ||
-            msg.includes('network')
-          ) {
-            console.warn('[PaymentsTab] Transient auth/network error, will retry on next render');
-            // Don't show toast - user just needs to be authenticated
-          } else if (msg.includes('unauthorized') || msg.includes('not a trip member')) {
-            // Genuine permission issue - but verify auth is actually ready
-            // If the user is logged in and still getting this, it's a real permission issue
-            toast({
-              title: 'Access Denied',
-              description: "You don't have permission to view payment balances for this trip.",
-              variant: 'destructive',
-            });
-          }
-        }
-        setBalanceSummary({
-          totalOwed: 0,
-          totalOwedToYou: 0,
-          netBalance: 0,
-          baseCurrency: 'USD',
-          balances: [],
-        });
-      } finally {
-        setBalanceLoading(false);
-      }
-    };
-
-    loadBalances();
-  }, [tripId, user?.id, demoActive, demoLoading, toast]);
-
-  // Refresh balance summary when payments change
-  const refreshBalanceSummary = useCallback(async () => {
-    if (demoActive) {
-      const mockPayments = demoModeService.getMockPayments(tripId, false);
-      const sessionPayments = demoModeService.getSessionPayments(tripId);
-      const allPayments = [...mockPayments, ...sessionPayments];
-      const mockMembers = demoModeService.getMockMembers(tripId);
-
-      const totalAmount = allPayments.reduce((sum, p) => sum + p.amount, 0);
-      const avgPerPerson = totalAmount / Math.max(mockMembers.length, 1);
-
-      setBalanceSummary({
-        totalOwed: avgPerPerson * 0.6,
-        totalOwedToYou: avgPerPerson * 0.4,
-        netBalance: avgPerPerson * 0.2,
-        baseCurrency: 'USD',
-        balances: mockMembers.slice(0, 3).map((m, i) => ({
-          userId: m.user_id,
-          userName: m.display_name,
-          avatar: m.avatar_url,
-          amountOwed: (i === 0 ? avgPerPerson * 0.5 : avgPerPerson * 0.3) * (i % 2 === 0 ? 1 : -1),
-          amountOwedCurrency: 'USD',
-          preferredPaymentMethod: null,
-          unsettledPayments: [],
-        })),
-      });
-      return;
-    }
-
-    if (user?.id) {
-      try {
-        const summary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
-        setBalanceSummary(summary);
-      } catch (error) {
-        console.error('Error refreshing balance summary:', error);
-      }
-    }
-  }, [tripId, user?.id, demoActive]);
-
   // Unified refresh function for child components
   const handlePaymentUpdated = useCallback(async () => {
-    await refreshPayments();
-    await refreshBalanceSummary();
+    await Promise.all([refreshPayments(), refreshBalanceSummary()]);
   }, [refreshPayments, refreshBalanceSummary]);
 
   // Handle payment submission
@@ -374,23 +138,12 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     }
   };
 
-  // Loading state — use OR: show loader while EITHER payments or balances are loading
-  // Before the TanStack Query migration, both loaded at similar speeds.
-  // Now payments can resolve instantly from prefetch cache while balance is still fetching.
-  const isLoading = paymentsLoading || balanceLoading;
-
-  if (isLoading) {
+  // ⚡ PROGRESSIVE LOADING: Only block on payment data (fast from cache).
+  // Balance summary loads independently and shows its own skeleton.
+  if (paymentsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!balanceSummary) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        Unable to load payment information
       </div>
     );
   }
@@ -475,21 +228,33 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         </>
       )}
 
-      {/* Balance Summary Card */}
-      <BalanceSummary summary={balanceSummary} />
-
-      {/* Per-Person Balance Cards */}
-      {balanceSummary.balances.length > 0 ? (
+      {/* ⚡ Balance Summary — loads independently with its own skeleton */}
+      {balanceLoading ? (
         <div className="space-y-2">
-          <h3 className="text-base font-semibold text-foreground mb-1">Balance Breakdown</h3>
-          {balanceSummary.balances.map(balance => (
-            <PersonBalanceCard key={balance.userId} balance={balance} tripId={tripId} />
-          ))}
+          <div className="h-24 bg-muted/50 rounded-lg border border-border animate-pulse" />
+          <div className="h-16 bg-muted/50 rounded-lg border border-border animate-pulse" />
         </div>
       ) : (
-        <div className="text-center py-4 bg-muted/50 rounded-lg border border-border">
-          <p className="text-sm text-muted-foreground">All settled up! No outstanding payments.</p>
-        </div>
+        <>
+          {/* Balance Summary Card */}
+          <BalanceSummary summary={balanceSummary} />
+
+          {/* Per-Person Balance Cards */}
+          {balanceSummary.balances.length > 0 ? (
+            <div className="space-y-2">
+              <h3 className="text-base font-semibold text-foreground mb-1">Balance Breakdown</h3>
+              {balanceSummary.balances.map(balance => (
+                <PersonBalanceCard key={balance.userId} balance={balance} tripId={tripId} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 bg-muted/50 rounded-lg border border-border">
+              <p className="text-sm text-muted-foreground">
+                All settled up! No outstanding payments.
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {/* Outstanding Payments - pass data as props */}

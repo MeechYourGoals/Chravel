@@ -29,6 +29,7 @@ export const tripKeys = {
   media: (tripId: string) => ['tripMedia', tripId] as const,
   places: (tripId: string) => ['tripPlaces', tripId] as const,
   payments: (tripId: string) => ['tripPayments', tripId] as const,
+  paymentBalances: (tripId: string, userId: string) => ['tripPaymentBalances', tripId, userId] as const,
   broadcasts: (tripId: string) => ['tripBroadcasts', tripId] as const,
   
   // Pro-specific
@@ -100,6 +101,13 @@ export const QUERY_CACHE_CONFIG = {
   // Payments - sensitive, verify often
   payments: {
     staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+  },
+
+  // Payment balances - computed from payments, cache for tab switching
+  paymentBalances: {
+    staleTime: 30 * 1000, // 30 seconds (matches payments)
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
   },
