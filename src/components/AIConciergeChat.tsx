@@ -14,7 +14,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
-import { useGrokVoice } from '../hooks/useGrokVoice';
+import { useGeminiVoice } from '../hooks/useGeminiVoice';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { conciergeCacheService } from '../services/conciergeCacheService';
@@ -82,7 +82,7 @@ export const AIConciergeChat = ({ tripId, basecamp, preferences, isDemoMode = fa
     }]);
   }, []);
 
-  const { voiceState, assistantTranscript, errorMessage: voiceError, toggleVoice, stopVoice } = useGrokVoice(
+  const { voiceState, assistantTranscript, errorMessage: voiceError, toggleVoice, stopVoice } = useGeminiVoice(
     handleVoiceUserMessage,
     handleVoiceAssistantMessage,
   );

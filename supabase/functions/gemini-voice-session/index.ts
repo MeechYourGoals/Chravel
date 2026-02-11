@@ -125,24 +125,21 @@ Deno.serve(async req => {
       );
     }
 
-    const xaiApiKey = Deno.env.get("XAI_API_KEY");
-    if (!xaiApiKey) {
-      console.error("[xai-voice-session] Missing XAI_API_KEY secret");
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiApiKey) {
+      console.error("[gemini-voice-session] Missing GEMINI_API_KEY secret");
       return new Response(
-        JSON.stringify({ error: "XAI_NOT_CONFIGURED" }),
+        JSON.stringify({ error: "VOICE_NOT_CONFIGURED" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Return the API key directly — no ephemeral token minting.
-    // Security: key is behind auth + tier gating, never in client bundle,
-    // and xAI enforces server-side rate limits per key.
     return new Response(
-      JSON.stringify({ api_key: xaiApiKey }),
+      JSON.stringify({ api_key: geminiApiKey }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
-    console.error("[xai-voice-session] Unexpected error:", error);
+    console.error("[gemini-voice-session] Unexpected error:", error);
     return new Response(
       JSON.stringify({ error: "INTERNAL_SERVER_ERROR" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
