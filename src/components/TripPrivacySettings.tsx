@@ -45,7 +45,7 @@ export const TripPrivacySettings = ({
       const updatedConfig: TripPrivacyConfig = {
         ...currentConfig,
         privacy_mode: pendingMode,
-        ai_access_enabled: pendingMode === 'standard',
+        ai_access_enabled: true,
         participants_notified: false // Will be notified after change
       };
       
@@ -185,8 +185,8 @@ export const TripPrivacySettings = ({
                 <Alert className="border-amber-500/30 bg-amber-500/10">
                   <AlertTriangle className="text-amber-400" size={16} />
                   <AlertDescription className="text-amber-300">
-                    <strong>Important:</strong> Switching to Standard Privacy will enable AI features for future messages. 
-                    Previously encrypted messages will remain encrypted.
+                    <strong>Important:</strong> Switching to Standard Privacy reduces message protection from
+                    end-to-end encryption to server-side encryption.
                   </AlertDescription>
                 </Alert>
               )}
@@ -195,8 +195,8 @@ export const TripPrivacySettings = ({
                 <Alert className="border-green-500/30 bg-green-500/10">
                   <Lock className="text-green-400" size={16} />
                   <AlertDescription className="text-green-300">
-                    <strong>Enhanced Security:</strong> Switching to High Privacy will enable end-to-end encryption 
-                    and disable AI features for maximum privacy protection.
+                    <strong>Enhanced Security:</strong> Switching to High Privacy enables end-to-end
+                    encryption. AI access can remain enabled unless admins disable it.
                   </AlertDescription>
                 </Alert>
               )}

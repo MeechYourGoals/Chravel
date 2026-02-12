@@ -83,12 +83,12 @@ export const PrivacyModeSelector = ({
         ))}
       </div>
 
-      {/* Compact warning for high privacy mode */}
+      {/* Compact guidance for high privacy mode */}
       {selectedMode === 'high' && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 flex items-start gap-2">
           <Lock className="text-amber-400 mt-0.5 flex-shrink-0" size={14} />
           <p className="text-xs text-amber-300/90">
-            AI features disabled for maximum privacy
+            End-to-end encryption is enabled. AI access can remain on unless trip admins disable it.
           </p>
         </div>
       )}

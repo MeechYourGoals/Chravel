@@ -193,7 +193,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         // ✅ Pass card color for Pro/Event trips
         ...(tripType !== 'consumer' && { card_color: selectedCardColor }),
         privacy_mode: privacyMode,
-        ai_access_enabled: privacyMode === 'standard',
+        ai_access_enabled: true,
         // All features are enabled by default for all trip types (MVP)
         // The edge function sets the correct feature set based on trip_type
       };

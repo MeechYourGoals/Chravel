@@ -91,7 +91,7 @@ export class PrivacyService {
 
   // Check if trip allows AI access to messages
   canAIAccessMessages(privacyConfig: TripPrivacyConfig): boolean {
-    return privacyConfig.privacy_mode === 'standard' && privacyConfig.ai_access_enabled;
+    return privacyConfig.ai_access_enabled;
   }
 
   // Prepare message for sending based on privacy mode
@@ -127,7 +127,7 @@ export class PrivacyService {
       case 'standard':
         return 'Messages are server-encrypted and may be processed by AI for enhanced features.';
       case 'high':
-        return 'Messages are end-to-end encrypted. AI features are disabled for maximum privacy.';
+        return 'Messages are end-to-end encrypted. AI access follows trip privacy settings.';
       default:
         return '';
     }
@@ -148,7 +148,8 @@ export class PrivacyService {
     if (currentMode === 'high' && newMode === 'standard') {
       return { 
         allowed: true, 
-        reason: 'Switching to Standard Privacy will allow AI access to future messages. Past encrypted messages remain encrypted.' 
+        reason:
+          'Switching to Standard Privacy enables server-side encryption for new messages. Past encrypted messages remain encrypted.'
       };
     }
 

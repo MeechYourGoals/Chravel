@@ -53,11 +53,11 @@ serve(async (req) => {
           .eq('trip_id', tripContext.id)
           .single();
 
-        // If high privacy mode or AI access disabled, return privacy notice
-        if (privacyConfig?.privacy_mode === 'high' || !privacyConfig?.ai_access_enabled) {
+        // AI can run in high privacy mode. Only block when explicitly disabled.
+        if (privacyConfig?.ai_access_enabled === false) {
           return new Response(
             JSON.stringify({
-              response: "🔒 **AI features are disabled for this trip.**\n\nThis trip uses high privacy mode with end-to-end encryption. AI assistance is not available to protect your privacy, but you can still use all other trip features.",
+              response: "🔒 **AI Concierge is disabled for this trip.**\n\nA trip organizer turned off AI access in privacy settings. You can still use all other trip features.",
               usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
               sentimentScore: 0
             }),

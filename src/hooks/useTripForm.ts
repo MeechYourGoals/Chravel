@@ -88,7 +88,7 @@ export const useTripForm = () => {
       destination: formData.location || undefined,
       trip_type: tripType,
       privacy_mode: privacyMode,
-      ai_access_enabled: privacyMode === 'standard'
+      ai_access_enabled: true
     };
   }, [formData, tripType, privacyMode, validateTrip]);
 
