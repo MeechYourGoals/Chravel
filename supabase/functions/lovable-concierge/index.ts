@@ -306,91 +306,56 @@ serve(async (req) => {
             ragContext += '\n\nIMPORTANT: Use this retrieved context to provide accurate, specific answers. Cite sources when possible (e.g., "Based on the chat messages..." or "According to the calendar..." or "From the uploaded document...").'
           }
         } else {
-          // Production mode: Use HYBRID SEARCH (vector + keyword)
-          console.log('Generating query embedding for hybrid RAG retrieval')
+          // Production mode: Use keyword-only search (embedding model not available on gateway)
+          console.log('Using keyword-only search for RAG retrieval (embedding model unavailable)')
           
-          // Generate embedding for the user's query
-          const queryEmbedResponse = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: 'google/text-embedding-004',
-              input: [message]
-            })
-          })
-          
-          if (queryEmbedResponse.ok) {
-            const queryEmbedData = await queryEmbedResponse.json()
-            const queryEmbedding = queryEmbedData.data[0].embedding
+          try {
+            // Keyword search via kb_chunks full-text search
+            const { data: keywordResults, error: keywordError } = await supabase
+              .from('kb_chunks')
+              .select('id, content, doc_id, modality')
+              .textSearch('content_tsv', message.split(' ').slice(0, 5).join(' & '), { type: 'plain' })
+              .limit(10)
             
-            console.log('Performing HYBRID search (vector + keyword)')
-            
-            // 🆕 Use hybrid search function (combines vector similarity + full-text search)
-            const { data: hybridResults, error: hybridError } = await supabase.rpc('hybrid_search_trip_context', {
-              p_trip_id: tripId,
-              p_query_text: message,
-              p_query_embedding: queryEmbedding,
-              p_match_threshold: 0.55,
-              p_match_count: 15
-            })
-            
-            if (hybridError) {
-              console.error('Hybrid search error:', hybridError)
+            if (!keywordError && keywordResults && keywordResults.length > 0) {
+              // Get doc metadata
+              const docIds = [...new Set(keywordResults.map((r: any) => r.doc_id).filter(Boolean))]
+              let docMap = new Map()
               
-              // Fallback to vector-only search
-              console.log('Falling back to vector-only search')
-              const { data: ragResults, error: ragError } = await supabase.rpc('match_trip_embeddings', {
-                query_embedding: queryEmbedding,
-                trip_id_input: tripId,
-                match_threshold: 0.6,
-                match_count: 15
-              })
-              
-              if (!ragError && ragResults && ragResults.length > 0) {
-                ragContext = formatRAGContext(ragResults, 'Vector')
+              if (docIds.length > 0) {
+                const { data: docs } = await supabase
+                  .from('kb_documents')
+                  .select('id, source, trip_id')
+                  .in('id', docIds)
+                  .eq('trip_id', tripId)
+                
+                docs?.forEach((d: any) => docMap.set(d.id, d))
               }
-            } else if (hybridResults && hybridResults.length > 0) {
-              console.log(`Found ${hybridResults.length} relevant context items via HYBRID search`)
               
-              // Group by search type for better visibility
-              const vectorResults = hybridResults.filter((r: any) => r.search_type === 'vector')
-              const keywordResults = hybridResults.filter((r: any) => r.search_type === 'keyword')
-              
-              console.log(`  - ${vectorResults.length} from vector search`)
-              console.log(`  - ${keywordResults.length} from keyword search`)
-              
-              ragContext = '\n\n=== RELEVANT TRIP CONTEXT (HYBRID RAG) ===\n'
-              ragContext += 'Retrieved using semantic similarity + keyword matching:\n'
-              
-              hybridResults.forEach((result: any, idx: number) => {
-                const relevancePercent = result.similarity > 0 
-                  ? (result.similarity * 100).toFixed(0) 
-                  : 'keyword match'
-                
-                const sourceIconMap: Record<string, string> = {
-                  'chat': '💬',
-                  'task': '✅',
-                  'poll': '📊',
-                  'payment': '💰',
-                  'broadcast': '📢',
-                  'calendar': '📅',
-                  'link': '🔗',
-                  'file': '📄'
-                }
-                const sourceIcon = sourceIconMap[result.source_type as string] || '📄'
-                
-                const searchBadge = result.search_type === 'vector' ? '🔍' : '🔤'
-                
-                ragContext += `\n[${idx + 1}] ${sourceIcon} ${searchBadge} [${result.source_type}] ${result.content_text.substring(0, 300)} (${relevancePercent})`
+              // Filter to only chunks belonging to this trip
+              const tripChunks = keywordResults.filter((r: any) => {
+                const doc = docMap.get(r.doc_id)
+                return doc?.trip_id === tripId
               })
               
-              ragContext += '\n\n🎯 INSTRUCTIONS: Use this retrieved context to provide accurate answers. Always cite sources (e.g., "Based on the uploaded document..." or "According to the calendar..." or "From the chat history...").'
+              if (tripChunks.length > 0) {
+                console.log(`Found ${tripChunks.length} relevant context items via keyword search`)
+                
+                ragContext = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n'
+                ragContext += 'Retrieved using keyword matching:\n'
+                
+                tripChunks.forEach((result: any, idx: number) => {
+                  const doc = docMap.get(result.doc_id)
+                  const sourceType = doc?.source || result.modality || 'unknown'
+                  ragContext += `\n[${idx + 1}] [${sourceType}] ${(result.content || '').substring(0, 300)}`
+                })
+                
+                ragContext += '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.'
+              }
             }
-          } else {
-            console.error('Query embedding failed:', await queryEmbedResponse.text())
+          } catch (keywordErr) {
+            console.error('Keyword search failed:', keywordErr)
+            // Don't fail the request
           }
         }
       } catch (ragError) {
@@ -739,6 +704,8 @@ function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
   if (customPrompt) return customPrompt
 
   let basePrompt = `You are **Chravel Concierge**, a world-class AI travel expert and trip assistant. You have complete awareness of the user's current trip context AND broad expertise across all travel topics worldwide.
+
+Current date: ${new Date().toISOString().split('T')[0]}
 
 **SCOPE POLICY:**
 - Answer ANY question the user asks. You are a versatile AI assistant with special expertise in travel and trip planning.

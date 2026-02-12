@@ -373,7 +373,7 @@ export class TripContextBuilder {
     try {
       const { data, error } = await supabase
         .from('trip_tasks')
-        .select('id, content, assignee_id, due_date, is_complete, profiles:assignee_id(full_name)')
+        .select('id, content, assignee_id, due_date, is_complete')
         .eq('trip_id', tripId);
 
       if (error) throw error;
@@ -381,7 +381,7 @@ export class TripContextBuilder {
       return data?.map((t: any) => ({
         id: t.id,
         content: t.content,
-        assignee: t.profiles?.full_name,
+        assignee: undefined,
         dueDate: t.due_date,
         isComplete: t.is_complete
       })) || [];
@@ -395,7 +395,7 @@ export class TripContextBuilder {
     try {
       const { data, error } = await supabase
         .from('trip_payment_messages')
-        .select('id, description, amount, created_by, split_participants, is_settled, profiles:created_by(full_name)')
+        .select('id, description, amount, created_by, split_participants, is_settled')
         .eq('trip_id', tripId);
 
       if (error) throw error;
@@ -404,7 +404,7 @@ export class TripContextBuilder {
         id: p.id,
         description: p.description,
         amount: p.amount,
-        paidBy: p.profiles?.full_name || 'Unknown',
+        paidBy: 'Unknown',
         participants: p.split_participants as string[],
         isSettled: p.is_settled
       })) || [];
@@ -539,7 +539,7 @@ export class TripContextBuilder {
     try {
       const { data, error } = await supabase
         .from('trip_files')
-        .select('id, file_name, file_type, file_url, uploaded_by, created_at, profiles:uploaded_by(full_name)')
+        .select('id, file_name, file_type, file_url, uploaded_by, created_at')
         .eq('trip_id', tripId);
 
       if (error) throw error;
@@ -549,7 +549,7 @@ export class TripContextBuilder {
         name: f.file_name,
         type: f.file_type,
         url: f.file_url,
-        uploadedBy: f.profiles?.full_name || 'Unknown',
+        uploadedBy: 'Unknown',
         uploadedAt: f.created_at
       })) || [];
     } catch (error) {
@@ -562,7 +562,7 @@ export class TripContextBuilder {
     try {
       const { data, error } = await supabase
         .from('trip_links')
-        .select('id, url, title, category, added_by, profiles:added_by(full_name)')
+        .select('id, url, title, category, added_by')
         .eq('trip_id', tripId);
 
       if (error) throw error;
@@ -572,7 +572,7 @@ export class TripContextBuilder {
         url: l.url,
         title: l.title,
         category: l.category,
-        addedBy: l.profiles?.full_name || 'Unknown'
+        addedBy: 'Unknown'
       })) || [];
     } catch (error) {
       console.error('Error fetching links:', error);

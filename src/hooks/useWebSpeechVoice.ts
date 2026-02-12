@@ -1,10 +1,10 @@
 /**
- * useWebSpeechVoice – Voice assistant using browser Web Speech API
- * STT via SpeechRecognition, AI via existing concierge, TTS via SpeechSynthesis.
- * Drop-in replacement for useGeminiVoice with identical exported types.
+ * useWebSpeechVoice – Pure Speech-to-Text hook using browser Web Speech API
+ * Transcribes speech and calls onUserMessage with the final text.
+ * Does NOT call any AI endpoint – the parent component routes text
+ * through the same pipeline used for typed messages.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 export type VoiceState = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'error';
 
@@ -43,16 +43,16 @@ const SpeechRecognitionClass =
 
 export function useWebSpeechVoice(
   onUserMessage?: (text: string) => void,
-  onAssistantMessage?: (text: string) => void,
+  _onAssistantMessage?: (text: string) => void,
 ): UseGeminiVoiceReturn {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [userTranscript, setUserTranscript] = useState('');
-  const [assistantTranscript, setAssistantTranscript] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const recognitionRef = useRef<any>(null);
-  const synthUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const activeRef = useRef(false);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const accumulatedTranscriptRef = useRef('');
 
   const [debugInfo] = useState<VoiceDebugInfo>({
     selectedModel: 'web-speech-api',
@@ -73,90 +73,32 @@ export function useWebSpeechVoice(
   // Cleanup
   const cleanup = useCallback(() => {
     activeRef.current = false;
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
     if (recognitionRef.current) {
       try { recognitionRef.current.abort(); } catch { /* noop */ }
       recognitionRef.current = null;
     }
-    if (typeof window !== 'undefined') {
-      window.speechSynthesis?.cancel();
-    }
-    synthUtteranceRef.current = null;
   }, []);
 
   useEffect(() => () => cleanup(), [cleanup]);
 
-  // Send transcript to concierge and speak the response
-  const processWithConcierge = useCallback(async (transcript: string) => {
-    setVoiceState('thinking');
-    setAssistantTranscript('');
-
-    try {
-      // Use AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const { data, error } = await supabase.functions.invoke('lovable-concierge', {
-        body: {
-          message: transcript,
-          analysisType: 'chat',
-        },
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!activeRef.current) return;
-
-      if (error || !data?.response) {
-        setErrorMessage('AI took too long or failed. Please try again.');
-        setVoiceState('error');
-        return;
-      }
-
-      const responseText: string = data.response;
-      setAssistantTranscript(responseText);
-      onAssistantMessage?.(responseText);
-
-      // Strip markdown for cleaner TTS
-      const cleanText = responseText
-        .replace(/[#*_~`>]/g, '')
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        .replace(/\n{2,}/g, '. ')
-        .replace(/\n/g, ' ')
-        .trim();
-
-      // Speak the response
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        setVoiceState('speaking');
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.rate = 1.05;
-        utterance.pitch = 1;
-        synthUtteranceRef.current = utterance;
-
-        utterance.onend = () => {
-          if (!activeRef.current) return;
-          setVoiceState('idle');
-          synthUtteranceRef.current = null;
-        };
-
-        utterance.onerror = () => {
-          if (!activeRef.current) return;
-          setVoiceState('idle');
-          synthUtteranceRef.current = null;
-        };
-
-        window.speechSynthesis.cancel(); // Clear any queued speech
-        window.speechSynthesis.speak(utterance);
-      } else {
-        // No TTS available, just go back to idle
-        setVoiceState('idle');
-      }
-    } catch (err) {
-      if (!activeRef.current) return;
-      console.error('[useWebSpeechVoice] Concierge error:', err);
-      setErrorMessage('AI service error. Please try again.');
-      setVoiceState('error');
+  // Finalize: send accumulated transcript and reset
+  const finalizeTranscript = useCallback(() => {
+    const text = accumulatedTranscriptRef.current.trim();
+    if (text) {
+      onUserMessage?.(text);
     }
-  }, [onAssistantMessage]);
+    accumulatedTranscriptRef.current = '';
+    setVoiceState('idle');
+    activeRef.current = false;
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* noop */ }
+      recognitionRef.current = null;
+    }
+  }, [onUserMessage]);
 
   // Start voice recognition
   const startVoice = useCallback(async () => {
@@ -171,12 +113,11 @@ export function useWebSpeechVoice(
     setVoiceState('connecting');
     setErrorMessage(null);
     setUserTranscript('');
-    setAssistantTranscript('');
+    accumulatedTranscriptRef.current = '';
 
     try {
-      // Request mic permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (err: any) {
+    } catch {
       setErrorMessage('Microphone access denied. Please allow mic permission.');
       setVoiceState('error');
       return;
@@ -185,7 +126,7 @@ export function useWebSpeechVoice(
     activeRef.current = true;
 
     const recognition = new SpeechRecognitionClass();
-    recognition.continuous = false;
+    recognition.continuous = true;       // Keep listening across pauses
     recognition.interimResults = true;
     recognition.lang = 'en-US';
     recognitionRef.current = recognition;
@@ -197,38 +138,31 @@ export function useWebSpeechVoice(
 
     recognition.onresult = (event: any) => {
       if (!activeRef.current) return;
-      let finalTranscript = '';
-      let interimTranscript = '';
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalTranscript += result[0].transcript;
-        } else {
-          interimTranscript += result[0].transcript;
+      let fullTranscript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        fullTranscript += event.results[i][0].transcript;
+      }
+
+      // Update display
+      setUserTranscript(fullTranscript);
+      accumulatedTranscriptRef.current = fullTranscript;
+
+      // Reset 2-second silence debounce on every result
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
+      silenceTimerRef.current = setTimeout(() => {
+        if (activeRef.current) {
+          finalizeTranscript();
         }
-      }
-
-      if (finalTranscript) {
-        setUserTranscript(finalTranscript);
-        onUserMessage?.(finalTranscript);
-        processWithConcierge(finalTranscript);
-      } else if (interimTranscript) {
-        setUserTranscript(interimTranscript);
-      }
+      }, 2000);
     };
 
     recognition.onerror = (event: any) => {
       if (!activeRef.current) return;
       const errType = event.error;
-      if (errType === 'no-speech') {
-        // User didn't say anything - just go back to idle
-        setVoiceState('idle');
-        activeRef.current = false;
-        return;
-      }
-      if (errType === 'aborted') {
-        // User cancelled - no error
+      if (errType === 'no-speech' || errType === 'aborted') {
         setVoiceState('idle');
         activeRef.current = false;
         return;
@@ -240,13 +174,14 @@ export function useWebSpeechVoice(
     };
 
     recognition.onend = () => {
-      // Recognition ended naturally (e.g., silence timeout)
-      // If we're still in listening state (no final result), go idle
-      if (activeRef.current) {
-        setVoiceState(prev => (prev === 'listening' ? 'idle' : prev));
-        if (recognitionRef.current === recognition) {
-          activeRef.current = false;
-        }
+      // With continuous=true, onend fires when the browser stops
+      // (e.g., after a long silence or system limit).
+      // If we still have accumulated text, finalize it.
+      if (activeRef.current && accumulatedTranscriptRef.current.trim()) {
+        finalizeTranscript();
+      } else if (activeRef.current) {
+        setVoiceState('idle');
+        activeRef.current = false;
       }
     };
 
@@ -258,13 +193,22 @@ export function useWebSpeechVoice(
       setVoiceState('error');
       activeRef.current = false;
     }
-  }, [onUserMessage, processWithConcierge]);
+  }, [finalizeTranscript]);
 
-  // Stop voice
+  // Stop voice — also finalizes any pending transcript
   const stopVoice = useCallback(() => {
-    cleanup();
-    setVoiceState('idle');
-  }, [cleanup]);
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    // If there's accumulated text, send it before stopping
+    if (activeRef.current && accumulatedTranscriptRef.current.trim()) {
+      finalizeTranscript();
+    } else {
+      cleanup();
+      setVoiceState('idle');
+    }
+  }, [cleanup, finalizeTranscript]);
 
   // Toggle voice
   const toggleVoice = useCallback(() => {
@@ -278,7 +222,7 @@ export function useWebSpeechVoice(
   return {
     voiceState,
     userTranscript,
-    assistantTranscript,
+    assistantTranscript: '', // No longer used — responses appear as normal chat messages
     errorMessage,
     debugInfo,
     startVoice,

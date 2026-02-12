@@ -94,44 +94,44 @@ export const AIConciergeChat = ({
     isDemoMode ||
     hasLegacySubscriptionVoiceAccess;
 
+  // Voice transcripts are routed through handleSendMessage (same pipeline as typed text)
   const handleVoiceUserMessage = useCallback((text: string) => {
-    setMessages(prev => [
-      ...prev,
-      {
-        id: `voice-user-${Date.now()}`,
-        type: 'user',
-        content: text,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
+    // Set the input and immediately trigger send so voice uses the exact same AI pipeline
+    setInputMessage(text);
+    // We need to send on next tick after state update
+    setTimeout(() => {
+      // Directly call handleSendMessage via a ref approach isn't clean,
+      // so we'll set state and use a flag to auto-send
+      setVoicePendingText(text);
+    }, 0);
   }, []);
 
-  const handleVoiceAssistantMessage = useCallback((text: string) => {
-    setMessages(prev => [
-      ...prev,
-      {
-        id: `voice-assistant-${Date.now()}`,
-        type: 'assistant',
-        content: text,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
-  }, []);
+  const [voicePendingText, setVoicePendingText] = useState<string | null>(null);
 
   const {
     voiceState,
-    assistantTranscript,
     errorMessage: voiceError,
-    debugInfo: voiceDebugInfo,
     toggleVoice,
     stopVoice,
-  } = useGeminiVoice(handleVoiceUserMessage, handleVoiceAssistantMessage);
+  } = useGeminiVoice(handleVoiceUserMessage);
 
   useEffect(() => {
     return () => {
       stopVoice();
     };
   }, [stopVoice]);
+
+  // Auto-send voice transcripts through the same pipeline as typed messages
+  useEffect(() => {
+    if (voicePendingText && !isTyping) {
+      setInputMessage(voicePendingText);
+      setVoicePendingText(null);
+      // Trigger send on next tick after inputMessage is set
+      setTimeout(() => {
+        handleSendMessage();
+      }, 50);
+    }
+  }, [voicePendingText, isTyping]);
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
@@ -728,21 +728,8 @@ export const AIConciergeChat = ({
         <div className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll">
           {messages.length > 0 && (
             <ChatMessages
-              messages={[
-                ...messages,
-                // Show streaming assistant transcript as a live bubble
-                ...(assistantTranscript
-                  ? [
-                      {
-                        id: 'voice-streaming',
-                        type: 'assistant' as const,
-                        content: assistantTranscript,
-                        timestamp: new Date().toISOString(),
-                      },
-                    ]
-                  : []),
-              ]}
-              isTyping={isTyping || voiceState === 'thinking'}
+              messages={messages}
+              isTyping={isTyping}
               showMapWidgets={true}
             />
           )}
