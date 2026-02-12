@@ -135,7 +135,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
         </h2>
         <Button
           onClick={() => setShowCreateModal(true)}
-          className={`${variant === 'pro' ? PRO_PARITY_COL_START.tasks : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
+          className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
         >
           <Plus size={16} className="flex-shrink-0" />
           <span className="whitespace-nowrap">Add Task</span>

@@ -76,7 +76,7 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         {effectivePermissions.canCreate && (
           <Button
             onClick={() => setShowCreatePoll(true)}
-            className={`${variant === 'pro' ? PRO_PARITY_COL_START.polls : variant === 'events' ? EVENT_PARITY_COL_START.polls : TRIP_PARITY_COL_START.polls} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg`}
+            className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg`}
           >
             <Plus size={14} className="flex-shrink-0" />
             <span className="whitespace-nowrap">New Poll</span>
