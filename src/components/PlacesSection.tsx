@@ -324,7 +324,7 @@ export const PlacesSection = ({
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                {tab === 'basecamps' ? 'Base Camps' : tab}
+                {tab === 'basecamps' ? 'Base Camps' : 'Ideas'}
               </button>
             ))}
           </div>

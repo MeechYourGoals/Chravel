@@ -8,7 +8,7 @@ import { MediaGrid } from './media/MediaGrid';
 import { StorageQuotaBar } from './StorageQuotaBar';
 import { MediaUrlsPanel } from './media/MediaUrlsPanel';
 import { MediaSearchBar } from './media/MediaSearchBar';
-import { extractUrlsFromTripChat } from '@/services/chatUrlExtractor';
+import { supabase } from '@/integrations/supabase/client';
 import { mediaService } from '@/services/mediaService';
 import { toast } from 'sonner';
 import type { NormalizedUrl } from '@/services/chatUrlExtractor';
@@ -28,49 +28,84 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   const [isSearching, setIsSearching] = useState(false);
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const { isDemoMode } = useDemoMode();
-  
-  const {
-    mediaItems,
-    loading,
-    refetch
-  } = useMediaManagement(tripId);
+
+  const { mediaItems, loading, refetch } = useMediaManagement(tripId);
 
   // Filter out deleted items for demo mode
   const filteredMediaItems = mediaItems.filter(item => !deletedIds.has(item.id));
 
-  const handleDeleteItem = useCallback(async (id: string): Promise<void> => {
-    try {
-      if (isDemoMode) {
-        // In demo mode, just remove from local state
-        setDeletedIds(prev => new Set(prev).add(id));
-        toast.success('Item deleted (demo mode)');
-      } else {
-        await mediaService.deleteMedia(id);
-        toast.success('Item deleted');
-        refetch?.();
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      toast.error('Failed to delete item');
-    }
-  }, [isDemoMode, refetch]);
-
-  // Fetch URLs count
-  useEffect(() => {
-    const fetchUrlsCount = async () => {
+  const handleDeleteItem = useCallback(
+    async (id: string): Promise<void> => {
       try {
-        const urls = await extractUrlsFromTripChat(tripId, { isDemoMode });
-        setUrlsCount(urls.length);
+        if (isDemoMode) {
+          // In demo mode, just remove from local state
+          setDeletedIds(prev => new Set(prev).add(id));
+          toast.success('Item deleted (demo mode)');
+        } else {
+          await mediaService.deleteMedia(id);
+          toast.success('Item deleted');
+          refetch?.();
+        }
       } catch (error) {
-        console.error('Error fetching URLs count:', error);
+        console.error('Delete error:', error);
+        toast.error('Failed to delete item');
       }
-    };
-    fetchUrlsCount();
+    },
+    [isDemoMode, refetch],
+  );
+
+  // Fetch URLs count from trip_link_index (includes both chat and manual links)
+  const fetchUrlsCount = useCallback(async () => {
+    if (isDemoMode) {
+      setUrlsCount(2); // demo placeholder
+      return;
+    }
+    try {
+      const { count, error } = await supabase
+        .from('trip_link_index')
+        .select('*', { count: 'exact', head: true })
+        .eq('trip_id', tripId);
+
+      if (!error && count !== null) {
+        setUrlsCount(count);
+      }
+    } catch (err) {
+      console.error('Error fetching URLs count:', err);
+    }
   }, [tripId, isDemoMode]);
+
+  useEffect(() => {
+    fetchUrlsCount();
+  }, [fetchUrlsCount]);
+
+  // Realtime: update link count when links are added/removed
+  useEffect(() => {
+    if (!tripId || isDemoMode) return;
+
+    const channel = supabase
+      .channel(`media-hub-links:${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'trip_link_index',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        () => {
+          fetchUrlsCount();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, isDemoMode, fetchUrlsCount]);
 
   const filterMediaByType = (type: string) => {
     let filtered = filteredMediaItems;
-    
+
     // Apply type filter
     if (type === 'photos') {
       filtered = filtered.filter(item => item.media_type === 'image');
@@ -78,13 +113,15 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
       filtered = filtered.filter(item => item.media_type === 'video');
     } else if (type === 'files') {
       // Match MediaSubTabs file filtering logic
-      filtered = filtered.filter(item => 
-        item.media_type === 'document' || 
-        (item.media_type === 'image' && (item.metadata?.isSchedule || item.metadata?.isReceipt || item.metadata?.isTicket))
+      filtered = filtered.filter(
+        item =>
+          item.media_type === 'document' ||
+          (item.media_type === 'image' &&
+            (item.metadata?.isSchedule || item.metadata?.isReceipt || item.metadata?.isTicket)),
       );
     }
     // 'all' type doesn't filter by media type
-    
+
     // Apply search filter if active
     if (searchQuery && searchResults.length > 0) {
       const resultIds = new Set(searchResults.map(r => r.id));
@@ -93,13 +130,13 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
       // Fallback to AI tag filtering if search results empty
       filtered = filterMediaByAITags(filtered, searchQuery);
     }
-    
+
     return filtered;
   };
 
   const renderAllItems = () => {
     const filteredItems = filterMediaByType('all');
-    
+
     if (filteredMediaItems.length === 0) {
       return (
         <div className="text-center py-12">
@@ -129,7 +166,9 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
 
     return (
       <div className="space-y-4">
-        {displayItems.length > 0 && <MediaGrid items={displayItems} onDeleteItem={handleDeleteItem} />}
+        {displayItems.length > 0 && (
+          <MediaGrid items={displayItems} onDeleteItem={handleDeleteItem} />
+        )}
         {filteredItems.length > 8 && (
           <p className="text-center text-gray-400 text-sm">
             Showing 8 of {filteredItems.length} items
@@ -157,11 +196,11 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
       {/* Search Bar */}
       <MediaSearchBar
         tripId={tripId}
-        onSearchResults={(results) => {
+        onSearchResults={results => {
           setSearchResults(results);
           setIsSearching(false);
         }}
-        onSearchChange={(query) => {
+        onSearchChange={query => {
           setSearchQuery(query);
           setIsSearching(query.length > 0);
         }}
@@ -169,7 +208,9 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 bg-white/5 backdrop-blur-sm">
-          <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+          <TabsTrigger value="all" className="text-xs">
+            All
+          </TabsTrigger>
           <TabsTrigger value="photos" className="text-xs">
             Photos
             {filteredMediaItems.filter(item => item.media_type === 'image').length > 0 && (
@@ -196,19 +237,17 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
           </TabsTrigger>
           <TabsTrigger value="urls" className="text-xs">
             Links
-            {urlsCount > 0 && (
-              <span className="ml-1 text-[10px] opacity-70">({urlsCount})</span>
-            )}
+            {urlsCount > 0 && <span className="ml-1 text-[10px] opacity-70">({urlsCount})</span>}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-6">
           {renderAllItems()}
         </TabsContent>
-        
+
         <TabsContent value="photos" className="mt-6">
-          <MediaSubTabs 
-            items={filterMediaByType('photos')} 
+          <MediaSubTabs
+            items={filterMediaByType('photos')}
             type="photos"
             searchQuery={searchQuery}
             tripId={tripId}
@@ -216,10 +255,10 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
             onDeleteItem={handleDeleteItem}
           />
         </TabsContent>
-        
+
         <TabsContent value="videos" className="mt-6">
-          <MediaSubTabs 
-            items={filterMediaByType('videos')} 
+          <MediaSubTabs
+            items={filterMediaByType('videos')}
             type="videos"
             searchQuery={searchQuery}
             tripId={tripId}
@@ -227,10 +266,10 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
             onDeleteItem={handleDeleteItem}
           />
         </TabsContent>
-        
+
         <TabsContent value="files" className="mt-6">
-          <MediaSubTabs 
-            items={filterMediaByType('files')} 
+          <MediaSubTabs
+            items={filterMediaByType('files')}
             type="files"
             searchQuery={searchQuery}
             tripId={tripId}
@@ -243,7 +282,6 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
           <MediaUrlsPanel tripId={tripId} onPromoteToTripLink={onPromoteToTripLink} />
         </TabsContent>
       </Tabs>
-
     </div>
   );
 };
