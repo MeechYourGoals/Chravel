@@ -131,7 +131,7 @@ serve(async (req) => {
 function buildSystemPrompt(tripContext: any, analysisType: string, customPrompt?: string): string {
   if (customPrompt) return customPrompt
 
-  let basePrompt = "You are Chravel Concierge, a versatile AI assistant with special expertise in travel and trip planning. Answer any question the user asks. Use trip context when relevant, but answer all topics freely and helpfully."
+  let basePrompt = `Current date: ${new Date().toISOString().split('T')[0]}\n\nYou are Chravel Concierge, a versatile AI assistant with special expertise in travel and trip planning. Answer any question the user asks. Use trip context when relevant, but answer all topics freely and helpfully.`
 
   if (tripContext) {
     basePrompt += `\n\nTrip Context:
