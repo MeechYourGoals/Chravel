@@ -12,11 +12,57 @@ export const UNRESOLVED_NAME_SENTINEL = '__chravel_unresolved_name__';
  */
 export const FORMER_MEMBER_LABEL = 'Former Member';
 
+/** Profile shape for name resolution (from profiles_public or raw profile) */
+export interface ProfileForDisplay {
+  resolved_display_name?: string | null;
+  real_name?: string | null;
+  display_name?: string | null;
+  name_preference?: 'real' | 'display' | null;
+  first_name?: string | null;
+  last_name?: string | null;
+}
+
+/**
+ * Client-side effective display name formula.
+ * Use when profile comes from non-DB source (e.g. useAuth user).
+ * For profiles from profiles_public, resolved_display_name is already correct.
+ *
+ * DISPLAY_NAME_FORMULA:
+ *   if (name_preference == 'display' AND display_name non-empty) -> display_name
+ *   else if (real_name non-empty) -> real_name
+ *   else if (display_name non-empty) -> display_name
+ *   else -> fallback
+ */
+export function getEffectiveDisplayName(
+  profile: ProfileForDisplay | null | undefined,
+  fallback: string = UNRESOLVED_NAME_SENTINEL,
+): string {
+  if (!profile) return fallback;
+
+  // Prefer DB-computed resolved_display_name (from profiles_public)
+  if (profile.resolved_display_name) return profile.resolved_display_name;
+
+  const pref = profile.name_preference ?? 'display';
+  const real = profile.real_name?.trim();
+  const display = profile.display_name?.trim();
+
+  if (pref === 'display' && display) return display;
+  if (real) return real;
+  if (display) return display;
+
+  const first = profile.first_name?.trim();
+  const last = profile.last_name?.trim();
+  if (first && last) return `${first} ${last}`;
+  if (first) return first;
+
+  return fallback;
+}
+
 /**
  * Resolves a user's display name from profile data.
  *
  * Priority:
- *   1. resolved_display_name (DB-computed, always populated if profile exists)
+ *   1. resolved_display_name (DB-computed, respects name_preference)
  *   2. display_name (explicit user-chosen name)
  *   3. first_name + last_name (auto-populated from auth)
  *   4. first_name alone
@@ -26,26 +72,8 @@ export const FORMER_MEMBER_LABEL = 'Former Member';
  * whether to fall back to a snapshot name, "Former Member", or "System".
  */
 export function resolveDisplayName(
-  profile: {
-    resolved_display_name?: string | null;
-    display_name?: string | null;
-    first_name?: string | null;
-    last_name?: string | null;
-  } | null | undefined,
+  profile: ProfileForDisplay | null | undefined,
   fallback: string = UNRESOLVED_NAME_SENTINEL,
 ): string {
-  if (!profile) return fallback;
-
-  // Check resolved_display_name first (DB-computed, always has a value if profile exists)
-  if (profile.resolved_display_name) return profile.resolved_display_name;
-
-  if (profile.display_name) return profile.display_name;
-
-  const first = profile.first_name?.trim();
-  const last = profile.last_name?.trim();
-
-  if (first && last) return `${first} ${last}`;
-  if (first) return first;
-
-  return fallback;
+  return getEffectiveDisplayName(profile, fallback);
 }
