@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from './useDemoMode';
+import { getDomain } from '@/services/urlUtils';
 import { detectTripTier } from '../utils/tripTierDetector';
 import { proTripMockData } from '../data/proTripMockData';
 import { eventsMockData } from '../data/eventsMockData';
@@ -175,7 +176,7 @@ export const useMediaManagement = (tripId: string) => {
               url: item.url,
               title: item.og_title || 'Untitled Link',
               description: item.og_description || '',
-              domain: item.domain || new URL(item.url).hostname,
+              domain: item.domain || getDomain(item.url) || 'unknown',
               image_url: item.og_image_url,
               created_at: item.created_at,
               source: isFromPlaces
@@ -189,7 +190,7 @@ export const useMediaManagement = (tripId: string) => {
             url: item.url,
             title: item.title || 'Untitled Link',
             description: item.description || '',
-            domain: new URL(item.url).hostname,
+            domain: getDomain(item.url) || 'unknown',
             image_url: undefined,
             created_at: item.created_at,
             source: 'manual' as const,
