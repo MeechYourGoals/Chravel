@@ -1,82 +1,46 @@
 
 
-# Fix AI Concierge: Voice Pipeline, Speed, and Accuracy
+# Fix UI Parity: Duplicate Add Link, Button Text Overflow, and Alignment
 
-## Root Causes Found (from edge function logs + code)
+## Issues
 
-| # | Issue | Evidence |
-|---|-------|----------|
-| 1 | Voice has a **separate, broken AI pipeline** -- calls `lovable-concierge` with NO tripId, NO context, NO chat history | `useWebSpeechVoice.ts` line 98-103 sends only `{ message, analysisType }` while the text path sends full context |
-| 2 | Speech **cuts off mid-sentence** | `recognition.continuous = false` (line 188) stops after the first pause |
-| 3 | **Embedding model invalid** -- every request tries `google/text-embedding-004` which is rejected, adding wasted latency | Edge function log: `"invalid model: google/text-embedding-004, allowed models: [...]"` |
-| 4 | **No current date in system prompt** -- model defaults to 2024 training data | System prompt at line 741 never mentions the year |
-| 5 | **DB foreign key errors** on `trip_files`, `trip_links`, `trip_tasks`, `trip_payment_messages` | Edge function logs show PGRST200 errors for each |
+1. **Duplicate "Add Link" buttons on tablet Media > Links tab**: The `MobileUnifiedMediaHub` renders two action buttons when on the `urls` tab -- both `actionLeft` and `actionRight` resolve to "Add Link", creating a redundant duplicate.
 
-## Fix Strategy
+2. **"Create Poll" text cut off on tablet**: The button text "Create Poll" is too long for the parity column width at tablet breakpoints. It needs to be shortened to "New Poll".
 
-### Fix 1: Unify voice and text into ONE pipeline (the big fix)
+3. **"Create Poll" button alignment on desktop**: The button is slightly taller and shifted left compared to the Tasks tab above it. Root cause: it uses `inline-flex` instead of `flex`, and has extra class overrides that differ from the CalendarHeader parity buttons (the reference standard).
 
-Instead of having the voice hook call the AI directly, make voice recognition purely an **input method** -- it transcribes speech, puts it in the text input, and triggers the same `handleSendMessage` that already works for typed messages.
+4. **"Add Task" button alignment on desktop**: Slightly shifted right. The button classes differ subtly from the CalendarHeader reference pattern.
 
-This eliminates the separate voice AI pipeline entirely. Both voice and text get identical context, retries, speed, and error handling.
+## Technical Plan
 
-**`src/hooks/useWebSpeechVoice.ts`:**
-- Remove `processWithConcierge` function entirely (lines 89-159)
-- Remove the supabase import
-- Change `onresult`: when final transcript is received, call `onUserMessage(text)` and set state to `idle` (not `thinking`)
-- The hook becomes purely STT -- ~80 lines instead of 288
-- Keep TTS as an optional feature triggered externally if needed
+### File 1: `src/components/mobile/MobileUnifiedMediaHub.tsx`
 
-**`src/components/AIConciergeChat.tsx`:**
-- Change `handleVoiceUserMessage` to set the input message AND call handleSendMessage, routing voice text through the exact same pipeline as typed text
-- Remove the `assistantTranscript` streaming bubble (voice responses will appear as normal chat messages)
-- Remove the separate `handleVoiceAssistantMessage` callback
+**Fix duplicate "Add Link" buttons:**
+- Change `actionRight` (line ~398-400) so that when `selectedTab === 'urls'`, it returns `null` or a different action instead of duplicating "Add Link"
+- When `actionRight` is null, hide the right button entirely for the urls tab
+- This leaves a single full-width "Add Link" button
 
-### Fix 2: Stop speech from cutting off mid-sentence
+### File 2: `src/components/CommentsWall.tsx`
 
-**`src/hooks/useWebSpeechVoice.ts`:**
-- Set `recognition.continuous = true` so it keeps listening across pauses
-- Add a 2-second silence debounce: after the last `onresult` fires, wait 2 seconds before finalizing and sending
-- User can also tap the mic button again to manually stop and send
+**Fix "Create Poll" text overflow and alignment:**
+- Change button text from "Create Poll" to "New Poll" (shorter, fits tablet column)
+- Change `inline-flex` to `flex` in the button className to match the CalendarHeader reference pattern
+- Ensure button uses exactly `${TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5` followed by the gradient/color classes -- matching the CalendarHeader pattern exactly
 
-### Fix 3: Fix the invalid embedding model (speed fix)
+### File 3: `src/components/todo/TripTasksTab.tsx`
 
-**`supabase/functions/lovable-concierge/index.ts` line 318:**
-- Change `google/text-embedding-004` to `google/gemini-2.5-flash-lite` or skip the embedding call entirely
-- Since the gateway doesn't support embedding models, disable RAG embedding for now and rely on the keyword search fallback
-- This eliminates a failed HTTP call on every single request
+**Fix "Add Task" alignment:**
+- Add `flex items-center justify-center gap-1.5` to the button className to match the CalendarHeader parity pattern exactly
+- This ensures consistent centering and sizing within the parity column
 
-### Fix 4: Add current date to system prompt (accuracy fix)
+## Reference: CalendarHeader Pattern (the gold standard)
 
-**`supabase/functions/lovable-concierge/index.ts` line 741:**
-- Add `Current date: ${new Date().toISOString().split('T')[0]}` to the system prompt
-- This tells the model it's 2026, so it won't reference 2024 events
+All parity action buttons should follow this exact className pattern:
 
-**`supabase/functions/gemini-chat/index.ts`:**
-- Same fix to the base prompt in `buildSystemPrompt`
+```
+${TRIP_PARITY_COL_START.[column]} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 [variant/color classes]
+```
 
-### Fix 5: Guard against DB foreign key errors in context builder
-
-**`supabase/functions/_shared/contextBuilder.ts`:**
-- Wrap each context query (payments, files, links, tasks) in individual try/catch blocks
-- Remove the `.select('*, uploaded_by(*)')` foreign key joins that don't exist -- use simple `.select('*')` instead
-- This eliminates 4 failed DB queries per request
-
-## Technical Changes Summary
-
-| File | Change |
-|------|--------|
-| `src/hooks/useWebSpeechVoice.ts` | Remove AI call, make it pure STT with 2s silence debounce, continuous mode |
-| `src/components/AIConciergeChat.tsx` | Route voice transcripts through `handleSendMessage`, remove assistant transcript bubble |
-| `supabase/functions/lovable-concierge/index.ts` | Skip failed embedding call, add current date to prompt |
-| `supabase/functions/gemini-chat/index.ts` | Add current date to prompt |
-| `supabase/functions/_shared/contextBuilder.ts` | Fix broken foreign key joins, add per-query try/catch |
-
-## Expected Outcome
-
-- Voice and text give identical speed and quality (same pipeline)
-- No more cut-off sentences (continuous mode + 2s debounce)
-- Faster responses (eliminated failed embedding call + failed DB queries)
-- Correct dates in answers (model knows it's 2026)
-- No more "Processing" hang (voice no longer has its own AI call that can timeout separately)
+This ensures identical width, height (min-h-[42px]), centering, and grid positioning across all tabs.
 
