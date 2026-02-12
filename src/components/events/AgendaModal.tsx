@@ -221,12 +221,17 @@ export const AgendaModal = ({
       {showActionRow && (
         <div className="mb-4">
           <div className={EVENT_PARITY_ROW_CLASS}>
+            {/* Schedule label — under Agenda tab */}
+            <div className={`${EVENT_PARITY_COL_START.agenda} flex items-center justify-center gap-1.5 text-white font-medium text-sm min-h-[42px]`}>
+              <Clock size={16} />
+              Schedule
+            </div>
             {onClose && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className={`${EVENT_PARITY_COL_START.agenda} h-10 w-10 rounded-xl`}
+                className="h-10 w-10 rounded-xl"
               >
                 <X size={18} />
               </Button>
@@ -252,6 +257,11 @@ export const AgendaModal = ({
                     </Button>
                   </>
                 )}
+                {/* Agenda Files label — under Line-up tab */}
+                <div className={`${EVENT_PARITY_COL_START.lineup} flex items-center justify-center gap-1.5 text-white font-medium text-sm min-h-[42px]`}>
+                  <FileText size={16} />
+                  Agenda Files
+                </div>
                 {canUpload && (
                   <label className={`${EVENT_PARITY_COL_START.tasks} w-full`}>
                     <input
@@ -284,13 +294,7 @@ export const AgendaModal = ({
       {/* Split View Content */}
       <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
         {/* Left Side: Manual Agenda Builder */}
-        <div className="flex-1 overflow-y-auto p-4 border-r border-white/10">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-white flex items-center gap-2">
-              <Clock size={18} />
-              Schedule
-            </h3>
-          </div>
+        <div className="flex-1 overflow-y-auto pt-2 px-4 pb-4 border-r border-white/10">
 
           {/* Add/Edit Session Form */}
           {isAddingSession && canCreateSessions && (
@@ -573,13 +577,7 @@ export const AgendaModal = ({
         </div>
 
         {/* Right Side: Agenda File Viewer */}
-        <div className="flex-1 overflow-y-auto p-4 bg-black/20">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-white flex items-center gap-2">
-              <FileText size={18} />
-              Agenda File
-            </h3>
-          </div>
+        <div className="flex-1 overflow-y-auto pt-2 px-4 pb-4 bg-black/20">
 
           {pdfUrl ? (
             <div className="relative rounded-lg overflow-hidden border border-white/10 bg-white">
@@ -621,11 +619,11 @@ export const AgendaModal = ({
             <Card className="bg-white/5 border-white/10">
               <CardContent className="p-8 text-center">
                 <Image size={48} className="text-gray-600 mx-auto mb-3" />
-                <h4 className="text-white font-medium mb-1">No Agenda File</h4>
+                <h4 className="text-white font-medium mb-1">No Agenda Files</h4>
                 <p className="text-gray-400 text-sm">
                   {canUpload
-                    ? 'Upload a PDF or image of your event agenda'
-                    : "The organizer hasn't uploaded an agenda file yet"}
+                    ? 'Upload PDFs or images of your event agenda'
+                    : "The organizer hasn't uploaded any agenda files yet"}
                 </p>
               </CardContent>
             </Card>
