@@ -195,7 +195,7 @@ export const RolesView = ({
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
           <div
             className={`${
-              isMobile ? 'flex flex-col gap-2' : 'flex items-center justify-center gap-2'
+              isMobile ? 'flex flex-col gap-2' : 'grid grid-cols-9 gap-2 items-center'
             } mb-3`}
           >
             <Button
@@ -204,10 +204,12 @@ export const RolesView = ({
               variant="outline"
               size="sm"
               className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                isMobile ? 'min-h-[44px] justify-center text-xs' : ''
+                isMobile
+                  ? 'min-h-[44px] justify-center text-xs'
+                  : 'col-start-4 w-full min-h-[42px] px-2.5 text-xs lg:text-sm'
               }`}
             >
-              <UserPlus className="w-4 h-4 mr-1.5" />
+              <UserPlus className="w-4 h-4 mr-1" />
               Create Role
             </Button>
             <Button
@@ -215,11 +217,13 @@ export const RolesView = ({
               variant="outline"
               size="sm"
               className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                isMobile ? 'min-h-[44px] justify-center text-xs' : ''
+                isMobile
+                  ? 'min-h-[44px] justify-center text-xs'
+                  : 'col-start-5 w-full min-h-[42px] px-2.5 text-xs lg:text-sm'
               }`}
               title="Manage roles, assignments, and admins"
             >
-              <Cog className="w-4 h-4 mr-1.5" />
+              <Cog className="w-4 h-4 mr-1" />
               Manage Roles
             </Button>
             <Button
@@ -227,11 +231,13 @@ export const RolesView = ({
               variant="outline"
               size="sm"
               className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                isMobile ? 'min-h-[44px] justify-center text-xs' : ''
+                isMobile
+                  ? 'min-h-[44px] justify-center text-xs'
+                  : 'col-start-6 w-full min-h-[42px] px-2.5 text-xs lg:text-sm'
               }`}
               title="View join requests"
             >
-              <Clock className="w-4 h-4 mr-1.5" />
+              <Clock className="w-4 h-4 mr-1" />
               Requests
             </Button>
           </div>
@@ -289,8 +295,8 @@ export const RolesView = ({
             >
               {roles.map(role => {
                 // Count members assigned to this role from actual role assignments (memberRolesMap)
-                const assignmentCount = Array.from(memberRolesMap.values()).filter(
-                  roleNames => roleNames.includes(role)
+                const assignmentCount = Array.from(memberRolesMap.values()).filter(roleNames =>
+                  roleNames.includes(role),
                 ).length;
 
                 // Check if this is a role from availableRoles (modern system) or legacy

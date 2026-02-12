@@ -19,10 +19,23 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   const [showCompleted, setShowCompleted] = useState(false);
   const { toast } = useToast();
   const { accentColors } = useTripVariant();
-  const { tasks, isLoading, applyFilters, status, setStatus, assignee, setAssignee, dateRange, setDateRange, sortBy, setSortBy, hasActiveFilters, clearFilters } = useTripTasks(tripId);
+  const {
+    tasks,
+    isLoading,
+    applyFilters,
+    status,
+    setStatus,
+    assignee,
+    setAssignee,
+    dateRange,
+    setDateRange,
+    sortBy,
+    setSortBy,
+    hasActiveFilters,
+    clearFilters,
+  } = useTripTasks(tripId);
   const { isDemoMode } = useDemoMode();
   const { canPerformAction } = useRolePermissions(tripId);
-  
 
   // Mock task items for demo
   const mockTasks = [
@@ -37,7 +50,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
       creator_id: 'trip-organizer',
       created_by: 'Trip Organizer',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     },
     {
       id: 'task-2',
@@ -50,7 +63,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
       creator_id: 'marcus',
       created_by: 'Marcus',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     },
     {
       id: 'task-3',
@@ -63,33 +76,35 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
       creator_id: 'sarah',
       created_by: 'Sarah',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+      updated_at: new Date().toISOString(),
+    },
   ];
 
   // Use mock tasks if no real tasks are available
-  const displayTasks = tasks && tasks.length > 0 ? tasks : (isDemoMode ? mockTasks : []);
-  
+  const displayTasks = tasks && tasks.length > 0 ? tasks : isDemoMode ? mockTasks : [];
+
   // Apply filters
   const filteredTasks = applyFilters(displayTasks);
 
-  const openTasks = filteredTasks?.filter(task => {
-    if (task.is_poll) {
-      const completionRate = task.task_status?.filter(s => s.completed).length || 0;
-      const totalRequired = task.task_status?.length || 1;
-      return completionRate < totalRequired;
-    }
-    return !task.task_status?.[0]?.completed;
-  }) || [];
+  const openTasks =
+    filteredTasks?.filter(task => {
+      if (task.is_poll) {
+        const completionRate = task.task_status?.filter(s => s.completed).length || 0;
+        const totalRequired = task.task_status?.length || 1;
+        return completionRate < totalRequired;
+      }
+      return !task.task_status?.[0]?.completed;
+    }) || [];
 
-  const completedTasks = filteredTasks?.filter(task => {
-    if (task.is_poll) {
-      const completionRate = task.task_status?.filter(s => s.completed).length || 0;
-      const totalRequired = task.task_status?.length || 1;
-      return completionRate >= totalRequired;
-    }
-    return task.task_status?.[0]?.completed;
-  }) || [];
+  const completedTasks =
+    filteredTasks?.filter(task => {
+      if (task.is_poll) {
+        const completionRate = task.task_status?.filter(s => s.completed).length || 0;
+        const totalRequired = task.task_status?.length || 1;
+        return completionRate >= totalRequired;
+      }
+      return task.task_status?.[0]?.completed;
+    }) || [];
 
   if (isLoading) {
     return (
@@ -102,14 +117,14 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   return (
     <div className="space-y-6">
       {/* Header - Title Row */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Tasks</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-8 gap-2 items-center">
+        <h2 className="text-xl font-semibold text-white sm:col-span-7">Tasks</h2>
         <Button
           onClick={() => setShowCreateModal(true)}
-          className={`bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
+          className={`sm:col-span-1 w-full min-h-[42px] px-3.5 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 transition-all duration-200`}
         >
-          <Plus size={16} className="mr-2" />
-          Add Task
+          <Plus size={16} className="flex-shrink-0" />
+          <span className="whitespace-nowrap">Add Task</span>
         </Button>
       </div>
 
@@ -132,7 +147,12 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
         tripId={tripId}
         title="To Do"
         emptyMessage="All caught up! No pending tasks."
-        onEditTask={(task) => toast({ title: 'Edit Task', description: `Editing "${task.title}" - Feature coming soon!` })}
+        onEditTask={task =>
+          toast({
+            title: 'Edit Task',
+            description: `Editing "${task.title}" - Feature coming soon!`,
+          })
+        }
       />
 
       {/* Completed Tasks */}
@@ -143,16 +163,18 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
           title="Completed"
           showCompleted={showCompleted}
           onToggleCompleted={() => setShowCompleted(!showCompleted)}
-          onEditTask={(task) => toast({ title: 'Edit Task', description: `Editing "${task.title}" - Feature coming soon!` })}
+          onEditTask={task =>
+            toast({
+              title: 'Edit Task',
+              description: `Editing "${task.title}" - Feature coming soon!`,
+            })
+          }
         />
       )}
 
       {/* Create Task Modal */}
       {showCreateModal && (
-        <TaskCreateModal
-          tripId={tripId}
-          onClose={() => setShowCreateModal(false)}
-        />
+        <TaskCreateModal tripId={tripId} onClose={() => setShowCreateModal(false)} />
       )}
     </div>
   );
