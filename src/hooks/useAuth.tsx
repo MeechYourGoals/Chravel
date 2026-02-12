@@ -932,9 +932,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Prefer returned row to avoid local/remote drift.
       if (data) {
         updatedUser.displayName = data.display_name ?? updatedUser.displayName;
-        updatedUser.realName = data.real_name ?? updatedUser.realName;
-        updatedUser.namePreference =
-          (data.name_preference === 'real' ? 'real' : 'display') ?? updatedUser.namePreference;
+        updatedUser.realName = (data as any).real_name ?? updatedUser.realName;
+        const namePref = (data as any).name_preference;
+        updatedUser.namePreference = namePref === 'real' ? 'real' : (namePref === 'display' ? 'display' : updatedUser.namePreference);
         updatedUser.firstName = data.first_name ?? updatedUser.firstName;
         updatedUser.lastName = data.last_name ?? updatedUser.lastName;
         updatedUser.avatar = data.avatar_url ?? updatedUser.avatar;
