@@ -41,6 +41,7 @@ export const EVENT_PARITY_COL_START = {
 
 // Pro tabs (9 columns)
 export const PRO_PARITY_ROW_CLASS = 'grid grid-cols-1 md:grid-cols-9 gap-2 items-center';
+export const PRO_PARITY_HEADER_SPAN_CLASS = 'md:col-span-8';
 export const PRO_PARITY_COL_START = {
   chat: 'md:col-start-1',
   calendar: 'md:col-start-2',
