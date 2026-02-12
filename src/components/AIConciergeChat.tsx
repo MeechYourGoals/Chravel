@@ -100,7 +100,7 @@ export const AIConciergeChat = ({
       {
         id: `voice-user-${Date.now()}`,
         type: 'user',
-        content: `🎤 ${text}`,
+        content: text,
         timestamp: new Date().toISOString(),
       },
     ]);
@@ -665,33 +665,6 @@ export const AIConciergeChat = ({
                   </div>
                 )}
               </div>
-              {import.meta.env.DEV && (
-                <div className="mt-2 rounded-md border border-white/20 bg-black/30 px-2 py-1 text-[10px] font-mono text-gray-300 space-y-0.5">
-                  <div>
-                    model={voiceDebugInfo.selectedModel} voice={voiceDebugInfo.selectedVoiceName}{' '}
-                    auth={voiceDebugInfo.authMode ?? 'pending'} gate=
-                    {voiceDebugInfo.gateAllowed === null
-                      ? 'pending'
-                      : voiceDebugInfo.gateAllowed
-                        ? 'allowed'
-                        : `${voiceDebugInfo.gateCode ?? 'unknown'}:${voiceDebugInfo.gateStatus ?? '-'}`}
-                  </div>
-                  <div>
-                    ws={voiceDebugInfo.wsPhase}
-                    {voiceDebugInfo.wsCloseCode !== null ? `(${voiceDebugInfo.wsCloseCode})` : ''}
-                    setup={voiceDebugInfo.setupComplete ? '1' : '0'} media=
-                    {voiceDebugInfo.mediaDevicesSupported ? 'ok' : 'missing'}
-                    {voiceDebugInfo.lastMediaErrorName
-                      ? `/${voiceDebugInfo.lastMediaErrorName}`
-                      : ''}
-                  </div>
-                  <div>
-                    entitlements={entitlementPlan}/{entitlementStatus}/{entitlementSource}{' '}
-                    consumerTier=
-                    {String(consumerTier)} localEligible={isVoiceEligible ? '1' : '0'}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -736,10 +709,10 @@ export const AIConciergeChat = ({
               Your AI Travel Concierge
             </h4>
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
-              <p className="text-xs sm:text-sm mb-1.5">Ask me anything about travel:</p>
+              <p className="text-xs sm:text-sm mb-1.5">Ask me anything:</p>
               <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
+                <p>• "What's the Lakers schedule this week?"</p>
                 <p>• "Suggest activities based on our preferences"</p>
-                <p>• "What hidden gems should we check out?"</p>
                 <p>• "What's in the calendar agenda for the rest of the week"</p>
                 <p>• "What tasks still need to be completed"</p>
                 <p>• "Can you summarize my payments owed?"</p>
@@ -763,7 +736,7 @@ export const AIConciergeChat = ({
                       {
                         id: 'voice-streaming',
                         type: 'assistant' as const,
-                        content: `🔊 ${assistantTranscript}`,
+                        content: assistantTranscript,
                         timestamp: new Date().toISOString(),
                       },
                     ]

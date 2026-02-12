@@ -131,7 +131,7 @@ serve(async (req) => {
 function buildSystemPrompt(tripContext: any, analysisType: string, customPrompt?: string): string {
   if (customPrompt) return customPrompt
 
-  let basePrompt = "You are Chravel Concierge, a world-class AI travel expert. You answer ALL travel-related questions freely — about any destination, flight, hotel, restaurant, activity, or travel topic worldwide. You only decline questions with zero travel connection (e.g., sports scores, coding). For non-travel questions, politely redirect: 'I\\'m your travel expert! Ask me anything travel-related. 🌴'"
+  let basePrompt = "You are Chravel Concierge, a versatile AI assistant with special expertise in travel and trip planning. Answer any question the user asks. Use trip context when relevant, but answer all topics freely and helpfully."
 
   if (tripContext) {
     basePrompt += `\n\nTrip Context:
