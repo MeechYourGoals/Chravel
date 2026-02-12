@@ -220,11 +220,11 @@ export const RolesView = ({
               className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
                 isMobile
                   ? 'min-h-[44px] justify-center text-xs'
-                  : `${PRO_PARITY_COL_START.payments} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
+                  : `${PRO_PARITY_COL_START.payments} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2 font-medium text-xs lg:text-sm`
               }`}
               title="Manage roles, assignments, and admins"
             >
-              <Cog className="w-4 h-4 mr-1" />
+              <Cog className="w-4 h-4 shrink-0 mr-0.5" />
               Manage Roles
             </Button>
             <Button
