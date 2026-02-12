@@ -1,118 +1,67 @@
 
 
-# Voice Assistant Options + Build Error Fix
+# Fix Voice Concierge: Response Pipeline, Debug Leak, Restrictions
 
-## Build Error Fix (Quick)
+## Issues Identified
 
-The TypeScript error on line 90 of `useConsumerSubscription.tsx` is a type mismatch: `userTier` can be `'pro-starter' | 'pro-growth' | 'pro-enterprise'` but `ConsumerSubscription.tier` in `src/types/consumer.ts` only allows `'free' | 'explorer' | 'frequent-chraveler'`. Fix: widen the `ConsumerSubscription.tier` type to include pro tiers.
+1. **Mic emoji prefix**: `handleVoiceUserMessage` in `AIConciergeChat.tsx` line 103 adds `🎤 ` before every voice message
+2. **Debug panel leaking to production**: The debug info block (lines 668-694) is gated by `import.meta.env.DEV`, but in the Lovable preview environment this evaluates to `true` -- exposing internal model/auth/ws diagnostics to users
+3. **Voice queries never respond**: The `useWebSpeechVoice` hook calls `gemini-chat` with `{ message, analysisType: 'chat' }` and NO trip context. `gemini-chat` then calls `lovable-concierge` internally (double edge function hop). But because `gemini-chat` invokes `lovable-concierge` using `supabase.functions.invoke()` with the anon key (not the user's auth token), the auth check in `lovable-concierge` likely fails or the request gets stuck
+4. **Travel-only restriction**: System prompts in `lovable-concierge`, `gemini-chat`, and `ai-answer` all restrict answers to travel topics and decline sports/coding/etc. User wants fully unrestricted AI
+5. **Placeholder text**: "Ask me anything about travel..." in `AiChatInput.tsx` reinforces the travel restriction
+6. **Empty state text**: "Ask me anything about travel:" in `AIConciergeChat.tsx` also needs updating
 
-| File | Change |
-|------|--------|
-| `src/types/consumer.ts` | Add `'pro-starter' \| 'pro-growth' \| 'pro-enterprise'` to the `tier` field |
+## Technical Plan
 
----
+### File 1: `src/components/AIConciergeChat.tsx`
 
-## Voice Assistant: Your Three Options
+**A. Remove mic emoji prefix** (line 103):
+- Change `🎤 ${text}` to just `text`
 
-### Option A: Web Speech API (FREE, Zero Dependencies, Works Today)
+**B. Remove debug panel entirely** (lines 668-694):
+- Delete the `import.meta.env.DEV && (...)` block showing model, ws, auth, gate, entitlements
 
-The browser has a built-in speech engine. No API keys, no WebSockets, no edge functions, no new packages.
+**C. Remove streaming voice transcript emoji** (line 766):
+- Change `🔊 ${assistantTranscript}` to just `assistantTranscript`
 
-How it works:
-1. User taps mic -> browser's `SpeechRecognition` captures speech to text
-2. That text is sent through your **existing** AI Concierge text pipeline (the `gemini-chat` / `lovable-concierge` edge function that already works)
-3. Browser's `SpeechSynthesis` reads the response aloud
+**D. Update empty state text** (lines 739-741):
+- Change "Ask me anything about travel:" to "Ask me anything:"
+- Update example prompts to include non-travel examples
 
-Pros:
-- Zero cost, zero setup, zero new API keys
-- Works offline for the STT portion
-- Reuses your existing concierge backend (proven working)
-- Can be implemented in ~150 lines replacing the 700-line Gemini voice hook
+### File 2: `src/hooks/useWebSpeechVoice.ts`
 
-Cons:
-- Voice quality is "browser quality" (robotic on some devices, decent on iOS/Chrome)
-- Not available in all browsers (Safari has quirks, Firefox limited)
-- No real-time conversation feel -- it's speak-then-wait, like Siri
+**A. Route voice queries directly to `lovable-concierge` instead of `gemini-chat`**:
+- Change `supabase.functions.invoke('gemini-chat', ...)` to `supabase.functions.invoke('lovable-concierge', ...)`
+- This eliminates the double-hop and ensures proper auth token forwarding (supabase SDK automatically includes the user's JWT)
 
-### Option B: ElevenLabs Conversational AI (Premium, Simple SDK)
+**B. Add a 15-second timeout** so the processing state never hangs forever
 
-ElevenLabs has a React SDK (`@elevenlabs/react`) with a `useConversation` hook that handles all WebRTC/audio complexity in ~30 lines. This is the easiest path to a natural, high-quality voice assistant.
+### File 3: `src/features/chat/components/AiChatInput.tsx`
 
-How it works:
-1. Create an agent in ElevenLabs dashboard (configure personality, voice, tools)
-2. Edge function generates a conversation token
-3. `useConversation` hook manages WebRTC connection, mic, playback -- everything
+**A. Update placeholder** (line 87):
+- Change "Ask me anything about travel..." to "Ask me anything..."
 
-Pros:
-- Production-quality voices (29 languages, customizable)
-- WebRTC handles all audio codec complexity (no PCM, no manual WebSocket)
-- Barge-in support, natural conversation flow
-- Simple React hook -- far less code than current Gemini attempt
+### File 4: `supabase/functions/lovable-concierge/index.ts`
 
-Cons:
-- Requires ElevenLabs account + API key ($5/mo starter)
-- Agent must be configured in the ElevenLabs web UI
-- AI responses come from ElevenLabs' agent, not your existing concierge pipeline (though you can configure the agent's system prompt to match)
+**A. Remove travel-only restriction from system prompt** (line 748):
+- Remove the "ONLY decline questions with ZERO connection to travel" policy
+- Replace with: "Answer any question the user asks. You are a versatile AI assistant with special expertise in travel and trip planning. Use trip context when relevant, but answer all topics freely."
 
-### Option C: Remove Voice Entirely
+### File 5: `supabase/functions/gemini-chat/index.ts`
 
-Surgically remove all Gemini voice code and the Grok remnants. Keep the mic button but repurpose it or hide it. Focus on making the text concierge richer with:
-- Clickable place links with preview cards
-- Inline map widgets
-- Photo thumbnails for recommendations
-- Markdown rendering (already partially implemented)
+**A. Remove travel-only restriction** (line 134):
+- Update the base prompt to remove "only decline questions with zero travel connection" language
 
----
+### File 6: `supabase/functions/ai-answer/index.ts`
 
-## My Recommendation: Option A (Web Speech API)
+**A. Remove travel-only restriction** (lines 86-88):
+- Update to match the unrestricted policy
 
-Here's why:
-1. It works **today** with zero new infrastructure
-2. It reuses your proven concierge backend -- no new AI pipeline to debug
-3. Zero cost, zero API keys
-4. If you later want premium voice (Option B), it's an additive upgrade, not a rewrite
-5. For the a16z demo, "tap mic, speak, get answer read back" is functionally identical to what Gemini Live would have done
+## Impact
 
-The implementation replaces the 700-line `useGeminiVoice.ts` with a ~150-line `useWebSpeechVoice.ts` that:
-- Uses `webkitSpeechRecognition` / `SpeechRecognition` for STT
-- Sends transcribed text through the existing concierge (same `supabase.functions.invoke('gemini-chat')` path)
-- Uses `SpeechSynthesis` to speak the response
-- Keeps the same `VoiceState` type so VoiceButton and AiChatInput need zero changes
-
-## Technical Plan (Option A)
-
-### File 1: `src/hooks/useWebSpeechVoice.ts` (NEW)
-
-Create a clean hook using the browser's Web Speech API:
-- Same exported types (`VoiceState`, `UseGeminiVoiceReturn`) for drop-in compatibility
-- `startVoice`: request mic permission, start `SpeechRecognition`, transition to 'listening'
-- On speech result: transition to 'thinking', call existing concierge via `supabase.functions.invoke('gemini-chat')`
-- On AI response: transition to 'speaking', use `SpeechSynthesis.speak()` to read it aloud
-- On speech end: transition back to 'idle'
-- Error handling: immediate state transitions, no WebSocket complexity
-
-### File 2: `src/hooks/useGeminiVoice.ts` (DELETE or gut)
-
-Remove the 700-line Gemini Live WebSocket implementation entirely.
-
-### File 3: `src/components/AIConciergeChat.tsx`
-
-Change import from `useGeminiVoice` to `useWebSpeechVoice`. Everything else stays the same because the hook interface is identical.
-
-### File 4: `src/features/chat/components/VoiceButton.tsx`
-
-No changes needed -- it already works with the `VoiceState` type.
-
-### File 5: `src/features/chat/components/AiChatInput.tsx`
-
-No changes needed -- same interface.
-
-### File 6: `src/types/consumer.ts`
-
-Widen `ConsumerSubscription.tier` to include pro tiers to fix the build error.
-
-### Cleanup: Remove Gemini Voice Remnants
-
-- `supabase/functions/gemini-voice-session/index.ts` -- can be deleted (no longer needed)
-- `XAI_API_KEY` secret -- leftover from Grok attempt, can be removed later
+- Voice queries will go directly to `lovable-concierge` with proper auth, eliminating the double-hop that causes hangs
+- No debug internals shown to users
+- No corny mic emoji on dictated messages
+- Users can ask the concierge anything -- sports scores, general questions, whatever they want
+- 15-second timeout ensures the UI never gets stuck on "Processing" indefinitely
 
