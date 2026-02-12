@@ -1,53 +1,44 @@
 
 
-# Fix Visual Parity for Pro Trips (9-Column Grid)
+# Consolidate Agenda Layout: Remove Wasted Whitespace
 
 ## Problem
 
-`CalendarHeader`, `CommentsWall`, and `TripTasksTab` all hardcode `TRIP_PARITY_ROW_CLASS` (8-column grid). When rendered inside a Pro trip (which has 9 tabs including Team), the buttons land in the wrong columns and appear misaligned -- shifted left relative to the tabs above.
+On desktop, the Agenda tab has excessive vertical whitespace:
+- "Schedule" sits alone on its own row beneath Import Agenda / Add Session buttons
+- "Agenda File" sits alone on its own row beneath the Upload button
+- Both have empty space above and below them before their content cards appear
 
-## Strategy
+## Solution
 
-Make these components **variant-aware** using the existing `useTripVariant()` context. When `variant === 'pro'`, use `PRO_PARITY_ROW_CLASS` (9 columns) and `PRO_PARITY_COL_START`. When `variant === 'events'`, use `EVENT_PARITY_ROW_CLASS` (7 columns) and `EVENT_PARITY_COL_START`. Default to the 8-column consumer grid.
+Move "Schedule" and "Agenda Files" labels up into the action button row using the existing 7-column event parity grid, and remove the separate header rows entirely. This eliminates two full rows of whitespace.
 
-## Changes
+## Technical Changes
 
-### File 1: `src/features/calendar/components/CalendarHeader.tsx`
+### File: `src/components/events/AgendaModal.tsx`
 
-- Import `useTripVariant` from `TripVariantContext`
-- Import `PRO_PARITY_ROW_CLASS`, `PRO_PARITY_COL_START`, `EVENT_PARITY_ROW_CLASS`, `EVENT_PARITY_COL_START`
-- Read `variant` from context
-- Select the correct row class and column start map based on variant:
-  - **Consumer (8 cols)**: Title spans cols 1-4, Import at col 5 (payments), Export at col 6 (places), View Toggle at col 7 (polls), Add Event at col 8 (tasks)
-  - **Pro (9 cols)**: Title spans cols 1-5, Import at col 6 (places), Export at col 7 (polls), View Toggle at col 8 (tasks), Add Event at col 9 (team)
-  - **Events (7 cols)**: Title spans cols 1-3, Import at col 4 (media), Export at col 5 (lineup), View Toggle at col 6 (polls), Add Event at col 7 (tasks)
-- This ensures each button sits directly beneath the correct tab for every trip type
+**1. Add section labels into the action button row (lines 221-281):**
+- Add "Schedule" text (with Clock icon) into the parity grid at `EVENT_PARITY_COL_START.agenda` (col 1) -- centered under the Agenda tab
+- Add "Agenda Files" text (with FileText icon, pluralized) into the parity grid at `EVENT_PARITY_COL_START.lineup` (col 5) -- centered under the Line-up tab
+- These labels sit in the same row as Import Agenda, Add Session, and Upload buttons
 
-### File 2: `src/components/CommentsWall.tsx`
+**2. Remove the standalone header rows from each split panel:**
+- Remove lines 288-293 (the "Schedule" header `<div>` inside the left panel)
+- Remove lines 577-582 (the "Agenda File" header `<div>` inside the right panel)
 
-- Already imports `useTripVariant`; read `variant`
-- Switch the parity row class and column start based on variant:
-  - Consumer: "New Poll" at col 7 (polls) -- already uses `TRIP_PARITY_COL_START.polls` which is correct, just need to switch the grid container
-  - Pro: Use `PRO_PARITY_ROW_CLASS` and `PRO_PARITY_COL_START.polls` (col 7)
-  - The header span class also needs to adjust (7 cols for consumer, 8 for pro)
+**3. Rename "Agenda File" to "Agenda Files" (plural):**
+- Update the label text and the empty-state heading from "No Agenda File" to "No Agenda Files"
+- Update description text to reflect that multiple files can be uploaded
 
-### File 3: `src/components/todo/TripTasksTab.tsx`
+**4. Reduce top padding on the split panels:**
+- Since the headers are gone, reduce the `p-4` top padding on each panel to `pt-2 px-4 pb-4` so content cards shift up into the freed space
 
-- Already imports `useTripVariant`; read `variant`
-- Switch the parity row class and column start based on variant:
-  - Consumer: "Add Task" at col 8 (tasks) -- already correct for 8-col
-  - Pro: Use `PRO_PARITY_ROW_CLASS` and `PRO_PARITY_COL_START.tasks` (col 8)
-  - Header span adjusts accordingly (7 for consumer, 8 for pro)
+## Result Layout (Desktop)
 
-### File 4: `src/lib/tabParity.ts`
+```text
+Row 1: [Agenda] [Calendar] [Chat] [Media] [Line-up] [Polls] [Tasks]   <-- tabs
+Row 2: [Schedule] [Import Agenda] [Add Session] [      ] [Agenda Files] [    ] [Upload]
+Row 3: [---- No Sessions Yet card ----] [---- No Agenda Files card ----]
+```
 
-- Add `PRO_PARITY_HEADER_SPAN_CLASS = 'md:col-span-8'` (title spans 8 of 9 cols in Pro)
-- This keeps the pattern consistent -- every variant has its own header span token
-
-## Why This Works
-
-The `TripVariantProvider` already wraps every trip detail page with the correct variant. The components just need to read it and select the matching grid tokens. No new props needed -- it's all context-driven.
-
-## Verification
-
-After implementation, the buttons will align perfectly under their parent tabs regardless of whether the trip has 7, 8, or 9 columns.
+The two empty-state cards shift up by roughly 80px, creating a much tighter, cleaner layout with no wasted vertical space.
