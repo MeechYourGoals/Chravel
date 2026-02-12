@@ -65,6 +65,17 @@ export interface Exhibitor {
   }[];
 }
 
+// Uploaded agenda file metadata (stored in Supabase Storage)
+export interface AgendaFile {
+  id: string;
+  name: string;
+  storagePath: string;
+  publicUrl: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+}
+
 // Agenda item for event schedule
 export interface EventAgendaItem {
   id: string;
