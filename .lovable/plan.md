@@ -1,44 +1,47 @@
 
 
-# Consolidate Agenda Layout: Remove Wasted Whitespace
+# Fix Polls and Tasks Layout: Consolidate Header + Button onto One Row
 
-## Problem
+## Root Cause
 
-On desktop, the Agenda tab has excessive vertical whitespace:
-- "Schedule" sits alone on its own row beneath Import Agenda / Add Session buttons
-- "Agenda File" sits alone on its own row beneath the Upload button
-- Both have empty space above and below them before their content cards appear
+The header label (e.g., "Group Polls") spans N-1 columns via `*_PARITY_HEADER_SPAN_CLASS`, but the action button is placed in a column that falls WITHIN that span. CSS Grid pushes the button to a new row since the header already occupies that column.
 
-## Solution
+For example in Pro (9 columns):
+- Header spans cols 1-8 (`md:col-span-8`)
+- "New Poll" button is at col 7 (`PRO_PARITY_COL_START.polls`) -- col 7 is inside the header span, so it wraps to a new row
 
-Move "Schedule" and "Agenda Files" labels up into the action button row using the existing 7-column event parity grid, and remove the separate header rows entirely. This eliminates two full rows of whitespace.
+The fix: place the button in the LAST column (col N) so it sits next to the header, not overlapping it.
 
-## Technical Changes
+## Changes
 
-### File: `src/components/events/AgendaModal.tsx`
+### File 1: `src/components/CommentsWall.tsx`
 
-**1. Add section labels into the action button row (lines 221-281):**
-- Add "Schedule" text (with Clock icon) into the parity grid at `EVENT_PARITY_COL_START.agenda` (col 1) -- centered under the Agenda tab
-- Add "Agenda Files" text (with FileText icon, pluralized) into the parity grid at `EVENT_PARITY_COL_START.lineup` (col 5) -- centered under the Line-up tab
-- These labels sit in the same row as Import Agenda, Add Session, and Upload buttons
+Change the "New Poll" button column from `.polls` to the last column for each variant:
+- Consumer (8 cols): `TRIP_PARITY_COL_START.tasks` (col 8) instead of `.polls` (col 7)
+- Pro (9 cols): `PRO_PARITY_COL_START.team` (col 9) instead of `.polls` (col 7)
+- Events (7 cols): `EVENT_PARITY_COL_START.tasks` (col 7) instead of `.polls` (col 6)
 
-**2. Remove the standalone header rows from each split panel:**
-- Remove lines 288-293 (the "Schedule" header `<div>` inside the left panel)
-- Remove lines 577-582 (the "Agenda File" header `<div>` inside the right panel)
+This ensures "Group Polls" (spanning cols 1 to N-1) and "New Poll" (at col N) sit on the same row with no overlap.
 
-**3. Rename "Agenda File" to "Agenda Files" (plural):**
-- Update the label text and the empty-state heading from "No Agenda File" to "No Agenda Files"
-- Update description text to reflect that multiple files can be uploaded
+### File 2: `src/components/todo/TripTasksTab.tsx`
 
-**4. Reduce top padding on the split panels:**
-- Since the headers are gone, reduce the `p-4` top padding on each panel to `pt-2 px-4 pb-4` so content cards shift up into the freed space
+Change the "Add Task" button column for Pro variant:
+- Pro: `PRO_PARITY_COL_START.team` (col 9) instead of `.tasks` (col 8)
+- Consumer and Events already use the last column correctly (col 8 and col 7 respectively)
 
-## Result Layout (Desktop)
+This puts "Tasks" label (spanning cols 1-8) and "Add Task" (at col 9) on the same row in Pro view.
+
+## Result
+
+Both Polls and Tasks tabs will render as a single compact row:
 
 ```text
-Row 1: [Agenda] [Calendar] [Chat] [Media] [Line-up] [Polls] [Tasks]   <-- tabs
-Row 2: [Schedule] [Import Agenda] [Add Session] [      ] [Agenda Files] [    ] [Upload]
-Row 3: [---- No Sessions Yet card ----] [---- No Agenda Files card ----]
+[Group Polls                                          ] [New Poll]
+[description text...]           [badges...]
+
+[Tasks                                                ] [Add Task]
+[description text...]           [Filter: All Open ...]
 ```
 
-The two empty-state cards shift up by roughly 80px, creating a much tighter, cleaner layout with no wasted vertical space.
+The buttons align directly under the Team tab (last column), matching the visual parity pattern. All whitespace from the separate rows is eliminated, shifting content upward.
+
