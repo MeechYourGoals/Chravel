@@ -70,10 +70,10 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         {effectivePermissions.canCreate && (
           <Button
             onClick={() => setShowCreatePoll(true)}
-            className={`${TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} inline-flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg`}
+            className={`${TRIP_PARITY_COL_START.polls} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg`}
           >
-            <Plus size={14} />
-            <span className="whitespace-nowrap">Create Poll</span>
+            <Plus size={14} className="flex-shrink-0" />
+            <span className="whitespace-nowrap">New Poll</span>
           </Button>
         )}
       </div>
