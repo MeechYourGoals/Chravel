@@ -73,8 +73,8 @@ export const AgendaModal = ({
   const { pendingResult, startImport, clearResult, isBackgroundImporting } =
     useBackgroundAgendaImport();
 
-  // In demo mode, always show admin controls
-  const showAdminControls = isDemoMode || permissions.canCreate;
+  // In demo mode, allow all management actions
+  const canCreateSessions = isDemoMode || permissions.canCreate;
   const canEdit = isDemoMode || permissions.canEdit;
   const canDelete = isDemoMode || permissions.canDelete;
   const canUpload = isDemoMode || permissions.canUpload;
@@ -212,7 +212,7 @@ export const AgendaModal = ({
   };
 
   const isPdfFile = pdfUrl?.toLowerCase().endsWith('.pdf') || pdfUrl?.includes('application/pdf');
-  const showAdminActions = showAdminControls && !isAddingSession;
+  const showAdminActions = (canCreateSessions || canUpload) && !isAddingSession;
   const showActionRow = Boolean(onClose) || showAdminActions;
 
   return (
@@ -233,21 +233,25 @@ export const AgendaModal = ({
             )}
             {showAdminActions && (
               <>
-                <Button
-                  onClick={() => setShowImportModal(true)}
-                  variant="outline"
-                  className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
-                >
-                  <Sparkles size={16} className="flex-shrink-0" />
-                  <span className="whitespace-nowrap">Import Agenda</span>
-                </Button>
-                <Button
-                  onClick={() => setIsAddingSession(true)}
-                  className={`${EVENT_PARITY_COL_START.chat} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
-                >
-                  <Plus size={16} className="flex-shrink-0" />
-                  <span className="whitespace-nowrap">Add Session</span>
-                </Button>
+                {canCreateSessions && (
+                  <>
+                    <Button
+                      onClick={() => setShowImportModal(true)}
+                      variant="outline"
+                      className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
+                    >
+                      <Sparkles size={16} className="flex-shrink-0" />
+                      <span className="whitespace-nowrap">Import Agenda</span>
+                    </Button>
+                    <Button
+                      onClick={() => setIsAddingSession(true)}
+                      className={`${EVENT_PARITY_COL_START.chat} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
+                    >
+                      <Plus size={16} className="flex-shrink-0" />
+                      <span className="whitespace-nowrap">Add Session</span>
+                    </Button>
+                  </>
+                )}
                 {canUpload && (
                   <label className={`${EVENT_PARITY_COL_START.tasks} w-full`}>
                     <input
@@ -289,7 +293,7 @@ export const AgendaModal = ({
           </div>
 
           {/* Add/Edit Session Form */}
-          {isAddingSession && showAdminControls && (
+          {isAddingSession && canCreateSessions && (
             <Card className="bg-white/5 border-white/10 mb-4">
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
@@ -559,7 +563,7 @@ export const AgendaModal = ({
                 <Clock size={48} className="text-gray-600 mx-auto mb-3" />
                 <h4 className="text-white font-medium mb-1">No Sessions Yet</h4>
                 <p className="text-gray-400 text-sm">
-                  {showAdminControls
+                  {canCreateSessions
                     ? 'Add sessions to build your event schedule'
                     : "The organizer hasn't added sessions yet"}
                 </p>
