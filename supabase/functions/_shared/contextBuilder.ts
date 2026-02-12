@@ -1,7 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 // 🆕 User preferences interface for AI personalization
 export interface UserPreferences {
@@ -11,7 +11,7 @@ export interface UserPreferences {
   accessibility?: string[];
   timePreference?: string;
   travelStyle?: string;
-  business?: string[];      // Business-related preferences
+  business?: string[]; // Business-related preferences
   entertainment?: string[]; // Entertainment preferences
 }
 
@@ -118,7 +118,7 @@ export class TripContextBuilder {
   // 🆕 Updated to accept userId for personalization
   static async buildContext(tripId: string, userId?: string): Promise<ComprehensiveTripContext> {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
+
     try {
       // Parallel fetch all data sources including user preferences and broadcasts
       const [
@@ -133,7 +133,7 @@ export class TripContextBuilder {
         places,
         files,
         links,
-        userPreferences
+        userPreferences,
       ] = await Promise.all([
         this.fetchTripMetadata(supabase, tripId),
         this.fetchCollaborators(supabase, tripId),
@@ -146,7 +146,7 @@ export class TripContextBuilder {
         this.fetchPlaces(supabase, tripId, userId),
         this.fetchFiles(supabase, tripId),
         this.fetchLinks(supabase, tripId),
-        userId ? this.fetchUserPreferences(supabase, userId) : Promise.resolve(undefined)
+        userId ? this.fetchUserPreferences(supabase, userId) : Promise.resolve(undefined),
       ]);
 
       return {
@@ -160,7 +160,7 @@ export class TripContextBuilder {
         broadcasts, // 🆕 Include broadcasts
         places,
         media: { files, links },
-        userPreferences
+        userPreferences,
       };
     } catch (error) {
       console.error('Error building trip context:', error);
@@ -175,16 +175,16 @@ export class TripContextBuilder {
         .select('id, name, destination, start_date, end_date, trip_type')
         .eq('id', tripId)
         .single();
-      
+
       if (error) throw error;
-      
+
       return {
         id: data.id,
         name: data.name,
         destination: data.destination,
         startDate: data.start_date,
         endDate: data.end_date,
-        type: data.trip_type || 'consumer'
+        type: data.trip_type || 'consumer',
       };
     } catch (error) {
       console.error('Error fetching trip metadata:', error);
@@ -194,7 +194,7 @@ export class TripContextBuilder {
         destination: 'Unknown',
         startDate: '',
         endDate: '',
-        type: 'consumer' as const
+        type: 'consumer' as const,
       };
     }
   }
@@ -203,10 +203,12 @@ export class TripContextBuilder {
     try {
       const { data, error } = await supabase
         .from('trip_members')
-        .select(`
+        .select(
+          `
           user_id,
           role
-        `)
+        `,
+        )
         .eq('trip_id', tripId);
 
       if (error) throw error;
@@ -228,7 +230,7 @@ export class TripContextBuilder {
       }
 
       const profilesMap = new Map<string, ProfileRow>(
-        (profiles || []).map((p: ProfileRow) => [p.user_id, p])
+        (profiles || []).map((p: ProfileRow) => [p.user_id, p]),
       );
 
       return (data || []).map((m: any) => {
@@ -239,7 +241,7 @@ export class TripContextBuilder {
         return {
           id: m.user_id,
           name,
-          role: m.role || 'participant'
+          role: m.role || 'participant',
         };
       });
     } catch (error) {
@@ -253,34 +255,34 @@ export class TripContextBuilder {
     try {
       const threeDaysAgo = new Date();
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-      
+
       // Strategy: Fetch last 50 messages, then extend if they're all within 72h
       const { data, error } = await supabase
         .from('trip_chat_messages')
-        .select('id, content, author_name, created_at, message_type')
+        .select('id, content, author_name, created_at, message_type, privacy_encrypted')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false })
         .limit(50); // Base: last 50 messages
 
       if (error) throw error;
-      
+
       let messages = data || [];
-      
-      // If we got 50 messages and the oldest is within 72h, 
+
+      // If we got 50 messages and the oldest is within 72h,
       // there might be more recent messages - fetch by time instead
       if (messages.length === 50) {
         const oldestTimestamp = new Date(messages[messages.length - 1]?.created_at);
-        
+
         if (oldestTimestamp > threeDaysAgo) {
           // All 50 messages are within 72h - fetch ALL from 72h (capped at 100)
           const { data: timeData } = await supabase
             .from('trip_chat_messages')
-            .select('id, content, author_name, created_at, message_type')
+            .select('id, content, author_name, created_at, message_type, privacy_encrypted')
             .eq('trip_id', tripId)
             .gte('created_at', threeDaysAgo.toISOString())
             .order('created_at', { ascending: false })
             .limit(100); // Safety cap to prevent token overflow
-          
+
           if (timeData && timeData.length > messages.length) {
             messages = timeData;
             console.log(`[Context] Extended to ${messages.length} messages (72h window)`);
@@ -288,15 +290,24 @@ export class TripContextBuilder {
         }
       }
 
-      console.log(`[Context] Fetched ${messages.length} messages for AI context`);
+      // Never pass encrypted message bodies into AI context.
+      const visibleMessages = messages.filter((m: any) => !m.privacy_encrypted);
+      const encryptedMessageCount = messages.length - visibleMessages.length;
+      if (encryptedMessageCount > 0) {
+        console.log(`[Context] Skipped ${encryptedMessageCount} encrypted messages for AI context`);
+      }
 
-      return messages.map((m: any) => ({
-        id: m.id,
-        content: m.content,
-        authorName: m.author_name,
-        timestamp: m.created_at,
-        type: m.message_type === 'broadcast' ? 'broadcast' : 'message'
-      })).reverse();
+      console.log(`[Context] Fetched ${visibleMessages.length} messages for AI context`);
+
+      return visibleMessages
+        .map((m: any) => ({
+          id: m.id,
+          content: m.content,
+          authorName: m.author_name,
+          timestamp: m.created_at,
+          type: m.message_type === 'broadcast' ? 'broadcast' : 'message',
+        }))
+        .reverse();
     } catch (error) {
       console.error('Error fetching messages:', error);
       return [];
@@ -319,26 +330,28 @@ export class TripContextBuilder {
       // Fetch creator names separately to avoid FK issues
       const creatorIds = [...new Set((data || []).map((b: any) => b.created_by))];
       let profilesMap = new Map<string, string>();
-      
+
       if (creatorIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles_public')
           .select('user_id, resolved_display_name')
           .in('user_id', creatorIds);
-        
+
         (profiles || []).forEach((p: any) => {
           // resolved_display_name is DB-computed and always has a value if profile exists
           profilesMap.set(p.user_id, p.resolved_display_name || 'Organizer');
         });
       }
 
-      return data?.map((b: any) => ({
-        id: b.id,
-        message: b.message,
-        priority: b.priority || 'normal',
-        createdBy: profilesMap.get(b.created_by) || 'Organizer',
-        createdAt: b.created_at
-      })) || [];
+      return (
+        data?.map((b: any) => ({
+          id: b.id,
+          message: b.message,
+          priority: b.priority || 'normal',
+          createdBy: profilesMap.get(b.created_by) || 'Organizer',
+          createdAt: b.created_at,
+        })) || []
+      );
     } catch (error) {
       console.error('Error fetching broadcasts:', error);
       return [];
@@ -355,14 +368,16 @@ export class TripContextBuilder {
 
       if (error) throw error;
 
-      return data?.map((e: any) => ({
-        id: e.id,
-        title: e.title,
-        startTime: e.start_time,
-        endTime: e.end_time,
-        location: e.location,
-        description: e.description
-      })) || [];
+      return (
+        data?.map((e: any) => ({
+          id: e.id,
+          title: e.title,
+          startTime: e.start_time,
+          endTime: e.end_time,
+          location: e.location,
+          description: e.description,
+        })) || []
+      );
     } catch (error) {
       console.error('Error fetching calendar:', error);
       return [];
@@ -378,13 +393,15 @@ export class TripContextBuilder {
 
       if (error) throw error;
 
-      return data?.map((t: any) => ({
-        id: t.id,
-        content: t.content,
-        assignee: undefined,
-        dueDate: t.due_date,
-        isComplete: t.is_complete
-      })) || [];
+      return (
+        data?.map((t: any) => ({
+          id: t.id,
+          content: t.content,
+          assignee: undefined,
+          dueDate: t.due_date,
+          isComplete: t.is_complete,
+        })) || []
+      );
     } catch (error) {
       console.error('Error fetching tasks:', error);
       return [];
@@ -400,14 +417,16 @@ export class TripContextBuilder {
 
       if (error) throw error;
 
-      return data?.map((p: any) => ({
-        id: p.id,
-        description: p.description,
-        amount: p.amount,
-        paidBy: 'Unknown',
-        participants: p.split_participants as string[],
-        isSettled: p.is_settled
-      })) || [];
+      return (
+        data?.map((p: any) => ({
+          id: p.id,
+          description: p.description,
+          amount: p.amount,
+          paidBy: 'Unknown',
+          participants: p.split_participants as string[],
+          isSettled: p.is_settled,
+        })) || []
+      );
     } catch (error) {
       console.error('Error fetching payments:', error);
       return [];
@@ -423,12 +442,14 @@ export class TripContextBuilder {
 
       if (error) throw error;
 
-      return data?.map((p: any) => ({
-        id: p.id,
-        question: p.question,
-        options: p.options as Array<{ text: string; votes: number }>,
-        status: p.status as 'active' | 'closed'
-      })) || [];
+      return (
+        data?.map((p: any) => ({
+          id: p.id,
+          question: p.question,
+          options: p.options as Array<{ text: string; votes: number }>,
+          status: p.status as 'active' | 'closed',
+        })) || []
+      );
     } catch (error) {
       console.error('Error fetching polls:', error);
       return [];
@@ -460,44 +481,50 @@ export class TripContextBuilder {
           .eq('trip_id', tripId)
           .eq('user_id', userId)
           .maybeSingle();
-        
+
         if (personalBasecampData?.name) {
           personalBasecamp = {
             name: personalBasecampData.name,
             address: personalBasecampData.address,
             lat: personalBasecampData.latitude,
-            lng: personalBasecampData.longitude
+            lng: personalBasecampData.longitude,
           };
           console.log('[Context] Found personal basecamp:', personalBasecampData.name);
         }
       }
 
       return {
-        tripBasecamp: trip?.basecamp_name ? {
-          name: trip.basecamp_name,
-          address: trip.basecamp_address,
-          lat: trip.basecamp_latitude,
-          lng: trip.basecamp_longitude
-        } : undefined,
+        tripBasecamp: trip?.basecamp_name
+          ? {
+              name: trip.basecamp_name,
+              address: trip.basecamp_address,
+              lat: trip.basecamp_latitude,
+              lng: trip.basecamp_longitude,
+            }
+          : undefined,
         personalBasecamp, // 🆕 Personal basecamp for location fallback
-        savedPlaces: places?.map((p: any) => ({
-          name: p.name,
-          address: p.address,
-          category: p.category
-        })) || []
+        savedPlaces:
+          places?.map((p: any) => ({
+            name: p.name,
+            address: p.address,
+            category: p.category,
+          })) || [],
       };
     } catch (error) {
       console.error('Error fetching places:', error);
       return {
         tripBasecamp: undefined,
         personalBasecamp: undefined,
-        savedPlaces: []
+        savedPlaces: [],
       };
     }
   }
 
   // 🆕 Fetch user preferences for personalized AI responses
-  private static async fetchUserPreferences(supabase: any, userId: string): Promise<UserPreferences | undefined> {
+  private static async fetchUserPreferences(
+    supabase: any,
+    userId: string,
+  ): Promise<UserPreferences | undefined> {
     try {
       const { data, error } = await supabase
         .from('user_preferences')
@@ -514,20 +541,21 @@ export class TripContextBuilder {
       if (!prefs) return undefined;
 
       console.log('[Context] Found user preferences:', Object.keys(prefs));
-      
+
       // 🔧 FIX: Map frontend field names correctly (dietary, vibe, etc.)
       // Frontend stores as: dietary, vibe, budgetMin, budgetMax, accessibility, timePreference
       return {
         dietary: prefs.dietary || [],
         vibe: prefs.vibe || [],
-        budget: (prefs.budgetMin !== undefined && prefs.budgetMax !== undefined)
-          ? `$${prefs.budgetMin}-$${prefs.budgetMax}`
-          : undefined,
+        budget:
+          prefs.budgetMin !== undefined && prefs.budgetMax !== undefined
+            ? `$${prefs.budgetMin}-$${prefs.budgetMax}`
+            : undefined,
         accessibility: prefs.accessibility || [],
         timePreference: prefs.timePreference || 'flexible',
         travelStyle: prefs.lifestyle?.join(', ') || undefined,
         business: prefs.business || [],
-        entertainment: prefs.entertainment || []
+        entertainment: prefs.entertainment || [],
       };
     } catch (error) {
       console.error('Error fetching user preferences:', error);
@@ -544,14 +572,16 @@ export class TripContextBuilder {
 
       if (error) throw error;
 
-      return data?.map((f: any) => ({
-        id: f.id,
-        name: f.file_name,
-        type: f.file_type,
-        url: f.file_url,
-        uploadedBy: 'Unknown',
-        uploadedAt: f.created_at
-      })) || [];
+      return (
+        data?.map((f: any) => ({
+          id: f.id,
+          name: f.file_name,
+          type: f.file_type,
+          url: f.file_url,
+          uploadedBy: 'Unknown',
+          uploadedAt: f.created_at,
+        })) || []
+      );
     } catch (error) {
       console.error('Error fetching files:', error);
       return [];
@@ -567,13 +597,15 @@ export class TripContextBuilder {
 
       if (error) throw error;
 
-      return data?.map((l: any) => ({
-        id: l.id,
-        url: l.url,
-        title: l.title,
-        category: l.category,
-        addedBy: 'Unknown'
-      })) || [];
+      return (
+        data?.map((l: any) => ({
+          id: l.id,
+          url: l.url,
+          title: l.title,
+          category: l.category,
+          addedBy: 'Unknown',
+        })) || []
+      );
     } catch (error) {
       console.error('Error fetching links:', error);
       return [];
