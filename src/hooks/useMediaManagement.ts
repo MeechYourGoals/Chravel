@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from './useDemoMode';
+import { getDomain } from '@/services/urlUtils';
 import { detectTripTier } from '../utils/tripTierDetector';
 import { proTripMockData } from '../data/proTripMockData';
 import { eventsMockData } from '../data/eventsMockData';
@@ -48,21 +49,24 @@ export const useMediaManagement = (tripId: string) => {
 
       if (isDemoMode) {
         // Trip-specific mock data
-        if (tripTier === 'consumer' && TripSpecificMockDataService.getTripMediaItems(parseInt(tripId)).length > 0) {
+        if (
+          tripTier === 'consumer' &&
+          TripSpecificMockDataService.getTripMediaItems(parseInt(tripId)).length > 0
+        ) {
           items = TripSpecificMockDataService.getTripMediaItems(parseInt(tripId));
         } else if (tripTier === 'pro' && proTripMockData[tripId]) {
           const proData = proTripMockData[tripId];
           items = [
             ...(proData.photos || []).map(item => ({ ...item, media_type: 'image' as const })),
             ...(proData.videos || []).map(item => ({ ...item, media_type: 'video' as const })),
-            ...(proData.files || []).map(item => ({ ...item, media_type: 'document' as const }))
+            ...(proData.files || []).map(item => ({ ...item, media_type: 'document' as const })),
           ];
         } else if (tripTier === 'event' && eventsMockData[tripId]) {
           const eventData = eventsMockData[tripId];
           items = [
             ...(eventData.photos || []).map(item => ({ ...item, media_type: 'image' as const })),
             ...(eventData.videos || []).map(item => ({ ...item, media_type: 'video' as const })),
-            ...(eventData.files || []).map(item => ({ ...item, media_type: 'document' as const }))
+            ...(eventData.files || []).map(item => ({ ...item, media_type: 'document' as const })),
           ];
         } else {
           items = UniversalMockDataService.getCombinedMediaItems(tripId);
@@ -75,12 +79,12 @@ export const useMediaManagement = (tripId: string) => {
             .select('*')
             .eq('trip_id', tripId)
             .order('created_at', { ascending: false }),
-          
+
           supabase
             .from('trip_files')
             .select('*')
             .eq('trip_id', tripId)
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false }),
         ]);
 
         items = [
@@ -91,7 +95,7 @@ export const useMediaManagement = (tripId: string) => {
             media_type: item.media_type as MediaItem['media_type'],
             metadata: item.metadata || {},
             created_at: item.created_at,
-            source: 'chat' as const,
+            source: (item.message_id ? 'chat' : 'upload') as const,
             mime_type: item.mime_type,
           })),
           ...(filesResponse.data || []).map(item => ({
@@ -101,8 +105,8 @@ export const useMediaManagement = (tripId: string) => {
             media_type: item.file_type as MediaItem['media_type'],
             metadata: { extracted_events: item.extracted_events },
             created_at: item.created_at,
-            source: 'upload' as const
-          }))
+            source: 'upload' as const,
+          })),
         ];
       }
 
@@ -134,7 +138,10 @@ export const useMediaManagement = (tripId: string) => {
       const listKey = `${tripId}:list`;
 
       if (isDemoMode) {
-        if (tripTier === 'consumer' && TripSpecificMockDataService.getTripLinkItems(parseInt(tripId)).length > 0) {
+        if (
+          tripTier === 'consumer' &&
+          TripSpecificMockDataService.getTripLinkItems(parseInt(tripId)).length > 0
+        ) {
           items = TripSpecificMockDataService.getTripLinkItems(parseInt(tripId));
         } else if (tripTier === 'pro' && proTripMockData[tripId]) {
           items = proTripMockData[tripId].links || [];
@@ -150,28 +157,32 @@ export const useMediaManagement = (tripId: string) => {
             .select('*')
             .eq('trip_id', tripId)
             .order('created_at', { ascending: false }),
-          
+
           supabase
             .from('trip_links')
             .select('*')
             .eq('trip_id', tripId)
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false }),
         ]);
 
         items = [
           ...(linksResponse.data || []).map(item => {
             // Determine source based on og_description metadata
-            const isFromPlaces = item.og_description?.includes('place_id:') || item.og_description?.includes('Saved from Places');
+            const isFromPlaces =
+              item.og_description?.includes('place_id:') ||
+              item.og_description?.includes('Saved from Places');
             return {
               id: item.id,
               url: item.url,
               title: item.og_title || 'Untitled Link',
               description: item.og_description || '',
-              domain: item.domain || new URL(item.url).hostname,
+              domain: item.domain || getDomain(item.url) || 'unknown',
               image_url: item.og_image_url,
               created_at: item.created_at,
-              source: isFromPlaces ? 'places' as const : 'chat' as const,
-              tags: []
+              source: isFromPlaces
+                ? ('places' as const)
+                : ((item.message_id ? 'chat' : 'manual') as const),
+              tags: [],
             };
           }),
           ...(manualLinksResponse.data || []).map(item => ({
@@ -179,12 +190,12 @@ export const useMediaManagement = (tripId: string) => {
             url: item.url,
             title: item.title || 'Untitled Link',
             description: item.description || '',
-            domain: new URL(item.url).hostname,
+            domain: getDomain(item.url) || 'unknown',
             image_url: undefined,
             created_at: item.created_at,
             source: 'manual' as const,
-            tags: []
-          }))
+            tags: [],
+          })),
         ];
       }
 
@@ -210,18 +221,86 @@ export const useMediaManagement = (tripId: string) => {
     fetchLinkItems();
   }, [fetchMediaItems, fetchLinkItems]);
 
-  const filterByType = useCallback((type: MediaType) => {
-    if (type === 'all') return [...mediaItems, ...linkItems];
-    if (type === 'photos') return mediaItems.filter(item => item.media_type === 'image');
-    if (type === 'videos') return mediaItems.filter(item => item.media_type === 'video');
-    if (type === 'files') return mediaItems.filter(item => item.media_type === 'document');
-    if (type === 'links') return linkItems;
-    return mediaItems;
-  }, [mediaItems, linkItems]);
+  // Realtime subscription: auto-update when new media/links are inserted
+  useEffect(() => {
+    if (!tripId || isDemoMode) return;
+
+    const channel = supabase.channel(`media-mgmt:${tripId}`);
+
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'trip_media_index',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      () => {
+        fetchMediaItems();
+      },
+    );
+
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'trip_files',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      () => {
+        fetchMediaItems();
+      },
+    );
+
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'trip_link_index',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      () => {
+        fetchLinkItems();
+      },
+    );
+
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'trip_links',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      () => {
+        fetchLinkItems();
+      },
+    );
+
+    channel.subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, isDemoMode, fetchMediaItems, fetchLinkItems]);
+
+  const filterByType = useCallback(
+    (type: MediaType) => {
+      if (type === 'all') return [...mediaItems, ...linkItems];
+      if (type === 'photos') return mediaItems.filter(item => item.media_type === 'image');
+      if (type === 'videos') return mediaItems.filter(item => item.media_type === 'video');
+      if (type === 'files') return mediaItems.filter(item => item.media_type === 'document');
+      if (type === 'links') return linkItems;
+      return mediaItems;
+    },
+    [mediaItems, linkItems],
+  );
 
   const getAllItemsSorted = useCallback(() => {
-    return [...mediaItems, ...linkItems].sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    return [...mediaItems, ...linkItems].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
   }, [mediaItems, linkItems]);
 
@@ -230,16 +309,16 @@ export const useMediaManagement = (tripId: string) => {
     mediaItems,
     linkItems,
     loading,
-    
+
     // Computed
     totalItems: mediaItems.length + linkItems.length,
-    
+
     // Actions
     filterByType,
     getAllItemsSorted,
     refetch: () => {
       fetchMediaItems();
       fetchLinkItems();
-    }
+    },
   };
 };

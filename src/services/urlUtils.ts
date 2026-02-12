@@ -11,16 +11,28 @@ export const URL_REGEX =
   /\b((?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>"'`()$[\]{}]*)?)/gi;
 
 /**
+ * Strip trailing punctuation characters that are commonly appended
+ * to URLs in natural text (e.g., "Check out https://example.com.")
+ *
+ * Strips: . , ) ] ; : ! ?
+ * Only strips if the character isn't part of the URL path structure.
+ */
+export function stripTrailingPunctuation(url: string): string {
+  return url.replace(/[.,)\];:!?]+$/, '');
+}
+
+/**
  * Extract all URLs from a text string
  * @param text - Input text to search for URLs
- * @returns Array of URL strings (normalized to include https://)
+ * @returns Array of URL strings (normalized to include https://, with trailing punctuation stripped)
  */
 export function findUrls(text: string): string[] {
   if (!text) return [];
-  
+
   const raw = [...text.matchAll(URL_REGEX)].map(m => m[1]);
-  
+
   return raw
+    .map(u => stripTrailingPunctuation(u))
     .map(u => (u.startsWith('http') ? u : `https://${u}`))
     .filter(Boolean);
 }
@@ -31,30 +43,30 @@ export function findUrls(text: string): string[] {
  * - Removing hash fragments
  * - Removing trailing slashes (except root)
  * - Lowercasing hostname
- * 
+ *
  * @param input - URL string to normalize
  * @returns Normalized URL string
  */
 export function normalizeUrl(input: string): string {
   try {
     const u = new URL(input);
-    
+
     // Remove hash
     u.hash = '';
-    
+
     // Strip UTM + common tracking params
     [...u.searchParams.keys()]
       .filter(k => /^utm_|^fbclid$|^gclid$|^igshid$|^si$|^mc_cid$|^mc_eid$/.test(k))
       .forEach(k => u.searchParams.delete(k));
-    
+
     // Remove trailing slash (except for root path)
     if (u.pathname !== '/' && u.pathname.endsWith('/')) {
       u.pathname = u.pathname.slice(0, -1);
     }
-    
+
     // Lowercase hostname for consistency
     u.hostname = u.hostname.toLowerCase();
-    
+
     return u.toString();
   } catch {
     // If URL parsing fails, return original
@@ -97,20 +109,20 @@ export function urlsMatch(url1: string, url2: string): boolean {
  */
 export function truncateUrl(url: string, maxLength: number = 60): string {
   if (url.length <= maxLength) return url;
-  
+
   try {
     const urlObj = new URL(url);
     const domain = urlObj.hostname;
     const path = urlObj.pathname + urlObj.search;
-    
+
     if (domain.length >= maxLength - 3) {
       return domain.substring(0, maxLength - 3) + '...';
     }
-    
+
     const remainingLength = maxLength - domain.length - 6; // 6 for ".../" and "..."
     const pathStart = path.substring(0, Math.floor(remainingLength / 2));
     const pathEnd = path.substring(path.length - Math.floor(remainingLength / 2));
-    
+
     return `${domain}/...${pathEnd}`;
   } catch {
     // Fallback to simple truncation
