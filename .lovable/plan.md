@@ -1,46 +1,53 @@
 
 
-# Fix UI Parity: Duplicate Add Link, Button Text Overflow, and Alignment
+# Fix Visual Parity for Pro Trips (9-Column Grid)
 
-## Issues
+## Problem
 
-1. **Duplicate "Add Link" buttons on tablet Media > Links tab**: The `MobileUnifiedMediaHub` renders two action buttons when on the `urls` tab -- both `actionLeft` and `actionRight` resolve to "Add Link", creating a redundant duplicate.
+`CalendarHeader`, `CommentsWall`, and `TripTasksTab` all hardcode `TRIP_PARITY_ROW_CLASS` (8-column grid). When rendered inside a Pro trip (which has 9 tabs including Team), the buttons land in the wrong columns and appear misaligned -- shifted left relative to the tabs above.
 
-2. **"Create Poll" text cut off on tablet**: The button text "Create Poll" is too long for the parity column width at tablet breakpoints. It needs to be shortened to "New Poll".
+## Strategy
 
-3. **"Create Poll" button alignment on desktop**: The button is slightly taller and shifted left compared to the Tasks tab above it. Root cause: it uses `inline-flex` instead of `flex`, and has extra class overrides that differ from the CalendarHeader parity buttons (the reference standard).
+Make these components **variant-aware** using the existing `useTripVariant()` context. When `variant === 'pro'`, use `PRO_PARITY_ROW_CLASS` (9 columns) and `PRO_PARITY_COL_START`. When `variant === 'events'`, use `EVENT_PARITY_ROW_CLASS` (7 columns) and `EVENT_PARITY_COL_START`. Default to the 8-column consumer grid.
 
-4. **"Add Task" button alignment on desktop**: Slightly shifted right. The button classes differ subtly from the CalendarHeader reference pattern.
+## Changes
 
-## Technical Plan
+### File 1: `src/features/calendar/components/CalendarHeader.tsx`
 
-### File 1: `src/components/mobile/MobileUnifiedMediaHub.tsx`
-
-**Fix duplicate "Add Link" buttons:**
-- Change `actionRight` (line ~398-400) so that when `selectedTab === 'urls'`, it returns `null` or a different action instead of duplicating "Add Link"
-- When `actionRight` is null, hide the right button entirely for the urls tab
-- This leaves a single full-width "Add Link" button
+- Import `useTripVariant` from `TripVariantContext`
+- Import `PRO_PARITY_ROW_CLASS`, `PRO_PARITY_COL_START`, `EVENT_PARITY_ROW_CLASS`, `EVENT_PARITY_COL_START`
+- Read `variant` from context
+- Select the correct row class and column start map based on variant:
+  - **Consumer (8 cols)**: Title spans cols 1-4, Import at col 5 (payments), Export at col 6 (places), View Toggle at col 7 (polls), Add Event at col 8 (tasks)
+  - **Pro (9 cols)**: Title spans cols 1-5, Import at col 6 (places), Export at col 7 (polls), View Toggle at col 8 (tasks), Add Event at col 9 (team)
+  - **Events (7 cols)**: Title spans cols 1-3, Import at col 4 (media), Export at col 5 (lineup), View Toggle at col 6 (polls), Add Event at col 7 (tasks)
+- This ensures each button sits directly beneath the correct tab for every trip type
 
 ### File 2: `src/components/CommentsWall.tsx`
 
-**Fix "Create Poll" text overflow and alignment:**
-- Change button text from "Create Poll" to "New Poll" (shorter, fits tablet column)
-- Change `inline-flex` to `flex` in the button className to match the CalendarHeader reference pattern
-- Ensure button uses exactly `${TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5` followed by the gradient/color classes -- matching the CalendarHeader pattern exactly
+- Already imports `useTripVariant`; read `variant`
+- Switch the parity row class and column start based on variant:
+  - Consumer: "New Poll" at col 7 (polls) -- already uses `TRIP_PARITY_COL_START.polls` which is correct, just need to switch the grid container
+  - Pro: Use `PRO_PARITY_ROW_CLASS` and `PRO_PARITY_COL_START.polls` (col 7)
+  - The header span class also needs to adjust (7 cols for consumer, 8 for pro)
 
 ### File 3: `src/components/todo/TripTasksTab.tsx`
 
-**Fix "Add Task" alignment:**
-- Add `flex items-center justify-center gap-1.5` to the button className to match the CalendarHeader parity pattern exactly
-- This ensures consistent centering and sizing within the parity column
+- Already imports `useTripVariant`; read `variant`
+- Switch the parity row class and column start based on variant:
+  - Consumer: "Add Task" at col 8 (tasks) -- already correct for 8-col
+  - Pro: Use `PRO_PARITY_ROW_CLASS` and `PRO_PARITY_COL_START.tasks` (col 8)
+  - Header span adjusts accordingly (7 for consumer, 8 for pro)
 
-## Reference: CalendarHeader Pattern (the gold standard)
+### File 4: `src/lib/tabParity.ts`
 
-All parity action buttons should follow this exact className pattern:
+- Add `PRO_PARITY_HEADER_SPAN_CLASS = 'md:col-span-8'` (title spans 8 of 9 cols in Pro)
+- This keeps the pattern consistent -- every variant has its own header span token
 
-```
-${TRIP_PARITY_COL_START.[column]} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 [variant/color classes]
-```
+## Why This Works
 
-This ensures identical width, height (min-h-[42px]), centering, and grid positioning across all tabs.
+The `TripVariantProvider` already wraps every trip detail page with the correct variant. The components just need to read it and select the matching grid tokens. No new props needed -- it's all context-driven.
 
+## Verification
+
+After implementation, the buttons will align perfectly under their parent tabs regardless of whether the trip has 7, 8, or 9 columns.
