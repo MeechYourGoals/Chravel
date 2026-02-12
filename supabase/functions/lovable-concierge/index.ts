@@ -1,88 +1,112 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getCorsHeaders } from "../_shared/cors.ts"
-import { TripContextBuilder } from "../_shared/contextBuilder.ts"
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts"
-import { validateInput } from "../_shared/validation.ts"
-import { sanitizeErrorForClient, logError } from "../_shared/errorHandling.ts"
-import { 
-  analyzeQueryComplexity, 
-  filterProfanity, 
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { TripContextBuilder } from '../_shared/contextBuilder.ts';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { validateInput } from '../_shared/validation.ts';
+import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
+import {
+  analyzeQueryComplexity,
+  filterProfanity,
   redactPII,
   buildEnhancedSystemPrompt,
-  requiresChainOfThought
-} from "../_shared/aiUtils.ts"
+  requiresChainOfThought,
+} from '../_shared/aiUtils.ts';
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 interface ChatMessage {
-  role: 'system' | 'user' | 'assistant'
-  content: string
+  role: 'system' | 'user' | 'assistant';
+  content: string;
 }
 
 interface LovableConciergeRequest {
-  message: string
-  tripContext?: any
-  tripId?: string
-  chatHistory?: ChatMessage[]
-  isDemoMode?: boolean
+  message: string;
+  tripContext?: any;
+  tripId?: string;
+  chatHistory?: ChatMessage[];
+  isDemoMode?: boolean;
   config?: {
-    model?: string
-    temperature?: number
-    maxTokens?: number
-    systemPrompt?: string
-  }
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    systemPrompt?: string;
+  };
 }
 
 // Input validation schema - increased limits for better context handling
 const LovableConciergeSchema = z.object({
-  message: z.string()
+  message: z
+    .string()
     .min(1, 'Message cannot be empty')
     .max(4000, 'Message too long (max 4000 characters)')
     .trim(),
-  tripId: z.string()
+  tripId: z
+    .string()
     .regex(/^[a-zA-Z0-9_-]+$/, 'Invalid trip ID format')
     .max(50, 'Trip ID too long')
     .optional(),
   tripContext: z.any().optional(),
   // 🆕 Accept preferences from client as fallback
-  preferences: z.object({
-    dietary: z.array(z.string()).optional(),
-    vibe: z.array(z.string()).optional(),
-    accessibility: z.array(z.string()).optional(),
-    business: z.array(z.string()).optional(),
-    entertainment: z.array(z.string()).optional(),
-    lifestyle: z.array(z.string()).optional(),
-    budgetMin: z.number().optional(),
-    budgetMax: z.number().optional(),
-    timePreference: z.string().optional()
-  }).optional(),
-  chatHistory: z.array(z.object({
-    role: z.enum(['system', 'user', 'assistant']),
-    content: z.string().max(20000, 'Chat message too long')
-  })).max(20, 'Chat history too long (max 20 messages)').optional(),
+  preferences: z
+    .object({
+      dietary: z.array(z.string()).optional(),
+      vibe: z.array(z.string()).optional(),
+      accessibility: z.array(z.string()).optional(),
+      business: z.array(z.string()).optional(),
+      entertainment: z.array(z.string()).optional(),
+      lifestyle: z.array(z.string()).optional(),
+      budgetMin: z.number().optional(),
+      budgetMax: z.number().optional(),
+      timePreference: z.string().optional(),
+    })
+    .optional(),
+  chatHistory: z
+    .array(
+      z.object({
+        role: z.enum(['system', 'user', 'assistant']),
+        content: z.string().max(20000, 'Chat message too long'),
+      }),
+    )
+    .max(20, 'Chat history too long (max 20 messages)')
+    .optional(),
   isDemoMode: z.boolean().optional(),
-  config: z.object({
-    model: z.string().max(100).optional(),
-    temperature: z.number().min(0).max(2).optional(),
-    maxTokens: z.number().min(1).max(4000).optional(),
-    systemPrompt: z.string().max(2000, 'System prompt too long').optional()
-  }).optional()
-})
+  config: z
+    .object({
+      model: z.string().max(100).optional(),
+      temperature: z.number().min(0).max(2).optional(),
+      maxTokens: z.number().min(1).max(4000).optional(),
+      systemPrompt: z.string().max(2000, 'System prompt too long').optional(),
+    })
+    .optional(),
+});
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
+const TRIP_SCOPED_QUERY_PATTERN =
+  /\b(trip|itinerary|schedule|calendar|event|dinner|lunch|breakfast|reservation|basecamp|hotel|flight|task|todo|payment|owe|expense|poll|vote|chat|message|broadcast|address|meeting|check[- ]?in|check[- ]?out)\b/i;
+
+function shouldRunRAGRetrieval(query: string, tripId: string): boolean {
+  if (!tripId || tripId === 'unknown') return false;
+
+  const normalizedQuery = query.trim();
+  if (normalizedQuery.length < 6) return false;
+
+  return TRIP_SCOPED_QUERY_PATTERN.test(normalizedQuery);
+}
+
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
   const corsHeaders = getCorsHeaders(req);
-  
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   let message = '';
   let tripId = 'unknown';
-  
+
   try {
     // Early health check path - responds immediately without AI processing
     if (req.method === 'GET') {
@@ -90,100 +114,114 @@ serve(async (req) => {
         status: 'healthy',
         service: 'lovable-concierge',
         timestamp: new Date().toISOString(),
-        message: 'AI Concierge service is online'
-      })
+        message: 'AI Concierge service is online',
+      });
     }
 
     if (!LOVABLE_API_KEY) {
-      throw new Error('Lovable API key not configured')
+      throw new Error('Lovable API key not configured');
     }
 
     // Validate input
-    const requestBody = await req.json()
-    
+    const requestBody = await req.json();
+
     // Handle ping/health check via POST with simple response
     if (requestBody.message === 'ping' || requestBody.message === 'health_check') {
       return createSecureResponse({
         status: 'healthy',
         service: 'lovable-concierge',
         timestamp: new Date().toISOString(),
-        message: 'AI Concierge service is online'
-      })
+        message: 'AI Concierge service is online',
+      });
     }
-    const validation = validateInput(LovableConciergeSchema, requestBody)
-    
+    const validation = validateInput(LovableConciergeSchema, requestBody);
+
     if (!validation.success) {
-      logError('LOVABLE_CONCIERGE_VALIDATION', validation.error)
-      return createErrorResponse(validation.error, 400)
+      logError('LOVABLE_CONCIERGE_VALIDATION', validation.error);
+      return createErrorResponse(validation.error, 400);
     }
 
-    const validatedData = validation.data
-    message = validatedData.message
-    tripId = validatedData.tripId || 'unknown'
-    const { tripContext, chatHistory = [], config = {}, isDemoMode = false } = validatedData
+    const validatedData = validation.data;
+    message = validatedData.message;
+    tripId = validatedData.tripId || 'unknown';
+    const { tripContext, chatHistory = [], config = {}, isDemoMode = false } = validatedData;
 
     // 🆕 SAFETY: Content filtering and PII redaction
-    const profanityCheck = filterProfanity(message)
+    const profanityCheck = filterProfanity(message);
     if (!profanityCheck.isClean) {
-      console.warn('[Safety] Profanity detected in query:', profanityCheck.violations)
+      console.warn('[Safety] Profanity detected in query:', profanityCheck.violations);
       // Log but don't block - allow user to proceed with filtered text
     }
-    
+
     // Redact PII from logs (but keep original for AI processing)
     const piiRedaction = redactPII(message, {
       redactEmails: true,
       redactPhones: true,
       redactCreditCards: true,
       redactSSN: true,
-      redactIPs: true
-    })
-    
+      redactIPs: true,
+    });
+
     // Use redacted text for logging
-    const logMessage = piiRedaction.redactions.length > 0 
-      ? piiRedaction.redactedText 
-      : message
-    
+    const logMessage = piiRedaction.redactions.length > 0 ? piiRedaction.redactedText : message;
+
     if (piiRedaction.redactions.length > 0) {
-      console.log('[Safety] PII redacted from logs:', piiRedaction.redactions.map(r => r.type))
+      console.log(
+        '[Safety] PII redacted from logs:',
+        piiRedaction.redactions.map(r => r.type),
+      );
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // 🔒 SECURITY FIX: Server-side demo mode determination
     // Never trust client for auth decisions - prevent API quota abuse
-    const DEMO_MODE_ENABLED = Deno.env.get('ENABLE_DEMO_MODE') === 'true'
-    const hasAuthHeader = !!req.headers.get('Authorization')
-    const serverDemoMode = DEMO_MODE_ENABLED && !hasAuthHeader
-    
-    let user = null
+    const DEMO_MODE_ENABLED = Deno.env.get('ENABLE_DEMO_MODE') === 'true';
+    const hasAuthHeader = !!req.headers.get('Authorization');
+    const serverDemoMode = DEMO_MODE_ENABLED && !hasAuthHeader;
+
+    let user = null;
     if (!serverDemoMode) {
-      const authHeader = req.headers.get('Authorization')
+      const authHeader = req.headers.get('Authorization');
       if (!authHeader) {
-        return createErrorResponse('Authentication required', 401)
+        return createErrorResponse('Authentication required', 401);
       }
 
-      const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      )
+      const {
+        data: { user: authenticatedUser },
+        error: authError,
+      } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
       if (authError || !authenticatedUser) {
-        return createErrorResponse('Invalid authentication', 401)
+        return createErrorResponse('Invalid authentication', 401);
       }
 
-      user = authenticatedUser
+      user = authenticatedUser;
     } else {
       // 🔒 Demo mode: Apply aggressive rate limiting by IP
-      const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
-      
+      const clientIp =
+        req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+
       // Use database-backed rate limiting for demo mode
-      const { data: rateLimitData, error: rateLimitError } = await supabase.rpc('increment_rate_limit', {
-        rate_key: `demo_concierge:${clientIp}`,
-        max_requests: 5, // Only 5 requests per hour in demo mode
-        window_seconds: 3600
-      })
-      
-      if (!rateLimitError && rateLimitData && rateLimitData.length > 0 && !rateLimitData[0]?.allowed) {
-        return createErrorResponse('Rate limit exceeded. Demo mode allows 5 requests per hour.', 429)
+      const { data: rateLimitData, error: rateLimitError } = await supabase.rpc(
+        'increment_rate_limit',
+        {
+          rate_key: `demo_concierge:${clientIp}`,
+          max_requests: 5, // Only 5 requests per hour in demo mode
+          window_seconds: 3600,
+        },
+      );
+
+      if (
+        !rateLimitError &&
+        rateLimitData &&
+        rateLimitData.length > 0 &&
+        !rateLimitData[0]?.allowed
+      ) {
+        return createErrorResponse(
+          'Rate limit exceeded. Demo mode allows 5 requests per hour.',
+          429,
+        );
       }
     }
 
@@ -193,17 +231,18 @@ serve(async (req) => {
         .from('profiles')
         .select('app_role')
         .eq('id', user.id)
-        .single()
+        .single();
 
-      const isFreeUser = !userProfile?.app_role || userProfile.app_role === 'consumer'
-      
+      const isFreeUser = !userProfile?.app_role || userProfile.app_role === 'consumer';
+
       if (isFreeUser) {
-        const { data: usageData } = await supabase
-          .rpc('get_daily_concierge_usage', { user_uuid: user.id })
-        
-        const dailyUsage = usageData || 0
-        const FREE_TIER_LIMIT = 10
-        
+        const { data: usageData } = await supabase.rpc('get_daily_concierge_usage', {
+          user_uuid: user.id,
+        });
+
+        const dailyUsage = usageData || 0;
+        const FREE_TIER_LIMIT = 10;
+
         if (dailyUsage >= FREE_TIER_LIMIT) {
           return new Response(
             JSON.stringify({
@@ -212,41 +251,51 @@ serve(async (req) => {
               sources: [],
               success: false,
               error: 'usage_limit_exceeded',
-              upgradeRequired: true
+              upgradeRequired: true,
             }),
-            { 
+            {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200
-            }
+              status: 200,
+            },
           );
         }
       }
     }
 
     // Build comprehensive context if tripId is provided
-    let comprehensiveContext = tripContext
+    let comprehensiveContext = tripContext;
     if (tripId && !tripContext) {
       try {
         // 🆕 Pass user.id to get personalized context with preferences + personal basecamp
-        comprehensiveContext = await TripContextBuilder.buildContext(tripId, user?.id)
-        console.log('[Context] Built context with user preferences:', !!comprehensiveContext?.userPreferences)
+        comprehensiveContext = await TripContextBuilder.buildContext(tripId, user?.id);
+        console.log(
+          '[Context] Built context with user preferences:',
+          !!comprehensiveContext?.userPreferences,
+        );
       } catch (error) {
-        console.error('Failed to build comprehensive context:', error)
+        console.error('Failed to build comprehensive context:', error);
         // Continue with basic context
       }
     }
-    
+
     // 🆕 FALLBACK: Use client-passed preferences if context builder didn't find any
     if (validatedData.preferences) {
-      const clientPrefs = validatedData.preferences
-      const hasClientPrefs = clientPrefs.dietary?.length || clientPrefs.vibe?.length || 
-                            clientPrefs.accessibility?.length || clientPrefs.business?.length ||
-                            clientPrefs.entertainment?.length || clientPrefs.budgetMin !== undefined
-      
-      if (hasClientPrefs && (!comprehensiveContext?.userPreferences || 
-          !comprehensiveContext.userPreferences.dietary?.length)) {
-        console.log('[Context] Using client-passed preferences as fallback')
-        
+      const clientPrefs = validatedData.preferences;
+      const hasClientPrefs =
+        clientPrefs.dietary?.length ||
+        clientPrefs.vibe?.length ||
+        clientPrefs.accessibility?.length ||
+        clientPrefs.business?.length ||
+        clientPrefs.entertainment?.length ||
+        clientPrefs.budgetMin !== undefined;
+
+      if (
+        hasClientPrefs &&
+        (!comprehensiveContext?.userPreferences ||
+          !comprehensiveContext.userPreferences.dietary?.length)
+      ) {
+        console.log('[Context] Using client-passed preferences as fallback');
+
         // Build userPreferences from client data
         const fallbackPrefs = {
           dietary: clientPrefs.dietary || [],
@@ -254,140 +303,154 @@ serve(async (req) => {
           accessibility: clientPrefs.accessibility || [],
           business: clientPrefs.business || [],
           entertainment: clientPrefs.entertainment || [],
-          budget: (clientPrefs.budgetMin !== undefined && clientPrefs.budgetMax !== undefined)
-            ? `$${clientPrefs.budgetMin}-$${clientPrefs.budgetMax}`
-            : undefined,
+          budget:
+            clientPrefs.budgetMin !== undefined && clientPrefs.budgetMax !== undefined
+              ? `$${clientPrefs.budgetMin}-$${clientPrefs.budgetMax}`
+              : undefined,
           timePreference: clientPrefs.timePreference || 'flexible',
-          travelStyle: clientPrefs.lifestyle?.join(', ') || undefined
-        }
-        
+          travelStyle: clientPrefs.lifestyle?.join(', ') || undefined,
+        };
+
         if (!comprehensiveContext) {
-          comprehensiveContext = { userPreferences: fallbackPrefs }
+          comprehensiveContext = { userPreferences: fallbackPrefs };
         } else {
-          comprehensiveContext.userPreferences = fallbackPrefs
+          comprehensiveContext.userPreferences = fallbackPrefs;
         }
       }
     }
 
+    const runRAGRetrieval = shouldRunRAGRetrieval(message, tripId);
+
     // 🆕 HYBRID RAG RETRIEVAL: Semantic + Keyword search for relevant trip context
-    let ragContext = ''
-    if (tripId) {
+    let ragContext = '';
+    if (runRAGRetrieval) {
       try {
         if (isDemoMode) {
           // Demo mode: Use mock embedding service
-          console.log('[Demo Mode] Using mock embedding service for RAG')
-          
-          const mockResults = await getMockRAGResults(message, tripId)
-          
+          console.log('[Demo Mode] Using mock embedding service for RAG');
+
+          const mockResults = await getMockRAGResults(message, tripId);
+
           if (mockResults && mockResults.length > 0) {
-            console.log(`[Demo Mode] Found ${mockResults.length} relevant context items via mock RAG`)
-            
-            ragContext = '\n\n=== RELEVANT TRIP CONTEXT (HYBRID RAG) ===\n'
-            ragContext += 'The following information was retrieved using semantic + keyword search:\n'
-            
+            console.log(
+              `[Demo Mode] Found ${mockResults.length} relevant context items via mock RAG`,
+            );
+
+            ragContext = '\n\n=== RELEVANT TRIP CONTEXT (HYBRID RAG) ===\n';
+            ragContext +=
+              'The following information was retrieved using semantic + keyword search:\n';
+
             const sourceIconMap: Record<string, string> = {
-              'chat': '💬',
-              'task': '✅',
-              'poll': '📊',
-              'payment': '💰',
-              'broadcast': '📢',
-              'calendar': '📅',
-              'link': '🔗',
-              'file': '📎'
-            }
-            
+              chat: '💬',
+              task: '✅',
+              poll: '📊',
+              payment: '💰',
+              broadcast: '📢',
+              calendar: '📅',
+              link: '🔗',
+              file: '📎',
+            };
+
             mockResults.forEach((result: any, idx: number) => {
-              const relevancePercent = (result.similarity * 100).toFixed(0)
-              const sourceIcon = sourceIconMap[result.source_type as keyof typeof sourceIconMap] || '📄'
-              
-              ragContext += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text} (${relevancePercent}% relevant)`
-            })
-            
-            ragContext += '\n\nIMPORTANT: Use this retrieved context to provide accurate, specific answers. Cite sources when possible (e.g., "Based on the chat messages..." or "According to the calendar..." or "From the uploaded document...").'
+              const relevancePercent = (result.similarity * 100).toFixed(0);
+              const sourceIcon =
+                sourceIconMap[result.source_type as keyof typeof sourceIconMap] || '📄';
+
+              ragContext += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text} (${relevancePercent}% relevant)`;
+            });
+
+            ragContext +=
+              '\n\nIMPORTANT: Use this retrieved context to provide accurate, specific answers. Cite sources when possible (e.g., "Based on the chat messages..." or "According to the calendar..." or "From the uploaded document...").';
           }
         } else {
           // Production mode: Use keyword-only search (embedding model not available on gateway)
-          console.log('Using keyword-only search for RAG retrieval (embedding model unavailable)')
-          
+          console.log('Using keyword-only search for RAG retrieval (embedding model unavailable)');
+
           try {
             // Keyword search via kb_chunks full-text search
             const { data: keywordResults, error: keywordError } = await supabase
               .from('kb_chunks')
               .select('id, content, doc_id, modality')
-              .textSearch('content_tsv', message.split(' ').slice(0, 5).join(' & '), { type: 'plain' })
-              .limit(10)
-            
+              .textSearch('content_tsv', message.split(' ').slice(0, 5).join(' & '), {
+                type: 'plain',
+              })
+              .limit(10);
+
             if (!keywordError && keywordResults && keywordResults.length > 0) {
               // Get doc metadata
-              const docIds = [...new Set(keywordResults.map((r: any) => r.doc_id).filter(Boolean))]
-              let docMap = new Map()
-              
+              const docIds = [...new Set(keywordResults.map((r: any) => r.doc_id).filter(Boolean))];
+              let docMap = new Map();
+
               if (docIds.length > 0) {
                 const { data: docs } = await supabase
                   .from('kb_documents')
                   .select('id, source, trip_id')
                   .in('id', docIds)
-                  .eq('trip_id', tripId)
-                
-                docs?.forEach((d: any) => docMap.set(d.id, d))
+                  .eq('trip_id', tripId);
+
+                docs?.forEach((d: any) => docMap.set(d.id, d));
               }
-              
+
               // Filter to only chunks belonging to this trip
               const tripChunks = keywordResults.filter((r: any) => {
-                const doc = docMap.get(r.doc_id)
-                return doc?.trip_id === tripId
-              })
-              
+                const doc = docMap.get(r.doc_id);
+                return doc?.trip_id === tripId;
+              });
+
               if (tripChunks.length > 0) {
-                console.log(`Found ${tripChunks.length} relevant context items via keyword search`)
-                
-                ragContext = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n'
-                ragContext += 'Retrieved using keyword matching:\n'
-                
+                console.log(`Found ${tripChunks.length} relevant context items via keyword search`);
+
+                ragContext = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n';
+                ragContext += 'Retrieved using keyword matching:\n';
+
                 tripChunks.forEach((result: any, idx: number) => {
-                  const doc = docMap.get(result.doc_id)
-                  const sourceType = doc?.source || result.modality || 'unknown'
-                  ragContext += `\n[${idx + 1}] [${sourceType}] ${(result.content || '').substring(0, 300)}`
-                })
-                
-                ragContext += '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.'
+                  const doc = docMap.get(result.doc_id);
+                  const sourceType = doc?.source || result.modality || 'unknown';
+                  ragContext += `\n[${idx + 1}] [${sourceType}] ${(result.content || '').substring(0, 300)}`;
+                });
+
+                ragContext +=
+                  '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
               }
             }
           } catch (keywordErr) {
-            console.error('Keyword search failed:', keywordErr)
+            console.error('Keyword search failed:', keywordErr);
             // Don't fail the request
           }
         }
       } catch (ragError) {
-        console.error('Hybrid RAG retrieval failed, falling back to basic context:', ragError)
+        console.error('Hybrid RAG retrieval failed, falling back to basic context:', ragError);
         // Don't fail the request if RAG fails
       }
+    } else {
+      console.log('[RAG] Skipping retrieval for non-trip/general query');
     }
 
     // Helper function to format RAG context
     function formatRAGContext(results: any[], searchType: string): string {
-      let context = `\n\n=== RELEVANT TRIP CONTEXT (${searchType} Search) ===\n`
-      context += 'The following information was retrieved:\n'
-      
+      let context = `\n\n=== RELEVANT TRIP CONTEXT (${searchType} Search) ===\n`;
+      context += 'The following information was retrieved:\n';
+
       results.forEach((result: any, idx: number) => {
-        const relevancePercent = (result.similarity * 100).toFixed(0)
+        const relevancePercent = (result.similarity * 100).toFixed(0);
         const sourceIconMap: Record<string, string> = {
-          'chat': '💬',
-          'task': '✅',
-          'poll': '📊',
-          'payment': '💰',
-          'broadcast': '📢',
-          'calendar': '📅',
-          'link': '🔗',
-          'file': '📄'
-        }
-        const sourceIcon = sourceIconMap[result.source_type as string] || '📄'
-        
-        context += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text.substring(0, 300)} (${relevancePercent}% relevant)`
-      })
-      
-      context += '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.'
-      return context
+          chat: '💬',
+          task: '✅',
+          poll: '📊',
+          payment: '💰',
+          broadcast: '📢',
+          calendar: '📅',
+          link: '🔗',
+          file: '📄',
+        };
+        const sourceIcon = sourceIconMap[result.source_type as string] || '📄';
+
+        context += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text.substring(0, 300)} (${relevancePercent}% relevant)`;
+      });
+
+      context +=
+        '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
+      return context;
     }
 
     // Skip privacy check in demo mode
@@ -403,16 +466,17 @@ serve(async (req) => {
         if (privacyConfig?.privacy_mode === 'high' || !privacyConfig?.ai_access_enabled) {
           return new Response(
             JSON.stringify({
-              response: "🔒 **AI features are disabled for this trip.**\n\nThis trip uses high privacy mode with end-to-end encryption. AI assistance is not available to protect your privacy, but you can still use all other trip features.",
+              response:
+                '🔒 **AI features are disabled for this trip.**\n\nThis trip uses high privacy mode with end-to-end encryption. AI assistance is not available to protect your privacy, but you can still use all other trip features.',
               usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
               sources: [],
               success: true,
-              model: 'privacy-mode'
+              model: 'privacy-mode',
             }),
-            { 
+            {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200
-            }
+              status: 200,
+            },
           );
         }
       } catch (privacyError) {
@@ -421,116 +485,129 @@ serve(async (req) => {
     }
 
     // 🆕 SMART MODEL SELECTION: Analyze query complexity
-    const contextSize = comprehensiveContext ? JSON.stringify(comprehensiveContext).length : 0
-    const complexity = analyzeQueryComplexity(message, chatHistory.length, contextSize)
-    
-    console.log(`[Model Selection] Complexity score: ${complexity.score.toFixed(2)}, Recommended: ${complexity.recommendedModel}`)
-    
+    const contextSize = comprehensiveContext ? JSON.stringify(comprehensiveContext).length : 0;
+    const complexity = analyzeQueryComplexity(message, chatHistory.length, contextSize);
+
+    console.log(
+      `[Model Selection] Complexity score: ${complexity.score.toFixed(2)}, Recommended: ${complexity.recommendedModel}`,
+    );
+
     // Determine if chain-of-thought is needed
-    const useChainOfThought = requiresChainOfThought(message, complexity)
-    
+    const useChainOfThought = requiresChainOfThought(message, complexity);
+
     // Build context-aware system prompt with RAG context injected
-    let baseSystemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext
-    
+    let baseSystemPrompt =
+      buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext;
+
     // 🆕 ENHANCED PROMPTS: Add few-shot examples and chain-of-thought
     const systemPrompt = buildEnhancedSystemPrompt(
       baseSystemPrompt,
       useChainOfThought,
-      true // Always include few-shot examples
-    )
-    
+      true, // Always include few-shot examples
+    );
+
     // 🆕 EXPLICIT CONTEXT WINDOW MANAGEMENT
     // Limit chat history to prevent token overflow
     const MAX_CHAT_HISTORY_MESSAGES = 10;
     const MAX_SYSTEM_PROMPT_LENGTH = 8000; // Characters, not tokens (rough estimate)
     const MAX_TOTAL_CONTEXT_LENGTH = 12000; // Characters
-    
+
     // Truncate chat history if too long
     const limitedChatHistory = chatHistory.slice(-MAX_CHAT_HISTORY_MESSAGES);
-    
+
     // Truncate system prompt if too long (preserve most important parts)
     let finalSystemPrompt = systemPrompt;
     if (systemPrompt.length > MAX_SYSTEM_PROMPT_LENGTH) {
       // Keep first part (base prompt) and last part (RAG context)
       const basePromptEnd = systemPrompt.indexOf('=== TRIP CONTEXT ===');
       const ragStart = systemPrompt.indexOf('=== RELEVANT TRIP CONTEXT');
-      
+
       if (basePromptEnd > 0 && ragStart > 0) {
         const basePrompt = systemPrompt.substring(0, basePromptEnd);
         const ragContext = systemPrompt.substring(ragStart);
         const middlePart = systemPrompt.substring(basePromptEnd, ragStart);
-        
+
         // Truncate middle part if needed
         const availableLength = MAX_SYSTEM_PROMPT_LENGTH - basePrompt.length - ragContext.length;
-        const truncatedMiddle = middlePart.length > availableLength 
-          ? '...\n[Context truncated for efficiency]\n...' + middlePart.substring(middlePart.length - availableLength + 50)
-          : middlePart;
-        
+        const truncatedMiddle =
+          middlePart.length > availableLength
+            ? '...\n[Context truncated for efficiency]\n...' +
+              middlePart.substring(middlePart.length - availableLength + 50)
+            : middlePart;
+
         finalSystemPrompt = basePrompt + truncatedMiddle + ragContext;
       } else {
         // Fallback: simple truncation
-        finalSystemPrompt = systemPrompt.substring(0, MAX_SYSTEM_PROMPT_LENGTH) + '\n\n[Context truncated...]';
+        finalSystemPrompt =
+          systemPrompt.substring(0, MAX_SYSTEM_PROMPT_LENGTH) + '\n\n[Context truncated...]';
       }
-      
-      console.log(`[Context Management] Truncated system prompt from ${systemPrompt.length} to ${finalSystemPrompt.length} characters`);
+
+      console.log(
+        `[Context Management] Truncated system prompt from ${systemPrompt.length} to ${finalSystemPrompt.length} characters`,
+      );
     }
-    
+
     // Prepare messages for Lovable AI
     const messages: ChatMessage[] = [
       { role: 'system', content: finalSystemPrompt },
       ...limitedChatHistory,
-      { role: 'user', content: message }
-    ]
-    
+      { role: 'user', content: message },
+    ];
+
     // Log context size for monitoring
-    const totalContextLength = finalSystemPrompt.length + 
-      limitedChatHistory.reduce((sum, msg) => sum + msg.content.length, 0) + 
+    const totalContextLength =
+      finalSystemPrompt.length +
+      limitedChatHistory.reduce((sum, msg) => sum + msg.content.length, 0) +
       message.length;
-    
+
     if (totalContextLength > MAX_TOTAL_CONTEXT_LENGTH) {
-      console.warn(`[Context Management] Total context length (${totalContextLength}) exceeds recommended limit (${MAX_TOTAL_CONTEXT_LENGTH})`);
+      console.warn(
+        `[Context Management] Total context length (${totalContextLength}) exceeds recommended limit (${MAX_TOTAL_CONTEXT_LENGTH})`,
+      );
     } else {
       console.log(`[Context Management] Total context length: ${totalContextLength} characters`);
     }
 
     // 🆕 Smart grounding detection - only enable for location queries
-    const isLocationQuery = message.toLowerCase().match(
-      /\b(where|restaurant|hotel|cafe|bar|attraction|place|location|near|around|close|best|find|suggest|recommend|visit|directions|route|food|eat|drink|stay|sushi|pizza|beach|museum|park)\b/i
-    );
+    const isLocationQuery = message
+      .toLowerCase()
+      .match(
+        /\b(where|restaurant|hotel|cafe|bar|attraction|place|location|near|around|close|best|find|suggest|recommend|visit|directions|route|food|eat|drink|stay|sushi|pizza|beach|museum|park)\b/i,
+      );
 
     // 🆕 FIXED: Use personal basecamp as fallback for location grounding
     const tripBasecamp = comprehensiveContext?.places?.tripBasecamp;
     const personalBasecamp = comprehensiveContext?.places?.personalBasecamp;
-    const locationData = tripBasecamp?.lat && tripBasecamp?.lng 
-      ? tripBasecamp 
-      : personalBasecamp?.lat && personalBasecamp?.lng 
-        ? personalBasecamp 
-        : null;
-    
+    const locationData =
+      tripBasecamp?.lat && tripBasecamp?.lng
+        ? tripBasecamp
+        : personalBasecamp?.lat && personalBasecamp?.lng
+          ? personalBasecamp
+          : null;
+
     const hasLocationContext = !!locationData;
     const enableGrounding = isLocationQuery && hasLocationContext;
-    
+
     if (enableGrounding) {
       const basecampType = tripBasecamp?.lat ? 'trip' : 'personal';
       console.log(`[Location] Using ${basecampType} basecamp for grounding: ${locationData?.name}`);
     }
 
     // 🆕 SMART MODEL ROUTING: Use Pro for complex queries, Flash for simple ones
-    const selectedModel = config.model || 
-      (complexity.recommendedModel === 'pro' 
-        ? 'google/gemini-2.5-pro' 
-        : 'google/gemini-2.5-flash')
-    
+    const selectedModel =
+      config.model ||
+      (complexity.recommendedModel === 'pro' ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash');
+
     // Adjust temperature based on complexity (lower for complex = more focused)
-    const temperature = config.temperature || (complexity.score > 0.5 ? 0.5 : 0.7)
-    
-    console.log(`[Model Selection] Using model: ${selectedModel}, Temperature: ${temperature}`)
-    
+    const temperature = config.temperature || (complexity.score > 0.5 ? 0.5 : 0.7);
+
+    console.log(`[Model Selection] Using model: ${selectedModel}, Temperature: ${temperature}`);
+
     // Call Lovable AI Gateway with optional grounding
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -540,73 +617,78 @@ serve(async (req) => {
         max_tokens: config.maxTokens || 2048,
         stream: false,
         // 🆕 Enable Google Maps grounding using trip OR personal basecamp
-        ...(enableGrounding && locationData && {
-          tools: [{ googleMaps: { enableWidget: true } }],
-          toolConfig: {
-            retrievalConfig: {
-              latLng: {
-                latitude: locationData.lat,
-                longitude: locationData.lng
-              }
-            }
-          }
-        })
+        ...(enableGrounding &&
+          locationData && {
+            tools: [{ googleMaps: { enableWidget: true } }],
+            toolConfig: {
+              retrievalConfig: {
+                latLng: {
+                  latitude: locationData.lat,
+                  longitude: locationData.lng,
+                },
+              },
+            },
+          }),
       }),
-    })
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      
+      const errorData = await response.json().catch(() => ({}));
+
       // Handle rate limiting
       if (response.status === 429) {
         return new Response(
           JSON.stringify({
-            response: "⚠️ **Rate limit reached**\n\nThe AI service is temporarily unavailable due to high usage. Please try again in a moment.",
+            response:
+              '⚠️ **Rate limit reached**\n\nThe AI service is temporarily unavailable due to high usage. Please try again in a moment.',
             usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
             sources: [],
             success: false,
-            error: 'rate_limit'
+            error: 'rate_limit',
           }),
-          { 
+          {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-          }
+            status: 200,
+          },
         );
       }
-      
+
       // Handle payment required
       if (response.status === 402) {
         return new Response(
           JSON.stringify({
-            response: "💳 **Additional credits required**\n\nThe AI service requires additional credits. Please contact support.",
+            response:
+              '💳 **Additional credits required**\n\nThe AI service requires additional credits. Please contact support.',
             usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
             sources: [],
             success: false,
-            error: 'payment_required'
+            error: 'payment_required',
           }),
-          { 
+          {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200
-          }
+            status: 200,
+          },
         );
       }
-      
-      throw new Error(`Lovable AI Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`)
+
+      throw new Error(
+        `Lovable AI Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`,
+      );
     }
 
-    const data = await response.json()
-    
+    const data = await response.json();
+
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response format from Lovable AI')
+      throw new Error('Invalid response format from Lovable AI');
     }
-    
-    const aiResponse = data.choices[0].message.content
-    const usage = data.usage
+
+    const aiResponse = data.choices[0].message.content;
+    const usage = data.usage;
 
     // 🆕 Extract grounding metadata from response
-    const groundingMetadata = data.choices[0]?.groundingMetadata || null
-    const groundingChunks = groundingMetadata?.groundingChunks || []
-    const googleMapsWidget = groundingMetadata?.googleMapsWidgetContextToken || null
+    const groundingMetadata = data.choices[0]?.groundingMetadata || null;
+    const groundingChunks = groundingMetadata?.groundingChunks || [];
+    const googleMapsWidget = groundingMetadata?.googleMapsWidgetContextToken || null;
 
     // Transform grounding chunks into citation-friendly format
     const citations = groundingChunks.map((chunk: any, index: number) => ({
@@ -614,17 +696,24 @@ serve(async (req) => {
       title: chunk.web?.title || 'Google Maps',
       url: chunk.web?.uri || '#',
       snippet: chunk.web?.snippet || '',
-      source: 'google_maps_grounding'
-    }))
+      source: 'google_maps_grounding',
+    }));
 
     // Skip database storage in demo mode
     if (!isDemoMode) {
       // Store conversation in database for context awareness
       if (comprehensiveContext?.tripMetadata?.id) {
-        await storeConversation(supabase, comprehensiveContext.tripMetadata.id, message, aiResponse, 'chat', {
-          grounding_sources: citations.length,
-          has_map_widget: !!googleMapsWidget
-        })
+        await storeConversation(
+          supabase,
+          comprehensiveContext.tripMetadata.id,
+          message,
+          aiResponse,
+          'chat',
+          {
+            grounding_sources: citations.length,
+            has_map_widget: !!googleMapsWidget,
+          },
+        );
       }
 
       // Track usage for analytics and rate limiting
@@ -636,9 +725,9 @@ serve(async (req) => {
             trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
             query_text: logMessage.substring(0, 500), // Use redacted text
             response_tokens: usage?.completion_tokens || 0,
-            model_used: selectedModel
+            model_used: selectedModel,
           };
-          
+
           // Add new fields if columns exist (graceful degradation)
           try {
             usageData.complexity_score = complexity.score;
@@ -646,10 +735,8 @@ serve(async (req) => {
           } catch (e) {
             // Columns may not exist in all environments - ignore
           }
-          
-          await supabase
-            .from('concierge_usage')
-            .insert(usageData);
+
+          await supabase.from('concierge_usage').insert(usageData);
         } catch (usageError) {
           console.error('Failed to track usage:', usageError);
           // Don't fail the request if usage tracking fails
@@ -658,7 +745,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         response: aiResponse,
         usage,
         sources: citations,
@@ -668,40 +755,40 @@ serve(async (req) => {
         complexity: {
           score: complexity.score,
           recommended: complexity.recommendedModel,
-          factors: complexity.factors
+          factors: complexity.factors,
         },
-        usedChainOfThought: useChainOfThought
+        usedChainOfThought: useChainOfThought,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
-    )
+    );
   } catch (error) {
     // 🆕 Log with redacted PII
-    const redactedMessage = message ? redactPII(message).redactedText : ''
-    logError('LOVABLE_CONCIERGE', error, { 
+    const redactedMessage = message ? redactPII(message).redactedText : '';
+    logError('LOVABLE_CONCIERGE', error, {
       tripId,
       messageLength: message?.length || 0,
-      redactedMessage: redactedMessage.substring(0, 200) // Log redacted version
-    })
-    
+      redactedMessage: redactedMessage.substring(0, 200), // Log redacted version
+    });
+
     // Return sanitized error to client
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: sanitizeErrorForClient(error),
-        success: false
+        success: false,
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     );
   }
-})
+});
 
 function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
-  if (customPrompt) return customPrompt
+  if (customPrompt) return customPrompt;
 
   let basePrompt = `You are **Chravel Concierge**, a world-class AI travel expert and trip assistant. You have complete awareness of the user's current trip context AND broad expertise across all travel topics worldwide.
 
@@ -820,296 +907,304 @@ Example:
 User: "What time is dinner tomorrow?"
 You: "Dinner is at **7:00 PM** at [Nobu](https://www.google.com/maps/search/Nobu+Restaurant).
 Source: Calendar event 'Group Dinner'
-Next: I can get you directions from your hotel if you'd like!"`
+Next: I can get you directions from your hotel if you'd like!"`;
 
   if (tripContext) {
-    basePrompt += `\n\n=== TRIP CONTEXT ===`
-    
+    basePrompt += `\n\n=== TRIP CONTEXT ===`;
+
     // Handle both old and new context structures
-    const tripMetadata = tripContext.tripMetadata || tripContext
-    const collaborators = tripContext.collaborators || tripContext.participants
-    const messages = tripContext.messages || tripContext.chatHistory
-    const calendar = tripContext.calendar || tripContext.itinerary
-    const tasks = tripContext.tasks
-    const payments = tripContext.payments
-    const polls = tripContext.polls
-    const places = tripContext.places || { basecamp: tripContext.basecamp }
-    
-    basePrompt += `\nDestination: ${tripMetadata.destination || tripMetadata.location || 'Not specified'}`
-    
+    const tripMetadata = tripContext.tripMetadata || tripContext;
+    const collaborators = tripContext.collaborators || tripContext.participants;
+    const messages = tripContext.messages || tripContext.chatHistory;
+    const calendar = tripContext.calendar || tripContext.itinerary;
+    const tasks = tripContext.tasks;
+    const payments = tripContext.payments;
+    const polls = tripContext.polls;
+    const places = tripContext.places || { basecamp: tripContext.basecamp };
+
+    basePrompt += `\nDestination: ${tripMetadata.destination || tripMetadata.location || 'Not specified'}`;
+
     if (tripMetadata.startDate && tripMetadata.endDate) {
-      basePrompt += `\nTravel Dates: ${tripMetadata.startDate} to ${tripMetadata.endDate}`
+      basePrompt += `\nTravel Dates: ${tripMetadata.startDate} to ${tripMetadata.endDate}`;
     } else if (typeof tripContext.dateRange === 'object') {
-      basePrompt += `\nTravel Dates: ${tripContext.dateRange.start} to ${tripContext.dateRange.end}`
+      basePrompt += `\nTravel Dates: ${tripContext.dateRange.start} to ${tripContext.dateRange.end}`;
     } else if (tripContext.dateRange) {
-      basePrompt += `\nTravel Dates: ${tripContext.dateRange}`
+      basePrompt += `\nTravel Dates: ${tripContext.dateRange}`;
     }
-    
-    basePrompt += `\nParticipants: ${collaborators?.length || 0} people`
-    
+
+    basePrompt += `\nParticipants: ${collaborators?.length || 0} people`;
+
     if (collaborators?.length) {
-      basePrompt += ` (${collaborators.map((p: any) => p.name || p).join(', ')})`
+      basePrompt += ` (${collaborators.map((p: any) => p.name || p).join(', ')})`;
     }
 
     // 🆕 Handle both trip and personal basecamps
     if (places?.tripBasecamp) {
-      basePrompt += `\n\n🏠 TRIP BASECAMP:`
-      basePrompt += `\nLocation: ${places.tripBasecamp.name}`
-      basePrompt += `\nAddress: ${places.tripBasecamp.address}`
+      basePrompt += `\n\n🏠 TRIP BASECAMP:`;
+      basePrompt += `\nLocation: ${places.tripBasecamp.name}`;
+      basePrompt += `\nAddress: ${places.tripBasecamp.address}`;
       if (places.tripBasecamp.lat && places.tripBasecamp.lng) {
-        basePrompt += `\nCoordinates: ${places.tripBasecamp.lat}, ${places.tripBasecamp.lng}`
+        basePrompt += `\nCoordinates: ${places.tripBasecamp.lat}, ${places.tripBasecamp.lng}`;
       }
     } else if (places?.basecamp) {
       // Backward compatibility with old structure
-      basePrompt += `\n\n🏠 TRIP BASECAMP:`
-      basePrompt += `\nLocation: ${places.basecamp.name}`
-      basePrompt += `\nAddress: ${places.basecamp.address}`
+      basePrompt += `\n\n🏠 TRIP BASECAMP:`;
+      basePrompt += `\nLocation: ${places.basecamp.name}`;
+      basePrompt += `\nAddress: ${places.basecamp.address}`;
       if (places.basecamp.lat && places.basecamp.lng) {
-        basePrompt += `\nCoordinates: ${places.basecamp.lat}, ${places.basecamp.lng}`
+        basePrompt += `\nCoordinates: ${places.basecamp.lat}, ${places.basecamp.lng}`;
       }
     }
-    
+
     // 🆕 Personal basecamp (user's accommodation)
     if (places?.personalBasecamp) {
-      basePrompt += `\n\n🏨 YOUR PERSONAL BASECAMP:`
-      basePrompt += `\nLocation: ${places.personalBasecamp.name}`
-      basePrompt += `\nAddress: ${places.personalBasecamp.address}`
+      basePrompt += `\n\n🏨 YOUR PERSONAL BASECAMP:`;
+      basePrompt += `\nLocation: ${places.personalBasecamp.name}`;
+      basePrompt += `\nAddress: ${places.personalBasecamp.address}`;
       if (places.personalBasecamp.lat && places.personalBasecamp.lng) {
-        basePrompt += `\nCoordinates: ${places.personalBasecamp.lat}, ${places.personalBasecamp.lng}`
+        basePrompt += `\nCoordinates: ${places.personalBasecamp.lat}, ${places.personalBasecamp.lng}`;
       }
-      basePrompt += `\nNote: Use this for "near me" queries when trip basecamp is not set.`
+      basePrompt += `\nNote: Use this for "near me" queries when trip basecamp is not set.`;
     } else if (places?.userAccommodation) {
       // Backward compatibility
-      basePrompt += `\n\n🏨 YOUR ACCOMMODATION:`
-      basePrompt += `\nLabel: ${places.userAccommodation.label}`
-      basePrompt += `\nAddress: ${places.userAccommodation.address}`
+      basePrompt += `\n\n🏨 YOUR ACCOMMODATION:`;
+      basePrompt += `\nLabel: ${places.userAccommodation.label}`;
+      basePrompt += `\nAddress: ${places.userAccommodation.address}`;
       if (places.userAccommodation.lat && places.userAccommodation.lng) {
-        basePrompt += `\nCoordinates: ${places.userAccommodation.lat}, ${places.userAccommodation.lng}`
+        basePrompt += `\nCoordinates: ${places.userAccommodation.lat}, ${places.userAccommodation.lng}`;
       }
     }
 
     // 🆕 USER PREFERENCES FOR PERSONALIZED RECOMMENDATIONS - CRITICAL FOR AI FILTERING
     if (tripContext.userPreferences) {
-      const prefs = tripContext.userPreferences
-      basePrompt += `\n\n=== 🎯 CRITICAL USER PREFERENCES (MUST APPLY TO ALL RECOMMENDATIONS) ===`
-      basePrompt += `\n⚠️ YOU MUST filter ALL suggestions based on these preferences. Do NOT ask the user to clarify - you already know their preferences!`
-      
+      const prefs = tripContext.userPreferences;
+      basePrompt += `\n\n=== 🎯 CRITICAL USER PREFERENCES (MUST APPLY TO ALL RECOMMENDATIONS) ===`;
+      basePrompt += `\n⚠️ YOU MUST filter ALL suggestions based on these preferences. Do NOT ask the user to clarify - you already know their preferences!`;
+
       if (prefs.dietary?.length) {
-        basePrompt += `\n\n🥗 DIETARY RESTRICTIONS: ${prefs.dietary.join(', ')}`
-        basePrompt += `\n   → ONLY suggest food/restaurants that meet these requirements`
-        basePrompt += `\n   → If asked for "restaurants" or "food", automatically filter to these dietary needs`
+        basePrompt += `\n\n🥗 DIETARY RESTRICTIONS: ${prefs.dietary.join(', ')}`;
+        basePrompt += `\n   → ONLY suggest food/restaurants that meet these requirements`;
+        basePrompt += `\n   → If asked for "restaurants" or "food", automatically filter to these dietary needs`;
       }
       if (prefs.vibe?.length) {
-        basePrompt += `\n\n🎯 VIBE PREFERENCES: ${prefs.vibe.join(', ')}`
-        basePrompt += `\n   → Prioritize venues/activities matching these vibes`
+        basePrompt += `\n\n🎯 VIBE PREFERENCES: ${prefs.vibe.join(', ')}`;
+        basePrompt += `\n   → Prioritize venues/activities matching these vibes`;
       }
       if (prefs.accessibility?.length) {
-        basePrompt += `\n\n♿ ACCESSIBILITY REQUIREMENTS: ${prefs.accessibility.join(', ')}`
-        basePrompt += `\n   → ONLY suggest venues that are fully accessible per these needs`
+        basePrompt += `\n\n♿ ACCESSIBILITY REQUIREMENTS: ${prefs.accessibility.join(', ')}`;
+        basePrompt += `\n   → ONLY suggest venues that are fully accessible per these needs`;
       }
       if (prefs.business?.length) {
-        basePrompt += `\n\n💼 BUSINESS PREFERENCES: ${prefs.business.join(', ')}`
+        basePrompt += `\n\n💼 BUSINESS PREFERENCES: ${prefs.business.join(', ')}`;
       }
       if (prefs.entertainment?.length) {
-        basePrompt += `\n\n🎭 ENTERTAINMENT PREFERENCES: ${prefs.entertainment.join(', ')}`
-        basePrompt += `\n   → Prioritize activities matching these interests`
+        basePrompt += `\n\n🎭 ENTERTAINMENT PREFERENCES: ${prefs.entertainment.join(', ')}`;
+        basePrompt += `\n   → Prioritize activities matching these interests`;
       }
       if (prefs.budget) {
-        basePrompt += `\n\n💰 BUDGET RANGE: ${prefs.budget}`
-        basePrompt += `\n   → Keep recommendations within this price range`
+        basePrompt += `\n\n💰 BUDGET RANGE: ${prefs.budget}`;
+        basePrompt += `\n   → Keep recommendations within this price range`;
       }
       if (prefs.timePreference && prefs.timePreference !== 'flexible') {
-        const timeDesc = prefs.timePreference === 'early-riser' 
-          ? 'Prefers morning activities (early breakfast, daytime tours)'
-          : 'Prefers evening/night activities (late dinners, nightlife)'
-        basePrompt += `\n\n🕐 TIME PREFERENCE: ${timeDesc}`
+        const timeDesc =
+          prefs.timePreference === 'early-riser'
+            ? 'Prefers morning activities (early breakfast, daytime tours)'
+            : 'Prefers evening/night activities (late dinners, nightlife)';
+        basePrompt += `\n\n🕐 TIME PREFERENCE: ${timeDesc}`;
       }
       if (prefs.travelStyle) {
-        basePrompt += `\n\n✈️ TRAVEL STYLE: ${prefs.travelStyle}`
+        basePrompt += `\n\n✈️ TRAVEL STYLE: ${prefs.travelStyle}`;
       }
-      
-      basePrompt += `\n\n🚨 ENFORCEMENT RULES:`
-      basePrompt += `\n   1. NEVER recommend options that violate dietary restrictions`
-      basePrompt += `\n   2. NEVER suggest inaccessible venues when accessibility needs are specified`
-      basePrompt += `\n   3. When user asks generic questions like "good restaurants", automatically apply ALL their preferences`
-      basePrompt += `\n   4. Do NOT ask the user to repeat their preferences - you already have them!`
-      
+
+      basePrompt += `\n\n🚨 ENFORCEMENT RULES:`;
+      basePrompt += `\n   1. NEVER recommend options that violate dietary restrictions`;
+      basePrompt += `\n   2. NEVER suggest inaccessible venues when accessibility needs are specified`;
+      basePrompt += `\n   3. When user asks generic questions like "good restaurants", automatically apply ALL their preferences`;
+      basePrompt += `\n   4. Do NOT ask the user to repeat their preferences - you already have them!`;
+
       // 🆕 Preference visibility pattern
-      basePrompt += `\n\n📋 PREFERENCE VISIBILITY:`
-      basePrompt += `\nWhen giving recommendations, include one short line at the START:`
-      basePrompt += `\n"Filtered for you: [Diet] | [Budget] | [Vibe] | [Accessibility]"`
-      basePrompt += `\n(Only show categories that are active - do not overdo it. If more than 3 active filters, say "Filtered by your saved Preferences:")`
-      basePrompt += `\n\nExample: "Filtered for you: Vegetarian | $50-100 | Chill vibes"`
+      basePrompt += `\n\n📋 PREFERENCE VISIBILITY:`;
+      basePrompt += `\nWhen giving recommendations, include one short line at the START:`;
+      basePrompt += `\n"Filtered for you: [Diet] | [Budget] | [Vibe] | [Accessibility]"`;
+      basePrompt += `\n(Only show categories that are active - do not overdo it. If more than 3 active filters, say "Filtered by your saved Preferences:")`;
+      basePrompt += `\n\nExample: "Filtered for you: Vegetarian | $50-100 | Chill vibes"`;
     }
 
     // 🆕 Add broadcasts section with priority icons
-    const broadcasts = tripContext.broadcasts
+    const broadcasts = tripContext.broadcasts;
     if (broadcasts?.length) {
-      basePrompt += `\n\n=== 📢 ORGANIZER BROADCASTS ===`
+      basePrompt += `\n\n=== 📢 ORGANIZER BROADCASTS ===`;
       broadcasts.forEach((broadcast: any) => {
-        const priorityIcon = broadcast.priority === 'urgent' ? '🚨' : 
-                            broadcast.priority === 'high' ? '⚠️' : '📢'
-        basePrompt += `\n${priorityIcon} [${(broadcast.priority || 'normal').toUpperCase()}] ${broadcast.message}`
-        basePrompt += `\n   (from ${broadcast.createdBy}, ${new Date(broadcast.createdAt).toLocaleDateString()})`
-      })
-      basePrompt += `\nNote: Reference these announcements when relevant to user questions.`
+        const priorityIcon =
+          broadcast.priority === 'urgent' ? '🚨' : broadcast.priority === 'high' ? '⚠️' : '📢';
+        basePrompt += `\n${priorityIcon} [${(broadcast.priority || 'normal').toUpperCase()}] ${broadcast.message}`;
+        basePrompt += `\n   (from ${broadcast.createdBy}, ${new Date(broadcast.createdAt).toLocaleDateString()})`;
+      });
+      basePrompt += `\nNote: Reference these announcements when relevant to user questions.`;
     }
 
     // Add comprehensive context sections
     if (messages?.length) {
-      basePrompt += `\n\n=== RECENT MESSAGES ===`
-      const recentMessages = messages.slice(-5)
+      basePrompt += `\n\n=== RECENT MESSAGES ===`;
+      const recentMessages = messages.slice(-5);
       recentMessages.forEach((msg: any) => {
-        basePrompt += `\n${msg.authorName}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}`
-      })
+        basePrompt += `\n${msg.authorName}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}`;
+      });
     }
 
     if (calendar?.length) {
-      basePrompt += `\n\n=== UPCOMING EVENTS ===`
+      basePrompt += `\n\n=== UPCOMING EVENTS ===`;
       calendar.slice(0, 5).forEach((event: any) => {
-        basePrompt += `\n- ${event.title} on ${event.startTime}`
-        if (event.location) basePrompt += ` at ${event.location}`
-      })
+        basePrompt += `\n- ${event.title} on ${event.startTime}`;
+        if (event.location) basePrompt += ` at ${event.location}`;
+      });
     }
 
     if (tasks?.length) {
-      basePrompt += `\n\n=== ACTIVE TASKS ===`
-      const activeTasks = tasks.filter((t: any) => !t.isComplete)
+      basePrompt += `\n\n=== ACTIVE TASKS ===`;
+      const activeTasks = tasks.filter((t: any) => !t.isComplete);
       activeTasks.slice(0, 5).forEach((task: any) => {
-        basePrompt += `\n- ${task.content}${task.assignee ? ` (assigned to ${task.assignee})` : ''}`
-      })
+        basePrompt += `\n- ${task.content}${task.assignee ? ` (assigned to ${task.assignee})` : ''}`;
+      });
     }
 
     if (payments?.length) {
-      basePrompt += `\n\n=== RECENT PAYMENTS ===`
+      basePrompt += `\n\n=== RECENT PAYMENTS ===`;
       payments.slice(0, 3).forEach((payment: any) => {
-        basePrompt += `\n- ${payment.description}: $${payment.amount} (${payment.paidBy})`
-      })
+        basePrompt += `\n- ${payment.description}: $${payment.amount} (${payment.paidBy})`;
+      });
     }
 
     if (polls?.length) {
-      basePrompt += `\n\n=== ACTIVE POLLS ===`
-      polls.filter((p: any) => p.status === 'active').forEach((poll: any) => {
-        basePrompt += `\n- ${poll.question}`
-        poll.options.forEach((option: any) => {
-          basePrompt += `\n  - ${option.text}: ${option.votes} votes`
-        })
-      })
+      basePrompt += `\n\n=== ACTIVE POLLS ===`;
+      polls
+        .filter((p: any) => p.status === 'active')
+        .forEach((poll: any) => {
+          basePrompt += `\n- ${poll.question}`;
+          poll.options.forEach((option: any) => {
+            basePrompt += `\n  - ${option.text}: ${option.votes} votes`;
+          });
+        });
     }
 
     // Enhanced contextual information
     if (tripContext.preferences) {
-      basePrompt += `\n\n=== GROUP PREFERENCES ===`
-      const prefs = tripContext.preferences
-      if (prefs.dietary?.length) basePrompt += `\nDietary: ${prefs.dietary.join(', ')}`
-      if (prefs.vibe?.length) basePrompt += `\nVibes: ${prefs.vibe.join(', ')}`
-      if (prefs.entertainment?.length) basePrompt += `\nEntertainment: ${prefs.entertainment.join(', ')}`
+      basePrompt += `\n\n=== GROUP PREFERENCES ===`;
+      const prefs = tripContext.preferences;
+      if (prefs.dietary?.length) basePrompt += `\nDietary: ${prefs.dietary.join(', ')}`;
+      if (prefs.vibe?.length) basePrompt += `\nVibes: ${prefs.vibe.join(', ')}`;
+      if (prefs.entertainment?.length)
+        basePrompt += `\nEntertainment: ${prefs.entertainment.join(', ')}`;
       if (prefs.budgetMin && prefs.budgetMax) {
-        basePrompt += `\nBudget Range: $${prefs.budgetMin} - $${prefs.budgetMax} per person`
+        basePrompt += `\nBudget Range: $${prefs.budgetMin} - $${prefs.budgetMax} per person`;
       }
     }
 
     if (tripContext.visitedPlaces?.length) {
-      basePrompt += `\n\n=== ALREADY VISITED ===`
-      basePrompt += `\n${tripContext.visitedPlaces.join(', ')}`
-      basePrompt += `\nNote: Avoid recommending these places unless specifically asked.`
+      basePrompt += `\n\n=== ALREADY VISITED ===`;
+      basePrompt += `\n${tripContext.visitedPlaces.join(', ')}`;
+      basePrompt += `\nNote: Avoid recommending these places unless specifically asked.`;
     }
 
     if (tripContext.spendingPatterns) {
-      basePrompt += `\n\n=== SPENDING PATTERNS ===`
-      basePrompt += `\nTotal Spent: $${tripContext.spendingPatterns.totalSpent?.toFixed(2) || '0'}`
-      basePrompt += `\nAverage per Person: $${tripContext.spendingPatterns.avgPerPerson?.toFixed(2) || '0'}`
+      basePrompt += `\n\n=== SPENDING PATTERNS ===`;
+      basePrompt += `\nTotal Spent: $${tripContext.spendingPatterns.totalSpent?.toFixed(2) || '0'}`;
+      basePrompt += `\nAverage per Person: $${tripContext.spendingPatterns.avgPerPerson?.toFixed(2) || '0'}`;
     }
 
     if (tripContext.links?.length) {
-      basePrompt += `\n\n=== SHARED LINKS & IDEAS ===`
+      basePrompt += `\n\n=== SHARED LINKS & IDEAS ===`;
       tripContext.links.forEach((link: any) => {
-        basePrompt += `\n- ${link.title} (${link.category}, ${link.votes} votes): ${link.description}`
-      })
+        basePrompt += `\n- ${link.title} (${link.category}, ${link.votes} votes): ${link.description}`;
+      });
     }
 
     if (tripContext.chatHistory?.length) {
-      basePrompt += `\n\n=== RECENT GROUP SENTIMENT ===`
-      const recentMessages = tripContext.chatHistory.slice(-3)
-      const positiveCount = recentMessages.filter((m: any) => m.sentiment === 'positive').length
-      const mood = positiveCount >= 2 ? 'Positive' : positiveCount >= 1 ? 'Mixed' : 'Neutral'
-      basePrompt += `\nGroup Mood: ${mood}`
+      basePrompt += `\n\n=== RECENT GROUP SENTIMENT ===`;
+      const recentMessages = tripContext.chatHistory.slice(-3);
+      const positiveCount = recentMessages.filter((m: any) => m.sentiment === 'positive').length;
+      const mood = positiveCount >= 2 ? 'Positive' : positiveCount >= 1 ? 'Mixed' : 'Neutral';
+      basePrompt += `\nGroup Mood: ${mood}`;
     }
 
     if (tripContext.upcomingEvents?.length) {
-      basePrompt += `\n\n=== UPCOMING SCHEDULE ===`
+      basePrompt += `\n\n=== UPCOMING SCHEDULE ===`;
       tripContext.upcomingEvents.forEach((event: any) => {
-        basePrompt += `\n- ${event.title} on ${event.date}`
-        if (event.time) basePrompt += ` at ${event.time}`
-        if (event.location) basePrompt += ` (${event.location})`
-        if (event.address) basePrompt += ` - Address: ${event.address}`
-      })
+        basePrompt += `\n- ${event.title} on ${event.date}`;
+        if (event.time) basePrompt += ` at ${event.time}`;
+        if (event.location) basePrompt += ` (${event.location})`;
+        if (event.address) basePrompt += ` - Address: ${event.address}`;
+      });
     }
 
     // 🆕 PAYMENT INTELLIGENCE
     if (tripContext.receipts?.length) {
-      basePrompt += `\n\n=== 💳 PAYMENT INTELLIGENCE ===`
-      const totalSpent = tripContext.receipts.reduce((sum: any, receipt: any) => sum + (receipt.amount || 0), 0)
-      basePrompt += `\nTotal Trip Spending: $${totalSpent.toFixed(2)}`
-      
+      basePrompt += `\n\n=== 💳 PAYMENT INTELLIGENCE ===`;
+      const totalSpent = tripContext.receipts.reduce(
+        (sum: any, receipt: any) => sum + (receipt.amount || 0),
+        0,
+      );
+      basePrompt += `\nTotal Trip Spending: $${totalSpent.toFixed(2)}`;
+
       // Show recent payments
-      const recentPayments = tripContext.receipts.slice(-5)
+      const recentPayments = tripContext.receipts.slice(-5);
       recentPayments.forEach((payment: any) => {
-        basePrompt += `\n- ${payment.description}: $${payment.amount} (${payment.participants?.join(', ') || 'Group'})`
-      })
+        basePrompt += `\n- ${payment.description}: $${payment.amount} (${payment.participants?.join(', ') || 'Group'})`;
+      });
     }
 
     // 🆕 POLL AWARENESS
     if (tripContext.polls?.length) {
-      basePrompt += `\n\n=== 📊 GROUP POLLS & DECISIONS ===`
+      basePrompt += `\n\n=== 📊 GROUP POLLS & DECISIONS ===`;
       tripContext.polls.forEach((poll: any) => {
-        basePrompt += `\n**${poll.question}**`
+        basePrompt += `\n**${poll.question}**`;
         if (poll.options?.length) {
           poll.options.forEach((option: any) => {
-            basePrompt += `\n- ${option.text}: ${option.votes || 0} votes`
-          })
+            basePrompt += `\n- ${option.text}: ${option.votes || 0} votes`;
+          });
         }
         if (poll.results) {
-          basePrompt += `\nWinner: ${poll.results}`
+          basePrompt += `\nWinner: ${poll.results}`;
         }
-      })
+      });
     }
 
     // 🆕 TASK MANAGEMENT
     if (tripContext.tasks?.length) {
-      basePrompt += `\n\n=== ✅ TASK STATUS ===`
-      const completedTasks = tripContext.tasks.filter((task: any) => task.status === 'completed')
-      const pendingTasks = tripContext.tasks.filter((task: any) => task.status !== 'completed')
-      
-      basePrompt += `\nCompleted: ${completedTasks.length} | Pending: ${pendingTasks.length}`
-      
+      basePrompt += `\n\n=== ✅ TASK STATUS ===`;
+      const completedTasks = tripContext.tasks.filter((task: any) => task.status === 'completed');
+      const pendingTasks = tripContext.tasks.filter((task: any) => task.status !== 'completed');
+
+      basePrompt += `\nCompleted: ${completedTasks.length} | Pending: ${pendingTasks.length}`;
+
       if (pendingTasks.length > 0) {
-        basePrompt += `\n**Pending Tasks:**`
+        basePrompt += `\n**Pending Tasks:**`;
         pendingTasks.forEach((task: any) => {
-          basePrompt += `\n- ${task.title} (Assigned to: ${task.assignedTo || 'Unassigned'})`
-        })
+          basePrompt += `\n- ${task.title} (Assigned to: ${task.assignedTo || 'Unassigned'})`;
+        });
       }
     }
 
     // 🆕 CHAT INTELLIGENCE
     if (tripContext.chatHistory?.length) {
-      basePrompt += `\n\n=== 💬 RECENT CHAT ACTIVITY ===`
-      const recentMessages = tripContext.chatHistory.slice(-10)
-      basePrompt += `\nLast ${recentMessages.length} messages:`
+      basePrompt += `\n\n=== 💬 RECENT CHAT ACTIVITY ===`;
+      const recentMessages = tripContext.chatHistory.slice(-10);
+      basePrompt += `\nLast ${recentMessages.length} messages:`;
       recentMessages.forEach((msg: any) => {
-        basePrompt += `\n- ${msg.sender}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}`
-      })
+        basePrompt += `\n- ${msg.sender}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}`;
+      });
     }
 
     // ENTERPRISE MODE DETECTION
-    const isEnterpriseTrip = tripContext.participants?.length > 10 || tripContext.category === 'enterprise'
+    const isEnterpriseTrip =
+      tripContext.participants?.length > 10 || tripContext.category === 'enterprise';
     if (isEnterpriseTrip) {
-      basePrompt += `\n\n=== ENTERPRISE MODE ===`
-      basePrompt += `\nThis is an enterprise trip with ${tripContext.participants?.length || 0} participants.`
-      basePrompt += `\n- Use ZERO emojis for professional communication`
-      basePrompt += `\n- Focus on logistics, coordination, and efficiency`
-      basePrompt += `\n- Provide clear, actionable information for large groups`
-      basePrompt += `\n- Still include markdown links and structured formatting`
+      basePrompt += `\n\n=== ENTERPRISE MODE ===`;
+      basePrompt += `\nThis is an enterprise trip with ${tripContext.participants?.length || 0} participants.`;
+      basePrompt += `\n- Use ZERO emojis for professional communication`;
+      basePrompt += `\n- Focus on logistics, coordination, and efficiency`;
+      basePrompt += `\n- Provide clear, actionable information for large groups`;
+      basePrompt += `\n- Still include markdown links and structured formatting`;
     }
   }
 
@@ -1119,9 +1214,9 @@ Next: I can get you directions from your hotel if you'd like!"`
 - Consider budget, preferences, and group dynamics
 - Keep emoji usage minimal (0-1 per response). Let the formatting and links speak for themselves.
 - When recommending places, ALWAYS format as clickable markdown links
-- Make the user feel excited about their trip through great content, not excessive emojis`
+- Make the user feel excited about their trip through great content, not excessive emojis`;
 
-  return basePrompt
+  return basePrompt;
 }
 
 // Mock RAG retrieval for demo mode
@@ -1129,56 +1224,69 @@ function getMockRAGResults(query: string, tripId: string): any[] {
   const lowercaseQuery = query.toLowerCase();
   const allResults = [
     {
-      content_text: 'Sarah Chen: Super excited for this trip! Has everyone seen the weather forecast?',
+      content_text:
+        'Sarah Chen: Super excited for this trip! Has everyone seen the weather forecast?',
       source_type: 'chat',
       similarity: 0.85,
-      metadata: { author: 'Sarah Chen' }
+      metadata: { author: 'Sarah Chen' },
     },
     {
       content_text: 'Payment: Dinner at Sakura Restaurant. Amount: USD 240.00',
       source_type: 'payment',
       similarity: 0.92,
-      metadata: { amount: 240.00, currency: 'USD' }
+      metadata: { amount: 240.0, currency: 'USD' },
     },
     {
       content_text: 'Payment: Taxi to airport. Amount: USD 65.00',
       source_type: 'payment',
       similarity: 0.88,
-      metadata: { amount: 65.00, currency: 'USD' }
+      metadata: { amount: 65.0, currency: 'USD' },
     },
     {
       content_text: 'Event: Welcome Dinner at The Little Nell Restaurant. Group dinner at 7 PM',
       source_type: 'calendar',
-      similarity: 0.90,
-      metadata: { location: 'The Little Nell Restaurant' }
+      similarity: 0.9,
+      metadata: { location: 'The Little Nell Restaurant' },
     },
     {
       content_text: 'Task: Confirm dinner reservations',
       source_type: 'task',
       similarity: 0.87,
-      metadata: { assignee: 'Priya Patel' }
+      metadata: { assignee: 'Priya Patel' },
     },
     {
-      content_text: 'Poll: Where should we have dinner tonight?. Options: Italian Restaurant, Sushi Place, Steakhouse, Thai Food',
+      content_text:
+        'Poll: Where should we have dinner tonight?. Options: Italian Restaurant, Sushi Place, Steakhouse, Thai Food',
       source_type: 'poll',
       similarity: 0.89,
-      metadata: { total_votes: 8 }
+      metadata: { total_votes: 8 },
     },
     {
-      content_text: 'Broadcast [logistics]: All luggage must be outside rooms by 8 AM for pickup tomorrow!',
+      content_text:
+        'Broadcast [logistics]: All luggage must be outside rooms by 8 AM for pickup tomorrow!',
       source_type: 'broadcast',
       similarity: 0.82,
-      metadata: { priority: 'logistics' }
-    }
+      metadata: { priority: 'logistics' },
+    },
   ];
 
   // Filter based on query keywords
   let filteredResults = allResults;
-  
-  if (lowercaseQuery.includes('payment') || lowercaseQuery.includes('money') || lowercaseQuery.includes('owe')) {
-    filteredResults = allResults.filter(r => r.source_type === 'payment' || r.content_text.toLowerCase().includes('payment'));
+
+  if (
+    lowercaseQuery.includes('payment') ||
+    lowercaseQuery.includes('money') ||
+    lowercaseQuery.includes('owe')
+  ) {
+    filteredResults = allResults.filter(
+      r => r.source_type === 'payment' || r.content_text.toLowerCase().includes('payment'),
+    );
   } else if (lowercaseQuery.includes('dinner') || lowercaseQuery.includes('restaurant')) {
-    filteredResults = allResults.filter(r => r.content_text.toLowerCase().includes('dinner') || r.content_text.toLowerCase().includes('restaurant'));
+    filteredResults = allResults.filter(
+      r =>
+        r.content_text.toLowerCase().includes('dinner') ||
+        r.content_text.toLowerCase().includes('restaurant'),
+    );
   } else if (lowercaseQuery.includes('task') || lowercaseQuery.includes('todo')) {
     filteredResults = allResults.filter(r => r.source_type === 'task');
   } else if (lowercaseQuery.includes('poll') || lowercaseQuery.includes('vote')) {
@@ -1186,27 +1294,32 @@ function getMockRAGResults(query: string, tripId: string): any[] {
   }
 
   // Sort by similarity and return top results
-  return filteredResults
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, 5);
+  return filteredResults.sort((a, b) => b.similarity - a.similarity).slice(0, 5);
 }
 
-async function storeConversation(supabase: any, tripId: string, userMessage: string, aiResponse: string, type: string, metadata?: any) {
+async function storeConversation(
+  supabase: any,
+  tripId: string,
+  userMessage: string,
+  aiResponse: string,
+  type: string,
+  metadata?: any,
+) {
   try {
     // Get user_id from auth context if available
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    await supabase
-      .from('ai_queries')
-      .insert({
-        trip_id: tripId,
-        user_id: user?.id || null,
-        query_text: userMessage,
-        response_text: aiResponse,
-        source_count: metadata?.grounding_sources || 0,
-        created_at: new Date().toISOString()
-      })
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    await supabase.from('ai_queries').insert({
+      trip_id: tripId,
+      user_id: user?.id || null,
+      query_text: userMessage,
+      response_text: aiResponse,
+      source_count: metadata?.grounding_sources || 0,
+      created_at: new Date().toISOString(),
+    });
   } catch (error) {
-    console.error('Failed to store conversation:', error)
+    console.error('Failed to store conversation:', error);
   }
 }

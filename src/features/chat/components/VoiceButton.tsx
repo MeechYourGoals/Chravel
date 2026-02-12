@@ -42,7 +42,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
     }
     switch (voiceState) {
       case 'listening':
-        return 'bg-gradient-to-br from-green-400 to-emerald-500 text-white ring-2 ring-green-400/50 animate-pulse shadow-lg shadow-green-500/30';
+        return 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white ring-1 ring-emerald-200/60 shadow-lg shadow-emerald-500/25';
       case 'thinking':
       case 'connecting':
         return 'bg-gradient-to-br from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-500/30';
@@ -58,12 +58,18 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
   const getTooltip = () => {
     if (!isEligible) return 'Voice (Pro)';
     switch (voiceState) {
-      case 'connecting': return 'Connecting...';
-      case 'listening': return 'Tap to send';
-      case 'thinking': return 'Processing...';
-      case 'speaking': return 'Tap to interrupt';
-      case 'error': return 'Tap to retry';
-      default: return 'Start voice';
+      case 'connecting':
+        return 'Connecting...';
+      case 'listening':
+        return 'Tap to send';
+      case 'thinking':
+        return 'Processing...';
+      case 'speaking':
+        return 'Tap to interrupt';
+      case 'error':
+        return 'Tap to retry';
+      default:
+        return 'Start voice';
     }
   };
 
@@ -76,9 +82,18 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
             className={`relative size-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${getStyle()}`}
             aria-label={getTooltip()}
           >
-            {getIcon()}
+            {isEligible && voiceState === 'listening' && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r from-emerald-400/30 via-teal-300/15 to-emerald-400/30 blur-sm"
+              />
+            )}
+            <span className="relative z-10">{getIcon()}</span>
             {!isEligible && (
-              <Lock size={8} className="absolute -top-0.5 -right-0.5 text-white drop-shadow-md" />
+              <Lock
+                size={8}
+                className="absolute -top-0.5 -right-0.5 text-white drop-shadow-md z-10"
+              />
             )}
           </button>
         </TooltipTrigger>

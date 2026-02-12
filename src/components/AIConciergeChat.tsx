@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, Search, AlertCircle, Crown, Clock, Sparkles, Mic } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
-import { TripContextService } from '../services/tripContextService';
-import { EnhancedTripContextService } from '../services/enhancedTripContextService';
 import { useBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
@@ -45,6 +43,41 @@ interface ChatMessage {
   googleMapsWidget?: string; // 🆕 Widget context token
 }
 
+interface ConciergeInvokePayload {
+  response?: string;
+  usage?: ChatMessage['usage'];
+  sources?: ChatMessage['sources'];
+  citations?: ChatMessage['sources'];
+  googleMapsWidget?: string;
+}
+
+const FAST_RESPONSE_TIMEOUT_MS = 12000;
+
+const invokeConciergeWithTimeout = async (
+  requestBody: Record<string, unknown>,
+): Promise<{ data: ConciergeInvokePayload | null; error: { message?: string } | null }> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('AI request timed out'));
+    }, FAST_RESPONSE_TIMEOUT_MS);
+  });
+
+  try {
+    const response = (await Promise.race([
+      supabase.functions.invoke('lovable-concierge', { body: requestBody }),
+      timeoutPromise,
+    ])) as { data: ConciergeInvokePayload | null; error: { message?: string } | null };
+
+    return response;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
+
 export const AIConciergeChat = ({
   tripId,
   basecamp,
@@ -65,9 +98,6 @@ export const AIConciergeChat = ({
     canUse,
     isPro,
     isSuperAdmin,
-    plan: entitlementPlan,
-    status: entitlementStatus,
-    source: entitlementSource,
     isLoading: isEntitlementsLoading,
   } = useUnifiedEntitlements();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -94,19 +124,14 @@ export const AIConciergeChat = ({
     isDemoMode ||
     hasLegacySubscriptionVoiceAccess;
 
-  // Voice transcripts are routed through handleSendMessage (same pipeline as typed text)
-  const handleVoiceUserMessage = useCallback((text: string) => {
-    // Set the input and immediately trigger send so voice uses the exact same AI pipeline
-    setInputMessage(text);
-    // We need to send on next tick after state update
-    setTimeout(() => {
-      // Directly call handleSendMessage via a ref approach isn't clean,
-      // so we'll set state and use a flag to auto-send
-      setVoicePendingText(text);
-    }, 0);
-  }, []);
-
   const [voicePendingText, setVoicePendingText] = useState<string | null>(null);
+
+  // Voice transcripts are queued and sent through handleSendMessage (same pipeline as typed text)
+  const handleVoiceUserMessage = useCallback((text: string) => {
+    const transcript = text.trim();
+    if (!transcript) return;
+    setVoicePendingText(transcript);
+  }, []);
 
   const {
     voiceState,
@@ -123,14 +148,9 @@ export const AIConciergeChat = ({
 
   // Auto-send voice transcripts through the same pipeline as typed messages
   useEffect(() => {
-    if (voicePendingText && !isTyping) {
-      setInputMessage(voicePendingText);
-      setVoicePendingText(null);
-      // Trigger send on next tick after inputMessage is set
-      setTimeout(() => {
-        handleSendMessage();
-      }, 50);
-    }
+    if (!voicePendingText || isTyping) return;
+    void handleSendMessage(voicePendingText);
+    setVoicePendingText(null);
   }, [voicePendingText, isTyping]);
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
@@ -202,15 +222,16 @@ export const AIConciergeChat = ({
     }
   }, [isOffline, aiStatus]);
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isTyping) return;
+  const handleSendMessage = async (messageOverride?: string) => {
+    const messageToSend = (messageOverride ?? inputMessage).trim();
+    if (!messageToSend || isTyping) return;
 
     // Check offline mode first
     if (isOffline) {
       // Try to get cached response for similar query (user-isolated)
       const cachedResponse = conciergeCacheService.getCachedResponse(
         tripId,
-        inputMessage,
+        messageToSend,
         user?.id,
       );
       if (cachedResponse) {
@@ -220,7 +241,7 @@ export const AIConciergeChat = ({
           {
             id: Date.now().toString(),
             type: 'user',
-            content: inputMessage,
+            content: messageToSend,
             timestamp: new Date().toISOString(),
           },
           {
@@ -229,7 +250,9 @@ export const AIConciergeChat = ({
             timestamp: new Date().toISOString(),
           },
         ]);
-        setInputMessage('');
+        if (!messageOverride) {
+          setInputMessage('');
+        }
         return;
       } else {
         setMessages(prev => [
@@ -237,7 +260,7 @@ export const AIConciergeChat = ({
           {
             id: Date.now().toString(),
             type: 'user',
-            content: inputMessage,
+            content: messageToSend,
             timestamp: new Date().toISOString(),
           },
           {
@@ -248,7 +271,9 @@ export const AIConciergeChat = ({
             timestamp: new Date().toISOString(),
           },
         ]);
-        setInputMessage('');
+        if (!messageOverride) {
+          setInputMessage('');
+        }
         return;
       }
     }
@@ -273,50 +298,42 @@ export const AIConciergeChat = ({
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       type: 'user',
-      content: inputMessage,
+      content: messageToSend,
       timestamp: new Date().toISOString(),
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = inputMessage;
-    setInputMessage('');
+    const currentInput = messageToSend;
+    if (!messageOverride) {
+      setInputMessage('');
+    }
     setIsTyping(true);
     setAiStatus('thinking');
 
-    // Declare outside try block so accessible in catch
-    let tripContext: any;
-    let basecampLocation: { name: string; address: string } | undefined;
+    // Lightweight fallback context is used only for graceful degradation messages.
+    const fallbackContext = {
+      tripId,
+      title: 'Current Trip',
+      location: globalBasecamp?.address || basecamp?.address || 'Unknown location',
+      dateRange: new Date().toISOString().split('T')[0],
+      itinerary: [],
+      calendar: [],
+      payments: [],
+    };
+
+    const basecampLocation = globalBasecamp
+      ? {
+          name: globalBasecamp.name || 'Basecamp',
+          address: globalBasecamp.address,
+        }
+      : basecamp
+        ? {
+            name: basecamp.name || 'Basecamp',
+            address: basecamp.address,
+          }
+        : undefined;
 
     try {
-      // Get full trip context with enhanced contextual data
-      try {
-        tripContext = await EnhancedTripContextService.getEnhancedTripContext(tripId, false);
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.warn('Enhanced context failed, falling back to basic context:', error);
-        }
-        try {
-          tripContext = await TripContextService.getTripContext(tripId, false);
-        } catch (fallbackError) {
-          if (import.meta.env.DEV) {
-            console.warn('Basic context also failed, using minimal context:', fallbackError);
-          }
-          tripContext = {
-            tripId,
-            title: 'Current Trip',
-            location: globalBasecamp?.address || basecamp?.address || 'Unknown location',
-            dateRange: new Date().toISOString().split('T')[0],
-            participants: [],
-            itinerary: [],
-            accommodation: globalBasecamp?.name || basecamp?.name,
-            currentDate: new Date().toISOString().split('T')[0],
-            upcomingEvents: [],
-            recentUpdates: [],
-            confirmationNumbers: {},
-          };
-        }
-      }
-
       // Build chat history for context - truncate each message to prevent validation overflow
       const MAX_MESSAGE_LENGTH = 3000; // Keep under 20000 limit with room for multiple messages
       const chatHistory = messages.slice(-6).map(msg => ({
@@ -327,79 +344,31 @@ export const AIConciergeChat = ({
             : msg.content,
       }));
 
-      // Prepare basecamp location (already declared above)
-      basecampLocation = globalBasecamp
-        ? {
-            name: globalBasecamp.name || 'Basecamp',
-            address: globalBasecamp.address,
-          }
-        : basecamp
-          ? {
-              name: basecamp.name || 'Basecamp',
-              address: basecamp.address,
-            }
-          : undefined;
-
-      // Send to Lovable AI Concierge with retry logic and graceful degradation
-      let retryCount = 0;
-      const MAX_RETRIES = 2;
-      let data, error;
-      let lastError: any = null;
-
-      while (retryCount <= MAX_RETRIES) {
-        try {
-          const response = await supabase.functions.invoke('lovable-concierge', {
-            body: {
-              message: currentInput,
-              tripContext,
-              basecampLocation,
-              preferences,
-              chatHistory,
-              isDemoMode,
-            },
-          });
-
-          data = response.data;
-          error = response.error;
-
-          // Check if response indicates a retryable error
-          if (error && retryCount < MAX_RETRIES) {
-            retryCount++;
-            lastError = error;
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
-            continue;
-          }
-
-          if (error) {
-            lastError = error;
-            throw error;
-          }
-
-          // Success - exit retry loop
-          break;
-        } catch (attemptError) {
-          lastError = attemptError;
-          if (retryCount < MAX_RETRIES) {
-            retryCount++;
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-            continue;
-          }
-          // Max retries exceeded - will use graceful degradation below
-          break;
-        }
-      }
+      const { data, error } = await invokeConciergeWithTimeout({
+        message: currentInput,
+        tripId,
+        preferences,
+        chatHistory,
+        isDemoMode,
+        // Force flash path for predictable low-latency responses.
+        config: {
+          model: 'google/gemini-2.5-flash',
+          temperature: 0.55,
+          maxTokens: 1024,
+        },
+      });
 
       // Graceful degradation: If AI service unavailable, provide helpful fallback
-      if (!data || error || lastError) {
+      if (!data || error) {
         if (import.meta.env.DEV) {
-          console.warn('AI service unavailable, using graceful degradation');
+          console.warn('AI service unavailable or timed out, using graceful degradation');
         }
         setAiStatus('degraded');
 
         // Try to provide context-aware fallback response
         const fallbackResponse = generateFallbackResponse(
           currentInput,
-          tripContext,
+          fallbackContext,
           basecampLocation,
         );
 
@@ -463,7 +432,7 @@ export const AIConciergeChat = ({
       try {
         const fallbackResponse = generateFallbackResponse(
           currentInput,
-          tripContext,
+          fallbackContext,
           basecampLocation,
         );
         const errorMessage: ChatMessage = {
@@ -575,7 +544,7 @@ export const AIConciergeChat = ({
                 <div className="flex items-center gap-1">
                   {voiceState === 'listening' ? (
                     <>
-                      <Mic size={16} className="text-green-400 animate-pulse" />
+                      <Mic size={16} className="text-green-400" />
                       <span className="text-xs text-green-400">Listening...</span>
                     </>
                   ) : voiceState === 'thinking' ? (
@@ -727,11 +696,7 @@ export const AIConciergeChat = ({
         {/* Chat Messages + Streaming Voice Transcript */}
         <div className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll">
           {messages.length > 0 && (
-            <ChatMessages
-              messages={messages}
-              isTyping={isTyping}
-              showMapWidgets={true}
-            />
+            <ChatMessages messages={messages} isTyping={isTyping} showMapWidgets={true} />
           )}
 
           {/* Voice error inline display */}
