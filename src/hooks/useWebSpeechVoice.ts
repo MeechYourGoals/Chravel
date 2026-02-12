@@ -91,17 +91,23 @@ export function useWebSpeechVoice(
     setAssistantTranscript('');
 
     try {
-      const { data, error } = await supabase.functions.invoke('gemini-chat', {
+      // Use AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const { data, error } = await supabase.functions.invoke('lovable-concierge', {
         body: {
           message: transcript,
           analysisType: 'chat',
         },
       });
 
+      clearTimeout(timeoutId);
+
       if (!activeRef.current) return;
 
       if (error || !data?.response) {
-        setErrorMessage('Failed to get AI response');
+        setErrorMessage('AI took too long or failed. Please try again.');
         setVoiceState('error');
         return;
       }

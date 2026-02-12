@@ -84,7 +84,7 @@ export const AiChatInput = ({
           value={inputMessage}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={isLimitReached ? "Upgrade to continue chatting..." : "Ask me anything about travel..."}
+          placeholder={isLimitReached ? "Upgrade to continue chatting..." : "Ask me anything..."}
           rows={2}
           disabled={disabled || isLimitReached}
           className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
