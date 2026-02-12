@@ -245,7 +245,33 @@ export const useMediaManagement = (tripId: string) => {
       {
         event: 'INSERT',
         schema: 'public',
+        table: 'trip_files',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      () => {
+        fetchMediaItems();
+      },
+    );
+
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
         table: 'trip_link_index',
+        filter: `trip_id=eq.${tripId}`,
+      },
+      () => {
+        fetchLinkItems();
+      },
+    );
+
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'trip_links',
         filter: `trip_id=eq.${tripId}`,
       },
       () => {
