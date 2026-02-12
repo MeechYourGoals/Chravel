@@ -113,7 +113,7 @@ export const MobileTripTabs = ({
   const [localParticipants, setLocalParticipants] = useState(participants);
 
   // DB-backed lineup hook for auto-populating from agenda
-  const { members: lineupSpeakers, addMembersFromAgenda: addLineupFromAgenda } = useEventLineup({
+  const { members: _lineupSpeakers, addMembersFromAgenda: addLineupFromAgenda } = useEventLineup({
     eventId: tripId,
     initialMembers: eventData?.speakers || [],
     enabled: variant === 'event',
@@ -336,7 +336,6 @@ export const MobileTripTabs = ({
               eventId={tripId}
               userRole={isEventAdmin ? 'organizer' : 'attendee'}
               onLineupUpdate={handleLineupUpdate}
-              existingLineup={lineupSpeakers}
             />
           );
         case 'lineup':
