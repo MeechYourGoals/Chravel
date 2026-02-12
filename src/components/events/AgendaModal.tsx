@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
-import { Calendar, Upload, Plus, FileText, Clock, MapPin, Trash2, Download, Edit2, X, Image, User, Save, Sparkles } from 'lucide-react';
+import {
+  Upload,
+  Plus,
+  FileText,
+  Clock,
+  MapPin,
+  Trash2,
+  Download,
+  Edit2,
+  X,
+  Image,
+  User,
+  Save,
+  Sparkles,
+} from 'lucide-react';
 import { AgendaImportModal } from './AgendaImportModal';
 import { useBackgroundAgendaImport } from '@/features/calendar/hooks/useBackgroundAgendaImport';
 import { ParsedAgendaSession } from '@/utils/agendaImportParsers';
@@ -12,6 +26,11 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { EventAgendaItem } from '@/types/events';
 import { format, parseISO } from 'date-fns';
+import {
+  EVENT_PARITY_COL_START,
+  EVENT_PARITY_ROW_CLASS,
+  PARITY_ACTION_BUTTON_CLASS,
+} from '@/lib/tabParity';
 
 interface AgendaPermissions {
   canView: boolean;
@@ -41,30 +60,32 @@ export const AgendaModal = ({
   initialPdfUrl,
   onClose,
   onLineupUpdate,
-  existingLineup = []
+  existingLineup = [],
 }: AgendaModalProps) => {
   const { isDemoMode } = useDemoMode();
-  const { sessions, addSession, updateSession, deleteSession, isAdding, isUpdating } = useEventAgenda({
-    eventId,
-    initialSessions,
-  });
+  const { sessions, addSession, updateSession, deleteSession, isAdding, isUpdating } =
+    useEventAgenda({
+      eventId,
+      initialSessions,
+    });
 
   const [showImportModal, setShowImportModal] = useState(false);
-  const { pendingResult, startImport, clearResult, isBackgroundImporting } = useBackgroundAgendaImport();
-  
-  // In demo mode, always show admin controls
-  const showAdminControls = isDemoMode || permissions.canCreate;
+  const { pendingResult, startImport, clearResult, isBackgroundImporting } =
+    useBackgroundAgendaImport();
+
+  // In demo mode, allow all management actions
+  const canCreateSessions = isDemoMode || permissions.canCreate;
   const canEdit = isDemoMode || permissions.canEdit;
   const canDelete = isDemoMode || permissions.canDelete;
   const canUpload = isDemoMode || permissions.canUpload;
-  
+
   const [pdfUrl, setPdfUrl] = useState<string | undefined>(
-    isDemoMode ? DEMO_PDF_URL : initialPdfUrl
+    isDemoMode ? DEMO_PDF_URL : initialPdfUrl,
   );
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isAddingSession, setIsAddingSession] = useState(false);
   const [editingSession, setEditingSession] = useState<EventAgendaItem | null>(null);
-  
+
   // New session form state
   const [newSession, setNewSession] = useState<Partial<EventAgendaItem>>({
     title: '',
@@ -74,9 +95,9 @@ export const AgendaModal = ({
     location: '',
     description: '',
     speakers: [],
-    track: ''
+    track: '',
   });
-  
+
   const [speakerInput, setSpeakerInput] = useState('');
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,7 +120,7 @@ export const AgendaModal = ({
     if (speakerInput.trim()) {
       setNewSession(prev => ({
         ...prev,
-        speakers: [...(prev.speakers || []), speakerInput.trim()]
+        speakers: [...(prev.speakers || []), speakerInput.trim()],
       }));
       setSpeakerInput('');
     }
@@ -108,7 +129,7 @@ export const AgendaModal = ({
   const handleRemoveSpeaker = (index: number) => {
     setNewSession(prev => ({
       ...prev,
-      speakers: prev.speakers?.filter((_, i) => i !== index)
+      speakers: prev.speakers?.filter((_, i) => i !== index),
     }));
   };
 
@@ -155,7 +176,7 @@ export const AgendaModal = ({
       location: session.location,
       description: session.description,
       speakers: session.speakers || [],
-      track: session.track
+      track: session.track,
     });
     setIsAddingSession(true);
   };
@@ -176,8 +197,14 @@ export const AgendaModal = ({
 
   const resetForm = () => {
     setNewSession({
-      title: '', session_date: '', start_time: '', end_time: '',
-      location: '', description: '', speakers: [], track: ''
+      title: '',
+      session_date: '',
+      start_time: '',
+      end_time: '',
+      location: '',
+      description: '',
+      speakers: [],
+      track: '',
     });
     setSpeakerInput('');
     setIsAddingSession(false);
@@ -185,26 +212,74 @@ export const AgendaModal = ({
   };
 
   const isPdfFile = pdfUrl?.toLowerCase().endsWith('.pdf') || pdfUrl?.includes('application/pdf');
+  const showAdminActions = (canCreateSessions || canUpload) && !isAddingSession;
+  const showActionRow = Boolean(onClose) || showAdminActions;
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <Calendar size={24} className="text-yellow-500" />
-          <div>
-            <h2 className="text-xl font-semibold text-white">Event Agenda</h2>
-            <p className="text-gray-400 text-sm">
-              {showAdminControls ? 'Manage your event schedule' : 'View the event schedule'}
-            </p>
+      {/* Action Row - tab-width parity with Event tabs */}
+      {showActionRow && (
+        <div className="mb-4">
+          <div className={EVENT_PARITY_ROW_CLASS}>
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className={`${EVENT_PARITY_COL_START.agenda} h-10 w-10 rounded-xl`}
+              >
+                <X size={18} />
+              </Button>
+            )}
+            {showAdminActions && (
+              <>
+                {canCreateSessions && (
+                  <>
+                    <Button
+                      onClick={() => setShowImportModal(true)}
+                      variant="outline"
+                      className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
+                    >
+                      <Sparkles size={16} className="flex-shrink-0" />
+                      <span className="whitespace-nowrap">Import Agenda</span>
+                    </Button>
+                    <Button
+                      onClick={() => setIsAddingSession(true)}
+                      className={`${EVENT_PARITY_COL_START.chat} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
+                    >
+                      <Plus size={16} className="flex-shrink-0" />
+                      <span className="whitespace-nowrap">Add Session</span>
+                    </Button>
+                  </>
+                )}
+                {canUpload && (
+                  <label className={`${EVENT_PARITY_COL_START.tasks} w-full`}>
+                    <input
+                      type="file"
+                      accept=".pdf,image/jpeg,image/png,image/jpg"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      disabled={isUploadingFile}
+                    />
+                    <Button
+                      asChild
+                      className={`${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black cursor-pointer`}
+                      disabled={isUploadingFile}
+                    >
+                      <span>
+                        <Upload size={16} className="flex-shrink-0" />
+                        <span className="whitespace-nowrap">
+                          {isUploadingFile ? 'Uploading...' : 'Upload'}
+                        </span>
+                      </span>
+                    </Button>
+                  </label>
+                )}
+              </>
+            )}
           </div>
         </div>
-        {onClose && (
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X size={20} />
-          </Button>
-        )}
-      </div>
+      )}
 
       {/* Split View Content */}
       <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
@@ -215,31 +290,10 @@ export const AgendaModal = ({
               <Clock size={18} />
               Schedule
             </h3>
-            {showAdminControls && !isAddingSession && (
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setShowImportModal(true)}
-                  size="sm"
-                  variant="outline"
-                  className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
-                >
-                  <Sparkles size={16} className="mr-1" />
-                  Import Agenda
-                </Button>
-                <Button
-                  onClick={() => setIsAddingSession(true)}
-                  size="sm"
-                  className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
-                >
-                  <Plus size={16} className="mr-1" />
-                  Add Session
-                </Button>
-              </div>
-            )}
           </div>
 
           {/* Add/Edit Session Form */}
-          {isAddingSession && showAdminControls && (
+          {isAddingSession && canCreateSessions && (
             <Card className="bg-white/5 border-white/10 mb-4">
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
@@ -254,11 +308,13 @@ export const AgendaModal = ({
                 <div className="space-y-3">
                   {/* Row 1: Title */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="title" className="text-sm">Title *</Label>
+                    <Label htmlFor="title" className="text-sm">
+                      Title *
+                    </Label>
                     <Input
                       id="title"
                       value={newSession.title}
-                      onChange={(e) => setNewSession(prev => ({ ...prev, title: e.target.value }))}
+                      onChange={e => setNewSession(prev => ({ ...prev, title: e.target.value }))}
                       placeholder="Session title"
                       className="bg-white/5 border-white/10"
                     />
@@ -267,32 +323,44 @@ export const AgendaModal = ({
                   {/* Row 2: Date, Start Time, End Time */}
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="session_date" className="text-sm">Date</Label>
+                      <Label htmlFor="session_date" className="text-sm">
+                        Date
+                      </Label>
                       <Input
                         id="session_date"
                         type="date"
                         value={newSession.session_date}
-                        onChange={(e) => setNewSession(prev => ({ ...prev, session_date: e.target.value }))}
+                        onChange={e =>
+                          setNewSession(prev => ({ ...prev, session_date: e.target.value }))
+                        }
                         className="bg-white/5 border-white/10"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="start_time" className="text-sm">Start Time</Label>
+                      <Label htmlFor="start_time" className="text-sm">
+                        Start Time
+                      </Label>
                       <Input
                         id="start_time"
                         type="time"
                         value={newSession.start_time}
-                        onChange={(e) => setNewSession(prev => ({ ...prev, start_time: e.target.value }))}
+                        onChange={e =>
+                          setNewSession(prev => ({ ...prev, start_time: e.target.value }))
+                        }
                         className="bg-white/5 border-white/10"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="end_time" className="text-sm">End Time</Label>
+                      <Label htmlFor="end_time" className="text-sm">
+                        End Time
+                      </Label>
                       <Input
                         id="end_time"
                         type="time"
                         value={newSession.end_time}
-                        onChange={(e) => setNewSession(prev => ({ ...prev, end_time: e.target.value }))}
+                        onChange={e =>
+                          setNewSession(prev => ({ ...prev, end_time: e.target.value }))
+                        }
                         className="bg-white/5 border-white/10"
                       />
                     </div>
@@ -301,21 +369,27 @@ export const AgendaModal = ({
                   {/* Row 3: Location, Category */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="location" className="text-sm">Location</Label>
+                      <Label htmlFor="location" className="text-sm">
+                        Location
+                      </Label>
                       <Input
                         id="location"
                         value={newSession.location}
-                        onChange={(e) => setNewSession(prev => ({ ...prev, location: e.target.value }))}
+                        onChange={e =>
+                          setNewSession(prev => ({ ...prev, location: e.target.value }))
+                        }
                         placeholder="Room or venue"
                         className="bg-white/5 border-white/10"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="track" className="text-sm">Category</Label>
+                      <Label htmlFor="track" className="text-sm">
+                        Category
+                      </Label>
                       <Input
                         id="track"
                         value={newSession.track}
-                        onChange={(e) => setNewSession(prev => ({ ...prev, track: e.target.value }))}
+                        onChange={e => setNewSession(prev => ({ ...prev, track: e.target.value }))}
                         placeholder="e.g., Main Stage, Workshop"
                         className="bg-white/5 border-white/10"
                       />
@@ -328,10 +402,12 @@ export const AgendaModal = ({
                     <div className="flex gap-2">
                       <Input
                         value={speakerInput}
-                        onChange={(e) => setSpeakerInput(e.target.value)}
+                        onChange={e => setSpeakerInput(e.target.value)}
                         placeholder="Add speaker name"
                         className="bg-white/5 border-white/10"
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSpeaker())}
+                        onKeyPress={e =>
+                          e.key === 'Enter' && (e.preventDefault(), handleAddSpeaker())
+                        }
                       />
                       <Button type="button" onClick={handleAddSpeaker} variant="outline" size="sm">
                         Add
@@ -346,7 +422,11 @@ export const AgendaModal = ({
                           >
                             <User size={12} />
                             {speaker}
-                            <button type="button" onClick={() => handleRemoveSpeaker(index)} className="hover:text-red-400">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSpeaker(index)}
+                              className="hover:text-red-400"
+                            >
                               <X size={12} />
                             </button>
                           </span>
@@ -357,11 +437,15 @@ export const AgendaModal = ({
 
                   {/* Row 5: Description */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="description" className="text-sm">Description</Label>
+                    <Label htmlFor="description" className="text-sm">
+                      Description
+                    </Label>
                     <Textarea
                       id="description"
                       value={newSession.description}
-                      onChange={(e) => setNewSession(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={e =>
+                        setNewSession(prev => ({ ...prev, description: e.target.value }))
+                      }
                       placeholder="Session description..."
                       className="bg-white/5 border-white/10"
                       rows={2}
@@ -375,7 +459,11 @@ export const AgendaModal = ({
                   disabled={!newSession.title || isAdding || isUpdating}
                 >
                   <Save size={16} className="mr-2" />
-                  {isAdding || isUpdating ? 'Saving...' : editingSession ? 'Update Session' : 'Add Session'}
+                  {isAdding || isUpdating
+                    ? 'Saving...'
+                    : editingSession
+                      ? 'Update Session'
+                      : 'Add Session'}
                 </Button>
               </CardContent>
             </Card>
@@ -385,7 +473,10 @@ export const AgendaModal = ({
           {sessions.length > 0 ? (
             <div className="space-y-3">
               {sessions.map(session => (
-                <Card key={session.id} className="bg-white/5 border-white/10 hover:bg-white/10 transition-colors">
+                <Card
+                  key={session.id}
+                  className="bg-white/5 border-white/10 hover:bg-white/10 transition-colors"
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -400,10 +491,14 @@ export const AgendaModal = ({
                         <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-400">
                           <span className="flex items-center gap-1">
                             <Clock size={14} />
-                            {session.session_date && (() => {
-                              try { return format(parseISO(session.session_date), 'MMM d') + ' — '; }
-                              catch { return ''; }
-                            })()}
+                            {session.session_date &&
+                              (() => {
+                                try {
+                                  return format(parseISO(session.session_date), 'MMM d') + ' — ';
+                                } catch {
+                                  return '';
+                                }
+                              })()}
                             {session.start_time}
                             {session.end_time && ` - ${session.end_time}`}
                           </span>
@@ -417,7 +512,10 @@ export const AgendaModal = ({
                         {session.speakers && session.speakers.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {session.speakers.map((speaker, i) => (
-                              <span key={i} className="text-xs text-yellow-300 flex items-center gap-1">
+                              <span
+                                key={i}
+                                className="text-xs text-yellow-300 flex items-center gap-1"
+                              >
                                 <User size={12} />
                                 {speaker}
                               </span>
@@ -425,18 +523,30 @@ export const AgendaModal = ({
                           </div>
                         )}
                         {session.description && (
-                          <p className="text-sm text-gray-500 mt-2 line-clamp-2">{session.description}</p>
+                          <p className="text-sm text-gray-500 mt-2 line-clamp-2">
+                            {session.description}
+                          </p>
                         )}
                       </div>
                       {(canEdit || canDelete) && (
                         <div className="flex gap-1">
                           {canEdit && (
-                            <Button onClick={() => handleEditSession(session)} variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+                            <Button
+                              onClick={() => handleEditSession(session)}
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-white"
+                            >
                               <Edit2 size={14} />
                             </Button>
                           )}
                           {canDelete && (
-                            <Button onClick={() => handleDeleteSession(session.id)} variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-400">
+                            <Button
+                              onClick={() => handleDeleteSession(session.id)}
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-red-400"
+                            >
                               <Trash2 size={14} />
                             </Button>
                           )}
@@ -453,7 +563,9 @@ export const AgendaModal = ({
                 <Clock size={48} className="text-gray-600 mx-auto mb-3" />
                 <h4 className="text-white font-medium mb-1">No Sessions Yet</h4>
                 <p className="text-gray-400 text-sm">
-                  {showAdminControls ? 'Add sessions to build your event schedule' : 'The organizer hasn\'t added sessions yet'}
+                  {canCreateSessions
+                    ? 'Add sessions to build your event schedule'
+                    : "The organizer hasn't added sessions yet"}
                 </p>
               </CardContent>
             </Card>
@@ -467,40 +579,42 @@ export const AgendaModal = ({
               <FileText size={18} />
               Agenda File
             </h3>
-            {canUpload && (
-              <div className="flex gap-2">
-                <label>
-                  <input type="file" accept=".pdf,image/jpeg,image/png,image/jpg" onChange={handleFileUpload} className="hidden" disabled={isUploadingFile} />
-                  <Button size="sm" className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold cursor-pointer" asChild disabled={isUploadingFile}>
-                    <span>
-                      <Upload size={16} className="mr-1" />
-                      {isUploadingFile ? 'Uploading...' : 'Upload'}
-                    </span>
-                  </Button>
-                </label>
-                {pdfUrl && canDelete && (
-                  <Button onClick={handleDeleteFile} size="sm" variant="ghost" className="text-red-400 hover:text-red-300">
-                    <Trash2 size={16} />
-                  </Button>
-                )}
-              </div>
-            )}
           </div>
 
           {pdfUrl ? (
-            <div className="rounded-lg overflow-hidden border border-white/10 bg-white">
+            <div className="relative rounded-lg overflow-hidden border border-white/10 bg-white">
               {isPdfFile ? (
                 <iframe src={pdfUrl} className="w-full h-[500px]" title="Agenda PDF" />
               ) : (
                 <div className="relative">
-                  <img src={pdfUrl} alt="Agenda" className="w-full h-auto object-contain max-h-[500px]" />
-                  <a href={pdfUrl} download="agenda" target="_blank" rel="noopener noreferrer" className="absolute bottom-4 right-4">
+                  <img
+                    src={pdfUrl}
+                    alt="Agenda"
+                    className="w-full h-auto object-contain max-h-[500px]"
+                  />
+                  <a
+                    href={pdfUrl}
+                    download="agenda"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-4 right-4"
+                  >
                     <Button size="sm" variant="secondary">
                       <Download size={16} className="mr-1" />
                       Download
                     </Button>
                   </a>
                 </div>
+              )}
+              {canDelete && (
+                <Button
+                  onClick={handleDeleteFile}
+                  size="icon"
+                  variant="outline"
+                  className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/75 border-white/20 text-red-300 hover:text-red-200 hover:bg-black/85"
+                >
+                  <Trash2 size={14} />
+                </Button>
               )}
             </div>
           ) : (
@@ -509,7 +623,9 @@ export const AgendaModal = ({
                 <Image size={48} className="text-gray-600 mx-auto mb-3" />
                 <h4 className="text-white font-medium mb-1">No Agenda File</h4>
                 <p className="text-gray-400 text-sm">
-                  {canUpload ? 'Upload a PDF or image of your event agenda' : 'The organizer hasn\'t uploaded an agenda file yet'}
+                  {canUpload
+                    ? 'Upload a PDF or image of your event agenda'
+                    : "The organizer hasn't uploaded an agenda file yet"}
                 </p>
               </CardContent>
             </Card>
@@ -517,7 +633,9 @@ export const AgendaModal = ({
 
           {isDemoMode && (
             <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-              <p className="text-yellow-300 text-sm text-center">📝 Demo Mode: All changes are temporary</p>
+              <p className="text-yellow-300 text-sm text-center">
+                📝 Demo Mode: All changes are temporary
+              </p>
             </div>
           )}
         </div>
@@ -535,11 +653,11 @@ export const AgendaModal = ({
         }}
         pendingResult={pendingResult}
         onClearPendingResult={clearResult}
-        onStartBackgroundImport={(url) => {
+        onStartBackgroundImport={url => {
           setShowImportModal(false);
           startImport(url, () => setShowImportModal(true));
         }}
-        onLineupUpdate={onLineupUpdate ? (names) => onLineupUpdate(names) : undefined}
+        onLineupUpdate={onLineupUpdate ? names => onLineupUpdate(names) : undefined}
       />
     </div>
   );

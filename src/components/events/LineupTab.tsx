@@ -12,6 +12,12 @@ import { useEventLineup } from '@/hooks/useEventLineup';
 import type { Speaker, EventAgendaItem } from '../../types/events';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { format, parseISO } from 'date-fns';
+import {
+  EVENT_PARITY_COL_START,
+  EVENT_PARITY_HEADER_SPAN_CLASS,
+  EVENT_PARITY_ROW_CLASS,
+  PARITY_ACTION_BUTTON_CLASS,
+} from '@/lib/tabParity';
 
 interface LineupPermissions {
   canView: boolean;
@@ -27,10 +33,18 @@ interface LineupTabProps {
   initialSpeakers?: Speaker[];
 }
 
-export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSpeakers = [] }: LineupTabProps) => {
+export const LineupTab = ({
+  eventId,
+  permissions,
+  agendaSessions = [],
+  initialSpeakers = [],
+}: LineupTabProps) => {
   const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
-  const { members, addMember, updateMember, deleteMember } = useEventLineup({ eventId, initialMembers: initialSpeakers });
+  const { members, addMember, updateMember, deleteMember } = useEventLineup({
+    eventId,
+    initialMembers: initialSpeakers,
+  });
 
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['event-lineup', eventId] });
@@ -45,7 +59,7 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
   const canCreate = isDemoMode || permissions.canCreate;
   const canEdit = isDemoMode || permissions.canEdit;
   const canDelete = isDemoMode || permissions.canDelete;
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Speaker | null>(null);
   const [isAddingMember, setIsAddingMember] = useState(false);
@@ -53,16 +67,17 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
   const [newMember, setNewMember] = useState({ name: '', title: '', company: '', bio: '' });
   const [editMember, setEditMember] = useState({ name: '', title: '', company: '', bio: '' });
 
-  const filteredMembers = members.filter(speaker =>
-    speaker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    speaker.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    speaker.company?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredMembers = members.filter(
+    speaker =>
+      speaker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      speaker.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      speaker.company?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Find agenda sessions for a given speaker name
   const getSessionsForMember = (memberName: string): EventAgendaItem[] => {
     return agendaSessions.filter(session =>
-      session.speakers?.some(s => s.toLowerCase() === memberName.toLowerCase())
+      session.speakers?.some(s => s.toLowerCase() === memberName.toLowerCase()),
     );
   };
 
@@ -89,7 +104,7 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
       name: speaker.name,
       title: speaker.title || '',
       company: speaker.company || '',
-      bio: speaker.bio || ''
+      bio: speaker.bio || '',
     });
   };
 
@@ -130,20 +145,25 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
         />
       )}
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className={`${EVENT_PARITY_ROW_CLASS} items-start`}>
+        <div className={`flex items-center gap-3 ${EVENT_PARITY_HEADER_SPAN_CLASS}`}>
           <Users size={24} className="text-yellow-500" />
           <div>
             <h2 className="text-xl font-semibold text-white">Line-up</h2>
             <p className="text-gray-400 text-sm">
-              {canCreate ? 'Manage speakers, artists, and presenters' : 'Speakers, artists, and presenters at this event'}
+              {canCreate
+                ? 'Manage speakers, artists, and presenters'
+                : 'Speakers, artists, and presenters at this event'}
             </p>
           </div>
         </div>
         {canCreate && !isAddingMember && (
-          <Button onClick={() => setIsAddingMember(true)} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold">
-            <Plus size={16} className="mr-2" />
-            Add to Line-up
+          <Button
+            onClick={() => setIsAddingMember(true)}
+            className={`${EVENT_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
+          >
+            <Plus size={16} className="flex-shrink-0" />
+            <span className="whitespace-nowrap">Add to Line-up</span>
           </Button>
         )}
       </div>
@@ -154,17 +174,60 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-medium text-white">Add to Line-up</h3>
-              <Button onClick={() => { setIsAddingMember(false); setNewMember({ name: '', title: '', company: '', bio: '' }); }} variant="ghost" size="sm">Cancel</Button>
+              <Button
+                onClick={() => {
+                  setIsAddingMember(false);
+                  setNewMember({ name: '', title: '', company: '', bio: '' });
+                }}
+                variant="ghost"
+                size="sm"
+              >
+                Cancel
+              </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Input value={newMember.name} onChange={(e) => setNewMember(prev => ({ ...prev, name: e.target.value }))} placeholder="Name *" className="bg-gray-900 border-gray-700 text-white" />
-              <Input value={newMember.title} onChange={(e) => setNewMember(prev => ({ ...prev, title: e.target.value }))} placeholder="Title (e.g., CEO, Keynote Speaker)" className="bg-gray-900 border-gray-700 text-white" />
-              <Input value={newMember.company} onChange={(e) => setNewMember(prev => ({ ...prev, company: e.target.value }))} placeholder="Company/Organization" className="bg-gray-900 border-gray-700 text-white md:col-span-2" />
+              <Input
+                value={newMember.name}
+                onChange={e => setNewMember(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Name *"
+                className="bg-gray-900 border-gray-700 text-white"
+              />
+              <Input
+                value={newMember.title}
+                onChange={e => setNewMember(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Title (e.g., CEO, Keynote Speaker)"
+                className="bg-gray-900 border-gray-700 text-white"
+              />
+              <Input
+                value={newMember.company}
+                onChange={e => setNewMember(prev => ({ ...prev, company: e.target.value }))}
+                placeholder="Company/Organization"
+                className="bg-gray-900 border-gray-700 text-white md:col-span-2"
+              />
             </div>
-            <Textarea value={newMember.bio} onChange={(e) => setNewMember(prev => ({ ...prev, bio: e.target.value }))} placeholder="Bio (optional)" className="bg-gray-900 border-gray-700 text-white" rows={2} />
+            <Textarea
+              value={newMember.bio}
+              onChange={e => setNewMember(prev => ({ ...prev, bio: e.target.value }))}
+              placeholder="Bio (optional)"
+              className="bg-gray-900 border-gray-700 text-white"
+              rows={2}
+            />
             <div className="flex gap-2 justify-end">
-              <Button onClick={() => { setIsAddingMember(false); setNewMember({ name: '', title: '', company: '', bio: '' }); }} variant="ghost">Cancel</Button>
-              <Button onClick={handleAddMember} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold">Add to Line-up</Button>
+              <Button
+                onClick={() => {
+                  setIsAddingMember(false);
+                  setNewMember({ name: '', title: '', company: '', bio: '' });
+                }}
+                variant="ghost"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddMember}
+                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
+              >
+                Add to Line-up
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -173,15 +236,20 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
       {/* Search */}
       <div className="relative">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by name, title, or company..." className="pl-10 bg-gray-800/50 border-gray-700 text-white" />
+        <Input
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search by name, title, or company..."
+          className="pl-10 bg-gray-800/50 border-gray-700 text-white"
+        />
       </div>
 
       {/* Speakers Grid */}
       {filteredMembers.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredMembers.map(speaker => (
-            <Card 
-              key={speaker.id} 
+            <Card
+              key={speaker.id}
               className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors cursor-pointer relative group"
               onClick={() => setSelectedMember(speaker)}
             >
@@ -189,27 +257,51 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
                 <div className="flex items-start gap-3">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {speaker.avatar ? (
-                      <img src={speaker.avatar} alt={speaker.name} className="w-full h-full object-cover" />
+                      <img
+                        src={speaker.avatar}
+                        alt={speaker.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <Mic size={20} className="text-white" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-white font-medium truncate">{speaker.name}</h3>
-                    {speaker.title && <p className="text-gray-400 text-sm truncate">{speaker.title}</p>}
-                    {speaker.company && <p className="text-yellow-500 text-xs truncate">{speaker.company}</p>}
+                    {speaker.title && (
+                      <p className="text-gray-400 text-sm truncate">{speaker.title}</p>
+                    )}
+                    {speaker.company && (
+                      <p className="text-yellow-500 text-xs truncate">{speaker.company}</p>
+                    )}
                   </div>
                 </div>
                 {/* Admin controls overlay */}
                 {(canEdit || canDelete) && (
                   <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {canEdit && (
-                      <Button onClick={(e) => { e.stopPropagation(); handleEditMember(speaker); }} variant="ghost" size="icon" className="h-7 w-7 bg-gray-900/80 text-gray-400 hover:text-white">
+                      <Button
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleEditMember(speaker);
+                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 bg-gray-900/80 text-gray-400 hover:text-white"
+                      >
                         <Edit2 size={12} />
                       </Button>
                     )}
                     {canDelete && (
-                      <Button onClick={(e) => { e.stopPropagation(); handleDeleteMember(speaker.id); }} variant="ghost" size="icon" className="h-7 w-7 bg-gray-900/80 text-red-400 hover:text-red-300">
+                      <Button
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleDeleteMember(speaker.id);
+                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 bg-gray-900/80 text-red-400 hover:text-red-300"
+                      >
                         <Trash2 size={12} />
                       </Button>
                     )}
@@ -225,7 +317,9 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
             <Users size={48} className="text-gray-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">No Line-up Yet</h3>
             <p className="text-gray-400 mb-4">
-              {canCreate ? 'Add speakers, artists, or presenters to your event line-up' : 'Speakers and performers will be announced soon'}
+              {canCreate
+                ? 'Add speakers, artists, or presenters to your event line-up'
+                : 'Speakers and performers will be announced soon'}
             </p>
           </CardContent>
         </Card>
@@ -240,22 +334,58 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
 
       {/* Edit Member Modal */}
       {editingMemberId && canEdit && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setEditingMemberId(null)}>
-          <Card className="bg-gray-900 border-gray-700 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setEditingMemberId(null)}
+        >
+          <Card
+            className="bg-gray-900 border-gray-700 max-w-lg w-full"
+            onClick={e => e.stopPropagation()}
+          >
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">Edit Line-up Member</h3>
-                <Button onClick={() => setEditingMemberId(null)} variant="ghost" size="sm"><X size={20} /></Button>
+                <Button onClick={() => setEditingMemberId(null)} variant="ghost" size="sm">
+                  <X size={20} />
+                </Button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Input value={editMember.name} onChange={(e) => setEditMember(prev => ({ ...prev, name: e.target.value }))} placeholder="Name *" className="bg-gray-800 border-gray-700 text-white" />
-                <Input value={editMember.title} onChange={(e) => setEditMember(prev => ({ ...prev, title: e.target.value }))} placeholder="Title" className="bg-gray-800 border-gray-700 text-white" />
-                <Input value={editMember.company} onChange={(e) => setEditMember(prev => ({ ...prev, company: e.target.value }))} placeholder="Company/Organization" className="bg-gray-800 border-gray-700 text-white md:col-span-2" />
+                <Input
+                  value={editMember.name}
+                  onChange={e => setEditMember(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Name *"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
+                <Input
+                  value={editMember.title}
+                  onChange={e => setEditMember(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Title"
+                  className="bg-gray-800 border-gray-700 text-white"
+                />
+                <Input
+                  value={editMember.company}
+                  onChange={e => setEditMember(prev => ({ ...prev, company: e.target.value }))}
+                  placeholder="Company/Organization"
+                  className="bg-gray-800 border-gray-700 text-white md:col-span-2"
+                />
               </div>
-              <Textarea value={editMember.bio} onChange={(e) => setEditMember(prev => ({ ...prev, bio: e.target.value }))} placeholder="Bio (optional)" className="bg-gray-800 border-gray-700 text-white" rows={3} />
+              <Textarea
+                value={editMember.bio}
+                onChange={e => setEditMember(prev => ({ ...prev, bio: e.target.value }))}
+                placeholder="Bio (optional)"
+                className="bg-gray-800 border-gray-700 text-white"
+                rows={3}
+              />
               <div className="flex gap-2 justify-end">
-                <Button onClick={() => setEditingMemberId(null)} variant="ghost">Cancel</Button>
-                <Button onClick={() => handleUpdateMember(editingMemberId)} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold">Save Changes</Button>
+                <Button onClick={() => setEditingMemberId(null)} variant="ghost">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleUpdateMember(editingMemberId)}
+                  className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
+                >
+                  Save Changes
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -263,7 +393,12 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
       )}
 
       {/* Read-Only Speaker Session Detail Modal */}
-      <Dialog open={!!selectedMember && !editingMemberId} onOpenChange={(open) => { if (!open) setSelectedMember(null); }}>
+      <Dialog
+        open={!!selectedMember && !editingMemberId}
+        onOpenChange={open => {
+          if (!open) setSelectedMember(null);
+        }}
+      >
         <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-lg max-h-[80vh] overflow-y-auto">
           {selectedMember && (
             <>
@@ -271,15 +406,23 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {selectedMember.avatar ? (
-                      <img src={selectedMember.avatar} alt={selectedMember.name} className="w-full h-full object-cover" />
+                      <img
+                        src={selectedMember.avatar}
+                        alt={selectedMember.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <Mic size={28} className="text-white" />
                     )}
                   </div>
                   <div className="min-w-0">
                     <DialogTitle className="text-xl text-white">{selectedMember.name}</DialogTitle>
-                    {selectedMember.title && <p className="text-gray-400 mt-1">{selectedMember.title}</p>}
-                    {selectedMember.company && <p className="text-yellow-500 text-sm">{selectedMember.company}</p>}
+                    {selectedMember.title && (
+                      <p className="text-gray-400 mt-1">{selectedMember.title}</p>
+                    )}
+                    {selectedMember.company && (
+                      <p className="text-yellow-500 text-sm">{selectedMember.company}</p>
+                    )}
                   </div>
                 </div>
               </DialogHeader>
@@ -311,10 +454,14 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
                           <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-400">
                             <span className="flex items-center gap-1">
                               <Clock size={12} />
-                              {session.session_date && (() => {
-                                try { return format(parseISO(session.session_date), 'MMM d') + ' — '; }
-                                catch { return ''; }
-                              })()}
+                              {session.session_date &&
+                                (() => {
+                                  try {
+                                    return format(parseISO(session.session_date), 'MMM d') + ' — ';
+                                  } catch {
+                                    return '';
+                                  }
+                                })()}
                               {session.start_time}
                               {session.end_time && ` - ${session.end_time}`}
                             </span>
@@ -326,7 +473,9 @@ export const LineupTab = ({ eventId, permissions, agendaSessions = [], initialSp
                             )}
                           </div>
                           {session.description && (
-                            <p className="text-gray-500 text-xs mt-2 line-clamp-2">{session.description}</p>
+                            <p className="text-gray-500 text-xs mt-2 line-clamp-2">
+                              {session.description}
+                            </p>
                           )}
                         </CardContent>
                       </Card>

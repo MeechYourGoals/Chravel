@@ -14,3 +14,4 @@ should treat as current.
 - Deployment + production checklists
 - Security / compliance “current state”
 - Architecture decisions that are still true
+- UI system rules that prevent visual drift (for example: `UI_PARITY_GUIDELINES.md`)
