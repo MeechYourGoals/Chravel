@@ -9,6 +9,9 @@
 export const PARITY_ACTION_BUTTON_CLASS =
   'w-full min-h-[42px] px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200';
 
+// Use when a component needs parity size but custom radius/padding.
+export const PARITY_ACTION_BUTTON_SIZE_CLASS = 'w-full min-h-[42px] transition-all duration-200';
+
 // Consumer/Trip tabs (8 columns)
 export const TRIP_PARITY_ROW_CLASS = 'grid grid-cols-1 sm:grid-cols-8 gap-2 items-center';
 export const TRIP_PARITY_HEADER_SPAN_CLASS = 'sm:col-span-7';

@@ -20,7 +20,7 @@ import { TripRole } from '../../../types/roleChannels';
 import { useRoleAssignments } from '../../../hooks/useRoleAssignments';
 import { useTripAdmins } from '../../../hooks/useTripAdmins';
 import {
-  PARITY_ACTION_BUTTON_CLASS,
+  PARITY_ACTION_BUTTON_SIZE_CLASS,
   PRO_PARITY_COL_START,
   PRO_PARITY_ROW_CLASS,
 } from '@/lib/tabParity';
@@ -207,7 +207,7 @@ export const RolesView = ({
               className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
                 isMobile
                   ? 'min-h-[44px] justify-center text-xs'
-                  : `${PRO_PARITY_COL_START.media} ${PARITY_ACTION_BUTTON_CLASS} rounded-full px-2.5 text-xs lg:text-sm`
+                  : `${PRO_PARITY_COL_START.media} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
               }`}
             >
               <UserPlus className="w-4 h-4 mr-1" />
@@ -220,7 +220,7 @@ export const RolesView = ({
               className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
                 isMobile
                   ? 'min-h-[44px] justify-center text-xs'
-                  : `${PRO_PARITY_COL_START.payments} ${PARITY_ACTION_BUTTON_CLASS} rounded-full px-2.5 text-xs lg:text-sm`
+                  : `${PRO_PARITY_COL_START.payments} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
               }`}
               title="Manage roles, assignments, and admins"
             >
@@ -234,7 +234,7 @@ export const RolesView = ({
               className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
                 isMobile
                   ? 'min-h-[44px] justify-center text-xs'
-                  : `${PRO_PARITY_COL_START.places} ${PARITY_ACTION_BUTTON_CLASS} rounded-full px-2.5 text-xs lg:text-sm`
+                  : `${PRO_PARITY_COL_START.places} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
               }`}
               title="View join requests"
             >

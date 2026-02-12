@@ -212,11 +212,13 @@ export const AgendaModal = ({
   };
 
   const isPdfFile = pdfUrl?.toLowerCase().endsWith('.pdf') || pdfUrl?.includes('application/pdf');
+  const showAdminActions = showAdminControls && !isAddingSession;
+  const showActionRow = Boolean(onClose) || showAdminActions;
 
   return (
     <div className="flex flex-col h-full">
       {/* Action Row - tab-width parity with Event tabs */}
-      {showAdminControls && !isAddingSession && (
+      {showActionRow && (
         <div className="mb-4">
           <div className={EVENT_PARITY_ROW_CLASS}>
             {onClose && (
@@ -229,43 +231,47 @@ export const AgendaModal = ({
                 <X size={18} />
               </Button>
             )}
-            <Button
-              onClick={() => setShowImportModal(true)}
-              variant="outline"
-              className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
-            >
-              <Sparkles size={16} className="flex-shrink-0" />
-              <span className="whitespace-nowrap">Import Agenda</span>
-            </Button>
-            <Button
-              onClick={() => setIsAddingSession(true)}
-              className={`${EVENT_PARITY_COL_START.chat} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
-            >
-              <Plus size={16} className="flex-shrink-0" />
-              <span className="whitespace-nowrap">Add Session</span>
-            </Button>
-            {canUpload && (
-              <label className={`${EVENT_PARITY_COL_START.tasks} w-full`}>
-                <input
-                  type="file"
-                  accept=".pdf,image/jpeg,image/png,image/jpg"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  disabled={isUploadingFile}
-                />
+            {showAdminActions && (
+              <>
                 <Button
-                  asChild
-                  className={`${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black cursor-pointer`}
-                  disabled={isUploadingFile}
+                  onClick={() => setShowImportModal(true)}
+                  variant="outline"
+                  className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
                 >
-                  <span>
-                    <Upload size={16} className="flex-shrink-0" />
-                    <span className="whitespace-nowrap">
-                      {isUploadingFile ? 'Uploading...' : 'Upload'}
-                    </span>
-                  </span>
+                  <Sparkles size={16} className="flex-shrink-0" />
+                  <span className="whitespace-nowrap">Import Agenda</span>
                 </Button>
-              </label>
+                <Button
+                  onClick={() => setIsAddingSession(true)}
+                  className={`${EVENT_PARITY_COL_START.chat} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
+                >
+                  <Plus size={16} className="flex-shrink-0" />
+                  <span className="whitespace-nowrap">Add Session</span>
+                </Button>
+                {canUpload && (
+                  <label className={`${EVENT_PARITY_COL_START.tasks} w-full`}>
+                    <input
+                      type="file"
+                      accept=".pdf,image/jpeg,image/png,image/jpg"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      disabled={isUploadingFile}
+                    />
+                    <Button
+                      asChild
+                      className={`${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black cursor-pointer`}
+                      disabled={isUploadingFile}
+                    >
+                      <span>
+                        <Upload size={16} className="flex-shrink-0" />
+                        <span className="whitespace-nowrap">
+                          {isUploadingFile ? 'Uploading...' : 'Upload'}
+                        </span>
+                      </span>
+                    </Button>
+                  </label>
+                )}
+              </>
             )}
           </div>
         </div>
