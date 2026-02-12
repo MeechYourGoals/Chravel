@@ -907,7 +907,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           },
           { onConflict: 'user_id' },
         )
-        .select('*')
+        // IMPORTANT:
+        // We intentionally avoid selecting `email`/`phone` from `public.profiles` because those columns
+        // are protected via column-level privileges; contact info should be accessed via `profiles_public`.
+        .select('display_name, first_name, last_name, avatar_url, bio, show_email, show_phone')
         .single();
 
       if (error) {
