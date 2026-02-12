@@ -508,6 +508,7 @@ export const ProTripDetailDesktop = () => {
                 participants: tripData.participants,
                 created_by: actualCreatorId,
                 trip_type: 'pro',
+                coverPhoto: tripData.coverPhoto,
               }}
               category={tripData.proTripCategory as ProTripCategory}
               tags={tripData.tags}
