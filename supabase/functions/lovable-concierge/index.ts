@@ -84,7 +84,13 @@ const LovableConciergeSchema = z.object({
 });
 
 const TRIP_SCOPED_QUERY_PATTERN =
-  /\b(trip|itinerary|schedule|calendar|event|dinner|lunch|breakfast|reservation|basecamp|hotel|flight|task|todo|payment|owe|expense|poll|vote|chat|message|broadcast|address|meeting|check[- ]?in|check[- ]?out)\b/i;
+  /\b(trip|itinerary|schedule|calendar|event|dinner|lunch|breakfast|reservation|basecamp|hotel|flight|task|todo|payment|owe|expense|poll|vote|chat|message|broadcast|address|meeting|check[- ]?in|check[- ]?out|plan|agenda|logistics)\b/i;
+
+const ARTIFACT_QUERY_PATTERN =
+  /\b(upload|uploaded|document|documents|doc|docs|pdf|file|files|attachment|attachments|link|links|receipt|receipts|invoice|invoices|image|images|photo|photos|media|transcript|note|notes|summary|summarize|summarise)\b/i;
+
+const CLEARLY_GENERAL_QUERY_PATTERN =
+  /\b(nba|nfl|mlb|nhl|premier league|fifa|stock market|bitcoin|ethereum|crypto price|leetcode|algorithm interview|capital of|define |what is photosynthesis|solve for x)\b/i;
 
 function shouldRunRAGRetrieval(query: string, tripId: string): boolean {
   if (!tripId || tripId === 'unknown') return false;
@@ -92,7 +98,15 @@ function shouldRunRAGRetrieval(query: string, tripId: string): boolean {
   const normalizedQuery = query.trim();
   if (normalizedQuery.length < 6) return false;
 
-  return TRIP_SCOPED_QUERY_PATTERN.test(normalizedQuery);
+  // Always retrieve for trip-scoped and uploaded-content prompts.
+  if (TRIP_SCOPED_QUERY_PATTERN.test(normalizedQuery)) return true;
+  if (ARTIFACT_QUERY_PATTERN.test(normalizedQuery)) return true;
+
+  // Only skip retrieval when query is clearly unrelated to trip context.
+  if (CLEARLY_GENERAL_QUERY_PATTERN.test(normalizedQuery)) return false;
+
+  // Default to retrieval to avoid missing relevant kb_chunks context.
+  return true;
 }
 
 serve(async req => {
