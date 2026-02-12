@@ -26,6 +26,8 @@ interface UserProfile {
   id: string;
   user_id: string;
   display_name: string | null;
+  real_name: string | null;
+  name_preference: 'real' | 'display' | null;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
@@ -40,6 +42,8 @@ interface User {
   email?: string;
   phone?: string;
   displayName: string;
+  realName?: string;
+  namePreference: 'real' | 'display';
   hasCompletedProfileSetup: boolean;
   firstName?: string;
   lastName?: string;
@@ -116,6 +120,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email: 'demo@chravel.com',
       phone: undefined,
       displayName: 'Demo User',
+      realName: undefined,
+      namePreference: 'display',
       hasCompletedProfileSetup: true,
       firstName: 'Demo',
       lastName: 'User',
@@ -188,7 +194,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from('profiles')
         .select(
-          'id, user_id, display_name, first_name, last_name, avatar_url, bio, show_email, show_phone, ' +
+          'id, user_id, display_name, real_name, name_preference, first_name, last_name, avatar_url, bio, phone, show_email, show_phone, ' +
             'notification_settings, timezone, app_role, role, subscription_status, subscription_product_id, ' +
             'subscription_end, free_pro_trips_used, free_pro_trip_limit, free_events_used, free_event_limit, ' +
             'created_at, updated_at',
@@ -358,8 +364,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return {
         id: supabaseUser.id,
         email: supabaseUser.email,
-        phone: supabaseUser.phone,
+        phone: userProfile?.phone ?? supabaseUser.phone,
         displayName: userProfile?.display_name || supabaseUser.email || 'User',
+        realName: userProfile?.real_name ?? undefined,
+        namePreference: (userProfile?.name_preference === 'real' ? 'real' : 'display') as
+          | 'real'
+          | 'display',
         hasCompletedProfileSetup,
         firstName: userProfile?.first_name || '',
         lastName: userProfile?.last_name || '',
@@ -922,6 +932,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Prefer returned row to avoid local/remote drift.
       if (data) {
         updatedUser.displayName = data.display_name ?? updatedUser.displayName;
+        updatedUser.realName = data.real_name ?? updatedUser.realName;
+        updatedUser.namePreference =
+          (data.name_preference === 'real' ? 'real' : 'display') ?? updatedUser.namePreference;
         updatedUser.firstName = data.first_name ?? updatedUser.firstName;
         updatedUser.lastName = data.last_name ?? updatedUser.lastName;
         updatedUser.avatar = data.avatar_url ?? updatedUser.avatar;
@@ -931,6 +944,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         updatedUser.showPhone = data.show_phone ?? updatedUser.showPhone;
       } else {
         if (updates.display_name) updatedUser.displayName = updates.display_name;
+        if (updates.real_name !== undefined) updatedUser.realName = updates.real_name ?? undefined;
+        if (updates.name_preference !== undefined)
+          updatedUser.namePreference = updates.name_preference === 'real' ? 'real' : 'display';
         if (updates.first_name) updatedUser.firstName = updates.first_name;
         if (updates.last_name) updatedUser.lastName = updates.last_name;
         if (updates.avatar_url) updatedUser.avatar = updates.avatar_url;

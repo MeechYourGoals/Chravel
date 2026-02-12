@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { DataExportSection } from '../settings/DataExportSection';
@@ -16,15 +15,15 @@ export const ConsumerPrivacySection = () => {
     sharePhoneNumber: false,
   });
 
-  // Load settings from profile
+  // Load settings from profile - name_preference drives Use Real Name / Use Display Name Only
   useEffect(() => {
     if (user) {
-      // show_phone from profiles table indicates sharing preference
+      const useReal = user.namePreference === 'real';
       setSettings(prev => ({
         ...prev,
         sharePhoneNumber: user.showPhone || false,
-        useDisplayNameOnly: !user.showEmail,
-        useRealName: user.showEmail || false,
+        useRealName: useReal,
+        useDisplayNameOnly: !useReal,
       }));
     }
   }, [user]);
@@ -32,7 +31,7 @@ export const ConsumerPrivacySection = () => {
   const handleToggle = async (setting: keyof typeof settings) => {
     const newValue = !settings[setting];
 
-    // Handle mutually exclusive toggles for display name
+    // Handle mutually exclusive toggles for display name (radio behavior)
     let updatedSettings = { ...settings };
 
     if (setting === 'useRealName') {
@@ -61,10 +60,10 @@ export const ConsumerPrivacySection = () => {
     // Persist to database
     if (user?.id) {
       try {
-        const updates: any = {};
+        const updates: { name_preference?: 'real' | 'display'; show_phone?: boolean } = {};
 
         if (setting === 'useRealName' || setting === 'useDisplayNameOnly') {
-          updates.show_email = updatedSettings.useRealName;
+          updates.name_preference = updatedSettings.useRealName ? 'real' : 'display';
         }
         if (setting === 'sharePhoneNumber') {
           updates.show_phone = newValue;

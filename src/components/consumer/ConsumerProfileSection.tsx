@@ -13,6 +13,7 @@ export const ConsumerProfileSection = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Local state for form fields
+  const [realName, setRealName] = useState(user?.realName || '');
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
@@ -21,6 +22,7 @@ export const ConsumerProfileSection = () => {
   // Initialize state when user loads
   useEffect(() => {
     if (user) {
+      setRealName(user.realName || '');
       setDisplayName(user.displayName || '');
       setPhone(user.phone || '');
     }
@@ -31,6 +33,8 @@ export const ConsumerProfileSection = () => {
     id: 'demo-user-123',
     email: 'demo@example.com',
     displayName: 'Demo User',
+    realName: undefined as string | undefined,
+    namePreference: 'display' as const,
     avatar: getConsistentAvatar('Demo User'),
   };
 
@@ -52,7 +56,8 @@ export const ConsumerProfileSection = () => {
     try {
       // Canonical identity lives in `profiles` (via useAuth.updateProfile upsert).
       const { error } = await updateProfile({
-        display_name: displayName,
+        real_name: realName.trim() || null,
+        display_name: displayName.trim() || null,
         phone: phone || null,
       });
 
@@ -232,19 +237,22 @@ export const ConsumerProfileSection = () => {
         </div>
       </div>
 
-      {/* Personal Information */}
+      {/* Personal Information - 2x2 grid: Real Name | Email, Display Name | Phone */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-3">
         <h4 className="text-base font-semibold text-white mb-2">Personal Information</h4>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-1.5">Display Name</label>
+            <label className="block text-sm text-gray-300 mb-1.5">Real Name</label>
             <input
               type="text"
-              value={displayName}
-              onChange={e => setDisplayName(e.target.value)}
+              value={realName}
+              onChange={e => setRealName(e.target.value)}
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
-              placeholder="Enter your display name"
+              placeholder="Enter your real name"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Used when you choose to show your real name.
+            </p>
           </div>
           <div>
             <label className="block text-sm text-gray-300 mb-1.5">Email</label>
@@ -255,23 +263,35 @@ export const ConsumerProfileSection = () => {
               className="w-full bg-gray-700/50 border border-gray-600 text-gray-400 rounded-lg px-4 py-2 cursor-not-allowed"
             />
           </div>
-        </div>
-
-        <div className="mt-3">
-          <label className="block text-sm text-gray-300 mb-1.5 flex items-center gap-2">
-            <Phone size={14} />
-            Phone Number
-          </label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={e => setPhone(e.target.value)}
-            className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
-            placeholder="+1 (555) 123-4567"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Used for SMS notifications and trip member contact (if enabled in Privacy settings)
-          </p>
+          <div>
+            <label className="block text-sm text-gray-300 mb-1.5">Display Name</label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              placeholder="Nickname or role (e.g., Tour Manager, Security)"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Can be a nickname or role (e.g., Tour Manager, Security, Photographer).
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-300 mb-1.5 flex items-center gap-2">
+              <Phone size={14} />
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              placeholder="+1 (555) 123-4567"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Used for SMS and direct contact if sharing is enabled.
+            </p>
+          </div>
         </div>
 
         {/* Save Button */}
