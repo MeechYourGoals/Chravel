@@ -11,6 +11,12 @@ import {
   TRIP_PARITY_COL_START,
   TRIP_PARITY_HEADER_SPAN_CLASS,
   TRIP_PARITY_ROW_CLASS,
+  PRO_PARITY_ROW_CLASS,
+  PRO_PARITY_COL_START,
+  PRO_PARITY_HEADER_SPAN_CLASS,
+  EVENT_PARITY_ROW_CLASS,
+  EVENT_PARITY_COL_START,
+  EVENT_PARITY_HEADER_SPAN_CLASS,
 } from '@/lib/tabParity';
 
 interface PollPermissions {
@@ -28,7 +34,7 @@ interface CommentsWallProps {
 
 export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
   const [showCreatePoll, setShowCreatePoll] = useState(false);
-  const { accentColors } = useTripVariant();
+  const { variant, accentColors } = useTripVariant();
   const queryClient = useQueryClient();
 
   const handleRefresh = useCallback(async () => {
@@ -60,9 +66,9 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         />
       )}
       {/* Row 1: Header + Create Poll Button */}
-      <div className={TRIP_PARITY_ROW_CLASS}>
+      <div className={variant === 'pro' ? PRO_PARITY_ROW_CLASS : variant === 'events' ? EVENT_PARITY_ROW_CLASS : TRIP_PARITY_ROW_CLASS}>
         <h3
-          className={`text-base font-semibold text-white flex items-center gap-2 ${TRIP_PARITY_HEADER_SPAN_CLASS}`}
+          className={`text-base font-semibold text-white flex items-center gap-2 ${variant === 'pro' ? PRO_PARITY_HEADER_SPAN_CLASS : variant === 'events' ? EVENT_PARITY_HEADER_SPAN_CLASS : TRIP_PARITY_HEADER_SPAN_CLASS}`}
         >
           <MessageCircle size={18} className="text-glass-enterprise-blue" />
           Group Polls
@@ -70,7 +76,7 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         {effectivePermissions.canCreate && (
           <Button
             onClick={() => setShowCreatePoll(true)}
-            className={`${TRIP_PARITY_COL_START.polls} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg`}
+            className={`${variant === 'pro' ? PRO_PARITY_COL_START.polls : variant === 'events' ? EVENT_PARITY_COL_START.polls : TRIP_PARITY_COL_START.polls} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg`}
           >
             <Plus size={14} className="flex-shrink-0" />
             <span className="whitespace-nowrap">New Poll</span>

@@ -14,6 +14,12 @@ import {
   TRIP_PARITY_COL_START,
   TRIP_PARITY_HEADER_SPAN_CLASS,
   TRIP_PARITY_ROW_CLASS,
+  PRO_PARITY_ROW_CLASS,
+  PRO_PARITY_COL_START,
+  PRO_PARITY_HEADER_SPAN_CLASS,
+  EVENT_PARITY_ROW_CLASS,
+  EVENT_PARITY_COL_START,
+  EVENT_PARITY_HEADER_SPAN_CLASS,
 } from '@/lib/tabParity';
 
 interface TripTasksTabProps {
@@ -24,7 +30,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
   const { toast } = useToast();
-  const { accentColors } = useTripVariant();
+  const { variant, accentColors } = useTripVariant();
   const {
     tasks,
     isLoading,
@@ -123,13 +129,13 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   return (
     <div className="space-y-6">
       {/* Header - Title Row */}
-      <div className={TRIP_PARITY_ROW_CLASS}>
-        <h2 className={`text-xl font-semibold text-white ${TRIP_PARITY_HEADER_SPAN_CLASS}`}>
+      <div className={variant === 'pro' ? PRO_PARITY_ROW_CLASS : variant === 'events' ? EVENT_PARITY_ROW_CLASS : TRIP_PARITY_ROW_CLASS}>
+        <h2 className={`text-xl font-semibold text-white ${variant === 'pro' ? PRO_PARITY_HEADER_SPAN_CLASS : variant === 'events' ? EVENT_PARITY_HEADER_SPAN_CLASS : TRIP_PARITY_HEADER_SPAN_CLASS}`}>
           Tasks
         </h2>
         <Button
           onClick={() => setShowCreateModal(true)}
-          className={`${TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
+          className={`${variant === 'pro' ? PRO_PARITY_COL_START.tasks : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
         >
           <Plus size={16} className="flex-shrink-0" />
           <span className="whitespace-nowrap">Add Task</span>
