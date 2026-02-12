@@ -26,6 +26,11 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { EventAgendaItem } from '@/types/events';
 import { format, parseISO } from 'date-fns';
+import {
+  EVENT_PARITY_COL_START,
+  EVENT_PARITY_ROW_CLASS,
+  PARITY_ACTION_BUTTON_CLASS,
+} from '@/lib/tabParity';
 
 interface AgendaPermissions {
   canView: boolean;
@@ -213,13 +218,13 @@ export const AgendaModal = ({
       {/* Action Row - tab-width parity with Event tabs */}
       {showAdminControls && !isAddingSession && (
         <div className="mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-center">
+          <div className={EVENT_PARITY_ROW_CLASS}>
             {onClose && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="md:col-start-1 h-10 w-10 rounded-xl"
+                className={`${EVENT_PARITY_COL_START.agenda} h-10 w-10 rounded-xl`}
               >
                 <X size={18} />
               </Button>
@@ -227,20 +232,20 @@ export const AgendaModal = ({
             <Button
               onClick={() => setShowImportModal(true)}
               variant="outline"
-              className="md:col-start-2 w-full min-h-[42px] px-3.5 py-2.5 rounded-xl font-medium text-sm border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+              className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
             >
               <Sparkles size={16} className="flex-shrink-0" />
               <span className="whitespace-nowrap">Import Agenda</span>
             </Button>
             <Button
               onClick={() => setIsAddingSession(true)}
-              className="md:col-start-3 w-full min-h-[42px] px-3.5 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black transition-all duration-200"
+              className={`${EVENT_PARITY_COL_START.chat} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
             >
               <Plus size={16} className="flex-shrink-0" />
               <span className="whitespace-nowrap">Add Session</span>
             </Button>
             {canUpload && (
-              <label className="md:col-start-7 w-full">
+              <label className={`${EVENT_PARITY_COL_START.tasks} w-full`}>
                 <input
                   type="file"
                   accept=".pdf,image/jpeg,image/png,image/jpg"
@@ -250,7 +255,7 @@ export const AgendaModal = ({
                 />
                 <Button
                   asChild
-                  className="w-full min-h-[42px] px-3.5 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black cursor-pointer transition-all duration-200"
+                  className={`${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black cursor-pointer`}
                   disabled={isUploadingFile}
                 >
                   <span>

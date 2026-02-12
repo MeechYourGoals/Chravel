@@ -9,6 +9,12 @@ import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useToast } from '@/hooks/use-toast';
+import {
+  PARITY_ACTION_BUTTON_CLASS,
+  TRIP_PARITY_COL_START,
+  TRIP_PARITY_HEADER_SPAN_CLASS,
+  TRIP_PARITY_ROW_CLASS,
+} from '@/lib/tabParity';
 
 interface TripTasksTabProps {
   tripId: string;
@@ -117,11 +123,13 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   return (
     <div className="space-y-6">
       {/* Header - Title Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-8 gap-2 items-center">
-        <h2 className="text-xl font-semibold text-white sm:col-span-7">Tasks</h2>
+      <div className={TRIP_PARITY_ROW_CLASS}>
+        <h2 className={`text-xl font-semibold text-white ${TRIP_PARITY_HEADER_SPAN_CLASS}`}>
+          Tasks
+        </h2>
         <Button
           onClick={() => setShowCreateModal(true)}
-          className={`sm:col-span-1 w-full min-h-[42px] px-3.5 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 transition-all duration-200`}
+          className={`${TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
         >
           <Plus size={16} className="flex-shrink-0" />
           <span className="whitespace-nowrap">Add Task</span>

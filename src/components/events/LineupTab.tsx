@@ -12,6 +12,12 @@ import { useEventLineup } from '@/hooks/useEventLineup';
 import type { Speaker, EventAgendaItem } from '../../types/events';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { format, parseISO } from 'date-fns';
+import {
+  EVENT_PARITY_COL_START,
+  EVENT_PARITY_HEADER_SPAN_CLASS,
+  EVENT_PARITY_ROW_CLASS,
+  PARITY_ACTION_BUTTON_CLASS,
+} from '@/lib/tabParity';
 
 interface LineupPermissions {
   canView: boolean;
@@ -139,8 +145,8 @@ export const LineupTab = ({
         />
       )}
       {/* Header */}
-      <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-start">
-        <div className="flex items-center gap-3 md:col-span-6">
+      <div className={`${EVENT_PARITY_ROW_CLASS} items-start`}>
+        <div className={`flex items-center gap-3 ${EVENT_PARITY_HEADER_SPAN_CLASS}`}>
           <Users size={24} className="text-yellow-500" />
           <div>
             <h2 className="text-xl font-semibold text-white">Line-up</h2>
@@ -154,7 +160,7 @@ export const LineupTab = ({
         {canCreate && !isAddingMember && (
           <Button
             onClick={() => setIsAddingMember(true)}
-            className="md:col-start-7 w-full min-h-[42px] px-3.5 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black transition-all duration-200"
+            className={`${EVENT_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
           >
             <Plus size={16} className="flex-shrink-0" />
             <span className="whitespace-nowrap">Add to Line-up</span>

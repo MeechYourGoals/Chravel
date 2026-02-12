@@ -19,6 +19,11 @@ import { RoleManagerDialog } from '../admin/RoleManagerDialog';
 import { TripRole } from '../../../types/roleChannels';
 import { useRoleAssignments } from '../../../hooks/useRoleAssignments';
 import { useTripAdmins } from '../../../hooks/useTripAdmins';
+import {
+  PARITY_ACTION_BUTTON_CLASS,
+  PRO_PARITY_COL_START,
+  PRO_PARITY_ROW_CLASS,
+} from '@/lib/tabParity';
 
 interface RolesViewProps {
   roster: ProParticipant[];
@@ -193,11 +198,7 @@ export const RolesView = ({
 
         {/* Row 2: Consolidated Admin Action Buttons (3 buttons) - Mobile optimized */}
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
-          <div
-            className={`${
-              isMobile ? 'flex flex-col gap-2' : 'grid grid-cols-9 gap-2 items-center'
-            } mb-3`}
-          >
+          <div className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}>
             <Button
               onClick={onCreateRole}
               disabled={adminLoading || isLoadingRoles}
@@ -206,7 +207,7 @@ export const RolesView = ({
               className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
                 isMobile
                   ? 'min-h-[44px] justify-center text-xs'
-                  : 'col-start-4 w-full min-h-[42px] px-2.5 text-xs lg:text-sm'
+                  : `${PRO_PARITY_COL_START.media} ${PARITY_ACTION_BUTTON_CLASS} rounded-full px-2.5 text-xs lg:text-sm`
               }`}
             >
               <UserPlus className="w-4 h-4 mr-1" />
@@ -219,7 +220,7 @@ export const RolesView = ({
               className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
                 isMobile
                   ? 'min-h-[44px] justify-center text-xs'
-                  : 'col-start-5 w-full min-h-[42px] px-2.5 text-xs lg:text-sm'
+                  : `${PRO_PARITY_COL_START.payments} ${PARITY_ACTION_BUTTON_CLASS} rounded-full px-2.5 text-xs lg:text-sm`
               }`}
               title="Manage roles, assignments, and admins"
             >
@@ -233,7 +234,7 @@ export const RolesView = ({
               className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
                 isMobile
                   ? 'min-h-[44px] justify-center text-xs'
-                  : 'col-start-6 w-full min-h-[42px] px-2.5 text-xs lg:text-sm'
+                  : `${PRO_PARITY_COL_START.places} ${PARITY_ACTION_BUTTON_CLASS} rounded-full px-2.5 text-xs lg:text-sm`
               }`}
               title="View join requests"
             >
