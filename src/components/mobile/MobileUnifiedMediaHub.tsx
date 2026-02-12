@@ -396,7 +396,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
   }, [selectedTab]);
 
   const actionRight = useMemo(() => {
-    if (selectedTab === 'urls') return { label: 'Add Link', Icon: Link2 };
+    if (selectedTab === 'urls') return null;
     return { label: 'Upload', Icon: Upload };
   }, [selectedTab]);
 
@@ -583,7 +583,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
 
       {/* Action Buttons */}
       <div className="px-4 py-4 border-b border-white/10 safe-container">
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid ${actionRight ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
           <button
             onClick={openCapture}
             disabled={isUploading}
@@ -592,14 +592,16 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             {isUploading ? <Loader2 size={20} className="animate-spin" /> : <actionLeft.Icon size={20} />}
             <span>{actionLeft.label}</span>
           </button>
-          <button
-            onClick={openLibrary}
-            disabled={isUploading}
-            className="native-button flex items-center justify-center gap-2 bg-white/10 text-white px-4 py-3 rounded-xl font-medium backdrop-blur-sm disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isUploading ? <Loader2 size={20} className="animate-spin" /> : <actionRight.Icon size={20} />}
-            <span>{actionRight.label}</span>
-          </button>
+          {actionRight && (
+            <button
+              onClick={openLibrary}
+              disabled={isUploading}
+              className="native-button flex items-center justify-center gap-2 bg-white/10 text-white px-4 py-3 rounded-xl font-medium backdrop-blur-sm disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isUploading ? <Loader2 size={20} className="animate-spin" /> : <actionRight.Icon size={20} />}
+              <span>{actionRight.label}</span>
+            </button>
+          )}
         </div>
       </div>
 
