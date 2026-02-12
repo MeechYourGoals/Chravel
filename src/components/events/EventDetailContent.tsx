@@ -10,13 +10,21 @@ import { TripContext } from '@/types';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
-const TripChat = lazy(() => import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })));
-const GroupCalendar = lazy(() => import('../GroupCalendar').then(m => ({ default: m.GroupCalendar })));
-const UnifiedMediaHub = lazy(() => import('../UnifiedMediaHub').then(m => ({ default: m.UnifiedMediaHub })));
+const TripChat = lazy(() =>
+  import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })),
+);
+const GroupCalendar = lazy(() =>
+  import('../GroupCalendar').then(m => ({ default: m.GroupCalendar })),
+);
+const UnifiedMediaHub = lazy(() =>
+  import('../UnifiedMediaHub').then(m => ({ default: m.UnifiedMediaHub })),
+);
 const CommentsWall = lazy(() => import('../CommentsWall').then(m => ({ default: m.CommentsWall })));
 const AgendaModal = lazy(() => import('./AgendaModal').then(m => ({ default: m.AgendaModal })));
 const LineupTab = lazy(() => import('./LineupTab').then(m => ({ default: m.LineupTab })));
-const EventTasksTab = lazy(() => import('./EventTasksTab').then(m => ({ default: m.EventTasksTab })));
+const EventTasksTab = lazy(() =>
+  import('./EventTasksTab').then(m => ({ default: m.EventTasksTab })),
+);
 
 interface EventDetailContentProps {
   activeTab: string;
@@ -47,21 +55,34 @@ export const EventDetailContent = ({
   tripContext,
 }: EventDetailContentProps) => {
   const { accentColors } = useTripVariant();
-  const { eventPermissions, isOrganizer, isLoading: permissionsLoading } = useEventPermissions(tripId);
+  const {
+    eventPermissions,
+    isOrganizer,
+    isLoading: permissionsLoading,
+  } = useEventPermissions(tripId);
   const { isDemoMode } = useDemoMode();
 
   // DB-backed agenda & lineup hooks
-  const { sessions: agendaSessions } = useEventAgenda({ eventId: tripId, initialSessions: eventData.agenda });
-  const { addMembersFromAgenda } = useEventLineup({ eventId: tripId, initialMembers: eventData.speakers });
+  const { sessions: agendaSessions } = useEventAgenda({
+    eventId: tripId,
+    initialSessions: eventData.agenda,
+  });
+  const { addMembersFromAgenda } = useEventLineup({
+    eventId: tripId,
+    initialMembers: eventData.speakers,
+  });
 
   // Callback: auto-push agenda speakers to lineup DB
-  const handleLineupUpdate = useCallback(async (speakerNames: string[]) => {
-    try {
-      await addMembersFromAgenda(speakerNames);
-    } catch {
-      // Error handled by hook
-    }
-  }, [addMembersFromAgenda]);
+  const handleLineupUpdate = useCallback(
+    async (speakerNames: string[]) => {
+      try {
+        await addMembersFromAgenda(speakerNames);
+      } catch {
+        // Error handled by hook
+      }
+    },
+    [addMembersFromAgenda],
+  );
 
   const tabs = [
     { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true },
@@ -83,14 +104,15 @@ export const EventDetailContent = ({
             eventId={tripId}
             permissions={eventPermissions.agenda}
             initialSessions={eventData.agenda}
-            initialPdfUrl={eventData.pdfScheduleUrl}
             onLineupUpdate={handleLineupUpdate}
           />
         );
       case 'calendar':
         return <GroupCalendar tripId={tripId} />;
       case 'chat':
-        return <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />;
+        return (
+          <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />
+        );
       case 'media':
         return <UnifiedMediaHub tripId={tripId} />;
       case 'lineup':
@@ -112,7 +134,6 @@ export const EventDetailContent = ({
             eventId={tripId}
             permissions={eventPermissions.agenda}
             initialSessions={eventData.agenda}
-            initialPdfUrl={eventData.pdfScheduleUrl}
             onLineupUpdate={handleLineupUpdate}
           />
         );
@@ -142,9 +163,7 @@ export const EventDetailContent = ({
       </div>
 
       <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-320px)] md:max-h-[1000px] md:min-h-[500px] flex flex-col">
-        <Suspense fallback={<TabSkeleton />}>
-          {renderTabContent()}
-        </Suspense>
+        <Suspense fallback={<TabSkeleton />}>{renderTabContent()}</Suspense>
       </div>
     </>
   );

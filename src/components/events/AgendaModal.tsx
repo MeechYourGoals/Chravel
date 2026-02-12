@@ -48,10 +48,8 @@ interface AgendaModalProps {
   eventId: string;
   permissions: AgendaPermissions;
   initialSessions?: EventAgendaItem[];
-  initialPdfUrl?: string;
   onClose?: () => void;
   onLineupUpdate?: (speakerNames: string[]) => void;
-  existingLineup?: { name: string }[];
 }
 
 // Demo mode mock files
@@ -94,6 +92,7 @@ export const AgendaModal = ({
     isLoading: isLoadingFiles,
     isUploading,
     uploadError,
+    loadError,
     clearError,
     uploadFiles,
     deleteFile,
@@ -108,8 +107,7 @@ export const AgendaModal = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showImportModal, setShowImportModal] = useState(false);
-  const { pendingResult, startImport, clearResult, isBackgroundImporting } =
-    useBackgroundAgendaImport();
+  const { pendingResult, startImport, clearResult } = useBackgroundAgendaImport();
 
   // In demo mode, allow all management actions
   const canCreateSessions = isDemoMode || permissions.canCreate;
@@ -637,6 +635,14 @@ export const AgendaModal = ({
               <button onClick={clearError} className="text-red-400 hover:text-red-300">
                 <X size={14} />
               </button>
+            </div>
+          )}
+
+          {/* Load error */}
+          {loadError && !isDemoMode && (
+            <div className="mb-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-2">
+              <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-red-300 text-sm">{loadError}</p>
             </div>
           )}
 

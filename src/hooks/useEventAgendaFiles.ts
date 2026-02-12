@@ -4,6 +4,8 @@ import { getUploadContentType } from '@/utils/mime';
 import type { AgendaFile } from '@/types/events';
 
 const MAX_AGENDA_FILES = 5;
+const MAX_FILE_SIZE_MB = 25;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const VALID_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
 
 function getPrefix(eventId: string): string {
@@ -40,17 +42,25 @@ export function useEventAgendaFiles({ eventId, enabled = true }: UseEventAgendaF
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadFiles = useCallback(async () => {
     if (!eventId || !enabled) return;
     setIsLoading(true);
+    setLoadError(null);
 
     const prefix = getPrefix(eventId);
     const { data, error } = await supabase.storage
       .from('trip-media')
       .list(prefix, { sortBy: { column: 'created_at', order: 'asc' } });
 
-    if (error || !data) {
+    if (error) {
+      setLoadError(`Failed to load agenda files: ${error.message}`);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!data) {
       setIsLoading(false);
       return;
     }
@@ -94,12 +104,18 @@ export function useEventAgendaFiles({ eventId, enabled = true }: UseEventAgendaF
         return false;
       }
 
-      // Validate MIME types
+      // Validate MIME types and file size
       for (const file of newFiles) {
         const type = getUploadContentType(file);
         if (!VALID_MIME_TYPES.includes(type)) {
           setUploadError(
             `"${file.name}" is not supported. Only images (JPG, PNG, WebP) and PDFs are allowed.`,
+          );
+          return false;
+        }
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          setUploadError(
+            `"${file.name}" is too large (${formatFileSize(file.size)}). Maximum file size is ${MAX_FILE_SIZE_MB}MB.`,
           );
           return false;
         }
@@ -155,6 +171,7 @@ export function useEventAgendaFiles({ eventId, enabled = true }: UseEventAgendaF
     isLoading,
     isUploading,
     uploadError,
+    loadError,
     clearError,
     uploadFiles,
     deleteFile,

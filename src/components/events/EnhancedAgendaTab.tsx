@@ -37,9 +37,7 @@ import { format, parseISO } from 'date-fns';
 interface EnhancedAgendaTabProps {
   eventId: string;
   userRole: 'organizer' | 'attendee' | 'exhibitor';
-  pdfScheduleUrl?: string;
   onLineupUpdate?: (speakerNames: string[]) => void;
-  existingLineup?: { name: string }[];
 }
 
 function isPdfMime(mimeType: string): boolean {
@@ -65,6 +63,7 @@ export const EnhancedAgendaTab = ({
     isLoading: isLoadingFiles,
     isUploading,
     uploadError,
+    loadError,
     clearError,
     uploadFiles,
     deleteFile,
@@ -286,6 +285,14 @@ export const EnhancedAgendaTab = ({
           <button onClick={clearError} className="text-destructive hover:text-destructive/80">
             <X size={14} />
           </button>
+        </div>
+      )}
+
+      {/* Load error */}
+      {loadError && (
+        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-2">
+          <AlertCircle size={16} className="text-destructive flex-shrink-0 mt-0.5" />
+          <p className="text-destructive text-sm">{loadError}</p>
         </div>
       )}
 
