@@ -38,6 +38,8 @@ COMMENT ON COLUMN public.profiles.name_preference IS 'Which name to show to othe
 --      else -> fallback (first+last, first, email prefix, 'Chravel User')
 --
 --    When name_preference='display', real_name must NOT appear anywhere to others.
+--
+--    When name_preference='display', real_name must NOT appear anywhere to others.
 
 DROP VIEW IF EXISTS public.profiles_public;
 

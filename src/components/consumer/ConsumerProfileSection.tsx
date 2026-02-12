@@ -33,6 +33,8 @@ export const ConsumerProfileSection = () => {
     id: 'demo-user-123',
     email: 'demo@example.com',
     displayName: 'Demo User',
+    realName: undefined as string | undefined,
+    namePreference: 'display' as const,
     avatar: getConsistentAvatar('Demo User'),
   };
 

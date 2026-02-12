@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { DataExportSection } from '../settings/DataExportSection';
@@ -61,7 +60,7 @@ export const ConsumerPrivacySection = () => {
     // Persist to database
     if (user?.id) {
       try {
-        const updates: Record<string, unknown> = {};
+        const updates: { name_preference?: 'real' | 'display'; show_phone?: boolean } = {};
 
         if (setting === 'useRealName' || setting === 'useDisplayNameOnly') {
           updates.name_preference = updatedSettings.useRealName ? 'real' : 'display';
@@ -70,7 +69,7 @@ export const ConsumerPrivacySection = () => {
           updates.show_phone = newValue;
         }
 
-        const { error } = await updateProfile(updates as Parameters<typeof updateProfile>[0]);
+        const { error } = await updateProfile(updates);
 
         if (error) throw error;
 
