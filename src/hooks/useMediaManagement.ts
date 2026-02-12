@@ -95,7 +95,7 @@ export const useMediaManagement = (tripId: string) => {
             media_type: item.media_type as MediaItem['media_type'],
             metadata: item.metadata || {},
             created_at: item.created_at,
-            source: (item.message_id ? 'chat' : 'upload') as const,
+            source: (item.message_id ? 'chat' : 'upload') as 'chat' | 'upload',
             mime_type: item.mime_type,
           })),
           ...(filesResponse.data || []).map(item => ({
@@ -180,8 +180,8 @@ export const useMediaManagement = (tripId: string) => {
               image_url: item.og_image_url,
               created_at: item.created_at,
               source: isFromPlaces
-                ? ('places' as const)
-                : ((item.message_id ? 'chat' : 'manual') as const),
+                ? 'places' as 'places'
+                : (item.message_id ? 'chat' : 'manual') as 'chat' | 'manual',
               tags: [],
             };
           }),

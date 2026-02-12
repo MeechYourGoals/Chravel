@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 /**
  * Unit tests for getEffectiveDisplayName / resolveDisplayName (DISPLAY_NAME_FORMULA)
  *
