@@ -49,7 +49,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.lovable-concierge]
-verify_jwt = true
+verify_jwt = false
 
 [functions.customer-portal]
 verify_jwt = true
@@ -97,4 +97,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.gemini-voice-session]
-verify_jwt = true
+verify_jwt = false

@@ -614,7 +614,7 @@ class ChannelService {
 
     const { data, error } = await supabase
       .from('channel_messages')
-      .insert(insertData)
+      .insert(insertData as any)
       .select()
       .single();
 
