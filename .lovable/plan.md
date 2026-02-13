@@ -1,148 +1,80 @@
 
 
-# Gemini-Native AI Concierge Implementation Plan
+# Fix Build Errors: Rename OpenAI Types + Widen Message Input
 
-## Build Error Fix (Pre-requisite)
+## Problem
 
-**File: `src/services/channelService.ts` (line 617)**
+9 build errors across edge functions, caused by two issues:
 
-The `insertData` variable is typed as `Record<string, unknown>`, which doesn't match the Supabase `.insert()` overload expecting a typed row array. Fix: cast `insertData` to `any` before passing to `.insert()`.
-
----
-
-## Architecture Decisions
-
-### WebSocket / Gemini Live Voice
-
-Supabase Edge Functions are **stateless HTTP handlers** and cannot maintain persistent WebSocket connections. Previous attempts at WebSocket proxying through edge functions failed. Therefore:
-
-- **Gemini Live Audio** will use a **direct client-to-Gemini WebSocket** from the browser, authenticated with the `GEMINI_API_KEY` fetched via a short-lived token endpoint (edge function returns a scoped session token).
-- No `gemini-live-proxy` edge function -- the browser connects directly to `wss://generativelanguage.googleapis.com/ws/...`.
-
-### Lovable AI Gateway vs Direct Gemini
-
-The existing `lovable-concierge` edge function uses the Lovable AI Gateway. Since the user explicitly requests direct Gemini API access for features the gateway doesn't support (function calling, grounding tools, Live audio), the plan replaces the gateway call with a direct Gemini REST call using the existing `GEMINI_API_KEY` secret.
+1. **Type naming still uses "OpenAI" prefixes** (which the PR #646 cleanup intended to remove) and the `ChatModelRequest.messages` type is too strict for consumer functions.
+2. **`gemini-voice-session`** has a `createClient` generic inference issue causing `never` types.
 
 ---
 
-## Phase 1: Replace Lovable Gateway with Direct Gemini (Text Chat)
+## Fix 1: Rename and widen types in `supabase/functions/_shared/gemini.ts`
 
-### 1.1 Update Edge Function: `supabase/functions/lovable-concierge/index.ts`
+Rename all "OpenAI" prefixed types to Gemini-native names and widen the `messages` property so consumer functions don't need casts.
 
-- Replace the `fetch('https://ai.gateway.lovable.dev/v1/chat/completions', ...)` call (line 621) with a direct call to `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`
-- Use `GEMINI_API_KEY` (already configured as a secret) instead of `LOVABLE_API_KEY`
-- Keep ALL existing logic: RAG, context building, rate limiting, PII redaction, usage tracking
-- Convert the OpenAI-format messages array to Gemini's `contents` format
-- Map `system` role to `systemInstruction` field
-- Parse Gemini's response format back to the existing response contract so the frontend needs zero changes
+| Old Name | New Name |
+|----------|----------|
+| `OpenAITextPart` | `TextPart` |
+| `OpenAIImageUrlPart` | `ImageUrlPart` |
+| `OpenAIContentPart` | `ContentPart` |
+| `OpenAIChatMessage` | `ChatMessage` |
 
-### 1.2 Add Gemini Function Calling Declarations
+Widen `ChatModelRequest.messages` to accept `ChatMessageInput[]` where:
 
-Within the same edge function update, add `tools` with function declarations:
-
-- `addToCalendar(title, datetime, location, notes)` -- inserts into `trip_events`
-- `createTask(content, assignee, dueDate)` -- inserts into `trip_tasks`
-- `createPoll(question, options)` -- inserts into `trip_polls`
-- `getPaymentSummary()` -- queries `trip_payment_messages` + `payment_splits`
-- `searchPlaces(query, nearLat, nearLng)` -- calls Google Places API
-
-When Gemini returns a `functionCall`, the edge function executes it against Supabase, returns the result to Gemini as a `functionResponse`, and gets the final natural-language answer.
-
-### 1.3 Enable Google Search Grounding
-
-Add `googleSearch` to the `tools` array for queries that need real-time information (sports scores, flight status, weather, news). The existing location-query detection logic will be extended to also detect general "current info" queries.
-
----
-
-## Phase 2: Gemini Live Voice (Direct Client WebSocket)
-
-### 2.1 Create Token Endpoint: `supabase/functions/gemini-voice-session/index.ts`
-
-A lightweight edge function that:
-- Authenticates the user (JWT)
-- Checks voice entitlement (`canUse('voice_concierge')`)
-- Returns the `GEMINI_API_KEY` and a pre-built system instruction with trip context
-- The browser uses these to open a direct WebSocket to Gemini Live
-
-### 2.2 Create Live Voice Hook: `src/hooks/useGeminiLive.ts`
-
-Replaces `useWebSpeechVoice` for eligible users:
-- Opens WebSocket to `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent`
-- Sends `BidiGenerateContentSetup` with model, system instruction (trip context), and voice config
-- Captures microphone audio via `AudioWorklet`, streams PCM 16-bit 24kHz to Gemini
-- Receives audio chunks from Gemini, plays via `AudioContext`
-- Handles interruption (user speaking stops AI playback)
-- States: `idle`, `connecting`, `listening`, `speaking`, `error`
-- Falls back to `useWebSpeechVoice` if WebSocket fails or browser doesn't support AudioWorklet
-
-### 2.3 Update `src/components/AIConciergeChat.tsx`
-
-- Import `useGeminiLive` conditionally based on voice eligibility
-- Add a voice mode toggle (text vs live voice)
-- When in live voice mode, show a visual audio indicator instead of text input
-- Live voice conversations are independent of text chat history (Gemini Live manages its own session)
-
-### 2.4 Update Config
-
-Add to `supabase/config.toml`:
-```
-[functions.gemini-voice-session]
-verify_jwt = true
+```text
+type ChatMessageInput = {
+  role: string;
+  content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+};
 ```
 
----
+This means `ai-answer`, `document-processor`, `enhanced-ai-parser`, and `file-ai-parser` all pass type-checking without any changes to those files.
 
-## Phase 3: Multimodal Support
+Internal functions (`callGeminiChat`, `callLovableChat`, `toGeminiParts`, etc.) continue to work because they only access `.role` and `.content` -- they don't require strict literal types.
 
-### 3.1 Update Edge Function for Image Input
-
-Extend `lovable-concierge` to accept `attachments` in the request body:
-- Accept base64-encoded images (JPEG/PNG, max 4MB)
-- Convert to Gemini's `inlineData` format within `contents`
-- Gemini natively analyzes images -- no separate vision API needed
-
-### 3.2 Update `src/features/chat/components/AiChatInput.tsx`
-
-- Add an image attachment button (camera icon)
-- Support file picker and camera capture (via Capacitor on mobile)
-- Show thumbnail preview before sending
-- Send base64 data alongside message text to the edge function
+**Changes in this file:**
+- Lines 5-23: Rename types, add `ChatMessageInput`, update `ChatModelRequest.messages` to `ChatMessageInput[]`
+- Line 108: Update `flattenOpenAIContentToText` parameter type reference
+- Lines 178-179: Update `toGeminiParts` parameter type reference
+- All internal logic stays identical
 
 ---
 
-## Phase 4: System Prompt Enhancement
+## Fix 2: Fix type inference in `supabase/functions/gemini-voice-session/index.ts`
 
-### 4.1 Update `buildSystemPrompt` in Edge Function
+The `canUseVoiceConcierge` function parameter typed as `ReturnType<typeof createClient>` resolves to a complex generic that causes `.plan`, `.status`, and `.role` to infer as `never`.
 
-Add function calling instructions to the system prompt so Gemini knows when to use tools vs respond directly. Include the current date dynamically (already done). Add instructions for multimodal responses.
+**Fix:** Change the parameter type to `any`:
+
+```typescript
+async function canUseVoiceConcierge(
+  supabaseAdmin: any,
+  userId: string,
+): Promise<boolean> {
+```
+
+This is safe because the function only calls `.from().select().eq().maybeSingle()` -- standard Supabase client methods. The query results are already guarded with `String(row?.plan ?? '')`.
+
+**Line 42:** Change parameter type from `ReturnType<typeof createClient>` to `any`.
 
 ---
 
 ## Files Modified
 
 | File | Change |
-|------|--------|
-| `src/services/channelService.ts` | Fix build error: cast `insertData` to `any` for `.insert()` |
-| `supabase/functions/lovable-concierge/index.ts` | Replace Lovable Gateway with direct Gemini API; add function calling + Google Search grounding |
-| `supabase/functions/gemini-voice-session/index.ts` | **NEW** -- Token + context endpoint for Live voice |
-| `supabase/config.toml` | Add `gemini-voice-session` entry (already exists, verify) |
-| `src/hooks/useGeminiLive.ts` | **NEW** -- Direct WebSocket to Gemini Live for bidirectional audio |
-| `src/components/AIConciergeChat.tsx` | Integrate voice mode toggle, multimodal input, useGeminiLive |
-| `src/features/chat/components/AiChatInput.tsx` | Add image attachment button |
+|------|----------|
+| `supabase/functions/_shared/gemini.ts` | Rename OpenAI types to Gemini-native names; widen `ChatModelRequest.messages` to `ChatMessageInput[]` |
+| `supabase/functions/gemini-voice-session/index.ts` | Change `canUseVoiceConcierge` param type to `any` |
 
-## Implementation Order
+## Files NOT Modified
 
-1. Fix `channelService.ts` build error
-2. Update `lovable-concierge` edge function (direct Gemini + function calling)
-3. Create `gemini-voice-session` edge function
-4. Create `useGeminiLive` hook
-5. Update `AIConciergeChat` with voice toggle
-6. Add multimodal image input to `AiChatInput`
+- `ai-answer/index.ts` -- no changes needed
+- `document-processor/index.ts` -- no changes needed
+- `enhanced-ai-parser/index.ts` -- no changes needed
+- `file-ai-parser/index.ts` -- no changes needed
 
-## Secrets Required
-
-- `GEMINI_API_KEY` -- Already configured
-- `GOOGLE_MAPS_API_KEY` -- Already configured (for Places function calling)
-
-No new secrets needed.
+All 9 errors resolved with changes to only 2 files.
 
