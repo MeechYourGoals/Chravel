@@ -35,8 +35,8 @@ const DEMO_TRIP_IDS = [
   '12',
 ];
 
-// Convert RoleChannel to TripChannel
-const convertToTripChannel = (channel: RoleChannel): TripChannel => ({
+// Convert RoleChannel to TripChannel (used by callers that need TripChannel format)
+const _convertToTripChannel = (channel: RoleChannel): TripChannel => ({
   id: channel.id,
   tripId: channel.tripId,
   channelName: channel.roleName,
@@ -50,6 +50,8 @@ const convertToTripChannel = (channel: RoleChannel): TripChannel => ({
   createdAt: channel.createdAt,
   updatedAt: channel.createdAt,
 });
+// Re-export for external use
+export { _convertToTripChannel as convertToTripChannel };
 
 // Convert ChannelMessage to RoleChannelMessage
 const convertToRoleChannelMessage = (msg: ChannelMessage): RoleChannelMessage => ({
@@ -208,13 +210,13 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
       return true;
     }
 
-    // Use channelService which properly respects RLS policies
-    // If user doesn't have channel access, RLS will block the insert
-    const message = await channelService.sendMessage({
+    // Use channelService which properly respects RLS policies.
+    // Errors (RLS denial, network, etc.) now throw and are handled by the caller.
+    await channelService.sendMessage({
       channelId: activeChannel.id,
       content,
     });
-    return !!message;
+    return true;
   };
 
   return {

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Settings, Users, Send } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
@@ -6,6 +6,12 @@ import { ChannelWithStats } from '../../../types/channels';
 import { useChannelMessages } from '../../../hooks/useChannels';
 import { VirtualizedMessageContainer } from '@/features/chat/components/VirtualizedMessageContainer';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import {
+  mapChannelSendError,
+  formatToastDescription,
+  validateMessageContent,
+} from '@/utils/channelErrors';
 
 interface ChannelMessagePaneProps {
   channel: ChannelWithStats;
@@ -17,8 +23,8 @@ interface ChannelMessagePaneProps {
 
 export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
   channel,
-  onChannelUpdate,
-  onChannelDelete,
+  onChannelUpdate: _onChannelUpdate,
+  onChannelDelete: _onChannelDelete,
   onShowMembers,
   isAdmin
 }) => {
@@ -34,14 +40,33 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
     isLoadingMore
   } = useChannelMessages(channel.id);
 
+  const { toast } = useToast();
+
   const handleSendMessage = async () => {
     if (!messageInput.trim() || sending) return;
+
+    // Client-side validation
+    const validationError = validateMessageContent(messageInput);
+    if (validationError) {
+      toast({
+        title: validationError.title,
+        description: validationError.description,
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       await sendMessage(messageInput, channel.trip_id);
       setMessageInput('');
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('[ChannelMessagePane] Send failed:', error);
+      const mapped = mapChannelSendError(error);
+      toast({
+        title: mapped.title,
+        description: formatToastDescription(mapped),
+        variant: 'destructive',
+      });
     }
   };
 

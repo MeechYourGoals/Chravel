@@ -62,6 +62,13 @@ class EventChannelService {
         .single();
 
       if (error) throw error;
+
+      // Ensure the creator is added as a channel member
+      // (DB trigger also handles this, but adding here for immediate consistency)
+      await supabase.from('channel_members').upsert(
+        { channel_id: data.id, user_id: user.id },
+        { onConflict: 'channel_id,user_id' },
+      );
       
       // Map response to TripChannel
       const channel: TripChannel = {
@@ -207,42 +214,54 @@ class EventChannelService {
     }
   }
 
-  async sendMessage(input: ChannelMessageInput): Promise<ChannelMessage | null> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const { data, error } = await supabase
-        .from('channel_messages')
-        .insert({
-          channel_id: input.channel_id,
-          sender_id: user.id,
-          content: input.content,
-          message_type: 'text',
-          metadata: {}
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      // Map to ChannelMessage type
-      const message: ChannelMessage = {
-        id: data.id,
-        channel_id: data.channel_id,
-        trip_id: input.trip_id,
-        user_id: data.sender_id,
-        content: data.content,
-        author_name: 'You',
-        created_at: data.created_at,
-        updated_at: data.created_at
-      };
-      
-      return message;
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      return null;
+  async sendMessage(input: ChannelMessageInput): Promise<ChannelMessage> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw Object.assign(new Error('You must be logged in to send messages.'), {
+        code: 'AUTH_REQUIRED',
+      });
     }
+
+    if (!input.channel_id) {
+      throw Object.assign(new Error('No channel selected.'), {
+        code: 'MISSING_CHANNEL',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('channel_messages')
+      .insert({
+        channel_id: input.channel_id,
+        sender_id: user.id,
+        content: input.content,
+        message_type: 'text',
+        metadata: {}
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[eventChannelService.sendMessage] Supabase error:', error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error('No data returned after inserting message.');
+    }
+
+    // Map to ChannelMessage type
+    const message: ChannelMessage = {
+      id: data.id,
+      channel_id: data.channel_id,
+      trip_id: input.trip_id,
+      user_id: data.sender_id,
+      content: data.content,
+      author_name: 'You',
+      created_at: data.created_at,
+      updated_at: data.created_at
+    };
+
+    return message;
   }
 }
 

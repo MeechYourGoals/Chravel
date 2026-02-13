@@ -11,6 +11,11 @@ import { getMockAvatar } from '@/utils/mockAvatars';
 import { useRoleAssignments } from '@/hooks/useRoleAssignments';
 import { Button } from '@/components/ui/button';
 import {
+  mapChannelSendError,
+  formatToastDescription,
+  validateMessageContent,
+} from '@/utils/channelErrors';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -40,7 +45,7 @@ interface ChannelChatViewProps {
 export const ChannelChatView = ({
   channel,
   availableChannels = [],
-  onBack,
+  onBack: _onBack,
   onChannelChange,
 }: ChannelChatViewProps) => {
   const [messages, setMessages] = useState<ChannelMessage[]>([]);
@@ -54,7 +59,7 @@ export const ChannelChatView = ({
   const [isLeaving, setIsLeaving] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { canPerformAction, permissionLevel } = useRolePermissions(channel.tripId);
+  const { canPerformAction } = useRolePermissions(channel.tripId);
   const { leaveRole } = useRoleAssignments({ tripId: channel.tripId });
 
   // Handle user leaving the channel/role (self-service)
@@ -159,6 +164,27 @@ export const ChannelChatView = ({
   const handleSendMessage = async (isBroadcast = false) => {
     if (!inputMessage.trim() || sending) return;
 
+    // Client-side validation
+    const validationError = validateMessageContent(inputMessage);
+    if (validationError) {
+      toast({
+        title: validationError.title,
+        description: validationError.description,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Guard: channel must be selected
+    if (!channel?.id) {
+      toast({
+        title: 'No channel selected',
+        description: 'Please select a channel before sending a message.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSending(true);
 
     // Check if this is a demo channel
@@ -189,21 +215,24 @@ export const ChannelChatView = ({
       return;
     }
 
-    const sent = await channelService.sendMessage({
-      channelId: channel.id,
-      content: inputMessage.trim(),
-      messageType: isBroadcast ? 'broadcast' : 'regular',
-    });
-
-    if (sent) {
+    try {
+      await channelService.sendMessage({
+        channelId: channel.id,
+        content: inputMessage.trim(),
+        messageType: isBroadcast ? 'broadcast' : 'regular',
+      });
       setInputMessage('');
-    } else {
+    } catch (error) {
+      console.error('[ChannelChatView] Send failed:', error);
+      const mapped = mapChannelSendError(error);
       toast({
-        title: 'Failed to send message',
+        title: mapped.title,
+        description: formatToastDescription(mapped),
         variant: 'destructive',
       });
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -230,13 +259,65 @@ export const ChannelChatView = ({
     setReactions(updatedReactions);
   };
 
-  // Calculate member count from available channels
-  const memberCount = useMemo(() => {
-    if (!channel?.id || !availableChannels || availableChannels.length === 0) return 0;
+  // Calculate member count from available channels, with direct DB fallback
+  const [memberCount, setMemberCount] = useState(0);
 
-    const currentChannel = availableChannels.find(c => c.id === channel.id);
-    return currentChannel?.memberCount ?? 0;
-  }, [channel?.id, availableChannels]);
+  useEffect(() => {
+    // First try to get from available channels prop
+    if (availableChannels && availableChannels.length > 0) {
+      const currentChannel = availableChannels.find(c => c.id === channel.id);
+      if (currentChannel?.memberCount && currentChannel.memberCount > 0) {
+        setMemberCount(currentChannel.memberCount);
+        return;
+      }
+    }
+
+    // Fallback: query channel_members directly for an accurate count
+    const DEMO_TRIP_IDS_LOCAL = [
+      'lakers-road-trip',
+      'beyonce-cowboy-carter-tour',
+      'eli-lilly-c-suite-retreat-2026',
+    ];
+    if (!channel?.id || DEMO_TRIP_IDS_LOCAL.includes(channel.tripId)) return;
+
+    const fetchMemberCount = async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { count, error } = await supabase
+          .from('channel_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('channel_id', channel.id);
+
+        if (!error && count !== null && count > 0) {
+          setMemberCount(count);
+        } else {
+          // Also count role-based members via user_trip_roles + channel_role_access
+          const { data: roleAccessData } = await supabase
+            .from('channel_role_access')
+            .select('role_id')
+            .eq('channel_id', channel.id);
+
+          if (roleAccessData && roleAccessData.length > 0) {
+            const roleIds = roleAccessData.map(r => r.role_id);
+            const { data: roleMembers } = await supabase
+              .from('user_trip_roles')
+              .select('user_id')
+              .eq('trip_id', channel.tripId)
+              .in('role_id', roleIds);
+
+            if (roleMembers) {
+              const uniqueUsers = new Set(roleMembers.map(r => r.user_id));
+              setMemberCount(uniqueUsers.size);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[ChannelChatView] Failed to fetch member count:', err);
+      }
+    };
+
+    fetchMemberCount();
+  }, [channel?.id, channel?.tripId, availableChannels]);
 
   // Check if this is a demo channel (can't leave demo channels)
   const DEMO_TRIP_IDS = [
