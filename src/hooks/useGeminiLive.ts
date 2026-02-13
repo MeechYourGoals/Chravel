@@ -64,7 +64,8 @@ export function useGeminiLive({
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const processorNodeRef = useRef<ScriptProcessorNode | null>(null);
   const playbackQueueRef = useRef<Float32Array[]>([]);
   const isPlayingRef = useRef(false);
 
@@ -82,10 +83,15 @@ export function useGeminiLive({
       mediaStreamRef.current = null;
     }
 
-    // Disconnect audio worklet
-    if (workletNodeRef.current) {
-      workletNodeRef.current.disconnect();
-      workletNodeRef.current = null;
+    if (sourceNodeRef.current) {
+      sourceNodeRef.current.disconnect();
+      sourceNodeRef.current = null;
+    }
+
+    if (processorNodeRef.current) {
+      processorNodeRef.current.disconnect();
+      processorNodeRef.current.onaudioprocess = null;
+      processorNodeRef.current = null;
     }
 
     // Close audio context
@@ -140,6 +146,67 @@ export function useGeminiLive({
       console.error('[GeminiLive] Audio playback error:', err);
     }
   }, []);
+
+  const startAudioCapture = useCallback(
+    (ws: WebSocket, stream: MediaStream) => {
+      if (!audioContextRef.current) return;
+
+      try {
+        const sourceNode = audioContextRef.current.createMediaStreamSource(stream);
+
+        // Use ScriptProcessorNode as fallback (AudioWorklet requires HTTPS + module)
+        const processorNode = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+        sourceNodeRef.current = sourceNode;
+        processorNodeRef.current = processorNode;
+
+        processorNode.onaudioprocess = event => {
+          if (ws.readyState !== WebSocket.OPEN) return;
+
+          const inputData = event.inputBuffer.getChannelData(0);
+          const inputSampleRate = audioContextRef.current?.sampleRate || LIVE_INPUT_SAMPLE_RATE;
+          const downsampledData = downsampleTo16k(inputData, inputSampleRate);
+
+          // Convert to PCM 16-bit mono
+          const pcm16 = new Int16Array(downsampledData.length);
+          for (let i = 0; i < downsampledData.length; i++) {
+            const s = Math.max(-1, Math.min(1, downsampledData[i]));
+            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+          }
+
+          // Convert to base64
+          const uint8 = new Uint8Array(pcm16.buffer);
+          let binary = '';
+          for (let i = 0; i < uint8.length; i++) {
+            binary += String.fromCharCode(uint8[i]);
+          }
+          const base64 = btoa(binary);
+
+          // Send audio to Gemini
+          ws.send(
+            JSON.stringify({
+              realtimeInput: {
+                mediaChunks: [
+                  {
+                    mimeType: 'audio/pcm;rate=16000',
+                    data: base64,
+                  },
+                ],
+              },
+            }),
+          );
+        };
+
+        sourceNode.connect(processorNode);
+        processorNode.connect(audioContextRef.current.destination);
+      } catch (err) {
+        console.error('[GeminiLive] Audio capture setup failed:', err);
+        setError('Failed to capture audio');
+        setState('error');
+        cleanup();
+      }
+    },
+    [cleanup],
+  );
 
   const startSession = useCallback(async () => {
     if (!isSupported) {
@@ -287,62 +354,7 @@ export function useGeminiLive({
       setState('error');
       cleanup();
     }
-  }, [isSupported, tripId, voice, cleanup, playAudioChunk, onTranscript]);
-
-  const startAudioCapture = useCallback((ws: WebSocket, stream: MediaStream) => {
-    if (!audioContextRef.current) return;
-
-    try {
-      const sourceNode = audioContextRef.current.createMediaStreamSource(stream);
-
-      // Use ScriptProcessorNode as fallback (AudioWorklet requires HTTPS + module)
-      const processorNode = audioContextRef.current.createScriptProcessor(4096, 1, 1);
-
-      processorNode.onaudioprocess = event => {
-        if (ws.readyState !== WebSocket.OPEN) return;
-
-        const inputData = event.inputBuffer.getChannelData(0);
-        const inputSampleRate = audioContextRef.current?.sampleRate || LIVE_INPUT_SAMPLE_RATE;
-        const downsampledData = downsampleTo16k(inputData, inputSampleRate);
-
-        // Convert to PCM 16-bit mono
-        const pcm16 = new Int16Array(downsampledData.length);
-        for (let i = 0; i < downsampledData.length; i++) {
-          const s = Math.max(-1, Math.min(1, downsampledData[i]));
-          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-        }
-
-        // Convert to base64
-        const uint8 = new Uint8Array(pcm16.buffer);
-        let binary = '';
-        for (let i = 0; i < uint8.length; i++) {
-          binary += String.fromCharCode(uint8[i]);
-        }
-        const base64 = btoa(binary);
-
-        // Send audio to Gemini
-        ws.send(
-          JSON.stringify({
-            realtimeInput: {
-              mediaChunks: [
-                {
-                  mimeType: 'audio/pcm;rate=16000',
-                  data: base64,
-                },
-              ],
-            },
-          }),
-        );
-      };
-
-      sourceNode.connect(processorNode);
-      processorNode.connect(audioContextRef.current.destination);
-    } catch (err) {
-      console.error('[GeminiLive] Audio capture setup failed:', err);
-      setError('Failed to capture audio');
-      setState('error');
-    }
-  }, []);
+  }, [isSupported, tripId, voice, cleanup, playAudioChunk, onTranscript, startAudioCapture]);
 
   const endSession = useCallback(() => {
     setState('idle');

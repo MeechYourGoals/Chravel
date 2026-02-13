@@ -36,6 +36,14 @@ serve(async req => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authentication required', success: false }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
     const {
       message,
       tripContext,
@@ -45,7 +53,9 @@ serve(async req => {
       analysisType = 'chat'
     }: GeminiChatRequest = await req.json()
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
     // Check privacy settings if trip context is provided
     if (tripContext?.id) {
@@ -79,6 +89,9 @@ serve(async req => {
 
     // Route requests to the primary Gemini concierge function.
     const conciergeResponse = await supabase.functions.invoke('lovable-concierge', {
+      headers: {
+        Authorization: authHeader,
+      },
       body: {
         message,
         tripContext,

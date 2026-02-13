@@ -90,32 +90,41 @@ serve(async req => {
 
     // Get user ID from auth header
     const authHeader = req.headers.get('Authorization');
-    let userId: string | null = null;
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authentication required', success: false }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    if (authHeader) {
-      const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-      const token = authHeader.replace('Bearer ', '');
-      const {
-        data: { user },
-      } = await supabaseAuth.auth.getUser(token);
-      userId = user?.id || null;
+    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const token = authHeader.replace('Bearer ', '');
+    const {
+      data: { user: authenticatedUser },
+      error: authError,
+    } = await supabaseAuth.auth.getUser(token);
+    const userId: string | null = authenticatedUser?.id || null;
+
+    if (authError || !userId) {
+      return new Response(JSON.stringify({ error: 'Invalid authentication', success: false }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // 🔒 SECURITY: Verify user is a member of the trip (only if authenticated)
-    if (userId) {
-      const { data: membershipCheck, error: membershipError } = await supabase
-        .from('trip_members')
-        .select('user_id')
-        .eq('trip_id', tripId)
-        .eq('user_id', userId)
-        .maybeSingle();
+    const { data: membershipCheck, error: membershipError } = await supabase
+      .from('trip_members')
+      .select('user_id')
+      .eq('trip_id', tripId)
+      .eq('user_id', userId)
+      .maybeSingle();
 
-      if (membershipError || !membershipCheck) {
-        return new Response(
-          JSON.stringify({ error: 'Forbidden - you must be a member of this trip' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
+    if (membershipError || !membershipCheck) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - you must be a member of this trip' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
 
     // Fetch file metadata
@@ -145,20 +154,18 @@ serve(async req => {
     }
 
     // Additional membership verification via helper function
-    if (userId) {
-      const membershipCheck = await verifyTripMembership(supabase, userId, tripId);
-      if (!membershipCheck.isMember) {
-        return new Response(
-          JSON.stringify({
-            error: membershipCheck.error || 'Unauthorized access to trip',
-            success: false,
-          }),
-          {
-            status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          },
-        );
-      }
+    const tripMembership = await verifyTripMembership(supabase, userId, tripId);
+    if (!tripMembership.isMember) {
+      return new Response(
+        JSON.stringify({
+          error: tripMembership.error || 'Unauthorized access to trip',
+          success: false,
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     // Validate file_url is HTTPS and external (SSRF protection)
@@ -268,14 +275,17 @@ serve(async req => {
       modality: 'text',
     }));
 
-    const { error: chunksError } = await supabase.from('kb_chunks').insert(chunkInserts);
+    const { data: insertedChunks, error: chunksError } = await supabase
+      .from('kb_chunks')
+      .insert(chunkInserts)
+      .select('id, content, chunk_index');
 
-    if (chunksError) {
-      throw new Error(`Failed to create chunks: ${chunksError.message}`);
+    if (chunksError || !insertedChunks) {
+      throw new Error(`Failed to create chunks: ${chunksError?.message || 'No chunks inserted'}`);
     }
 
     // Step 6: Generate embeddings for all chunks
-    await generateChunkEmbeddings(supabase, kbDoc.id, chunks, tripId, fileId);
+    await generateChunkEmbeddings(supabase, kbDoc.id, insertedChunks, tripId);
 
     // Step 7: Update trip_files with processing results
     await supabase
@@ -577,20 +587,19 @@ function smartChunk(
 async function generateChunkEmbeddings(
   supabase: any,
   docId: string,
-  chunks: string[],
+  chunkRows: Array<{ id: string; content: string; chunk_index: number }>,
   tripId: string,
-  fileId: string,
 ) {
   // Generate embeddings in batches
   const batchSize = 10;
 
-  for (let i = 0; i < chunks.length; i += batchSize) {
-    const batch = chunks.slice(i, i + batchSize);
+  for (let i = 0; i < chunkRows.length; i += batchSize) {
+    const batch = chunkRows.slice(i, i + batchSize);
     let vectors: number[][];
     try {
       const embeddingResult = await invokeEmbeddingModel({
         model: 'text-embedding-004',
-        input: batch,
+        input: batch.map(row => row.content),
         timeoutMs: 30000,
       });
       vectors = embeddingResult.embeddings;
@@ -606,17 +615,25 @@ async function generateChunkEmbeddings(
     const embeddingInserts = vectors.map((vector: number[], idx: number) => ({
       trip_id: tripId,
       source_type: 'file',
-      source_id: fileId,
-      content_text: batch[idx],
+      source_id: batch[idx].id,
+      content_text: batch[idx].content,
       embedding: vector,
       metadata: {
         doc_id: docId,
-        chunk_index: i + idx,
+        chunk_index: batch[idx].chunk_index,
       },
     }));
 
-    await supabase.from('trip_embeddings').insert(embeddingInserts);
+    const { error: embedInsertError } = await supabase
+      .from('trip_embeddings')
+      .upsert(embeddingInserts, {
+        onConflict: 'trip_id,source_type,source_id',
+      });
+
+    if (embedInsertError) {
+      throw new Error(`Failed to upsert chunk embeddings: ${embedInsertError.message}`);
+    }
   }
 
-  console.log(`Generated embeddings for ${chunks.length} chunks`);
+  console.log(`Generated embeddings for ${chunkRows.length} chunks`);
 }

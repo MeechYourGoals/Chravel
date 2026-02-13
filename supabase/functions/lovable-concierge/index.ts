@@ -246,65 +246,56 @@ serve(async req => {
       );
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const authHeader = req.headers.get('Authorization');
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      ...(authHeader
+        ? {
+            global: {
+              headers: {
+                Authorization: authHeader,
+              },
+            },
+          }
+        : {}),
+    });
 
-    // 🔒 SECURITY FIX: Server-side demo mode determination
-    // Never trust client for auth decisions - prevent API quota abuse
-    const DEMO_MODE_ENABLED = Deno.env.get('ENABLE_DEMO_MODE') === 'true';
-    const hasAuthHeader = !!req.headers.get('Authorization');
-    const serverDemoMode = DEMO_MODE_ENABLED && !hasAuthHeader;
-
-    if (requestedDemoMode && !serverDemoMode) {
-      console.warn('[Security] Ignoring client-provided demo mode flag for authenticated request');
+    // Demo traffic must use dedicated demo-concierge endpoint.
+    if (requestedDemoMode) {
+      console.warn('[Security] Ignoring client-provided demo mode on authenticated concierge path');
     }
 
+    const serverDemoMode = false;
     let user = null;
-    if (!serverDemoMode) {
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        return createErrorResponse('Authentication required', 401);
-      }
-
-      const {
-        data: { user: authenticatedUser },
-        error: authError,
-      } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-
-      if (authError || !authenticatedUser) {
-        return createErrorResponse('Invalid authentication', 401);
-      }
-
-      user = authenticatedUser;
-    } else {
-      // 🔒 Demo mode: Apply aggressive rate limiting by IP
-      const clientIp =
-        req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-
-      // Use database-backed rate limiting for demo mode
-      const { data: rateLimitData, error: rateLimitError } = await supabase.rpc(
-        'increment_rate_limit',
-        {
-          rate_key: `demo_concierge:${clientIp}`,
-          max_requests: 5, // Only 5 requests per hour in demo mode
-          window_seconds: 3600,
-        },
-      );
-
-      if (
-        !rateLimitError &&
-        rateLimitData &&
-        rateLimitData.length > 0 &&
-        !rateLimitData[0]?.allowed
-      ) {
-        return createErrorResponse(
-          'Rate limit exceeded. Demo mode allows 5 requests per hour.',
-          429,
-        );
-      }
+    if (!authHeader) {
+      return createErrorResponse('Authentication required', 401);
     }
+
+    const {
+      data: { user: authenticatedUser },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+
+    if (authError || !authenticatedUser) {
+      return createErrorResponse('Invalid authentication', 401);
+    }
+
+    user = authenticatedUser;
 
     // Skip usage limits check in demo mode
     if (!serverDemoMode && user) {
+      if (tripId && tripId !== 'unknown') {
+        const { data: membership, error: membershipError } = await supabase
+          .from('trip_members')
+          .select('user_id')
+          .eq('trip_id', tripId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (membershipError || !membership) {
+          return createErrorResponse('Forbidden - you must be a member of this trip', 403);
+        }
+      }
+
       const { data: userProfile } = await supabase
         .from('profiles')
         .select('app_role')
@@ -345,7 +336,7 @@ serve(async req => {
     if (tripId && !tripContext) {
       try {
         // 🆕 Pass user.id to get personalized context with preferences + personal basecamp
-        comprehensiveContext = await TripContextBuilder.buildContext(tripId, user?.id);
+        comprehensiveContext = await TripContextBuilder.buildContext(tripId, user?.id, authHeader);
         console.log(
           '[Context] Built context with user preferences:',
           !!comprehensiveContext?.userPreferences,
@@ -800,6 +791,218 @@ serve(async req => {
       tools: geminiTools,
     };
 
+    const runRuntimeLovableFallback = async (reason: string): Promise<Response | null> => {
+      if (!LOVABLE_API_KEY) {
+        return null;
+      }
+
+      try {
+        const fallbackTools = functionDeclarations.map(declaration => ({
+          type: 'function',
+          function: declaration,
+        }));
+
+        const fallbackMessages: Array<Record<string, unknown>> = messages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }));
+
+        if (attachments.length > 0) {
+          const attachmentParts = attachments.map(att => ({
+            type: 'image_url' as const,
+            image_url: {
+              url: `data:${att.mimeType};base64,${att.data}`,
+            },
+          }));
+
+          const lastUserIdx = (() => {
+            for (let i = fallbackMessages.length - 1; i >= 0; i--) {
+              if (fallbackMessages[i].role === 'user') return i;
+            }
+            return -1;
+          })();
+
+          if (lastUserIdx >= 0) {
+            const existing = fallbackMessages[lastUserIdx].content;
+            const existingParts =
+              typeof existing === 'string'
+                ? [{ type: 'text' as const, text: existing }]
+                : Array.isArray(existing)
+                  ? existing
+                  : [];
+
+            fallbackMessages[lastUserIdx] = {
+              ...fallbackMessages[lastUserIdx],
+              content: [...existingParts, ...attachmentParts],
+            };
+          } else {
+            fallbackMessages.push({
+              role: 'user',
+              content: attachmentParts,
+            });
+          }
+        }
+
+        const fallbackResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: `google/${selectedModel}`,
+            messages: fallbackMessages,
+            temperature,
+            max_tokens: config.maxTokens || 2048,
+            tools: fallbackTools,
+            tool_choice: 'auto',
+          }),
+          signal: AbortSignal.timeout(45_000),
+        });
+
+        if (!fallbackResponse.ok) {
+          const fallbackError = await fallbackResponse.text();
+          throw new Error(
+            `Lovable runtime fallback error: ${fallbackResponse.status} - ${fallbackError || 'Unknown gateway error'}`,
+          );
+        }
+
+        const fallbackData = await fallbackResponse.json();
+        let fallbackUsage = fallbackData?.usage || {};
+        let fallbackMessage = fallbackData?.choices?.[0]?.message || null;
+        const fallbackFunctionCalls: string[] = [];
+
+        const fallbackToolCalls = Array.isArray(fallbackMessage?.tool_calls)
+          ? fallbackMessage.tool_calls
+          : [];
+        if (fallbackToolCalls.length > 0) {
+          const toolResultMessages: Array<{
+            role: 'tool';
+            tool_call_id: string;
+            content: string;
+          }> = [];
+
+          for (const toolCall of fallbackToolCalls) {
+            const functionName = String(toolCall?.function?.name || '');
+            if (!functionName) continue;
+
+            let parsedArgs: Record<string, unknown> = {};
+            const rawArgs = toolCall?.function?.arguments;
+            if (typeof rawArgs === 'string') {
+              try {
+                parsedArgs = JSON.parse(rawArgs || '{}');
+              } catch (argError) {
+                console.warn(
+                  `[RuntimeFallbackTool] Failed to parse args for ${functionName}:`,
+                  argError,
+                );
+              }
+            } else if (rawArgs && typeof rawArgs === 'object') {
+              parsedArgs = rawArgs as Record<string, unknown>;
+            }
+
+            fallbackFunctionCalls.push(functionName);
+
+            let functionResult: any;
+            try {
+              functionResult = await executeFunctionCall(
+                supabase,
+                functionName,
+                parsedArgs,
+                tripId,
+                user?.id,
+                locationData,
+              );
+            } catch (toolError) {
+              console.error(`[RuntimeFallbackTool] Error executing ${functionName}:`, toolError);
+              functionResult = {
+                error: `Failed to execute ${functionName}: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
+              };
+            }
+
+            toolResultMessages.push({
+              role: 'tool',
+              tool_call_id: String(toolCall?.id || functionName),
+              content: JSON.stringify(functionResult),
+            });
+          }
+
+          const followUpResponse = await fetch(
+            'https://ai.gateway.lovable.dev/v1/chat/completions',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model: `google/${selectedModel}`,
+                messages: [
+                  ...fallbackMessages,
+                  {
+                    role: 'assistant',
+                    content: fallbackMessage?.content || '',
+                    tool_calls: fallbackToolCalls,
+                  },
+                  ...toolResultMessages,
+                ],
+                temperature,
+                max_tokens: config.maxTokens || 2048,
+                tools: fallbackTools,
+                tool_choice: 'auto',
+              }),
+              signal: AbortSignal.timeout(45_000),
+            },
+          );
+
+          if (!followUpResponse.ok) {
+            const followUpError = await followUpResponse.text();
+            throw new Error(
+              `Lovable runtime fallback follow-up error: ${followUpResponse.status} - ${followUpError || 'Unknown gateway error'}`,
+            );
+          }
+
+          const followUpData = await followUpResponse.json();
+          fallbackUsage = followUpData?.usage || fallbackUsage;
+          fallbackMessage = followUpData?.choices?.[0]?.message || fallbackMessage;
+        }
+
+        const rawFallbackContent = fallbackMessage?.content;
+        const fallbackText =
+          typeof rawFallbackContent === 'string'
+            ? rawFallbackContent
+            : Array.isArray(rawFallbackContent)
+              ? rawFallbackContent
+                  .map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
+                  .join('')
+              : 'Sorry, I could not generate a response right now.';
+
+        return new Response(
+          JSON.stringify({
+            response: fallbackText,
+            usage: {
+              prompt_tokens: fallbackUsage.prompt_tokens || 0,
+              completion_tokens: fallbackUsage.completion_tokens || 0,
+              total_tokens: fallbackUsage.total_tokens || 0,
+            },
+            sources: [],
+            googleMapsWidget: null,
+            success: true,
+            model: 'lovable-gateway-runtime-fallback',
+            fallbackReason: reason,
+            functionCalls: fallbackFunctionCalls.length > 0 ? fallbackFunctionCalls : undefined,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        );
+      } catch (fallbackError) {
+        console.error('[AI] Lovable runtime fallback failed:', fallbackError);
+        return null;
+      }
+    };
+
     if (FORCE_LOVABLE_PROVIDER || !GEMINI_API_KEY) {
       if (!LOVABLE_API_KEY) {
         throw new Error('No AI provider key configured');
@@ -1004,20 +1207,224 @@ serve(async req => {
       );
     }
 
-    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${GEMINI_API_KEY}`;
+    try {
+      const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${GEMINI_API_KEY}`;
 
-    console.log(`[Gemini] Calling ${selectedModel} directly`);
+      console.log(`[Gemini] Calling ${selectedModel} directly`);
 
-    const response = await fetch(geminiEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(geminiRequestBody),
-    });
+      const response = await fetch(geminiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(geminiRequestBody),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Gemini API Error: ${response.status} - ${errorData.error?.message || JSON.stringify(errorData)}`,
+        );
+      }
 
-      if (response.status === 429) {
+      const data = await response.json();
+
+      // ========== HANDLE FUNCTION CALLS ==========
+      let aiResponse = '';
+      let groundingMetadata = null;
+      let functionCallResults: any[] = [];
+
+      const candidate = data.candidates?.[0];
+      if (!candidate) {
+        throw new Error('No response candidate from Gemini');
+      }
+
+      // Check if Gemini wants to call functions
+      const parts = candidate.content?.parts || [];
+      const functionCallParts = parts.filter((p: any) => p.functionCall);
+      const textParts = parts.filter((p: any) => p.text);
+
+      if (functionCallParts.length > 0) {
+        // Execute each function call
+        for (const part of functionCallParts) {
+          const fc = part.functionCall;
+          let parsedArgs: Record<string, unknown> = {};
+          if (typeof fc.args === 'string') {
+            try {
+              parsedArgs = JSON.parse(fc.args || '{}');
+            } catch (argError) {
+              console.warn(`[FunctionCall] Failed to parse args for ${fc.name}:`, argError);
+            }
+          } else if (fc.args && typeof fc.args === 'object') {
+            parsedArgs = fc.args as Record<string, unknown>;
+          }
+
+          console.log(`[FunctionCall] Executing: ${fc.name}`, parsedArgs);
+
+          let result: any;
+          try {
+            result = await executeFunctionCall(
+              supabase,
+              fc.name,
+              parsedArgs,
+              tripId,
+              user?.id,
+              locationData,
+            );
+          } catch (fcError) {
+            console.error(`[FunctionCall] Error executing ${fc.name}:`, fcError);
+            result = {
+              error: `Failed to execute ${fc.name}: ${fcError instanceof Error ? fcError.message : String(fcError)}`,
+            };
+          }
+
+          functionCallResults.push({
+            name: fc.name,
+            response: result,
+          });
+        }
+
+        // Send function results back to Gemini for natural language response
+        const followUpContents = [
+          ...geminiContents,
+          { role: 'model', parts: functionCallParts },
+          {
+            role: 'user',
+            parts: functionCallResults.map(r => ({
+              functionResponse: {
+                name: r.name,
+                response: r.response,
+              },
+            })),
+          },
+        ];
+
+        const followUpResponse = await fetch(geminiEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: followUpContents,
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            generationConfig: { temperature, maxOutputTokens: config.maxTokens || 2048 },
+          }),
+        });
+
+        if (followUpResponse.ok) {
+          const followUpData = await followUpResponse.json();
+          const followUpCandidate = followUpData.candidates?.[0];
+          aiResponse =
+            followUpCandidate?.content?.parts
+              ?.filter((p: any) => p.text)
+              .map((p: any) => p.text)
+              .join('') || 'Action completed successfully.';
+          groundingMetadata = followUpCandidate?.groundingMetadata || null;
+        } else {
+          aiResponse =
+            'I completed the action, but had trouble generating a summary. Check your trip tabs for the update.';
+        }
+      } else {
+        // No function calls - just text response
+        aiResponse =
+          textParts.map((p: any) => p.text).join('') || 'Sorry, I could not generate a response.';
+        groundingMetadata = candidate.groundingMetadata || null;
+      }
+
+      // Extract usage from Gemini response
+      const usageMetadata = data.usageMetadata || {};
+      const usage = {
+        prompt_tokens: usageMetadata.promptTokenCount || 0,
+        completion_tokens: usageMetadata.candidatesTokenCount || 0,
+        total_tokens: usageMetadata.totalTokenCount || 0,
+      };
+
+      // Extract grounding citations
+      const groundingChunks = groundingMetadata?.groundingChunks || [];
+      const googleMapsWidget = groundingMetadata?.searchEntryPoint?.renderedContent || null;
+
+      const citations = groundingChunks.map((chunk: any, index: number) => ({
+        id: `citation_${index}`,
+        title: chunk.web?.title || 'Source',
+        url: chunk.web?.uri || '#',
+        snippet: chunk.web?.snippet || '',
+        source: groundingMetadata?.searchEntryPoint
+          ? 'google_search_grounding'
+          : 'google_maps_grounding',
+      }));
+
+      // Skip database storage in demo mode
+      if (!serverDemoMode) {
+        if (comprehensiveContext?.tripMetadata?.id) {
+          await storeConversation(
+            supabase,
+            comprehensiveContext.tripMetadata.id,
+            message,
+            aiResponse,
+            'chat',
+            {
+              grounding_sources: citations.length,
+              has_map_widget: !!googleMapsWidget,
+              function_calls: functionCallResults.map(r => r.name),
+            },
+          );
+        }
+
+        if (user) {
+          try {
+            const usageData: any = {
+              user_id: user.id,
+              trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
+              query_text: logMessage.substring(0, 500),
+              response_tokens: usage.completion_tokens,
+              model_used: selectedModel,
+            };
+
+            try {
+              usageData.complexity_score = complexity.score;
+              usageData.used_pro_model = complexity.recommendedModel === 'pro';
+            } catch (e) {
+              // Columns may not exist
+            }
+
+            await supabase.from('concierge_usage').insert(usageData);
+          } catch (usageError) {
+            console.error('Failed to track usage:', usageError);
+          }
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          response: aiResponse,
+          usage,
+          sources: citations,
+          googleMapsWidget,
+          success: true,
+          model: selectedModel,
+          complexity: {
+            score: complexity.score,
+            recommended: complexity.recommendedModel,
+            factors: complexity.factors,
+          },
+          usedChainOfThought: useChainOfThought,
+          functionCalls:
+            functionCallResults.length > 0 ? functionCallResults.map(r => r.name) : undefined,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      );
+    } catch (geminiError) {
+      console.error(
+        '[Gemini] Direct concierge call failed, attempting Lovable runtime fallback:',
+        geminiError,
+      );
+
+      const fallbackResponse = await runRuntimeLovableFallback('gemini_runtime_error');
+      if (fallbackResponse) {
+        return fallbackResponse;
+      }
+
+      const messageText = geminiError instanceof Error ? geminiError.message : String(geminiError);
+      if (messageText.includes('429')) {
         return new Response(
           JSON.stringify({
             response:
@@ -1034,198 +1441,8 @@ serve(async req => {
         );
       }
 
-      throw new Error(
-        `Gemini API Error: ${response.status} - ${errorData.error?.message || JSON.stringify(errorData)}`,
-      );
+      throw geminiError;
     }
-
-    const data = await response.json();
-
-    // ========== HANDLE FUNCTION CALLS ==========
-    let aiResponse = '';
-    let groundingMetadata = null;
-    let functionCallResults: any[] = [];
-
-    const candidate = data.candidates?.[0];
-    if (!candidate) {
-      throw new Error('No response candidate from Gemini');
-    }
-
-    // Check if Gemini wants to call functions
-    const parts = candidate.content?.parts || [];
-    const functionCallParts = parts.filter((p: any) => p.functionCall);
-    const textParts = parts.filter((p: any) => p.text);
-
-    if (functionCallParts.length > 0) {
-      // Execute each function call
-      for (const part of functionCallParts) {
-        const fc = part.functionCall;
-        let parsedArgs: Record<string, unknown> = {};
-        if (typeof fc.args === 'string') {
-          try {
-            parsedArgs = JSON.parse(fc.args || '{}');
-          } catch (argError) {
-            console.warn(`[FunctionCall] Failed to parse args for ${fc.name}:`, argError);
-          }
-        } else if (fc.args && typeof fc.args === 'object') {
-          parsedArgs = fc.args as Record<string, unknown>;
-        }
-
-        console.log(`[FunctionCall] Executing: ${fc.name}`, parsedArgs);
-
-        let result: any;
-        try {
-          result = await executeFunctionCall(
-            supabase,
-            fc.name,
-            parsedArgs,
-            tripId,
-            user?.id,
-            locationData,
-          );
-        } catch (fcError) {
-          console.error(`[FunctionCall] Error executing ${fc.name}:`, fcError);
-          result = {
-            error: `Failed to execute ${fc.name}: ${fcError instanceof Error ? fcError.message : String(fcError)}`,
-          };
-        }
-
-        functionCallResults.push({
-          name: fc.name,
-          response: result,
-        });
-      }
-
-      // Send function results back to Gemini for natural language response
-      const followUpContents = [
-        ...geminiContents,
-        { role: 'model', parts: functionCallParts },
-        {
-          role: 'user',
-          parts: functionCallResults.map(r => ({
-            functionResponse: {
-              name: r.name,
-              response: r.response,
-            },
-          })),
-        },
-      ];
-
-      const followUpResponse = await fetch(geminiEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: followUpContents,
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          generationConfig: { temperature, maxOutputTokens: config.maxTokens || 2048 },
-        }),
-      });
-
-      if (followUpResponse.ok) {
-        const followUpData = await followUpResponse.json();
-        const followUpCandidate = followUpData.candidates?.[0];
-        aiResponse =
-          followUpCandidate?.content?.parts
-            ?.filter((p: any) => p.text)
-            .map((p: any) => p.text)
-            .join('') || 'Action completed successfully.';
-        groundingMetadata = followUpCandidate?.groundingMetadata || null;
-      } else {
-        aiResponse =
-          'I completed the action, but had trouble generating a summary. Check your trip tabs for the update.';
-      }
-    } else {
-      // No function calls - just text response
-      aiResponse =
-        textParts.map((p: any) => p.text).join('') || 'Sorry, I could not generate a response.';
-      groundingMetadata = candidate.groundingMetadata || null;
-    }
-
-    // Extract usage from Gemini response
-    const usageMetadata = data.usageMetadata || {};
-    const usage = {
-      prompt_tokens: usageMetadata.promptTokenCount || 0,
-      completion_tokens: usageMetadata.candidatesTokenCount || 0,
-      total_tokens: usageMetadata.totalTokenCount || 0,
-    };
-
-    // Extract grounding citations
-    const groundingChunks = groundingMetadata?.groundingChunks || [];
-    const googleMapsWidget = groundingMetadata?.searchEntryPoint?.renderedContent || null;
-
-    const citations = groundingChunks.map((chunk: any, index: number) => ({
-      id: `citation_${index}`,
-      title: chunk.web?.title || 'Source',
-      url: chunk.web?.uri || '#',
-      snippet: chunk.web?.snippet || '',
-      source: groundingMetadata?.searchEntryPoint
-        ? 'google_search_grounding'
-        : 'google_maps_grounding',
-    }));
-
-    // Skip database storage in demo mode
-    if (!serverDemoMode) {
-      if (comprehensiveContext?.tripMetadata?.id) {
-        await storeConversation(
-          supabase,
-          comprehensiveContext.tripMetadata.id,
-          message,
-          aiResponse,
-          'chat',
-          {
-            grounding_sources: citations.length,
-            has_map_widget: !!googleMapsWidget,
-            function_calls: functionCallResults.map(r => r.name),
-          },
-        );
-      }
-
-      if (user) {
-        try {
-          const usageData: any = {
-            user_id: user.id,
-            trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
-            query_text: logMessage.substring(0, 500),
-            response_tokens: usage.completion_tokens,
-            model_used: selectedModel,
-          };
-
-          try {
-            usageData.complexity_score = complexity.score;
-            usageData.used_pro_model = complexity.recommendedModel === 'pro';
-          } catch (e) {
-            // Columns may not exist
-          }
-
-          await supabase.from('concierge_usage').insert(usageData);
-        } catch (usageError) {
-          console.error('Failed to track usage:', usageError);
-        }
-      }
-    }
-
-    return new Response(
-      JSON.stringify({
-        response: aiResponse,
-        usage,
-        sources: citations,
-        googleMapsWidget,
-        success: true,
-        model: selectedModel,
-        complexity: {
-          score: complexity.score,
-          recommended: complexity.recommendedModel,
-          factors: complexity.factors,
-        },
-        usedChainOfThought: useChainOfThought,
-        functionCalls:
-          functionCallResults.length > 0 ? functionCallResults.map(r => r.name) : undefined,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    );
   } catch (error) {
     // 🆕 Log with redacted PII
     const redactedMessage = message ? redactPII(message).redactedText : '';

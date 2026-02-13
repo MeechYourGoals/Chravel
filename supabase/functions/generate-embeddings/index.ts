@@ -10,6 +10,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
 
 interface EmbeddingRequest {
   tripId: string;
@@ -43,6 +44,39 @@ serve(async req => {
 
   try {
     console.log('Starting embedding generation');
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Authentication required',
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const authClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+    const {
+      data: { user },
+      error: authError,
+    } = await authClient.auth.getUser();
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid authentication',
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const requestData: EmbeddingRequest & { isDemoMode?: boolean } = await req.json();
     tripId = requestData.tripId;
     const { sourceType = 'all', forceRefresh = false, isDemoMode = false } = requestData;
@@ -79,6 +113,23 @@ serve(async req => {
     );
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    const { data: membership, error: membershipError } = await supabase
+      .from('trip_members')
+      .select('user_id')
+      .eq('trip_id', tripId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (membershipError || !membership) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Forbidden - you must be a member of this trip',
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
 
     // Determine which source types to process
     const sourceTypes =
@@ -154,6 +205,56 @@ async function fetchSourceData(
   tripId: string,
   sourceType: string,
 ): Promise<SourceData[]> {
+  if (sourceType === 'file') {
+    const { data: docs, error: docsError } = await supabase
+      .from('kb_documents')
+      .select('id, source_id')
+      .eq('trip_id', tripId)
+      .eq('source', 'file');
+
+    if (docsError) {
+      console.error('Error fetching file knowledge-base documents:', docsError);
+      throw docsError;
+    }
+
+    if (!docs || docs.length === 0) {
+      return [];
+    }
+
+    const docIds = docs.map((doc: any) => doc.id);
+    const { data: chunks, error: chunksError } = await supabase
+      .from('kb_chunks')
+      .select('id, doc_id, content, chunk_index')
+      .in('doc_id', docIds);
+
+    if (chunksError) {
+      console.error('Error fetching file chunks for embeddings:', chunksError);
+      throw chunksError;
+    }
+
+    if (!chunks || chunks.length === 0) {
+      return [];
+    }
+
+    const docsById = new Map(docs.map((doc: any) => [doc.id, doc]));
+    return chunks.map((chunk: any) => {
+      const doc = docsById.get(chunk.doc_id);
+      return {
+        tripId,
+        sourceType: 'file',
+        sourceId: chunk.id,
+        contentText: chunk.content || '',
+        metadata: {
+          source_type: 'file',
+          source_id: chunk.id,
+          doc_id: chunk.doc_id,
+          file_id: doc?.source_id || null,
+          chunk_index: chunk.chunk_index ?? null,
+        },
+      };
+    });
+  }
+
   const queries: Record<string, () => Promise<any>> = {
     chat: async () => {
       const { data, error } = await supabase
@@ -203,13 +304,6 @@ async function fetchSourceData(
       const { data, error } = await supabase
         .from('trip_links')
         .select('id, url, title, description, created_at')
-        .eq('trip_id', tripId);
-      return { data, error };
-    },
-    file: async () => {
-      const { data, error } = await supabase
-        .from('trip_files')
-        .select('id, file_name, created_at')
         .eq('trip_id', tripId);
       return { data, error };
     },
