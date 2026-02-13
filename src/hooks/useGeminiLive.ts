@@ -19,10 +19,7 @@ interface UseGeminiLiveReturn {
 
 const LIVE_INPUT_SAMPLE_RATE = 16000;
 
-const downsampleTo16k = (
-  input: Float32Array,
-  inputSampleRate: number,
-): Float32Array => {
+const downsampleTo16k = (input: Float32Array, inputSampleRate: number): Float32Array => {
   if (inputSampleRate <= LIVE_INPUT_SAMPLE_RATE) {
     return input;
   }
@@ -161,7 +158,10 @@ export function useGeminiLive({
         { body: { tripId, voice } },
       );
 
-      if (sessionError || !sessionData?.apiKey) {
+      const accessToken =
+        typeof sessionData?.accessToken === 'string' ? sessionData.accessToken : null;
+      const apiKey = typeof sessionData?.apiKey === 'string' ? sessionData.apiKey : null;
+      if (sessionError || (!accessToken && !apiKey)) {
         throw new Error(sessionError?.message || 'Failed to get voice session');
       }
 
@@ -180,7 +180,13 @@ export function useGeminiLive({
       audioContextRef.current = new AudioContext({ sampleRate: 24000 });
 
       // 4. Open WebSocket to Gemini Live
-      const wsUrl = `${sessionData.websocketUrl}?key=${sessionData.apiKey}`;
+      const websocketUrl =
+        typeof sessionData?.websocketUrl === 'string' && sessionData.websocketUrl.length > 0
+          ? sessionData.websocketUrl
+          : 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
+      const wsUrl = accessToken
+        ? `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`
+        : `${websocketUrl}?key=${encodeURIComponent(apiKey as string)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -216,7 +222,7 @@ export function useGeminiLive({
         ws.send(JSON.stringify(setupMessage));
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = event => {
         try {
           const data = JSON.parse(event.data);
 
@@ -258,14 +264,14 @@ export function useGeminiLive({
         }
       };
 
-      ws.onerror = (event) => {
+      ws.onerror = event => {
         console.error('[GeminiLive] WebSocket error:', event);
         setError('Voice connection error');
         setState('error');
         cleanup();
       };
 
-      ws.onclose = (event) => {
+      ws.onclose = event => {
         console.log('[GeminiLive] WebSocket closed:', event.code, event.reason);
         if (event.code !== 1000 && event.code !== 1005) {
           setError(event.reason || 'Voice session disconnected');
@@ -292,7 +298,7 @@ export function useGeminiLive({
       // Use ScriptProcessorNode as fallback (AudioWorklet requires HTTPS + module)
       const processorNode = audioContextRef.current.createScriptProcessor(4096, 1, 1);
 
-      processorNode.onaudioprocess = (event) => {
+      processorNode.onaudioprocess = event => {
         if (ws.readyState !== WebSocket.OPEN) return;
 
         const inputData = event.inputBuffer.getChannelData(0);

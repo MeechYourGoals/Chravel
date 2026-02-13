@@ -2,6 +2,7 @@ import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
+import { validateExternalHttpsUrl } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,6 +45,13 @@ serve(async req => {
 
     if (!receiptImageUrl || !tripId || !userId) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!validateExternalHttpsUrl(receiptImageUrl)) {
+      return new Response(JSON.stringify({ error: 'receiptImageUrl must be HTTPS and external' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

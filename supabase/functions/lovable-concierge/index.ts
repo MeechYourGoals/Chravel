@@ -811,19 +811,78 @@ serve(async req => {
         console.warn('[AI] GEMINI_API_KEY missing; falling back to Lovable gateway');
       }
 
-      const fallbackResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: `google/${selectedModel}`,
-          messages,
-          temperature,
-          max_tokens: config.maxTokens || 2048,
-        }),
-      });
+      const fallbackTools = functionDeclarations.map(declaration => ({
+        type: 'function',
+        function: declaration,
+      }));
+
+      const fallbackMessages: Array<{
+        role: 'system' | 'user' | 'assistant';
+        content:
+          | string
+          | Array<{ type: 'text' | 'image_url'; text?: string; image_url?: { url: string } }>;
+      }> = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      if (attachments.length > 0) {
+        const attachmentParts = attachments.map(att => ({
+          type: 'image_url' as const,
+          image_url: {
+            url: `data:${att.mimeType};base64,${att.data}`,
+          },
+        }));
+
+        const lastUserIdx = (() => {
+          for (let i = fallbackMessages.length - 1; i >= 0; i--) {
+            if (fallbackMessages[i].role === 'user') return i;
+          }
+          return -1;
+        })();
+
+        if (lastUserIdx >= 0) {
+          const existing = fallbackMessages[lastUserIdx].content;
+          const existingParts =
+            typeof existing === 'string'
+              ? [{ type: 'text' as const, text: existing }]
+              : Array.isArray(existing)
+                ? existing
+                : [];
+          fallbackMessages[lastUserIdx] = {
+            ...fallbackMessages[lastUserIdx],
+            content: [...existingParts, ...attachmentParts],
+          };
+        } else {
+          fallbackMessages.push({
+            role: 'user',
+            content: attachmentParts,
+          });
+        }
+      }
+
+      const invokeLovableFallback = async (messagesForCall: Array<Record<string, unknown>>) => {
+        return await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: `google/${selectedModel}`,
+            messages: messagesForCall,
+            temperature,
+            max_tokens: config.maxTokens || 2048,
+            tools: fallbackTools,
+            tool_choice: 'auto',
+          }),
+          signal: AbortSignal.timeout(45_000),
+        });
+      };
+
+      const fallbackResponse = await invokeLovableFallback(
+        fallbackMessages as unknown as Array<Record<string, unknown>>,
+      );
 
       if (!fallbackResponse.ok) {
         const fallbackErrorText = await fallbackResponse.text();
@@ -832,12 +891,96 @@ serve(async req => {
         );
       }
 
-      const fallbackData = await fallbackResponse.json();
-      const fallbackText =
-        fallbackData?.choices?.[0]?.message?.content ||
-        'Sorry, I could not generate a response right now.';
+      let fallbackData = await fallbackResponse.json();
+      let fallbackUsage = fallbackData?.usage || {};
+      let fallbackMessage = fallbackData?.choices?.[0]?.message || null;
+      const fallbackToolCalls = Array.isArray(fallbackMessage?.tool_calls)
+        ? fallbackMessage.tool_calls
+        : [];
+      const fallbackFunctionCalls: string[] = [];
 
-      const fallbackUsage = fallbackData?.usage || {};
+      if (fallbackToolCalls.length > 0) {
+        const toolResultMessages: Array<{
+          role: 'tool';
+          tool_call_id: string;
+          content: string;
+        }> = [];
+
+        for (const toolCall of fallbackToolCalls) {
+          const functionName = String(toolCall?.function?.name || '');
+          if (!functionName) continue;
+
+          let parsedArgs: Record<string, unknown> = {};
+          const rawArgs = toolCall?.function?.arguments;
+          if (typeof rawArgs === 'string') {
+            try {
+              parsedArgs = JSON.parse(rawArgs || '{}');
+            } catch (argError) {
+              console.warn(`[FallbackTool] Failed to parse args for ${functionName}:`, argError);
+            }
+          } else if (rawArgs && typeof rawArgs === 'object') {
+            parsedArgs = rawArgs as Record<string, unknown>;
+          }
+
+          fallbackFunctionCalls.push(functionName);
+
+          let functionResult: any;
+          try {
+            functionResult = await executeFunctionCall(
+              supabase,
+              functionName,
+              parsedArgs,
+              tripId,
+              user?.id,
+              locationData,
+            );
+          } catch (toolError) {
+            console.error(`[FallbackTool] Error executing ${functionName}:`, toolError);
+            functionResult = {
+              error: `Failed to execute ${functionName}: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
+            };
+          }
+
+          toolResultMessages.push({
+            role: 'tool',
+            tool_call_id: String(toolCall?.id || functionName),
+            content: JSON.stringify(functionResult),
+          });
+        }
+
+        const followUpMessages: Array<Record<string, unknown>> = [
+          ...(fallbackMessages as unknown as Array<Record<string, unknown>>),
+          {
+            role: 'assistant',
+            content: fallbackMessage?.content || '',
+            tool_calls: fallbackToolCalls,
+          },
+          ...toolResultMessages,
+        ];
+
+        const followUpResponse = await invokeLovableFallback(followUpMessages);
+        if (!followUpResponse.ok) {
+          const followUpError = await followUpResponse.text();
+          throw new Error(
+            `Lovable follow-up fallback error: ${followUpResponse.status} - ${followUpError || 'Unknown gateway error'}`,
+          );
+        }
+
+        fallbackData = await followUpResponse.json();
+        fallbackUsage = fallbackData?.usage || fallbackUsage;
+        fallbackMessage = fallbackData?.choices?.[0]?.message || fallbackMessage;
+      }
+
+      const rawFallbackContent = fallbackMessage?.content;
+      const fallbackText =
+        typeof rawFallbackContent === 'string'
+          ? rawFallbackContent
+          : Array.isArray(rawFallbackContent)
+            ? rawFallbackContent
+                .map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
+                .join('')
+            : 'Sorry, I could not generate a response right now.';
+
       const usage = {
         prompt_tokens: fallbackUsage.prompt_tokens || 0,
         completion_tokens: fallbackUsage.completion_tokens || 0,
@@ -852,6 +995,7 @@ serve(async req => {
           googleMapsWidget: null,
           success: true,
           model: 'lovable-gateway-fallback',
+          functionCalls: fallbackFunctionCalls.length > 0 ? fallbackFunctionCalls : undefined,
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

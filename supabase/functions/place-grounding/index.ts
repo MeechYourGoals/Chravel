@@ -11,6 +11,10 @@ serve(async req => {
 
   try {
     const { placeName, placeAddress, basecampLat, basecampLng } = await req.json();
+    const parsedBasecampLat = Number(basecampLat);
+    const parsedBasecampLng = Number(basecampLng);
+    const hasBasecampCoords =
+      Number.isFinite(parsedBasecampLat) && Number.isFinite(parsedBasecampLng);
 
     if (!placeName) {
       return new Response(JSON.stringify({ error: 'Place name required' }), {
@@ -33,13 +37,13 @@ serve(async req => {
         },
       ],
       tools: [{ googleMaps: { enableWidget: true } }],
-      ...(basecampLat && basecampLng
+      ...(hasBasecampCoords
         ? {
             toolConfig: {
               retrievalConfig: {
                 latLng: {
-                  latitude: basecampLat,
-                  longitude: basecampLng,
+                  latitude: parsedBasecampLat,
+                  longitude: parsedBasecampLng,
                 },
               },
             },

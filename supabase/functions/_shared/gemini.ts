@@ -1,3 +1,5 @@
+import { validateExternalHttpsUrl } from './validation.ts';
+
 type ChatRole = 'system' | 'user' | 'assistant';
 
 export interface OpenAITextPart {
@@ -138,6 +140,10 @@ async function fetchUrlAsInlineData(
   timeoutMs: number,
 ): Promise<{ mimeType: string; data: string } | null> {
   try {
+    if (!validateExternalHttpsUrl(url)) {
+      return null;
+    }
+
     const response = await fetch(url, {
       signal: AbortSignal.timeout(timeoutMs),
       headers: {
@@ -196,6 +202,10 @@ async function toGeminiParts(
       }
 
       if (/^https?:\/\//i.test(url)) {
+        if (!validateExternalHttpsUrl(url)) {
+          parts.push({ text: `Blocked non-external image URL: ${url}` });
+          continue;
+        }
         const inlineFromRemote = await fetchUrlAsInlineData(url, timeoutMs);
         if (inlineFromRemote) {
           parts.push({ inlineData: inlineFromRemote });

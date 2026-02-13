@@ -264,7 +264,6 @@ Example output (showing different levels of available data):
         ],
         temperature: 0.1,
         maxTokens: 32000,
-        responseFormat: { type: 'json_object' },
         timeoutMs: 45_000,
       });
       rawContent = extractTextFromChatResponse(aiResult.raw, aiResult.provider);
@@ -303,10 +302,15 @@ Example output (showing different levels of available data):
       if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
       jsonStr = jsonStr.trim();
 
-      sessions = JSON.parse(jsonStr);
-
-      if (!Array.isArray(sessions)) {
-        console.error('[scrape-agenda] AI did not return an array');
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed)) {
+        sessions = parsed;
+      } else if (parsed && Array.isArray(parsed.sessions)) {
+        sessions = parsed.sessions;
+      } else if (parsed && Array.isArray(parsed.results)) {
+        sessions = parsed.results;
+      } else {
+        console.error('[scrape-agenda] AI did not return an array-like payload');
         sessions = [];
       }
 

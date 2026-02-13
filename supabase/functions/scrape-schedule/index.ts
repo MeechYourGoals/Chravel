@@ -255,7 +255,6 @@ Example output:
         ],
         temperature: 0.1,
         maxTokens: 16000,
-        responseFormat: { type: 'json_object' },
         timeoutMs: 45_000,
       });
       rawContent = extractTextFromChatResponse(aiResult.raw, aiResult.provider);
@@ -294,10 +293,15 @@ Example output:
       if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
       jsonStr = jsonStr.trim();
 
-      allEvents = JSON.parse(jsonStr);
-
-      if (!Array.isArray(allEvents)) {
-        console.error('[scrape-schedule] AI did not return an array');
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed)) {
+        allEvents = parsed;
+      } else if (parsed && Array.isArray(parsed.events)) {
+        allEvents = parsed.events;
+      } else if (parsed && Array.isArray(parsed.results)) {
+        allEvents = parsed.results;
+      } else {
+        console.error('[scrape-schedule] AI did not return an array-like payload');
         allEvents = [];
       }
     } catch (parseErr) {
