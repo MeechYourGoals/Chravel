@@ -205,6 +205,56 @@ async function fetchSourceData(
   tripId: string,
   sourceType: string,
 ): Promise<SourceData[]> {
+  if (sourceType === 'file') {
+    const { data: docs, error: docsError } = await supabase
+      .from('kb_documents')
+      .select('id, source_id')
+      .eq('trip_id', tripId)
+      .eq('source', 'file');
+
+    if (docsError) {
+      console.error('Error fetching file knowledge-base documents:', docsError);
+      throw docsError;
+    }
+
+    if (!docs || docs.length === 0) {
+      return [];
+    }
+
+    const docIds = docs.map((doc: any) => doc.id);
+    const { data: chunks, error: chunksError } = await supabase
+      .from('kb_chunks')
+      .select('id, doc_id, content, chunk_index')
+      .in('doc_id', docIds);
+
+    if (chunksError) {
+      console.error('Error fetching file chunks for embeddings:', chunksError);
+      throw chunksError;
+    }
+
+    if (!chunks || chunks.length === 0) {
+      return [];
+    }
+
+    const docsById = new Map(docs.map((doc: any) => [doc.id, doc]));
+    return chunks.map((chunk: any) => {
+      const doc = docsById.get(chunk.doc_id);
+      return {
+        tripId,
+        sourceType: 'file',
+        sourceId: chunk.id,
+        contentText: chunk.content || '',
+        metadata: {
+          source_type: 'file',
+          source_id: chunk.id,
+          doc_id: chunk.doc_id,
+          file_id: doc?.source_id || null,
+          chunk_index: chunk.chunk_index ?? null,
+        },
+      };
+    });
+  }
+
   const queries: Record<string, () => Promise<any>> = {
     chat: async () => {
       const { data, error } = await supabase
@@ -254,13 +304,6 @@ async function fetchSourceData(
       const { data, error } = await supabase
         .from('trip_links')
         .select('id, url, title, description, created_at')
-        .eq('trip_id', tripId);
-      return { data, error };
-    },
-    file: async () => {
-      const { data, error } = await supabase
-        .from('trip_files')
-        .select('id, file_name, created_at')
         .eq('trip_id', tripId);
       return { data, error };
     },

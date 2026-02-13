@@ -49,6 +49,9 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.lovable-concierge]
+verify_jwt = true
+
+[functions.demo-concierge]
 verify_jwt = false
 
 [functions.customer-portal]

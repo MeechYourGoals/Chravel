@@ -82,6 +82,7 @@ const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment>
 
 const invokeConciergeWithTimeout = async (
   requestBody: Record<string, unknown> & { message: string },
+  options: { demoMode?: boolean } = {},
 ): Promise<{ data: ConciergeInvokePayload | null; error: { message?: string } | null }> => {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -92,7 +93,10 @@ const invokeConciergeWithTimeout = async (
   });
 
   try {
-    const response = (await Promise.race([invokeConcierge(requestBody), timeoutPromise])) as {
+    const response = (await Promise.race([
+      invokeConcierge(requestBody, options),
+      timeoutPromise,
+    ])) as {
       data: ConciergeInvokePayload | null;
       error: { message?: string } | null;
     };
@@ -138,6 +142,10 @@ export const AIConciergeChat = ({
   const [isLiveVoiceMode, setIsLiveVoiceMode] = useState(false);
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const liveFallbackHandledRef = useRef(false);
+  const liveFallbackArmedRef = useRef(false);
+  const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
+    Promise.resolve(),
+  );
 
   // Voice: eligibility and hook
   const hasLegacySubscriptionVoiceAccess =
@@ -183,6 +191,7 @@ export const AIConciergeChat = ({
   const toggleVoice = useCallback(() => {
     if (isLiveVoiceMode) {
       if (geminiLiveState === 'idle' || geminiLiveState === 'error') {
+        liveFallbackArmedRef.current = true;
         connectGeminiLive();
       } else {
         disconnectGeminiLive();
@@ -219,8 +228,12 @@ export const AIConciergeChat = ({
     if (!isLiveVoiceMode || geminiLiveState !== 'error' || liveFallbackHandledRef.current) {
       return;
     }
+    if (!liveFallbackArmedRef.current) {
+      return;
+    }
 
     liveFallbackHandledRef.current = true;
+    liveFallbackArmedRef.current = false;
     setIsLiveVoiceMode(false);
 
     // Automatically fall back to Web Speech mode when Gemini Live fails.
@@ -235,13 +248,23 @@ export const AIConciergeChat = ({
   useEffect(() => {
     if (!isLiveVoiceMode) {
       liveFallbackHandledRef.current = false;
+      liveFallbackArmedRef.current = false;
+      return;
     }
-  }, [isLiveVoiceMode]);
+
+    if (
+      geminiLiveState === 'connecting' ||
+      geminiLiveState === 'listening' ||
+      geminiLiveState === 'speaking'
+    ) {
+      liveFallbackArmedRef.current = true;
+    }
+  }, [isLiveVoiceMode, geminiLiveState]);
 
   // Auto-send voice transcripts through the same pipeline as typed messages
   useEffect(() => {
     if (!voicePendingText || isTyping) return;
-    void handleSendMessage(voicePendingText);
+    void handleSendMessageRef.current(voicePendingText);
     setVoicePendingText(null);
   }, [voicePendingText, isTyping]);
 
@@ -452,20 +475,23 @@ export const AIConciergeChat = ({
             : msg.content,
       }));
 
-      const { data, error } = await invokeConciergeWithTimeout({
-        message: currentInput,
-        tripId,
-        preferences,
-        chatHistory,
-        attachments,
-        isDemoMode,
-        // Force flash path for predictable low-latency responses.
-        config: {
-          model: 'gemini-3-flash-preview',
-          temperature: 0.55,
-          maxTokens: 1024,
+      const { data, error } = await invokeConciergeWithTimeout(
+        {
+          message: currentInput,
+          tripId,
+          preferences,
+          chatHistory,
+          attachments,
+          isDemoMode,
+          // Force flash path for predictable low-latency responses.
+          config: {
+            model: 'gemini-3-flash-preview',
+            temperature: 0.55,
+            maxTokens: 1024,
+          },
         },
-      });
+        { demoMode: isDemoMode },
+      );
 
       // Graceful degradation: If AI service unavailable, provide helpful fallback
       if (!data || error) {
@@ -630,6 +656,10 @@ export const AIConciergeChat = ({
     // Default helpful response
     return `I'm temporarily unavailable, but you can:\n\n• Use the **Places** tab to find locations\n• Check the **Calendar** for your schedule\n• View **Payments** for expense tracking\n• See **Tasks** for what needs to be done\n\nFull AI assistance will return shortly!`;
   };
+
+  useEffect(() => {
+    handleSendMessageRef.current = handleSendMessage;
+  }, [handleSendMessage]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

@@ -200,13 +200,16 @@ export class UniversalConciergeService {
 
       // Try edge function first (works in both demo and authenticated mode)
       try {
-        const { data, error } = await invokeConcierge({
-          message,
-          tripContext: comprehensiveContext,
-          tripId: tripContext.tripId,
-          isDemoMode,
-          chatHistory: comprehensiveContext.messages?.slice(-10) || [],
-        });
+        const { data, error } = await invokeConcierge(
+          {
+            message,
+            tripContext: comprehensiveContext,
+            tripId: tripContext.tripId,
+            isDemoMode,
+            chatHistory: comprehensiveContext.messages?.slice(-10) || [],
+          },
+          { demoMode: isDemoMode },
+        );
 
         if (error) {
           console.error('Edge function invocation error:', error);

@@ -259,59 +259,27 @@ serve(async req => {
         : {}),
     });
 
-    // 🔒 SECURITY FIX: Server-side demo mode determination
-    // Never trust client for auth decisions - prevent API quota abuse
-    const DEMO_MODE_ENABLED = Deno.env.get('ENABLE_DEMO_MODE') === 'true';
-    const hasAuthHeader = !!authHeader;
-    const serverDemoMode = DEMO_MODE_ENABLED && !hasAuthHeader;
-
-    if (requestedDemoMode && !serverDemoMode) {
-      console.warn('[Security] Ignoring client-provided demo mode flag for authenticated request');
+    // Demo traffic must use dedicated demo-concierge endpoint.
+    if (requestedDemoMode) {
+      console.warn('[Security] Ignoring client-provided demo mode on authenticated concierge path');
     }
 
+    const serverDemoMode = false;
     let user = null;
-    if (!serverDemoMode) {
-      if (!authHeader) {
-        return createErrorResponse('Authentication required', 401);
-      }
-
-      const {
-        data: { user: authenticatedUser },
-        error: authError,
-      } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-
-      if (authError || !authenticatedUser) {
-        return createErrorResponse('Invalid authentication', 401);
-      }
-
-      user = authenticatedUser;
-    } else {
-      // 🔒 Demo mode: Apply aggressive rate limiting by IP
-      const clientIp =
-        req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-
-      // Use database-backed rate limiting for demo mode
-      const { data: rateLimitData, error: rateLimitError } = await supabase.rpc(
-        'increment_rate_limit',
-        {
-          rate_key: `demo_concierge:${clientIp}`,
-          max_requests: 5, // Only 5 requests per hour in demo mode
-          window_seconds: 3600,
-        },
-      );
-
-      if (
-        !rateLimitError &&
-        rateLimitData &&
-        rateLimitData.length > 0 &&
-        !rateLimitData[0]?.allowed
-      ) {
-        return createErrorResponse(
-          'Rate limit exceeded. Demo mode allows 5 requests per hour.',
-          429,
-        );
-      }
+    if (!authHeader) {
+      return createErrorResponse('Authentication required', 401);
     }
+
+    const {
+      data: { user: authenticatedUser },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+
+    if (authError || !authenticatedUser) {
+      return createErrorResponse('Invalid authentication', 401);
+    }
+
+    user = authenticatedUser;
 
     // Skip usage limits check in demo mode
     if (!serverDemoMode && user) {
@@ -829,6 +797,11 @@ serve(async req => {
       }
 
       try {
+        const fallbackTools = functionDeclarations.map(declaration => ({
+          type: 'function',
+          function: declaration,
+        }));
+
         const fallbackMessages: Array<Record<string, unknown>> = messages.map(msg => ({
           role: msg.role,
           content: msg.content,
@@ -881,6 +854,8 @@ serve(async req => {
             messages: fallbackMessages,
             temperature,
             max_tokens: config.maxTokens || 2048,
+            tools: fallbackTools,
+            tool_choice: 'auto',
           }),
           signal: AbortSignal.timeout(45_000),
         });
@@ -893,8 +868,105 @@ serve(async req => {
         }
 
         const fallbackData = await fallbackResponse.json();
-        const fallbackUsage = fallbackData?.usage || {};
-        const fallbackMessage = fallbackData?.choices?.[0]?.message || null;
+        let fallbackUsage = fallbackData?.usage || {};
+        let fallbackMessage = fallbackData?.choices?.[0]?.message || null;
+        const fallbackFunctionCalls: string[] = [];
+
+        const fallbackToolCalls = Array.isArray(fallbackMessage?.tool_calls)
+          ? fallbackMessage.tool_calls
+          : [];
+        if (fallbackToolCalls.length > 0) {
+          const toolResultMessages: Array<{
+            role: 'tool';
+            tool_call_id: string;
+            content: string;
+          }> = [];
+
+          for (const toolCall of fallbackToolCalls) {
+            const functionName = String(toolCall?.function?.name || '');
+            if (!functionName) continue;
+
+            let parsedArgs: Record<string, unknown> = {};
+            const rawArgs = toolCall?.function?.arguments;
+            if (typeof rawArgs === 'string') {
+              try {
+                parsedArgs = JSON.parse(rawArgs || '{}');
+              } catch (argError) {
+                console.warn(
+                  `[RuntimeFallbackTool] Failed to parse args for ${functionName}:`,
+                  argError,
+                );
+              }
+            } else if (rawArgs && typeof rawArgs === 'object') {
+              parsedArgs = rawArgs as Record<string, unknown>;
+            }
+
+            fallbackFunctionCalls.push(functionName);
+
+            let functionResult: any;
+            try {
+              functionResult = await executeFunctionCall(
+                supabase,
+                functionName,
+                parsedArgs,
+                tripId,
+                user?.id,
+                locationData,
+              );
+            } catch (toolError) {
+              console.error(`[RuntimeFallbackTool] Error executing ${functionName}:`, toolError);
+              functionResult = {
+                error: `Failed to execute ${functionName}: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
+              };
+            }
+
+            toolResultMessages.push({
+              role: 'tool',
+              tool_call_id: String(toolCall?.id || functionName),
+              content: JSON.stringify(functionResult),
+            });
+          }
+
+          const followUpResponse = await fetch(
+            'https://ai.gateway.lovable.dev/v1/chat/completions',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model: `google/${selectedModel}`,
+                messages: [
+                  ...fallbackMessages,
+                  {
+                    role: 'assistant',
+                    content: fallbackMessage?.content || '',
+                    tool_calls: fallbackToolCalls,
+                  },
+                  ...toolResultMessages,
+                ],
+                temperature,
+                max_tokens: config.maxTokens || 2048,
+                tools: fallbackTools,
+                tool_choice: 'auto',
+              }),
+              signal: AbortSignal.timeout(45_000),
+            },
+          );
+
+          if (!followUpResponse.ok) {
+            const followUpError = await followUpResponse.text();
+            throw new Error(
+              `Lovable runtime fallback follow-up error: ${followUpResponse.status} - ${followUpError || 'Unknown gateway error'}`,
+            );
+          }
+
+          const followUpData = await followUpResponse.json();
+          fallbackUsage = followUpData?.usage || fallbackUsage;
+          fallbackMessage = followUpData?.choices?.[0]?.message || fallbackMessage;
+        }
+
         const rawFallbackContent = fallbackMessage?.content;
         const fallbackText =
           typeof rawFallbackContent === 'string'
@@ -918,6 +990,7 @@ serve(async req => {
             success: true,
             model: 'lovable-gateway-runtime-fallback',
             fallbackReason: reason,
+            functionCalls: fallbackFunctionCalls.length > 0 ? fallbackFunctionCalls : undefined,
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
