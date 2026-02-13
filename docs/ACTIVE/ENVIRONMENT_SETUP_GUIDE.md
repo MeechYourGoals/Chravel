@@ -41,16 +41,17 @@ This guide walks you through obtaining and configuring all required API keys and
 5. Restrict key to your domains
 6. Copy API Key → `VITE_GOOGLE_MAPS_API_KEY`
 
-### 3. OpenAI (AI Concierge)
+### 3. Gemini / Lovable AI (AI Concierge)
 
 **Cost:** Pay-as-you-go, ~$0.03 per query
 
-1. Sign up at [platform.openai.com](https://platform.openai.com)
-2. Go to API Keys
-3. Create new secret key
-4. Copy → `OPENAI_API_KEY` (server-side only)
+1. Sign up at [Lovable](https://lovable.dev) (gateway) and/or Google AI Studio
+2. Generate your API keys
+3. Copy server-side keys:
+   - `LOVABLE_API_KEY` (primary gateway for edge functions)
+   - `GEMINI_API_KEY` (for direct Gemini features like Live voice)
 
-**Model:** Uses GPT-4 for best results
+**Model:** Uses Gemini family models for AI Concierge and parsing flows
 
 ### 4. Stripe (Payments)
 
@@ -121,7 +122,8 @@ Deploy all edge functions with your secrets:
 
 ```bash
 # Set secrets in Supabase
-supabase secrets set OPENAI_API_KEY=your-key
+supabase secrets set LOVABLE_API_KEY=your-key
+supabase secrets set GEMINI_API_KEY=your-key
 supabase secrets set STRIPE_SECRET_KEY=your-key
 supabase secrets set RESEND_API_KEY=your-key
 supabase secrets set APP_URL=https://chravel.app
@@ -136,7 +138,7 @@ supabase functions deploy send-organization-invite
 
 - [ ] Supabase project created and URL/keys added
 - [ ] Google Maps APIs enabled and key added
-- [ ] OpenAI API key created
+- [ ] Lovable and/or Gemini API keys created
 - [ ] Stripe products created and webhook configured
 - [ ] Resend domain verified and API key added
 - [ ] All edge functions deployed with secrets
@@ -170,7 +172,7 @@ supabase functions deploy send-organization-invite
 **Minimum (< 1000 users):**
 - Supabase: $0 (free tier)
 - Google Maps: $0 (within credit)
-- OpenAI: ~$30
+- Gemini/Lovable AI: ~$30
 - Stripe: Transaction fees only
 - Resend: $0 (free tier)
 - **Total: ~$30 + transaction fees**
@@ -178,7 +180,7 @@ supabase functions deploy send-organization-invite
 **Growth (10K users):**
 - Supabase: $25
 - Google Maps: ~$200
-- OpenAI: ~$300
+- Gemini/Lovable AI: ~$300
 - Stripe: Transaction fees
 - Resend: $20
 - **Total: ~$545 + transaction fees**

@@ -9,9 +9,24 @@ const corsHeaders = {
 
 interface IngestRequest {
   source: 'message' | 'poll' | 'broadcast' | 'file' | 'calendar' | 'link' | 'trip_batch';
-  sourceId: string;
-  tripId: string;
+  sourceId?: string;
+  tripId?: string;
   content?: string;
+}
+
+interface SingleIngestResult {
+  success: boolean;
+  sourceId: string;
+  docId?: string;
+  error?: string;
+}
+
+interface BatchIngestResult {
+  type: 'messages' | 'polls' | 'files' | 'links';
+  attempted: number;
+  succeeded: number;
+  failed: number;
+  errors: string[];
 }
 
 serve(async req => {
@@ -26,10 +41,10 @@ serve(async req => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!openaiApiKey) {
-      return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
+    if (!lovableApiKey) {
+      return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -47,17 +62,41 @@ serve(async req => {
 
     // Handle batch ingestion for entire trip
     if (source === 'trip_batch') {
+      if (!tripId) {
+        return new Response(
+          JSON.stringify({ error: 'tripId is required for trip_batch ingestion' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
+        );
+      }
+
       const batchResults = await Promise.all([
-        ingestTripMessages(supabase, tripId),
-        ingestTripPolls(supabase, tripId),
-        ingestTripFiles(supabase, tripId),
-        ingestTripLinks(supabase, tripId),
+        ingestTripMessages(supabase, tripId, lovableApiKey),
+        ingestTripPolls(supabase, tripId, lovableApiKey),
+        ingestTripFiles(supabase, tripId, lovableApiKey),
+        ingestTripLinks(supabase, tripId, lovableApiKey),
       ]);
+
+      const totals = batchResults.reduce(
+        (acc, result) => {
+          acc.attempted += result.attempted;
+          acc.succeeded += result.succeeded;
+          acc.failed += result.failed;
+          return acc;
+        },
+        { attempted: 0, succeeded: 0, failed: 0 },
+      );
+      const isFullySuccessful = totals.failed === 0;
 
       return new Response(
         JSON.stringify({
-          success: true,
-          message: 'Batch ingestion completed',
+          success: isFullySuccessful,
+          message: isFullySuccessful
+            ? 'Batch ingestion completed successfully'
+            : 'Batch ingestion completed with partial failures',
+          totals,
           results: batchResults,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -140,25 +179,7 @@ serve(async req => {
       });
     }
 
-    // Generate embedding
-    const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'text-embedding-ada-002',
-        input: textContent.slice(0, 8000), // Limit input length
-      }),
-    });
-
-    if (!embeddingResponse.ok) {
-      throw new Error('Failed to generate embedding');
-    }
-
-    const embeddingData = await embeddingResponse.json();
-    const embedding = embeddingData.data[0].embedding;
+    const embedding = await generateEmbedding(textContent, lovableApiKey);
 
     // Create or update knowledge base document
     const { data: doc, error: docError } = await supabase
@@ -191,14 +212,17 @@ serve(async req => {
     // Delete existing chunks for this document
     await supabase.from('kb_chunks').delete().eq('doc_id', doc.id);
 
-    // Create new chunk with embedding
-    const { error: chunkError } = await supabase.from('kb_chunks').insert({
-      doc_id: doc.id,
-      chunk_index: 0,
-      content: textContent,
-      embedding: embedding,
-      modality: 'text',
-    });
+    // Create new chunk with embedding (and gracefully degrade if vector dimensions differ).
+    const chunkError = await insertKbChunk(
+      supabase,
+      {
+        doc_id: doc.id,
+        chunk_index: 0,
+        content: textContent,
+        modality: 'text',
+      },
+      embedding,
+    );
 
     if (chunkError) {
       console.error('Error creating chunk:', chunkError);
@@ -226,72 +250,139 @@ serve(async req => {
 });
 
 // Batch ingestion helpers
-async function ingestTripMessages(supabase: any, tripId: string) {
-  const { data: messages } = await supabase
+async function ingestTripMessages(
+  supabase: any,
+  tripId: string,
+  lovableApiKey: string,
+): Promise<BatchIngestResult> {
+  const { data: messages, error: messagesError } = await supabase
     .from('trip_chat_messages')
     .select('*')
     .eq('trip_id', tripId);
 
-  if (!messages?.length) return { type: 'messages', count: 0 };
+  if (messagesError) {
+    return {
+      type: 'messages',
+      attempted: 0,
+      succeeded: 0,
+      failed: 1,
+      errors: [`Failed to load trip_chat_messages: ${messagesError.message}`],
+    };
+  }
 
-  const results = await Promise.all(
+  if (!messages?.length)
+    return { type: 'messages', attempted: 0, succeeded: 0, failed: 0, errors: [] };
+
+  const results: SingleIngestResult[] = await Promise.all(
     messages.map((msg: any) =>
       ingestSingleItem(
         supabase,
-        'trip_chat_messages',
+        'message',
         msg.id,
         tripId,
         `${msg.author_name}: ${msg.content}`,
+        lovableApiKey,
       ),
     ),
   );
 
-  return { type: 'messages', count: results.length };
+  return summarizeBatchResults('messages', results);
 }
 
-async function ingestTripPolls(supabase: any, tripId: string) {
-  const { data: polls } = await supabase.from('trip_polls').select('*').eq('trip_id', tripId);
+async function ingestTripPolls(
+  supabase: any,
+  tripId: string,
+  lovableApiKey: string,
+): Promise<BatchIngestResult> {
+  const { data: polls, error: pollsError } = await supabase
+    .from('trip_polls')
+    .select('*')
+    .eq('trip_id', tripId);
 
-  if (!polls?.length) return { type: 'polls', count: 0 };
+  if (pollsError) {
+    return {
+      type: 'polls',
+      attempted: 0,
+      succeeded: 0,
+      failed: 1,
+      errors: [`Failed to load trip_polls: ${pollsError.message}`],
+    };
+  }
 
-  const results = await Promise.all(
+  if (!polls?.length) return { type: 'polls', attempted: 0, succeeded: 0, failed: 0, errors: [] };
+
+  const results: SingleIngestResult[] = await Promise.all(
     polls.map((poll: any) => {
       const content = `Poll: ${poll.question}. Options: ${JSON.stringify(poll.options)}. Status: ${poll.status}. Total votes: ${poll.total_votes}`;
-      return ingestSingleItem(supabase, 'trip_polls', poll.id, tripId, content);
+      return ingestSingleItem(supabase, 'poll', poll.id, tripId, content, lovableApiKey);
     }),
   );
 
-  return { type: 'polls', count: results.length };
+  return summarizeBatchResults('polls', results);
 }
 
-async function ingestTripFiles(supabase: any, tripId: string) {
-  const { data: files } = await supabase.from('trip_files').select('*').eq('trip_id', tripId);
+async function ingestTripFiles(
+  supabase: any,
+  tripId: string,
+  lovableApiKey: string,
+): Promise<BatchIngestResult> {
+  const { data: files, error: filesError } = await supabase
+    .from('trip_files')
+    .select('*')
+    .eq('trip_id', tripId);
 
-  if (!files?.length) return { type: 'files', count: 0 };
+  if (filesError) {
+    return {
+      type: 'files',
+      attempted: 0,
+      succeeded: 0,
+      failed: 1,
+      errors: [`Failed to load trip_files: ${filesError.message}`],
+    };
+  }
 
-  const results = await Promise.all(
+  if (!files?.length) return { type: 'files', attempted: 0, succeeded: 0, failed: 0, errors: [] };
+
+  const results: SingleIngestResult[] = await Promise.all(
     files.map((file: any) => {
       const content = `File: ${file.name} (${file.file_type}). Summary: ${file.ai_summary || 'No summary'}. Content: ${file.content_text || 'No text content'}`;
-      return ingestSingleItem(supabase, 'trip_files', file.id, tripId, content);
+      return ingestSingleItem(supabase, 'file', file.id, tripId, content, lovableApiKey);
     }),
   );
 
-  return { type: 'files', count: results.length };
+  return summarizeBatchResults('files', results);
 }
 
-async function ingestTripLinks(supabase: any, tripId: string) {
-  const { data: links } = await supabase.from('trip_links').select('*').eq('trip_id', tripId);
+async function ingestTripLinks(
+  supabase: any,
+  tripId: string,
+  lovableApiKey: string,
+): Promise<BatchIngestResult> {
+  const { data: links, error: linksError } = await supabase
+    .from('trip_links')
+    .select('*')
+    .eq('trip_id', tripId);
 
-  if (!links?.length) return { type: 'links', count: 0 };
+  if (linksError) {
+    return {
+      type: 'links',
+      attempted: 0,
+      succeeded: 0,
+      failed: 1,
+      errors: [`Failed to load trip_links: ${linksError.message}`],
+    };
+  }
 
-  const results = await Promise.all(
+  if (!links?.length) return { type: 'links', attempted: 0, succeeded: 0, failed: 0, errors: [] };
+
+  const results: SingleIngestResult[] = await Promise.all(
     links.map((link: any) => {
       const content = `Link: ${link.title}. URL: ${link.url}. Description: ${link.description || 'No description'}. Category: ${link.category || 'uncategorized'}. Votes: ${link.votes}`;
-      return ingestSingleItem(supabase, 'trip_links', link.id, tripId, content);
+      return ingestSingleItem(supabase, 'link', link.id, tripId, content, lovableApiKey);
     }),
   );
 
-  return { type: 'links', count: results.length };
+  return summarizeBatchResults('links', results);
 }
 
 async function ingestSingleItem(
@@ -300,9 +391,10 @@ async function ingestSingleItem(
   sourceId: string,
   tripId: string,
   content: string,
-) {
+  lovableApiKey: string,
+): Promise<SingleIngestResult> {
   try {
-    const embedding = await generateEmbedding(content);
+    const embedding = await generateEmbedding(content, lovableApiKey);
 
     const { data: doc, error: docError } = await supabase
       .from('kb_documents')
@@ -320,42 +412,100 @@ async function ingestSingleItem(
 
     await supabase.from('kb_chunks').delete().eq('doc_id', doc.id);
 
-    const { error: chunkError } = await supabase.from('kb_chunks').insert({
-      doc_id: doc.id,
-      content: content,
-      embedding: embedding,
-      chunk_index: 0,
-    });
+    const chunkError = await insertKbChunk(
+      supabase,
+      {
+        doc_id: doc.id,
+        content: content,
+        chunk_index: 0,
+      },
+      embedding,
+    );
 
     if (chunkError) throw chunkError;
 
-    return { success: true, docId: doc.id };
+    return { success: true, docId: doc.id, sourceId };
   } catch (error) {
     console.error(`Error ingesting ${source} ${sourceId}:`, error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return { success: false, error: errorMessage };
+    return { success: false, sourceId, error: errorMessage };
   }
 }
 
-async function generateEmbedding(text: string) {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
-
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
+async function generateEmbedding(text: string, lovableApiKey: string) {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${openaiApiKey}`,
+      Authorization: `Bearer ${lovableApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      input: text,
-      model: 'text-embedding-ada-002',
+      model: 'google/text-embedding-004',
+      input: text.slice(0, 8000),
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.statusText}`);
+    const errorText = await response.text();
+    throw new Error(`Embedding API error: ${response.status} ${errorText}`);
   }
 
   const data = await response.json();
-  return data.data[0].embedding;
+  const embedding = data?.data?.[0]?.embedding;
+  if (!Array.isArray(embedding)) {
+    throw new Error('Invalid embedding response payload');
+  }
+
+  return embedding;
+}
+
+async function insertKbChunk(
+  supabase: any,
+  chunkData: {
+    doc_id: string;
+    content: string;
+    chunk_index: number;
+    modality?: string;
+  },
+  embedding: number[],
+) {
+  const { error: insertWithEmbeddingError } = await supabase.from('kb_chunks').insert({
+    ...chunkData,
+    embedding,
+  });
+
+  if (!insertWithEmbeddingError) {
+    return null;
+  }
+
+  const errorMessage = String(insertWithEmbeddingError.message || '').toLowerCase();
+  const shouldRetryWithoutEmbedding =
+    errorMessage.includes('vector') || errorMessage.includes('dimension');
+
+  if (!shouldRetryWithoutEmbedding) {
+    return insertWithEmbeddingError;
+  }
+
+  console.warn(
+    'Embedding insert failed; retrying kb_chunks insert without embedding:',
+    insertWithEmbeddingError.message,
+  );
+
+  const { error: insertWithoutEmbeddingError } = await supabase.from('kb_chunks').insert(chunkData);
+  return insertWithoutEmbeddingError ?? null;
+}
+
+function summarizeBatchResults(
+  type: BatchIngestResult['type'],
+  results: SingleIngestResult[],
+): BatchIngestResult {
+  const failedResults = results.filter(result => !result.success);
+
+  return {
+    type,
+    attempted: results.length,
+    succeeded: results.length - failedResults.length,
+    failed: failedResults.length,
+    errors: failedResults.map(result => `${result.sourceId}: ${result.error ?? 'Unknown error'}`),
+  };
 }

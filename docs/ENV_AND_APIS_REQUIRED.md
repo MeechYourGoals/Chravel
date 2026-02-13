@@ -57,8 +57,8 @@ These are set as Supabase project secrets (`supabase secrets set KEY=value`).
 | **Stripe Payments** | Stripe | `STRIPE_SECRET_KEY` | `create-checkout`, `stripe-webhook`, `check-subscription` | Stripe Dashboard > API Keys | Y — disable via feature flag |
 | **Stripe Webhook** | Stripe | `STRIPE_WEBHOOK_SECRET` | `stripe-webhook` | Stripe Dashboard > Webhooks | Y — disable via feature flag |
 | **Stripe Prices** | Stripe | `STRIPE_PLUS_PRICE_ID`, `STRIPE_PRO_PRICE_ID` | `create-checkout` | Stripe Dashboard > Products | Y |
-| **AI / LLM** | Lovable | `LOVABLE_API_KEY` | `ai-answer`, `ai-search`, `document-processor`, `file-ai-parser` | Lovable.dev dashboard | Y — disable via `VITE_ENABLE_AI_CONCIERGE=false` |
-| **Email** | Resend | `RESEND_API_KEY` | `send-email-with-retry`, `daily-digest` | Resend.com dashboard | Y — invites work without email (link-only) |
+| **AI / LLM** | Lovable | `LOVABLE_API_KEY` | `ai-answer`, `ai-search`, `ai-ingest`, `daily-digest`, `document-processor`, `file-ai-parser` | Lovable.dev dashboard | Y — disable via `VITE_ENABLE_AI_CONCIERGE=false` |
+| **Email** | Resend | `RESEND_API_KEY` | `send-email-with-retry` | Resend.com dashboard | Y — invites work without email (link-only) |
 | **Email From** | Resend | `RESEND_FROM_EMAIL` | `send-email-with-retry` | Set to `noreply@chravel.app` | Y |
 | **Web Push Private** | Self-generated | `VAPID_PRIVATE_KEY` | `push-notifications`, `web-push-send` | `npx tsx scripts/generate-vapid-keys.ts` | Y — disable via feature flag |
 | **APNS (iOS Push)** | Apple | `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` | `push-notifications` | Apple Developer Portal > Keys | Y — push disabled in TestFlight initially |
