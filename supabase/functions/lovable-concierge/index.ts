@@ -765,11 +765,11 @@ serve(async req => {
         /\b(where|restaurant|hotel|cafe|bar|attraction|place|location|near|around|close|best|find|suggest|recommend|visit|directions|route|food|eat|drink|stay|sushi|pizza|beach|museum|park)\b/i,
       );
 
-    // Smart grounding detection - real-time info queries
+    // Smart grounding detection - real-time info queries and event/knowledge queries
     const isRealtimeQuery = message
       .toLowerCase()
       .match(
-        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel)\b/i,
+        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel|festival|concert|music week|lineup|conference|expo|convention|marathon|parade|tournament|championship|season|tickets|sold out|when is|what is .+ week|how many)\b/i,
       );
 
     const tripBasecamp = comprehensiveContext?.places?.tripBasecamp;
@@ -1383,6 +1383,7 @@ serve(async req => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(geminiRequestBody),
+        signal: AbortSignal.timeout(40_000),
       });
 
       if (!response.ok) {
@@ -1472,6 +1473,7 @@ serve(async req => {
             systemInstruction: { parts: [{ text: systemInstruction }] },
             generationConfig: { temperature, maxOutputTokens: config.maxTokens || 2048 },
           }),
+          signal: AbortSignal.timeout(40_000),
         });
 
         if (followUpResponse.ok) {

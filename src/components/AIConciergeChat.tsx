@@ -78,7 +78,7 @@ interface FallbackTripContext {
   payments?: FallbackPayment[];
 }
 
-const FAST_RESPONSE_TIMEOUT_MS = 30000;
+const FAST_RESPONSE_TIMEOUT_MS = 45000;
 
 const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
   const dataUrl = await new Promise<string>((resolve, reject) => {

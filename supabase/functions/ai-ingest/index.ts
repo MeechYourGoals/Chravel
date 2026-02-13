@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { invokeEmbeddingModel } from '../_shared/gemini.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,14 +42,6 @@ serve(async req => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-
-    if (!lovableApiKey) {
-      return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
@@ -73,10 +66,10 @@ serve(async req => {
       }
 
       const batchResults = await Promise.all([
-        ingestTripMessages(supabase, tripId, lovableApiKey),
-        ingestTripPolls(supabase, tripId, lovableApiKey),
-        ingestTripFiles(supabase, tripId, lovableApiKey),
-        ingestTripLinks(supabase, tripId, lovableApiKey),
+        ingestTripMessages(supabase, tripId),
+        ingestTripPolls(supabase, tripId),
+        ingestTripFiles(supabase, tripId),
+        ingestTripLinks(supabase, tripId),
       ]);
 
       const totals = batchResults.reduce(
@@ -179,7 +172,7 @@ serve(async req => {
       });
     }
 
-    const embedding = await generateEmbedding(textContent, lovableApiKey);
+    const embedding = await generateEmbedding(textContent);
 
     // Create or update knowledge base document
     const { data: doc, error: docError } = await supabase
@@ -253,7 +246,6 @@ serve(async req => {
 async function ingestTripMessages(
   supabase: any,
   tripId: string,
-  lovableApiKey: string,
 ): Promise<BatchIngestResult> {
   const { data: messages, error: messagesError } = await supabase
     .from('trip_chat_messages')
@@ -281,7 +273,6 @@ async function ingestTripMessages(
         msg.id,
         tripId,
         `${msg.author_name}: ${msg.content}`,
-        lovableApiKey,
       ),
     ),
   );
@@ -292,7 +283,6 @@ async function ingestTripMessages(
 async function ingestTripPolls(
   supabase: any,
   tripId: string,
-  lovableApiKey: string,
 ): Promise<BatchIngestResult> {
   const { data: polls, error: pollsError } = await supabase
     .from('trip_polls')
@@ -314,7 +304,7 @@ async function ingestTripPolls(
   const results: SingleIngestResult[] = await Promise.all(
     polls.map((poll: any) => {
       const content = `Poll: ${poll.question}. Options: ${JSON.stringify(poll.options)}. Status: ${poll.status}. Total votes: ${poll.total_votes}`;
-      return ingestSingleItem(supabase, 'poll', poll.id, tripId, content, lovableApiKey);
+      return ingestSingleItem(supabase, 'poll', poll.id, tripId, content);
     }),
   );
 
@@ -324,7 +314,6 @@ async function ingestTripPolls(
 async function ingestTripFiles(
   supabase: any,
   tripId: string,
-  lovableApiKey: string,
 ): Promise<BatchIngestResult> {
   const { data: files, error: filesError } = await supabase
     .from('trip_files')
@@ -346,7 +335,7 @@ async function ingestTripFiles(
   const results: SingleIngestResult[] = await Promise.all(
     files.map((file: any) => {
       const content = `File: ${file.name} (${file.file_type}). Summary: ${file.ai_summary || 'No summary'}. Content: ${file.content_text || 'No text content'}`;
-      return ingestSingleItem(supabase, 'file', file.id, tripId, content, lovableApiKey);
+      return ingestSingleItem(supabase, 'file', file.id, tripId, content);
     }),
   );
 
@@ -356,7 +345,6 @@ async function ingestTripFiles(
 async function ingestTripLinks(
   supabase: any,
   tripId: string,
-  lovableApiKey: string,
 ): Promise<BatchIngestResult> {
   const { data: links, error: linksError } = await supabase
     .from('trip_links')
@@ -378,7 +366,7 @@ async function ingestTripLinks(
   const results: SingleIngestResult[] = await Promise.all(
     links.map((link: any) => {
       const content = `Link: ${link.title}. URL: ${link.url}. Description: ${link.description || 'No description'}. Category: ${link.category || 'uncategorized'}. Votes: ${link.votes}`;
-      return ingestSingleItem(supabase, 'link', link.id, tripId, content, lovableApiKey);
+      return ingestSingleItem(supabase, 'link', link.id, tripId, content);
     }),
   );
 
@@ -391,10 +379,9 @@ async function ingestSingleItem(
   sourceId: string,
   tripId: string,
   content: string,
-  lovableApiKey: string,
 ): Promise<SingleIngestResult> {
   try {
-    const embedding = await generateEmbedding(content, lovableApiKey);
+    const embedding = await generateEmbedding(content);
 
     const { data: doc, error: docError } = await supabase
       .from('kb_documents')
@@ -432,26 +419,14 @@ async function ingestSingleItem(
   }
 }
 
-async function generateEmbedding(text: string, lovableApiKey: string) {
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/text-embedding-004',
-      input: text.slice(0, 8000),
-    }),
+async function generateEmbedding(text: string): Promise<number[]> {
+  const result = await invokeEmbeddingModel({
+    input: text.slice(0, 8000),
+    model: 'text-embedding-004',
+    timeoutMs: 30_000,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Embedding API error: ${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  const embedding = data?.data?.[0]?.embedding;
+  const embedding = result.embeddings[0];
   if (!Array.isArray(embedding)) {
     throw new Error('Invalid embedding response payload');
   }
