@@ -2,25 +2,31 @@ import { validateExternalHttpsUrl } from './validation.ts';
 
 type ChatRole = 'system' | 'user' | 'assistant';
 
-export interface OpenAITextPart {
+export interface TextPart {
   type: 'text';
   text: string;
 }
 
-export interface OpenAIImageUrlPart {
+export interface ImageUrlPart {
   type: 'image_url';
   image_url: { url: string };
 }
 
-export type OpenAIContentPart = OpenAITextPart | OpenAIImageUrlPart;
+export type ContentPart = TextPart | ImageUrlPart;
 
-export interface OpenAIChatMessage {
+export interface ChatMessage {
   role: ChatRole;
-  content: string | OpenAIContentPart[];
+  content: string | ContentPart[];
 }
 
+/** Wider input type so consumer functions can pass loosely-typed messages */
+export type ChatMessageInput = {
+  role: string;
+  content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+};
+
 export interface ChatModelRequest {
-  messages: OpenAIChatMessage[];
+  messages: ChatMessageInput[];
   model?: string;
   temperature?: number;
   maxTokens?: number;
@@ -105,7 +111,7 @@ function normalizeLovableEmbeddingModel(model?: string): string {
   return normalized.startsWith('google/') ? normalized : `google/${normalized}`;
 }
 
-function flattenOpenAIContentToText(content: string | OpenAIContentPart[]): string {
+function flattenContentToText(content: string | ContentPart[] | Array<{ type: string; text?: string; image_url?: { url: string } }>): string {
   if (typeof content === 'string') return content;
 
   return content
@@ -176,7 +182,7 @@ async function fetchUrlAsInlineData(
 }
 
 async function toGeminiParts(
-  content: string | OpenAIContentPart[],
+  content: string | ContentPart[] | Array<{ type: string; text?: string; image_url?: { url: string } }>,
   timeoutMs: number,
 ): Promise<any[]> {
   if (typeof content === 'string') {
@@ -258,7 +264,7 @@ async function callGeminiChat(request: ChatModelRequest): Promise<ChatModelRespo
   if (systemMessages.length > 0) {
     payload.systemInstruction = {
       parts: [
-        { text: systemMessages.map(m => flattenOpenAIContentToText(m.content)).join('\n\n') },
+        { text: systemMessages.map(m => flattenContentToText(m.content)).join('\n\n') },
       ],
     };
   }

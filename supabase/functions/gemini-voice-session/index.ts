@@ -39,7 +39,7 @@ const GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS = parseEnvInt(
 const GEMINI_EPHEMERAL_USES = parseEnvInt(Deno.env.get('GEMINI_EPHEMERAL_USES'), 1, 0, 100);
 
 async function canUseVoiceConcierge(
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: any,
   userId: string,
 ): Promise<boolean> {
   const [{ data: entitlements, error: entitlementsError }, { data: roles, error: rolesError }] =
