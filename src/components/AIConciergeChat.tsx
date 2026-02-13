@@ -1,28 +1,24 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle, Search, AlertCircle, Crown, Clock, Sparkles, Mic, Radio } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Search, AlertCircle, Crown, Sparkles } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
-import { conciergeRateLimitService } from '../services/conciergeRateLimitService';
-import { useAuth } from '../hooks/useAuth';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
 import { useWebSpeechVoice as useGeminiVoice } from '../hooks/useWebSpeechVoice';
-import { useGeminiLive } from '../hooks/useGeminiLive';
 import { invokeConcierge } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { conciergeCacheService } from '../services/conciergeCacheService';
+import { toast } from 'sonner';
 
 interface AIConciergeChatProps {
   tripId: string;
   basecamp?: { name: string; address: string };
   preferences?: TripPreferences;
   isDemoMode?: boolean;
-  isEvent?: boolean; // 🆕 Flag for event-specific rate limiting
+  isEvent?: boolean; // Deprecated: retained for backward compatibility
 }
 
 interface ChatMessage {
@@ -50,12 +46,36 @@ interface ConciergeInvokePayload {
   sources?: ChatMessage['sources'];
   citations?: ChatMessage['sources'];
   googleMapsWidget?: string;
+  success?: boolean;
+  error?: string;
 }
 
 interface ConciergeAttachment {
   mimeType: string;
   data: string;
   name?: string;
+}
+
+interface FallbackEvent {
+  title?: string;
+  name?: string;
+  startTime?: string;
+  location?: string;
+}
+
+interface FallbackPayment {
+  isSettled?: boolean;
+  settled?: boolean;
+  amount?: number;
+  description?: string;
+  paidBy?: string;
+  createdByName?: string;
+}
+
+interface FallbackTripContext {
+  itinerary?: FallbackEvent[];
+  calendar?: FallbackEvent[];
+  payments?: FallbackPayment[];
 }
 
 const FAST_RESPONSE_TIMEOUT_MS = 30000;
@@ -114,7 +134,6 @@ export const AIConciergeChat = ({
   basecamp,
   preferences,
   isDemoMode = false,
-  isEvent = false,
 }: AIConciergeChatProps) => {
   const {
     isPlus,
@@ -122,8 +141,7 @@ export const AIConciergeChat = ({
     isLoading: isConsumerSubscriptionLoading,
   } = useConsumerSubscription();
   const { basecamp: globalBasecamp } = useBasecamp();
-  const { user } = useAuth();
-  const { usage, getUsageStatus, isFreeUser, upgradeUrl } = useConciergeUsage(tripId);
+  const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const {
     canUse,
@@ -137,15 +155,11 @@ export const AIConciergeChat = ({
   const [aiStatus, setAiStatus] = useState<
     'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
   >('connected');
-  const [remainingQueries, setRemainingQueries] = useState<number>(Infinity);
-  const [isUsingCachedResponse, setIsUsingCachedResponse] = useState(false);
-  const [isLiveVoiceMode, setIsLiveVoiceMode] = useState(false);
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
-  const liveFallbackHandledRef = useRef(false);
-  const liveFallbackArmedRef = useRef(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
+  const hasShownLimitToastRef = useRef(false);
 
   // Voice: eligibility and hook
   const hasLegacySubscriptionVoiceAccess =
@@ -176,90 +190,15 @@ export const AIConciergeChat = ({
     stopVoice: stopWebSpeechVoice,
   } = useGeminiVoice(handleVoiceUserMessage);
 
-  // Gemini Live voice hook (direct WebSocket to Gemini)
-  const {
-    state: geminiLiveState,
-    error: geminiLiveError,
-    startSession: connectGeminiLive,
-    endSession: disconnectGeminiLive,
-  } = useGeminiLive({ tripId });
-
-  // Unified voice state: use Gemini Live when in live mode, Web Speech otherwise
-  const voiceState = isLiveVoiceMode ? geminiLiveState : webSpeechVoiceState;
-  const currentVoiceError = isLiveVoiceMode ? geminiLiveError : voiceError;
-
-  const toggleVoice = useCallback(() => {
-    if (isLiveVoiceMode) {
-      if (geminiLiveState === 'idle' || geminiLiveState === 'error') {
-        liveFallbackArmedRef.current = true;
-        connectGeminiLive();
-      } else {
-        disconnectGeminiLive();
-      }
-    } else {
-      toggleWebSpeechVoice();
-    }
-  }, [
-    isLiveVoiceMode,
-    geminiLiveState,
-    connectGeminiLive,
-    disconnectGeminiLive,
-    toggleWebSpeechVoice,
-  ]);
-
-  const toggleLiveVoiceMode = useCallback(() => {
-    // Stop any active voice session before switching
-    if (isLiveVoiceMode) {
-      disconnectGeminiLive();
-    } else {
-      stopWebSpeechVoice();
-    }
-    setIsLiveVoiceMode(prev => !prev);
-  }, [isLiveVoiceMode, disconnectGeminiLive, stopWebSpeechVoice]);
+  const voiceState = webSpeechVoiceState;
+  const currentVoiceError = voiceError;
+  const toggleVoice = toggleWebSpeechVoice;
 
   useEffect(() => {
     return () => {
       stopWebSpeechVoice();
-      disconnectGeminiLive();
     };
-  }, [stopWebSpeechVoice, disconnectGeminiLive]);
-
-  useEffect(() => {
-    if (!isLiveVoiceMode || geminiLiveState !== 'error' || liveFallbackHandledRef.current) {
-      return;
-    }
-    if (!liveFallbackArmedRef.current) {
-      return;
-    }
-
-    liveFallbackHandledRef.current = true;
-    liveFallbackArmedRef.current = false;
-    setIsLiveVoiceMode(false);
-
-    // Automatically fall back to Web Speech mode when Gemini Live fails.
-    // This keeps voice UX available without forcing a manual mode switch.
-    setTimeout(() => {
-      if (webSpeechVoiceState === 'idle' || webSpeechVoiceState === 'error') {
-        toggleWebSpeechVoice();
-      }
-    }, 0);
-  }, [isLiveVoiceMode, geminiLiveState, webSpeechVoiceState, toggleWebSpeechVoice]);
-
-  useEffect(() => {
-    if (!isLiveVoiceMode) {
-      liveFallbackHandledRef.current = false;
-      liveFallbackArmedRef.current = false;
-      return;
-    }
-
-    if (
-      geminiLiveState === 'connecting' ||
-      geminiLiveState === 'listening' ||
-      geminiLiveState === 'speaking'
-    ) {
-      liveFallbackArmedRef.current = true;
-    }
-  }, [isLiveVoiceMode, geminiLiveState]);
+  }, [stopWebSpeechVoice]);
 
   // Auto-send voice transcripts through the same pipeline as typed messages
   useEffect(() => {
@@ -270,13 +209,6 @@ export const AIConciergeChat = ({
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
-
-  // Helper to convert isPlus boolean to tier string
-  const getUserTier = useCallback((): 'free' | 'plus' | 'pro' => {
-    if (user?.isPro) return 'pro';
-    if (isPlus) return 'plus';
-    return 'free';
-  }, [user?.isPro, isPlus]);
 
   // PHASE 1 BUG FIX #7: Set up cleanup to track component mount state
   useEffect(() => {
@@ -303,30 +235,53 @@ export const AIConciergeChat = ({
     return () => clearTimeout(timeout);
   }, [aiStatus, messages.length]);
 
-  // Initialize remaining queries for events and load cached messages
-  useEffect(() => {
-    if (isEvent && user) {
-      conciergeRateLimitService
-        .getRemainingQueries(user.id, tripId, getUserTier())
-        .then(remaining => {
-          // PHASE 1 BUG FIX #7: Only update state if component is still mounted
-          if (isMounted.current) {
-            setRemainingQueries(remaining);
-          }
-        })
-        .catch(err => {
-          if (import.meta.env.DEV) {
-            console.error('Failed to get remaining queries:', err);
-          }
-        });
+  const isQueryLimitReached = Boolean(isLimitedPlan && usage?.isLimitReached);
+
+  const queryAllowanceText = useMemo(() => {
+    if (!usage) {
+      return 'Loading query allowance...';
     }
 
-    // Load cached messages for offline mode (user-isolated)
-    const cachedMessages = conciergeCacheService.getCachedMessages(tripId, user?.id);
-    if (cachedMessages && cachedMessages.length > 0 && isMounted.current) {
-      setMessages(cachedMessages);
+    if (usage.limit === null) {
+      return 'Unlimited queries';
     }
-  }, [isEvent, user, tripId, isPlus, getUserTier]);
+
+    return `Queries: ${usage.remaining}/${usage.limit}`;
+  }, [usage]);
+
+  const queryAllowanceTone = useMemo(() => {
+    if (!usage || usage.limit === null) {
+      return 'text-gray-300';
+    }
+    if (usage.isLimitReached) {
+      return 'text-red-300';
+    }
+    if ((usage.remaining ?? 0) <= 2) {
+      return 'text-orange-300';
+    }
+    return 'text-gray-300';
+  }, [usage]);
+
+  const showLimitReachedToast = useCallback((plan: 'free' | 'explorer') => {
+    const message =
+      plan === 'free'
+        ? "You've used all 5 Concierge queries for this trip."
+        : "You've used all 10 Concierge queries for this trip.";
+    toast.error(message, {
+      description: 'Upgrade to Frequent Chraveler for unlimited Concierge.',
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isQueryLimitReached || !usage?.limit) {
+      hasShownLimitToastRef.current = false;
+      return;
+    }
+
+    if (hasShownLimitToastRef.current) return;
+    showLimitReachedToast(usage.plan === 'explorer' ? 'explorer' : 'free');
+    hasShownLimitToastRef.current = true;
+  }, [isQueryLimitReached, showLimitReachedToast, usage?.limit, usage?.plan]);
 
   // Monitor offline status
   useEffect(() => {
@@ -351,69 +306,38 @@ export const AIConciergeChat = ({
 
     // Check offline mode first
     if (isOffline) {
-      // Try to get cached response for similar query (user-isolated)
-      const cachedResponse = conciergeCacheService.getCachedResponse(
-        tripId,
-        messageToSend,
-        user?.id,
-      );
-      if (cachedResponse) {
-        setIsUsingCachedResponse(true);
-        setMessages(prev => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            type: 'user',
-            content: messageToSend,
-            timestamp: new Date().toISOString(),
-          },
-          {
-            ...cachedResponse,
-            id: (Date.now() + 1).toString(),
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-        if (!messageOverride) {
-          setInputMessage('');
-        }
-        return;
-      } else {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            type: 'user',
-            content: messageToSend,
-            timestamp: new Date().toISOString(),
-          },
-          {
-            id: (Date.now() + 1).toString(),
-            type: 'assistant',
-            content:
-              "📡 **Offline Mode**\n\nI'm currently offline and don't have a cached response for this query. Please check your connection and try again when online.",
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-        if (!messageOverride) {
-          setInputMessage('');
-        }
-        return;
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          type: 'user',
+          content: messageToSend,
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: (Date.now() + 1).toString(),
+          type: 'assistant',
+          content:
+            "📡 **Offline Mode**\n\nI can't send this request while you're offline. Reconnect and try again.",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      if (!messageOverride) {
+        setInputMessage('');
       }
+      return;
     }
 
-    // 🆕 Rate limit check for events (per-trip, no daily reset)
-    if (isEvent && user) {
-      const canQuery = await conciergeRateLimitService.canQuery(user.id, tripId, getUserTier());
-      if (!canQuery) {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            type: 'assistant',
-            content: `⚠️ **Trip Limit Reached**\n\nYou've used all ${getUserTier() === 'free' ? 5 : 10} AI Concierge queries for this trip.\n\n💎 Upgrade to ${getUserTier() === 'free' ? 'Explorer for 10 queries per trip' : 'Frequent Chraveler for unlimited AI assistance'}!`,
-            timestamp: new Date().toISOString(),
-          },
-        ]);
+    if (isLimitedPlan) {
+      const latestUsage = await refreshUsage();
+
+      if (!latestUsage) {
+        toast.error('Unable to verify Concierge query allowance right now. Please try again.');
+        return;
+      }
+
+      if (latestUsage.isLimitReached && latestUsage.limit !== null) {
+        showLimitReachedToast(latestUsage.plan === 'explorer' ? 'explorer' : 'free');
         return;
       }
     }
@@ -515,32 +439,14 @@ export const AIConciergeChat = ({
         };
 
         setMessages(prev => [...prev, assistantMessage]);
-        conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id);
         setIsTyping(false);
         return;
       }
 
       setAiStatus('connected');
-      setIsUsingCachedResponse(false);
 
-      // 🆕 Increment usage for events (per-trip, no daily reset)
-      if (isEvent && user) {
-        try {
-          await conciergeRateLimitService.incrementUsage(user.id, tripId, getUserTier());
-          const remaining = await conciergeRateLimitService.getRemainingQueries(
-            user.id,
-            tripId,
-            getUserTier(),
-          );
-          // PHASE 1 BUG FIX #7: Only update state if component is still mounted
-          if (isMounted.current) {
-            setRemainingQueries(remaining);
-          }
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('Failed to increment usage:', error);
-          }
-        }
+      if (isLimitedPlan) {
+        void refreshUsage();
       }
 
       const assistantMessage: ChatMessage = {
@@ -554,9 +460,6 @@ export const AIConciergeChat = ({
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-
-      // Cache the response for offline mode (user-isolated)
-      conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('❌ AI Concierge error:', error);
@@ -577,7 +480,6 @@ export const AIConciergeChat = ({
           timestamp: new Date().toISOString(),
         };
         setMessages(prev => [...prev, errorMessage]);
-        conciergeCacheService.cacheMessage(tripId, currentInput, errorMessage, user?.id);
       } catch {
         // Ultimate fallback
         const errorMessage: ChatMessage = {
@@ -596,7 +498,7 @@ export const AIConciergeChat = ({
   // Generate fallback response when AI is unavailable
   const generateFallbackResponse = (
     query: string,
-    tripContext: any,
+    tripContext: FallbackTripContext,
     basecampLocation?: { name: string; address: string },
   ): string => {
     const lowerQuery = query.toLowerCase();
@@ -615,7 +517,7 @@ export const AIConciergeChat = ({
         const events = tripContext.itinerary || tripContext.calendar || [];
         const upcoming = events.slice(0, 3);
         let response = `📅 **Upcoming Events**\n\n`;
-        upcoming.forEach((event: any) => {
+        upcoming.forEach(event => {
           response += `• ${event.title || event.name}`;
           if (event.startTime) response += ` - ${event.startTime}`;
           if (event.location) response += ` at ${event.location}`;
@@ -629,11 +531,11 @@ export const AIConciergeChat = ({
     // Payment queries - provide actual payment data from context
     if (lowerQuery.match(/\b(payment|money|owe|spent|cost|budget|expense)\b/)) {
       if (tripContext?.payments?.length) {
-        const unsettled = tripContext.payments.filter((p: any) => !p.isSettled && !p.settled);
+        const unsettled = tripContext.payments.filter(p => !p.isSettled && !p.settled);
         if (unsettled.length > 0) {
-          const totalOwed = unsettled.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+          const totalOwed = unsettled.reduce((sum: number, p) => sum + (p.amount || 0), 0);
           let response = `💰 **Outstanding Payments**\n\n`;
-          unsettled.slice(0, 5).forEach((p: any) => {
+          unsettled.slice(0, 5).forEach(p => {
             const paidBy = p.paidBy || p.createdByName || 'Someone';
             response += `• ${p.description}: $${p.amount?.toFixed(2) || '0.00'} (paid by ${paidBy})\n`;
           });
@@ -677,144 +579,34 @@ export const AIConciergeChat = ({
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
               <Search size={20} className="text-white" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <h3 className="text-lg font-semibold text-white">AI Concierge</h3>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  {voiceState === 'listening' ? (
-                    <>
-                      <Mic size={16} className="text-green-400" />
-                      <span className="text-xs text-green-400">
-                        {isLiveVoiceMode ? 'Live Listening...' : 'Listening...'}
-                      </span>
-                    </>
-                  ) : voiceState === 'thinking' ? (
-                    <>
-                      <Mic size={16} className="text-purple-400" />
-                      <span className="text-xs text-purple-400">Thinking...</span>
-                    </>
-                  ) : voiceState === 'speaking' ? (
-                    <>
-                      <Mic size={16} className="text-blue-400" />
-                      <span className="text-xs text-blue-400">Speaking... Tap to interrupt</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle size={16} className="text-green-400" />
-                      <span className="text-xs text-green-400">Ready with Web Search</span>
-                    </>
-                  )}
-                </div>
-
-                {/* Gemini Live toggle */}
-                {isVoiceEligible && (
-                  <button
-                    onClick={toggleLiveVoiceMode}
-                    className={`flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full text-xs transition-all ${
-                      isLiveVoiceMode
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                        : 'bg-white/5 text-neutral-400 border border-white/10 hover:text-white hover:bg-white/10'
-                    }`}
-                    aria-label={
-                      isLiveVoiceMode ? 'Switch to text voice' : 'Switch to Gemini Live voice'
-                    }
-                  >
-                    <Radio size={12} />
-                    {isLiveVoiceMode ? 'Live' : 'Live'}
-                  </button>
-                )}
-
-                {/* Usage status for free users */}
-                {isFreeUser && usage && (
-                  <div className="flex items-center gap-2 ml-2">
-                    <Badge
-                      variant={
-                        getUsageStatus().status === 'limit_reached'
-                          ? 'destructive'
-                          : getUsageStatus().status === 'warning'
-                            ? 'secondary'
-                            : 'default'
-                      }
-                      className="text-xs"
-                    >
-                      {getUsageStatus().message}
-                    </Badge>
-                    {getUsageStatus().status === 'limit_reached' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs h-6 px-2"
-                        onClick={() => window.open(upgradeUrl, '_blank')}
-                      >
-                        <Crown size={12} className="mr-1" />
-                        Upgrade
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                {/* Rate limit indicator for events */}
-                {isEvent && !isPlus && user && remainingQueries !== Infinity && (
-                  <div className="flex items-center gap-1 ml-2">
-                    <AlertCircle
-                      size={16}
-                      className={remainingQueries <= 2 ? 'text-orange-400' : 'text-blue-400'}
-                    />
-                    <span
-                      className={`text-xs ${remainingQueries <= 2 ? 'text-orange-400' : 'text-blue-400'}`}
-                    >
-                      {remainingQueries} {remainingQueries === 1 ? 'query' : 'queries'} left for
-                      this trip
-                    </span>
-                  </div>
-                )}
-
-                {/* Offline indicator */}
-                {isOffline && (
-                  <div className="flex items-center gap-1 ml-2">
-                    <AlertCircle size={16} className="text-yellow-400" />
-                    <span className="text-xs text-yellow-400">Offline Mode</span>
-                  </div>
-                )}
-
-                {/* Degraded mode indicator */}
-                {aiStatus === 'degraded' && (
-                  <div className="flex items-center gap-1 ml-2">
-                    <AlertCircle size={16} className="text-orange-400" />
-                    <span className="text-xs text-orange-400">Limited Mode</span>
-                  </div>
-                )}
-
-                {/* Cached response indicator */}
-                {isUsingCachedResponse && (
-                  <div className="flex items-center gap-1 ml-2">
-                    <Clock size={16} className="text-blue-400" />
-                    <span className="text-xs text-blue-400">Cached</span>
-                  </div>
-                )}
-              </div>
+              <p className="text-xs text-gray-400">🔒 This conversation is private to you</p>
+              <p className={`text-xs mt-0.5 ${queryAllowanceTone}`}>{queryAllowanceText}</p>
             </div>
           </div>
         </div>
 
         {/* Usage Limit Reached State */}
-        {isFreeUser && usage?.isLimitReached && (
+        {isQueryLimitReached && usage?.limit !== null && (
           <div className="text-center py-6 px-4 mb-4 flex-shrink-0">
             <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <Crown size={24} className="text-white" />
             </div>
             <h4 className="text-white font-medium mb-2">Trip Limit Reached</h4>
             <p className="text-sm text-gray-300 mb-4 max-w-sm mx-auto">
-              You've used all {usage.limit} free AI queries for this trip. Upgrade to keep planning!
+              You've used all {usage.limit} Concierge queries for this trip.
             </p>
             <div className="flex flex-col gap-2 max-w-xs mx-auto">
-              <Button
-                onClick={() => (window.location.href = upgradeUrl)}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full"
-              >
-                <Crown size={16} className="mr-2" />
-                Explorer - 10 Queries/Trip ($9.99/mo)
-              </Button>
+              {userPlan === 'free' && (
+                <Button
+                  onClick={() => (window.location.href = upgradeUrl)}
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full"
+                >
+                  <Crown size={16} className="mr-2" />
+                  Explorer - 10 Queries/Trip ($9.99/mo)
+                </Button>
+              )}
               <Button
                 onClick={() => (window.location.href = upgradeUrl)}
                 variant="outline"
@@ -831,7 +623,7 @@ export const AIConciergeChat = ({
         )}
 
         {/* Empty State - Compact for Mobile */}
-        {messages.length === 0 && !(isFreeUser && usage?.isLimitReached) && (
+        {messages.length === 0 && !isQueryLimitReached && (
           <div className="text-center py-6 px-4 flex-shrink-0">
             <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
               Your AI Travel Concierge
@@ -865,22 +657,9 @@ export const AIConciergeChat = ({
               <span className="text-xs text-red-300">{currentVoiceError}</span>
             </div>
           )}
-
-          {/* Gemini Live active indicator */}
-          {isLiveVoiceMode && geminiLiveState !== 'idle' && (
-            <div className="flex items-center justify-center gap-2 px-3 py-3 mt-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
-              <Radio size={16} className="text-purple-400" />
-              <span className="text-sm text-purple-300">
-                {geminiLiveState === 'connecting' && 'Connecting to Gemini Live...'}
-                {geminiLiveState === 'listening' && 'Gemini Live — Listening...'}
-                {geminiLiveState === 'speaking' && 'Gemini Live — Speaking...'}
-                {geminiLiveState === 'error' && 'Gemini Live — Error'}
-              </span>
-            </div>
-          )}
         </div>
 
-        {/* Input with privacy indicator */}
+        {/* Input */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
           <AiChatInput
             inputMessage={inputMessage}
@@ -888,9 +667,7 @@ export const AIConciergeChat = ({
             onSendMessage={handleSendMessage}
             onKeyPress={handleKeyPress}
             isTyping={isTyping}
-            disabled={isFreeUser && usage?.isLimitReached}
-            usageStatus={getUsageStatus()}
-            onUpgradeClick={() => (window.location.href = upgradeUrl)}
+            disabled={isQueryLimitReached}
             voiceState={voiceState}
             isVoiceEligible={isVoiceEligible}
             onVoiceToggle={toggleVoice}
@@ -900,9 +677,6 @@ export const AIConciergeChat = ({
             onImageAttach={files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
             onRemoveImage={idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))}
           />
-          <div className="text-center mt-1">
-            <span className="text-xs text-gray-500">🔒 This conversation is private to you</span>
-          </div>
         </div>
       </div>
     </div>

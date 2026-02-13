@@ -163,6 +163,136 @@ function shouldRunRAGRetrieval(query: string, tripId: string): boolean {
   return true;
 }
 
+type UsagePlan = 'free' | 'explorer' | 'frequent_chraveler';
+
+interface UsagePlanResolution {
+  usagePlan: UsagePlan;
+  tripQueryLimit: number | null;
+}
+
+const EXPLORER_PRODUCT_IDS = new Set(['prod_Tc0SWNhLkoCDIi', 'prod_Tx0AZIWAubAWD3']);
+
+const getQueryLimitForUsagePlan = (plan: UsagePlan): number | null => {
+  if (plan === 'free') return 5;
+  if (plan === 'explorer') return 10;
+  return null;
+};
+
+const mapRawPlanToUsagePlan = (plan: string | null | undefined): UsagePlan => {
+  if (!plan || plan === 'free' || plan === 'consumer') return 'free';
+  if (plan === 'explorer' || plan === 'plus') return 'explorer';
+  return 'frequent_chraveler';
+};
+
+const isActiveEntitlementStatus = (status: string | null | undefined): boolean =>
+  status === 'active' || status === 'trialing';
+
+const hasActiveEntitlementPeriod = (periodEnd: string | null | undefined): boolean => {
+  if (!periodEnd) return true;
+  const parsed = Date.parse(periodEnd);
+  if (Number.isNaN(parsed)) return true;
+  return parsed > Date.now();
+};
+
+const buildTripLimitReachedResponse = (
+  corsHeaders: Record<string, string>,
+  usagePlan: UsagePlan,
+): Response => {
+  const limitMessage =
+    usagePlan === 'free'
+      ? "You've used all 5 Concierge queries for this trip."
+      : "You've used all 10 Concierge queries for this trip.";
+  return new Response(
+    JSON.stringify({
+      response: `🚫 **Trip query limit reached**\n\n${limitMessage}`,
+      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+      sources: [],
+      success: false,
+      error: 'usage_limit_exceeded',
+      upgradeRequired: true,
+    }),
+    {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    },
+  );
+};
+
+const buildUsageVerificationUnavailableResponse = (corsHeaders: Record<string, string>): Response =>
+  new Response(
+    JSON.stringify({
+      response:
+        "⚠️ **Unable to verify query allowance**\n\nWe couldn't verify your Concierge usage right now. Please try again in a moment.",
+      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+      sources: [],
+      success: false,
+      error: 'usage_verification_unavailable',
+    }),
+    {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    },
+  );
+
+async function resolveUsagePlanForUser(
+  supabase: any,
+  userId: string,
+): Promise<UsagePlanResolution> {
+  const defaultResolution: UsagePlanResolution = {
+    usagePlan: 'free',
+    tripQueryLimit: 5,
+  };
+
+  const { data: entitlementData, error: entitlementError } = await supabase
+    .from('user_entitlements')
+    .select('plan, status, current_period_end')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (entitlementError) {
+    console.error('[Usage] Failed to read user_entitlements:', entitlementError);
+  }
+
+  if (
+    entitlementData &&
+    isActiveEntitlementStatus(entitlementData.status) &&
+    hasActiveEntitlementPeriod(entitlementData.current_period_end)
+  ) {
+    const usagePlan = mapRawPlanToUsagePlan(entitlementData.plan);
+    return {
+      usagePlan,
+      tripQueryLimit: getQueryLimitForUsagePlan(usagePlan),
+    };
+  }
+
+  const { data: profileData, error: profileError } = await supabase
+    .from('profiles')
+    .select('app_role, subscription_status, subscription_product_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error('[Usage] Failed to read profiles fallback fields:', profileError);
+    return defaultResolution;
+  }
+
+  if (profileData && isActiveEntitlementStatus(profileData.subscription_status)) {
+    const productId = String(profileData.subscription_product_id || '');
+    if (productId && EXPLORER_PRODUCT_IDS.has(productId)) {
+      return { usagePlan: 'explorer', tripQueryLimit: 10 };
+    }
+    if (productId) {
+      return { usagePlan: 'frequent_chraveler', tripQueryLimit: null };
+    }
+  }
+
+  const fallbackPlan = mapRawPlanToUsagePlan(profileData?.app_role);
+  return {
+    usagePlan: fallbackPlan,
+    tripQueryLimit: getQueryLimitForUsagePlan(fallbackPlan),
+  };
+}
+
 serve(async req => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
@@ -174,6 +304,8 @@ serve(async req => {
 
   let message = '';
   let tripId = 'unknown';
+  let tripQueryLimit: number | null = null;
+  let usagePlan: 'free' | 'explorer' | 'frequent_chraveler' = 'free';
 
   try {
     // Early health check path - responds immediately without AI processing
@@ -296,37 +428,26 @@ serve(async req => {
         }
       }
 
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('app_role')
-        .eq('id', user.id)
-        .single();
+      const planResolution = await resolveUsagePlanForUser(supabase, user.id);
+      usagePlan = planResolution.usagePlan;
+      tripQueryLimit = planResolution.tripQueryLimit;
 
-      const isFreeUser = !userProfile?.app_role || userProfile.app_role === 'consumer';
+      if (tripQueryLimit !== null && tripId && tripId !== 'unknown') {
+        const { data: tripUsageData, error: tripUsageError } = await supabase.rpc(
+          'get_concierge_trip_usage',
+          {
+            p_trip_id: tripId,
+          },
+        );
 
-      if (isFreeUser) {
-        const { data: usageData } = await supabase.rpc('get_daily_concierge_usage', {
-          user_uuid: user.id,
-        });
-
-        const dailyUsage = usageData || 0;
-        const FREE_TIER_LIMIT = 10;
-
-        if (dailyUsage >= FREE_TIER_LIMIT) {
-          return new Response(
-            JSON.stringify({
-              response: `🚫 **Daily query limit reached**\n\nYou've used ${dailyUsage}/${FREE_TIER_LIMIT} free AI queries today. Upgrade to Pro for unlimited access!`,
-              usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-              sources: [],
-              success: false,
-              error: 'usage_limit_exceeded',
-              upgradeRequired: true,
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            },
-          );
+        if (tripUsageError) {
+          console.error('[Usage] Failed to fetch trip concierge usage:', tripUsageError);
+          return buildUsageVerificationUnavailableResponse(corsHeaders);
+        } else {
+          const usedCount = Number(tripUsageData ?? 0);
+          if (usedCount >= tripQueryLimit) {
+            return buildTripLimitReachedResponse(corsHeaders, usagePlan);
+          }
         }
       }
     }
@@ -977,6 +1098,29 @@ serve(async req => {
                   .join('')
               : 'Sorry, I could not generate a response right now.';
 
+        if (!serverDemoMode && user && tripQueryLimit !== null && tripId !== 'unknown') {
+          const { data: incrementResult, error: incrementError } = await supabase.rpc(
+            'increment_concierge_trip_usage',
+            {
+              p_trip_id: tripId,
+              p_limit: tripQueryLimit,
+            },
+          );
+
+          if (incrementError) {
+            console.error('[Usage] Failed to increment trip concierge usage:', incrementError);
+            return buildUsageVerificationUnavailableResponse(corsHeaders);
+          } else {
+            const incrementRow = Array.isArray(incrementResult)
+              ? incrementResult[0]
+              : incrementResult;
+            const didIncrement = incrementRow?.incremented !== false;
+            if (!didIncrement) {
+              return buildTripLimitReachedResponse(corsHeaders, usagePlan);
+            }
+          }
+        }
+
         return new Response(
           JSON.stringify({
             response: fallbackText,
@@ -1190,6 +1334,29 @@ serve(async req => {
         total_tokens: fallbackUsage.total_tokens || 0,
       };
 
+      if (!serverDemoMode && user && tripQueryLimit !== null && tripId !== 'unknown') {
+        const { data: incrementResult, error: incrementError } = await supabase.rpc(
+          'increment_concierge_trip_usage',
+          {
+            p_trip_id: tripId,
+            p_limit: tripQueryLimit,
+          },
+        );
+
+        if (incrementError) {
+          console.error('[Usage] Failed to increment trip concierge usage:', incrementError);
+          return buildUsageVerificationUnavailableResponse(corsHeaders);
+        } else {
+          const incrementRow = Array.isArray(incrementResult)
+            ? incrementResult[0]
+            : incrementResult;
+          const didIncrement = incrementRow?.incremented !== false;
+          if (!didIncrement) {
+            return buildTripLimitReachedResponse(corsHeaders, usagePlan);
+          }
+        }
+      }
+
       return new Response(
         JSON.stringify({
           response: fallbackText,
@@ -1349,28 +1516,46 @@ serve(async req => {
           : 'google_maps_grounding',
       }));
 
+      const resolvedTripId = comprehensiveContext?.tripMetadata?.id || tripId || 'unknown';
+
+      if (!serverDemoMode && user && tripQueryLimit !== null && resolvedTripId !== 'unknown') {
+        const { data: incrementResult, error: incrementError } = await supabase.rpc(
+          'increment_concierge_trip_usage',
+          {
+            p_trip_id: resolvedTripId,
+            p_limit: tripQueryLimit,
+          },
+        );
+
+        if (incrementError) {
+          console.error('[Usage] Failed to increment trip concierge usage:', incrementError);
+          return buildUsageVerificationUnavailableResponse(corsHeaders);
+        } else {
+          const incrementRow = Array.isArray(incrementResult)
+            ? incrementResult[0]
+            : incrementResult;
+          const didIncrement = incrementRow?.incremented !== false;
+          if (!didIncrement) {
+            return buildTripLimitReachedResponse(corsHeaders, usagePlan);
+          }
+        }
+      }
+
       // Skip database storage in demo mode
       if (!serverDemoMode) {
-        if (comprehensiveContext?.tripMetadata?.id) {
-          await storeConversation(
-            supabase,
-            comprehensiveContext.tripMetadata.id,
-            message,
-            aiResponse,
-            'chat',
-            {
-              grounding_sources: citations.length,
-              has_map_widget: !!googleMapsWidget,
-              function_calls: functionCallResults.map(r => r.name),
-            },
-          );
+        if (resolvedTripId !== 'unknown') {
+          await storeConversation(supabase, resolvedTripId, message, aiResponse, 'chat', {
+            grounding_sources: citations.length,
+            has_map_widget: !!googleMapsWidget,
+            function_calls: functionCallResults.map(r => r.name),
+          });
         }
 
         if (user) {
           try {
             const usageData: any = {
               user_id: user.id,
-              trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
+              trip_id: resolvedTripId,
               query_text: logMessage.substring(0, 500),
               response_tokens: usage.completion_tokens,
               model_used: selectedModel,

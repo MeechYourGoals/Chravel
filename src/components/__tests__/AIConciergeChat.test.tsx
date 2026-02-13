@@ -13,7 +13,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { AIConciergeChat } from '../AIConciergeChat';
 import { conciergeCacheService } from '../../services/conciergeCacheService';
-import { conciergeRateLimitService } from '../../services/conciergeRateLimitService';
 
 // Mock dependencies
 vi.mock('../../integrations/supabase/client', () => ({
@@ -33,25 +32,36 @@ vi.mock('../../hooks/useAuth', () => ({
 vi.mock('../../hooks/useConsumerSubscription', () => ({
   useConsumerSubscription: () => ({
     isPlus: false,
+    tier: 'free',
+    isLoading: false,
   }),
 }));
 
 vi.mock('../../hooks/useConciergeUsage', () => ({
   useConciergeUsage: () => ({
     usage: {
-      dailyCount: 5,
+      used: 5,
       limit: 10,
       remaining: 5,
       isLimitReached: false,
-      resetTime: new Date(Date.now() + 3600000).toISOString(),
+      plan: 'explorer',
     },
+    refreshUsage: vi.fn().mockResolvedValue({
+      used: 5,
+      limit: 10,
+      remaining: 5,
+      isLimitReached: false,
+      plan: 'explorer',
+    }),
     getUsageStatus: () => ({
       status: 'ok',
-      message: '5 queries remaining today',
+      message: 'Queries: 5/10',
       color: 'text-green-500',
     }),
-    formatTimeUntilReset: (time: string) => '1h 0m',
+    incrementUsageOnSuccess: vi.fn(),
+    isLimitedPlan: true,
     isFreeUser: true,
+    userPlan: 'explorer',
     upgradeUrl: '/settings/billing?plan=plus',
   }),
 }));
@@ -82,27 +92,21 @@ describe('AIConciergeChat', () => {
     vi.restoreAllMocks();
   });
 
-  describe('Rate Limiting', () => {
-    it('should display countdown timer for event rate limits', async () => {
-      vi.spyOn(conciergeRateLimitService, 'getRemainingQueries').mockResolvedValue(3);
-      vi.spyOn(conciergeRateLimitService, 'getTimeUntilReset').mockResolvedValue('2 hours');
-
-      render(<AIConciergeChat tripId="test-trip" isEvent={true} />);
+  describe('Header Simplification', () => {
+    it('shows privacy text and query allowance near title', async () => {
+      render(<AIConciergeChat tripId="test-trip" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/queries left/i)).toBeInTheDocument();
+        expect(screen.getByText(/this conversation is private to you/i)).toBeInTheDocument();
       });
+      expect(screen.getByText(/queries:\s*5\/10/i)).toBeInTheDocument();
     });
 
-    it('should show limit reached message when quota exhausted', async () => {
-      vi.spyOn(conciergeRateLimitService, 'canQuery').mockResolvedValue(false);
-      vi.spyOn(conciergeRateLimitService, 'getRemainingQueries').mockResolvedValue(0);
-      vi.spyOn(conciergeRateLimitService, 'getTimeUntilReset').mockResolvedValue('5 hours');
-
-      render(<AIConciergeChat tripId="test-trip" isEvent={true} />);
-
-      // Would need user interaction to trigger, but structure is tested
-      expect(conciergeRateLimitService.canQuery).toBeDefined();
+    it('removes legacy status pills from header', () => {
+      render(<AIConciergeChat tripId="test-trip" />);
+      expect(screen.queryByText(/ready with web search/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/^live$/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/limited mode/i)).not.toBeInTheDocument();
     });
   });
 
