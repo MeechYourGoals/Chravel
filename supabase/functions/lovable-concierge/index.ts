@@ -13,9 +13,11 @@ import {
   requiresChainOfThought,
 } from '../_shared/aiUtils.ts';
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'); // kept as fallback
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -132,8 +134,8 @@ serve(async req => {
       });
     }
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error('Lovable API key not configured');
+    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
+      throw new Error('No AI API key configured (GEMINI_API_KEY or LOVABLE_API_KEY)');
     }
 
     // Validate input
@@ -561,7 +563,7 @@ serve(async req => {
       );
     }
 
-    // Prepare messages for Lovable AI
+    // Prepare messages
     const messages: ChatMessage[] = [
       { role: 'system', content: finalSystemPrompt },
       ...limitedChatHistory,
@@ -582,14 +584,20 @@ serve(async req => {
       console.log(`[Context Management] Total context length: ${totalContextLength} characters`);
     }
 
-    // 🆕 Smart grounding detection - only enable for location queries
+    // Smart grounding detection - location queries
     const isLocationQuery = message
       .toLowerCase()
       .match(
         /\b(where|restaurant|hotel|cafe|bar|attraction|place|location|near|around|close|best|find|suggest|recommend|visit|directions|route|food|eat|drink|stay|sushi|pizza|beach|museum|park)\b/i,
       );
 
-    // 🆕 FIXED: Use personal basecamp as fallback for location grounding
+    // Smart grounding detection - real-time info queries
+    const isRealtimeQuery = message
+      .toLowerCase()
+      .match(
+        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel)\b/i,
+      );
+
     const tripBasecamp = comprehensiveContext?.places?.tripBasecamp;
     const personalBasecamp = comprehensiveContext?.places?.personalBasecamp;
     const locationData =
@@ -600,56 +608,134 @@ serve(async req => {
           : null;
 
     const hasLocationContext = !!locationData;
-    const enableGrounding = isLocationQuery && hasLocationContext;
+    const enableLocationGrounding = isLocationQuery && hasLocationContext;
 
-    if (enableGrounding) {
+    if (enableLocationGrounding) {
       const basecampType = tripBasecamp?.lat ? 'trip' : 'personal';
       console.log(`[Location] Using ${basecampType} basecamp for grounding: ${locationData?.name}`);
     }
 
-    // 🆕 SMART MODEL ROUTING: Use Pro for complex queries, Flash for simple ones
+    // Model routing
     const selectedModel =
       config.model ||
-      (complexity.recommendedModel === 'pro' ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash');
+      (complexity.recommendedModel === 'pro' ? 'gemini-2.5-pro' : 'gemini-2.5-flash');
 
-    // Adjust temperature based on complexity (lower for complex = more focused)
     const temperature = config.temperature || (complexity.score > 0.5 ? 0.5 : 0.7);
 
     console.log(`[Model Selection] Using model: ${selectedModel}, Temperature: ${temperature}`);
 
-    // Call Lovable AI Gateway with optional grounding
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+    // ========== GEMINI FUNCTION CALLING DECLARATIONS ==========
+    const functionDeclarations = [
+      {
+        name: 'addToCalendar',
+        description: 'Add an event to the trip calendar/itinerary',
+        parameters: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', description: 'Event title' },
+            datetime: { type: 'string', description: 'ISO 8601 datetime string' },
+            location: { type: 'string', description: 'Event location or address' },
+            notes: { type: 'string', description: 'Additional notes or description' },
+          },
+          required: ['title', 'datetime'],
+        },
       },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages,
-        temperature,
-        max_tokens: config.maxTokens || 2048,
-        stream: false,
-        // 🆕 Enable Google Maps grounding using trip OR personal basecamp
-        ...(enableGrounding &&
-          locationData && {
-            tools: [{ googleMaps: { enableWidget: true } }],
-            toolConfig: {
-              retrievalConfig: {
-                latLng: {
-                  latitude: locationData.lat,
-                  longitude: locationData.lng,
-                },
-              },
+      {
+        name: 'createTask',
+        description: 'Create a new task for the trip group',
+        parameters: {
+          type: 'object',
+          properties: {
+            content: { type: 'string', description: 'Task description' },
+            assignee: { type: 'string', description: 'Name of the person to assign the task to' },
+            dueDate: { type: 'string', description: 'Due date in ISO 8601 format' },
+          },
+          required: ['content'],
+        },
+      },
+      {
+        name: 'createPoll',
+        description: 'Create a poll for the group to vote on',
+        parameters: {
+          type: 'object',
+          properties: {
+            question: { type: 'string', description: 'The poll question' },
+            options: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'List of poll options (2-6 options)',
             },
-          }),
-      }),
+          },
+          required: ['question', 'options'],
+        },
+      },
+      {
+        name: 'getPaymentSummary',
+        description: 'Get a summary of who owes what in the trip',
+        parameters: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'searchPlaces',
+        description: 'Search for places like restaurants, hotels, attractions near a location',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Search query (e.g. "sushi restaurant")' },
+            nearLat: { type: 'number', description: 'Latitude to search near' },
+            nearLng: { type: 'number', description: 'Longitude to search near' },
+          },
+          required: ['query'],
+        },
+      },
+    ];
+
+    // ========== BUILD GEMINI TOOLS ==========
+    const geminiTools: any[] = [
+      { functionDeclarations },
+    ];
+
+    // Add Google Search grounding for real-time queries
+    if (isRealtimeQuery) {
+      geminiTools.push({ googleSearch: {} });
+      console.log('[Grounding] Enabling Google Search for real-time query');
+    }
+
+    // ========== CALL GEMINI API DIRECTLY ==========
+    // Convert OpenAI-format messages to Gemini format
+    const systemInstruction = finalSystemPrompt;
+    const geminiContents = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+
+    const geminiRequestBody: any = {
+      contents: geminiContents,
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      generationConfig: {
+        temperature,
+        maxOutputTokens: config.maxTokens || 2048,
+      },
+      tools: geminiTools,
+    };
+
+    const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${GEMINI_API_KEY}`;
+
+    console.log(`[Gemini] Calling ${selectedModel} directly`);
+
+    const response = await fetch(geminiEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(geminiRequestBody),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
 
-      // Handle rate limiting
       if (response.status === 429) {
         return new Response(
           JSON.stringify({
@@ -667,55 +753,112 @@ serve(async req => {
         );
       }
 
-      // Handle payment required
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({
-            response:
-              '💳 **Additional credits required**\n\nThe AI service requires additional credits. Please contact support.',
-            usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-            sources: [],
-            success: false,
-            error: 'payment_required',
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          },
-        );
-      }
-
       throw new Error(
-        `Lovable AI Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`,
+        `Gemini API Error: ${response.status} - ${errorData.error?.message || JSON.stringify(errorData)}`,
       );
     }
 
     const data = await response.json();
 
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response format from Lovable AI');
+    // ========== HANDLE FUNCTION CALLS ==========
+    let aiResponse = '';
+    let groundingMetadata = null;
+    let functionCallResults: any[] = [];
+
+    const candidate = data.candidates?.[0];
+    if (!candidate) {
+      throw new Error('No response candidate from Gemini');
     }
 
-    const aiResponse = data.choices[0].message.content;
-    const usage = data.usage;
+    // Check if Gemini wants to call functions
+    const parts = candidate.content?.parts || [];
+    const functionCallParts = parts.filter((p: any) => p.functionCall);
+    const textParts = parts.filter((p: any) => p.text);
 
-    // 🆕 Extract grounding metadata from response
-    const groundingMetadata = data.choices[0]?.groundingMetadata || null;
+    if (functionCallParts.length > 0) {
+      // Execute each function call
+      for (const part of functionCallParts) {
+        const fc = part.functionCall;
+        console.log(`[FunctionCall] Executing: ${fc.name}`, fc.args);
+
+        let result: any;
+        try {
+          result = await executeFunctionCall(supabase, fc.name, fc.args, tripId, user?.id);
+        } catch (fcError) {
+          console.error(`[FunctionCall] Error executing ${fc.name}:`, fcError);
+          result = { error: `Failed to execute ${fc.name}: ${fcError.message}` };
+        }
+
+        functionCallResults.push({
+          name: fc.name,
+          response: result,
+        });
+      }
+
+      // Send function results back to Gemini for natural language response
+      const followUpContents = [
+        ...geminiContents,
+        { role: 'model', parts: functionCallParts },
+        {
+          role: 'user',
+          parts: functionCallResults.map(r => ({
+            functionResponse: {
+              name: r.name,
+              response: r.response,
+            },
+          })),
+        },
+      ];
+
+      const followUpResponse = await fetch(geminiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: followUpContents,
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          generationConfig: { temperature, maxOutputTokens: config.maxTokens || 2048 },
+        }),
+      });
+
+      if (followUpResponse.ok) {
+        const followUpData = await followUpResponse.json();
+        const followUpCandidate = followUpData.candidates?.[0];
+        aiResponse = followUpCandidate?.content?.parts
+          ?.filter((p: any) => p.text)
+          .map((p: any) => p.text)
+          .join('') || 'Action completed successfully.';
+        groundingMetadata = followUpCandidate?.groundingMetadata || null;
+      } else {
+        aiResponse = 'I completed the action, but had trouble generating a summary. Check your trip tabs for the update.';
+      }
+    } else {
+      // No function calls - just text response
+      aiResponse = textParts.map((p: any) => p.text).join('') || 'Sorry, I could not generate a response.';
+      groundingMetadata = candidate.groundingMetadata || null;
+    }
+
+    // Extract usage from Gemini response
+    const usageMetadata = data.usageMetadata || {};
+    const usage = {
+      prompt_tokens: usageMetadata.promptTokenCount || 0,
+      completion_tokens: usageMetadata.candidatesTokenCount || 0,
+      total_tokens: usageMetadata.totalTokenCount || 0,
+    };
+
+    // Extract grounding citations
     const groundingChunks = groundingMetadata?.groundingChunks || [];
-    const googleMapsWidget = groundingMetadata?.googleMapsWidgetContextToken || null;
+    const googleMapsWidget = groundingMetadata?.searchEntryPoint?.renderedContent || null;
 
-    // Transform grounding chunks into citation-friendly format
     const citations = groundingChunks.map((chunk: any, index: number) => ({
       id: `citation_${index}`,
-      title: chunk.web?.title || 'Google Maps',
+      title: chunk.web?.title || 'Source',
       url: chunk.web?.uri || '#',
       snippet: chunk.web?.snippet || '',
-      source: 'google_maps_grounding',
+      source: groundingMetadata?.searchEntryPoint ? 'google_search_grounding' : 'google_maps_grounding',
     }));
 
     // Skip database storage in demo mode
     if (!isDemoMode) {
-      // Store conversation in database for context awareness
       if (comprehensiveContext?.tripMetadata?.id) {
         await storeConversation(
           supabase,
@@ -726,34 +869,31 @@ serve(async req => {
           {
             grounding_sources: citations.length,
             has_map_widget: !!googleMapsWidget,
+            function_calls: functionCallResults.map(r => r.name),
           },
         );
       }
 
-      // Track usage for analytics and rate limiting
       if (user) {
         try {
-          // 🆕 Use redacted message for storage (PII protection)
           const usageData: any = {
             user_id: user.id,
             trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
-            query_text: logMessage.substring(0, 500), // Use redacted text
-            response_tokens: usage?.completion_tokens || 0,
+            query_text: logMessage.substring(0, 500),
+            response_tokens: usage.completion_tokens,
             model_used: selectedModel,
           };
 
-          // Add new fields if columns exist (graceful degradation)
           try {
             usageData.complexity_score = complexity.score;
             usageData.used_pro_model = complexity.recommendedModel === 'pro';
           } catch (e) {
-            // Columns may not exist in all environments - ignore
+            // Columns may not exist
           }
 
           await supabase.from('concierge_usage').insert(usageData);
         } catch (usageError) {
           console.error('Failed to track usage:', usageError);
-          // Don't fail the request if usage tracking fails
         }
       }
     }
@@ -763,7 +903,7 @@ serve(async req => {
         response: aiResponse,
         usage,
         sources: citations,
-        googleMapsWidget, // 🆕 Widget token for frontend
+        googleMapsWidget,
         success: true,
         model: selectedModel,
         complexity: {
@@ -772,6 +912,9 @@ serve(async req => {
           factors: complexity.factors,
         },
         usedChainOfThought: useChainOfThought,
+        functionCalls: functionCallResults.length > 0
+          ? functionCallResults.map(r => r.name)
+          : undefined,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -800,6 +943,160 @@ serve(async req => {
     );
   }
 });
+
+// ========== FUNCTION CALL EXECUTOR ==========
+async function executeFunctionCall(
+  supabase: any,
+  functionName: string,
+  args: any,
+  tripId: string,
+  userId?: string,
+): Promise<any> {
+  switch (functionName) {
+    case 'addToCalendar': {
+      const { title, datetime, location, notes } = args;
+      const startTime = new Date(datetime).toISOString();
+      const endTime = new Date(new Date(datetime).getTime() + 60 * 60 * 1000).toISOString(); // default 1hr
+      const { data, error } = await supabase
+        .from('trip_events')
+        .insert({
+          trip_id: tripId,
+          title,
+          start_time: startTime,
+          end_time: endTime,
+          location: location || null,
+          description: notes || null,
+          created_by: userId || null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, event: data, message: `Created event "${title}" on ${startTime}` };
+    }
+
+    case 'createTask': {
+      const { content, assignee, dueDate } = args;
+      const { data, error } = await supabase
+        .from('trip_tasks')
+        .insert({
+          trip_id: tripId,
+          content,
+          created_by: userId || null,
+          due_date: dueDate || null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, task: data, message: `Created task: "${content}"${assignee ? ` for ${assignee}` : ''}` };
+    }
+
+    case 'createPoll': {
+      const { question, options } = args;
+      const pollOptions = options.map((opt: string, i: number) => ({
+        id: `opt_${i}`,
+        text: opt,
+        votes: 0,
+      }));
+      const { data, error } = await supabase
+        .from('trip_polls')
+        .insert({
+          trip_id: tripId,
+          question,
+          options: pollOptions,
+          created_by: userId || null,
+          status: 'active',
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, poll: data, message: `Created poll: "${question}" with ${options.length} options` };
+    }
+
+    case 'getPaymentSummary': {
+      const { data: payments, error } = await supabase
+        .from('trip_payment_messages')
+        .select('id, amount, currency, description, created_by, split_count, created_at')
+        .eq('trip_id', tripId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+
+      // Get splits for unsettled debts
+      const paymentIds = (payments || []).map((p: any) => p.id);
+      let splits: any[] = [];
+      if (paymentIds.length > 0) {
+        const { data: splitData } = await supabase
+          .from('payment_splits')
+          .select('payment_message_id, debtor_user_id, amount_owed, is_settled')
+          .in('payment_message_id', paymentIds);
+        splits = splitData || [];
+      }
+
+      const totalSpent = (payments || []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+      const unsettledSplits = splits.filter((s: any) => !s.is_settled);
+      const totalOwed = unsettledSplits.reduce((sum: number, s: any) => sum + (s.amount_owed || 0), 0);
+
+      return {
+        success: true,
+        totalPayments: payments?.length || 0,
+        totalSpent,
+        totalOwed,
+        unsettledCount: unsettledSplits.length,
+        recentPayments: (payments || []).slice(0, 5).map((p: any) => ({
+          description: p.description,
+          amount: p.amount,
+          currency: p.currency,
+        })),
+      };
+    }
+
+    case 'searchPlaces': {
+      const { query, nearLat, nearLng } = args;
+      if (!GOOGLE_MAPS_API_KEY) {
+        return { error: 'Google Maps API key not configured' };
+      }
+
+      const lat = nearLat || locationData?.lat || 0;
+      const lng = nearLng || locationData?.lng || 0;
+
+      const url = `https://places.googleapis.com/v1/places:searchText`;
+      const placesResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+          'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.rating,places.priceLevel,places.googleMapsUri',
+        },
+        body: JSON.stringify({
+          textQuery: query,
+          locationBias: lat && lng ? {
+            circle: { center: { latitude: lat, longitude: lng }, radius: 5000 },
+          } : undefined,
+          maxResultCount: 5,
+        }),
+      });
+
+      if (!placesResponse.ok) {
+        return { error: 'Places search failed', status: placesResponse.status };
+      }
+
+      const placesData = await placesResponse.json();
+      return {
+        success: true,
+        places: (placesData.places || []).map((p: any) => ({
+          name: p.displayName?.text || 'Unknown',
+          address: p.formattedAddress || '',
+          rating: p.rating || null,
+          priceLevel: p.priceLevel || null,
+          mapsUrl: p.googleMapsUri || null,
+        })),
+      };
+    }
+
+    default:
+      return { error: `Unknown function: ${functionName}` };
+  }
+}
 
 function buildSystemPrompt(tripContext: any, customPrompt?: string): string {
   if (customPrompt) return customPrompt;
@@ -831,6 +1128,17 @@ Current date: ${new Date().toISOString().split('T')[0]}
 - **Full Context**: You know everything about this specific trip - use it!
 - **General Travel Knowledge**: Answer about ANY destination, airline, hotel chain, activity, or travel topic worldwide
 
+**Function Calling (ACTIONS):**
+You have access to tools that can take REAL actions in the trip. Use them when the user wants to DO something, not just ASK about something:
+- **addToCalendar**: When user says "add dinner to calendar", "schedule a meeting", etc.
+- **createTask**: When user says "remind everyone to...", "add a task for...", etc.
+- **createPoll**: When user says "let's vote on...", "create a poll for...", etc.
+- **getPaymentSummary**: When user asks about payments, debts, expenses - call this for accurate data
+- **searchPlaces**: When user wants to find restaurants, hotels, attractions near the trip location
+
+IMPORTANT: Only call functions when the user is requesting an ACTION. For informational queries, use context data directly.
+When you successfully execute a function, tell the user what you did and provide a summary.
+
 === RICH CONTENT FORMATTING (CRITICAL - FOLLOW EXACTLY) ===
 
 Your responses are rendered as Markdown in the app. You MUST use rich formatting:
@@ -842,7 +1150,6 @@ Your responses are rendered as Markdown in the app. You MUST use rich formatting
 - For places without a known website, use a Google Maps search link: [Place Name](https://www.google.com/maps/search/Place+Name+City)
 - Example: Check out [Nobu Malibu](https://www.google.com/maps/search/Nobu+Malibu+CA) for world-class sushi.
 
-**Images (USE when recommending places):**
 - When recommending restaurants, hotels, beaches, or attractions, include a preview image to make the response visually rich.
 - Use Google Places photos or known image URLs when available.
 - Format: ![Place Name](image_url)
