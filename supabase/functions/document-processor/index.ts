@@ -1,19 +1,68 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-import { 
-  DocumentProcessorSchema, 
-  validateInput, 
+import {
+  DocumentProcessorSchema,
+  validateInput,
   verifyTripMembership,
-  validateExternalHttpsUrl 
+  validateExternalHttpsUrl,
 } from '../_shared/validation.ts';
+import {
+  invokeChatModel,
+  extractTextFromChatResponse,
+  invokeEmbeddingModel,
+} from '../_shared/gemini.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
 
-serve(async (req) => {
+function parseJsonSafely(raw: string): any {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (_error) {
+    const block = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (block) {
+      return JSON.parse(block[1]);
+    }
+    throw new Error('Failed to parse AI JSON response');
+  }
+}
+
+async function runDocumentModel(
+  messages: Array<{
+    role: 'system' | 'user' | 'assistant';
+    content:
+      | string
+      | Array<{ type: 'text' | 'image_url'; text?: string; image_url?: { url: string } }>;
+  }>,
+  options?: {
+    maxTokens?: number;
+    temperature?: number;
+    timeoutMs?: number;
+    responseFormat?: boolean;
+  },
+): Promise<string> {
+  const aiResult = await invokeChatModel({
+    model: 'gemini-3-flash-preview',
+    messages,
+    maxTokens: options?.maxTokens ?? 2000,
+    temperature: options?.temperature ?? 0.1,
+    timeoutMs: options?.timeoutMs ?? 45000,
+    ...(options?.responseFormat === false ? {} : { responseFormat: { type: 'json_object' } }),
+  });
+
+  console.log(`[document-processor] AI provider=${aiResult.provider} model=${aiResult.model}`);
+  return extractTextFromChatResponse(aiResult.raw, aiResult.provider);
+}
+
+serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -27,15 +76,12 @@ serve(async (req) => {
     // Validate request body with Zod schema
     const rawBody = await req.json();
     const validation = validateInput(DocumentProcessorSchema, rawBody);
-    
+
     if (!validation.success) {
-      return new Response(
-        JSON.stringify({ error: validation.error, success: false }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return new Response(JSON.stringify({ error: validation.error, success: false }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const validated = validation.data;
@@ -45,11 +91,13 @@ serve(async (req) => {
     // Get user ID from auth header
     const authHeader = req.headers.get('Authorization');
     let userId: string | null = null;
-    
+
     if (authHeader) {
       const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabaseAuth.auth.getUser(token);
+      const {
+        data: { user },
+      } = await supabaseAuth.auth.getUser(token);
       userId = user?.id || null;
     }
 
@@ -65,7 +113,7 @@ serve(async (req) => {
       if (membershipError || !membershipCheck) {
         return new Response(
           JSON.stringify({ error: 'Forbidden - you must be a member of this trip' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
     }
@@ -85,14 +133,14 @@ serve(async (req) => {
     // Verify file belongs to the specified trip
     if (fileData.trip_id !== tripId) {
       return new Response(
-        JSON.stringify({ 
-          error: 'File does not belong to the specified trip', 
-          success: false 
+        JSON.stringify({
+          error: 'File does not belong to the specified trip',
+          success: false,
         }),
-        { 
-          status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       );
     }
 
@@ -101,14 +149,14 @@ serve(async (req) => {
       const membershipCheck = await verifyTripMembership(supabase, userId, tripId);
       if (!membershipCheck.isMember) {
         return new Response(
-          JSON.stringify({ 
-            error: membershipCheck.error || 'Unauthorized access to trip', 
-            success: false 
+          JSON.stringify({
+            error: membershipCheck.error || 'Unauthorized access to trip',
+            success: false,
           }),
-          { 
-            status: 403, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
+          {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
         );
       }
     }
@@ -116,14 +164,14 @@ serve(async (req) => {
     // Validate file_url is HTTPS and external (SSRF protection)
     if (fileData.file_url && !validateExternalHttpsUrl(fileData.file_url)) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Invalid file URL: must be HTTPS and external (no internal networks)', 
-          success: false 
+        JSON.stringify({
+          error: 'Invalid file URL: must be HTTPS and external (no internal networks)',
+          success: false,
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       );
     }
 
@@ -131,15 +179,12 @@ serve(async (req) => {
     if (fileData.processing_status === 'completed' && !forceReprocess) {
       return new Response(
         JSON.stringify({ success: true, message: 'File already processed', fileId }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     // Update status to processing
-    await supabase
-      .from('trip_files')
-      .update({ processing_status: 'processing' })
-      .eq('id', fileId);
+    await supabase.from('trip_files').update({ processing_status: 'processing' }).eq('id', fileId);
 
     console.log(`Processing file: ${fileData.file_name} (${fileData.file_type})`);
 
@@ -149,26 +194,24 @@ serve(async (req) => {
     let fileStructure = {};
 
     // Step 1: Extract text based on file type
-    if (fileData.file_type === 'application/pdf' || 
-        fileData.file_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      
+    if (
+      fileData.file_type === 'application/pdf' ||
+      fileData.file_type ===
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ) {
       // For PDF/DOCX, use Gemini Vision for OCR
       const result = await extractWithGeminiVision(fileData.file_url, fileData.file_type);
       extractedText = result.text;
       ocrConfidence = result.confidence;
       extractedEntities = result.entities;
       fileStructure = result.structure;
-
     } else if (fileData.file_type.startsWith('image/')) {
-      
       // For images, use Gemini Vision with OCR focus
       const result = await extractTextFromImage(fileData.file_url);
       extractedText = result.text;
       ocrConfidence = result.confidence;
       extractedEntities = result.entities;
-
     } else if (fileData.file_type === 'text/plain') {
-      
       // For plain text, fetch directly
       extractedText = await fetchTextFile(fileData.file_url);
     }
@@ -186,7 +229,7 @@ serve(async (req) => {
     const chunks = smartChunk(extractedText, {
       chunkSize: 800,
       chunkOverlap: 200,
-      separators: ['\n\n', '\n', '. ', ' ']
+      separators: ['\n\n', '\n', '. ', ' '],
     });
 
     console.log(`Created ${chunks.length} chunks from document`);
@@ -206,9 +249,9 @@ serve(async (req) => {
           extracted_entities: extractedEntities,
           file_structure: fileStructure,
           ocr_confidence: ocrConfidence,
-          summary: aiSummary
+          summary: aiSummary,
         },
-        chunk_count: chunks.length
+        chunk_count: chunks.length,
       })
       .select()
       .single();
@@ -222,12 +265,10 @@ serve(async (req) => {
       doc_id: kbDoc.id,
       content: chunk,
       chunk_index: index,
-      modality: 'text'
+      modality: 'text',
     }));
 
-    const { error: chunksError } = await supabase
-      .from('kb_chunks')
-      .insert(chunkInserts);
+    const { error: chunksError } = await supabase.from('kb_chunks').insert(chunkInserts);
 
     if (chunksError) {
       throw new Error(`Failed to create chunks: ${chunksError.message}`);
@@ -247,7 +288,7 @@ serve(async (req) => {
         ocr_confidence: ocrConfidence,
         extracted_entities: extractedEntities,
         file_structure: fileStructure,
-        error_message: null
+        error_message: null,
       })
       .eq('id', fileId);
 
@@ -259,11 +300,10 @@ serve(async (req) => {
         fileId,
         chunksCreated: chunks.length,
         textExtracted: extractedText.length,
-        summary: aiSummary
+        summary: aiSummary,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
-
   } catch (error) {
     console.error('Document processing error:', error);
 
@@ -275,10 +315,10 @@ serve(async (req) => {
           .from('trip_files')
           .update({
             processing_status: 'failed',
-            error_message: error instanceof Error ? error.message : 'Unknown error'
+            error_message: error instanceof Error ? error.message : 'Unknown error',
           })
           .eq('id', fileId);
-        
+
         if (updateError) {
           console.error('Failed to update file status:', updateError);
         }
@@ -288,11 +328,11 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error', 
-        success: false 
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Unknown error',
+        success: false,
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
@@ -305,18 +345,11 @@ async function extractWithGeminiVision(fileUrl: string, fileType: string) {
     throw new Error('Invalid file URL: must be HTTPS and external');
   }
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'system',
-          content: `Extract ALL text from this document with high accuracy. Also extract structured data.
+  const rawPayload = await runDocumentModel(
+    [
+      {
+        role: 'system',
+        content: `Extract ALL text from this document with high accuracy. Also extract structured data.
           
           Return JSON format:
           {
@@ -337,34 +370,30 @@ async function extractWithGeminiVision(fileUrl: string, fileType: string) {
               "sections": ["section headings"]
             },
             "confidence": 0.95
-          }`
-        },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: `Extract all content from this ${fileType} document:` },
-            { type: 'image_url', image_url: { url: fileUrl } }
-          ]
-        }
-      ],
-      max_tokens: 4000,
+          }`,
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: `Extract all content from this ${fileType} document:` },
+          { type: 'image_url', image_url: { url: fileUrl } },
+        ],
+      },
+    ],
+    {
+      maxTokens: 4000,
       temperature: 0.1,
-      response_format: { type: 'json_object' }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Gemini Vision extraction failed: ${response.status}`);
-  }
-
-  const result = await response.json();
-  const parsed = JSON.parse(result.choices[0].message.content);
+      timeoutMs: 45000,
+      responseFormat: true,
+    },
+  );
+  const parsed = parseJsonSafely(rawPayload);
 
   return {
     text: parsed.text || '',
     confidence: parsed.confidence || 0.85,
     entities: parsed.entities || {},
-    structure: parsed.structure || {}
+    structure: parsed.structure || {},
   };
 }
 
@@ -374,18 +403,11 @@ async function extractTextFromImage(imageUrl: string) {
     throw new Error('Invalid image URL: must be HTTPS and external');
   }
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'system',
-          content: `Perform OCR on this image and extract all visible text with high accuracy.
+  const rawPayload = await runDocumentModel(
+    [
+      {
+        role: 'system',
+        content: `Perform OCR on this image and extract all visible text with high accuracy.
           
           Return JSON:
           {
@@ -396,33 +418,29 @@ async function extractTextFromImage(imageUrl: string) {
               "locations": []
             },
             "confidence": 0.95
-          }`
-        },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Extract all text from this image:' },
-            { type: 'image_url', image_url: { url: imageUrl } }
-          ]
-        }
-      ],
-      max_tokens: 2000,
+          }`,
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Extract all text from this image:' },
+          { type: 'image_url', image_url: { url: imageUrl } },
+        ],
+      },
+    ],
+    {
+      maxTokens: 2000,
       temperature: 0.1,
-      response_format: { type: 'json_object' }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Image OCR failed: ${response.status}`);
-  }
-
-  const result = await response.json();
-  const parsed = JSON.parse(result.choices[0].message.content);
+      timeoutMs: 45000,
+      responseFormat: true,
+    },
+  );
+  const parsed = parseJsonSafely(rawPayload);
 
   return {
     text: parsed.text || '',
-    confidence: parsed.confidence || 0.80,
-    entities: parsed.entities || {}
+    confidence: parsed.confidence || 0.8,
+    entities: parsed.entities || {},
   };
 }
 
@@ -435,56 +453,54 @@ async function fetchTextFile(fileUrl: string): Promise<string> {
   const response = await fetch(fileUrl, {
     signal: AbortSignal.timeout(30000), // 30 second timeout
     headers: {
-      'User-Agent': 'Chravel-DocumentProcessor/1.0'
-    }
+      'User-Agent': 'Chravel-DocumentProcessor/1.0',
+    },
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to fetch text file: ${response.status}`);
   }
-  
+
   return await response.text();
 }
 
 async function generateDocumentSummary(text: string, fileName: string): Promise<string> {
   const truncatedText = text.substring(0, 8000); // Limit input size
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
+  try {
+    const summary = await runDocumentModel(
+      [
         {
           role: 'system',
-          content: 'Generate a concise 2-3 sentence summary of this document for quick reference.'
+          content: 'Generate a concise 2-3 sentence summary of this document for quick reference.',
         },
         {
           role: 'user',
-          content: `Summarize this document (${fileName}):\n\n${truncatedText}`
-        }
+          content: `Summarize this document (${fileName}):\n\n${truncatedText}`,
+        },
       ],
-      max_tokens: 200,
-      temperature: 0.3
-    })
-  });
-
-  if (!response.ok) {
+      {
+        maxTokens: 200,
+        temperature: 0.3,
+        timeoutMs: 30000,
+        responseFormat: false,
+      },
+    );
+    return summary.trim();
+  } catch (error) {
+    console.error('Failed to generate document summary:', error);
     return 'Summary generation failed';
   }
-
-  const result = await response.json();
-  return result.choices[0].message.content.trim();
 }
 
-function smartChunk(text: string, options: {
-  chunkSize: number;
-  chunkOverlap: number;
-  separators: string[];
-}): string[] {
+function smartChunk(
+  text: string,
+  options: {
+    chunkSize: number;
+    chunkOverlap: number;
+    separators: string[];
+  },
+): string[] {
   const { chunkSize, chunkOverlap, separators } = options;
   const chunks: string[] = [];
 
@@ -563,49 +579,43 @@ async function generateChunkEmbeddings(
   docId: string,
   chunks: string[],
   tripId: string,
-  fileId: string
+  fileId: string,
 ) {
   // Generate embeddings in batches
   const batchSize = 10;
 
   for (let i = 0; i < chunks.length; i += batchSize) {
     const batch = chunks.slice(i, i + batchSize);
-
-    const embedResponse = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'google/text-embedding-004',
-        input: batch
-      })
-    });
-
-    if (!embedResponse.ok) {
-      console.error(`Failed to generate embeddings for batch ${i / batchSize + 1}`);
+    let vectors: number[][];
+    try {
+      const embeddingResult = await invokeEmbeddingModel({
+        model: 'text-embedding-004',
+        input: batch,
+        timeoutMs: 30000,
+      });
+      vectors = embeddingResult.embeddings;
+      console.log(
+        `[document-processor] embedding provider=${embeddingResult.provider} model=${embeddingResult.model}`,
+      );
+    } catch (error) {
+      console.error(`Failed to generate embeddings for batch ${i / batchSize + 1}:`, error);
       continue;
     }
 
-    const embedData = await embedResponse.json();
-
     // Insert embeddings into trip_embeddings table
-    const embeddingInserts = embedData.data.map((item: any, idx: number) => ({
+    const embeddingInserts = vectors.map((vector: number[], idx: number) => ({
       trip_id: tripId,
       source_type: 'file',
       source_id: fileId,
       content_text: batch[idx],
-      embedding: item.embedding,
+      embedding: vector,
       metadata: {
         doc_id: docId,
-        chunk_index: i + idx
-      }
+        chunk_index: i + idx,
+      },
     }));
 
-    await supabase
-      .from('trip_embeddings')
-      .insert(embeddingInserts);
+    await supabase.from('trip_embeddings').insert(embeddingInserts);
   }
 
   console.log(`Generated embeddings for ${chunks.length} chunks`);

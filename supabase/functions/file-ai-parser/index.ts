@@ -1,13 +1,52 @@
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
+import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+function parseJsonSafely(raw: string): any {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (_error) {
+    const block = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (block) {
+      return JSON.parse(block[1]);
+    }
+    throw new Error('Failed to parse AI JSON response');
+  }
+}
+
+async function runParserModel(
+  messages: Array<{
+    role: 'system' | 'user' | 'assistant';
+    content:
+      | string
+      | Array<{ type: 'text' | 'image_url'; text?: string; image_url?: { url: string } }>;
+  }>,
+  options?: { maxTokens?: number; temperature?: number; timeoutMs?: number },
+): Promise<any> {
+  const aiResult = await invokeChatModel({
+    model: 'gemini-3-flash-preview',
+    messages,
+    maxTokens: options?.maxTokens ?? 2000,
+    temperature: options?.temperature ?? 0.1,
+    timeoutMs: options?.timeoutMs ?? 45000,
+    responseFormat: { type: 'json_object' },
+  });
+  const payload = extractTextFromChatResponse(aiResult.raw, aiResult.provider);
+  console.log(`[file-ai-parser] AI provider=${aiResult.provider} model=${aiResult.model}`);
+  return parseJsonSafely(payload);
+}
 
 serve(async req => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
@@ -30,10 +69,6 @@ serve(async req => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    }
-
-    if (!LOVABLE_API_KEY) {
-      throw new Error('Lovable API key not configured');
     }
 
     let extractedData;
@@ -91,21 +126,14 @@ serve(async req => {
 });
 
 async function extractCalendarEvents(fileUrl: string) {
-  const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Please analyze this document and extract any calendar events, reservations, bookings, or schedule information. Look for:
+  return runParserModel(
+    [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `Please analyze this document and extract any calendar events, reservations, bookings, or schedule information. Look for:
               - Restaurant reservations (OpenTable, Resy, etc.)
               - Flight bookings (airlines, confirmation codes)
               - Hotel check-ins/check-outs
@@ -134,74 +162,48 @@ async function extractCalendarEvents(fileUrl: string) {
                   "contact_info": "string"
                 }
               }`,
-            },
-            {
-              type: 'image_url',
-              image_url: { url: fileUrl },
-            },
-          ],
-        },
-      ],
-      max_tokens: 2000,
-      temperature: 0.1,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  const result = await geminiResponse.json();
-  return JSON.parse(result.choices[0].message.content);
+          },
+          {
+            type: 'image_url',
+            image_url: { url: fileUrl },
+          },
+        ],
+      },
+    ],
+    { maxTokens: 2000, temperature: 0.1, timeoutMs: 45000 },
+  );
 }
 
 async function extractText(fileUrl: string) {
-  const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Please extract all text content from this document and return it in a clean, structured format as JSON: {"text": "extracted text here"}',
-            },
-            {
-              type: 'image_url',
-              image_url: { url: fileUrl },
-            },
-          ],
-        },
-      ],
-      max_tokens: 2000,
-      temperature: 0.1,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  const result = await geminiResponse.json();
-  return JSON.parse(result.choices[0].message.content);
+  return runParserModel(
+    [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Please extract all text content from this document and return it in a clean, structured format as JSON: {"text": "extracted text here"}',
+          },
+          {
+            type: 'image_url',
+            image_url: { url: fileUrl },
+          },
+        ],
+      },
+    ],
+    { maxTokens: 2000, temperature: 0.1, timeoutMs: 45000 },
+  );
 }
 
 async function extractItinerary(fileUrl: string) {
-  const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Analyze this itinerary document and extract structured travel information in JSON format:
+  return runParserModel(
+    [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `Analyze this itinerary document and extract structured travel information in JSON format:
               {
                 "title": "string",
                 "destination": "string",
@@ -236,54 +238,35 @@ async function extractItinerary(fileUrl: string) {
                   }
                 ]
               }`,
-            },
-            {
-              type: 'image_url',
-              image_url: { url: fileUrl },
-            },
-          ],
-        },
-      ],
-      max_tokens: 2000,
-      temperature: 0.1,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  const result = await geminiResponse.json();
-  return JSON.parse(result.choices[0].message.content);
+          },
+          {
+            type: 'image_url',
+            image_url: { url: fileUrl },
+          },
+        ],
+      },
+    ],
+    { maxTokens: 2000, temperature: 0.1, timeoutMs: 45000 },
+  );
 }
 
 async function extractGeneral(fileUrl: string) {
-  const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Analyze this document and extract key information including any dates, locations, prices, contact information, or important details that might be relevant for trip planning. Return as JSON: {"content": "extracted information"}',
-            },
-            {
-              type: 'image_url',
-              image_url: { url: fileUrl },
-            },
-          ],
-        },
-      ],
-      max_tokens: 1500,
-      temperature: 0.1,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  const result = await geminiResponse.json();
-  return JSON.parse(result.choices[0].message.content);
+  return runParserModel(
+    [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Analyze this document and extract key information including any dates, locations, prices, contact information, or important details that might be relevant for trip planning. Return as JSON: {"content": "extracted information"}',
+          },
+          {
+            type: 'image_url',
+            image_url: { url: fileUrl },
+          },
+        ],
+      },
+    ],
+    { maxTokens: 1500, temperature: 0.1, timeoutMs: 45000 },
+  );
 }
