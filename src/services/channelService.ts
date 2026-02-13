@@ -1,6 +1,5 @@
 import { supabase } from '../integrations/supabase/client';
 import {
-  TripAdmin,
   TripRole,
   UserRoleAssignment,
   TripChannel,
@@ -276,6 +275,15 @@ class ChannelService {
         });
       }
 
+      // Ensure the creator is added as a channel member (DB trigger handles this too,
+      // but we add it here for immediate consistency on the client side)
+      if (user) {
+        await supabase.from('channel_members').upsert(
+          { channel_id: data.id, user_id: user.id },
+          { onConflict: 'channel_id,user_id' },
+        );
+      }
+
       return {
         id: data.id,
         tripId: data.trip_id,
@@ -388,7 +396,59 @@ class ChannelService {
           .eq('is_archived', false)
           .order('created_at');
 
-        return (allChannels || []).map(c => this.mapChannelData(c));
+        const channels = (allChannels || []).map(c => this.mapChannelData(c));
+
+        // Compute member counts for admin-returned channels
+        // Count from channel_members (explicit membership) first, then fall back to role-based count
+        const channelIds = channels.map(c => c.id);
+        if (channelIds.length > 0) {
+          // Get explicit channel_members counts
+          const { data: memberData } = await supabase
+            .from('channel_members')
+            .select('channel_id, user_id')
+            .in('channel_id', channelIds);
+
+          // Build a map of channel_id -> Set<user_id> for deduplication
+          const channelMemberMap = new Map<string, Set<string>>();
+          (memberData || []).forEach(row => {
+            if (!channelMemberMap.has(row.channel_id)) {
+              channelMemberMap.set(row.channel_id, new Set());
+            }
+            channelMemberMap.get(row.channel_id)!.add(row.user_id);
+          });
+
+          // Also count role-based members (from user_trip_roles + channel_role_access)
+          for (const channel of channels) {
+            const memberSet = channelMemberMap.get(channel.id) || new Set<string>();
+
+            // Get roles that grant access to this channel
+            const { data: roleAccessData } = await supabase
+              .from('channel_role_access')
+              .select('role_id')
+              .eq('channel_id', channel.id);
+
+            const roleIds = (roleAccessData || []).map(r => r.role_id);
+            // Also include legacy required_role_id
+            if (channel.requiredRoleId) {
+              roleIds.push(channel.requiredRoleId);
+            }
+
+            if (roleIds.length > 0) {
+              const uniqueRoleIds = [...new Set(roleIds)];
+              const { data: roleMembers } = await supabase
+                .from('user_trip_roles')
+                .select('user_id')
+                .eq('trip_id', tripId)
+                .in('role_id', uniqueRoleIds);
+
+              (roleMembers || []).forEach(r => memberSet.add(r.user_id));
+            }
+
+            channel.memberCount = memberSet.size;
+          }
+        }
+
+        return channels;
       }
 
       // Get ALL user roles for the trip (not just primary)
@@ -522,40 +582,60 @@ class ChannelService {
       messageType?: 'regular' | 'broadcast';
       broadcastCategory?: 'chill' | 'logistics' | 'urgent';
     },
-  ): Promise<ChannelMessage | null> {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const insertData: any = {
-        channel_id: request.channelId,
-        sender_id: user.id,
-        content: request.content,
-        message_type:
-          request.messageType === 'broadcast' ? 'broadcast' : request.messageType || 'text',
-        metadata: request.metadata || {},
-      };
-
-      if (request.messageType === 'broadcast' && request.broadcastCategory) {
-        insertData.broadcast_category = request.broadcastCategory;
-        insertData.metadata = { ...insertData.metadata, category: request.broadcastCategory };
-      }
-
-      const { data } = await supabase.from('channel_messages').insert(insertData).select().single();
-      return {
-        id: data.id,
-        channelId: data.channel_id,
-        senderId: data.sender_id,
-        content: data.content,
-        messageType: data.message_type as 'text' | 'file' | 'system',
-        metadata: (data.metadata || {}) as Record<string, any>,
-        createdAt: data.created_at,
-      };
-    } catch {
-      return null;
+  ): Promise<ChannelMessage> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      throw Object.assign(new Error('You must be logged in to send messages.'), {
+        code: 'AUTH_REQUIRED',
+      });
     }
+
+    if (!request.channelId) {
+      throw Object.assign(new Error('No channel selected.'), {
+        code: 'MISSING_CHANNEL',
+      });
+    }
+
+    const insertData: Record<string, unknown> = {
+      channel_id: request.channelId,
+      sender_id: user.id,
+      content: request.content,
+      message_type:
+        request.messageType === 'broadcast' ? 'broadcast' : request.messageType || 'text',
+      metadata: request.metadata || {},
+    };
+
+    if (request.messageType === 'broadcast' && request.broadcastCategory) {
+      insertData.broadcast_category = request.broadcastCategory;
+      insertData.metadata = { ...(insertData.metadata as Record<string, unknown>), category: request.broadcastCategory };
+    }
+
+    const { data, error } = await supabase
+      .from('channel_messages')
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[channelService.sendMessage] Supabase error:', error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error('No data returned after inserting message.');
+    }
+
+    return {
+      id: data.id,
+      channelId: data.channel_id,
+      senderId: data.sender_id,
+      content: data.content,
+      messageType: data.message_type as 'text' | 'file' | 'system',
+      metadata: (data.metadata || {}) as Record<string, unknown>,
+      createdAt: data.created_at,
+    };
   }
 
   async getMessages(channelId: string, limit = 50): Promise<ChannelMessage[]> {

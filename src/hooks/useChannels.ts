@@ -17,13 +17,36 @@ export const useChannels = (tripId: string) => {
     queryFn: async () => {
       try {
         const baseChannels = await eventChannelService.getChannels(tripId);
-        // Add ChannelWithStats properties
-        return baseChannels.map(ch => ({
-          ...ch,
-          stats: { channel_id: ch.id, member_count: 0, message_count: 0 },
-          member_count: 0,
-          is_unread: false
-        })) as ChannelWithStats[];
+
+        // Fetch member counts for all channels from channel_members
+        const channelIds = baseChannels.map(ch => ch.id);
+        let memberCountMap = new Map<string, number>();
+        if (channelIds.length > 0) {
+          const { data: memberData } = await import('../integrations/supabase/client').then(
+            m => m.supabase
+              .from('channel_members')
+              .select('channel_id')
+              .in('channel_id', channelIds)
+          );
+          if (memberData) {
+            const counts = new Map<string, number>();
+            (memberData as Array<{ channel_id: string }>).forEach(row => {
+              counts.set(row.channel_id, (counts.get(row.channel_id) || 0) + 1);
+            });
+            memberCountMap = counts;
+          }
+        }
+
+        // Add ChannelWithStats properties with real member counts
+        return baseChannels.map(ch => {
+          const count = memberCountMap.get(ch.id) || 0;
+          return {
+            ...ch,
+            stats: { channel_id: ch.id, member_count: count, message_count: 0 },
+            member_count: count,
+            is_unread: false
+          };
+        }) as ChannelWithStats[];
       } catch (error) {
         console.error('Failed to load channels:', error);
         return []; // Return empty array on error to prevent app crash
