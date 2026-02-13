@@ -75,6 +75,29 @@ const CHAT_MODEL_ALIASES: Record<string, string> = {
   'google/gemini-1.5-pro': DEFAULT_PRO_MODEL,
 };
 
+export function normalizeGeminiModel(
+  requestedModel: string | undefined,
+  recommendedModel: 'flash' | 'pro',
+): string {
+  if (!requestedModel) {
+    return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
+  }
+
+  const trimmed = requestedModel.trim();
+  if (!trimmed) {
+    return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
+  }
+
+  const stripped = trimmed.replace(/^models\//, '').replace(/^google\//, '');
+  const normalized = CHAT_MODEL_ALIASES[trimmed] || CHAT_MODEL_ALIASES[stripped] || stripped;
+
+  if (!normalized || !normalized.startsWith('gemini-')) {
+    return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
+  }
+
+  return normalized;
+}
+
 function normalizeChatModel(model?: string): string {
   if (!model) return DEFAULT_FLASH_MODEL;
   const trimmed = model.trim();
