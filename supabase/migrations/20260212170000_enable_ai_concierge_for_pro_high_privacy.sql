@@ -27,7 +27,26 @@ BEGIN
 END;
 $function$;
 
--- Backfill existing Pro/Event trips created with legacy "AI off in high privacy" defaults.
+-- Backfill only untouched legacy defaults.
+-- This avoids overriding explicit organizer/admin decisions to keep AI disabled.
+--
+-- Legacy rows are identified as:
+-- - pro/event trip
+-- - high privacy
+-- - ai_access_enabled currently false
+-- - privacy config has never been updated since creation
+UPDATE public.trips AS t
+SET
+  ai_access_enabled = true,
+  updated_at = now()
+FROM public.trip_privacy_configs AS pc
+WHERE pc.trip_id = t.id
+  AND t.trip_type IN ('pro', 'event')
+  AND pc.privacy_mode = 'high'
+  AND pc.ai_access_enabled = false
+  AND pc.updated_at <= pc.created_at + interval '1 second'
+  AND COALESCE(t.ai_access_enabled, false) = false;
+
 UPDATE public.trip_privacy_configs AS pc
 SET
   ai_access_enabled = true,
@@ -35,15 +54,9 @@ SET
 FROM public.trips AS t
 WHERE pc.trip_id = t.id
   AND t.trip_type IN ('pro', 'event')
-  AND pc.ai_access_enabled = false;
-
--- Keep trips table values aligned for historical records.
-UPDATE public.trips
-SET
-  ai_access_enabled = true,
-  updated_at = now()
-WHERE trip_type IN ('pro', 'event')
-  AND COALESCE(ai_access_enabled, false) = false;
+  AND pc.privacy_mode = 'high'
+  AND pc.ai_access_enabled = false
+  AND pc.updated_at <= pc.created_at + interval '1 second';
 
 COMMENT ON FUNCTION public.initialize_trip_privacy_config() IS
 'Automatically creates privacy configuration when a trip is created. Pro and Event trips default to High Privacy mode with AI enabled by default unless explicitly disabled.';

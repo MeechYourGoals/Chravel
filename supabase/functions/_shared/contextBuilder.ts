@@ -259,7 +259,9 @@ export class TripContextBuilder {
       // Strategy: Fetch last 50 messages, then extend if they're all within 72h
       const { data, error } = await supabase
         .from('trip_chat_messages')
-        .select('id, content, author_name, created_at, message_type, privacy_encrypted')
+        .select(
+          'id, content, author_name, created_at, message_type, privacy_mode, privacy_encrypted',
+        )
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false })
         .limit(50); // Base: last 50 messages
@@ -277,7 +279,9 @@ export class TripContextBuilder {
           // All 50 messages are within 72h - fetch ALL from 72h (capped at 100)
           const { data: timeData } = await supabase
             .from('trip_chat_messages')
-            .select('id, content, author_name, created_at, message_type, privacy_encrypted')
+            .select(
+              'id, content, author_name, created_at, message_type, privacy_mode, privacy_encrypted',
+            )
             .eq('trip_id', tripId)
             .gte('created_at', threeDaysAgo.toISOString())
             .order('created_at', { ascending: false })
@@ -290,11 +294,15 @@ export class TripContextBuilder {
         }
       }
 
-      // Never pass encrypted message bodies into AI context.
-      const visibleMessages = messages.filter((m: any) => !m.privacy_encrypted);
-      const encryptedMessageCount = messages.length - visibleMessages.length;
-      if (encryptedMessageCount > 0) {
-        console.log(`[Context] Skipped ${encryptedMessageCount} encrypted messages for AI context`);
+      // Never pass encrypted or high-privacy chat bodies into AI context.
+      const visibleMessages = messages.filter(
+        (m: any) => !m.privacy_encrypted && m.privacy_mode !== 'high',
+      );
+      const skippedMessageCount = messages.length - visibleMessages.length;
+      if (skippedMessageCount > 0) {
+        console.log(
+          `[Context] Skipped ${skippedMessageCount} encrypted/high-privacy messages for AI context`,
+        );
       }
 
       console.log(`[Context] Fetched ${visibleMessages.length} messages for AI context`);

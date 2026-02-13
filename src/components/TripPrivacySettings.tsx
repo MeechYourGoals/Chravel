@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { Shield, Lock, Bot, AlertTriangle, Users, Settings } from 'lucide-react';
+import { Shield, Lock, AlertTriangle, Users, Settings } from 'lucide-react';
 import { PrivacyMode, getPrivacyModeInfo, TripPrivacyConfig } from '../types/privacy';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Switch } from './ui/switch';
 import { Alert, AlertDescription } from './ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 import { PrivacyIndicator } from './PrivacyIndicator';
 import { toast } from 'sonner';
 
@@ -17,54 +23,53 @@ interface TripPrivacySettingsProps {
 }
 
 export const TripPrivacySettings = ({
-  tripId,
+  tripId: _tripId,
   currentConfig,
   userRole,
-  onConfigUpdate
+  onConfigUpdate,
 }: TripPrivacySettingsProps) => {
-  const [isChanging, setIsChanging] = useState(false);
   const [pendingMode, setPendingMode] = useState<PrivacyMode | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const canManagePrivacy = ['admin', 'organizer'].includes(userRole) && currentConfig.can_change_privacy;
-  
+  const canManagePrivacy =
+    ['admin', 'organizer'].includes(userRole) && currentConfig.can_change_privacy;
+
   const handlePrivacyModeChange = (newMode: PrivacyMode) => {
     if (newMode === currentConfig.privacy_mode) return;
-    
+
     setPendingMode(newMode);
     setShowConfirmDialog(true);
   };
 
   const confirmPrivacyChange = async () => {
     if (!pendingMode) return;
-    
+
     setIsLoading(true);
     try {
       // Simulate API call to update privacy settings
       const updatedConfig: TripPrivacyConfig = {
         ...currentConfig,
         privacy_mode: pendingMode,
-        ai_access_enabled: true,
-        participants_notified: false // Will be notified after change
+        ai_access_enabled: currentConfig.ai_access_enabled,
+        participants_notified: false, // Will be notified after change
       };
-      
+
       onConfigUpdate(updatedConfig);
-      
+
       toast.success(
-        `Privacy mode changed to ${getPrivacyModeInfo(pendingMode).label}. All participants will be notified.`
+        `Privacy mode changed to ${getPrivacyModeInfo(pendingMode).label}. All participants will be notified.`,
       );
-      
+
       setShowConfirmDialog(false);
       setPendingMode(null);
-    } catch (error) {
+    } catch {
       toast.error('Failed to update privacy settings. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const currentModeInfo = getPrivacyModeInfo(currentConfig.privacy_mode);
   const pendingModeInfo = pendingMode ? getPrivacyModeInfo(pendingMode) : null;
 
   return (
@@ -78,16 +83,14 @@ export const TripPrivacySettings = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <PrivacyIndicator 
-            privacyMode={currentConfig.privacy_mode}
-            variant="detailed"
-          />
-          
+          <PrivacyIndicator privacyMode={currentConfig.privacy_mode} variant="detailed" />
+
           {!currentConfig.participants_notified && (
             <Alert className="border-amber-500/30 bg-amber-500/10">
               <AlertTriangle className="text-amber-400" size={16} />
               <AlertDescription className="text-amber-300">
-                Privacy settings were recently changed. Some participants may not be aware of the current privacy mode.
+                Privacy settings were recently changed. Some participants may not be aware of the
+                current privacy mode.
               </AlertDescription>
             </Alert>
           )}
@@ -107,7 +110,7 @@ export const TripPrivacySettings = ({
             <div className="grid gap-3">
               {Object.entries({
                 standard: getPrivacyModeInfo('standard'),
-                high: getPrivacyModeInfo('high')
+                high: getPrivacyModeInfo('high'),
               }).map(([mode, info]) => (
                 <Card
                   key={mode}
@@ -127,11 +130,13 @@ export const TripPrivacySettings = ({
                           <p className="text-sm text-slate-400">{info.description}</p>
                         </div>
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        currentConfig.privacy_mode === mode
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-slate-400'
-                      }`}>
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          currentConfig.privacy_mode === mode
+                            ? 'border-blue-500 bg-blue-500'
+                            : 'border-slate-400'
+                        }`}
+                      >
                         {currentConfig.privacy_mode === mode && (
                           <div className="w-2 h-2 bg-white rounded-full" />
                         )}
@@ -152,8 +157,9 @@ export const TripPrivacySettings = ({
             <Alert className="border-slate-600/50">
               <Users className="text-slate-400" size={16} />
               <AlertDescription className="text-slate-300">
-                Only trip organizers can change privacy settings. 
-                {!currentConfig.can_change_privacy && ' Privacy changes have been locked for this trip.'}
+                Only trip organizers can change privacy settings.
+                {!currentConfig.can_change_privacy &&
+                  ' Privacy changes have been locked for this trip.'}
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -166,7 +172,8 @@ export const TripPrivacySettings = ({
           <DialogHeader>
             <DialogTitle className="text-white">Confirm Privacy Mode Change</DialogTitle>
             <DialogDescription className="text-slate-400">
-              You're about to change the privacy mode for this trip. This will affect all participants.
+              You're about to change the privacy mode for this trip. This will affect all
+              participants.
             </DialogDescription>
           </DialogHeader>
 
@@ -185,8 +192,8 @@ export const TripPrivacySettings = ({
                 <Alert className="border-amber-500/30 bg-amber-500/10">
                   <AlertTriangle className="text-amber-400" size={16} />
                   <AlertDescription className="text-amber-300">
-                    <strong>Important:</strong> Switching to Standard Privacy reduces message protection from
-                    end-to-end encryption to server-side encryption.
+                    <strong>Important:</strong> Switching to Standard Privacy reduces message
+                    protection from end-to-end encryption to server-side encryption.
                   </AlertDescription>
                 </Alert>
               )}
