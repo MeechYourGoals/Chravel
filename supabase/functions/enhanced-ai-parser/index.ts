@@ -51,10 +51,10 @@ function safeParseJSON(raw: string): any {
 
 async function runParserModel(
   messages: Array<{
-    role: 'system' | 'user' | 'assistant';
+    role: string;
     content:
       | string
-      | Array<{ type: 'text' | 'image_url'; text?: string; image_url?: { url: string } }>;
+      | Array<{ type: string; text?: string; image_url?: { url: string } }>;
   }>,
   options?: { maxTokens?: number; temperature?: number; timeoutMs?: number },
 ): Promise<string> {
