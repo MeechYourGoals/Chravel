@@ -515,45 +515,8 @@ serve(async req => {
     let ragContext = '';
     if (runRAGRetrieval) {
       try {
-        if (serverDemoMode) {
-          // Demo mode: Use mock embedding service
-          console.log('[Demo Mode] Using mock embedding service for RAG');
-
-          const mockResults = await getMockRAGResults(message, tripId);
-
-          if (mockResults && mockResults.length > 0) {
-            console.log(
-              `[Demo Mode] Found ${mockResults.length} relevant context items via mock RAG`,
-            );
-
-            ragContext = '\n\n=== RELEVANT TRIP CONTEXT (HYBRID RAG) ===\n';
-            ragContext +=
-              'The following information was retrieved using semantic + keyword search:\n';
-
-            const sourceIconMap: Record<string, string> = {
-              chat: '💬',
-              task: '✅',
-              poll: '📊',
-              payment: '💰',
-              broadcast: '📢',
-              calendar: '📅',
-              link: '🔗',
-              file: '📎',
-            };
-
-            mockResults.forEach((result: any, idx: number) => {
-              const relevancePercent = (result.similarity * 100).toFixed(0);
-              const sourceIcon =
-                sourceIconMap[result.source_type as keyof typeof sourceIconMap] || '📄';
-
-              ragContext += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text} (${relevancePercent}% relevant)`;
-            });
-
-            ragContext +=
-              '\n\nIMPORTANT: Use this retrieved context to provide accurate, specific answers. Cite sources when possible (e.g., "Based on the chat messages..." or "According to the calendar..." or "From the uploaded document...").';
-          }
-        } else {
-          // Production mode: Use keyword-only search (embedding model not available on gateway)
+        {
+          // Keyword-only search for RAG retrieval
           console.log('Using keyword-only search for RAG retrieval (embedding model unavailable)');
 
           try {
@@ -614,33 +577,6 @@ serve(async req => {
       }
     } else {
       console.log('[RAG] Skipping retrieval for non-trip/general query');
-    }
-
-    // Helper function to format RAG context
-    function formatRAGContext(results: any[], searchType: string): string {
-      let context = `\n\n=== RELEVANT TRIP CONTEXT (${searchType} Search) ===\n`;
-      context += 'The following information was retrieved:\n';
-
-      results.forEach((result: any, idx: number) => {
-        const relevancePercent = (result.similarity * 100).toFixed(0);
-        const sourceIconMap: Record<string, string> = {
-          chat: '💬',
-          task: '✅',
-          poll: '📊',
-          payment: '💰',
-          broadcast: '📢',
-          calendar: '📅',
-          link: '🔗',
-          file: '📄',
-        };
-        const sourceIcon = sourceIconMap[result.source_type as string] || '📄';
-
-        context += `\n[${idx + 1}] ${sourceIcon} [${result.source_type}] ${result.content_text.substring(0, 300)} (${relevancePercent}% relevant)`;
-      });
-
-      context +=
-        '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
-      return context;
     }
 
     // Skip privacy check in demo mode
@@ -765,11 +701,11 @@ serve(async req => {
         /\b(where|restaurant|hotel|cafe|bar|attraction|place|location|near|around|close|best|find|suggest|recommend|visit|directions|route|food|eat|drink|stay|sushi|pizza|beach|museum|park)\b/i,
       );
 
-    // Smart grounding detection - real-time info queries
+    // Smart grounding detection - real-time info queries and event/knowledge queries
     const isRealtimeQuery = message
       .toLowerCase()
       .match(
-        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel)\b/i,
+        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel|festival|concert|music week|lineup|conference|expo|convention|marathon|parade|tournament|championship|season|tickets|sold out|when is|what is .+ week|how many)\b/i,
       );
 
     const tripBasecamp = comprehensiveContext?.places?.tripBasecamp;
@@ -912,59 +848,50 @@ serve(async req => {
       tools: geminiTools,
     };
 
-    const runRuntimeLovableFallback = async (reason: string): Promise<Response | null> => {
-      if (!LOVABLE_API_KEY) {
-        return null;
+    // ========== LOVABLE GATEWAY PROVIDER (unified for initial + runtime fallback) ==========
+    const invokeLovableGateway = async (
+      modelLabel: string,
+      reason?: string,
+    ): Promise<Response | null> => {
+      if (!LOVABLE_API_KEY) return null;
+
+      const lovableTools = functionDeclarations.map(declaration => ({
+        type: 'function',
+        function: declaration,
+      }));
+
+      const lovableMessages: Array<Record<string, unknown>> = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      // Append attachments to last user message
+      if (attachments.length > 0) {
+        const attachmentParts = attachments.map(att => ({
+          type: 'image_url' as const,
+          image_url: { url: `data:${att.mimeType};base64,${att.data}` },
+        }));
+
+        const lastUserIdx = lovableMessages.findLastIndex(m => m.role === 'user');
+        if (lastUserIdx >= 0) {
+          const existing = lovableMessages[lastUserIdx].content;
+          const existingParts =
+            typeof existing === 'string'
+              ? [{ type: 'text' as const, text: existing }]
+              : Array.isArray(existing)
+                ? existing
+                : [];
+          lovableMessages[lastUserIdx] = {
+            ...lovableMessages[lastUserIdx],
+            content: [...existingParts, ...attachmentParts],
+          };
+        } else {
+          lovableMessages.push({ role: 'user', content: attachmentParts });
+        }
       }
 
-      try {
-        const fallbackTools = functionDeclarations.map(declaration => ({
-          type: 'function',
-          function: declaration,
-        }));
-
-        const fallbackMessages: Array<Record<string, unknown>> = messages.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-        }));
-
-        if (attachments.length > 0) {
-          const attachmentParts = attachments.map(att => ({
-            type: 'image_url' as const,
-            image_url: {
-              url: `data:${att.mimeType};base64,${att.data}`,
-            },
-          }));
-
-          const lastUserIdx = (() => {
-            for (let i = fallbackMessages.length - 1; i >= 0; i--) {
-              if (fallbackMessages[i].role === 'user') return i;
-            }
-            return -1;
-          })();
-
-          if (lastUserIdx >= 0) {
-            const existing = fallbackMessages[lastUserIdx].content;
-            const existingParts =
-              typeof existing === 'string'
-                ? [{ type: 'text' as const, text: existing }]
-                : Array.isArray(existing)
-                  ? existing
-                  : [];
-
-            fallbackMessages[lastUserIdx] = {
-              ...fallbackMessages[lastUserIdx],
-              content: [...existingParts, ...attachmentParts],
-            };
-          } else {
-            fallbackMessages.push({
-              role: 'user',
-              content: attachmentParts,
-            });
-          }
-        }
-
-        const fallbackResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const callLovable = (msgs: Array<Record<string, unknown>>) =>
+        fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -972,175 +899,124 @@ serve(async req => {
           },
           body: JSON.stringify({
             model: `google/${selectedModel}`,
-            messages: fallbackMessages,
+            messages: msgs,
             temperature,
             max_tokens: config.maxTokens || 2048,
-            tools: fallbackTools,
+            tools: lovableTools,
             tool_choice: 'auto',
           }),
           signal: AbortSignal.timeout(45_000),
         });
 
-        if (!fallbackResponse.ok) {
-          const fallbackError = await fallbackResponse.text();
-          throw new Error(
-            `Lovable runtime fallback error: ${fallbackResponse.status} - ${fallbackError || 'Unknown gateway error'}`,
-          );
-        }
+      const response = await callLovable(lovableMessages);
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Lovable ${modelLabel} error: ${response.status} - ${errText || 'Unknown gateway error'}`);
+      }
 
-        const fallbackData = await fallbackResponse.json();
-        let fallbackUsage = fallbackData?.usage || {};
-        let fallbackMessage = fallbackData?.choices?.[0]?.message || null;
-        const fallbackFunctionCalls: string[] = [];
+      let data = await response.json();
+      let lovableUsage = data?.usage || {};
+      let lovableMessage = data?.choices?.[0]?.message || null;
+      const executedFunctions: string[] = [];
 
-        const fallbackToolCalls = Array.isArray(fallbackMessage?.tool_calls)
-          ? fallbackMessage.tool_calls
-          : [];
-        if (fallbackToolCalls.length > 0) {
-          const toolResultMessages: Array<{
-            role: 'tool';
-            tool_call_id: string;
-            content: string;
-          }> = [];
+      // Handle tool calls
+      const toolCalls = Array.isArray(lovableMessage?.tool_calls) ? lovableMessage.tool_calls : [];
+      if (toolCalls.length > 0) {
+        const toolResultMessages: Array<{ role: 'tool'; tool_call_id: string; content: string }> = [];
 
-          for (const toolCall of fallbackToolCalls) {
-            const functionName = String(toolCall?.function?.name || '');
-            if (!functionName) continue;
+        for (const toolCall of toolCalls) {
+          const functionName = String(toolCall?.function?.name || '');
+          if (!functionName) continue;
 
-            let parsedArgs: Record<string, unknown> = {};
-            const rawArgs = toolCall?.function?.arguments;
-            if (typeof rawArgs === 'string') {
-              try {
-                parsedArgs = JSON.parse(rawArgs || '{}');
-              } catch (argError) {
-                console.warn(
-                  `[RuntimeFallbackTool] Failed to parse args for ${functionName}:`,
-                  argError,
-                );
-              }
-            } else if (rawArgs && typeof rawArgs === 'object') {
-              parsedArgs = rawArgs as Record<string, unknown>;
-            }
-
-            fallbackFunctionCalls.push(functionName);
-
-            let functionResult: any;
-            try {
-              functionResult = await executeFunctionCall(
-                supabase,
-                functionName,
-                parsedArgs,
-                tripId,
-                user?.id,
-                locationData,
-              );
-            } catch (toolError) {
-              console.error(`[RuntimeFallbackTool] Error executing ${functionName}:`, toolError);
-              functionResult = {
-                error: `Failed to execute ${functionName}: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
-              };
-            }
-
-            toolResultMessages.push({
-              role: 'tool',
-              tool_call_id: String(toolCall?.id || functionName),
-              content: JSON.stringify(functionResult),
-            });
+          // Parse tool arguments
+          let parsedArgs: Record<string, unknown> = {};
+          const rawArgs = toolCall?.function?.arguments;
+          if (typeof rawArgs === 'string') {
+            try { parsedArgs = JSON.parse(rawArgs || '{}'); } catch (_) { /* skip */ }
+          } else if (rawArgs && typeof rawArgs === 'object') {
+            parsedArgs = rawArgs as Record<string, unknown>;
           }
 
-          const followUpResponse = await fetch(
-            'https://ai.gateway.lovable.dev/v1/chat/completions',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              },
-              body: JSON.stringify({
-                model: `google/${selectedModel}`,
-                messages: [
-                  ...fallbackMessages,
-                  {
-                    role: 'assistant',
-                    content: fallbackMessage?.content || '',
-                    tool_calls: fallbackToolCalls,
-                  },
-                  ...toolResultMessages,
-                ],
-                temperature,
-                max_tokens: config.maxTokens || 2048,
-                tools: fallbackTools,
-                tool_choice: 'auto',
-              }),
-              signal: AbortSignal.timeout(45_000),
-            },
-          );
+          executedFunctions.push(functionName);
 
-          if (!followUpResponse.ok) {
-            const followUpError = await followUpResponse.text();
-            throw new Error(
-              `Lovable runtime fallback follow-up error: ${followUpResponse.status} - ${followUpError || 'Unknown gateway error'}`,
-            );
+          let functionResult: any;
+          try {
+            functionResult = await executeFunctionCall(supabase, functionName, parsedArgs, tripId, user?.id, locationData);
+          } catch (toolError) {
+            console.error(`[LovableTool] Error executing ${functionName}:`, toolError);
+            functionResult = { error: `Failed to execute ${functionName}: ${toolError instanceof Error ? toolError.message : String(toolError)}` };
           }
 
-          const followUpData = await followUpResponse.json();
-          fallbackUsage = followUpData?.usage || fallbackUsage;
-          fallbackMessage = followUpData?.choices?.[0]?.message || fallbackMessage;
+          toolResultMessages.push({
+            role: 'tool',
+            tool_call_id: String(toolCall?.id || functionName),
+            content: JSON.stringify(functionResult),
+          });
         }
 
-        const rawFallbackContent = fallbackMessage?.content;
-        const fallbackText =
-          typeof rawFallbackContent === 'string'
-            ? rawFallbackContent
-            : Array.isArray(rawFallbackContent)
-              ? rawFallbackContent
-                  .map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
-                  .join('')
-              : 'Sorry, I could not generate a response right now.';
-
-        if (!serverDemoMode && user && tripQueryLimit !== null && tripId !== 'unknown') {
-          const { data: incrementResult, error: incrementError } = await supabase.rpc(
-            'increment_concierge_trip_usage',
-            {
-              p_trip_id: tripId,
-              p_limit: tripQueryLimit,
-            },
-          );
-
-          if (incrementError) {
-            console.error('[Usage] Failed to increment trip concierge usage:', incrementError);
-            return buildUsageVerificationUnavailableResponse(corsHeaders);
-          } else {
-            const incrementRow = Array.isArray(incrementResult)
-              ? incrementResult[0]
-              : incrementResult;
-            const didIncrement = incrementRow?.incremented !== false;
-            if (!didIncrement) {
-              return buildTripLimitReachedResponse(corsHeaders, usagePlan);
-            }
-          }
+        // Follow-up call with tool results
+        const followUpResponse = await callLovable([
+          ...lovableMessages,
+          { role: 'assistant', content: lovableMessage?.content || '', tool_calls: toolCalls },
+          ...toolResultMessages,
+        ]);
+        if (!followUpResponse.ok) {
+          const errText = await followUpResponse.text();
+          throw new Error(`Lovable ${modelLabel} follow-up error: ${followUpResponse.status} - ${errText || 'Unknown'}`);
         }
+        data = await followUpResponse.json();
+        lovableUsage = data?.usage || lovableUsage;
+        lovableMessage = data?.choices?.[0]?.message || lovableMessage;
+      }
 
-        return new Response(
-          JSON.stringify({
-            response: fallbackText,
-            usage: {
-              prompt_tokens: fallbackUsage.prompt_tokens || 0,
-              completion_tokens: fallbackUsage.completion_tokens || 0,
-              total_tokens: fallbackUsage.total_tokens || 0,
-            },
-            sources: [],
-            googleMapsWidget: null,
-            success: true,
-            model: 'lovable-gateway-runtime-fallback',
-            fallbackReason: reason,
-            functionCalls: fallbackFunctionCalls.length > 0 ? fallbackFunctionCalls : undefined,
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          },
+      // Extract response text
+      const rawContent = lovableMessage?.content;
+      const responseText =
+        typeof rawContent === 'string'
+          ? rawContent
+          : Array.isArray(rawContent)
+            ? rawContent.map((part: any) => (typeof part?.text === 'string' ? part.text : '')).join('')
+            : 'Sorry, I could not generate a response right now.';
+
+      // Increment usage
+      if (!serverDemoMode && user && tripQueryLimit !== null && tripId !== 'unknown') {
+        const { data: incrementResult, error: incrementError } = await supabase.rpc(
+          'increment_concierge_trip_usage',
+          { p_trip_id: tripId, p_limit: tripQueryLimit },
         );
+        if (incrementError) {
+          console.error('[Usage] Failed to increment trip concierge usage:', incrementError);
+          return buildUsageVerificationUnavailableResponse(corsHeaders);
+        }
+        const incrementRow = Array.isArray(incrementResult) ? incrementResult[0] : incrementResult;
+        if (incrementRow?.incremented === false) {
+          return buildTripLimitReachedResponse(corsHeaders, usagePlan);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          response: responseText,
+          usage: {
+            prompt_tokens: lovableUsage.prompt_tokens || 0,
+            completion_tokens: lovableUsage.completion_tokens || 0,
+            total_tokens: lovableUsage.total_tokens || 0,
+          },
+          sources: [],
+          googleMapsWidget: null,
+          success: true,
+          model: modelLabel,
+          ...(reason ? { fallbackReason: reason } : {}),
+          functionCalls: executedFunctions.length > 0 ? executedFunctions : undefined,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
+    };
+
+    // Runtime fallback wrapper (returns null instead of throwing)
+    const runRuntimeLovableFallback = async (reason: string): Promise<Response | null> => {
+      try {
+        return await invokeLovableGateway('lovable-gateway-runtime-fallback', reason);
       } catch (fallbackError) {
         console.error('[AI] Lovable runtime fallback failed:', fallbackError);
         return null;
@@ -1151,227 +1027,15 @@ serve(async req => {
       if (!LOVABLE_API_KEY) {
         throw new Error('No AI provider key configured');
       }
-
-      if (FORCE_LOVABLE_PROVIDER) {
-        console.warn('[AI] AI_PROVIDER=lovable; routing concierge through Lovable gateway');
-      } else {
-        console.warn('[AI] GEMINI_API_KEY missing; falling back to Lovable gateway');
-      }
-
-      const fallbackTools = functionDeclarations.map(declaration => ({
-        type: 'function',
-        function: declaration,
-      }));
-
-      const fallbackMessages: Array<{
-        role: 'system' | 'user' | 'assistant';
-        content:
-          | string
-          | Array<{ type: 'text' | 'image_url'; text?: string; image_url?: { url: string } }>;
-      }> = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
-
-      if (attachments.length > 0) {
-        const attachmentParts = attachments.map(att => ({
-          type: 'image_url' as const,
-          image_url: {
-            url: `data:${att.mimeType};base64,${att.data}`,
-          },
-        }));
-
-        const lastUserIdx = (() => {
-          for (let i = fallbackMessages.length - 1; i >= 0; i--) {
-            if (fallbackMessages[i].role === 'user') return i;
-          }
-          return -1;
-        })();
-
-        if (lastUserIdx >= 0) {
-          const existing = fallbackMessages[lastUserIdx].content;
-          const existingParts =
-            typeof existing === 'string'
-              ? [{ type: 'text' as const, text: existing }]
-              : Array.isArray(existing)
-                ? existing
-                : [];
-          fallbackMessages[lastUserIdx] = {
-            ...fallbackMessages[lastUserIdx],
-            content: [...existingParts, ...attachmentParts],
-          };
-        } else {
-          fallbackMessages.push({
-            role: 'user',
-            content: attachmentParts,
-          });
-        }
-      }
-
-      const invokeLovableFallback = async (messagesForCall: Array<Record<string, unknown>>) => {
-        return await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: `google/${selectedModel}`,
-            messages: messagesForCall,
-            temperature,
-            max_tokens: config.maxTokens || 2048,
-            tools: fallbackTools,
-            tool_choice: 'auto',
-          }),
-          signal: AbortSignal.timeout(45_000),
-        });
-      };
-
-      const fallbackResponse = await invokeLovableFallback(
-        fallbackMessages as unknown as Array<Record<string, unknown>>,
+      console.warn(
+        FORCE_LOVABLE_PROVIDER
+          ? '[AI] AI_PROVIDER=lovable; routing concierge through Lovable gateway'
+          : '[AI] GEMINI_API_KEY missing; falling back to Lovable gateway',
       );
 
-      if (!fallbackResponse.ok) {
-        const fallbackErrorText = await fallbackResponse.text();
-        throw new Error(
-          `Lovable fallback error: ${fallbackResponse.status} - ${fallbackErrorText || 'Unknown gateway error'}`,
-        );
-      }
-
-      let fallbackData = await fallbackResponse.json();
-      let fallbackUsage = fallbackData?.usage || {};
-      let fallbackMessage = fallbackData?.choices?.[0]?.message || null;
-      const fallbackToolCalls = Array.isArray(fallbackMessage?.tool_calls)
-        ? fallbackMessage.tool_calls
-        : [];
-      const fallbackFunctionCalls: string[] = [];
-
-      if (fallbackToolCalls.length > 0) {
-        const toolResultMessages: Array<{
-          role: 'tool';
-          tool_call_id: string;
-          content: string;
-        }> = [];
-
-        for (const toolCall of fallbackToolCalls) {
-          const functionName = String(toolCall?.function?.name || '');
-          if (!functionName) continue;
-
-          let parsedArgs: Record<string, unknown> = {};
-          const rawArgs = toolCall?.function?.arguments;
-          if (typeof rawArgs === 'string') {
-            try {
-              parsedArgs = JSON.parse(rawArgs || '{}');
-            } catch (argError) {
-              console.warn(`[FallbackTool] Failed to parse args for ${functionName}:`, argError);
-            }
-          } else if (rawArgs && typeof rawArgs === 'object') {
-            parsedArgs = rawArgs as Record<string, unknown>;
-          }
-
-          fallbackFunctionCalls.push(functionName);
-
-          let functionResult: any;
-          try {
-            functionResult = await executeFunctionCall(
-              supabase,
-              functionName,
-              parsedArgs,
-              tripId,
-              user?.id,
-              locationData,
-            );
-          } catch (toolError) {
-            console.error(`[FallbackTool] Error executing ${functionName}:`, toolError);
-            functionResult = {
-              error: `Failed to execute ${functionName}: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
-            };
-          }
-
-          toolResultMessages.push({
-            role: 'tool',
-            tool_call_id: String(toolCall?.id || functionName),
-            content: JSON.stringify(functionResult),
-          });
-        }
-
-        const followUpMessages: Array<Record<string, unknown>> = [
-          ...(fallbackMessages as unknown as Array<Record<string, unknown>>),
-          {
-            role: 'assistant',
-            content: fallbackMessage?.content || '',
-            tool_calls: fallbackToolCalls,
-          },
-          ...toolResultMessages,
-        ];
-
-        const followUpResponse = await invokeLovableFallback(followUpMessages);
-        if (!followUpResponse.ok) {
-          const followUpError = await followUpResponse.text();
-          throw new Error(
-            `Lovable follow-up fallback error: ${followUpResponse.status} - ${followUpError || 'Unknown gateway error'}`,
-          );
-        }
-
-        fallbackData = await followUpResponse.json();
-        fallbackUsage = fallbackData?.usage || fallbackUsage;
-        fallbackMessage = fallbackData?.choices?.[0]?.message || fallbackMessage;
-      }
-
-      const rawFallbackContent = fallbackMessage?.content;
-      const fallbackText =
-        typeof rawFallbackContent === 'string'
-          ? rawFallbackContent
-          : Array.isArray(rawFallbackContent)
-            ? rawFallbackContent
-                .map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
-                .join('')
-            : 'Sorry, I could not generate a response right now.';
-
-      const usage = {
-        prompt_tokens: fallbackUsage.prompt_tokens || 0,
-        completion_tokens: fallbackUsage.completion_tokens || 0,
-        total_tokens: fallbackUsage.total_tokens || 0,
-      };
-
-      if (!serverDemoMode && user && tripQueryLimit !== null && tripId !== 'unknown') {
-        const { data: incrementResult, error: incrementError } = await supabase.rpc(
-          'increment_concierge_trip_usage',
-          {
-            p_trip_id: tripId,
-            p_limit: tripQueryLimit,
-          },
-        );
-
-        if (incrementError) {
-          console.error('[Usage] Failed to increment trip concierge usage:', incrementError);
-          return buildUsageVerificationUnavailableResponse(corsHeaders);
-        } else {
-          const incrementRow = Array.isArray(incrementResult)
-            ? incrementResult[0]
-            : incrementResult;
-          const didIncrement = incrementRow?.incremented !== false;
-          if (!didIncrement) {
-            return buildTripLimitReachedResponse(corsHeaders, usagePlan);
-          }
-        }
-      }
-
-      return new Response(
-        JSON.stringify({
-          response: fallbackText,
-          usage,
-          sources: [],
-          googleMapsWidget: null,
-          success: true,
-          model: 'lovable-gateway-fallback',
-          functionCalls: fallbackFunctionCalls.length > 0 ? fallbackFunctionCalls : undefined,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        },
-      );
+      const lovableResponse = await invokeLovableGateway('lovable-gateway-fallback');
+      if (lovableResponse) return lovableResponse;
+      throw new Error('Lovable gateway returned no response');
     }
 
     try {
@@ -1383,6 +1047,7 @@ serve(async req => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(geminiRequestBody),
+        signal: AbortSignal.timeout(40_000),
       });
 
       if (!response.ok) {
@@ -1472,6 +1137,7 @@ serve(async req => {
             systemInstruction: { parts: [{ text: systemInstruction }] },
             generationConfig: { temperature, maxOutputTokens: config.maxTokens || 2048 },
           }),
+          signal: AbortSignal.timeout(40_000),
         });
 
         if (followUpResponse.ok) {
@@ -2090,14 +1756,6 @@ Next: I can get you directions from your hotel if you'd like!"`;
     }
 
     // Add comprehensive context sections
-    if (messages?.length) {
-      basePrompt += `\n\n=== RECENT MESSAGES ===`;
-      const recentMessages = messages.slice(-5);
-      recentMessages.forEach((msg: any) => {
-        basePrompt += `\n${msg.authorName}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}`;
-      });
-    }
-
     if (calendar?.length) {
       basePrompt += `\n\n=== UPCOMING EVENTS ===`;
       calendar.slice(0, 5).forEach((event: any) => {
@@ -2106,31 +1764,11 @@ Next: I can get you directions from your hotel if you'd like!"`;
       });
     }
 
-    if (tasks?.length) {
-      basePrompt += `\n\n=== ACTIVE TASKS ===`;
-      const activeTasks = tasks.filter((t: any) => !t.isComplete);
-      activeTasks.slice(0, 5).forEach((task: any) => {
-        basePrompt += `\n- ${task.content}${task.assignee ? ` (assigned to ${task.assignee})` : ''}`;
-      });
-    }
-
     if (payments?.length) {
       basePrompt += `\n\n=== RECENT PAYMENTS ===`;
       payments.slice(0, 3).forEach((payment: any) => {
         basePrompt += `\n- ${payment.description}: $${payment.amount} (${payment.paidBy})`;
       });
-    }
-
-    if (polls?.length) {
-      basePrompt += `\n\n=== ACTIVE POLLS ===`;
-      polls
-        .filter((p: any) => p.status === 'active')
-        .forEach((poll: any) => {
-          basePrompt += `\n- ${poll.question}`;
-          poll.options.forEach((option: any) => {
-            basePrompt += `\n  - ${option.text}: ${option.votes} votes`;
-          });
-        });
     }
 
     // Enhanced contextual information
@@ -2263,84 +1901,6 @@ Next: I can get you directions from your hotel if you'd like!"`;
 - Make the user feel excited about their trip through great content, not excessive emojis`;
 
   return basePrompt;
-}
-
-// Mock RAG retrieval for demo mode
-function getMockRAGResults(query: string, tripId: string): any[] {
-  const lowercaseQuery = query.toLowerCase();
-  const allResults = [
-    {
-      content_text:
-        'Sarah Chen: Super excited for this trip! Has everyone seen the weather forecast?',
-      source_type: 'chat',
-      similarity: 0.85,
-      metadata: { author: 'Sarah Chen' },
-    },
-    {
-      content_text: 'Payment: Dinner at Sakura Restaurant. Amount: USD 240.00',
-      source_type: 'payment',
-      similarity: 0.92,
-      metadata: { amount: 240.0, currency: 'USD' },
-    },
-    {
-      content_text: 'Payment: Taxi to airport. Amount: USD 65.00',
-      source_type: 'payment',
-      similarity: 0.88,
-      metadata: { amount: 65.0, currency: 'USD' },
-    },
-    {
-      content_text: 'Event: Welcome Dinner at The Little Nell Restaurant. Group dinner at 7 PM',
-      source_type: 'calendar',
-      similarity: 0.9,
-      metadata: { location: 'The Little Nell Restaurant' },
-    },
-    {
-      content_text: 'Task: Confirm dinner reservations',
-      source_type: 'task',
-      similarity: 0.87,
-      metadata: { assignee: 'Priya Patel' },
-    },
-    {
-      content_text:
-        'Poll: Where should we have dinner tonight?. Options: Italian Restaurant, Sushi Place, Steakhouse, Thai Food',
-      source_type: 'poll',
-      similarity: 0.89,
-      metadata: { total_votes: 8 },
-    },
-    {
-      content_text:
-        'Broadcast [logistics]: All luggage must be outside rooms by 8 AM for pickup tomorrow!',
-      source_type: 'broadcast',
-      similarity: 0.82,
-      metadata: { priority: 'logistics' },
-    },
-  ];
-
-  // Filter based on query keywords
-  let filteredResults = allResults;
-
-  if (
-    lowercaseQuery.includes('payment') ||
-    lowercaseQuery.includes('money') ||
-    lowercaseQuery.includes('owe')
-  ) {
-    filteredResults = allResults.filter(
-      r => r.source_type === 'payment' || r.content_text.toLowerCase().includes('payment'),
-    );
-  } else if (lowercaseQuery.includes('dinner') || lowercaseQuery.includes('restaurant')) {
-    filteredResults = allResults.filter(
-      r =>
-        r.content_text.toLowerCase().includes('dinner') ||
-        r.content_text.toLowerCase().includes('restaurant'),
-    );
-  } else if (lowercaseQuery.includes('task') || lowercaseQuery.includes('todo')) {
-    filteredResults = allResults.filter(r => r.source_type === 'task');
-  } else if (lowercaseQuery.includes('poll') || lowercaseQuery.includes('vote')) {
-    filteredResults = allResults.filter(r => r.source_type === 'poll');
-  }
-
-  // Sort by similarity and return top results
-  return filteredResults.sort((a, b) => b.similarity - a.similarity).slice(0, 5);
 }
 
 async function storeConversation(
