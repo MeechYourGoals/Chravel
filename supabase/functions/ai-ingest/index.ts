@@ -9,9 +9,24 @@ const corsHeaders = {
 
 interface IngestRequest {
   source: 'message' | 'poll' | 'broadcast' | 'file' | 'calendar' | 'link' | 'trip_batch';
-  sourceId: string;
-  tripId: string;
+  sourceId?: string;
+  tripId?: string;
   content?: string;
+}
+
+interface SingleIngestResult {
+  success: boolean;
+  sourceId: string;
+  docId?: string;
+  error?: string;
+}
+
+interface BatchIngestResult {
+  type: 'messages' | 'polls' | 'files' | 'links';
+  attempted: number;
+  succeeded: number;
+  failed: number;
+  errors: string[];
 }
 
 serve(async req => {
@@ -47,6 +62,16 @@ serve(async req => {
 
     // Handle batch ingestion for entire trip
     if (source === 'trip_batch') {
+      if (!tripId) {
+        return new Response(
+          JSON.stringify({ error: 'tripId is required for trip_batch ingestion' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
+        );
+      }
+
       const batchResults = await Promise.all([
         ingestTripMessages(supabase, tripId, lovableApiKey),
         ingestTripPolls(supabase, tripId, lovableApiKey),
@@ -54,10 +79,24 @@ serve(async req => {
         ingestTripLinks(supabase, tripId, lovableApiKey),
       ]);
 
+      const totals = batchResults.reduce(
+        (acc, result) => {
+          acc.attempted += result.attempted;
+          acc.succeeded += result.succeeded;
+          acc.failed += result.failed;
+          return acc;
+        },
+        { attempted: 0, succeeded: 0, failed: 0 },
+      );
+      const isFullySuccessful = totals.failed === 0;
+
       return new Response(
         JSON.stringify({
-          success: true,
-          message: 'Batch ingestion completed',
+          success: isFullySuccessful,
+          message: isFullySuccessful
+            ? 'Batch ingestion completed successfully'
+            : 'Batch ingestion completed with partial failures',
+          totals,
           results: batchResults,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -211,19 +250,34 @@ serve(async req => {
 });
 
 // Batch ingestion helpers
-async function ingestTripMessages(supabase: any, tripId: string, lovableApiKey: string) {
-  const { data: messages } = await supabase
+async function ingestTripMessages(
+  supabase: any,
+  tripId: string,
+  lovableApiKey: string,
+): Promise<BatchIngestResult> {
+  const { data: messages, error: messagesError } = await supabase
     .from('trip_chat_messages')
     .select('*')
     .eq('trip_id', tripId);
 
-  if (!messages?.length) return { type: 'messages', count: 0 };
+  if (messagesError) {
+    return {
+      type: 'messages',
+      attempted: 0,
+      succeeded: 0,
+      failed: 1,
+      errors: [`Failed to load trip_chat_messages: ${messagesError.message}`],
+    };
+  }
 
-  const results = await Promise.all(
+  if (!messages?.length)
+    return { type: 'messages', attempted: 0, succeeded: 0, failed: 0, errors: [] };
+
+  const results: SingleIngestResult[] = await Promise.all(
     messages.map((msg: any) =>
       ingestSingleItem(
         supabase,
-        'trip_chat_messages',
+        'message',
         msg.id,
         tripId,
         `${msg.author_name}: ${msg.content}`,
@@ -232,52 +286,103 @@ async function ingestTripMessages(supabase: any, tripId: string, lovableApiKey: 
     ),
   );
 
-  return { type: 'messages', count: results.length };
+  return summarizeBatchResults('messages', results);
 }
 
-async function ingestTripPolls(supabase: any, tripId: string, lovableApiKey: string) {
-  const { data: polls } = await supabase.from('trip_polls').select('*').eq('trip_id', tripId);
+async function ingestTripPolls(
+  supabase: any,
+  tripId: string,
+  lovableApiKey: string,
+): Promise<BatchIngestResult> {
+  const { data: polls, error: pollsError } = await supabase
+    .from('trip_polls')
+    .select('*')
+    .eq('trip_id', tripId);
 
-  if (!polls?.length) return { type: 'polls', count: 0 };
+  if (pollsError) {
+    return {
+      type: 'polls',
+      attempted: 0,
+      succeeded: 0,
+      failed: 1,
+      errors: [`Failed to load trip_polls: ${pollsError.message}`],
+    };
+  }
 
-  const results = await Promise.all(
+  if (!polls?.length) return { type: 'polls', attempted: 0, succeeded: 0, failed: 0, errors: [] };
+
+  const results: SingleIngestResult[] = await Promise.all(
     polls.map((poll: any) => {
       const content = `Poll: ${poll.question}. Options: ${JSON.stringify(poll.options)}. Status: ${poll.status}. Total votes: ${poll.total_votes}`;
-      return ingestSingleItem(supabase, 'trip_polls', poll.id, tripId, content, lovableApiKey);
+      return ingestSingleItem(supabase, 'poll', poll.id, tripId, content, lovableApiKey);
     }),
   );
 
-  return { type: 'polls', count: results.length };
+  return summarizeBatchResults('polls', results);
 }
 
-async function ingestTripFiles(supabase: any, tripId: string, lovableApiKey: string) {
-  const { data: files } = await supabase.from('trip_files').select('*').eq('trip_id', tripId);
+async function ingestTripFiles(
+  supabase: any,
+  tripId: string,
+  lovableApiKey: string,
+): Promise<BatchIngestResult> {
+  const { data: files, error: filesError } = await supabase
+    .from('trip_files')
+    .select('*')
+    .eq('trip_id', tripId);
 
-  if (!files?.length) return { type: 'files', count: 0 };
+  if (filesError) {
+    return {
+      type: 'files',
+      attempted: 0,
+      succeeded: 0,
+      failed: 1,
+      errors: [`Failed to load trip_files: ${filesError.message}`],
+    };
+  }
 
-  const results = await Promise.all(
+  if (!files?.length) return { type: 'files', attempted: 0, succeeded: 0, failed: 0, errors: [] };
+
+  const results: SingleIngestResult[] = await Promise.all(
     files.map((file: any) => {
       const content = `File: ${file.name} (${file.file_type}). Summary: ${file.ai_summary || 'No summary'}. Content: ${file.content_text || 'No text content'}`;
-      return ingestSingleItem(supabase, 'trip_files', file.id, tripId, content, lovableApiKey);
+      return ingestSingleItem(supabase, 'file', file.id, tripId, content, lovableApiKey);
     }),
   );
 
-  return { type: 'files', count: results.length };
+  return summarizeBatchResults('files', results);
 }
 
-async function ingestTripLinks(supabase: any, tripId: string, lovableApiKey: string) {
-  const { data: links } = await supabase.from('trip_links').select('*').eq('trip_id', tripId);
+async function ingestTripLinks(
+  supabase: any,
+  tripId: string,
+  lovableApiKey: string,
+): Promise<BatchIngestResult> {
+  const { data: links, error: linksError } = await supabase
+    .from('trip_links')
+    .select('*')
+    .eq('trip_id', tripId);
 
-  if (!links?.length) return { type: 'links', count: 0 };
+  if (linksError) {
+    return {
+      type: 'links',
+      attempted: 0,
+      succeeded: 0,
+      failed: 1,
+      errors: [`Failed to load trip_links: ${linksError.message}`],
+    };
+  }
 
-  const results = await Promise.all(
+  if (!links?.length) return { type: 'links', attempted: 0, succeeded: 0, failed: 0, errors: [] };
+
+  const results: SingleIngestResult[] = await Promise.all(
     links.map((link: any) => {
       const content = `Link: ${link.title}. URL: ${link.url}. Description: ${link.description || 'No description'}. Category: ${link.category || 'uncategorized'}. Votes: ${link.votes}`;
-      return ingestSingleItem(supabase, 'trip_links', link.id, tripId, content, lovableApiKey);
+      return ingestSingleItem(supabase, 'link', link.id, tripId, content, lovableApiKey);
     }),
   );
 
-  return { type: 'links', count: results.length };
+  return summarizeBatchResults('links', results);
 }
 
 async function ingestSingleItem(
@@ -287,7 +392,7 @@ async function ingestSingleItem(
   tripId: string,
   content: string,
   lovableApiKey: string,
-) {
+): Promise<SingleIngestResult> {
   try {
     const embedding = await generateEmbedding(content, lovableApiKey);
 
@@ -319,11 +424,11 @@ async function ingestSingleItem(
 
     if (chunkError) throw chunkError;
 
-    return { success: true, docId: doc.id };
+    return { success: true, docId: doc.id, sourceId };
   } catch (error) {
     console.error(`Error ingesting ${source} ${sourceId}:`, error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return { success: false, error: errorMessage };
+    return { success: false, sourceId, error: errorMessage };
   }
 }
 
@@ -388,4 +493,19 @@ async function insertKbChunk(
 
   const { error: insertWithoutEmbeddingError } = await supabase.from('kb_chunks').insert(chunkData);
   return insertWithoutEmbeddingError ?? null;
+}
+
+function summarizeBatchResults(
+  type: BatchIngestResult['type'],
+  results: SingleIngestResult[],
+): BatchIngestResult {
+  const failedResults = results.filter(result => !result.success);
+
+  return {
+    type,
+    attempted: results.length,
+    succeeded: results.length - failedResults.length,
+    failed: failedResults.length,
+    errors: failedResults.map(result => `${result.sourceId}: ${result.error ?? 'Unknown error'}`),
+  };
 }
