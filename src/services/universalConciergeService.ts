@@ -5,6 +5,7 @@ import { demoModeService } from './demoModeService';
 import { EnhancedTripContextService } from './enhancedTripContextService';
 import { TripContextAggregator } from './tripContextAggregator';
 import { ContextCacheService } from './contextCacheService';
+import { invokeConcierge } from './conciergeGateway';
 
 export interface SearchResult {
   id: string;
@@ -38,20 +39,38 @@ export interface ConciergeMessage {
 export class UniversalConciergeService {
   private static isSearchQuery(query: string): boolean {
     const searchKeywords = [
-      'find', 'search', 'show me', 'where is', 'where are', 'look for',
-      'get me', 'display', 'list', 'who has', 'what is', 'when is',
-      'how much', 'receipt', 'file', 'document', 'event', 'calendar'
+      'find',
+      'search',
+      'show me',
+      'where is',
+      'where are',
+      'look for',
+      'get me',
+      'display',
+      'list',
+      'who has',
+      'what is',
+      'when is',
+      'how much',
+      'receipt',
+      'file',
+      'document',
+      'event',
+      'calendar',
     ];
-    
+
     const lowercaseQuery = query.toLowerCase();
     return searchKeywords.some(keyword => lowercaseQuery.includes(keyword));
   }
 
-  private static async performUniversalSearch(query: string, tripId: string): Promise<SearchResult[]> {
+  private static async performUniversalSearch(
+    query: string,
+    tripId: string,
+  ): Promise<SearchResult[]> {
     try {
       // Check if demo mode is enabled
       const isDemoMode = await demoModeService.isDemoModeEnabled();
-      
+
       if (isDemoMode) {
         return await MockKnowledgeService.searchMockData(query, tripId);
       }
@@ -60,8 +79,8 @@ export class UniversalConciergeService {
         body: {
           query,
           tripId,
-          limit: 10
-        }
+          limit: 10,
+        },
       });
 
       if (error) throw error;
@@ -74,7 +93,7 @@ export class UniversalConciergeService {
 
   private static getFallbackSearchResults(query: string, tripId: string): SearchResult[] {
     const lowercaseQuery = query.toLowerCase();
-    
+
     if (lowercaseQuery.includes('receipt') || lowercaseQuery.includes('expense')) {
       return [
         {
@@ -91,10 +110,10 @@ export class UniversalConciergeService {
           metadata: {
             fileName: 'dinner_receipt.pdf',
             fileType: 'pdf',
-            amount: 125.50,
-            date: '2024-01-15'
-          }
-        }
+            amount: 125.5,
+            date: '2024-01-15',
+          },
+        },
       ];
     }
 
@@ -113,9 +132,9 @@ export class UniversalConciergeService {
           matchReason: 'File content match',
           metadata: {
             fileName: 'trip_documents.pdf',
-            fileType: 'pdf'
-          }
-        }
+            fileType: 'pdf',
+          },
+        },
       ];
     }
 
@@ -128,7 +147,7 @@ export class UniversalConciergeService {
     }
 
     let response = `I found ${results.length} result${results.length > 1 ? 's' : ''} for you:\n\n`;
-    
+
     results.forEach((result, index) => {
       response += `${index + 1}. **${result.objectType.toUpperCase()}**: ${result.snippet}\n`;
       if (result.metadata?.amount) {
@@ -145,48 +164,48 @@ export class UniversalConciergeService {
 
   static async processMessage(
     message: string,
-    tripContext: TripContext
+    tripContext: TripContext,
   ): Promise<{ content: string; searchResults?: SearchResult[]; isFromFallback?: boolean }> {
     try {
       // Check if this is a search-style query
       if (this.isSearchQuery(message)) {
         const searchResults = await this.performUniversalSearch(message, tripContext.tripId);
         const searchResponse = this.formatSearchResults(searchResults);
-        
+
         return {
           content: searchResponse,
           searchResults,
-          isFromFallback: false
+          isFromFallback: false,
         };
       }
 
       // Check if demo mode is enabled for AI answers
       const isDemoMode = await demoModeService.isDemoModeEnabled();
-      
+
       // 🆕 Enhanced: Get comprehensive trip context with caching
       let comprehensiveContext = ContextCacheService.get(tripContext.tripId);
-      
+
       if (!comprehensiveContext) {
         try {
-          comprehensiveContext = await TripContextAggregator.buildContext(tripContext.tripId, isDemoMode);
+          comprehensiveContext = await TripContextAggregator.buildContext(
+            tripContext.tripId,
+            isDemoMode,
+          );
           ContextCacheService.set(tripContext.tripId, comprehensiveContext);
         } catch (contextError) {
           console.error('Failed to build comprehensive context, using fallback:', contextError);
           comprehensiveContext = tripContext as any; // Use original context as fallback
         }
       }
-      
+
       // Try edge function first (works in both demo and authenticated mode)
       try {
-        
-        const { data, error } = await supabase.functions.invoke('lovable-concierge', {
-          body: {
-            message: message,
-            tripContext: comprehensiveContext,
-            tripId: tripContext.tripId,
-            isDemoMode: isDemoMode,
-            chatHistory: comprehensiveContext.messages?.slice(-10) || []
-          }
+        const { data, error } = await invokeConcierge({
+          message,
+          tripContext: comprehensiveContext,
+          tripId: tripContext.tripId,
+          isDemoMode,
+          chatHistory: comprehensiveContext.messages?.slice(-10) || [],
         });
 
         if (error) {
@@ -199,47 +218,53 @@ export class UniversalConciergeService {
           throw new Error('No response from edge function');
         }
 
-
         return {
           content: data.response || "I'm having trouble processing your request right now.",
-          searchResults: data.citations || [],
-          isFromFallback: false
+          searchResults: Array.isArray(data.citations) ? (data.citations as SearchResult[]) : [],
+          isFromFallback: false,
         };
       } catch (edgeFunctionError) {
         console.error('Edge function failed, falling back to mock service:', edgeFunctionError);
-        
+
         // Fallback to mock knowledge service
         if (isDemoMode) {
-          const mockAnswer = await MockKnowledgeService.generateMockAnswer(message, tripContext.tripId);
-          const mockResults = await MockKnowledgeService.searchMockData(message, tripContext.tripId);
-          
+          const mockAnswer = await MockKnowledgeService.generateMockAnswer(
+            message,
+            tripContext.tripId,
+          );
+          const mockResults = await MockKnowledgeService.searchMockData(
+            message,
+            tripContext.tripId,
+          );
+
           return {
             content: mockAnswer,
             searchResults: mockResults,
-            isFromFallback: true
+            isFromFallback: true,
           };
         }
-        
+
         // Re-throw for authenticated mode
         throw edgeFunctionError;
       }
     } catch (error) {
       console.error('Concierge processing error:', error);
       return {
-        content: "I'm having trouble processing your request right now. Please try again in a moment.",
-        isFromFallback: true
+        content:
+          "I'm having trouble processing your request right now. Please try again in a moment.",
+        isFromFallback: true,
       };
     }
   }
 
   static formatSearchResultsForDisplay(results: SearchResult[]) {
-    return results.map((result) => ({
+    return results.map(result => ({
       id: result.id,
       type: result.objectType,
       title: result.snippet,
       content: result.content,
       metadata: result.metadata,
-      deepLink: result.deepLink
+      deepLink: result.deepLink,
     }));
   }
 }

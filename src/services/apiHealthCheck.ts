@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { pingConcierge } from '@/services/conciergeGateway';
 
 export interface HealthStatus {
   service: 'concierge' | 'google_maps';
@@ -26,14 +27,11 @@ class ApiHealthCheckService {
    */
   async initialize(): Promise<void> {
     // Immediate checks
-    await Promise.all([
-      this.checkConciergeHealth(),
-      this.checkGoogleMapsHealth()
-    ]);
+    await Promise.all([this.checkConciergeHealth(), this.checkGoogleMapsHealth()]);
 
     // Set up periodic health checks
     this.startPeriodicChecks();
-    
+
     return Promise.resolve();
   }
 
@@ -45,11 +43,7 @@ class ApiHealthCheckService {
 
     try {
       // Use dedicated ping endpoint that doesn't consume AI quota
-      const { data, error } = await supabase.functions.invoke('lovable-concierge', {
-        body: {
-          message: 'ping'  // Simple ping, no AI processing
-        }
-      });
+      const { data, error } = await pingConcierge();
 
       if (error) {
         throw error;
@@ -61,9 +55,9 @@ class ApiHealthCheckService {
           service: serviceName,
           status: 'healthy',
           message: 'AI Concierge is online',
-          lastCheck: new Date()
+          lastCheck: new Date(),
         };
-        
+
         this.healthStatus.set(serviceName, status);
         this.retryAttempts.set(serviceName, 0);
         return status;
@@ -75,35 +69,34 @@ class ApiHealthCheckService {
         status: 'degraded',
         message: 'AI Concierge responded but status unclear',
         lastCheck: new Date(),
-        details: data
+        details: data,
       };
-      
+
       this.healthStatus.set(serviceName, status);
       this.retryAttempts.set(serviceName, 0);
       return status;
-      
     } catch (error) {
       console.error('❌ AI Concierge health check failed:', error);
-      
+
       const attempts = (this.retryAttempts.get(serviceName) || 0) + 1;
       this.retryAttempts.set(serviceName, attempts);
-      
+
       const status: HealthStatus = {
         service: serviceName,
         status: 'offline',
         message: `AI Concierge is offline (attempt ${attempts}/${this.MAX_RETRY_ATTEMPTS})`,
         lastCheck: new Date(),
-        details: { error: error.message }
+        details: { error: error.message },
       };
-      
+
       this.healthStatus.set(serviceName, status);
-      
+
       // Auto-retry with exponential backoff
       if (attempts < this.MAX_RETRY_ATTEMPTS) {
         const backoffMs = Math.pow(2, attempts) * 1000;
         setTimeout(() => this.checkConciergeHealth(), backoffMs);
       }
-      
+
       return status;
     }
   }
@@ -117,7 +110,7 @@ class ApiHealthCheckService {
     try {
       // Check if API key is configured
       const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-      
+
       if (!apiKey) {
         // No API key: mark as degraded (embed-only mode) but not offline
         const status: HealthStatus = {
@@ -125,9 +118,9 @@ class ApiHealthCheckService {
           status: 'degraded',
           message: 'Embed-only mode (keyless)',
           lastCheck: new Date(),
-          details: { embedMode: true }
+          details: { embedMode: true },
         };
-        
+
         this.healthStatus.set(serviceName, status);
         this.retryAttempts.set(serviceName, 0);
 
@@ -143,8 +136,8 @@ class ApiHealthCheckService {
       const { data, error } = await supabase.functions.invoke('google-maps-proxy', {
         body: {
           endpoint: 'geocode',
-          address: 'San Francisco, CA'
-        }
+          address: 'San Francisco, CA',
+        },
       });
 
       if (error) {
@@ -161,36 +154,35 @@ class ApiHealthCheckService {
         status: 'healthy',
         message: 'Google Maps is online with API key',
         lastCheck: new Date(),
-        details: { apiKeyValid: true }
+        details: { apiKeyValid: true },
       };
-      
+
       this.healthStatus.set(serviceName, status);
       this.retryAttempts.set(serviceName, 0);
 
       return status;
-      
     } catch (error) {
       console.error('❌ Google Maps health check failed:', error);
-      
+
       const attempts = (this.retryAttempts.get(serviceName) || 0) + 1;
       this.retryAttempts.set(serviceName, attempts);
-      
+
       const status: HealthStatus = {
         service: serviceName,
         status: 'offline',
         message: `Google Maps is offline (attempt ${attempts}/${this.MAX_RETRY_ATTEMPTS})`,
         lastCheck: new Date(),
-        details: { error: error.message }
+        details: { error: error.message },
       };
-      
+
       this.healthStatus.set(serviceName, status);
-      
+
       // Auto-retry with exponential backoff
       if (attempts < this.MAX_RETRY_ATTEMPTS) {
         const backoffMs = Math.pow(2, attempts) * 1000;
         setTimeout(() => this.checkGoogleMapsHealth(), backoffMs);
       }
-      
+
       return status;
     }
   }
@@ -213,10 +205,7 @@ class ApiHealthCheckService {
    * Force re-check of all services
    */
   async recheckAll(): Promise<void> {
-    await Promise.all([
-      this.checkConciergeHealth(),
-      this.checkGoogleMapsHealth()
-    ]);
+    await Promise.all([this.checkConciergeHealth(), this.checkGoogleMapsHealth()]);
   }
 
   /**
