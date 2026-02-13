@@ -31,6 +31,35 @@ interface IncrementRpcRow {
   incremented: boolean | null;
 }
 
+interface EntitlementRow {
+  plan: string | null;
+  status: string | null;
+  current_period_end: string | null;
+}
+
+interface ProfileSubscriptionRow {
+  app_role: string | null;
+  subscription_status: string | null;
+  subscription_product_id: string | null;
+}
+
+interface RpcResult<T> {
+  data: T | null;
+  error: { message?: string } | null;
+}
+
+const EXPLORER_PRODUCT_IDS = new Set(['prod_Tc0SWNhLkoCDIi', 'prod_Tx0AZIWAubAWD3']);
+
+const invokeRpc = async <T>(
+  functionName: string,
+  params: Record<string, unknown>,
+): Promise<RpcResult<T>> => {
+  const rpcClient = supabase as unknown as {
+    rpc: (fn: string, args?: Record<string, unknown>) => Promise<RpcResult<T>>;
+  };
+  return rpcClient.rpc(functionName, params);
+};
+
 const getLimitForPlan = (plan: ConciergePlan): number | null => {
   if (plan === 'free') return FREE_TIER_LIMIT;
   if (plan === 'explorer') return EXPLORER_TIER_LIMIT;
@@ -51,6 +80,49 @@ const mapPlanFromTier = (
   if (tier === 'explorer') return 'explorer';
   if (tier === 'free') return 'free';
   return 'frequent_traveler';
+};
+
+const isActiveStatus = (status?: string | null): boolean =>
+  status === 'active' || status === 'trialing';
+
+const hasActivePeriod = (periodEnd?: string | null): boolean => {
+  if (!periodEnd) return true;
+  const parsed = Date.parse(periodEnd);
+  if (Number.isNaN(parsed)) return true;
+  return parsed > Date.now();
+};
+
+const mapRawPlanToUsagePlan = (plan?: string | null): ConciergePlan => {
+  if (plan === 'free' || !plan) return 'free';
+  if (plan === 'explorer' || plan === 'plus') return 'explorer';
+  return 'frequent_traveler';
+};
+
+const resolvePlanFromProfile = (
+  profile: ProfileSubscriptionRow | null | undefined,
+  fallbackTier:
+    | 'free'
+    | 'explorer'
+    | 'frequent-chraveler'
+    | 'pro-starter'
+    | 'pro-growth'
+    | 'pro-enterprise',
+): ConciergePlan => {
+  if (profile && isActiveStatus(profile.subscription_status)) {
+    const productId = profile.subscription_product_id || '';
+    if (productId && EXPLORER_PRODUCT_IDS.has(productId)) {
+      return 'explorer';
+    }
+    if (productId) {
+      return 'frequent_traveler';
+    }
+  }
+
+  if (profile?.app_role === 'plus' || profile?.app_role === 'explorer') return 'explorer';
+  if (profile?.app_role === 'consumer' || profile?.app_role === 'free') return 'free';
+  if (profile?.app_role) return 'frequent_traveler';
+
+  return mapPlanFromTier(fallbackTier, false);
 };
 
 const normalizeIncrementRpcRow = (data: unknown): IncrementRpcRow | null => {
@@ -95,7 +167,63 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
   const queryClient = useQueryClient();
   const targetUserId = userId || user?.id;
   const isSuperAdmin = isSuperAdminEmail(user?.email);
-  const userPlan = mapPlanFromTier(tier, isSuperAdmin);
+
+  const { data: entitlementData } = useQuery({
+    queryKey: ['concierge-entitlement-plan', targetUserId],
+    queryFn: async (): Promise<EntitlementRow | null> => {
+      if (!targetUserId) return null;
+      const { data, error } = await supabase
+        .from('user_entitlements')
+        .select('plan, status, current_period_end')
+        .eq('user_id', targetUserId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Failed to fetch entitlement plan:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!targetUserId,
+    staleTime: 30 * 1000,
+  });
+
+  const { data: profileData } = useQuery({
+    queryKey: ['concierge-profile-plan', targetUserId],
+    queryFn: async (): Promise<ProfileSubscriptionRow | null> => {
+      if (!targetUserId) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('app_role, subscription_status, subscription_product_id')
+        .eq('user_id', targetUserId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Failed to fetch profile plan fallback:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!targetUserId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const userPlan = useMemo(() => {
+    if (isSuperAdmin) return 'frequent_traveler';
+
+    if (
+      entitlementData &&
+      isActiveStatus(entitlementData.status) &&
+      hasActivePeriod(entitlementData.current_period_end)
+    ) {
+      return mapRawPlanToUsagePlan(entitlementData.plan);
+    }
+
+    return resolvePlanFromProfile(profileData, tier);
+  }, [entitlementData, isSuperAdmin, profileData, tier]);
+
   const planLimit = getLimitForPlan(userPlan);
   const usageQueryKey = useMemo(
     () => ['concierge-trip-usage', tripId, targetUserId, userPlan],
@@ -118,7 +246,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
         return buildUsage(userPlan, 0);
       }
 
-      const { data, error: rpcError } = await (supabase as any).rpc('get_concierge_trip_usage', {
+      const { data, error: rpcError } = await invokeRpc<number>('get_concierge_trip_usage', {
         p_trip_id: tripId,
       });
 
@@ -128,11 +256,11 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
       }
 
       // Backward compatibility fallback: derive usage from legacy event rows.
-      const { data: fallbackRows, error: fallbackError } = await (supabase as any)
+      const { data: fallbackRows, error: fallbackError } = await supabase
         .from('concierge_usage')
         .select(FALLBACK_TRIP_USAGE_SELECT)
         .eq('user_id', targetUserId)
-        .eq('context_type', 'trip')
+        .in('context_type', ['trip', 'event'])
         .eq('context_id', tripId);
 
       if (fallbackError) {
@@ -175,10 +303,13 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
       };
     }
 
-    const { data, error } = await (supabase as any).rpc('increment_concierge_trip_usage', {
-      p_trip_id: tripId,
-      p_limit: planLimit,
-    });
+    const { data, error } = await invokeRpc<IncrementRpcRow | IncrementRpcRow[]>(
+      'increment_concierge_trip_usage',
+      {
+        p_trip_id: tripId,
+        p_limit: planLimit,
+      },
+    );
 
     if (error) {
       throw error;

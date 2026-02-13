@@ -5,14 +5,12 @@ import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
-import { useAuth } from '../hooks/useAuth';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
 import { useWebSpeechVoice as useGeminiVoice } from '../hooks/useWebSpeechVoice';
 import { invokeConcierge } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
-import { conciergeCacheService } from '../services/conciergeCacheService';
 import { toast } from 'sonner';
 
 interface AIConciergeChatProps {
@@ -143,7 +141,6 @@ export const AIConciergeChat = ({
     isLoading: isConsumerSubscriptionLoading,
   } = useConsumerSubscription();
   const { basecamp: globalBasecamp } = useBasecamp();
-  const { user } = useAuth();
   const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const {
@@ -238,14 +235,6 @@ export const AIConciergeChat = ({
     return () => clearTimeout(timeout);
   }, [aiStatus, messages.length]);
 
-  // Load cached messages for offline mode (user-isolated)
-  useEffect(() => {
-    const cachedMessages = conciergeCacheService.getCachedMessages(tripId, user?.id);
-    if (cachedMessages && cachedMessages.length > 0 && isMounted.current) {
-      setMessages(cachedMessages);
-    }
-  }, [tripId, user?.id]);
-
   const isQueryLimitReached = Boolean(isLimitedPlan && usage?.isLimitReached);
 
   const queryAllowanceText = useMemo(() => {
@@ -315,6 +304,30 @@ export const AIConciergeChat = ({
       typedMessage ||
       `📎 Attached ${selectedImages.length} image${selectedImages.length === 1 ? '' : 's'}`;
 
+    // Check offline mode first
+    if (isOffline) {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          type: 'user',
+          content: messageToSend,
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: (Date.now() + 1).toString(),
+          type: 'assistant',
+          content:
+            "📡 **Offline Mode**\n\nI can't send this request while you're offline. Reconnect and try again.",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      if (!messageOverride) {
+        setInputMessage('');
+      }
+      return;
+    }
+
     if (isLimitedPlan) {
       const latestUsage = await refreshUsage();
 
@@ -325,57 +338,6 @@ export const AIConciergeChat = ({
 
       if (latestUsage.isLimitReached && latestUsage.limit !== null) {
         showLimitReachedToast(latestUsage.plan === 'explorer' ? 'explorer' : 'free');
-        return;
-      }
-    }
-
-    // Check offline mode first
-    if (isOffline) {
-      // Try to get cached response for similar query (user-isolated)
-      const cachedResponse = conciergeCacheService.getCachedResponse(
-        tripId,
-        messageToSend,
-        user?.id,
-      );
-      if (cachedResponse) {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            type: 'user',
-            content: messageToSend,
-            timestamp: new Date().toISOString(),
-          },
-          {
-            ...cachedResponse,
-            id: (Date.now() + 1).toString(),
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-        if (!messageOverride) {
-          setInputMessage('');
-        }
-        return;
-      } else {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            type: 'user',
-            content: messageToSend,
-            timestamp: new Date().toISOString(),
-          },
-          {
-            id: (Date.now() + 1).toString(),
-            type: 'assistant',
-            content:
-              "📡 **Offline Mode**\n\nI'm currently offline and don't have a cached response for this query. Please check your connection and try again when online.",
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-        if (!messageOverride) {
-          setInputMessage('');
-        }
         return;
       }
     }
@@ -477,7 +439,6 @@ export const AIConciergeChat = ({
         };
 
         setMessages(prev => [...prev, assistantMessage]);
-        conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id);
         setIsTyping(false);
         return;
       }
@@ -499,9 +460,6 @@ export const AIConciergeChat = ({
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-
-      // Cache the response for offline mode (user-isolated)
-      conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('❌ AI Concierge error:', error);
@@ -522,7 +480,6 @@ export const AIConciergeChat = ({
           timestamp: new Date().toISOString(),
         };
         setMessages(prev => [...prev, errorMessage]);
-        conciergeCacheService.cacheMessage(tripId, currentInput, errorMessage, user?.id);
       } catch {
         // Ultimate fallback
         const errorMessage: ChatMessage = {

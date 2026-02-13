@@ -50,6 +50,110 @@ CREATE POLICY "Service role can manage concierge trip usage"
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 
+-- Backfill prior per-trip usage so counters do not reset for existing users.
+DO $$
+DECLARE
+  has_context_id BOOLEAN;
+  has_context_type BOOLEAN;
+  has_query_count BOOLEAN;
+  has_trip_id BOOLEAN;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'concierge_usage'
+      AND column_name = 'context_id'
+  ) INTO has_context_id;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'concierge_usage'
+      AND column_name = 'context_type'
+  ) INTO has_context_type;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'concierge_usage'
+      AND column_name = 'query_count'
+  ) INTO has_query_count;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'concierge_usage'
+      AND column_name = 'trip_id'
+  ) INTO has_trip_id;
+
+  IF has_context_id THEN
+    IF has_context_type AND has_query_count THEN
+      EXECUTE $sql$
+        INSERT INTO public.concierge_trip_usage (user_id, trip_id, used_count, created_at, updated_at)
+        SELECT
+          cu.user_id,
+          cu.context_id,
+          COALESCE(SUM(cu.query_count), 0)::INTEGER AS used_count,
+          MIN(cu.created_at) AS created_at,
+          MAX(cu.created_at) AS updated_at
+        FROM public.concierge_usage cu
+        WHERE cu.context_id IS NOT NULL
+          AND btrim(cu.context_id) <> ''
+          AND cu.context_type IN ('trip', 'event')
+        GROUP BY cu.user_id, cu.context_id
+        ON CONFLICT (user_id, trip_id) DO UPDATE
+        SET
+          used_count = GREATEST(public.concierge_trip_usage.used_count, EXCLUDED.used_count),
+          updated_at = GREATEST(public.concierge_trip_usage.updated_at, EXCLUDED.updated_at)
+      $sql$;
+    ELSIF has_context_type THEN
+      EXECUTE $sql$
+        INSERT INTO public.concierge_trip_usage (user_id, trip_id, used_count, created_at, updated_at)
+        SELECT
+          cu.user_id,
+          cu.context_id,
+          COUNT(*)::INTEGER AS used_count,
+          MIN(cu.created_at) AS created_at,
+          MAX(cu.created_at) AS updated_at
+        FROM public.concierge_usage cu
+        WHERE cu.context_id IS NOT NULL
+          AND btrim(cu.context_id) <> ''
+          AND cu.context_type IN ('trip', 'event')
+        GROUP BY cu.user_id, cu.context_id
+        ON CONFLICT (user_id, trip_id) DO UPDATE
+        SET
+          used_count = GREATEST(public.concierge_trip_usage.used_count, EXCLUDED.used_count),
+          updated_at = GREATEST(public.concierge_trip_usage.updated_at, EXCLUDED.updated_at)
+      $sql$;
+    END IF;
+  END IF;
+
+  IF has_trip_id THEN
+    EXECUTE $sql$
+      INSERT INTO public.concierge_trip_usage (user_id, trip_id, used_count, created_at, updated_at)
+      SELECT
+        cu.user_id,
+        cu.trip_id,
+        COUNT(*)::INTEGER AS used_count,
+        MIN(cu.created_at) AS created_at,
+        MAX(cu.created_at) AS updated_at
+      FROM public.concierge_usage cu
+      WHERE cu.trip_id IS NOT NULL
+        AND btrim(cu.trip_id) <> ''
+      GROUP BY cu.user_id, cu.trip_id
+      ON CONFLICT (user_id, trip_id) DO UPDATE
+      SET
+        used_count = GREATEST(public.concierge_trip_usage.used_count, EXCLUDED.used_count),
+        updated_at = GREATEST(public.concierge_trip_usage.updated_at, EXCLUDED.updated_at)
+    $sql$;
+  END IF;
+END
+$$;
+
 CREATE OR REPLACE FUNCTION public.get_concierge_trip_usage(p_trip_id TEXT)
 RETURNS INTEGER
 LANGUAGE plpgsql
