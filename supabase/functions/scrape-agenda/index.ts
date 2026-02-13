@@ -14,6 +14,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { validateExternalHttpsUrl } from '../_shared/validation.ts';
+import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -36,7 +37,9 @@ const MAX_CONTENT_LENGTH = 1_000_000;
  * Attempt to scrape a URL using Firecrawl's headless browser.
  * Returns rendered markdown content, or null if Firecrawl is not configured or fails.
  */
-async function scrapeWithFirecrawl(url: string): Promise<{ markdown: string; method: 'firecrawl' } | null> {
+async function scrapeWithFirecrawl(
+  url: string,
+): Promise<{ markdown: string; method: 'firecrawl' } | null> {
   const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
   if (!apiKey) {
     console.log('[scrape-agenda] FIRECRAWL_API_KEY not set, skipping Firecrawl');
@@ -48,7 +51,7 @@ async function scrapeWithFirecrawl(url: string): Promise<{ markdown: string; met
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -92,7 +95,8 @@ async function scrapeWithFetch(url: string): Promise<{ html: string; method: 'fe
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
         'Sec-Fetch-Dest': 'document',
         'Sec-Fetch-Mode': 'navigate',
@@ -117,7 +121,7 @@ async function scrapeWithFetch(url: string): Promise<{ html: string; method: 'fe
   }
 }
 
-serve(async (req) => {
+serve(async req => {
   const corsHeaders = getCorsHeaders(req);
 
   if (req.method === 'OPTIONS') {
@@ -138,7 +142,10 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
         status: 401,
@@ -183,7 +190,8 @@ serve(async (req) => {
       if (!fetchResult) {
         return new Response(
           JSON.stringify({
-            error: 'Could not access this website. The site may block automated requests. Try uploading a screenshot or PDF instead.',
+            error:
+              'Could not access this website. The site may block automated requests. Try uploading a screenshot or PDF instead.',
           }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
@@ -194,22 +202,19 @@ serve(async (req) => {
 
     // ── Cap content ──
     if (contentForAI.length > MAX_CONTENT_LENGTH) {
-      console.log(`[scrape-agenda] Truncating from ${contentForAI.length} to ${MAX_CONTENT_LENGTH} chars`);
+      console.log(
+        `[scrape-agenda] Truncating from ${contentForAI.length} to ${MAX_CONTENT_LENGTH} chars`,
+      );
       contentForAI = contentForAI.substring(0, MAX_CONTENT_LENGTH);
     }
 
-    console.log(`[scrape-agenda] Sending ${contentForAI.length} chars to Gemini (via ${scrapeMethod})`);
+    console.log(
+      `[scrape-agenda] Sending ${contentForAI.length} chars to Gemini (via ${scrapeMethod})`,
+    );
 
     // ── Send to Gemini for extraction (45s timeout) ──
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: 'AI service not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const contentType = scrapeMethod === 'firecrawl' ? 'rendered webpage content (markdown)' : 'webpage HTML';
+    const contentType =
+      scrapeMethod === 'firecrawl' ? 'rendered webpage content (markdown)' : 'webpage HTML';
 
     const systemPrompt = `You are an expert at extracting event agenda sessions, show dates, tour dates, and scheduled performances from websites.
 
@@ -246,49 +251,46 @@ Example output (showing different levels of available data):
   {"title": "Networking Lunch"}
 ]`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+    let rawContent = '';
+    try {
+      const aiResult = await invokeChatModel({
+        model: 'gemini-3-flash-preview',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Extract ALL agenda sessions, show dates, and scheduled events from this ${contentType}:\n\n${contentForAI}` },
+          {
+            role: 'user',
+            content: `Extract ALL agenda sessions, show dates, and scheduled events from this ${contentType}:\n\n${contentForAI}`,
+          },
         ],
         temperature: 0.1,
-        max_tokens: 32000,
-      }),
-      signal: AbortSignal.timeout(45000),
-    });
+        maxTokens: 32000,
+        responseFormat: { type: 'json_object' },
+        timeoutMs: 45_000,
+      });
+      rawContent = extractTextFromChatResponse(aiResult.raw, aiResult.provider);
+      console.log(`[scrape-agenda] AI provider=${aiResult.provider} model=${aiResult.model}`);
+    } catch (aiError) {
+      const message = aiError instanceof Error ? aiError.message : String(aiError);
+      console.error(`[scrape-agenda] AI extraction error: ${message}`);
 
-    if (!aiResponse.ok) {
-      const status = aiResponse.status;
-      console.error(`[scrape-agenda] AI gateway error: ${status}`);
-
-      if (status === 429) {
+      if (message.includes('429')) {
         return new Response(
           JSON.stringify({ error: 'AI service is busy. Please try again in a moment.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
-      if (status === 402) {
+      if (message.includes('402')) {
         return new Response(
           JSON.stringify({ error: 'AI credits exhausted. Please add funds to your workspace.' }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
 
-      return new Response(
-        JSON.stringify({ error: 'AI service error. Please try again.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: 'AI service error. Please try again.' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    const aiData = await aiResponse.json();
-    const rawContent = aiData.choices?.[0]?.message?.content ?? '';
 
     console.log(`[scrape-agenda] AI response length: ${rawContent.length}`);
 
@@ -309,7 +311,9 @@ Example output (showing different levels of available data):
       }
 
       // Filter out entries without a title
-      sessions = sessions.filter(s => s.title && typeof s.title === 'string' && s.title.trim().length > 0);
+      sessions = sessions.filter(
+        s => s.title && typeof s.title === 'string' && s.title.trim().length > 0,
+      );
 
       // Clean up each session — remove empty/null fields
       sessions = sessions.map(s => {
@@ -321,15 +325,25 @@ Example output (showing different levels of available data):
         if (s.location && s.location.trim()) clean.location = s.location.trim();
         if (s.track && s.track.trim()) clean.track = s.track.trim();
         if (s.speakers && Array.isArray(s.speakers) && s.speakers.length > 0) {
-          clean.speakers = s.speakers.filter(sp => sp && typeof sp === 'string' && sp.trim()).map(sp => sp.trim());
+          clean.speakers = s.speakers
+            .filter(sp => sp && typeof sp === 'string' && sp.trim())
+            .map(sp => sp.trim());
           if (clean.speakers.length === 0) delete clean.speakers;
         }
         return clean;
       });
     } catch (parseErr) {
-      console.error('[scrape-agenda] Failed to parse AI JSON:', parseErr, 'Raw:', rawContent.substring(0, 500));
+      console.error(
+        '[scrape-agenda] Failed to parse AI JSON:',
+        parseErr,
+        'Raw:',
+        rawContent.substring(0, 500),
+      );
       return new Response(
-        JSON.stringify({ error: 'Could not extract agenda data from this page. Try uploading a screenshot or PDF instead.' }),
+        JSON.stringify({
+          error:
+            'Could not extract agenda data from this page. Try uploading a screenshot or PDF instead.',
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -340,7 +354,8 @@ Example output (showing different levels of available data):
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'No agenda sessions found on this page. Make sure the URL points to an agenda or schedule page.',
+          error:
+            'No agenda sessions found on this page. Make sure the URL points to an agenda or schedule page.',
           sessions: [],
           source_url: url,
           scrape_method: scrapeMethod,
@@ -363,7 +378,10 @@ Example output (showing different levels of available data):
     if (error instanceof DOMException && error.name === 'TimeoutError') {
       console.error('[scrape-agenda] Request timed out');
       return new Response(
-        JSON.stringify({ error: 'The request took too long to process. Try a simpler URL or upload a screenshot/PDF instead.' }),
+        JSON.stringify({
+          error:
+            'The request took too long to process. Try a simpler URL or upload a screenshot/PDF instead.',
+        }),
         { status: 408, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
       );
     }

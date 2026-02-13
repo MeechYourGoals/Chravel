@@ -1,7 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
-
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -11,10 +10,6 @@ serve(async req => {
   }
 
   try {
-    if (!LOVABLE_API_KEY) {
-      throw new Error('Lovable API key not configured');
-    }
-
     const { placeName, placeAddress, basecampLat, basecampLng } = await req.json();
 
     if (!placeName) {
@@ -28,49 +23,39 @@ serve(async req => {
     const locationContext = placeAddress ? ` at ${placeAddress}` : '';
     const prompt = `Provide current information about this place: ${placeName}${locationContext}. Include hours, phone number, website, rating, price level, and any special notes.`;
 
-    // Call Lovable AI with Maps grounding
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        tools: [{ googleMaps: { enableWidget: true } }],
-        ...(basecampLat && basecampLng
-          ? {
-              toolConfig: {
-                retrievalConfig: {
-                  latLng: {
-                    latitude: basecampLat,
-                    longitude: basecampLng,
-                  },
+    // Call Gemini directly with Lovable fallback enabled in shared client.
+    const aiResult = await invokeChatModel({
+      model: 'gemini-3-flash-preview',
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      tools: [{ googleMaps: { enableWidget: true } }],
+      ...(basecampLat && basecampLng
+        ? {
+            toolConfig: {
+              retrievalConfig: {
+                latLng: {
+                  latitude: basecampLat,
+                  longitude: basecampLng,
                 },
               },
-            }
-          : {}),
-        temperature: 0.1,
-        max_tokens: 1000,
-      }),
+            },
+          }
+        : {}),
+      temperature: 0.1,
+      maxTokens: 1000,
+      timeoutMs: 30000,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        `Grounding API error: ${response.status} - ${errorData.error?.message || 'Unknown'}`,
-      );
-    }
-
-    const data = await response.json();
-    const aiResponse = data.choices[0]?.message?.content || '';
-    const groundingMetadata = data.choices[0]?.groundingMetadata || {};
+    const data = aiResult.raw;
+    const aiResponse = extractTextFromChatResponse(data, aiResult.provider);
+    const groundingMetadata =
+      aiResult.provider === 'gemini'
+        ? data?.candidates?.[0]?.groundingMetadata || {}
+        : data?.choices?.[0]?.groundingMetadata || {};
     const groundingChunks = groundingMetadata.groundingChunks || [];
 
     // Extract structured place data from grounding chunks

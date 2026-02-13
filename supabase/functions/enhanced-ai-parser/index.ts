@@ -1,10 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { corsHeaders } from '../_shared/cors.ts';
+import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 // ─── Safe JSON Parser ────────────────────────────────────────────────────────
 
@@ -44,7 +44,36 @@ function safeParseJSON(raw: string): any {
     }
   }
 
-  throw new Error(`Failed to parse AI response as JSON. Raw content starts with: ${raw.substring(0, 100)}`);
+  throw new Error(
+    `Failed to parse AI response as JSON. Raw content starts with: ${raw.substring(0, 100)}`,
+  );
+}
+
+async function runParserModel(
+  messages: Array<{
+    role: 'system' | 'user' | 'assistant';
+    content:
+      | string
+      | Array<{ type: 'text' | 'image_url'; text?: string; image_url?: { url: string } }>;
+  }>,
+  options?: { maxTokens?: number; temperature?: number; timeoutMs?: number },
+): Promise<string> {
+  const result = await invokeChatModel({
+    model: 'gemini-3-flash-preview',
+    messages,
+    maxTokens: options?.maxTokens ?? 4000,
+    temperature: options?.temperature ?? 0.1,
+    timeoutMs: options?.timeoutMs ?? 45000,
+    responseFormat: { type: 'json_object' },
+  });
+
+  const text = extractTextFromChatResponse(result.raw, result.provider);
+  if (!text.trim()) {
+    throw new Error('AI parser returned empty response');
+  }
+
+  console.log(`[enhanced-ai-parser] AI provider=${result.provider} model=${result.model}`);
+  return text;
 }
 
 // ─── URL Validation (SSRF Prevention) ────────────────────────────────────────
@@ -70,14 +99,25 @@ function validateImageUrl(url: string): { valid: boolean; error?: string } {
 
     const hostname = urlObj.hostname.toLowerCase();
     const blockedHosts = [
-      'localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]',
-      '169.254.169.254', 'metadata.google.internal',
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '::1',
+      '[::1]',
+      '169.254.169.254',
+      'metadata.google.internal',
     ];
     if (blockedHosts.includes(hostname)) {
       return { valid: false, error: 'Localhost and internal IPs are not allowed' };
     }
 
-    const privateIpPatterns = [/^10\./, /^172\.(1[6-9]|2[0-9]|3[01])\./, /^192\.168\./, /^fc00:/, /^fe80:/];
+    const privateIpPatterns = [
+      /^10\./,
+      /^172\.(1[6-9]|2[0-9]|3[01])\./,
+      /^192\.168\./,
+      /^fc00:/,
+      /^fe80:/,
+    ];
     for (const pattern of privateIpPatterns) {
       if (pattern.test(hostname)) {
         return { valid: false, error: 'Private IP ranges are not allowed' };
@@ -92,7 +132,9 @@ function validateImageUrl(url: string): { valid: boolean; error?: string } {
 
 // ─── PDF Content Fetcher ─────────────────────────────────────────────────────
 
-async function fetchFileAsBase64(fileUrl: string): Promise<{ base64: string; mimeType: string } | null> {
+async function fetchFileAsBase64(
+  fileUrl: string,
+): Promise<{ base64: string; mimeType: string } | null> {
   try {
     const response = await fetch(fileUrl);
     if (!response.ok) return null;
@@ -117,9 +159,10 @@ async function fetchFileAsBase64(fileUrl: string): Promise<{ base64: string; mim
 
 // ─── Main Handler ────────────────────────────────────────────────────────────
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -132,10 +175,13 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false }
+      auth: { persistSession: false },
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       return createErrorResponse('Unauthorized - invalid or expired token', 401);
     }
@@ -161,7 +207,7 @@ serve(async (req) => {
         return createErrorResponse('Forbidden - you must be a member of this trip', 403);
       }
     }
-    
+
     switch (extractionType) {
       case 'calendar':
         return await extractCalendarEvents(messageText, fileUrl, fileType);
@@ -180,10 +226,10 @@ serve(async (req) => {
     console.error('AI Parser error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { 
+      {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     );
   }
 });
@@ -191,10 +237,6 @@ serve(async (req) => {
 // ─── Calendar Event Extraction ───────────────────────────────────────────────
 
 async function extractCalendarEvents(messageText: string, fileUrl?: string, fileType?: string) {
-  if (!LOVABLE_API_KEY) {
-    throw new Error('Lovable API key not configured');
-  }
-
   const userContent = await buildUserMessage(messageText, fileUrl, fileType);
 
   const messages = [
@@ -237,54 +279,34 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
       3. Do NOT fabricate or hallucinate events. Only extract what is clearly shown.
       4. Use "entertainment" for shows, concerts, comedy, performances, festivals.
       5. Use "other" when an event doesn't fit the standard categories.
-      6. If no events are found, return {"events": [], "confidence_overall": 0}`
+      6. If no events are found, return {"events": [], "confidence_overall": 0}`,
     },
     {
       role: 'user',
       content: userContent,
-    }
+    },
   ];
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages,
-      max_tokens: 16000,
-      temperature: 0.1,
-      response_format: { type: "json_object" }
-    })
+  const rawText = await runParserModel(messages, {
+    maxTokens: 16000,
+    temperature: 0.1,
+    timeoutMs: 45000,
   });
+  const extractedData = safeParseJSON(rawText);
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Gemini API error: ${error}`);
-  }
-
-  const result = await response.json();
-  const extractedData = safeParseJSON(result.choices[0].message.content);
-  
   return new Response(
     JSON.stringify({
       success: true,
       extracted_data: extractedData,
-      confidence: extractedData.confidence_overall || 0.8
+      confidence: extractedData.confidence_overall || 0.8,
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 }
 
 // ─── Agenda Session Extraction ───────────────────────────────────────────────
 
 async function extractAgendaSessions(messageText: string, fileUrl?: string, fileType?: string) {
-  if (!LOVABLE_API_KEY) {
-    throw new Error('Lovable API key not configured');
-  }
-
   const systemPrompt = `You are an expert at extracting event agenda sessions from conference schedules, event programs, and agenda documents.
 
 Extract ALL sessions, talks, panels, workshops, performances, and scheduled items.
@@ -318,64 +340,39 @@ CRITICAL RULES:
   const userContent = await buildUserMessage(
     messageText || 'Extract all agenda sessions from this document.',
     fileUrl,
-    fileType
+    fileType,
   );
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userContent }
-      ],
-      max_tokens: 16000,
+  const rawText = await runParserModel(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userContent },
+    ],
+    {
+      maxTokens: 16000,
       temperature: 0.1,
-      response_format: { type: "json_object" }
-    }),
-    signal: AbortSignal.timeout(45000),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`AI API error: ${error}`);
-  }
-
-  const result = await response.json();
-  const extractedData = safeParseJSON(result.choices[0].message.content);
+      timeoutMs: 45000,
+    },
+  );
+  const extractedData = safeParseJSON(rawText);
 
   return new Response(
     JSON.stringify({
       success: true,
       sessions: extractedData.sessions || [],
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 }
 
 // ─── Todo Extraction ─────────────────────────────────────────────────────────
 
 async function extractTodoItems(messageText: string, tripId: string) {
-  if (!LOVABLE_API_KEY) {
-    throw new Error('Lovable API key not configured');
-  }
-
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'system',
-          content: `Extract actionable todo items from travel-related messages. 
+  const rawText = await runParserModel(
+    [
+      {
+        role: 'system',
+        content: `Extract actionable todo items from travel-related messages. 
           Focus on tasks that need to be completed before or during the trip.
           
           Return JSON format:
@@ -391,59 +388,44 @@ async function extractTodoItems(messageText: string, tripId: string) {
                 "confidence": 0.95
               }
             ]
-          }`
-        },
-        {
-          role: 'user',
-          content: `Extract todo items from this message: ${messageText}`
-        }
-      ],
-      max_tokens: 1000,
+          }`,
+      },
+      {
+        role: 'user',
+        content: `Extract todo items from this message: ${messageText}`,
+      },
+    ],
+    {
+      maxTokens: 1000,
       temperature: 0.1,
-      response_format: { type: "json_object" }
-    })
-  });
+      timeoutMs: 30000,
+    },
+  );
 
-  if (!response.ok) {
-    throw new Error('Failed to extract todo items');
-  }
+  const extractedData = safeParseJSON(rawText);
 
-  const result = await response.json();
-  const extractedData = safeParseJSON(result.choices[0].message.content);
-  
   return new Response(
     JSON.stringify({
       success: true,
-      todos: extractedData.todos || []
+      todos: extractedData.todos || [],
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 }
 
 // ─── Photo Analysis ──────────────────────────────────────────────────────────
 
 async function analyzePhoto(fileUrl: string) {
-  if (!LOVABLE_API_KEY) {
-    throw new Error('Lovable API key not configured');
-  }
-
   const urlValidation = validateImageUrl(fileUrl);
   if (!urlValidation.valid) {
     throw new Error(`Invalid image URL: ${urlValidation.error}`);
   }
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'system',
-          content: `Analyze travel photos and extract useful information.
+  const rawText = await runParserModel(
+    [
+      {
+        role: 'system',
+        content: `Analyze travel photos and extract useful information.
           
           Return JSON format:
           {
@@ -457,51 +439,42 @@ async function analyzePhoto(fileUrl: string) {
               "suggested_caption": "auto-generated caption",
               "confidence": 0.95
             }
-          }`
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Analyze this travel photo and extract relevant information:'
-            },
-            {
-              type: 'image_url',
-              image_url: { url: fileUrl }
-            }
-          ]
-        }
-      ],
-      max_tokens: 1000,
+          }`,
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Analyze this travel photo and extract relevant information:',
+          },
+          {
+            type: 'image_url',
+            image_url: { url: fileUrl },
+          },
+        ],
+      },
+    ],
+    {
+      maxTokens: 1000,
       temperature: 0.3,
-      response_format: { type: "json_object" }
-    })
-  });
+      timeoutMs: 45000,
+    },
+  );
+  const analysis = safeParseJSON(rawText);
 
-  if (!response.ok) {
-    throw new Error('Failed to analyze photo');
-  }
-
-  const result = await response.json();
-  const analysis = safeParseJSON(result.choices[0].message.content);
-  
   return new Response(
     JSON.stringify({
       success: true,
-      analysis: analysis.analysis
+      analysis: analysis.analysis,
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 }
 
 // ─── Document Parsing ────────────────────────────────────────────────────────
 
 async function parseDocument(fileUrl: string, fileType: string) {
-  if (!LOVABLE_API_KEY) {
-    throw new Error('Lovable API key not configured');
-  }
-
   const urlValidation = validateImageUrl(fileUrl);
   if (!urlValidation.valid) {
     throw new Error(`Invalid document URL: ${urlValidation.error}`);
@@ -510,18 +483,11 @@ async function parseDocument(fileUrl: string, fileType: string) {
   // For PDFs, fetch and send as inline data so Gemini can actually read the content
   const userContent = await buildDocumentMessage(fileUrl, fileType);
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert OCR and document parser for travel documents. Extract ALL text with high accuracy and structure the information.
+  const rawText = await runParserModel(
+    [
+      {
+        role: 'system',
+        content: `You are an expert OCR and document parser for travel documents. Extract ALL text with high accuracy and structure the information.
           
           Return comprehensive JSON format:
           {
@@ -567,45 +533,49 @@ async function parseDocument(fileUrl: string, fileType: string) {
             "ocr_confidence": 0.95,
             "language": "en",
             "page_count": 1
-          }`
-        },
-        {
-          role: 'user',
-          content: userContent
-        }
-      ],
-      max_tokens: 4000,
+          }`,
+      },
+      {
+        role: 'user',
+        content: userContent,
+      },
+    ],
+    {
+      maxTokens: 4000,
       temperature: 0.05,
-      response_format: { type: "json_object" }
-    })
-  });
+      timeoutMs: 45000,
+    },
+  );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Document parsing failed: ${errorText}`);
-  }
+  const parsedData = safeParseJSON(rawText);
 
-  const result = await response.json();
-  const parsedData = safeParseJSON(result.choices[0].message.content);
-  
   return new Response(
     JSON.stringify({
       success: true,
       parsed_data: parsedData,
-      ocr_quality: parsedData.ocr_confidence >= 0.9 ? 'excellent' : parsedData.ocr_confidence >= 0.75 ? 'good' : 'fair'
+      ocr_quality:
+        parsedData.ocr_confidence >= 0.9
+          ? 'excellent'
+          : parsedData.ocr_confidence >= 0.75
+            ? 'good'
+            : 'fair',
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 }
 
 // ─── Message Builders ────────────────────────────────────────────────────────
 
-async function buildUserMessage(messageText: string, fileUrl?: string, fileType?: string): Promise<any> {
+async function buildUserMessage(
+  messageText: string,
+  fileUrl?: string,
+  fileType?: string,
+): Promise<any> {
   const content: any[] = [
     {
       type: 'text',
-      text: `Analyze this content and extract all scheduled events: ${messageText || 'See attached content'}`
-    }
+      text: `Analyze this content and extract all scheduled events: ${messageText || 'See attached content'}`,
+    },
   ];
 
   if (fileUrl) {
@@ -613,7 +583,7 @@ async function buildUserMessage(messageText: string, fileUrl?: string, fileType?
       // Images: send as image_url directly
       content.push({
         type: 'image_url',
-        image_url: { url: fileUrl }
+        image_url: { url: fileUrl },
       });
     } else if (fileType === 'application/pdf') {
       // PDFs: fetch content and send as inline_data so Gemini can read it
@@ -623,8 +593,8 @@ async function buildUserMessage(messageText: string, fileUrl?: string, fileType?
         content.push({
           type: 'image_url',
           image_url: {
-            url: `data:${fileData.mimeType};base64,${fileData.base64}`
-          }
+            url: `data:${fileData.mimeType};base64,${fileData.base64}`,
+          },
         });
         console.log('[AI Parser] PDF sent as inline base64 data');
       } else {
@@ -649,14 +619,14 @@ async function buildDocumentMessage(fileUrl: string, fileType: string): Promise<
       return [
         {
           type: 'text',
-          text: `Perform high-accuracy OCR and parsing on this ${fileType} document. Extract ALL visible text, structure data, detect tables, and identify key travel information:`
+          text: `Perform high-accuracy OCR and parsing on this ${fileType} document. Extract ALL visible text, structure data, detect tables, and identify key travel information:`,
         },
         {
           type: 'image_url',
           image_url: {
-            url: `data:${fileData.mimeType};base64,${fileData.base64}`
-          }
-        }
+            url: `data:${fileData.mimeType};base64,${fileData.base64}`,
+          },
+        },
       ];
     }
   }
@@ -665,11 +635,11 @@ async function buildDocumentMessage(fileUrl: string, fileType: string): Promise<
   return [
     {
       type: 'text',
-      text: `Perform high-accuracy OCR and parsing on this ${fileType} document. Extract ALL visible text, structure data, detect tables, and identify key travel information:`
+      text: `Perform high-accuracy OCR and parsing on this ${fileType} document. Extract ALL visible text, structure data, detect tables, and identify key travel information:`,
     },
     {
       type: 'image_url',
-      image_url: { url: fileUrl }
-    }
+      image_url: { url: fileUrl },
+    },
   ];
 }

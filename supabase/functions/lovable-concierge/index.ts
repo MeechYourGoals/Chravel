@@ -15,6 +15,7 @@ import {
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'); // kept as fallback
+const FORCE_LOVABLE_PROVIDER = (Deno.env.get('AI_PROVIDER') || '').toLowerCase() === 'lovable';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
@@ -68,14 +69,9 @@ function normalizeGeminiModel(
     return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
   }
 
-  const stripped = trimmed
-    .replace(/^models\//, '')
-    .replace(/^google\//, '');
+  const stripped = trimmed.replace(/^models\//, '').replace(/^google\//, '');
 
-  const normalized =
-    MODEL_ALIAS_MAP[trimmed] ||
-    MODEL_ALIAS_MAP[stripped] ||
-    stripped;
+  const normalized = MODEL_ALIAS_MAP[trimmed] || MODEL_ALIAS_MAP[stripped] || stripped;
 
   if (!normalized || !normalized.startsWith('gemini-')) {
     return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
@@ -757,9 +753,7 @@ serve(async req => {
     ];
 
     // ========== BUILD GEMINI TOOLS ==========
-    const geminiTools: any[] = [
-      { functionDeclarations },
-    ];
+    const geminiTools: any[] = [{ functionDeclarations }];
 
     // Add Google Search grounding for real-time queries
     if (isRealtimeQuery) {
@@ -806,12 +800,16 @@ serve(async req => {
       tools: geminiTools,
     };
 
-    if (!GEMINI_API_KEY) {
+    if (FORCE_LOVABLE_PROVIDER || !GEMINI_API_KEY) {
       if (!LOVABLE_API_KEY) {
         throw new Error('No AI provider key configured');
       }
 
-      console.warn('[AI] GEMINI_API_KEY missing; falling back to Lovable gateway');
+      if (FORCE_LOVABLE_PROVIDER) {
+        console.warn('[AI] AI_PROVIDER=lovable; routing concierge through Lovable gateway');
+      } else {
+        console.warn('[AI] GEMINI_API_KEY missing; falling back to Lovable gateway');
+      }
 
       const fallbackResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -820,7 +818,7 @@ serve(async req => {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: `google/${selectedModel}`,
           messages,
           temperature,
           max_tokens: config.maxTokens || 2048,
@@ -982,17 +980,20 @@ serve(async req => {
       if (followUpResponse.ok) {
         const followUpData = await followUpResponse.json();
         const followUpCandidate = followUpData.candidates?.[0];
-        aiResponse = followUpCandidate?.content?.parts
-          ?.filter((p: any) => p.text)
-          .map((p: any) => p.text)
-          .join('') || 'Action completed successfully.';
+        aiResponse =
+          followUpCandidate?.content?.parts
+            ?.filter((p: any) => p.text)
+            .map((p: any) => p.text)
+            .join('') || 'Action completed successfully.';
         groundingMetadata = followUpCandidate?.groundingMetadata || null;
       } else {
-        aiResponse = 'I completed the action, but had trouble generating a summary. Check your trip tabs for the update.';
+        aiResponse =
+          'I completed the action, but had trouble generating a summary. Check your trip tabs for the update.';
       }
     } else {
       // No function calls - just text response
-      aiResponse = textParts.map((p: any) => p.text).join('') || 'Sorry, I could not generate a response.';
+      aiResponse =
+        textParts.map((p: any) => p.text).join('') || 'Sorry, I could not generate a response.';
       groundingMetadata = candidate.groundingMetadata || null;
     }
 
@@ -1013,7 +1014,9 @@ serve(async req => {
       title: chunk.web?.title || 'Source',
       url: chunk.web?.uri || '#',
       snippet: chunk.web?.snippet || '',
-      source: groundingMetadata?.searchEntryPoint ? 'google_search_grounding' : 'google_maps_grounding',
+      source: groundingMetadata?.searchEntryPoint
+        ? 'google_search_grounding'
+        : 'google_maps_grounding',
     }));
 
     // Skip database storage in demo mode
@@ -1071,9 +1074,8 @@ serve(async req => {
           factors: complexity.factors,
         },
         usedChainOfThought: useChainOfThought,
-        functionCalls: functionCallResults.length > 0
-          ? functionCallResults.map(r => r.name)
-          : undefined,
+        functionCalls:
+          functionCallResults.length > 0 ? functionCallResults.map(r => r.name) : undefined,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -1147,7 +1149,11 @@ async function executeFunctionCall(
         .select()
         .single();
       if (error) throw error;
-      return { success: true, task: data, message: `Created task: "${content}"${assignee ? ` for ${assignee}` : ''}` };
+      return {
+        success: true,
+        task: data,
+        message: `Created task: "${content}"${assignee ? ` for ${assignee}` : ''}`,
+      };
     }
 
     case 'createPoll': {
@@ -1169,7 +1175,11 @@ async function executeFunctionCall(
         .select()
         .single();
       if (error) throw error;
-      return { success: true, poll: data, message: `Created poll: "${question}" with ${options.length} options` };
+      return {
+        success: true,
+        poll: data,
+        message: `Created poll: "${question}" with ${options.length} options`,
+      };
     }
 
     case 'getPaymentSummary': {
@@ -1194,7 +1204,10 @@ async function executeFunctionCall(
 
       const totalSpent = (payments || []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
       const unsettledSplits = splits.filter((s: any) => !s.is_settled);
-      const totalOwed = unsettledSplits.reduce((sum: number, s: any) => sum + (s.amount_owed || 0), 0);
+      const totalOwed = unsettledSplits.reduce(
+        (sum: number, s: any) => sum + (s.amount_owed || 0),
+        0,
+      );
 
       return {
         success: true,
@@ -1227,7 +1240,8 @@ async function executeFunctionCall(
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.rating,places.priceLevel,places.googleMapsUri',
+          'X-Goog-FieldMask':
+            'places.displayName,places.formattedAddress,places.rating,places.priceLevel,places.googleMapsUri',
         },
         body: JSON.stringify({
           textQuery: query,
