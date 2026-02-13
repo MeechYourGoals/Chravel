@@ -10,7 +10,7 @@ interface ChatMessage {
   content: string | Array<{ type: 'text' | 'image_url'; text?: string; image_url?: { url: string } }>
 }
 
-interface OpenAIRequest {
+interface GeminiChatRequest {
   message: string
   tripContext?: any
   chatHistory?: ChatMessage[]
@@ -40,7 +40,7 @@ serve(async (req) => {
       config = {}, 
       imageBase64,
       analysisType = 'chat'
-    }: OpenAIRequest = await req.json()
+    }: GeminiChatRequest = await req.json()
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
@@ -73,7 +73,7 @@ serve(async (req) => {
       }
     }
 
-    // Call lovable-concierge instead of OpenAI
+    // Route requests to the primary Gemini concierge function.
     const conciergeResponse = await supabase.functions.invoke('lovable-concierge', {
       body: {
         message,

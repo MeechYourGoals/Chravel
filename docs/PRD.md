@@ -166,15 +166,15 @@ Key Principles
 - Phase 1 (Security Hardening): JWT enablement on sensitive edge functions, signed URLs for uploads, input sanitization in UI forms.
 - Phase 2 (Data Model Wiring): Introduce trip_members table and wire TripContextService to Supabase; maintain UI parity.
 - Phase 3 (Notifications): Hook DB triggers/edge functions to send push/in-app notifications on events (mentions, files/photos, polls, calendar).
-- Phase 4 (Concierge Evolution): Migrate Perplexity to OpenAI; preserve API contract; add RAG from indexed trip files.
+- Phase 4 (Concierge Evolution): Migrate Perplexity to Gemini; preserve API contract; add RAG from indexed trip files.
 - Phase 5 (Recs Monetization): Sponsored placements and analytics dashboard.
 
-13. OpenAI Migration Details
+13. Gemini Migration Details
 - Keep request shape: { message, tripContext, chatHistory, config, analysisType }.
-- Map Perplexity → OpenAI:
+- Map Perplexity → Gemini:
   - Endpoint swap in edge function; transform params; remove Perplexity-specific fields (e.g., citations) or synthesize as needed.
   - Ensure same response shape: { success, content, usage, sentiment?, citations? }.
-- Add OPENAI_API_KEY in Supabase secrets; do not expose publicly.
+- Add LOVABLE_API_KEY and GEMINI_API_KEY in Supabase secrets; do not expose publicly.
 
 14. Risks and Mitigations
 - Tightening profiles visibility may break consumer UI expecting public data → mitigate with UI checks and deferring policy change.

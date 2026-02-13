@@ -136,11 +136,11 @@ serve(async (req) => {
       const totalCount = messages.length;
 
       // Generate AI summary
-      const openaiKey = Deno.env.get('OPENAI_API_KEY');
-      if (!openaiKey) throw new Error('OPENAI_API_KEY not set');
+      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+      if (!lovableApiKey) throw new Error('LOVABLE_API_KEY not set');
 
       const messageTexts = messages.map(m => `[${m.priority?.toUpperCase() || 'FYI'}] ${m.content}`).join('\n');
-      const summary = await generateSummary(messageTexts, openaiKey);
+      const summary = await generateSummary(messageTexts, lovableApiKey);
 
       // Store digest in database
       const { data: digest, error: insertError } = await supabase
@@ -181,14 +181,14 @@ serve(async (req) => {
 });
 
 async function generateSummary(messageText: string, apiKey: string): Promise<string> {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model: 'google/gemini-2.5-flash',
       messages: [
         { 
           role: 'system', 
@@ -202,7 +202,7 @@ async function generateSummary(messageText: string, apiKey: string): Promise<str
   });
 
   if (!res.ok) {
-    throw new Error(`OpenAI error: ${res.status}`);
+    throw new Error(`AI summary generation error: ${res.status}`);
   }
 
   const data = await res.json();

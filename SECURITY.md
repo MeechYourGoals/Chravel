@@ -28,7 +28,7 @@ Last Updated: 2025-01-25
 - Enforce server-side schema validation in edge functions (zod recommended, future).
 
 5. Secrets Management
-- Use Supabase Function Secrets for OPENAI_API_KEY, PERPLEXITY_API_KEY, Google Maps, etc.
+- Use Supabase Function Secrets for LOVABLE_API_KEY, GEMINI_API_KEY, Google Maps, etc.
 - Never store secrets client-side. Avoid .env; this project uses integrated secrets.
 
 6. Notifications and Messaging
@@ -46,7 +46,7 @@ Last Updated: 2025-01-25
 - [ ] UI never renders sensitive profile fields unless allowed
 - [ ] Invites enforce code, max_uses, expires_at, and is_active
 - [ ] Push notifications scoped to trip membership
-- [ ] OpenAI/Perplexity keys set via secrets
+- [ ] AI provider keys (Lovable/Gemini) set via secrets
 - [ ] secure_storage access requires recent authentication (within 15 minutes)
 - [ ] secure_storage access requires MFA verification if MFA is enabled
 - [ ] Verification sessions are created via `/verify-identity` edge function after authentication

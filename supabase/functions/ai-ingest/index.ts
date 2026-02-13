@@ -26,10 +26,10 @@ serve(async req => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!openaiApiKey) {
-      return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
+    if (!lovableApiKey) {
+      return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -48,10 +48,10 @@ serve(async req => {
     // Handle batch ingestion for entire trip
     if (source === 'trip_batch') {
       const batchResults = await Promise.all([
-        ingestTripMessages(supabase, tripId),
-        ingestTripPolls(supabase, tripId),
-        ingestTripFiles(supabase, tripId),
-        ingestTripLinks(supabase, tripId),
+        ingestTripMessages(supabase, tripId, lovableApiKey),
+        ingestTripPolls(supabase, tripId, lovableApiKey),
+        ingestTripFiles(supabase, tripId, lovableApiKey),
+        ingestTripLinks(supabase, tripId, lovableApiKey),
       ]);
 
       return new Response(
@@ -140,25 +140,7 @@ serve(async req => {
       });
     }
 
-    // Generate embedding
-    const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'text-embedding-ada-002',
-        input: textContent.slice(0, 8000), // Limit input length
-      }),
-    });
-
-    if (!embeddingResponse.ok) {
-      throw new Error('Failed to generate embedding');
-    }
-
-    const embeddingData = await embeddingResponse.json();
-    const embedding = embeddingData.data[0].embedding;
+    const embedding = await generateEmbedding(textContent, lovableApiKey);
 
     // Create or update knowledge base document
     const { data: doc, error: docError } = await supabase
@@ -226,7 +208,7 @@ serve(async req => {
 });
 
 // Batch ingestion helpers
-async function ingestTripMessages(supabase: any, tripId: string) {
+async function ingestTripMessages(supabase: any, tripId: string, lovableApiKey: string) {
   const { data: messages } = await supabase
     .from('trip_chat_messages')
     .select('*')
@@ -242,6 +224,7 @@ async function ingestTripMessages(supabase: any, tripId: string) {
         msg.id,
         tripId,
         `${msg.author_name}: ${msg.content}`,
+        lovableApiKey,
       ),
     ),
   );
@@ -249,7 +232,7 @@ async function ingestTripMessages(supabase: any, tripId: string) {
   return { type: 'messages', count: results.length };
 }
 
-async function ingestTripPolls(supabase: any, tripId: string) {
+async function ingestTripPolls(supabase: any, tripId: string, lovableApiKey: string) {
   const { data: polls } = await supabase.from('trip_polls').select('*').eq('trip_id', tripId);
 
   if (!polls?.length) return { type: 'polls', count: 0 };
@@ -257,14 +240,14 @@ async function ingestTripPolls(supabase: any, tripId: string) {
   const results = await Promise.all(
     polls.map((poll: any) => {
       const content = `Poll: ${poll.question}. Options: ${JSON.stringify(poll.options)}. Status: ${poll.status}. Total votes: ${poll.total_votes}`;
-      return ingestSingleItem(supabase, 'trip_polls', poll.id, tripId, content);
+      return ingestSingleItem(supabase, 'trip_polls', poll.id, tripId, content, lovableApiKey);
     }),
   );
 
   return { type: 'polls', count: results.length };
 }
 
-async function ingestTripFiles(supabase: any, tripId: string) {
+async function ingestTripFiles(supabase: any, tripId: string, lovableApiKey: string) {
   const { data: files } = await supabase.from('trip_files').select('*').eq('trip_id', tripId);
 
   if (!files?.length) return { type: 'files', count: 0 };
@@ -272,14 +255,14 @@ async function ingestTripFiles(supabase: any, tripId: string) {
   const results = await Promise.all(
     files.map((file: any) => {
       const content = `File: ${file.name} (${file.file_type}). Summary: ${file.ai_summary || 'No summary'}. Content: ${file.content_text || 'No text content'}`;
-      return ingestSingleItem(supabase, 'trip_files', file.id, tripId, content);
+      return ingestSingleItem(supabase, 'trip_files', file.id, tripId, content, lovableApiKey);
     }),
   );
 
   return { type: 'files', count: results.length };
 }
 
-async function ingestTripLinks(supabase: any, tripId: string) {
+async function ingestTripLinks(supabase: any, tripId: string, lovableApiKey: string) {
   const { data: links } = await supabase.from('trip_links').select('*').eq('trip_id', tripId);
 
   if (!links?.length) return { type: 'links', count: 0 };
@@ -287,7 +270,7 @@ async function ingestTripLinks(supabase: any, tripId: string) {
   const results = await Promise.all(
     links.map((link: any) => {
       const content = `Link: ${link.title}. URL: ${link.url}. Description: ${link.description || 'No description'}. Category: ${link.category || 'uncategorized'}. Votes: ${link.votes}`;
-      return ingestSingleItem(supabase, 'trip_links', link.id, tripId, content);
+      return ingestSingleItem(supabase, 'trip_links', link.id, tripId, content, lovableApiKey);
     }),
   );
 
@@ -300,9 +283,10 @@ async function ingestSingleItem(
   sourceId: string,
   tripId: string,
   content: string,
+  lovableApiKey: string,
 ) {
   try {
-    const embedding = await generateEmbedding(content);
+    const embedding = await generateEmbedding(content, lovableApiKey);
 
     const { data: doc, error: docError } = await supabase
       .from('kb_documents')
@@ -337,25 +321,29 @@ async function ingestSingleItem(
   }
 }
 
-async function generateEmbedding(text: string) {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
-
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
+async function generateEmbedding(text: string, lovableApiKey: string) {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/embeddings', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${openaiApiKey}`,
+      Authorization: `Bearer ${lovableApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      input: text,
-      model: 'text-embedding-ada-002',
+      model: 'google/text-embedding-004',
+      input: text.slice(0, 8000),
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.statusText}`);
+    const errorText = await response.text();
+    throw new Error(`Embedding API error: ${response.status} ${errorText}`);
   }
 
   const data = await response.json();
-  return data.data[0].embedding;
+  const embedding = data?.data?.[0]?.embedding;
+  if (!Array.isArray(embedding)) {
+    throw new Error('Invalid embedding response payload');
+  }
+
+  return embedding;
 }
