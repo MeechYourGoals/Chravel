@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +8,23 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+function parseJsonSafely(raw: string): any {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (_error) {
+    const block = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (block) {
+      return JSON.parse(block[1]);
+    }
+    throw new Error('Failed to parse AI search response');
+  }
+}
 
 serve(async req => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
@@ -21,13 +38,6 @@ serve(async req => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: 'Service not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     // Create Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
@@ -114,37 +124,28 @@ Find and rank the most relevant items from the trip data. Return results as JSON
 
 Return up to ${limit} results, ranked by relevance.`;
 
-    const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a search assistant. Analyze trip data and return the most relevant results for user queries. Always return valid JSON.',
-          },
-          {
-            role: 'user',
-            content: searchPrompt,
-          },
-        ],
-        max_tokens: 2000,
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-      }),
+    const aiResult = await invokeChatModel({
+      model: 'gemini-3-flash-preview',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a search assistant. Analyze trip data and return the most relevant results for user queries. Always return valid JSON.',
+        },
+        {
+          role: 'user',
+          content: searchPrompt,
+        },
+      ],
+      maxTokens: 2000,
+      temperature: 0.3,
+      responseFormat: { type: 'json_object' },
+      timeoutMs: 30000,
     });
 
-    if (!geminiResponse.ok) {
-      throw new Error('Search failed');
-    }
-
-    const geminiData = await geminiResponse.json();
-    const searchResults = JSON.parse(geminiData.choices[0].message.content);
+    console.log(`[ai-search] AI provider=${aiResult.provider} model=${aiResult.model}`);
+    const searchPayload = extractTextFromChatResponse(aiResult.raw, aiResult.provider);
+    const searchResults = parseJsonSafely(searchPayload);
 
     // Format search results
     const results = (searchResults.results || []).map((result: any) => ({

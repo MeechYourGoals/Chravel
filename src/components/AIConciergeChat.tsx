@@ -52,7 +52,33 @@ interface ConciergeInvokePayload {
   googleMapsWidget?: string;
 }
 
-const FAST_RESPONSE_TIMEOUT_MS = 12000;
+interface ConciergeAttachment {
+  mimeType: string;
+  data: string;
+  name?: string;
+}
+
+const FAST_RESPONSE_TIMEOUT_MS = 30000;
+
+const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(new Error(`Failed to read "${file.name}"`));
+    reader.readAsDataURL(file);
+  });
+
+  const base64Index = dataUrl.indexOf('base64,');
+  if (base64Index < 0) {
+    throw new Error(`Unable to encode "${file.name}" for upload`);
+  }
+
+  return {
+    mimeType: file.type || 'image/jpeg',
+    data: dataUrl.substring(base64Index + 'base64,'.length),
+    name: file.name,
+  };
+};
 
 const invokeConciergeWithTimeout = async (
   requestBody: Record<string, unknown>,
@@ -259,8 +285,14 @@ export const AIConciergeChat = ({
   }, [isOffline, aiStatus]);
 
   const handleSendMessage = async (messageOverride?: string) => {
-    const messageToSend = (messageOverride ?? inputMessage).trim();
-    if (!messageToSend || isTyping) return;
+    const typedMessage = (messageOverride ?? inputMessage).trim();
+    const selectedImages = [...attachedImages];
+    const hasImageAttachments = selectedImages.length > 0;
+    if ((!typedMessage && !hasImageAttachments) || isTyping) return;
+
+    const messageToSend = typedMessage || `Please analyze the ${selectedImages.length} attached image(s).`;
+    const userDisplayContent =
+      typedMessage || `📎 Attached ${selectedImages.length} image${selectedImages.length === 1 ? '' : 's'}`;
 
     // Check offline mode first
     if (isOffline) {
@@ -334,7 +366,7 @@ export const AIConciergeChat = ({
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       type: 'user',
-      content: messageToSend,
+      content: userDisplayContent,
       timestamp: new Date().toISOString(),
     };
 
@@ -342,6 +374,9 @@ export const AIConciergeChat = ({
     const currentInput = messageToSend;
     if (!messageOverride) {
       setInputMessage('');
+    }
+    if (selectedImages.length > 0) {
+      setAttachedImages([]);
     }
     setIsTyping(true);
     setAiStatus('thinking');
@@ -370,6 +405,11 @@ export const AIConciergeChat = ({
         : undefined;
 
     try {
+      let attachments: ConciergeAttachment[] = [];
+      if (selectedImages.length > 0) {
+        attachments = await Promise.all(selectedImages.map(fileToAttachmentPayload));
+      }
+
       // Build chat history for context - truncate each message to prevent validation overflow
       const MAX_MESSAGE_LENGTH = 3000; // Keep under 20000 limit with room for multiple messages
       const chatHistory = messages.slice(-6).map(msg => ({
@@ -385,10 +425,11 @@ export const AIConciergeChat = ({
         tripId,
         preferences,
         chatHistory,
+        attachments,
         isDemoMode,
         // Force flash path for predictable low-latency responses.
         config: {
-          model: 'google/gemini-2.5-flash',
+          model: 'gemini-3-flash-preview',
           temperature: 0.55,
           maxTokens: 1024,
         },

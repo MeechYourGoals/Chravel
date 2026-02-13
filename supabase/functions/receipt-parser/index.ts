@@ -1,13 +1,31 @@
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
+import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
+import { validateExternalHttpsUrl } from '../_shared/validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+function parseJsonSafely(raw: string): any {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (_error) {
+    const block = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (block) {
+      return JSON.parse(block[1]);
+    }
+    throw new Error('Failed to parse AI JSON response');
+  }
+}
 
 serve(async req => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
@@ -32,26 +50,23 @@ serve(async req => {
       });
     }
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error('Lovable API key not configured');
+    if (!validateExternalHttpsUrl(receiptImageUrl)) {
+      return new Response(JSON.stringify({ error: 'receiptImageUrl must be HTTPS and external' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Use Google Gemini Vision API through Lovable Gateway to parse receipt
-    const geminiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Please analyze this receipt image and extract the following information in JSON format:
+    // Use direct Gemini with rollback-aware Lovable fallback.
+    const aiResult = await invokeChatModel({
+      model: 'gemini-3-flash-preview',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Please analyze this receipt image and extract the following information in JSON format:
                 {
                   "total_amount": number,
                   "currency": "USD",
@@ -63,32 +78,28 @@ serve(async req => {
                 }
                 
                 If any field is not clearly visible, use null for that field.`,
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: receiptImageUrl,
               },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: receiptImageUrl,
-                },
-              },
-            ],
-          },
-        ],
-        max_tokens: 1000,
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-      }),
+            },
+          ],
+        },
+      ],
+      maxTokens: 1000,
+      temperature: 0.1,
+      responseFormat: { type: 'json_object' },
+      timeoutMs: 45_000,
     });
 
-    if (!geminiResponse.ok) {
-      throw new Error(`Gemini API error: ${await geminiResponse.text()}`);
-    }
-
-    const geminiResult = await geminiResponse.json();
-    const parsedContent = geminiResult.choices[0].message.content;
+    const parsedContent = extractTextFromChatResponse(aiResult.raw, aiResult.provider);
+    console.log(`[receipt-parser] AI provider=${aiResult.provider} model=${aiResult.model}`);
 
     let parsedData;
     try {
-      parsedData = JSON.parse(parsedContent);
+      parsedData = parseJsonSafely(parsedContent);
     } catch (parseError) {
       console.error('Failed to parse Gemini response:', parsedContent);
       parsedData = { error: 'Failed to parse receipt', raw_response: parsedContent };
