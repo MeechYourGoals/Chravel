@@ -389,8 +389,6 @@ function generateInviteHTML(trip: {
   <!-- Additional Meta Tags -->
   <meta name="description" content="${safeDescription}">
   
-  <!-- Human redirect with 5s delay (bots ignore; humans see card briefly then redirect) -->
-  <meta http-equiv="refresh" content="5;url=${escapeHtml(joinUrl)}">
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -496,9 +494,7 @@ function generateInviteHTML(trip: {
         <span>👥 ${trip.participantCount} Chravelers</span>
       </div>
       <a href="${escapeHtml(joinUrl)}" class="cta">Join This Trip</a>
-      <p class="loading">Redirecting you to ChravelApp in 5 seconds...</p>
     </div>
-    <div class="logo">Powered by ChravelApp</div>
   </div>
 </body>
 </html>`;
@@ -597,7 +593,7 @@ serve(async (req: Request): Promise<Response> => {
   <meta property="og:image" content="https://chravel.app/chravel-logo.png">
   <meta property="og:site_name" content="ChravelApp">
   <meta name="twitter:card" content="summary_large_image">
-  <meta http-equiv="refresh" content="5;url=${baseUrl}/join/${escapeHtml(inviteCode)}">
+  
 </head>
 <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #1a1a2e; color: white;">
   <p>Redirecting to ChravelApp...</p>
