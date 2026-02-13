@@ -15,6 +15,7 @@ import {
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'); // kept as fallback
+const FORCE_LOVABLE_PROVIDER = (Deno.env.get('AI_PROVIDER') || '').toLowerCase() === 'lovable';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
@@ -28,6 +29,11 @@ interface LovableConciergeRequest {
   message: string;
   tripContext?: any;
   tripId?: string;
+  attachments?: Array<{
+    mimeType: string;
+    data: string;
+    name?: string;
+  }>;
   chatHistory?: ChatMessage[];
   isDemoMode?: boolean;
   config?: {
@@ -36,6 +42,42 @@ interface LovableConciergeRequest {
     maxTokens?: number;
     systemPrompt?: string;
   };
+}
+
+const DEFAULT_FLASH_MODEL = 'gemini-3-flash-preview';
+const DEFAULT_PRO_MODEL = 'gemini-3-pro-preview';
+
+const MODEL_ALIAS_MAP: Record<string, string> = {
+  'gemini-2.5-flash': DEFAULT_FLASH_MODEL,
+  'google/gemini-2.5-flash': DEFAULT_FLASH_MODEL,
+  'gemini-2.5-pro': DEFAULT_PRO_MODEL,
+  'google/gemini-2.5-pro': DEFAULT_PRO_MODEL,
+  'gemini-1.5-pro': DEFAULT_PRO_MODEL,
+  'google/gemini-1.5-pro': DEFAULT_PRO_MODEL,
+};
+
+function normalizeGeminiModel(
+  requestedModel: string | undefined,
+  recommendedModel: 'flash' | 'pro',
+): string {
+  if (!requestedModel) {
+    return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
+  }
+
+  const trimmed = requestedModel.trim();
+  if (!trimmed) {
+    return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
+  }
+
+  const stripped = trimmed.replace(/^models\//, '').replace(/^google\//, '');
+
+  const normalized = MODEL_ALIAS_MAP[trimmed] || MODEL_ALIAS_MAP[stripped] || stripped;
+
+  if (!normalized || !normalized.startsWith('gemini-')) {
+    return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
+  }
+
+  return normalized;
 }
 
 // Input validation schema - increased limits for better context handling
@@ -51,6 +93,16 @@ const LovableConciergeSchema = z.object({
     .max(50, 'Trip ID too long')
     .optional(),
   tripContext: z.any().optional(),
+  attachments: z
+    .array(
+      z.object({
+        mimeType: z.string().min(3).max(120),
+        data: z.string().min(1).max(6_000_000),
+        name: z.string().max(255).optional(),
+      }),
+    )
+    .max(4, 'Maximum 4 attachments')
+    .optional(),
   // 🆕 Accept preferences from client as fallback
   preferences: z
     .object({
@@ -160,7 +212,13 @@ serve(async req => {
     const validatedData = validation.data;
     message = validatedData.message;
     tripId = validatedData.tripId || 'unknown';
-    const { tripContext, chatHistory = [], config = {}, isDemoMode = false } = validatedData;
+    const {
+      tripContext,
+      attachments = [],
+      chatHistory = [],
+      config = {},
+      isDemoMode: requestedDemoMode = false,
+    } = validatedData;
 
     // 🆕 SAFETY: Content filtering and PII redaction
     const profanityCheck = filterProfanity(message);
@@ -195,6 +253,10 @@ serve(async req => {
     const DEMO_MODE_ENABLED = Deno.env.get('ENABLE_DEMO_MODE') === 'true';
     const hasAuthHeader = !!req.headers.get('Authorization');
     const serverDemoMode = DEMO_MODE_ENABLED && !hasAuthHeader;
+
+    if (requestedDemoMode && !serverDemoMode) {
+      console.warn('[Security] Ignoring client-provided demo mode flag for authenticated request');
+    }
 
     let user = null;
     if (!serverDemoMode) {
@@ -341,7 +403,7 @@ serve(async req => {
     let ragContext = '';
     if (runRAGRetrieval) {
       try {
-        if (isDemoMode) {
+        if (serverDemoMode) {
           // Demo mode: Use mock embedding service
           console.log('[Demo Mode] Using mock embedding service for RAG');
 
@@ -470,7 +532,7 @@ serve(async req => {
     }
 
     // Skip privacy check in demo mode
-    if (!isDemoMode && comprehensiveContext?.tripMetadata?.id) {
+    if (!serverDemoMode && comprehensiveContext?.tripMetadata?.id) {
       try {
         const { data: privacyConfig } = await supabase
           .from('trip_privacy_configs')
@@ -616,9 +678,7 @@ serve(async req => {
     }
 
     // Model routing
-    const selectedModel =
-      config.model ||
-      (complexity.recommendedModel === 'pro' ? 'gemini-2.5-pro' : 'gemini-2.5-flash');
+    const selectedModel = normalizeGeminiModel(config.model, complexity.recommendedModel);
 
     const temperature = config.temperature || (complexity.score > 0.5 ? 0.5 : 0.7);
 
@@ -693,9 +753,7 @@ serve(async req => {
     ];
 
     // ========== BUILD GEMINI TOOLS ==========
-    const geminiTools: any[] = [
-      { functionDeclarations },
-    ];
+    const geminiTools: any[] = [{ functionDeclarations }];
 
     // Add Google Search grounding for real-time queries
     if (isRealtimeQuery) {
@@ -706,12 +764,31 @@ serve(async req => {
     // ========== CALL GEMINI API DIRECTLY ==========
     // Convert OpenAI-format messages to Gemini format
     const systemInstruction = finalSystemPrompt;
-    const geminiContents = messages
+    const geminiContents: Array<{ role: 'user' | 'model'; parts: any[] }> = messages
       .filter(m => m.role !== 'system')
       .map(m => ({
         role: m.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: m.content }],
       }));
+
+    if (attachments.length > 0 && geminiContents.length > 0) {
+      const attachmentParts = attachments.map(att => ({
+        inlineData: {
+          mimeType: att.mimeType,
+          data: att.data,
+        },
+      }));
+
+      const lastContent = geminiContents[geminiContents.length - 1];
+      if (lastContent.role === 'user') {
+        lastContent.parts.push(...attachmentParts);
+      } else {
+        geminiContents.push({
+          role: 'user',
+          parts: attachmentParts,
+        });
+      }
+    }
 
     const geminiRequestBody: any = {
       contents: geminiContents,
@@ -722,6 +799,210 @@ serve(async req => {
       },
       tools: geminiTools,
     };
+
+    if (FORCE_LOVABLE_PROVIDER || !GEMINI_API_KEY) {
+      if (!LOVABLE_API_KEY) {
+        throw new Error('No AI provider key configured');
+      }
+
+      if (FORCE_LOVABLE_PROVIDER) {
+        console.warn('[AI] AI_PROVIDER=lovable; routing concierge through Lovable gateway');
+      } else {
+        console.warn('[AI] GEMINI_API_KEY missing; falling back to Lovable gateway');
+      }
+
+      const fallbackTools = functionDeclarations.map(declaration => ({
+        type: 'function',
+        function: declaration,
+      }));
+
+      const fallbackMessages: Array<{
+        role: 'system' | 'user' | 'assistant';
+        content:
+          | string
+          | Array<{ type: 'text' | 'image_url'; text?: string; image_url?: { url: string } }>;
+      }> = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      if (attachments.length > 0) {
+        const attachmentParts = attachments.map(att => ({
+          type: 'image_url' as const,
+          image_url: {
+            url: `data:${att.mimeType};base64,${att.data}`,
+          },
+        }));
+
+        const lastUserIdx = (() => {
+          for (let i = fallbackMessages.length - 1; i >= 0; i--) {
+            if (fallbackMessages[i].role === 'user') return i;
+          }
+          return -1;
+        })();
+
+        if (lastUserIdx >= 0) {
+          const existing = fallbackMessages[lastUserIdx].content;
+          const existingParts =
+            typeof existing === 'string'
+              ? [{ type: 'text' as const, text: existing }]
+              : Array.isArray(existing)
+                ? existing
+                : [];
+          fallbackMessages[lastUserIdx] = {
+            ...fallbackMessages[lastUserIdx],
+            content: [...existingParts, ...attachmentParts],
+          };
+        } else {
+          fallbackMessages.push({
+            role: 'user',
+            content: attachmentParts,
+          });
+        }
+      }
+
+      const invokeLovableFallback = async (messagesForCall: Array<Record<string, unknown>>) => {
+        return await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: `google/${selectedModel}`,
+            messages: messagesForCall,
+            temperature,
+            max_tokens: config.maxTokens || 2048,
+            tools: fallbackTools,
+            tool_choice: 'auto',
+          }),
+          signal: AbortSignal.timeout(45_000),
+        });
+      };
+
+      const fallbackResponse = await invokeLovableFallback(
+        fallbackMessages as unknown as Array<Record<string, unknown>>,
+      );
+
+      if (!fallbackResponse.ok) {
+        const fallbackErrorText = await fallbackResponse.text();
+        throw new Error(
+          `Lovable fallback error: ${fallbackResponse.status} - ${fallbackErrorText || 'Unknown gateway error'}`,
+        );
+      }
+
+      let fallbackData = await fallbackResponse.json();
+      let fallbackUsage = fallbackData?.usage || {};
+      let fallbackMessage = fallbackData?.choices?.[0]?.message || null;
+      const fallbackToolCalls = Array.isArray(fallbackMessage?.tool_calls)
+        ? fallbackMessage.tool_calls
+        : [];
+      const fallbackFunctionCalls: string[] = [];
+
+      if (fallbackToolCalls.length > 0) {
+        const toolResultMessages: Array<{
+          role: 'tool';
+          tool_call_id: string;
+          content: string;
+        }> = [];
+
+        for (const toolCall of fallbackToolCalls) {
+          const functionName = String(toolCall?.function?.name || '');
+          if (!functionName) continue;
+
+          let parsedArgs: Record<string, unknown> = {};
+          const rawArgs = toolCall?.function?.arguments;
+          if (typeof rawArgs === 'string') {
+            try {
+              parsedArgs = JSON.parse(rawArgs || '{}');
+            } catch (argError) {
+              console.warn(`[FallbackTool] Failed to parse args for ${functionName}:`, argError);
+            }
+          } else if (rawArgs && typeof rawArgs === 'object') {
+            parsedArgs = rawArgs as Record<string, unknown>;
+          }
+
+          fallbackFunctionCalls.push(functionName);
+
+          let functionResult: any;
+          try {
+            functionResult = await executeFunctionCall(
+              supabase,
+              functionName,
+              parsedArgs,
+              tripId,
+              user?.id,
+              locationData,
+            );
+          } catch (toolError) {
+            console.error(`[FallbackTool] Error executing ${functionName}:`, toolError);
+            functionResult = {
+              error: `Failed to execute ${functionName}: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
+            };
+          }
+
+          toolResultMessages.push({
+            role: 'tool',
+            tool_call_id: String(toolCall?.id || functionName),
+            content: JSON.stringify(functionResult),
+          });
+        }
+
+        const followUpMessages: Array<Record<string, unknown>> = [
+          ...(fallbackMessages as unknown as Array<Record<string, unknown>>),
+          {
+            role: 'assistant',
+            content: fallbackMessage?.content || '',
+            tool_calls: fallbackToolCalls,
+          },
+          ...toolResultMessages,
+        ];
+
+        const followUpResponse = await invokeLovableFallback(followUpMessages);
+        if (!followUpResponse.ok) {
+          const followUpError = await followUpResponse.text();
+          throw new Error(
+            `Lovable follow-up fallback error: ${followUpResponse.status} - ${followUpError || 'Unknown gateway error'}`,
+          );
+        }
+
+        fallbackData = await followUpResponse.json();
+        fallbackUsage = fallbackData?.usage || fallbackUsage;
+        fallbackMessage = fallbackData?.choices?.[0]?.message || fallbackMessage;
+      }
+
+      const rawFallbackContent = fallbackMessage?.content;
+      const fallbackText =
+        typeof rawFallbackContent === 'string'
+          ? rawFallbackContent
+          : Array.isArray(rawFallbackContent)
+            ? rawFallbackContent
+                .map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
+                .join('')
+            : 'Sorry, I could not generate a response right now.';
+
+      const usage = {
+        prompt_tokens: fallbackUsage.prompt_tokens || 0,
+        completion_tokens: fallbackUsage.completion_tokens || 0,
+        total_tokens: fallbackUsage.total_tokens || 0,
+      };
+
+      return new Response(
+        JSON.stringify({
+          response: fallbackText,
+          usage,
+          sources: [],
+          googleMapsWidget: null,
+          success: true,
+          model: 'lovable-gateway-fallback',
+          functionCalls: fallbackFunctionCalls.length > 0 ? fallbackFunctionCalls : undefined,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      );
+    }
 
     const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -779,14 +1060,34 @@ serve(async req => {
       // Execute each function call
       for (const part of functionCallParts) {
         const fc = part.functionCall;
-        console.log(`[FunctionCall] Executing: ${fc.name}`, fc.args);
+        let parsedArgs: Record<string, unknown> = {};
+        if (typeof fc.args === 'string') {
+          try {
+            parsedArgs = JSON.parse(fc.args || '{}');
+          } catch (argError) {
+            console.warn(`[FunctionCall] Failed to parse args for ${fc.name}:`, argError);
+          }
+        } else if (fc.args && typeof fc.args === 'object') {
+          parsedArgs = fc.args as Record<string, unknown>;
+        }
+
+        console.log(`[FunctionCall] Executing: ${fc.name}`, parsedArgs);
 
         let result: any;
         try {
-          result = await executeFunctionCall(supabase, fc.name, fc.args, tripId, user?.id);
+          result = await executeFunctionCall(
+            supabase,
+            fc.name,
+            parsedArgs,
+            tripId,
+            user?.id,
+            locationData,
+          );
         } catch (fcError) {
           console.error(`[FunctionCall] Error executing ${fc.name}:`, fcError);
-          result = { error: `Failed to execute ${fc.name}: ${fcError.message}` };
+          result = {
+            error: `Failed to execute ${fc.name}: ${fcError instanceof Error ? fcError.message : String(fcError)}`,
+          };
         }
 
         functionCallResults.push({
@@ -823,17 +1124,20 @@ serve(async req => {
       if (followUpResponse.ok) {
         const followUpData = await followUpResponse.json();
         const followUpCandidate = followUpData.candidates?.[0];
-        aiResponse = followUpCandidate?.content?.parts
-          ?.filter((p: any) => p.text)
-          .map((p: any) => p.text)
-          .join('') || 'Action completed successfully.';
+        aiResponse =
+          followUpCandidate?.content?.parts
+            ?.filter((p: any) => p.text)
+            .map((p: any) => p.text)
+            .join('') || 'Action completed successfully.';
         groundingMetadata = followUpCandidate?.groundingMetadata || null;
       } else {
-        aiResponse = 'I completed the action, but had trouble generating a summary. Check your trip tabs for the update.';
+        aiResponse =
+          'I completed the action, but had trouble generating a summary. Check your trip tabs for the update.';
       }
     } else {
       // No function calls - just text response
-      aiResponse = textParts.map((p: any) => p.text).join('') || 'Sorry, I could not generate a response.';
+      aiResponse =
+        textParts.map((p: any) => p.text).join('') || 'Sorry, I could not generate a response.';
       groundingMetadata = candidate.groundingMetadata || null;
     }
 
@@ -854,11 +1158,13 @@ serve(async req => {
       title: chunk.web?.title || 'Source',
       url: chunk.web?.uri || '#',
       snippet: chunk.web?.snippet || '',
-      source: groundingMetadata?.searchEntryPoint ? 'google_search_grounding' : 'google_maps_grounding',
+      source: groundingMetadata?.searchEntryPoint
+        ? 'google_search_grounding'
+        : 'google_maps_grounding',
     }));
 
     // Skip database storage in demo mode
-    if (!isDemoMode) {
+    if (!serverDemoMode) {
       if (comprehensiveContext?.tripMetadata?.id) {
         await storeConversation(
           supabase,
@@ -912,9 +1218,8 @@ serve(async req => {
           factors: complexity.factors,
         },
         usedChainOfThought: useChainOfThought,
-        functionCalls: functionCallResults.length > 0
-          ? functionCallResults.map(r => r.name)
-          : undefined,
+        functionCalls:
+          functionCallResults.length > 0 ? functionCallResults.map(r => r.name) : undefined,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -951,6 +1256,7 @@ async function executeFunctionCall(
   args: any,
   tripId: string,
   userId?: string,
+  locationContext?: { lat?: number; lng?: number } | null,
 ): Promise<any> {
   switch (functionName) {
     case 'addToCalendar': {
@@ -987,7 +1293,11 @@ async function executeFunctionCall(
         .select()
         .single();
       if (error) throw error;
-      return { success: true, task: data, message: `Created task: "${content}"${assignee ? ` for ${assignee}` : ''}` };
+      return {
+        success: true,
+        task: data,
+        message: `Created task: "${content}"${assignee ? ` for ${assignee}` : ''}`,
+      };
     }
 
     case 'createPoll': {
@@ -1009,7 +1319,11 @@ async function executeFunctionCall(
         .select()
         .single();
       if (error) throw error;
-      return { success: true, poll: data, message: `Created poll: "${question}" with ${options.length} options` };
+      return {
+        success: true,
+        poll: data,
+        message: `Created poll: "${question}" with ${options.length} options`,
+      };
     }
 
     case 'getPaymentSummary': {
@@ -1034,7 +1348,10 @@ async function executeFunctionCall(
 
       const totalSpent = (payments || []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
       const unsettledSplits = splits.filter((s: any) => !s.is_settled);
-      const totalOwed = unsettledSplits.reduce((sum: number, s: any) => sum + (s.amount_owed || 0), 0);
+      const totalOwed = unsettledSplits.reduce(
+        (sum: number, s: any) => sum + (s.amount_owed || 0),
+        0,
+      );
 
       return {
         success: true,
@@ -1056,8 +1373,10 @@ async function executeFunctionCall(
         return { error: 'Google Maps API key not configured' };
       }
 
-      const lat = nearLat || locationData?.lat || 0;
-      const lng = nearLng || locationData?.lng || 0;
+      const parsedLat = Number(nearLat);
+      const parsedLng = Number(nearLng);
+      const lat = Number.isFinite(parsedLat) ? parsedLat : locationContext?.lat || null;
+      const lng = Number.isFinite(parsedLng) ? parsedLng : locationContext?.lng || null;
 
       const url = `https://places.googleapis.com/v1/places:searchText`;
       const placesResponse = await fetch(url, {
@@ -1065,13 +1384,17 @@ async function executeFunctionCall(
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.rating,places.priceLevel,places.googleMapsUri',
+          'X-Goog-FieldMask':
+            'places.displayName,places.formattedAddress,places.rating,places.priceLevel,places.googleMapsUri',
         },
         body: JSON.stringify({
           textQuery: query,
-          locationBias: lat && lng ? {
-            circle: { center: { latitude: lat, longitude: lng }, radius: 5000 },
-          } : undefined,
+          locationBias:
+            lat !== null && lng !== null
+              ? {
+                  circle: { center: { latitude: lat, longitude: lng }, radius: 5000 },
+                }
+              : undefined,
           maxResultCount: 5,
         }),
       });

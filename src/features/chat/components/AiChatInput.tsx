@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Send, Sparkles, ImagePlus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { VoiceButton } from './VoiceButton';
@@ -50,6 +50,17 @@ export const AiChatInput = ({
   showImageAttach = false,
 }: AiChatInputProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    const urls = attachedImages.map(file => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+
+    return () => {
+      urls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [attachedImages]);
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -99,7 +110,7 @@ export const AiChatInput = ({
           {attachedImages.map((file, idx) => (
             <div key={idx} className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/10">
               <img
-                src={URL.createObjectURL(file)}
+                src={previewUrls[idx] ?? ''}
                 alt={file.name}
                 className="w-full h-full object-cover"
               />
