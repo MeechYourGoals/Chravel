@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle, Search, AlertCircle, Crown, Clock, Sparkles, Mic } from 'lucide-react';
+import { CheckCircle, Search, AlertCircle, Crown, Clock, Sparkles, Mic, Radio } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -12,6 +12,7 @@ import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
 import { useWebSpeechVoice as useGeminiVoice } from '../hooks/useWebSpeechVoice';
+import { useGeminiLive } from '../hooks/useGeminiLive';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { conciergeCacheService } from '../services/conciergeCacheService';
@@ -108,12 +109,12 @@ export const AIConciergeChat = ({
   >('connected');
   const [remainingQueries, setRemainingQueries] = useState<number>(Infinity);
   const [isUsingCachedResponse, setIsUsingCachedResponse] = useState(false);
+  const [isLiveVoiceMode, setIsLiveVoiceMode] = useState(false);
+  const [attachedImages, setAttachedImages] = useState<File[]>([]);
 
   // Voice: eligibility and hook
   const hasLegacySubscriptionVoiceAccess =
     String(consumerTier) === 'frequent-chraveler' || String(consumerTier).startsWith('pro-');
-  // Keep client-side gating optimistic to avoid false negatives from entitlement sync lag.
-  // The edge function remains the source of truth and will still return VOICE_NOT_INCLUDED when required.
   const isVoiceEligible =
     isEntitlementsLoading ||
     isConsumerSubscriptionLoading ||
@@ -134,17 +135,52 @@ export const AIConciergeChat = ({
   }, []);
 
   const {
-    voiceState,
+    voiceState: webSpeechVoiceState,
     errorMessage: voiceError,
-    toggleVoice,
-    stopVoice,
+    toggleVoice: toggleWebSpeechVoice,
+    stopVoice: stopWebSpeechVoice,
   } = useGeminiVoice(handleVoiceUserMessage);
+
+  // Gemini Live voice hook (direct WebSocket to Gemini)
+  const {
+    state: geminiLiveState,
+    error: geminiLiveError,
+    startSession: connectGeminiLive,
+    endSession: disconnectGeminiLive,
+  } = useGeminiLive({ tripId });
+
+  // Unified voice state: use Gemini Live when in live mode, Web Speech otherwise
+  const voiceState = isLiveVoiceMode ? geminiLiveState : webSpeechVoiceState;
+  const currentVoiceError = isLiveVoiceMode ? geminiLiveError : voiceError;
+
+  const toggleVoice = useCallback(() => {
+    if (isLiveVoiceMode) {
+      if (geminiLiveState === 'idle' || geminiLiveState === 'error') {
+        connectGeminiLive();
+      } else {
+        disconnectGeminiLive();
+      }
+    } else {
+      toggleWebSpeechVoice();
+    }
+  }, [isLiveVoiceMode, geminiLiveState, connectGeminiLive, disconnectGeminiLive, toggleWebSpeechVoice]);
+
+  const toggleLiveVoiceMode = useCallback(() => {
+    // Stop any active voice session before switching
+    if (isLiveVoiceMode) {
+      disconnectGeminiLive();
+    } else {
+      stopWebSpeechVoice();
+    }
+    setIsLiveVoiceMode(prev => !prev);
+  }, [isLiveVoiceMode, disconnectGeminiLive, stopWebSpeechVoice]);
 
   useEffect(() => {
     return () => {
-      stopVoice();
+      stopWebSpeechVoice();
+      disconnectGeminiLive();
     };
-  }, [stopVoice]);
+  }, [stopWebSpeechVoice, disconnectGeminiLive]);
 
   // Auto-send voice transcripts through the same pipeline as typed messages
   useEffect(() => {
@@ -545,7 +581,9 @@ export const AIConciergeChat = ({
                   {voiceState === 'listening' ? (
                     <>
                       <Mic size={16} className="text-green-400" />
-                      <span className="text-xs text-green-400">Listening...</span>
+                      <span className="text-xs text-green-400">
+                        {isLiveVoiceMode ? 'Live Listening...' : 'Listening...'}
+                      </span>
                     </>
                   ) : voiceState === 'thinking' ? (
                     <>
@@ -564,6 +602,22 @@ export const AIConciergeChat = ({
                     </>
                   )}
                 </div>
+
+                {/* Gemini Live toggle */}
+                {isVoiceEligible && (
+                  <button
+                    onClick={toggleLiveVoiceMode}
+                    className={`flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full text-xs transition-all ${
+                      isLiveVoiceMode
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        : 'bg-white/5 text-neutral-400 border border-white/10 hover:text-white hover:bg-white/10'
+                    }`}
+                    aria-label={isLiveVoiceMode ? 'Switch to text voice' : 'Switch to Gemini Live voice'}
+                  >
+                    <Radio size={12} />
+                    {isLiveVoiceMode ? 'Live' : 'Live'}
+                  </button>
+                )}
 
                 {/* Usage status for free users */}
                 {isFreeUser && usage && (
@@ -700,10 +754,23 @@ export const AIConciergeChat = ({
           )}
 
           {/* Voice error inline display */}
-          {voiceError && voiceState === 'error' && (
+          {currentVoiceError && voiceState === 'error' && (
             <div className="flex items-center gap-2 px-3 py-2 mt-2 rounded-lg bg-red-500/10 border border-red-500/20">
               <AlertCircle size={14} className="text-red-400 shrink-0" />
-              <span className="text-xs text-red-300">{voiceError}</span>
+              <span className="text-xs text-red-300">{currentVoiceError}</span>
+            </div>
+          )}
+
+          {/* Gemini Live active indicator */}
+          {isLiveVoiceMode && geminiLiveState !== 'idle' && (
+            <div className="flex items-center justify-center gap-2 px-3 py-3 mt-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
+              <Radio size={16} className="text-purple-400" />
+              <span className="text-sm text-purple-300">
+                {geminiLiveState === 'connecting' && 'Connecting to Gemini Live...'}
+                {geminiLiveState === 'listening' && 'Gemini Live — Listening...'}
+                {geminiLiveState === 'speaking' && 'Gemini Live — Speaking...'}
+                {geminiLiveState === 'error' && 'Gemini Live — Error'}
+              </span>
             </div>
           )}
         </div>
@@ -723,6 +790,10 @@ export const AIConciergeChat = ({
             isVoiceEligible={isVoiceEligible}
             onVoiceToggle={toggleVoice}
             onVoiceUpgrade={() => (window.location.href = upgradeUrl)}
+            showImageAttach={true}
+            attachedImages={attachedImages}
+            onImageAttach={(files) => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
+            onRemoveImage={(idx) => setAttachedImages(prev => prev.filter((_, i) => i !== idx))}
           />
           <div className="text-center mt-1">
             <span className="text-xs text-gray-500">🔒 This conversation is private to you</span>

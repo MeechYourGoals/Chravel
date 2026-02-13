@@ -1,5 +1,5 @@
-import React from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Send, Sparkles, ImagePlus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
@@ -21,6 +21,14 @@ interface AiChatInputProps {
   isVoiceEligible?: boolean;
   onVoiceToggle?: () => void;
   onVoiceUpgrade?: () => void;
+  /** Multimodal: callback when user selects images */
+  onImageAttach?: (files: File[]) => void;
+  /** Multimodal: currently attached image previews */
+  attachedImages?: File[];
+  /** Multimodal: remove an attached image by index */
+  onRemoveImage?: (index: number) => void;
+  /** Whether image attach is enabled */
+  showImageAttach?: boolean;
 }
 
 export const AiChatInput = ({ 
@@ -36,7 +44,12 @@ export const AiChatInput = ({
   isVoiceEligible = false,
   onVoiceToggle,
   onVoiceUpgrade,
+  onImageAttach,
+  attachedImages = [],
+  onRemoveImage,
+  showImageAttach = false,
 }: AiChatInputProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -47,6 +60,15 @@ export const AiChatInput = ({
   };
 
   const isLimitReached = usageStatus?.status === 'limit_reached';
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length > 0) {
+      onImageAttach?.(imageFiles);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   return (
     <div className="space-y-2">
@@ -71,6 +93,40 @@ export const AiChatInput = ({
         </div>
       )}
 
+      {/* Image Previews */}
+      {attachedImages.length > 0 && (
+        <div className="flex gap-2 px-1 overflow-x-auto">
+          {attachedImages.map((file, idx) => (
+            <div key={idx} className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/10">
+              <img
+                src={URL.createObjectURL(file)}
+                alt={file.name}
+                className="w-full h-full object-cover"
+              />
+              <button
+                onClick={() => onRemoveImage?.(idx)}
+                className="absolute top-0 right-0 bg-black/70 rounded-bl-lg p-0.5"
+                aria-label="Remove image"
+              >
+                <X size={12} className="text-white" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Hidden file input */}
+      {showImageAttach && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+      )}
+
     <div className="chat-composer flex items-center gap-3">
         {onVoiceToggle && (
           <VoiceButton
@@ -80,6 +136,19 @@ export const AiChatInput = ({
             onUpgrade={onVoiceUpgrade}
           />
         )}
+
+        {/* Image attach button */}
+        {showImageAttach && (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isLimitReached}
+            className="size-11 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Attach image"
+          >
+            <ImagePlus size={18} />
+          </button>
+        )}
+
         <textarea
           value={inputMessage}
           onChange={(e) => onInputChange(e.target.value)}
@@ -91,7 +160,7 @@ export const AiChatInput = ({
         />
         <button
           onClick={onSendMessage}
-          disabled={!inputMessage.trim() || isTyping || disabled || isLimitReached}
+          disabled={!inputMessage.trim() && attachedImages.length === 0 || isTyping || disabled || isLimitReached}
           className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 text-white size-11 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shrink-0"
         >
           <Send size={18} />
