@@ -174,6 +174,8 @@ serve(async req => {
 
   let message = '';
   let tripId = 'unknown';
+  let tripQueryLimit: number | null = null;
+  let usagePlan: 'free' | 'explorer' | 'frequent_chraveler' = 'free';
 
   try {
     // Early health check path - responds immediately without AI processing
@@ -302,31 +304,55 @@ serve(async req => {
         .eq('id', user.id)
         .single();
 
-      const isFreeUser = !userProfile?.app_role || userProfile.app_role === 'consumer';
+      const appRole = userProfile?.app_role || 'consumer';
+      if (appRole === 'plus' || appRole === 'explorer') {
+        usagePlan = 'explorer';
+        tripQueryLimit = 10;
+      } else if (
+        appRole === 'consumer' ||
+        appRole === 'free' ||
+        appRole === '' ||
+        appRole === null
+      ) {
+        usagePlan = 'free';
+        tripQueryLimit = 5;
+      } else {
+        usagePlan = 'frequent_chraveler';
+        tripQueryLimit = null;
+      }
 
-      if (isFreeUser) {
-        const { data: usageData } = await supabase.rpc('get_daily_concierge_usage', {
-          user_uuid: user.id,
-        });
+      if (tripQueryLimit !== null && tripId && tripId !== 'unknown') {
+        const { data: tripUsageData, error: tripUsageError } = await supabase.rpc(
+          'get_concierge_trip_usage',
+          {
+            p_trip_id: tripId,
+          },
+        );
 
-        const dailyUsage = usageData || 0;
-        const FREE_TIER_LIMIT = 10;
-
-        if (dailyUsage >= FREE_TIER_LIMIT) {
-          return new Response(
-            JSON.stringify({
-              response: `🚫 **Daily query limit reached**\n\nYou've used ${dailyUsage}/${FREE_TIER_LIMIT} free AI queries today. Upgrade to Pro for unlimited access!`,
-              usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-              sources: [],
-              success: false,
-              error: 'usage_limit_exceeded',
-              upgradeRequired: true,
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            },
-          );
+        if (tripUsageError) {
+          console.error('[Usage] Failed to fetch trip concierge usage:', tripUsageError);
+        } else {
+          const usedCount = Number(tripUsageData ?? 0);
+          if (usedCount >= tripQueryLimit) {
+            const limitMessage =
+              usagePlan === 'free'
+                ? "You've used all 5 Concierge queries for this trip."
+                : "You've used all 10 Concierge queries for this trip.";
+            return new Response(
+              JSON.stringify({
+                response: `🚫 **Trip query limit reached**\n\n${limitMessage}`,
+                usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+                sources: [],
+                success: false,
+                error: 'usage_limit_exceeded',
+                upgradeRequired: true,
+              }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+              },
+            );
+          }
         }
       }
     }
@@ -977,6 +1003,45 @@ serve(async req => {
                   .join('')
               : 'Sorry, I could not generate a response right now.';
 
+        if (!serverDemoMode && user && tripQueryLimit !== null && tripId !== 'unknown') {
+          const { data: incrementResult, error: incrementError } = await supabase.rpc(
+            'increment_concierge_trip_usage',
+            {
+              p_trip_id: tripId,
+              p_limit: tripQueryLimit,
+            },
+          );
+
+          if (incrementError) {
+            console.error('[Usage] Failed to increment trip concierge usage:', incrementError);
+          } else {
+            const incrementRow = Array.isArray(incrementResult)
+              ? incrementResult[0]
+              : incrementResult;
+            const didIncrement = incrementRow?.incremented !== false;
+            if (!didIncrement) {
+              const limitMessage =
+                usagePlan === 'free'
+                  ? "You've used all 5 Concierge queries for this trip."
+                  : "You've used all 10 Concierge queries for this trip.";
+              return new Response(
+                JSON.stringify({
+                  response: `🚫 **Trip query limit reached**\n\n${limitMessage}`,
+                  usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+                  sources: [],
+                  success: false,
+                  error: 'usage_limit_exceeded',
+                  upgradeRequired: true,
+                }),
+                {
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                  status: 200,
+                },
+              );
+            }
+          }
+        }
+
         return new Response(
           JSON.stringify({
             response: fallbackText,
@@ -1190,6 +1255,45 @@ serve(async req => {
         total_tokens: fallbackUsage.total_tokens || 0,
       };
 
+      if (!serverDemoMode && user && tripQueryLimit !== null && tripId !== 'unknown') {
+        const { data: incrementResult, error: incrementError } = await supabase.rpc(
+          'increment_concierge_trip_usage',
+          {
+            p_trip_id: tripId,
+            p_limit: tripQueryLimit,
+          },
+        );
+
+        if (incrementError) {
+          console.error('[Usage] Failed to increment trip concierge usage:', incrementError);
+        } else {
+          const incrementRow = Array.isArray(incrementResult)
+            ? incrementResult[0]
+            : incrementResult;
+          const didIncrement = incrementRow?.incremented !== false;
+          if (!didIncrement) {
+            const limitMessage =
+              usagePlan === 'free'
+                ? "You've used all 5 Concierge queries for this trip."
+                : "You've used all 10 Concierge queries for this trip.";
+            return new Response(
+              JSON.stringify({
+                response: `🚫 **Trip query limit reached**\n\n${limitMessage}`,
+                usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+                sources: [],
+                success: false,
+                error: 'usage_limit_exceeded',
+                upgradeRequired: true,
+              }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+              },
+            );
+          }
+        }
+      }
+
       return new Response(
         JSON.stringify({
           response: fallbackText,
@@ -1349,28 +1453,62 @@ serve(async req => {
           : 'google_maps_grounding',
       }));
 
+      const resolvedTripId = comprehensiveContext?.tripMetadata?.id || tripId || 'unknown';
+
+      if (!serverDemoMode && user && tripQueryLimit !== null && resolvedTripId !== 'unknown') {
+        const { data: incrementResult, error: incrementError } = await supabase.rpc(
+          'increment_concierge_trip_usage',
+          {
+            p_trip_id: resolvedTripId,
+            p_limit: tripQueryLimit,
+          },
+        );
+
+        if (incrementError) {
+          console.error('[Usage] Failed to increment trip concierge usage:', incrementError);
+        } else {
+          const incrementRow = Array.isArray(incrementResult)
+            ? incrementResult[0]
+            : incrementResult;
+          const didIncrement = incrementRow?.incremented !== false;
+          if (!didIncrement) {
+            const limitMessage =
+              usagePlan === 'free'
+                ? "You've used all 5 Concierge queries for this trip."
+                : "You've used all 10 Concierge queries for this trip.";
+            return new Response(
+              JSON.stringify({
+                response: `🚫 **Trip query limit reached**\n\n${limitMessage}`,
+                usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+                sources: [],
+                success: false,
+                error: 'usage_limit_exceeded',
+                upgradeRequired: true,
+              }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+              },
+            );
+          }
+        }
+      }
+
       // Skip database storage in demo mode
       if (!serverDemoMode) {
-        if (comprehensiveContext?.tripMetadata?.id) {
-          await storeConversation(
-            supabase,
-            comprehensiveContext.tripMetadata.id,
-            message,
-            aiResponse,
-            'chat',
-            {
-              grounding_sources: citations.length,
-              has_map_widget: !!googleMapsWidget,
-              function_calls: functionCallResults.map(r => r.name),
-            },
-          );
+        if (resolvedTripId !== 'unknown') {
+          await storeConversation(supabase, resolvedTripId, message, aiResponse, 'chat', {
+            grounding_sources: citations.length,
+            has_map_widget: !!googleMapsWidget,
+            function_calls: functionCallResults.map(r => r.name),
+          });
         }
 
         if (user) {
           try {
             const usageData: any = {
               user_id: user.id,
-              trip_id: comprehensiveContext?.tripMetadata?.id || tripId || 'unknown',
+              trip_id: resolvedTripId,
               query_text: logMessage.substring(0, 500),
               response_tokens: usage.completion_tokens,
               model_used: selectedModel,
