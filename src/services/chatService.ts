@@ -70,17 +70,17 @@ export async function sendChatMessage(msg: ChatMessageInsert) {
           const result = await privacyService.prepareMessageForSending(
             msg.content,
             msg.trip_id,
-            privacyMode
+            privacyMode,
           );
           contentToSend = result.content;
           isEncrypted = result.encrypted;
-          
+
           if (import.meta.env.DEV) {
             console.log('[chatService] Message encrypted for High Privacy mode');
           }
         } catch (encryptError) {
-          console.error('[chatService] Encryption failed, sending as plaintext:', encryptError);
-          // Fail-safe: send as plaintext if encryption fails
+          console.error('[chatService] Encryption failed for High Privacy mode:', encryptError);
+          throw new Error('Failed to encrypt your message in High Privacy mode. Please try again.');
         }
       }
 
@@ -177,12 +177,16 @@ export async function sendRichChatMessage(msg: RichChatMessageInsert) {
           const result = await privacyService.prepareMessageForSending(
             msg.content,
             msg.trip_id,
-            privacyMode
+            privacyMode,
           );
           contentToSend = result.content;
           isEncrypted = result.encrypted;
         } catch (encryptError) {
-          console.error('[chatService] Rich message encryption failed:', encryptError);
+          console.error(
+            '[chatService] Rich message encryption failed for High Privacy mode:',
+            encryptError,
+          );
+          throw new Error('Failed to encrypt your message in High Privacy mode. Please try again.');
         }
       }
 

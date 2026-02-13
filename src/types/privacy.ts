@@ -57,12 +57,12 @@ export const PRIVACY_MODE_CONFIG: Record<PrivacyMode, PrivacyModeInfo> = {
     mode: 'high',
     label: 'High Privacy',
     icon: '🔒',
-    description: 'End-to-end encryption with no AI access to messages',
+    description: 'End-to-end encryption with optional AI concierge access',
     features: {
-      ai_concierge: false,
-      smart_suggestions: false,
+      ai_concierge: true,
+      smart_suggestions: true,
       message_encryption: 'e2ee',
-      data_access: 'none'
+      data_access: 'limited'
     },
     compliance: ['SOC 2', 'GDPR Enhanced', 'HIPAA Ready', 'Enterprise Grade']
   }

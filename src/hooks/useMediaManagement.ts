@@ -180,8 +180,8 @@ export const useMediaManagement = (tripId: string) => {
               image_url: item.og_image_url,
               created_at: item.created_at,
               source: isFromPlaces
-                ? 'places' as 'places'
-                : (item.message_id ? 'chat' : 'manual') as 'chat' | 'manual',
+                ? ('places' as const)
+                : ((item.message_id ? 'chat' : 'manual') as 'chat' | 'manual'),
               tags: [],
             };
           }),
