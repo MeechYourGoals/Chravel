@@ -17,6 +17,40 @@ interface UseGeminiLiveReturn {
   isSupported: boolean;
 }
 
+const LIVE_INPUT_SAMPLE_RATE = 16000;
+
+const downsampleTo16k = (
+  input: Float32Array,
+  inputSampleRate: number,
+): Float32Array => {
+  if (inputSampleRate <= LIVE_INPUT_SAMPLE_RATE) {
+    return input;
+  }
+
+  const sampleRateRatio = inputSampleRate / LIVE_INPUT_SAMPLE_RATE;
+  const outputLength = Math.floor(input.length / sampleRateRatio);
+  const output = new Float32Array(outputLength);
+  let offsetResult = 0;
+  let offsetBuffer = 0;
+
+  while (offsetResult < output.length) {
+    const nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
+    let accum = 0;
+    let count = 0;
+
+    for (let i = offsetBuffer; i < nextOffsetBuffer && i < input.length; i++) {
+      accum += input[i];
+      count++;
+    }
+
+    output[offsetResult] = count > 0 ? accum / count : 0;
+    offsetResult++;
+    offsetBuffer = nextOffsetBuffer;
+  }
+
+  return output;
+};
+
 /**
  * Hook for Gemini Live bidirectional audio via WebSocket.
  * Opens a direct client-to-Gemini WebSocket authenticated via a short-lived token
@@ -152,13 +186,19 @@ export function useGeminiLive({
 
       ws.onopen = () => {
         console.log('[GeminiLive] WebSocket connected');
+        const rawModel = String(
+          sessionData.model || 'models/gemini-2.5-flash-native-audio-preview-12-2025',
+        );
+        const normalizedModel = rawModel.startsWith('models/')
+          ? rawModel
+          : `models/${rawModel.replace(/^models\//, '')}`;
 
         // Send setup message
         const setupMessage = {
           setup: {
-            model: `models/${sessionData.model}`,
+            model: normalizedModel,
             generationConfig: {
-              responseModalities: ['AUDIO'],
+              responseModalities: ['AUDIO', 'TEXT'],
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: {
@@ -227,8 +267,11 @@ export function useGeminiLive({
 
       ws.onclose = (event) => {
         console.log('[GeminiLive] WebSocket closed:', event.code, event.reason);
-        if (state !== 'idle') {
-          setState('idle');
+        if (event.code !== 1000 && event.code !== 1005) {
+          setError(event.reason || 'Voice session disconnected');
+          setState('error');
+        } else {
+          setState(prev => (prev === 'error' ? prev : 'idle'));
         }
         cleanup();
       };
@@ -238,7 +281,7 @@ export function useGeminiLive({
       setState('error');
       cleanup();
     }
-  }, [isSupported, tripId, voice, cleanup, playAudioChunk, onTranscript, state]);
+  }, [isSupported, tripId, voice, cleanup, playAudioChunk, onTranscript]);
 
   const startAudioCapture = useCallback((ws: WebSocket, stream: MediaStream) => {
     if (!audioContextRef.current) return;
@@ -253,11 +296,13 @@ export function useGeminiLive({
         if (ws.readyState !== WebSocket.OPEN) return;
 
         const inputData = event.inputBuffer.getChannelData(0);
+        const inputSampleRate = audioContextRef.current?.sampleRate || LIVE_INPUT_SAMPLE_RATE;
+        const downsampledData = downsampleTo16k(inputData, inputSampleRate);
 
-        // Downsample to 16kHz if needed and convert to PCM 16-bit
-        const pcm16 = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          const s = Math.max(-1, Math.min(1, inputData[i]));
+        // Convert to PCM 16-bit mono
+        const pcm16 = new Int16Array(downsampledData.length);
+        for (let i = 0; i < downsampledData.length; i++) {
+          const s = Math.max(-1, Math.min(1, downsampledData[i]));
           pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
         }
 

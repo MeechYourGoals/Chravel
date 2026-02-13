@@ -3,8 +3,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+const GEMINI_LIVE_MODEL =
+  Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -43,7 +47,9 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { tripId, voice = 'Puck' } = body;
+    const requestedVoice = typeof body?.voice === 'string' ? body.voice : 'Puck';
+    const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : 'Puck';
+    const tripId = typeof body?.tripId === 'string' ? body.tripId : undefined;
 
     // Build trip context for the voice session system instruction
     let systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. You are speaking with a user via voice. Keep responses conversational, concise, and natural for spoken delivery. Current date: ${new Date().toISOString().split('T')[0]}.`;
@@ -95,7 +101,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         apiKey: GEMINI_API_KEY,
-        model: 'gemini-2.5-flash',
+        model: GEMINI_LIVE_MODEL,
         systemInstruction,
         voice,
         websocketUrl: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',

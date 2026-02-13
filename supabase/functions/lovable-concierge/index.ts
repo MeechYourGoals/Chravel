@@ -28,6 +28,11 @@ interface LovableConciergeRequest {
   message: string;
   tripContext?: any;
   tripId?: string;
+  attachments?: Array<{
+    mimeType: string;
+    data: string;
+    name?: string;
+  }>;
   chatHistory?: ChatMessage[];
   isDemoMode?: boolean;
   config?: {
@@ -36,6 +41,47 @@ interface LovableConciergeRequest {
     maxTokens?: number;
     systemPrompt?: string;
   };
+}
+
+const DEFAULT_FLASH_MODEL = 'gemini-3-flash-preview';
+const DEFAULT_PRO_MODEL = 'gemini-3-pro-preview';
+
+const MODEL_ALIAS_MAP: Record<string, string> = {
+  'gemini-2.5-flash': DEFAULT_FLASH_MODEL,
+  'google/gemini-2.5-flash': DEFAULT_FLASH_MODEL,
+  'gemini-2.5-pro': DEFAULT_PRO_MODEL,
+  'google/gemini-2.5-pro': DEFAULT_PRO_MODEL,
+  'gemini-1.5-pro': DEFAULT_PRO_MODEL,
+  'google/gemini-1.5-pro': DEFAULT_PRO_MODEL,
+};
+
+function normalizeGeminiModel(
+  requestedModel: string | undefined,
+  recommendedModel: 'flash' | 'pro',
+): string {
+  if (!requestedModel) {
+    return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
+  }
+
+  const trimmed = requestedModel.trim();
+  if (!trimmed) {
+    return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
+  }
+
+  const stripped = trimmed
+    .replace(/^models\//, '')
+    .replace(/^google\//, '');
+
+  const normalized =
+    MODEL_ALIAS_MAP[trimmed] ||
+    MODEL_ALIAS_MAP[stripped] ||
+    stripped;
+
+  if (!normalized || !normalized.startsWith('gemini-')) {
+    return recommendedModel === 'pro' ? DEFAULT_PRO_MODEL : DEFAULT_FLASH_MODEL;
+  }
+
+  return normalized;
 }
 
 // Input validation schema - increased limits for better context handling
@@ -51,6 +97,16 @@ const LovableConciergeSchema = z.object({
     .max(50, 'Trip ID too long')
     .optional(),
   tripContext: z.any().optional(),
+  attachments: z
+    .array(
+      z.object({
+        mimeType: z.string().min(3).max(120),
+        data: z.string().min(1).max(6_000_000),
+        name: z.string().max(255).optional(),
+      }),
+    )
+    .max(4, 'Maximum 4 attachments')
+    .optional(),
   // 🆕 Accept preferences from client as fallback
   preferences: z
     .object({
@@ -160,7 +216,13 @@ serve(async req => {
     const validatedData = validation.data;
     message = validatedData.message;
     tripId = validatedData.tripId || 'unknown';
-    const { tripContext, chatHistory = [], config = {}, isDemoMode = false } = validatedData;
+    const {
+      tripContext,
+      attachments = [],
+      chatHistory = [],
+      config = {},
+      isDemoMode: requestedDemoMode = false,
+    } = validatedData;
 
     // 🆕 SAFETY: Content filtering and PII redaction
     const profanityCheck = filterProfanity(message);
@@ -195,6 +257,10 @@ serve(async req => {
     const DEMO_MODE_ENABLED = Deno.env.get('ENABLE_DEMO_MODE') === 'true';
     const hasAuthHeader = !!req.headers.get('Authorization');
     const serverDemoMode = DEMO_MODE_ENABLED && !hasAuthHeader;
+
+    if (requestedDemoMode && !serverDemoMode) {
+      console.warn('[Security] Ignoring client-provided demo mode flag for authenticated request');
+    }
 
     let user = null;
     if (!serverDemoMode) {
@@ -341,7 +407,7 @@ serve(async req => {
     let ragContext = '';
     if (runRAGRetrieval) {
       try {
-        if (isDemoMode) {
+        if (serverDemoMode) {
           // Demo mode: Use mock embedding service
           console.log('[Demo Mode] Using mock embedding service for RAG');
 
@@ -470,7 +536,7 @@ serve(async req => {
     }
 
     // Skip privacy check in demo mode
-    if (!isDemoMode && comprehensiveContext?.tripMetadata?.id) {
+    if (!serverDemoMode && comprehensiveContext?.tripMetadata?.id) {
       try {
         const { data: privacyConfig } = await supabase
           .from('trip_privacy_configs')
@@ -616,9 +682,7 @@ serve(async req => {
     }
 
     // Model routing
-    const selectedModel =
-      config.model ||
-      (complexity.recommendedModel === 'pro' ? 'gemini-2.5-pro' : 'gemini-2.5-flash');
+    const selectedModel = normalizeGeminiModel(config.model, complexity.recommendedModel);
 
     const temperature = config.temperature || (complexity.score > 0.5 ? 0.5 : 0.7);
 
@@ -706,12 +770,31 @@ serve(async req => {
     // ========== CALL GEMINI API DIRECTLY ==========
     // Convert OpenAI-format messages to Gemini format
     const systemInstruction = finalSystemPrompt;
-    const geminiContents = messages
+    const geminiContents: Array<{ role: 'user' | 'model'; parts: any[] }> = messages
       .filter(m => m.role !== 'system')
       .map(m => ({
         role: m.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: m.content }],
       }));
+
+    if (attachments.length > 0 && geminiContents.length > 0) {
+      const attachmentParts = attachments.map(att => ({
+        inlineData: {
+          mimeType: att.mimeType,
+          data: att.data,
+        },
+      }));
+
+      const lastContent = geminiContents[geminiContents.length - 1];
+      if (lastContent.role === 'user') {
+        lastContent.parts.push(...attachmentParts);
+      } else {
+        geminiContents.push({
+          role: 'user',
+          parts: attachmentParts,
+        });
+      }
+    }
 
     const geminiRequestBody: any = {
       contents: geminiContents,
@@ -722,6 +805,62 @@ serve(async req => {
       },
       tools: geminiTools,
     };
+
+    if (!GEMINI_API_KEY) {
+      if (!LOVABLE_API_KEY) {
+        throw new Error('No AI provider key configured');
+      }
+
+      console.warn('[AI] GEMINI_API_KEY missing; falling back to Lovable gateway');
+
+      const fallbackResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages,
+          temperature,
+          max_tokens: config.maxTokens || 2048,
+        }),
+      });
+
+      if (!fallbackResponse.ok) {
+        const fallbackErrorText = await fallbackResponse.text();
+        throw new Error(
+          `Lovable fallback error: ${fallbackResponse.status} - ${fallbackErrorText || 'Unknown gateway error'}`,
+        );
+      }
+
+      const fallbackData = await fallbackResponse.json();
+      const fallbackText =
+        fallbackData?.choices?.[0]?.message?.content ||
+        'Sorry, I could not generate a response right now.';
+
+      const fallbackUsage = fallbackData?.usage || {};
+      const usage = {
+        prompt_tokens: fallbackUsage.prompt_tokens || 0,
+        completion_tokens: fallbackUsage.completion_tokens || 0,
+        total_tokens: fallbackUsage.total_tokens || 0,
+      };
+
+      return new Response(
+        JSON.stringify({
+          response: fallbackText,
+          usage,
+          sources: [],
+          googleMapsWidget: null,
+          success: true,
+          model: 'lovable-gateway-fallback',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      );
+    }
 
     const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -779,14 +918,34 @@ serve(async req => {
       // Execute each function call
       for (const part of functionCallParts) {
         const fc = part.functionCall;
-        console.log(`[FunctionCall] Executing: ${fc.name}`, fc.args);
+        let parsedArgs: Record<string, unknown> = {};
+        if (typeof fc.args === 'string') {
+          try {
+            parsedArgs = JSON.parse(fc.args || '{}');
+          } catch (argError) {
+            console.warn(`[FunctionCall] Failed to parse args for ${fc.name}:`, argError);
+          }
+        } else if (fc.args && typeof fc.args === 'object') {
+          parsedArgs = fc.args as Record<string, unknown>;
+        }
+
+        console.log(`[FunctionCall] Executing: ${fc.name}`, parsedArgs);
 
         let result: any;
         try {
-          result = await executeFunctionCall(supabase, fc.name, fc.args, tripId, user?.id);
+          result = await executeFunctionCall(
+            supabase,
+            fc.name,
+            parsedArgs,
+            tripId,
+            user?.id,
+            locationData,
+          );
         } catch (fcError) {
           console.error(`[FunctionCall] Error executing ${fc.name}:`, fcError);
-          result = { error: `Failed to execute ${fc.name}: ${fcError.message}` };
+          result = {
+            error: `Failed to execute ${fc.name}: ${fcError instanceof Error ? fcError.message : String(fcError)}`,
+          };
         }
 
         functionCallResults.push({
@@ -858,7 +1017,7 @@ serve(async req => {
     }));
 
     // Skip database storage in demo mode
-    if (!isDemoMode) {
+    if (!serverDemoMode) {
       if (comprehensiveContext?.tripMetadata?.id) {
         await storeConversation(
           supabase,
@@ -951,6 +1110,7 @@ async function executeFunctionCall(
   args: any,
   tripId: string,
   userId?: string,
+  locationContext?: { lat?: number; lng?: number } | null,
 ): Promise<any> {
   switch (functionName) {
     case 'addToCalendar': {
@@ -1056,8 +1216,10 @@ async function executeFunctionCall(
         return { error: 'Google Maps API key not configured' };
       }
 
-      const lat = nearLat || locationData?.lat || 0;
-      const lng = nearLng || locationData?.lng || 0;
+      const parsedLat = Number(nearLat);
+      const parsedLng = Number(nearLng);
+      const lat = Number.isFinite(parsedLat) ? parsedLat : locationContext?.lat || null;
+      const lng = Number.isFinite(parsedLng) ? parsedLng : locationContext?.lng || null;
 
       const url = `https://places.googleapis.com/v1/places:searchText`;
       const placesResponse = await fetch(url, {
@@ -1069,9 +1231,12 @@ async function executeFunctionCall(
         },
         body: JSON.stringify({
           textQuery: query,
-          locationBias: lat && lng ? {
-            circle: { center: { latitude: lat, longitude: lng }, radius: 5000 },
-          } : undefined,
+          locationBias:
+            lat !== null && lng !== null
+              ? {
+                  circle: { center: { latitude: lat, longitude: lng }, radius: 5000 },
+                }
+              : undefined,
           maxResultCount: 5,
         }),
       });
