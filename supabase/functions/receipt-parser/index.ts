@@ -36,18 +36,70 @@ serve(async req => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const authHeader = req.headers.get('Authorization');
+
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabaseUser = createClient(supabaseUrl, anonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseUser.auth.getUser();
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const { receiptImageUrl, receiptPath, tripId, userId } = await req.json();
 
-    if (!receiptImageUrl || !tripId || !userId) {
+    if (!receiptImageUrl || !tripId) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    if (userId && userId !== user.id) {
+      return new Response(JSON.stringify({ error: 'Forbidden - user mismatch' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { data: membership, error: membershipError } = await supabase
+      .from('trip_members')
+      .select('user_id')
+      .eq('trip_id', tripId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (membershipError || !membership) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - you must be a member of this trip' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     if (!validateExternalHttpsUrl(receiptImageUrl)) {
@@ -112,7 +164,7 @@ serve(async req => {
         trip_id: tripId,
         receipt_url: receiptPath || receiptImageUrl,
         amount: parsedData.total_amount || null,
-        user_id: userId,
+        user_id: user.id,
         description: parsedData.merchant_name || null,
       })
       .select()

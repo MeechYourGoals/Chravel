@@ -28,10 +28,12 @@ export interface SmartParseResult extends ICSParseResult {
 
 const COLUMN_PATTERNS = {
   date: /^(date|start|when|day|scheduled|begins|game.?date|show.?date|event.?date)$/i,
-  title: /^(title|name|event|summary|subject|what|activity|opponent|show|game|match|artist|act|performer|event.?name|headliner|band)$/i,
+  title:
+    /^(title|name|event|summary|subject|what|activity|opponent|show|game|match|artist|act|performer|event.?name|headliner|band)$/i,
   time: /^(time|start.?time|hour|begins|from|at|game.?time|show.?time|doors)$/i,
   endTime: /^(end.?time|ends|to|until|through|end)$/i,
-  location: /^(location|venue|where|place|address|site|arena|stadium|city|theater|theatre|club|room)$/i,
+  location:
+    /^(location|venue|where|place|address|site|arena|stadium|city|theater|theatre|club|room)$/i,
   description: /^(description|details|notes|info|about|memo|comments)$/i,
 };
 
@@ -419,10 +421,11 @@ function mapAIEventsToICS(aiEvents: AIExtractedEvent[]): {
 
 export async function parseWithAI(file: File): Promise<SmartParseResult> {
   const sourceFormat: ImportSourceFormat = file.type === 'application/pdf' ? 'pdf' : 'image';
+  let filePath: string | null = null;
 
   try {
     const fileExt = file.name.split('.').pop() ?? 'bin';
-    const filePath = `calendar-imports/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+    filePath = `calendar-imports/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from('trip-media')
@@ -450,9 +453,6 @@ export async function parseWithAI(file: File): Promise<SmartParseResult> {
         messageText: `Extract ALL scheduled events from this ${sourceFormat === 'pdf' ? 'PDF document' : 'image'}. Include shows, concerts, performances, festivals, meetings, and any time-bound events.`,
       },
     });
-
-    // Cleanup uploaded file
-    await supabase.storage.from('trip-media').remove([filePath]);
 
     if (error) {
       return {
@@ -489,6 +489,14 @@ export async function parseWithAI(file: File): Promise<SmartParseResult> {
       isValid: false,
       sourceFormat,
     };
+  } finally {
+    if (filePath) {
+      try {
+        await supabase.storage.from('trip-media').remove([filePath]);
+      } catch {
+        // Best-effort cleanup for temporary upload
+      }
+    }
   }
 }
 

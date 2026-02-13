@@ -30,11 +30,12 @@ export interface AgendaParseResult {
 
 export async function parseAgendaFile(file: File): Promise<AgendaParseResult> {
   const sourceFormat: AgendaSourceFormat = file.type === 'application/pdf' ? 'pdf' : 'image';
+  let filePath: string | null = null;
 
   try {
     // Upload file to Supabase storage (temp)
     const fileExt = file.name.split('.').pop() ?? 'bin';
-    const filePath = `agenda-imports/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+    filePath = `agenda-imports/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from('trip-media')
@@ -59,9 +60,6 @@ export async function parseAgendaFile(file: File): Promise<AgendaParseResult> {
         messageText: `Extract all agenda sessions from this ${sourceFormat === 'pdf' ? 'PDF document' : 'image'}.`,
       },
     });
-
-    // Cleanup uploaded file
-    await supabase.storage.from('trip-media').remove([filePath]);
 
     if (error) {
       return {
@@ -88,6 +86,14 @@ export async function parseAgendaFile(file: File): Promise<AgendaParseResult> {
       isValid: false,
       sourceFormat,
     };
+  } finally {
+    if (filePath) {
+      try {
+        await supabase.storage.from('trip-media').remove([filePath]);
+      } catch {
+        // Best-effort cleanup for temporary upload
+      }
+    }
   }
 }
 
@@ -203,7 +209,9 @@ function mapRawSessions(raw: RawAgendaSession[]): ParsedAgendaSession[] {
       if (s.location?.trim()) session.location = s.location.trim();
       if (s.track?.trim()) session.track = s.track.trim();
       if (s.speakers && Array.isArray(s.speakers) && s.speakers.length > 0) {
-        const cleaned = s.speakers.filter(sp => sp && typeof sp === 'string' && sp.trim()).map(sp => sp.trim());
+        const cleaned = s.speakers
+          .filter(sp => sp && typeof sp === 'string' && sp.trim())
+          .map(sp => sp.trim());
         if (cleaned.length > 0) session.speakers = cleaned;
       }
       return session;

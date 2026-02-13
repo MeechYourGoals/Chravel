@@ -5,7 +5,6 @@ import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
-import { supabase } from '@/integrations/supabase/client';
 import { conciergeRateLimitService } from '../services/conciergeRateLimitService';
 import { useAuth } from '../hooks/useAuth';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
@@ -13,6 +12,7 @@ import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
 import { useWebSpeechVoice as useGeminiVoice } from '../hooks/useWebSpeechVoice';
 import { useGeminiLive } from '../hooks/useGeminiLive';
+import { invokeConcierge } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { conciergeCacheService } from '../services/conciergeCacheService';
@@ -81,7 +81,7 @@ const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment>
 };
 
 const invokeConciergeWithTimeout = async (
-  requestBody: Record<string, unknown>,
+  requestBody: Record<string, unknown> & { message: string },
 ): Promise<{ data: ConciergeInvokePayload | null; error: { message?: string } | null }> => {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -92,10 +92,10 @@ const invokeConciergeWithTimeout = async (
   });
 
   try {
-    const response = (await Promise.race([
-      supabase.functions.invoke('lovable-concierge', { body: requestBody }),
-      timeoutPromise,
-    ])) as { data: ConciergeInvokePayload | null; error: { message?: string } | null };
+    const response = (await Promise.race([invokeConcierge(requestBody), timeoutPromise])) as {
+      data: ConciergeInvokePayload | null;
+      error: { message?: string } | null;
+    };
 
     return response;
   } finally {
@@ -137,6 +137,7 @@ export const AIConciergeChat = ({
   const [isUsingCachedResponse, setIsUsingCachedResponse] = useState(false);
   const [isLiveVoiceMode, setIsLiveVoiceMode] = useState(false);
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const liveFallbackHandledRef = useRef(false);
 
   // Voice: eligibility and hook
   const hasLegacySubscriptionVoiceAccess =
@@ -189,7 +190,13 @@ export const AIConciergeChat = ({
     } else {
       toggleWebSpeechVoice();
     }
-  }, [isLiveVoiceMode, geminiLiveState, connectGeminiLive, disconnectGeminiLive, toggleWebSpeechVoice]);
+  }, [
+    isLiveVoiceMode,
+    geminiLiveState,
+    connectGeminiLive,
+    disconnectGeminiLive,
+    toggleWebSpeechVoice,
+  ]);
 
   const toggleLiveVoiceMode = useCallback(() => {
     // Stop any active voice session before switching
@@ -207,6 +214,29 @@ export const AIConciergeChat = ({
       disconnectGeminiLive();
     };
   }, [stopWebSpeechVoice, disconnectGeminiLive]);
+
+  useEffect(() => {
+    if (!isLiveVoiceMode || geminiLiveState !== 'error' || liveFallbackHandledRef.current) {
+      return;
+    }
+
+    liveFallbackHandledRef.current = true;
+    setIsLiveVoiceMode(false);
+
+    // Automatically fall back to Web Speech mode when Gemini Live fails.
+    // This keeps voice UX available without forcing a manual mode switch.
+    setTimeout(() => {
+      if (webSpeechVoiceState === 'idle' || webSpeechVoiceState === 'error') {
+        toggleWebSpeechVoice();
+      }
+    }, 0);
+  }, [isLiveVoiceMode, geminiLiveState, webSpeechVoiceState, toggleWebSpeechVoice]);
+
+  useEffect(() => {
+    if (!isLiveVoiceMode) {
+      liveFallbackHandledRef.current = false;
+    }
+  }, [isLiveVoiceMode]);
 
   // Auto-send voice transcripts through the same pipeline as typed messages
   useEffect(() => {
@@ -290,9 +320,11 @@ export const AIConciergeChat = ({
     const hasImageAttachments = selectedImages.length > 0;
     if ((!typedMessage && !hasImageAttachments) || isTyping) return;
 
-    const messageToSend = typedMessage || `Please analyze the ${selectedImages.length} attached image(s).`;
+    const messageToSend =
+      typedMessage || `Please analyze the ${selectedImages.length} attached image(s).`;
     const userDisplayContent =
-      typedMessage || `📎 Attached ${selectedImages.length} image${selectedImages.length === 1 ? '' : 's'}`;
+      typedMessage ||
+      `📎 Attached ${selectedImages.length} image${selectedImages.length === 1 ? '' : 's'}`;
 
     // Check offline mode first
     if (isOffline) {
@@ -653,7 +685,9 @@ export const AIConciergeChat = ({
                         ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                         : 'bg-white/5 text-neutral-400 border border-white/10 hover:text-white hover:bg-white/10'
                     }`}
-                    aria-label={isLiveVoiceMode ? 'Switch to text voice' : 'Switch to Gemini Live voice'}
+                    aria-label={
+                      isLiveVoiceMode ? 'Switch to text voice' : 'Switch to Gemini Live voice'
+                    }
                   >
                     <Radio size={12} />
                     {isLiveVoiceMode ? 'Live' : 'Live'}
@@ -824,7 +858,7 @@ export const AIConciergeChat = ({
             onSendMessage={handleSendMessage}
             onKeyPress={handleKeyPress}
             isTyping={isTyping}
-            disabled={aiStatus === 'error' || (isFreeUser && usage?.isLimitReached)}
+            disabled={isFreeUser && usage?.isLimitReached}
             usageStatus={getUsageStatus()}
             onUpgradeClick={() => (window.location.href = upgradeUrl)}
             voiceState={voiceState}
@@ -833,8 +867,8 @@ export const AIConciergeChat = ({
             onVoiceUpgrade={() => (window.location.href = upgradeUrl)}
             showImageAttach={true}
             attachedImages={attachedImages}
-            onImageAttach={(files) => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
-            onRemoveImage={(idx) => setAttachedImages(prev => prev.filter((_, i) => i !== idx))}
+            onImageAttach={files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
+            onRemoveImage={idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))}
           />
           <div className="text-center mt-1">
             <span className="text-xs text-gray-500">🔒 This conversation is private to you</span>

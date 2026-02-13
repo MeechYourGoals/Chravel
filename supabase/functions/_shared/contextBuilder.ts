@@ -116,8 +116,22 @@ export interface ComprehensiveTripContext {
 
 export class TripContextBuilder {
   // 🆕 Updated to accept userId for personalization
-  static async buildContext(tripId: string, userId?: string): Promise<ComprehensiveTripContext> {
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  static async buildContext(
+    tripId: string,
+    userId?: string,
+    authHeader?: string | null,
+  ): Promise<ComprehensiveTripContext> {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      ...(authHeader
+        ? {
+            global: {
+              headers: {
+                Authorization: authHeader,
+              },
+            },
+          }
+        : {}),
+    });
 
     try {
       // Parallel fetch all data sources including user preferences and broadcasts

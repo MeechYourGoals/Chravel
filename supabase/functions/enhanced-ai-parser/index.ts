@@ -95,7 +95,6 @@ function validateImageUrl(url: string): { valid: boolean; error?: string } {
 
     const storagePattern = new RegExp(`^https://${projectId}\\.supabase\\.co/storage/`);
     if (storagePattern.test(url)) return { valid: true };
-    if (url.includes('/storage/v1/object/public/')) return { valid: true };
 
     const hostname = urlObj.hostname.toLowerCase();
     const blockedHosts = [
