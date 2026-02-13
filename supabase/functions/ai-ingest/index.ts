@@ -173,14 +173,17 @@ serve(async req => {
     // Delete existing chunks for this document
     await supabase.from('kb_chunks').delete().eq('doc_id', doc.id);
 
-    // Create new chunk with embedding
-    const { error: chunkError } = await supabase.from('kb_chunks').insert({
-      doc_id: doc.id,
-      chunk_index: 0,
-      content: textContent,
-      embedding: embedding,
-      modality: 'text',
-    });
+    // Create new chunk with embedding (and gracefully degrade if vector dimensions differ).
+    const chunkError = await insertKbChunk(
+      supabase,
+      {
+        doc_id: doc.id,
+        chunk_index: 0,
+        content: textContent,
+        modality: 'text',
+      },
+      embedding,
+    );
 
     if (chunkError) {
       console.error('Error creating chunk:', chunkError);
@@ -304,12 +307,15 @@ async function ingestSingleItem(
 
     await supabase.from('kb_chunks').delete().eq('doc_id', doc.id);
 
-    const { error: chunkError } = await supabase.from('kb_chunks').insert({
-      doc_id: doc.id,
-      content: content,
-      embedding: embedding,
-      chunk_index: 0,
-    });
+    const chunkError = await insertKbChunk(
+      supabase,
+      {
+        doc_id: doc.id,
+        content: content,
+        chunk_index: 0,
+      },
+      embedding,
+    );
 
     if (chunkError) throw chunkError;
 
@@ -346,4 +352,40 @@ async function generateEmbedding(text: string, lovableApiKey: string) {
   }
 
   return embedding;
+}
+
+async function insertKbChunk(
+  supabase: any,
+  chunkData: {
+    doc_id: string;
+    content: string;
+    chunk_index: number;
+    modality?: string;
+  },
+  embedding: number[],
+) {
+  const { error: insertWithEmbeddingError } = await supabase.from('kb_chunks').insert({
+    ...chunkData,
+    embedding,
+  });
+
+  if (!insertWithEmbeddingError) {
+    return null;
+  }
+
+  const errorMessage = String(insertWithEmbeddingError.message || '').toLowerCase();
+  const shouldRetryWithoutEmbedding =
+    errorMessage.includes('vector') || errorMessage.includes('dimension');
+
+  if (!shouldRetryWithoutEmbedding) {
+    return insertWithEmbeddingError;
+  }
+
+  console.warn(
+    'Embedding insert failed; retrying kb_chunks insert without embedding:',
+    insertWithEmbeddingError.message,
+  );
+
+  const { error: insertWithoutEmbeddingError } = await supabase.from('kb_chunks').insert(chunkData);
+  return insertWithoutEmbeddingError ?? null;
 }
