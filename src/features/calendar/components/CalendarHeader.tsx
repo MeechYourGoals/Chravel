@@ -62,18 +62,18 @@ export const CalendarHeader = ({
 
   const titleSpan =
     variant === 'pro' ? 'md:col-span-5'
-    : variant === 'events' ? 'md:col-span-3 sm:col-span-3'
+    : variant === 'events' ? 'md:col-span-4'
     : 'sm:col-span-4';
 
   // Map buttons to the correct columns per variant
   const colImport =
     variant === 'pro' ? PRO_PARITY_COL_START.places
-    : variant === 'events' ? EVENT_PARITY_COL_START.media
+    : variant === 'events' ? EVENT_PARITY_COL_START.lineup
     : TRIP_PARITY_COL_START.payments;
 
   const colExport =
     variant === 'pro' ? PRO_PARITY_COL_START.polls
-    : variant === 'events' ? EVENT_PARITY_COL_START.lineup
+    : variant === 'events' ? EVENT_PARITY_COL_START.media
     : TRIP_PARITY_COL_START.places;
 
   const colViewToggle =
