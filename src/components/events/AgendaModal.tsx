@@ -609,8 +609,8 @@ export const AgendaModal = ({
               ))}
             </div>
           ) : (
-            <Card className="bg-white/5 border-white/10">
-              <CardContent className="p-8 text-center">
+            <Card className="bg-white/5 border-white/10 min-h-[220px] flex flex-col">
+              <CardContent className="p-8 text-center flex-1 flex flex-col items-center justify-center">
                 <Clock size={48} className="text-gray-600 mx-auto mb-3" />
                 <h4 className="text-white font-medium mb-1">No Sessions Yet</h4>
                 <p className="text-gray-400 text-sm">
@@ -836,37 +836,15 @@ export const AgendaModal = ({
             </div>
           ) : (
             !isLoadingFiles && (
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-8 text-center">
+              <Card className="bg-white/5 border-white/10 min-h-[220px] flex flex-col">
+                <CardContent className="p-8 text-center flex-1 flex flex-col items-center justify-center">
                   <Image size={48} className="text-gray-600 mx-auto mb-3" />
                   <h4 className="text-white font-medium mb-1">No Agenda Files</h4>
-                  <p className="text-gray-400 text-sm mb-4">
+                  <p className="text-gray-400 text-sm">
                     {canUpload
                       ? 'Upload PDFs or images of your event agenda (up to 5 files)'
                       : "The organizer hasn't uploaded any agenda files yet"}
                   </p>
-                  {canUpload && (
-                    <label className="inline-block">
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
-                        multiple
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        disabled={isUploading}
-                      />
-                      <Button
-                        asChild
-                        className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black cursor-pointer"
-                        disabled={isUploading}
-                      >
-                        <span>
-                          <Upload size={16} className="mr-2" />
-                          Upload Files
-                        </span>
-                      </Button>
-                    </label>
-                  )}
                 </CardContent>
               </Card>
             )
