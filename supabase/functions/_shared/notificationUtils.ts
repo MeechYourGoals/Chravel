@@ -39,6 +39,8 @@ export interface NotificationPreferences {
   quiet_start: string;
   quiet_end: string;
   timezone: string;
+  sms_sent_today?: number;
+  last_sms_reset_date?: string;
 }
 
 export interface DeliveryDecision {
@@ -335,4 +337,6 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: Omit<NotificationPreferences, 'us
   quiet_start: '22:00',
   quiet_end: '08:00',
   timezone: 'UTC',
+  sms_sent_today: 0,
+  last_sms_reset_date: undefined,
 };
