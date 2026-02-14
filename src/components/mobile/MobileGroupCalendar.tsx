@@ -35,6 +35,8 @@ import { useBackgroundImport } from '@/features/calendar/hooks/useBackgroundImpo
 import { toast } from 'sonner';
 import { calendarExporter } from '../../utils/calendarExport';
 import { openOrDownloadBlob } from '../../utils/download';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
+import { hasPaidAccess } from '@/utils/paidAccess';
 
 interface CalendarEvent {
   id: string;
@@ -84,6 +86,8 @@ export const MobileGroupCalendar = ({
   const [editingEvent, setEditingEvent] = useState<any>(null);
   // Internal view mode state when no external handler provided
   const [internalViewMode, setInternalViewMode] = useState<CalendarViewMode>('list');
+  const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
+  const canUseSmartImport = hasPaidAccess({ tier, status: subscription?.status, isSuperAdmin });
 
   // Background URL import
   const {
@@ -96,9 +100,12 @@ export const MobileGroupCalendar = ({
     setIsImportModalOpen(true);
   }, []);
 
-  const handleStartBackgroundImport = useCallback((url: string) => {
-    startBackgroundImport(url, handleBackgroundImportComplete);
-  }, [startBackgroundImport, handleBackgroundImportComplete]);
+  const handleStartBackgroundImport = useCallback(
+    (url: string) => {
+      startBackgroundImport(url, handleBackgroundImportComplete);
+    },
+    [startBackgroundImport, handleBackgroundImportComplete],
+  );
 
   // Use external view mode if provided, otherwise use internal state
   const currentViewMode = externalViewMode ?? internalViewMode;
@@ -115,6 +122,14 @@ export const MobileGroupCalendar = ({
 
   const handleImport = async () => {
     await hapticService.medium();
+
+    if (!canUseSmartImport) {
+      toast.error(
+        'Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro / Enterprise).',
+      );
+      return;
+    }
+
     if (onImport) {
       onImport();
     } else {
