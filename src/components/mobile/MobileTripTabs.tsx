@@ -26,6 +26,9 @@ import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
 import { useRoleAssignments } from '../../hooks/useRoleAssignments';
 import { useTripRoles } from '../../hooks/useTripRoles';
 import type { EventData } from '../../types/events';
+import { DisabledTabDialog } from '../events/DisabledTabDialog';
+import { EventTabKey, EVENT_TABS_CONFIG, isEventTabEnabled } from '@/lib/eventTabs';
+import { useEventTabSettings } from '@/hooks/useEventTabSettings';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
 // This significantly reduces initial bundle size - tabs load on demand
@@ -149,6 +152,14 @@ export const MobileTripTabs = ({
 
   // Get event admin status for event variant
   const { isAdmin: isEventAdmin } = useEventPermissions(variant === 'event' ? tripId : '');
+  const [showDisabledTabDialog, setShowDisabledTabDialog] = useState(false);
+  const eventEnabledFeatures = (eventData as (EventData & { enabled_features?: string[] }) | null)
+    ?.enabled_features;
+  const { enabledTabs: eventEnabledTabs } = useEventTabSettings({
+    eventId: tripId,
+    initialEnabledFeatures: eventEnabledFeatures,
+    enabled: variant === 'event',
+  });
 
   // ⚡ MOBILE/PWA OPTIMIZATION: Prefetch priority tabs on mount
   // Since mobile users can't hover, we prefetch commonly used tabs immediately
@@ -167,18 +178,25 @@ export const MobileTripTabs = ({
 
   // Tab configuration based on variant
   const getTabsForVariant = () => {
-    // Event-specific tabs: Agenda, Calendar, Chat, Media, Line-up, Polls, Tasks
+    // Event-specific tabs in canonical order
     if (variant === 'event') {
-      return [
-        { id: 'admin', label: 'Admin', icon: Shield, enabled: isEventAdmin },
-        { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true },
-        { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
-        { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: features.showChat },
-        { id: 'lineup', label: 'Line-up', icon: Users, enabled: true },
-        { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
-        { id: 'polls', label: 'Polls', icon: BarChart3, enabled: features.showPolls },
-        { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true },
-      ];
+      const iconMap: Record<EventTabKey, React.ElementType> = {
+        admin: Shield,
+        agenda: Calendar,
+        calendar: Calendar,
+        chat: MessageCircle,
+        lineup: Users,
+        media: Camera,
+        polls: BarChart3,
+        tasks: ClipboardList,
+      };
+
+      return EVENT_TABS_CONFIG.map(tab => ({
+        id: tab.key,
+        label: tab.label,
+        icon: iconMap[tab.key],
+        enabled: tab.key === 'admin' ? isEventAdmin : isEventTabEnabled(tab.key, eventEnabledTabs),
+      }));
     }
 
     // Consumer/Pro tabs
@@ -246,6 +264,11 @@ export const MobileTripTabs = ({
   const handleTabPress = useCallback(
     async (tabId: string, enabled: boolean) => {
       if (!enabled) {
+        if (variant === 'event') {
+          setShowDisabledTabDialog(true);
+          return;
+        }
+
         toast.info('This feature is disabled for this trip', {
           description: 'Contact trip admin to enable this feature',
         });
@@ -254,7 +277,7 @@ export const MobileTripTabs = ({
       await hapticService.light();
       onTabChange(tabId);
     },
-    [onTabChange],
+    [onTabChange, variant],
   );
 
   // ⚡ PERFORMANCE: Prefetch tab data on hover/focus
@@ -444,6 +467,16 @@ export const MobileTripTabs = ({
     ],
   );
 
+  useEffect(() => {
+    if (variant !== 'event' || activeTab === 'admin') return;
+
+    const active = tabs.find(tab => tab.id === activeTab);
+    if (active && !active.enabled) {
+      setShowDisabledTabDialog(true);
+      onTabChange('agenda');
+    }
+  }, [activeTab, onTabChange, tabs, variant]);
+
   return (
     <>
       {/* Horizontal Scrollable Tab Bar - Sticky, Compressed for Mobile Portrait */}
@@ -477,13 +510,15 @@ export const MobileTripTabs = ({
                   transition-all duration-200
                   flex-shrink-0
                   scroll-snap-align-start
-                  ${enabled ? 'active:scale-95' : ''}
+                  ${enabled ? 'active:scale-95' : variant === 'event' ? '' : 'cursor-not-allowed'}
                   ${
                     isActive && enabled
                       ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-lg`
                       : enabled
                         ? 'bg-white/10 text-gray-300'
-                        : 'bg-white/5 text-gray-500 opacity-40 grayscale cursor-not-allowed'
+                        : variant === 'event'
+                          ? 'bg-white/10 text-gray-300'
+                          : 'bg-white/5 text-gray-500 opacity-40 grayscale cursor-not-allowed'
                   }
                 `}
               >
@@ -506,7 +541,7 @@ export const MobileTripTabs = ({
         }}
       >
         {tabs
-          .filter(t => t.enabled !== false)
+          .filter(t => variant === 'event' || t.enabled !== false)
           .map(tab => {
             const isActive = activeTab === tab.id;
             const hasBeenVisited = visitedTabs.has(tab.id);
@@ -537,6 +572,8 @@ export const MobileTripTabs = ({
             );
           })}
       </div>
+
+      <DisabledTabDialog open={showDisabledTabDialog} onOpenChange={setShowDisabledTabDialog} />
     </>
   );
 };

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useJoinRequests } from './useJoinRequests';
+import { ALWAYS_ON_EVENT_TABS } from '@/lib/eventTabs';
 
 interface TripAdminData {
   privacy_mode: string | null;
@@ -51,10 +52,7 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
           .select('privacy_mode, enabled_features')
           .eq('id', eventId)
           .maybeSingle(),
-        supabase
-          .from('trip_members')
-          .select('user_id')
-          .eq('trip_id', eventId),
+        supabase.from('trip_members').select('user_id').eq('trip_id', eventId),
       ]);
 
       if (tripResult.error) throw tripResult.error;
@@ -113,7 +111,9 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
       toast.success(newMode === 'high' ? 'Event set to Private' : 'Event set to Public');
     } catch (error) {
       // Rollback
-      setTripData(prev => (prev ? { ...prev, privacy_mode: isPrivate ? 'high' : 'standard' } : prev));
+      setTripData(prev =>
+        prev ? { ...prev, privacy_mode: isPrivate ? 'high' : 'standard' } : prev,
+      );
       console.error('[useEventAdmin] toggleVisibility error:', error);
       toast.error('Failed to update visibility');
     } finally {
@@ -123,16 +123,17 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
 
   const toggleFeature = useCallback(
     async (featureId: string) => {
-      if (!eventId || isSaving || featureId === 'agenda') return; // agenda always on
+      if (!eventId || isSaving || ALWAYS_ON_EVENT_TABS.has(featureId as any)) return;
 
       const current = tripData?.enabled_features || [];
       const isEnabled = current.includes(featureId);
-      const updated = isEnabled
-        ? current.filter(f => f !== featureId)
-        : [...current, featureId];
+      const updated = isEnabled ? current.filter(f => f !== featureId) : [...current, featureId];
 
-      // Always keep agenda
-      if (!updated.includes('agenda')) updated.push('agenda');
+      ALWAYS_ON_EVENT_TABS.forEach(alwaysOnFeature => {
+        if (alwaysOnFeature !== 'admin' && !updated.includes(alwaysOnFeature)) {
+          updated.push(alwaysOnFeature);
+        }
+      });
 
       setIsSaving(true);
       setTripData(prev => (prev ? { ...prev, enabled_features: updated } : prev));
@@ -158,7 +159,7 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
 
   const isFeatureEnabled = useCallback(
     (featureId: string) => {
-      if (featureId === 'agenda') return true;
+      if (ALWAYS_ON_EVENT_TABS.has(featureId as any)) return true;
       return (tripData?.enabled_features || []).includes(featureId);
     },
     [tripData?.enabled_features],
