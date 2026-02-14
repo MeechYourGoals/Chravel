@@ -812,6 +812,35 @@ serve(async req => {
         continue;
       }
 
+      // Check daily rate limit (10 per day)
+      const SMS_DAILY_LIMIT = 10;
+      const today = new Date().toISOString().split('T')[0];
+      const lastReset = prefs.last_sms_reset_date || '1970-01-01';
+
+      // Reset count if it's a new day
+      if (lastReset < today) {
+        prefs.sms_sent_today = 0;
+        prefs.last_sms_reset_date = today;
+      }
+
+      if ((prefs.sms_sent_today || 0) >= SMS_DAILY_LIMIT) {
+        await markDelivery(supabase, delivery.id, {
+          status: 'skipped',
+          error: 'rate_limited',
+          attempts: delivery.attempts + 1,
+        });
+        summary.skipped.sms++;
+        await logDeliveryAttempt(supabase, {
+          userId,
+          channel: 'sms',
+          title: notification.title,
+          body: notification.message,
+          status: 'skipped',
+          error: `Daily limit of ${SMS_DAILY_LIMIT} SMS reached`,
+        });
+        continue;
+      }
+
       if (isQuietHours(prefs)) {
         const delayMinutes = Math.max(getMinutesUntilQuietHoursEnd(prefs), 1);
         const nextAttemptAt = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString();
@@ -838,6 +867,9 @@ serve(async req => {
 
       const smsResult = await sendSms(smsPhone, smsMessage);
       if (smsResult.ok) {
+        // Increment local counter for batch consistency (persistence handled by RPC below)
+        prefs.sms_sent_today = (prefs.sms_sent_today || 0) + 1;
+
         await markDelivery(supabase, delivery.id, {
           status: 'sent',
           provider_message_id: smsResult.providerMessageId || null,

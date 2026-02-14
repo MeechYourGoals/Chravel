@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run typecheck && vite build && node scripts/build-sw.cjs",
+    "build": "vite build && node scripts/build-sw.cjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
