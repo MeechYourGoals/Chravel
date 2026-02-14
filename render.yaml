@@ -2,11 +2,13 @@ services:
   - type: web
     name: chravel
     runtime: static
-    buildCommand: npm ci && npm run build
+    # Use npm install instead of npm ci for better resilience against lockfile/platform mismatches
+    # Bump Node version to 22 to match dev environment and avoid EOL issues
+    buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:
       - key: NODE_VERSION
-        value: "18"
+        value: "22"
       - key: VITE_SUPABASE_URL
         value: https://jmjiyekmxwsxkfnqwyaa.supabase.co
       - key: VITE_SUPABASE_ANON_KEY
