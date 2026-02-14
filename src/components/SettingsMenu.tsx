@@ -36,9 +36,9 @@ export const SettingsMenu = ({
   const isMobile = useIsMobile();
   const [showProModal, setShowProModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [settingsType, setSettingsType] = useState<'consumer' | 'enterprise' | 'events' | 'advertiser'>(
-    initialSettingsType || 'consumer',
-  );
+  const [settingsType, setSettingsType] = useState<
+    'consumer' | 'enterprise' | 'events' | 'advertiser'
+  >(initialSettingsType || 'consumer');
   const _tripVariant = useTripVariant();
   const { demoView } = useDemoMode();
 
@@ -66,7 +66,7 @@ export const SettingsMenu = ({
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div 
+            <div
               className="flex items-center justify-between p-4 border-b border-white/10"
               style={{ paddingTop: 'max(16px, calc(env(safe-area-inset-top, 0px) + 12px))' }}
             >
@@ -124,7 +124,7 @@ export const SettingsMenu = ({
           onClick={e => e.stopPropagation()}
         >
           {/* Combined Header with Settings Type Toggle */}
-          <div 
+          <div
             className="flex-shrink-0 flex items-center justify-between p-3 md:px-4 md:py-3 border-b border-white/10 bg-black/20 gap-3"
             style={{ paddingTop: 'max(12px, calc(env(safe-area-inset-top, 0px) + 12px))' }}
           >
@@ -137,7 +137,7 @@ export const SettingsMenu = ({
                   onClick={() => setSettingsType('consumer')}
                   className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                     settingsType === 'consumer'
-                      ? 'bg-primary text-white shadow-lg'
+                      ? 'bg-primary text-primary-foreground shadow-lg'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -147,7 +147,7 @@ export const SettingsMenu = ({
                   onClick={() => setSettingsType('enterprise')}
                   className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                     settingsType === 'enterprise'
-                      ? 'bg-primary text-white shadow-lg'
+                      ? 'bg-primary text-primary-foreground shadow-lg'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -157,7 +157,7 @@ export const SettingsMenu = ({
                   onClick={() => setSettingsType('events')}
                   className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                     settingsType === 'events'
-                      ? 'bg-primary text-white shadow-lg'
+                      ? 'bg-primary text-primary-foreground shadow-lg'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -168,7 +168,7 @@ export const SettingsMenu = ({
                     onClick={() => setSettingsType('advertiser')}
                     className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                       settingsType === 'advertiser'
-                        ? 'bg-primary text-white shadow-lg'
+                        ? 'bg-primary text-primary-foreground shadow-lg'
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
