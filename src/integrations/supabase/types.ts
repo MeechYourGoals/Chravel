@@ -3036,6 +3036,7 @@ export type Database = {
           capacity: number | null
           card_color: string | null
           categories: Json | null
+          chat_mode: string
           cover_image_url: string | null
           created_at: string
           created_by: string
@@ -3046,6 +3047,7 @@ export type Database = {
           id: string
           is_archived: boolean | null
           is_hidden: boolean | null
+          media_upload_mode: string
           name: string
           organizer_display_name: string | null
           privacy_mode: string | null
@@ -3064,6 +3066,7 @@ export type Database = {
           capacity?: number | null
           card_color?: string | null
           categories?: Json | null
+          chat_mode?: string
           cover_image_url?: string | null
           created_at?: string
           created_by: string
@@ -3074,6 +3077,7 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_hidden?: boolean | null
+          media_upload_mode?: string
           name: string
           organizer_display_name?: string | null
           privacy_mode?: string | null
@@ -3092,6 +3096,7 @@ export type Database = {
           capacity?: number | null
           card_color?: string | null
           categories?: Json | null
+          chat_mode?: string
           cover_image_url?: string | null
           created_at?: string
           created_by?: string
@@ -3102,6 +3107,7 @@ export type Database = {
           id?: string
           is_archived?: boolean | null
           is_hidden?: boolean | null
+          media_upload_mode?: string
           name?: string
           organizer_display_name?: string | null
           privacy_mode?: string | null

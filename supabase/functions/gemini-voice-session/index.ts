@@ -62,7 +62,7 @@ async function canUseVoiceConcierge(
     );
   }
 
-  const isEnterpriseAdmin = (roles ?? []).some(row => String(row?.role) === 'enterprise_admin');
+  const isEnterpriseAdmin = (roles ?? []).some((row: any) => String(row?.role) === 'enterprise_admin');
   if (isEnterpriseAdmin) {
     return true;
   }

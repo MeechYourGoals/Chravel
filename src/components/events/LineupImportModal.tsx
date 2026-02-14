@@ -247,9 +247,9 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
               </Button>
               <Button
                 onClick={handleImport}
-                disabled={parsedNames.length === 0 || state === 'importing'}
+                disabled={parsedNames.length === 0 || (state as string) === 'importing'}
               >
-                {state === 'importing'
+                {(state as string) === 'importing'
                   ? 'Importing...'
                   : mode === 'replace'
                     ? 'Replace all'

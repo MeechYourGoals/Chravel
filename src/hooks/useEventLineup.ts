@@ -210,10 +210,10 @@ export function useEventLineup({
         new Map(
           payload.names
             .filter(name => typeof name === 'string')
-            .map(name => [name.trim().toLocaleLowerCase(), name.trim()])
+            .map(name => [name.trim().toLocaleLowerCase(), name.trim()] as [string, string])
             .filter(([key]) => key.length > 0),
         ).values(),
-      ).sort((a, b) => a.localeCompare(b));
+      ).sort((a: string, b: string) => a.localeCompare(b));
 
       if (isDemoMode || normalized.length === 0) {
         return normalized.length;
@@ -239,20 +239,20 @@ export function useEventLineup({
 
         if (existingError) throw existingError;
 
-        const existing = new Set((existingRows || []).map(row => row.name.toLocaleLowerCase()));
-        namesToInsert = normalized.filter(name => !existing.has(name.toLocaleLowerCase()));
+        const existing = new Set((existingRows || []).map((row: any) => (row.name as string).toLocaleLowerCase()));
+        namesToInsert = normalized.filter((name: string) => !existing.has(name.toLocaleLowerCase()));
       }
 
       if (namesToInsert.length === 0) return 0;
 
-      const rows = namesToInsert.map(name => ({
+      const rows = namesToInsert.map((name: string) => ({
         event_id: eventId,
-        name,
-        performer_type: 'speaker',
+        name: name as string,
+        performer_type: 'speaker' as const,
         created_by: userId || null,
       }));
 
-      const { error: insertError } = await supabase.from('event_lineup_members').insert(rows);
+      const { error: insertError } = await supabase.from('event_lineup_members').insert(rows as any);
       if (insertError) throw insertError;
 
       return namesToInsert.length;

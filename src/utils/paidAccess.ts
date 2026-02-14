@@ -6,7 +6,7 @@ export type PaidAccessTier =
   | 'pro-growth'
   | 'pro-enterprise';
 
-export type PaidAccessStatus = 'active' | 'trial' | 'expired' | 'inactive';
+export type PaidAccessStatus = 'active' | 'trial' | 'expired' | 'inactive' | 'cancelled';
 
 interface PaidAccessInput {
   tier?: PaidAccessTier | null;

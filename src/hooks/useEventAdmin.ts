@@ -7,6 +7,8 @@ import { ALWAYS_ON_EVENT_TABS } from '@/lib/eventTabs';
 interface TripAdminData {
   privacy_mode: string | null;
   enabled_features: string[] | null;
+  chat_mode: string | null;
+  media_upload_mode: string | null;
 }
 
 interface MemberProfile {
@@ -15,6 +17,9 @@ interface MemberProfile {
   avatar_url: string | null;
   email: string | null;
 }
+
+export type ChatMode = 'broadcasts' | 'admin_only' | 'everyone';
+export type MediaUploadMode = 'admin_only' | 'everyone';
 
 interface UseEventAdminProps {
   eventId: string;
@@ -36,7 +41,6 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
     refetch: refetchRequests,
   } = useJoinRequests({ tripId: eventId, enabled });
 
-  // Fetch trip admin data + members
   const fetchData = useCallback(async () => {
     if (!enabled || !eventId) {
       setIsLoading(false);
@@ -49,7 +53,7 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
       const [tripResult, membersResult] = await Promise.all([
         supabase
           .from('trips')
-          .select('privacy_mode, enabled_features')
+          .select('privacy_mode, enabled_features, chat_mode, media_upload_mode')
           .eq('id', eventId)
           .maybeSingle(),
         supabase.from('trip_members').select('user_id').eq('trip_id', eventId),
@@ -59,7 +63,6 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
 
       setTripData(tripResult.data as TripAdminData);
 
-      // Fetch profiles for members
       const memberUserIds = (membersResult.data || []).map((m: any) => m.user_id);
       if (memberUserIds.length > 0) {
         const { data: profiles } = await supabase
@@ -91,14 +94,14 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
   }, [fetchData]);
 
   const isPrivate = tripData?.privacy_mode === 'high';
+  const chatMode: ChatMode = (tripData?.chat_mode as ChatMode) || 'broadcasts';
+  const mediaUploadMode: MediaUploadMode = (tripData?.media_upload_mode as MediaUploadMode) || 'admin_only';
 
   const toggleVisibility = useCallback(async () => {
     if (!eventId || isSaving) return;
 
     const newMode = isPrivate ? 'standard' : 'high';
     setIsSaving(true);
-
-    // Optimistic update
     setTripData(prev => (prev ? { ...prev, privacy_mode: newMode } : prev));
 
     try {
@@ -110,7 +113,6 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
       if (error) throw error;
       toast.success(newMode === 'high' ? 'Event set to Private' : 'Event set to Public');
     } catch (error) {
-      // Rollback
       setTripData(prev =>
         prev ? { ...prev, privacy_mode: isPrivate ? 'high' : 'standard' } : prev,
       );
@@ -146,7 +148,6 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
 
         if (error) throw error;
       } catch (error) {
-        // Rollback
         setTripData(prev => (prev ? { ...prev, enabled_features: current } : prev));
         console.error('[useEventAdmin] toggleFeature error:', error);
         toast.error('Failed to update tab setting');
@@ -165,6 +166,60 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
     [tripData?.enabled_features],
   );
 
+  const setChatMode = useCallback(
+    async (mode: ChatMode) => {
+      if (!eventId || isSaving) return;
+
+      const prev = chatMode;
+      setIsSaving(true);
+      setTripData(p => (p ? { ...p, chat_mode: mode } : p));
+
+      try {
+        const { error } = await supabase
+          .from('trips')
+          .update({ chat_mode: mode } as any)
+          .eq('id', eventId);
+
+        if (error) throw error;
+        toast.success('Chat permissions updated');
+      } catch (error) {
+        setTripData(p => (p ? { ...p, chat_mode: prev } : p));
+        console.error('[useEventAdmin] setChatMode error:', error);
+        toast.error('Failed to update chat permissions');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [eventId, chatMode, isSaving],
+  );
+
+  const setMediaUploadMode = useCallback(
+    async (mode: MediaUploadMode) => {
+      if (!eventId || isSaving) return;
+
+      const prev = mediaUploadMode;
+      setIsSaving(true);
+      setTripData(p => (p ? { ...p, media_upload_mode: mode } : p));
+
+      try {
+        const { error } = await supabase
+          .from('trips')
+          .update({ media_upload_mode: mode } as any)
+          .eq('id', eventId);
+
+        if (error) throw error;
+        toast.success('Media upload permissions updated');
+      } catch (error) {
+        setTripData(p => (p ? { ...p, media_upload_mode: prev } : p));
+        console.error('[useEventAdmin] setMediaUploadMode error:', error);
+        toast.error('Failed to update media permissions');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [eventId, mediaUploadMode, isSaving],
+  );
+
   return {
     isPrivate,
     members,
@@ -173,9 +228,13 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
     isLoading: isLoading || requestsLoading,
     isSaving,
     isProcessing,
+    chatMode,
+    mediaUploadMode,
     toggleVisibility,
     toggleFeature,
     isFeatureEnabled,
+    setChatMode,
+    setMediaUploadMode,
     approveRequest,
     rejectRequest,
     refetch: fetchData,
