@@ -29,6 +29,10 @@ describe('safeReload', () => {
     Object.defineProperty(window, 'location', {
       value: {
         ...window.location,
+        href: 'http://localhost:3000/',
+        pathname: '/',
+        search: '',
+        hash: '',
         reload: mockReload,
         replace: mockReplace,
       },

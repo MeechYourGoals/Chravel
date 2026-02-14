@@ -409,17 +409,9 @@ describe('paymentBalanceService', () => {
 
       (supabase.from as any).mockImplementation((table: string) => {
         if (table === 'trip_members') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-                }),
-              }),
-            }),
-          };
+          return createChainableMock({ data: null, error: null });
         }
-        return { select: vi.fn() };
+        return createChainableMock({ data: [], error: null });
       });
 
       await expect(paymentBalanceService.getBalanceSummary('trip-1', 'user-1')).rejects.toThrow(

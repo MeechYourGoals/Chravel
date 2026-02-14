@@ -37,7 +37,13 @@ export async function safeReload(clearCaches = false): Promise<void> {
     // with a cache-bust param. This forces React Router to remount the app
     // tree cleanly while preserving the user's current path, query params,
     // and hash fragment.
-    const url = new URL(window.location.href);
+    let url: URL;
+    try {
+      url = new URL(window.location.href);
+    } catch {
+      // Fallback if location.href is invalid (e.g. in some test environments)
+      url = new URL('/', window.location.origin || 'http://localhost');
+    }
     url.searchParams.set('_reload', String(Date.now()));
     window.location.replace(url.pathname + url.search + url.hash);
   } else {

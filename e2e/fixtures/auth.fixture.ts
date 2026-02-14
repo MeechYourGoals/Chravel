@@ -98,7 +98,10 @@ const DEFAULT_TEST_PASSWORD = 'TestPassword123!QA';
 export const test = base.extend<AuthFixtures>({
   supabaseAdmin: async ({}, use) => {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required for admin operations');
+      // Gracefully skip tests that require admin operations in environments without keys (like public CI)
+      console.warn('[E2E Fixtures] Skipping test: SUPABASE_SERVICE_ROLE_KEY missing');
+      base.skip();
+      return;
     }
     
     const client = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -113,7 +116,9 @@ export const test = base.extend<AuthFixtures>({
   
   supabaseAnon: async ({}, use) => {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY required for anon operations');
+      console.warn('[E2E Fixtures] Skipping test: SUPABASE_ANON_KEY missing');
+      base.skip();
+      return;
     }
     
     const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
