@@ -26,17 +26,18 @@ export const TRIP_PARITY_COL_START = {
   tasks: 'sm:col-start-8',
 } as const;
 
-// Event tabs (7 columns)
-export const EVENT_PARITY_ROW_CLASS = 'grid grid-cols-1 md:grid-cols-7 gap-2 items-center';
-export const EVENT_PARITY_HEADER_SPAN_CLASS = 'md:col-span-6';
+// Event tabs (8 columns)
+export const EVENT_PARITY_ROW_CLASS = 'grid grid-cols-1 md:grid-cols-8 gap-2 items-center';
+export const EVENT_PARITY_HEADER_SPAN_CLASS = 'md:col-span-7';
 export const EVENT_PARITY_COL_START = {
-  agenda: 'md:col-start-1',
-  calendar: 'md:col-start-2',
-  chat: 'md:col-start-3',
-  media: 'md:col-start-4',
+  admin: 'md:col-start-1',
+  agenda: 'md:col-start-2',
+  calendar: 'md:col-start-3',
+  chat: 'md:col-start-4',
   lineup: 'md:col-start-5',
-  polls: 'md:col-start-6',
-  tasks: 'md:col-start-7',
+  media: 'md:col-start-6',
+  polls: 'md:col-start-7',
+  tasks: 'md:col-start-8',
 } as const;
 
 // Pro tabs (9 columns)

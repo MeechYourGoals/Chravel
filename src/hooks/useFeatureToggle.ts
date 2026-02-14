@@ -15,11 +15,12 @@ export const PRO_FEATURES = [
 
 // Event features (matching actual event tabs)
 export const EVENT_FEATURES = [
+  'admin',
   'agenda',
   'calendar',
   'chat',
-  'media',
   'lineup',
+  'media',
   'polls',
   'tasks'
 ] as const;
@@ -68,6 +69,7 @@ export const useFeatureToggle = (config: FeatureConfig) => {
       showPolls: enabledFeatures.includes('polls'),
       showTasks: enabledFeatures.includes('tasks'),
       showTeam: config.trip_type === 'pro' ? (enabledFeatures.includes('team') || true) : false,
+      showAdmin: enabledFeatures.includes('admin'),
       showAgenda: enabledFeatures.includes('agenda'),
       showLineup: enabledFeatures.includes('lineup'),
       isFeatureEnabled: (feature: string) => enabledFeatures.includes(feature)
