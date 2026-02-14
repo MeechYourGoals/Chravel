@@ -74,7 +74,7 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
 
         {/* Center: Event Visibility compact card */}
         <div className="flex justify-center">
-          <div className="rounded-2xl border border-border bg-card px-4 py-3 flex items-center justify-between gap-3 w-full max-w-md">
+          <div className="rounded-2xl border border-border bg-card px-4 py-3 flex items-center justify-between gap-3 w-full lg:max-w-md">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide flex-shrink-0">
               Event Visibility
             </h3>
@@ -105,7 +105,7 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
 
         {/* Right: Permissions compact card */}
         <div className="flex justify-end">
-          <div className="rounded-2xl border border-border bg-card px-4 py-3 opacity-60 flex items-center justify-between gap-3 w-full max-w-md">
+          <div className="rounded-2xl border border-border bg-card px-4 py-3 opacity-60 flex items-center justify-between gap-3 w-full lg:max-w-md">
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
                 Permissions
@@ -162,12 +162,12 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
               Attendees
             </h3>
             <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-1 rounded-full">
-              {memberCount}
+              {memberCount + (isPrivate ? joinRequests.length : 0)}
             </span>
           </div>
 
           {/* List body: max ~10 rows visible, scroll inside card */}
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 max-h-[360px]">
+          <div className="overflow-y-auto space-y-2 max-h-[360px]">
             {members.length === 0 && (!isPrivate || joinRequests.length === 0) ? (
               <p className="text-sm text-muted-foreground text-center py-4">No attendees yet</p>
             ) : (
@@ -211,6 +211,7 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
                             disabled={isProcessing}
                             className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
                             aria-label="Approve"
+                            title="Approve"
                           >
                             <Check size={14} />
                           </button>
@@ -219,6 +220,7 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
                             disabled={isProcessing}
                             className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50"
                             aria-label="Deny"
+                            title="Deny"
                           >
                             <X size={14} />
                           </button>
