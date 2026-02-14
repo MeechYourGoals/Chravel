@@ -101,3 +101,9 @@ verify_jwt = true
 
 [functions.gemini-voice-session]
 verify_jwt = true
+
+[functions.event-reminders]
+verify_jwt = false
+
+[functions.dispatch-notification-deliveries]
+verify_jwt = false

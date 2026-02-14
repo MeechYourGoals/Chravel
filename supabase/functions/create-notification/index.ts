@@ -287,11 +287,6 @@ Deno.serve(async req => {
       is_visible: boolean;
     }> = [];
 
-    // Collect users for push/email/SMS
-    const pushUsers: string[] = [];
-    const emailUsers: Array<{ userId: string; email?: string }> = [];
-    const smsUsers: Array<{ userId: string; phone: string }> = [];
-
     for (const userId of targetUserIds) {
       const prefs = prefsMap.get(userId)!;
       const decision = getDeliveryDecision(category, prefs);
@@ -327,20 +322,18 @@ Deno.serve(async req => {
         response.skipped++;
       }
 
+      // These counters indicate channel eligibility before dispatch.
       if (decision.sendPush) {
-        pushUsers.push(userId);
         result.pushSent = true;
         response.pushSent++;
       }
 
       if (decision.sendEmail) {
-        emailUsers.push({ userId });
         result.emailSent = true;
         response.emailSent++;
       }
 
       if (decision.sendSms && prefs.sms_phone_number) {
-        smsUsers.push({ userId, phone: prefs.sms_phone_number });
         result.smsSent = true;
         response.smsSent++;
       }
@@ -351,101 +344,54 @@ Deno.serve(async req => {
     // ========================================================================
     // Create In-App Notifications
     // ========================================================================
+    let insertedNotificationIds: string[] = [];
     if (inAppNotifications.length > 0) {
-      const { error: insertError } = await supabase
+      const { data: insertedRows, error: insertError } = await supabase
         .from('notifications')
-        .insert(inAppNotifications);
+        .insert(inAppNotifications)
+        .select('id');
 
       if (insertError) {
         console.error('[create-notification] Error creating in-app notifications:', insertError);
         // Continue anyway - don't fail the whole request
+      } else {
+        insertedNotificationIds = (insertedRows || [])
+          .map((row: { id?: string }) => row.id)
+          .filter((id: string | undefined): id is string => Boolean(id));
       }
     }
 
     // ========================================================================
-    // Send Push Notifications (to web-push-send function)
+    // Dispatch queued deliveries immediately for newly-created notifications
     // ========================================================================
-    if (pushUsers.length > 0) {
+    let dispatchData: Record<string, unknown> | null = null;
+    if (insertedNotificationIds.length > 0) {
       try {
-        await supabase.functions.invoke('web-push-send', {
+        const dispatchSecret = Deno.env.get('NOTIFICATION_DISPATCH_SECRET');
+        const { data, error } = await supabase.functions.invoke('dispatch-notification-deliveries', {
           body: {
-            userIds: pushUsers,
-            type: body.type,
-            title: body.title,
-            body: body.message,
-            data: body.metadata,
+            notificationIds: insertedNotificationIds,
+            limit: insertedNotificationIds.length * 3,
           },
-          headers: { Authorization: authHeader },
+          headers: dispatchSecret ? { 'x-notification-secret': dispatchSecret } : undefined,
         });
-      } catch (err) {
-        console.error('[create-notification] Error sending push:', err);
-      }
-    }
 
-    // ========================================================================
-    // Send Email Notifications
-    // ========================================================================
-    if (emailUsers.length > 0) {
-      // Fetch user emails
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, email')
-        .in(
-          'user_id',
-          emailUsers.map(u => u.userId),
-        );
-
-      for (const profile of profiles || []) {
-        if (profile.email) {
-          try {
-            await supabase.functions.invoke('push-notifications', {
-              body: {
-                action: 'send_email',
-                userId: profile.user_id,
-                email: profile.email,
-                subject: body.title,
-                content: body.message,
-              },
-            });
-          } catch (err) {
-            console.error(`[create-notification] Error sending email to ${profile.user_id}:`, err);
-          }
+        if (error) {
+          console.error('[create-notification] Error dispatching queued deliveries:', error);
+        } else {
+          dispatchData = (data as Record<string, unknown>) || null;
         }
+      } catch (err) {
+        console.error('[create-notification] Unexpected dispatch invoke error:', err);
       }
     }
 
-    // ========================================================================
-    // Send SMS Notifications
-    // ========================================================================
-    for (const smsUser of smsUsers) {
-      try {
-        // Build template data from notification metadata
-        const templateData = {
-          tripId: body.tripId,
-          tripName: (body.metadata?.trip_name as string) || 'your trip',
-          senderName: (body.metadata?.sender_name as string) || 'Someone',
-          amount: body.metadata?.amount as number | undefined,
-          currency: (body.metadata?.currency as string) || 'USD',
-          location: body.metadata?.location as string | undefined,
-          eventName: body.metadata?.event_name as string | undefined,
-          eventTime: body.metadata?.event_time as string | undefined,
-          preview: body.message?.substring(0, 60),
-        };
-
-        await supabase.functions.invoke('push-notifications', {
-          body: {
-            action: 'send_sms',
-            userId: smsUser.userId,
-            phoneNumber: smsUser.phone,
-            category,
-            templateData,
-            // Fallback message if template fails
-            message: `${body.title}: ${body.message}`,
-          },
-        });
-      } catch (err) {
-        console.error(`[create-notification] Error sending SMS to ${smsUser.userId}:`, err);
-      }
+    // If dispatcher returned concrete sent counts, prefer those for response metrics.
+    if (dispatchData && typeof dispatchData.sent === 'object' && dispatchData.sent) {
+      const sentObj = dispatchData.sent as Record<string, unknown>;
+      if (typeof sentObj.push === 'number') response.pushSent = sentObj.push;
+      if (typeof sentObj.email === 'number') response.emailSent = sentObj.email;
+      if (typeof sentObj.sms === 'number') response.smsSent = sentObj.sms;
     }
 
     // ========================================================================
@@ -464,6 +410,7 @@ Deno.serve(async req => {
         emailSent: response.emailSent,
         smsSent: response.smsSent,
         skipped: response.skipped,
+        dispatch: dispatchData,
       },
       success: response.inAppCreated + response.pushSent + response.emailSent + response.smsSent,
       failure: response.skipped,

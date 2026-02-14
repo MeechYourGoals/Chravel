@@ -73,6 +73,9 @@ export const SMS_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
   'basecamp_updates', // Location/basecamp changes
   'calendar_events',  // Event updates and reminders
   'join_requests',    // New member join requests (for organizers)
+  'tasks',            // Assigned tasks with actionable urgency
+  'polls',            // New polls needing input
+  'chat_messages',    // Privacy-safe new message ping
 ];
 
 /**
@@ -178,6 +181,57 @@ export function isQuietHours(
   } catch (error) {
     console.error('[notificationUtils] Error checking quiet hours:', error);
     return false;
+  }
+}
+
+/**
+ * Returns minutes until quiet hours end for the current user time.
+ * Returns 0 if not currently in quiet hours.
+ */
+export function getMinutesUntilQuietHoursEnd(
+  prefs: Pick<NotificationPreferences, 'quiet_hours_enabled' | 'quiet_start' | 'quiet_end' | 'timezone'>,
+): number {
+  if (!prefs.quiet_hours_enabled) return 0;
+
+  try {
+    const timezone = prefs.timezone || 'UTC';
+    const now = new Date();
+
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+
+    const parts = formatter.formatToParts(now);
+    const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+    const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+    const currentMinutes = hour * 60 + minute;
+
+    const [startHour, startMin] = (prefs.quiet_start || '22:00').split(':').map(Number);
+    const [endHour, endMin] = (prefs.quiet_end || '08:00').split(':').map(Number);
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+
+    if (startMinutes <= endMinutes) {
+      const inQuiet = currentMinutes >= startMinutes && currentMinutes < endMinutes;
+      return inQuiet ? endMinutes - currentMinutes : 0;
+    }
+
+    // Quiet hours cross midnight
+    if (currentMinutes >= startMinutes) {
+      return 24 * 60 - currentMinutes + endMinutes;
+    }
+
+    if (currentMinutes < endMinutes) {
+      return endMinutes - currentMinutes;
+    }
+
+    return 0;
+  } catch (error) {
+    console.error('[notificationUtils] Error computing quiet-hours delay:', error);
+    return 0;
   }
 }
 
