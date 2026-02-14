@@ -1,13 +1,24 @@
-import React, { lazy, Suspense, useCallback } from 'react';
-import { Shield, Users, Calendar, MessageCircle, Camera, BarChart3, ClipboardList } from 'lucide-react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Shield,
+  Users,
+  Calendar,
+  MessageCircle,
+  Camera,
+  BarChart3,
+  ClipboardList,
+  Lock,
+} from 'lucide-react';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
-import { useDemoMode } from '@/hooks/useDemoMode';
 import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { useEventLineup } from '@/hooks/useEventLineup';
 
 import { EventData } from '../../types/events';
 import { TripContext } from '@/types';
 import { useTripVariant } from '../../contexts/TripVariantContext';
+import { DisabledTabDialog } from './DisabledTabDialog';
+import { EventTabKey, EVENT_TABS_CONFIG, isEventTabEnabled } from '@/lib/eventTabs';
+import { useEventTabSettings } from '@/hooks/useEventTabSettings';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
 const EventAdminTab = lazy(() =>
@@ -48,22 +59,39 @@ const TabSkeleton = () => (
   </div>
 );
 
+const EVENT_TAB_ICON_MAP: Record<EventTabKey, React.ElementType> = {
+  admin: Shield,
+  agenda: Calendar,
+  calendar: Calendar,
+  chat: MessageCircle,
+  lineup: Users,
+  media: Camera,
+  polls: BarChart3,
+  tasks: ClipboardList,
+};
+
 export const EventDetailContent = ({
   activeTab,
   onTabChange,
-  onShowTripsPlusModal,
+  onShowTripsPlusModal: _onShowTripsPlusModal,
   tripId,
-  basecamp,
+  basecamp: _basecamp,
   eventData,
-  tripContext,
+  tripContext: _tripContext,
 }: EventDetailContentProps) => {
   const { accentColors } = useTripVariant();
   const {
     eventPermissions,
     isOrganizer,
-    isLoading: permissionsLoading,
+    isLoading: _permissionsLoading,
   } = useEventPermissions(tripId);
-  const { isDemoMode } = useDemoMode();
+  const [showDisabledTabDialog, setShowDisabledTabDialog] = useState(false);
+  const initialEnabledFeatures = (eventData as EventData & { enabled_features?: string[] })
+    .enabled_features;
+  const { enabledTabs } = useEventTabSettings({
+    eventId: tripId,
+    initialEnabledFeatures,
+  });
 
   // DB-backed agenda & lineup hooks
   const { sessions: agendaSessions } = useEventAgenda({
@@ -87,19 +115,35 @@ export const EventDetailContent = ({
     [addMembersFromAgenda],
   );
 
-  // Tab order: admin (organizer-only), agenda, calendar, chat, lineup, media, polls, tasks
-  const tabs = [
-    { id: 'admin', label: 'Admin', icon: Shield, enabled: isOrganizer },
-    { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true },
-    { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
-    { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: eventData.chatEnabled !== false },
-    { id: 'lineup', label: 'Line-up', icon: Users, enabled: true },
-    { id: 'media', label: 'Media', icon: Camera, enabled: eventData.mediaUploadEnabled !== false },
-    { id: 'polls', label: 'Polls', icon: BarChart3, enabled: eventData.pollsEnabled !== false },
-    { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true },
-  ];
+  const tabs = useMemo(
+    () =>
+      EVENT_TABS_CONFIG.map(tab => ({
+        id: tab.key,
+        label: tab.label,
+        icon: EVENT_TAB_ICON_MAP[tab.key],
+        enabled: tab.key === 'admin' ? isOrganizer : isEventTabEnabled(tab.key, enabledTabs),
+      })),
+    [enabledTabs, isOrganizer],
+  );
 
-  const visibleTabs = tabs.filter(tab => tab.enabled);
+  const isActiveTabEnabled = tabs.find(tab => tab.id === activeTab)?.enabled ?? true;
+
+  useEffect(() => {
+    if (activeTab === 'admin') return;
+    if (!isActiveTabEnabled) {
+      setShowDisabledTabDialog(true);
+      onTabChange('agenda');
+    }
+  }, [activeTab, isActiveTabEnabled, onTabChange]);
+
+  const handleTabClick = (tab: { id: string; enabled: boolean }) => {
+    if (!tab.enabled) {
+      setShowDisabledTabDialog(true);
+      return;
+    }
+
+    onTabChange(tab.id);
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -150,20 +194,23 @@ export const EventDetailContent = ({
   return (
     <>
       <div className="flex whitespace-nowrap gap-2 mb-2 justify-start">
-        {visibleTabs.map(tab => {
+        {tabs.map(tab => {
           const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+
           return (
             <button
               key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => handleTabClick(tab)}
               className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[42px] rounded-xl font-medium transition-all duration-200 text-sm flex-1 ${
-                activeTab === tab.id
+                isActive
                   ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
                   : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white'
               }`}
             >
-              {Icon && <Icon size={16} />}
-              {tab.label}
+              {Icon && <Icon size={16} className="shrink-0" />}
+              <span>{tab.label}</span>
+              {!tab.enabled && <Lock size={13} className="ml-1 shrink-0" />}
             </button>
           );
         })}
@@ -172,6 +219,8 @@ export const EventDetailContent = ({
       <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-320px)] md:max-h-[1000px] md:min-h-[500px] flex flex-col">
         <Suspense fallback={<TabSkeleton />}>{renderTabContent()}</Suspense>
       </div>
+
+      <DisabledTabDialog open={showDisabledTabDialog} onOpenChange={setShowDisabledTabDialog} />
     </>
   );
 };

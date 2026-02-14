@@ -15,20 +15,28 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useEventAdmin } from '@/hooks/useEventAdmin';
+import { EVENT_TABS_CONFIG } from '@/lib/eventTabs';
 
 interface EventAdminTabProps {
   eventId: string;
 }
 
-const TAB_META: { id: string; label: string; icon: React.ElementType; alwaysOn?: boolean }[] = [
-  { id: 'agenda', label: 'Agenda', icon: Calendar, alwaysOn: true },
-  { id: 'calendar', label: 'Calendar', icon: Calendar },
-  { id: 'chat', label: 'Chat', icon: MessageCircle },
-  { id: 'lineup', label: 'Line-up', icon: Users },
-  { id: 'media', label: 'Media', icon: Camera },
-  { id: 'polls', label: 'Polls', icon: BarChart3 },
-  { id: 'tasks', label: 'Tasks', icon: ClipboardList },
-];
+const TAB_ICON_MAP: Record<string, React.ElementType> = {
+  agenda: Calendar,
+  calendar: Calendar,
+  chat: MessageCircle,
+  lineup: Users,
+  media: Camera,
+  polls: BarChart3,
+  tasks: ClipboardList,
+};
+
+const TAB_META = EVENT_TABS_CONFIG.filter(tab => tab.key !== 'admin').map(tab => ({
+  id: tab.key,
+  label: tab.label,
+  icon: TAB_ICON_MAP[tab.key],
+  alwaysOn: tab.alwaysOn,
+}));
 
 export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
   const {
