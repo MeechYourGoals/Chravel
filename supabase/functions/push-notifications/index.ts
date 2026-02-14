@@ -186,7 +186,7 @@ async function sendEmailNotification(
     ],
     from: {
       email: Deno.env.get('SENDGRID_FROM_EMAIL') || 'noreply@chravel.app',
-      name: 'Chravel',
+      name: 'ChravelApp',
     },
     content: [
       {
@@ -379,7 +379,7 @@ async function sendSMSNotification(
     finalMessage = generateSmsMessage(category, templateData);
     console.log(`[SMS] Generated template for ${category}: ${finalMessage.substring(0, 50)}...`);
   } else if (!finalMessage) {
-    finalMessage = 'Chravel: You have a new update. Open the app for details.';
+    finalMessage = 'ChravelApp: You have a new update. Open the app for details.';
   }
 
   const credentials = btoa(`${twilioAccountSid}:${twilioAuthToken}`);

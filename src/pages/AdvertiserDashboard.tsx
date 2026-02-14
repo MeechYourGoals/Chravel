@@ -182,7 +182,7 @@ export const AdvertiserDashboard = () => {
   const superAdminAdvertiser: Advertiser = {
     id: 'super-admin-advertiser',
     user_id: user?.id || 'super-admin',
-    company_name: 'Chravel Admin',
+    company_name: 'ChravelApp Admin',
     company_email: user?.email || 'admin@chravel.com',
     website: 'https://chravel.com',
     status: 'active',

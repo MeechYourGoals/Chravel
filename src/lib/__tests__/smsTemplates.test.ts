@@ -6,14 +6,14 @@ import {
 } from '../../../supabase/functions/_shared/smsTemplates.ts';
 
 describe('sms templates', () => {
-  it('uses Chravel prefix and broadcast format', () => {
+  it('uses ChravelApp prefix and broadcast format', () => {
     const message = generateSmsMessage('broadcasts', {
       tripName: 'Ski Weekend',
       senderName: 'Alex',
       preview: 'Bus leaves in 30 minutes from the hotel lobby',
     });
 
-    expect(message.startsWith('Chravel:')).toBe(true);
+    expect(message.startsWith('ChravelApp:')).toBe(true);
     expect(message).toContain('Broadcast in Ski Weekend');
     expect(message).toContain('from Alex');
   });

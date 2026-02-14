@@ -53,10 +53,10 @@ describe('icsBranding', () => {
     });
 
     it('should handle empty or null titles with fallback', () => {
-      expect(brandEventTitleForIcs('')).toBe('ChravelApp: Chravel Event');
-      expect(brandEventTitleForIcs('   ')).toBe('ChravelApp: Chravel Event');
-      expect(brandEventTitleForIcs(null as unknown as string)).toBe('ChravelApp: Chravel Event');
-      expect(brandEventTitleForIcs(undefined as unknown as string)).toBe('ChravelApp: Chravel Event');
+      expect(brandEventTitleForIcs('')).toBe('ChravelApp: ChravelApp Event');
+      expect(brandEventTitleForIcs('   ')).toBe('ChravelApp: ChravelApp Event');
+      expect(brandEventTitleForIcs(null as unknown as string)).toBe('ChravelApp: ChravelApp Event');
+      expect(brandEventTitleForIcs(undefined as unknown as string)).toBe('ChravelApp: ChravelApp Event');
     });
 
     it('should handle titles with special characters', () => {
@@ -87,8 +87,8 @@ describe('icsBranding', () => {
     });
 
     it('should handle titles with only whitespace variations', () => {
-      expect(brandEventTitleForIcs(' \t ')).toBe('ChravelApp: Chravel Event');
-      expect(brandEventTitleForIcs('\n\r\n')).toBe('ChravelApp: Chravel Event');
+      expect(brandEventTitleForIcs(' \t ')).toBe('ChravelApp: ChravelApp Event');
+      expect(brandEventTitleForIcs('\n\r\n')).toBe('ChravelApp: ChravelApp Event');
     });
   });
 
@@ -177,7 +177,7 @@ describe('icsBranding', () => {
         'ChravelApp: Already Branded',
         'ZOOM: Call',
         'Google Meet: Interview',
-        'ChravelApp: Chravel Event',
+        'ChravelApp: ChravelApp Event',
         'Teams: Meeting'
       ]);
     });

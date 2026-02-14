@@ -40,7 +40,7 @@ export const AiFeaturesSection = () => {
     },
     {
       icon: <ScrollText className="text-primary" size={28} />,
-      title: 'Chravel Recap PDFs',
+      title: 'ChravelApp Recap PDFs',
       description:
         'Sharing recommendations or just want a quick overview of the trip? Get a simple summary PDF.',
     },

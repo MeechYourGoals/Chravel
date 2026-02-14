@@ -284,7 +284,7 @@ export const useInviteLink = ({
         const body = encodeURIComponent(
           `Hi there!\n\nYou're invited to join my trip "${tripName}"!\n\n` +
             `Click here to join: ${inviteLink}\n\n` +
-            `If you have the Chravel app installed, this link will open it directly. ` +
+            `If you have ChravelApp installed, this link will open it directly. ` +
             `Otherwise, you can join through your browser!\n\nSee you there!`,
         );
         window.open(`mailto:${recipientEmail}?subject=${subject}&body=${body}`);
@@ -292,7 +292,7 @@ export const useInviteLink = ({
         return true;
       } else if (recipientPhone) {
         const message = encodeURIComponent(
-          `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in Chravel app if installed)`,
+          `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in ChravelApp if installed)`,
         );
         window.open(`sms:${recipientPhone}?body=${message}`);
         toast.success(`Invite sent to ${recipientPhone}`);
@@ -349,7 +349,7 @@ export const useInviteLink = ({
     const body = encodeURIComponent(
       `Hi there!\n\nYou're invited to join my trip "${tripName}"!\n\n` +
         `Click here to join: ${inviteLink}\n\n` +
-        `If you have the Chravel app installed, this link will open it directly. ` +
+        `If you have ChravelApp installed, this link will open it directly. ` +
         `Otherwise, you can join through your browser!\n\nSee you there!`,
     );
     window.open(`mailto:?subject=${subject}&body=${body}`);
@@ -359,7 +359,7 @@ export const useInviteLink = ({
     if (!inviteLink) return;
 
     const message = encodeURIComponent(
-      `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in Chravel app if installed)`,
+      `You're invited to join my trip "${tripName}"! ${inviteLink} (Opens in ChravelApp if installed)`,
     );
     window.open(`sms:?body=${message}`);
   };

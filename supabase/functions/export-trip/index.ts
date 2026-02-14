@@ -202,13 +202,13 @@ async function appendAttachmentsToPdf(params: {
       const fallbackLines: string[] = [];
       if (kind === 'doc') {
         fallbackLines.push('This document could not be embedded as a PDF in this export.');
-        fallbackLines.push('Please download it from Chravel to view the original formatting.');
+        fallbackLines.push('Please download it from ChravelApp to view the original formatting.');
       } else if (kind === 'other') {
         fallbackLines.push('This file type could not be embedded in the PDF export.');
-        fallbackLines.push('Please download it from Chravel to access the original file.');
+        fallbackLines.push('Please download it from ChravelApp to access the original file.');
       } else {
         fallbackLines.push('This attachment could not be embedded in the PDF export.');
-        fallbackLines.push('Please download it from Chravel to access the original file.');
+        fallbackLines.push('Please download it from ChravelApp to access the original file.');
       }
 
       // Best-effort signed URL for private bucket (used only for display).
@@ -239,7 +239,7 @@ async function appendAttachmentsToPdf(params: {
         paper: params.paper,
         title: att.name,
         subtitle: att.type,
-        lines: ['This attachment could not be embedded in the PDF export. Please download it from Chravel.'],
+        lines: ['This attachment could not be embedded in the PDF export. Please download it from ChravelApp.'],
       });
     }
   }
@@ -399,7 +399,7 @@ serve(async (req) => {
     await page.emulateMediaType('print');
 
     // Layout name for metadata
-    const layoutName = layout === 'pro' ? 'Chravel Pro Summary' : 'One-Pager';
+    const layoutName = layout === 'pro' ? 'ChravelApp Pro Summary' : 'One-Pager';
 
     logStep("Generating PDF", { format: paper, layout: layoutName });
     let pdfBytes = await page.pdf({
