@@ -100,7 +100,7 @@ export const test = base.extend<AuthFixtures>({
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       // Gracefully skip tests that require admin operations in environments without keys (like public CI)
       console.warn('[E2E Fixtures] Skipping test: SUPABASE_SERVICE_ROLE_KEY missing');
-      test.skip();
+      base.skip();
       return;
     }
     
@@ -117,7 +117,7 @@ export const test = base.extend<AuthFixtures>({
   supabaseAnon: async ({}, use) => {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.warn('[E2E Fixtures] Skipping test: SUPABASE_ANON_KEY missing');
-      test.skip();
+      base.skip();
       return;
     }
     
