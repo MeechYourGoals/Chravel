@@ -44,7 +44,7 @@ export async function renderTemplate(data: TripExportData): Promise<string> {
   } = data;
 
   const styles = await loadStyles();
-  const layoutName = layout === 'pro' ? 'Chravel Pro Summary' : 'One-Pager';
+  const layoutName = layout === 'pro' ? 'ChravelApp Pro Summary' : 'One-Pager';
 
   // Render sections in alphabetical order
   return `<!DOCTYPE html>
@@ -52,7 +52,7 @@ export async function renderTemplate(data: TripExportData): Promise<string> {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escapeHtml(tripTitle)} — Chravel Export</title>
+  <title>${escapeHtml(tripTitle)} — ChravelApp Export</title>
   <style>${styles}</style>
 </head>
 <body>

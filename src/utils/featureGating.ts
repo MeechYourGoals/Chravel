@@ -23,7 +23,7 @@ const featureMatrix: Record<FeatureName, FeatureAvailability> = {
   'chravel-recs': {
     demoMode: true,
     authenticated: false,
-    comingSoonMessage: 'Chravel Recommendations are coming soon for authenticated users!'
+    comingSoonMessage: 'ChravelApp Recommendations are coming soon for authenticated users!'
   },
   'events-module': {
     demoMode: true,

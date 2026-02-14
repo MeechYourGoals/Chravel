@@ -7,7 +7,7 @@
  */
 
 const CHRAVEL_PREFIX = 'ChravelApp:';
-const FALLBACK_TITLE = 'Chravel Event';
+const FALLBACK_TITLE = 'ChravelApp Event';
 
 /**
  * Known meeting platform prefixes that should NOT receive ChravelApp branding.
@@ -54,7 +54,7 @@ export function shouldSkipBranding(title: string): boolean {
  * Apply ChravelApp branding to an event title for iCalendar export.
  *
  * Rules:
- * - Empty/null titles get fallback: "ChravelApp: Chravel Event"
+ * - Empty/null titles get fallback: "ChravelApp: ChravelApp Event"
  * - Titles with leading/trailing whitespace are trimmed
  * - Already branded titles (ChravelApp:, ZOOM:, etc.) are returned as-is
  * - All other titles get "ChravelApp: " prefix
@@ -76,7 +76,7 @@ export function shouldSkipBranding(title: string): boolean {
  *
  * @example
  * brandEventTitleForIcs('')
- * // Returns: 'ChravelApp: Chravel Event'
+ * // Returns: 'ChravelApp: ChravelApp Event'
  */
 export function brandEventTitleForIcs(originalTitle: string): string {
   // Handle empty/null/undefined titles

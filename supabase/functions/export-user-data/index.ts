@@ -340,7 +340,7 @@ serve(async req => {
         userId,
         userEmail,
         schemaVersion: '1.0.0',
-        appVersion: 'Chravel 2025',
+        appVersion: 'ChravelApp 2025',
         exportFormat: 'JSON',
         tablesIncluded: USER_DATA_TABLES.map(t => t.table),
         dataRetentionNote:

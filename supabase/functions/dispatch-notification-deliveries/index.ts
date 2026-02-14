@@ -263,7 +263,7 @@ async function sendEmail(to: string, subject: string, content: string): Promise<
     personalizations: [{ to: [{ email: to }], subject }],
     from: {
       email: sendGridFromEmail,
-      name: 'Chravel',
+      name: 'ChravelApp',
     },
     content: [{ type: 'text/plain', value: content }],
   };

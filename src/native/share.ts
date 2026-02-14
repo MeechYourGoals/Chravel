@@ -260,7 +260,7 @@ export async function shareRecapPdf(params: {
   title?: string;
   text?: string;
 }): Promise<ShareResult> {
-  const filename = params.filename ?? 'Chravel-Recap.pdf';
+  const filename = params.filename ?? 'ChravelApp-Recap.pdf';
   const blob =
     params.pdfBlob.type === 'application/pdf'
       ? params.pdfBlob

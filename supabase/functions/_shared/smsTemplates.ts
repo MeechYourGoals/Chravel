@@ -2,13 +2,13 @@
  * SMS Message Templates
  *
  * Global format rules:
- * - Prefix with "Chravel:"
+ * - Prefix with "ChravelApp:"
  * - Keep under ~160 chars when possible
  * - Include trip/event context
  * - Keep message notifications privacy-safe
  */
 
-export const SMS_BRAND_PREFIX = 'Chravel:';
+export const SMS_BRAND_PREFIX = 'ChravelApp:';
 
 export interface SmsTemplateData {
   tripName?: string;

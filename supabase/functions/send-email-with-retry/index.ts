@@ -241,7 +241,7 @@ async function sendViaSendGrid(
       }],
       from: {
         email: fromEmail,
-        name: 'Chravel'
+        name: 'ChravelApp'
       },
       content: [{
         type: 'text/html',

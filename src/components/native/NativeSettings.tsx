@@ -127,7 +127,7 @@ export const NativeSettings = ({
           <NativeListSection header="Subscription">
             <NativeListItem
               icon={<Crown size={18} />}
-              label={isPro ? 'Chravel Pro' : 'Free Plan'}
+              label={isPro ? 'ChravelApp Pro' : 'Free Plan'}
               value={isPro ? <span className="text-green-400">Active</span> : undefined}
               sublabel={
                 isPro ? `${subscriptionTier.replace('-', ' ')} tier` : 'Upgrade for unlimited trips'

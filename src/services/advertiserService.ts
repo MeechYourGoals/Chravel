@@ -36,7 +36,7 @@ export class AdvertiserService {
     const isSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email);
     if (isSuperAdmin) {
       return this.createAdvertiserProfile({
-        company_name: 'Chravel Admin',
+        company_name: 'ChravelApp Admin',
         company_email: user.email || 'admin@chravel.com',
         website: 'https://chravel.com',
       });

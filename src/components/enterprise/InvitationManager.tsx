@@ -51,7 +51,7 @@ export const InvitationManager = ({
           body: {
             email: member.email,
             phone: member.phone,
-            organization_name: 'Chravel Organization',
+            organization_name: 'ChravelApp Organization',
             organization_id: 'default-org',
             role: member.role,
             invite_token: generateInviteToken(),

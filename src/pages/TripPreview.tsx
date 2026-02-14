@@ -55,7 +55,7 @@ const TripPreview = () => {
       tripData?.cover_image_url ||
       'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=630&fit=crop';
 
-    document.title = tripData?.name ? `${tripName} - Chravel` : 'Plan Trips Better - Chravel';
+    document.title = tripData?.name ? `${tripName} - ChravelApp` : 'Plan Trips Better - ChravelApp';
 
     const updateMetaTag = (property: string, content: string) => {
       let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
@@ -77,19 +77,19 @@ const TripPreview = () => {
       meta.content = content;
     };
 
-    updateMetaTag('og:title', `Check out ${tripName} on Chravel!`);
+    updateMetaTag('og:title', `Check out ${tripName} on ChravelApp!`);
     updateMetaTag(
       'og:description',
-      `A trip to ${destination}. Plan your group travel adventures with Chravel!`,
+      `A trip to ${destination}. Plan your group travel adventures with ChravelApp!`,
     );
     updateMetaTag('og:type', 'website');
     updateMetaTag('og:image', imageUrl);
     updateMetaTag('og:url', window.location.href);
     updateMetaName('twitter:card', 'summary_large_image');
-    updateMetaName('twitter:title', `Check out ${tripName} on Chravel!`);
+    updateMetaName('twitter:title', `Check out ${tripName} on ChravelApp!`);
     updateMetaName(
       'twitter:description',
-      `A trip to ${destination}. Plan your group travel adventures with Chravel!`,
+      `A trip to ${destination}. Plan your group travel adventures with ChravelApp!`,
     );
     updateMetaName('twitter:image', imageUrl);
   }, [tripData]);
@@ -151,12 +151,12 @@ const TripPreview = () => {
 
   const handleShare = async () => {
     const shareUrl = window.location.href;
-    const shareText = `Check out ${tripData?.name || 'this trip'} on Chravel!`;
+    const shareText = `Check out ${tripData?.name || 'this trip'} on ChravelApp!`;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: tripData?.name || 'Trip on Chravel',
+          title: tripData?.name || 'Trip on ChravelApp',
           text: shareText,
           url: shareUrl,
         });
@@ -286,7 +286,7 @@ const TripPreview = () => {
         {/* Chravel Logo/Branding */}
         <div className="absolute top-4 left-4 z-10">
           <div className="bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full">
-            <span className="text-yellow-400 font-bold text-lg">Chravel</span>
+            <span className="text-yellow-400 font-bold text-lg">ChravelApp</span>
           </div>
         </div>
 

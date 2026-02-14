@@ -939,7 +939,7 @@ export async function generateClientPDF(
         doc.setFontSize(8);
         doc.setFont('NotoSans', 'italic');
         doc.setTextColor(100);
-        doc.text('Note: Download full attachments from the Chravel app', margin, yPos);
+        doc.text('Note: Download full attachments from ChravelApp', margin, yPos);
         yPos += 20;
       }
     }

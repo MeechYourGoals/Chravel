@@ -123,7 +123,7 @@ export const transportationRecommendations: Recommendation[] = [
     city: 'Miami',
     coordinates: { lat: 25.7617, lng: -80.1918 },
     description:
-      'Chravel Exclusive: 20% off all luxury and premium vehicle rentals. Free additional driver included.',
+      'ChravelApp Exclusive: 20% off all luxury and premium vehicle rentals. Free additional driver included.',
     rating: 4.4,
     priceLevel: 3,
     images: [luxuryCarRental],
