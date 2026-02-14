@@ -12,6 +12,7 @@ import {
   type NotificationPreferences,
 } from '../_shared/notificationUtils.ts';
 import { formatTimeForTimezone, generateSmsMessage, type SmsTemplateData } from '../_shared/smsTemplates.ts';
+import { sendWebPushNotification, type WebPushSubscription } from '../_shared/webPushUtils.ts';
 
 type DeliveryChannel = 'push' | 'email' | 'sms';
 
@@ -75,6 +76,10 @@ const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
 const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
 const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
 const internalSecret = Deno.env.get('NOTIFICATION_DISPATCH_SECRET');
+
+const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+const vapidSubject = Deno.env.get('VAPID_SUBJECT') || 'mailto:notifications@chravel.app';
 
 function getDisplayName(profile?: ProfileRow): string {
   if (!profile) return 'Someone';
@@ -415,37 +420,51 @@ serve(async req => {
 
     const profileIds = [...new Set([...recipientIds, ...actorIds])];
 
-    const [{ data: preferenceRows }, { data: entitlementRows }, { data: smsOptInRows }, { data: tripRows }, { data: profileRows }, { data: pushTokenRows }] =
-      await Promise.all([
-        supabase
-          .from('notification_preferences')
-          .select('*')
-          .in('user_id', recipientIds),
-        supabase
-          .from('user_entitlements')
-          .select('user_id, plan, status, current_period_end')
-          .in('user_id', recipientIds),
-        supabase
-          .from('sms_opt_in')
-          .select('user_id, phone_e164, verified, opted_in')
-          .in('user_id', recipientIds),
-        tripIds.length
-          ? supabase.from('trips').select('id, name').in('id', tripIds)
-          : Promise.resolve({ data: [], error: null }),
-        profileIds.length
-          ? supabase
-              .from('profiles')
-              .select('user_id, display_name, first_name, last_name, email')
-              .in('user_id', profileIds)
-          : Promise.resolve({ data: [], error: null }),
-        recipientIds.length
-          ? supabase
-              .from('push_device_tokens')
-              .select('user_id, token')
-              .in('user_id', recipientIds)
-              .is('disabled_at', null)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
+    const [
+      { data: preferenceRows },
+      { data: entitlementRows },
+      { data: smsOptInRows },
+      { data: tripRows },
+      { data: profileRows },
+      { data: pushTokenRows },
+      { data: webPushRows }
+    ] = await Promise.all([
+      supabase
+        .from('notification_preferences')
+        .select('*')
+        .in('user_id', recipientIds),
+      supabase
+        .from('user_entitlements')
+        .select('user_id, plan, status, current_period_end')
+        .in('user_id', recipientIds),
+      supabase
+        .from('sms_opt_in')
+        .select('user_id, phone_e164, verified, opted_in')
+        .in('user_id', recipientIds),
+      tripIds.length
+        ? supabase.from('trips').select('id, name').in('id', tripIds)
+        : Promise.resolve({ data: [], error: null }),
+      profileIds.length
+        ? supabase
+            .from('profiles')
+            .select('user_id, display_name, first_name, last_name, email')
+            .in('user_id', profileIds)
+        : Promise.resolve({ data: [], error: null }),
+      recipientIds.length
+        ? supabase
+            .from('push_device_tokens')
+            .select('user_id, token')
+            .in('user_id', recipientIds)
+            .is('disabled_at', null)
+        : Promise.resolve({ data: [], error: null }),
+      recipientIds.length
+        ? supabase
+            .from('web_push_subscriptions')
+            .select('*')
+            .in('user_id', recipientIds)
+            .eq('is_active', true)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
     const preferencesByUser = new Map<string, NotificationPreferences>();
     for (const userId of recipientIds) {
@@ -471,6 +490,13 @@ serve(async req => {
       const list = pushTokensByUser.get(tokenRow.user_id) || [];
       list.push(tokenRow.token);
       pushTokensByUser.set(tokenRow.user_id, list);
+    }
+
+    const webPushByUser = new Map<string, WebPushSubscription[]>();
+    for (const subRow of (webPushRows || []) as WebPushSubscription[]) {
+      const list = webPushByUser.get(subRow.user_id) || [];
+      list.push(subRow);
+      webPushByUser.set(subRow.user_id, list);
     }
 
     const summary = {
@@ -533,27 +559,82 @@ serve(async req => {
           continue;
         }
 
-        const tokens = pushTokensByUser.get(userId) || [];
-        if (tokens.length === 0) {
+        const fcmTokens = pushTokensByUser.get(userId) || [];
+        const webPushSubs = webPushByUser.get(userId) || [];
+
+        if (fcmTokens.length === 0 && webPushSubs.length === 0) {
           await markDelivery(supabase, delivery.id, {
             status: 'skipped',
-            error: 'no_push_tokens',
+            error: 'no_push_targets',
             attempts: delivery.attempts + 1,
           });
           summary.skipped.push++;
           continue;
         }
 
-        const pushResult = await sendPush(tokens, notification.title, notification.message, {
-          notificationId: notification.id,
-          type: notification.type || 'notification',
-          tripId: notification.trip_id,
-        });
+        let pushSucceeded = false;
+        let pushError = '';
+        const providerIds: string[] = [];
 
-        if (pushResult.ok) {
+        // 1. Deliver to FCM if available
+        if (fcmTokens.length > 0) {
+          const pushResult = await sendPush(fcmTokens, notification.title, notification.message, {
+            notificationId: notification.id,
+            type: notification.type || 'notification',
+            tripId: notification.trip_id,
+          });
+          if (pushResult.ok) {
+            pushSucceeded = true;
+            if (pushResult.providerMessageId) providerIds.push(`fcm:${pushResult.providerMessageId}`);
+          } else {
+            pushError = `fcm_failed:${pushResult.error}`;
+          }
+        }
+
+        // 2. Deliver to Web Push if available
+        if (webPushSubs.length > 0 && vapidPublicKey && vapidPrivateKey) {
+          for (const sub of webPushSubs) {
+            const webResult = await sendWebPushNotification(
+              sub,
+              {
+                title: notification.title,
+                body: notification.message,
+                tag: `notif-${notification.id}`,
+                data: {
+                  notificationId: notification.id,
+                  tripId: notification.trip_id,
+                  type: notification.type,
+                },
+              },
+              vapidPublicKey,
+              vapidPrivateKey,
+              vapidSubject,
+            );
+            if (webResult.success) {
+              pushSucceeded = true;
+              providerIds.push(`web:${sub.id}`);
+
+              // Update last_used_at
+              await supabase
+                .from('web_push_subscriptions')
+                .update({ last_used_at: new Date().toISOString(), failed_count: 0 })
+                .eq('id', sub.id);
+            } else {
+              if (!pushSucceeded) pushError = (pushError ? pushError + '; ' : '') + `web_failed:${webResult.error}`;
+
+              // Increment failure count
+              await supabase.rpc('mark_web_push_subscription_failed', {
+                subscription_id: sub.id,
+                error_message: webResult.error
+              });
+            }
+          }
+        }
+
+        if (pushSucceeded) {
           await markDelivery(supabase, delivery.id, {
             status: 'sent',
-            provider_message_id: pushResult.providerMessageId || null,
+            provider_message_id: providerIds.join(','),
             error: null,
             sent_at: new Date().toISOString(),
             attempts: delivery.attempts + 1,
@@ -565,12 +646,12 @@ serve(async req => {
             title: notification.title,
             body: notification.message,
             status: 'sent',
-            externalId: pushResult.providerMessageId,
+            externalId: providerIds.join(','),
           });
         } else {
           await markDelivery(supabase, delivery.id, {
             status: 'failed',
-            error: pushResult.error || 'push_delivery_failed',
+            error: pushError || 'push_delivery_failed',
             attempts: delivery.attempts + 1,
           });
           summary.failed.push++;
@@ -580,7 +661,7 @@ serve(async req => {
             title: notification.title,
             body: notification.message,
             status: 'failed',
-            error: pushResult.error,
+            error: pushError,
           });
         }
 
