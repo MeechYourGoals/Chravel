@@ -1,135 +1,126 @@
 
-# Add Admin Tab to Events + Admin Dashboard + Fix Build Errors
+# Admin Dashboard Redesign + Per-Tab Permissions + Build Error Fixes
 
-## Overview
+## Summary
 
-This plan adds an "Admin" tab as the first tab in Events, reorders the remaining tabs alphabetically, builds out the Admin dashboard with real DB-backed toggles, and fixes the 25+ build errors in `dispatch-notification-deliveries` and `demo-concierge`.
-
----
-
-## Part 1: Fix Build Errors (2 files)
-
-### A. `supabase/functions/demo-concierge/index.ts` (2 errors)
-- Lines 119 and 131: Add explicit `(item: any)` type annotations to `.map()` and `.filter()` callbacks.
-
-### B. `supabase/functions/dispatch-notification-deliveries/index.ts` (23 errors)
-All errors stem from `ReturnType<typeof createClient>` resolving to a strict generic that causes `never` inference for table operations.
-
-**Fix:** Change the `supabase` parameter type in `markDelivery` (line 178) and `logDeliveryAttempt` (line 189) from `ReturnType<typeof createClient>` to `any`. This is safe because both functions only call standard `.from().update()` and `.from().insert()` methods. This single change at the function signature level resolves all 23 downstream call-site errors without touching any other lines.
+Redesign the Admin dashboard to replace "Event Visibility" with a clean "Visibility" toggle in the Permissions slot, remove the Permissions card entirely, and add gear icons on Chat and Media tab rows that open permission modals. Also fix all 13 build errors across 7 files.
 
 ---
 
-## Part 2: Add Admin Tab + Reorder Events Tabs
+## Part 1: Fix All Build Errors (7 files, 13 errors)
 
-### New tab order (alphabetical after Admin)
+### Edge Function Errors (2 files, 2 errors)
+
+**`supabase/functions/gemini-voice-session/index.ts` line 65**
+- Add explicit type: `.some((row: any) => ...)`
+
+**`supabase/functions/generate-embeddings/index.ts` line 239**
+- Already has `(doc: any)` -- the issue is that the `Map` constructor doesn't infer the value type. Change to `new Map<string, any>(docs.map(...))`.
+
+### Frontend Errors (5 files, 11 errors)
+
+**`src/utils/paidAccess.ts` line 9**
+- `PaidAccessStatus` is missing `'cancelled'`. The `ConsumerSubscription` type in `consumer.ts` includes `'cancelled'` but `PaidAccessStatus` only has `'inactive'`. Add `'cancelled'` to the union: `'active' | 'trial' | 'expired' | 'inactive' | 'cancelled'`
+
+**`src/components/events/LineupImportModal.tsx` lines 250, 252**
+- The `state` type is `ImportState = 'idle' | 'parsing' | 'preview' | 'importing'` but the comparisons happen inside a block that already narrowed state to `'preview'`. This means `state === 'importing'` is flagged as impossible. Fix: use a local variable or widen the comparison.
+
+**`src/hooks/useEventLineup.ts` lines 211, 216, 243, 255**
+- Line 211: The `.map()` returns `string[][]` but `new Map()` expects `[K, V][]` tuples. Fix: add `as [string, string]` cast to the map return.
+- Line 216: `.localeCompare()` on `unknown`. Fix: type the `.values()` result or cast.
+- Line 243: `.toLocaleLowerCase()` on `unknown`. Same fix.
+- Line 255: `name: unknown` not assignable to `name: string`. Same root cause.
+
+**`src/utils/__tests__/lineupImportParsers.test.ts` lines 24, 44, 58**
+- `InvokeResult` type has `error: { message: string } | null` which doesn't match `FunctionsResponseSuccess` expecting `error: null`. Fix: change the mock return type assertion or widen the `InvokeResult` interface to match.
+
+---
+
+## Part 2: Database Migration
+
+Add two columns to the `trips` table:
+
+```sql
+ALTER TABLE public.trips
+  ADD COLUMN IF NOT EXISTS chat_mode text NOT NULL DEFAULT 'broadcasts'
+    CHECK (chat_mode IN ('broadcasts', 'admin_only', 'everyone')),
+  ADD COLUMN IF NOT EXISTS media_upload_mode text NOT NULL DEFAULT 'admin_only'
+    CHECK (media_upload_mode IN ('admin_only', 'everyone'));
 ```
-admin, agenda, calendar, chat, lineup, media, polls, tasks
+
+No new tables needed. These columns store per-event permission settings. RLS on `trips` already restricts updates to admins/creators.
+
+---
+
+## Part 3: Admin Dashboard UI Redesign
+
+### `src/components/events/EventAdminTab.tsx` -- full rewrite of Row 1
+
+**Before (3 columns):**
+```
+[Admin Dashboard] [Event Visibility] [Permissions (Coming Soon)]
 ```
 
-### Files modified
+**After (2 columns):**
+```
+[Admin Dashboard + Visibility toggle] [removed]
+```
 
-**`src/hooks/useFeatureToggle.ts`**
-- Add `'admin'` to `EVENT_FEATURES` array (first position)
-- Add `showAdmin: enabledFeatures.includes('admin')` to return object
+Changes:
+- Remove the center "Event Visibility" card and right "Permissions" card entirely
+- Move Visibility into the Admin Dashboard header row as a compact segmented control or labeled switch showing "Public" / "Private"
+- Microcopy below: "Anyone with the link can join." or "Join requests required."
+- No truncation issues since text is much shorter
 
-**`src/lib/tabParity.ts`**
-- Update `EVENT_PARITY_ROW_CLASS` to 8 columns (was 7)
-- Update `EVENT_PARITY_HEADER_SPAN_CLASS` to `md:col-span-7` (was 6)
-- Update `EVENT_PARITY_COL_START` to include `admin: 'md:col-start-1'` and shift all others by 1
+### Tabs card -- add gear icons for Chat and Media
 
-**`src/components/events/EventDetailContent.tsx`** (desktop)
-- Import `Shield` icon from lucide-react
-- Lazy-load new `EventAdminTab` component
-- Add `admin` tab to the tabs array (first position, enabled only for organizers via `isOrganizer`)
-- Add `case 'admin'` to `renderTabContent()` switch
-- Reorder tabs: admin, agenda, calendar, chat, lineup, media, polls, tasks
+In the tab list (Row 2 left card), add a small `Settings2` (gear) icon button on the right side of the Chat and Media rows, next to their toggle switches.
 
-**`src/components/mobile/MobileTripTabs.tsx`** (mobile)
-- Import `Shield` icon
-- Lazy-load `EventAdminTab`
-- Add `admin` tab to event variant in `getTabsForVariant()` (first position, enabled for event admins)
-- Add `case 'admin'` to `renderTabContent()` switch
-- Reorder event tabs to match new order
+Clicking the gear opens a `Dialog` modal:
 
-**`src/pages/EventDetail.tsx`** + **`src/pages/MobileEventDetail.tsx`**
-- Change default `activeTab` from `'chat'` to `'admin'` for organizers (or keep `'agenda'` for attendees -- will default to `'agenda'` since admin tab is organizer-only)
+**Chat gear modal:**
+- Title: "Chat permissions"
+- 3 radio options with descriptions (as specified)
+- Save / Cancel buttons
+- Default: "broadcasts"
 
----
+**Media gear modal:**
+- Title: "Media upload permissions"
+- 2 radio options with descriptions (as specified)
+- Default: "admin_only"
 
-## Part 3: Event Admin Dashboard Component
+### `src/hooks/useEventAdmin.ts` -- extend
 
-### New file: `src/components/events/EventAdminTab.tsx`
-
-A clean, card-based admin dashboard with four sections:
-
-**Section 1: Event Visibility**
-- Toggle between Public / Private
-- Public: "Anyone with the link can join instantly"
-- Private: "Join requests must be approved by an organizer"
-- Reads/writes `trips.privacy_mode` column (already exists: `'standard'` maps to public, `'high'` maps to private)
-
-**Section 2: Tab Toggles**
-- List of toggleable tabs: Agenda (always on, disabled toggle), Calendar, Chat, Line-up, Media, Polls, Tasks
-- Each row: icon + label + Switch toggle
-- Reads/writes `trips.enabled_features` array column (already exists in DB)
-- `'agenda'` is always included and cannot be toggled off
-
-**Section 3: Attendees and Join Requests**
-- Shows attendee count + scrollable list of current members (from `trip_members`)
-- If private mode: shows pending join requests from `trip_join_requests` with Approve / Deny buttons
-- Reuses existing `useJoinRequests` hook and `approve_join_request` / `dismiss_join_request` DB functions
-
-**Section 4: Permissions (placeholder)**
-- Static rows showing future permission controls:
-  - "Chat mode: Broadcast-only (Free) / Full chat (Pro)"
-  - "Media uploads: Admin-only (Free) / Admin + Allowed attendees (Pro)"
-- Grayed out with "Coming Soon" badge (visible only to organizers, not standard users per production-ui-visibility-policy -- this is fine since the entire Admin tab is organizer-only)
-
-### Data model
-No new tables needed. Everything maps to existing infrastructure:
-
-| Feature | Existing DB Column/Table |
-|---------|------------------------|
-| Visibility | `trips.privacy_mode` ('standard' = public, 'high' = private) |
-| Tab toggles | `trips.enabled_features` (string array) |
-| Attendees | `trip_members` table |
-| Join requests | `trip_join_requests` table |
-| Organizer check | `trip_admins` table + `useEventPermissions` hook |
+- Fetch `chat_mode` and `media_upload_mode` from the trips query (add to select)
+- Add `chatMode` and `mediaUploadMode` to return values
+- Add `setChatMode(mode)` and `setMediaUploadMode(mode)` mutation functions with optimistic updates
 
 ---
 
-## Part 4: New Hook for Admin Tab Data
+## Part 4: Server-Side Enforcement (future edge function updates)
 
-### New file: `src/hooks/useEventAdmin.ts`
-
-Encapsulates all admin dashboard state:
-- Fetches `trips.privacy_mode` and `trips.enabled_features`
-- Provides `toggleVisibility()` mutation (updates `trips.privacy_mode`)
-- Provides `toggleFeature(featureId)` mutation (updates `trips.enabled_features` array)
-- Fetches `trip_members` list with profile data
-- Delegates join request logic to existing `useJoinRequests` hook
+The plan adds DB columns with CHECK constraints. Server-side enforcement of chat/media modes in the actual chat and media upload flows will be addressed in a follow-up since those flows live in separate components and edge functions. The DB columns + admin UI are the foundation.
 
 ---
 
-## Implementation Order
-
-1. Fix build errors in `demo-concierge` and `dispatch-notification-deliveries` (type annotations)
-2. Update `useFeatureToggle.ts` and `tabParity.ts` for 8-column event layout
-3. Create `useEventAdmin.ts` hook
-4. Create `EventAdminTab.tsx` component
-5. Update `EventDetailContent.tsx` (desktop tabs)
-6. Update `MobileTripTabs.tsx` (mobile tabs)
-7. Deploy updated edge functions
-
-## Files Summary
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `supabase/functions/demo-concierge/index.ts` | Add `any` type to `.map` / `.filter` callbacks |
-| `supabase/functions/dispatch-notification-deliveries/index.ts` | Change `markDelivery` and `logDeliveryAttempt` param types to `any` |
-| `src/hooks/useFeatureToggle.ts` | Add `admin` to `EVENT_FEATURES`, add `showAdmin` |
-| `src/lib/tabParity.ts` | Update event parity to 8 columns with admin |
-| `src/hooks/useEventAdmin.ts` | **NEW** -- admin dashboard data hook |
-| `src/components/events/EventAdminTab.tsx` | **NEW** -- admin dashboard UI |
-| `src/components/events/EventDetailContent.tsx` | Add admin tab, reorder tabs |
-| `src/components/mobile/MobileTripTabs.tsx` | Add admin tab, reorder event tabs |
+| `supabase/functions/gemini-voice-session/index.ts` | Add `any` type to `.some` callback |
+| `supabase/functions/generate-embeddings/index.ts` | Type `Map` generic |
+| `src/utils/paidAccess.ts` | Add `'cancelled'` to `PaidAccessStatus` |
+| `src/components/events/LineupImportModal.tsx` | Fix narrowed type comparisons |
+| `src/hooks/useEventLineup.ts` | Add tuple types to Map constructor + cast values |
+| `src/utils/__tests__/lineupImportParsers.test.ts` | Fix mock return type |
+| DB migration | Add `chat_mode` + `media_upload_mode` columns to `trips` |
+| `src/hooks/useEventAdmin.ts` | Fetch + mutate chat_mode and media_upload_mode |
+| `src/components/events/EventAdminTab.tsx` | Redesign layout: move visibility, remove permissions card, add gear modals |
+
+## Implementation Order
+
+1. Fix all 13 build errors across 7 files
+2. Run DB migration (add 2 columns)
+3. Extend `useEventAdmin` hook
+4. Rewrite `EventAdminTab` UI
+5. Deploy updated edge functions
