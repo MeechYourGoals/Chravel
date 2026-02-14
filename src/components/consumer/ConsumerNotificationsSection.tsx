@@ -13,6 +13,7 @@ import {
   MapPin,
   X,
   Phone,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -23,6 +24,7 @@ import { useToast } from '../../hooks/use-toast';
 import { useNativePush } from '@/hooks/useNativePush';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { Button } from '../ui/button';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 
 interface NotificationCategory {
   key: string;
@@ -96,6 +98,7 @@ export const ConsumerNotificationsSection = () => {
   const { toast } = useToast();
   const { isNative: isNativePush, registerForPush, unregisterFromPush } = useNativePush();
   const { showDemoContent } = useDemoMode();
+  const { tier, isSuperAdmin } = useConsumerSubscription();
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingPush, setIsUpdatingPush] = useState(false);
 
@@ -116,8 +119,8 @@ export const ConsumerNotificationsSection = () => {
     polls: true,
     joinRequests: true,
     basecampUpdates: true,
-    email: true,
-    push: false,
+    email: false,
+    push: true,
     sms: false,
     quietHours: false,
   });
@@ -126,6 +129,9 @@ export const ConsumerNotificationsSection = () => {
     start: '22:00',
     end: '08:00',
   });
+
+  const smsDeliveryEligible =
+    isSuperAdmin || tier === 'frequent-chraveler' || tier.startsWith('pro-');
 
   // Phone number validation helper
   const validatePhoneNumber = useCallback((phone: string): boolean => {
@@ -166,8 +172,8 @@ export const ConsumerNotificationsSection = () => {
           polls: prefs.polls ?? true,
           joinRequests: prefs.join_requests ?? true,
           basecampUpdates: prefs.basecamp_updates ?? true,
-          email: prefs.email_enabled ?? true,
-          push: prefs.push_enabled ?? false,
+          email: prefs.email_enabled ?? false,
+          push: prefs.push_enabled ?? true,
           sms: prefs.sms_enabled ?? false,
           quietHours: prefs.quiet_hours_enabled ?? false,
         });
@@ -188,8 +194,32 @@ export const ConsumerNotificationsSection = () => {
     loadPreferences();
   }, [user?.id]);
 
+  // Auto-disable SMS when entitlement is lost.
+  useEffect(() => {
+    const disableSmsIfIneligible = async () => {
+      if (!user?.id || showDemoContent || smsDeliveryEligible || !notificationSettings.sms) return;
+
+      setNotificationSettings(prev => ({ ...prev, sms: false }));
+      try {
+        await userPreferencesService.updateNotificationPreferences(user.id, { sms_enabled: false });
+      } catch (error) {
+        console.error('Failed to auto-disable SMS for ineligible user:', error);
+      }
+    };
+
+    void disableSmsIfIneligible();
+  }, [notificationSettings.sms, showDemoContent, smsDeliveryEligible, user?.id]);
+
   const handleNotificationToggle = async (setting: string) => {
     const newValue = !notificationSettings[setting];
+
+    if (setting === 'sms' && !smsDeliveryEligible) {
+      toast({
+        title: 'Upgrade required',
+        description: 'SMS notifications are available on Frequent Chraveler and Pro plans.',
+      });
+      return;
+    }
 
     // In demo mode, just update local state without API calls
     if (showDemoContent) {
@@ -290,6 +320,11 @@ export const ConsumerNotificationsSection = () => {
   // Handle SMS phone number submission
   const handleSmsPhoneSubmit = async () => {
     if (!user?.id) return;
+
+    if (!smsDeliveryEligible) {
+      setPhoneError('Upgrade required to enable SMS notifications.');
+      return;
+    }
 
     // Validate phone number
     if (!validatePhoneNumber(smsPhoneInput)) {
@@ -428,13 +463,18 @@ export const ConsumerNotificationsSection = () => {
             <div className="flex items-center gap-3">
               <Smartphone size={16} className="text-green-400" />
               <div>
-                <span className="text-white font-medium">SMS Notifications</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-medium">SMS Notifications</span>
+                  {!smsDeliveryEligible && <Lock size={12} className="text-amber-400" />}
+                </div>
                 <p className="text-sm text-gray-400">
-                  {smsPhoneNumber
+                  {!smsDeliveryEligible
+                    ? 'Upgrade required for SMS delivery'
+                    : smsPhoneNumber
                     ? `Texts sent to ${formatPhoneNumber(smsPhoneNumber)}`
                     : 'Get text messages for urgent updates'}
                 </p>
-                {smsPhoneNumber && notificationSettings.sms && (
+                {smsPhoneNumber && notificationSettings.sms && smsDeliveryEligible && (
                   <button
                     onClick={() => {
                       setSmsPhoneInput(smsPhoneNumber);
@@ -446,9 +486,12 @@ export const ConsumerNotificationsSection = () => {
                     Change number
                   </button>
                 )}
+                {!smsDeliveryEligible && (
+                  <p className="text-xs text-amber-400 mt-1">Upgrade to Frequent Chraveler to unlock SMS</p>
+                )}
               </div>
             </div>
-            {renderToggle('sms', notificationSettings.sms)}
+            {renderToggle('sms', notificationSettings.sms, !smsDeliveryEligible)}
           </div>
         </div>
       </div>

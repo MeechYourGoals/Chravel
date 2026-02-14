@@ -1,14 +1,16 @@
 /**
  * SMS Message Templates
- * 
- * Short, actionable SMS messages under 160 characters with deep links.
- * Branded with [ChravelApp] prefix and relevant emoji.
+ *
+ * Global format rules:
+ * - Prefix with "Chravel:"
+ * - Keep under ~160 chars when possible
+ * - Include trip/event context
+ * - Keep message notifications privacy-safe
  */
 
-const APP_BASE_URL = 'https://chravel.app';
+export const SMS_BRAND_PREFIX = 'Chravel:';
 
 export interface SmsTemplateData {
-  tripId?: string;
   tripName?: string;
   senderName?: string;
   amount?: number | string;
@@ -17,84 +19,110 @@ export interface SmsTemplateData {
   eventName?: string;
   eventTime?: string;
   preview?: string;
+  taskTitle?: string;
+  pollQuestion?: string;
 }
 
-export type SmsCategory = 
+export type SmsCategory =
   | 'basecamp_updates'
   | 'join_requests'
   | 'payments'
   | 'broadcasts'
-  | 'calendar_events';
+  | 'calendar_events'
+  | 'tasks'
+  | 'polls'
+  | 'chat_messages';
 
-/**
- * Generate a deep link to a specific trip tab
- */
-function tripLink(tripId: string, tab?: string): string {
-  const path = tab ? `/trip/${tripId}/${tab}` : `/trip/${tripId}`;
-  return `${APP_BASE_URL}${path}`;
-}
-
-/**
- * Truncate text to fit within character limit while preserving meaning
- */
-function truncate(text: string, maxLength: number): string {
+export function truncate(text: string, maxLength: number): string {
+  if (!text) return '';
   if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength - 3) + '...';
+  return `${text.substring(0, Math.max(maxLength - 3, 1))}...`;
 }
 
-/**
- * Generate SMS message based on notification category
- */
-export function generateSmsMessage(
-  category: SmsCategory,
-  data: SmsTemplateData
+export function formatTimeForTimezone(
+  isoTime: string | undefined,
+  timezone: string = 'America/Los_Angeles',
 ): string {
-  const { tripId = '', tripName = 'your trip', senderName = 'Someone' } = data;
-  
-  switch (category) {
-    case 'basecamp_updates': {
-      const location = data.location ? truncate(data.location, 40) : 'a new address';
-      const link = tripLink(tripId, 'places');
-      return `[ChravelApp] 📍 Basecamp changed for ${truncate(tripName, 20)}: ${location}. View: ${link}`;
+  if (!isoTime) return 'soon';
+
+  try {
+    const date = new Date(isoTime);
+    if (Number.isNaN(date.getTime())) {
+      return truncate(isoTime, 18);
     }
-    
-    case 'join_requests': {
-      const link = tripLink(tripId, 'members');
-      return `[ChravelApp] 👤 ${truncate(senderName, 15)} wants to join ${truncate(tripName, 25)}. Review: ${link}`;
-    }
-    
-    case 'payments': {
-      const amount = data.amount || '0';
-      const currency = data.currency || 'USD';
-      const symbol = currency === 'USD' ? '$' : currency;
-      const link = tripLink(tripId, 'payments');
-      return `[ChravelApp] 💰 ${truncate(senderName, 12)} requested ${symbol}${amount} for ${truncate(tripName, 20)}. Pay: ${link}`;
-    }
-    
-    case 'broadcasts': {
-      const preview = data.preview ? truncate(data.preview, 60) : 'Important update';
-      const link = tripLink(tripId, 'chat');
-      return `[ChravelApp] 🚨 ${truncate(tripName, 15)}: ${preview} ${link}`;
-    }
-    
-    case 'calendar_events': {
-      const eventName = data.eventName ? truncate(data.eventName, 25) : 'An event';
-      const timeInfo = data.eventTime ? ` at ${data.eventTime}` : ' soon';
-      const link = tripLink(tripId, 'calendar');
-      return `[ChravelApp] 🗓️ ${eventName}${timeInfo} in ${truncate(tripName, 15)}. Details: ${link}`;
-    }
-    
-    default: {
-      // Generic fallback
-      const link = tripLink(tripId);
-      return `[ChravelApp] New update in ${truncate(tripName, 30)}. View: ${link}`;
-    }
+
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date);
+  } catch {
+    return truncate(isoTime, 18);
   }
 }
 
-/**
- * Check if a category is SMS-eligible
- */
+export function generateSmsMessage(category: SmsCategory, data: SmsTemplateData): string {
+  const tripName = truncate(data.tripName || 'your trip', 28);
+  const senderName = truncate(data.senderName || 'Someone', 20);
+
+  switch (category) {
+    case 'broadcasts': {
+      const preview = truncate(data.preview || 'Important update', 50);
+      return `${SMS_BRAND_PREFIX} Broadcast in ${tripName} from ${senderName}: "${preview}"`;
+    }
+
+    case 'calendar_events': {
+      const eventTitle = truncate(data.eventName || 'Upcoming event', 32);
+      const atTime = truncate(data.eventTime || 'soon', 20);
+      return `${SMS_BRAND_PREFIX} Reminder - ${eventTitle} in ${tripName} at ${atTime}. Tap to open.`;
+    }
+
+    case 'payments': {
+      const amount = data.amount ?? '0';
+      const currency = data.currency || '$';
+      const value = typeof amount === 'number' ? amount.toFixed(2).replace(/\.00$/, '') : amount;
+      const normalizedCurrency = currency === 'USD' ? '$' : `${currency} `;
+      return `${SMS_BRAND_PREFIX} Payment - ${senderName} requested ${normalizedCurrency}${value} for ${tripName}.`;
+    }
+
+    case 'tasks': {
+      const taskTitle = truncate(data.taskTitle || 'Task', 40);
+      return `${SMS_BRAND_PREFIX} Task assigned - "${taskTitle}" in ${tripName}.`;
+    }
+
+    case 'polls': {
+      const question = truncate(data.pollQuestion || 'New poll', 45);
+      return `${SMS_BRAND_PREFIX} New poll in ${tripName}: "${question}"`;
+    }
+
+    case 'join_requests': {
+      return `${SMS_BRAND_PREFIX} Join request - ${senderName} wants to join ${tripName}.`;
+    }
+
+    case 'basecamp_updates': {
+      const location = truncate(data.location || 'new location', 45);
+      return `${SMS_BRAND_PREFIX} Basecamp updated for ${tripName}: ${location}.`;
+    }
+
+    case 'chat_messages': {
+      return `${SMS_BRAND_PREFIX} New message in ${tripName} from ${senderName}.`;
+    }
+
+    default:
+      return `${SMS_BRAND_PREFIX} New update in ${tripName}. Tap to open.`;
+  }
+}
+
 export function isSmsEligibleCategory(category: string): category is SmsCategory {
-  return ['basecamp_updates', 'join_requests', 'payments', 'broadcasts', 'calendar_events'].includes(category);
+  return [
+    'basecamp_updates',
+    'join_requests',
+    'payments',
+    'broadcasts',
+    'calendar_events',
+    'tasks',
+    'polls',
+    'chat_messages',
+  ].includes(category);
 }

@@ -13,6 +13,41 @@ const supabase = createClient(
 );
 
 const SMS_DAILY_LIMIT = 10;
+const SMS_ENTITLED_PLANS = new Set([
+  'frequent-chraveler',
+  'pro-starter',
+  'pro-growth',
+  'pro-enterprise',
+]);
+
+async function isSmsEntitled(userId: string): Promise<boolean> {
+  // Super-admin / enterprise admin bypass via role
+  const { data: adminRole } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .in('role', ['enterprise_admin', 'super_admin'])
+    .maybeSingle();
+
+  if (adminRole) {
+    return true;
+  }
+
+  const { data: entitlement } = await supabase
+    .from('user_entitlements')
+    .select('plan, status, current_period_end')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!entitlement) return false;
+  if (!['active', 'trialing'].includes((entitlement.status || '').toLowerCase())) return false;
+  if (!SMS_ENTITLED_PLANS.has((entitlement.plan || '').toLowerCase())) return false;
+  if (entitlement.current_period_end && new Date(entitlement.current_period_end) <= new Date()) return false;
+
+  return true;
+}
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -151,7 +186,7 @@ async function sendEmailNotification(
     ],
     from: {
       email: Deno.env.get('SENDGRID_FROM_EMAIL') || 'noreply@chravel.app',
-      name: 'ChravelApp',
+      name: 'Chravel',
     },
     content: [
       {
@@ -226,6 +261,83 @@ async function sendSMSNotification(
     throw new Error('Twilio credentials not configured');
   }
 
+  // Enforce premium gating on the server.
+  const entitled = await isSmsEntitled(userId);
+  if (!entitled) {
+    await supabase
+      .from('notification_preferences')
+      .update({ sms_enabled: false, updated_at: new Date().toISOString() })
+      .eq('user_id', userId);
+
+    await supabase.from('notification_logs').insert({
+      user_id: userId,
+      type: 'sms',
+      title: 'SMS Skipped',
+      body: message || 'N/A',
+      recipient: phoneNumber || null,
+      status: 'failed',
+      error_message: 'sms_not_entitled',
+      created_at: new Date().toISOString(),
+    });
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'sms_not_entitled',
+        message: 'Upgrade required for SMS notifications',
+      }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Always source destination phone from server-side preferences/opt-in records.
+  const [{ data: prefs }, { data: smsOptIn }] = await Promise.all([
+    supabase
+      .from('notification_preferences')
+      .select('sms_enabled, sms_phone_number')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('sms_opt_in')
+      .select('phone_e164, verified, opted_in')
+      .eq('user_id', userId)
+      .maybeSingle(),
+  ]);
+
+  if (!prefs?.sms_enabled) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'sms_disabled',
+        message: 'SMS notifications are disabled for this user',
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  if (smsOptIn && (!smsOptIn.opted_in || !smsOptIn.verified)) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'sms_opt_in_required',
+        message: 'SMS opt-in and verification required',
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const targetPhone = smsOptIn?.phone_e164 || prefs?.sms_phone_number || phoneNumber;
+  if (!targetPhone) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'missing_phone',
+        message: 'No verified SMS phone number found',
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
   // Check rate limit
   const { data: rateLimitData, error: rateLimitError } = await supabase.rpc(
     'check_sms_rate_limit',
@@ -245,7 +357,7 @@ async function sendSMSNotification(
       type: 'sms',
       title: 'SMS Rate Limited',
       body: message || 'N/A',
-      recipient: phoneNumber,
+      recipient: targetPhone,
       status: 'rate_limited',
       error_message: `Daily limit of ${SMS_DAILY_LIMIT} SMS exceeded. Resets at ${rateLimit.reset_at}`,
       created_at: new Date().toISOString(),
@@ -267,12 +379,12 @@ async function sendSMSNotification(
     finalMessage = generateSmsMessage(category, templateData);
     console.log(`[SMS] Generated template for ${category}: ${finalMessage.substring(0, 50)}...`);
   } else if (!finalMessage) {
-    finalMessage = '[ChravelApp] You have a new notification. Check the app for details.';
+    finalMessage = 'Chravel: You have a new update. Open the app for details.';
   }
 
   const credentials = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
 
-  console.log(`[SMS] Sending to ${phoneNumber.substring(0, 6)}*** via Twilio`);
+  console.log(`[SMS] Sending to ${targetPhone.substring(0, 6)}*** via Twilio`);
 
   const response = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
@@ -284,7 +396,7 @@ async function sendSMSNotification(
       },
       body: new URLSearchParams({
         From: twilioPhoneNumber,
-        To: phoneNumber,
+        To: targetPhone,
         Body: finalMessage,
       }),
     },
@@ -300,7 +412,7 @@ async function sendSMSNotification(
       type: 'sms',
       title: 'SMS Failed',
       body: finalMessage,
-      recipient: phoneNumber,
+      recipient: targetPhone,
       status: 'failed',
       error_message: `Twilio error (${response.status}): ${responseText.substring(0, 200)}`,
       created_at: new Date().toISOString(),
@@ -319,7 +431,7 @@ async function sendSMSNotification(
     type: 'sms',
     title: 'SMS Notification',
     body: finalMessage,
-    recipient: phoneNumber,
+    recipient: targetPhone,
     external_id: result.sid,
     status: 'sent',
     data: { category, twilioStatus: result.status },

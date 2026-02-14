@@ -73,11 +73,14 @@ export const SMS_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
   'basecamp_updates', // Location/basecamp changes
   'calendar_events',  // Event updates and reminders
   'join_requests',    // New member join requests (for organizers)
+  'tasks',            // Assigned task notifications
+  'polls',            // New poll notifications
+  'chat_messages',    // Privacy-safe new message alerts
 ];
 
 const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   push_enabled: true,
-  email_enabled: true,
+  email_enabled: false,
   sms_enabled: false,
   chat_messages: false,
   mentions_only: true,
