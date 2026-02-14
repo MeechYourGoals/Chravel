@@ -1,5 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -122,6 +128,7 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
             <Sparkles className="w-5 h-5 text-primary" />
             Smart Import Line-up
           </DialogTitle>
+          <DialogDescription>Import names only from a lineup URL or pasted text.</DialogDescription>
         </DialogHeader>
 
         {state === 'idle' && (
