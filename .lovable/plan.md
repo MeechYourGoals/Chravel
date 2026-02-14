@@ -1,73 +1,135 @@
 
-# Fix Share Link Issues: Remove Auto-Redirect, Remove "Powered by," Fix Build Errors
+# Add Admin Tab to Events + Admin Dashboard + Fix Build Errors
 
-## Root Cause: Why Wrong Trip Appeared
+## Overview
 
-The `generate-trip-preview` edge function (line 390) includes:
-```
-<meta http-equiv="refresh" content="5;url=...">
-```
-
-This auto-redirects after 5 seconds to `{appBaseUrl}/trip/{tripId}/preview`. The `appBaseUrl` is determined by the `SITE_URL` env var, which in the Lovable Cloud environment resolves to the preview domain (not `chravel.app`). When the redirect lands on the Lovable preview SPA, the `TripPreview.tsx` component has its own 5-second safety timeout (lines 38-47) that forces loading to complete even if data hasn't arrived. If the `get-trip-preview` edge function is slow or the route resolution falls through to demo data, you see the wrong trip. Removing the auto-redirect eliminates this entirely.
+This plan adds an "Admin" tab as the first tab in Events, reorders the remaining tabs alphabetically, builds out the Admin dashboard with real DB-backed toggles, and fixes the 25+ build errors in `dispatch-notification-deliveries` and `demo-concierge`.
 
 ---
 
-## Changes
+## Part 1: Fix Build Errors (2 files)
 
-### 1. Remove "Powered by ChravelApp" from all preview cards
+### A. `supabase/functions/demo-concierge/index.ts` (2 errors)
+- Lines 119 and 131: Add explicit `(item: any)` type annotations to `.map()` and `.filter()` callbacks.
 
-**`supabase/functions/generate-trip-preview/index.ts` (line 487)**
-- Remove `<div class="logo">Powered by ChravelApp</div>`
-- Keep the CTA button "View Trip on ChravelApp" (this is the manual click action)
+### B. `supabase/functions/dispatch-notification-deliveries/index.ts` (23 errors)
+All errors stem from `ReturnType<typeof createClient>` resolving to a strict generic that causes `never` inference for table operations.
 
-**`supabase/functions/generate-invite-preview/index.ts` (line 501)**
-- Remove `<div class="logo">Powered by ChravelApp</div>`
-
-**`src/pages/DemoTripGate.tsx` (lines 226-228)**
-- Remove the "Powered by ChravelApp" text from the demo gate footer
-
-### 2. Remove auto-redirect (the 5-second meta refresh)
-
-**`supabase/functions/generate-trip-preview/index.ts` (line 389-390)**
-- Delete the `<meta http-equiv="refresh" ...>` tag entirely
-- Users must click "View Trip on ChravelApp" to navigate
-
-**`supabase/functions/generate-invite-preview/index.ts` (lines 392-393 and 600)**
-- Delete both `<meta http-equiv="refresh" ...>` tags
-- Delete the "Redirecting you to ChravelApp in 5 seconds..." text (line 499)
-- Users must click "Join This Trip" to navigate
-
-### 3. Fix 5 remaining build errors
-
-**`supabase/functions/demo-concierge/index.ts` (lines 119, 131)**
-- Add explicit type annotations: `.map((item: any) => ...)` and `.filter((item: any) => ...)`
-
-**`supabase/functions/enhanced-ai-parser/index.ts` (line 289)**
-- The `messages` array has `role: string` but `runParserModel` expects strict literal roles. Cast with `as any` at the call site.
-
-**`supabase/functions/gemini-voice-session/index.ts` (line 65)**
-- Add explicit type: `.some((row: any) => ...)`
-
-**`supabase/functions/generate-embeddings/index.ts` (line 251)**
-- The `doc` variable is typed as `{}` because the `Map` generic isn't inferred. Change `new Map(docs.map(...))` to `new Map<string, any>(docs.map(...))`.
+**Fix:** Change the `supabase` parameter type in `markDelivery` (line 178) and `logDeliveryAttempt` (line 189) from `ReturnType<typeof createClient>` to `any`. This is safe because both functions only call standard `.from().update()` and `.from().insert()` methods. This single change at the function signature level resolves all 23 downstream call-site errors without touching any other lines.
 
 ---
 
-## Files Modified
+## Part 2: Add Admin Tab + Reorder Events Tabs
 
-| File | Change |
-|------|--------|
-| `supabase/functions/generate-trip-preview/index.ts` | Remove meta refresh redirect (line 390) and "Powered by" (line 487) |
-| `supabase/functions/generate-invite-preview/index.ts` | Remove both meta refresh tags (lines 393, 600), "Redirecting..." text (line 499), and "Powered by" (line 501) |
-| `src/pages/DemoTripGate.tsx` | Remove "Powered by ChravelApp" (lines 226-228) |
-| `supabase/functions/demo-concierge/index.ts` | Add `any` type annotations to `.map` and `.filter` callbacks |
-| `supabase/functions/enhanced-ai-parser/index.ts` | Cast messages to `as any` at `runParserModel` call |
-| `supabase/functions/gemini-voice-session/index.ts` | Add `any` type to `.some` callback |
-| `supabase/functions/generate-embeddings/index.ts` | Type the `Map` generic as `Map<string, any>` |
+### New tab order (alphabetical after Admin)
+```
+admin, agenda, calendar, chat, lineup, media, polls, tasks
+```
+
+### Files modified
+
+**`src/hooks/useFeatureToggle.ts`**
+- Add `'admin'` to `EVENT_FEATURES` array (first position)
+- Add `showAdmin: enabledFeatures.includes('admin')` to return object
+
+**`src/lib/tabParity.ts`**
+- Update `EVENT_PARITY_ROW_CLASS` to 8 columns (was 7)
+- Update `EVENT_PARITY_HEADER_SPAN_CLASS` to `md:col-span-7` (was 6)
+- Update `EVENT_PARITY_COL_START` to include `admin: 'md:col-start-1'` and shift all others by 1
+
+**`src/components/events/EventDetailContent.tsx`** (desktop)
+- Import `Shield` icon from lucide-react
+- Lazy-load new `EventAdminTab` component
+- Add `admin` tab to the tabs array (first position, enabled only for organizers via `isOrganizer`)
+- Add `case 'admin'` to `renderTabContent()` switch
+- Reorder tabs: admin, agenda, calendar, chat, lineup, media, polls, tasks
+
+**`src/components/mobile/MobileTripTabs.tsx`** (mobile)
+- Import `Shield` icon
+- Lazy-load `EventAdminTab`
+- Add `admin` tab to event variant in `getTabsForVariant()` (first position, enabled for event admins)
+- Add `case 'admin'` to `renderTabContent()` switch
+- Reorder event tabs to match new order
+
+**`src/pages/EventDetail.tsx`** + **`src/pages/MobileEventDetail.tsx`**
+- Change default `activeTab` from `'chat'` to `'admin'` for organizers (or keep `'agenda'` for attendees -- will default to `'agenda'` since admin tab is organizer-only)
+
+---
+
+## Part 3: Event Admin Dashboard Component
+
+### New file: `src/components/events/EventAdminTab.tsx`
+
+A clean, card-based admin dashboard with four sections:
+
+**Section 1: Event Visibility**
+- Toggle between Public / Private
+- Public: "Anyone with the link can join instantly"
+- Private: "Join requests must be approved by an organizer"
+- Reads/writes `trips.privacy_mode` column (already exists: `'standard'` maps to public, `'high'` maps to private)
+
+**Section 2: Tab Toggles**
+- List of toggleable tabs: Agenda (always on, disabled toggle), Calendar, Chat, Line-up, Media, Polls, Tasks
+- Each row: icon + label + Switch toggle
+- Reads/writes `trips.enabled_features` array column (already exists in DB)
+- `'agenda'` is always included and cannot be toggled off
+
+**Section 3: Attendees and Join Requests**
+- Shows attendee count + scrollable list of current members (from `trip_members`)
+- If private mode: shows pending join requests from `trip_join_requests` with Approve / Deny buttons
+- Reuses existing `useJoinRequests` hook and `approve_join_request` / `dismiss_join_request` DB functions
+
+**Section 4: Permissions (placeholder)**
+- Static rows showing future permission controls:
+  - "Chat mode: Broadcast-only (Free) / Full chat (Pro)"
+  - "Media uploads: Admin-only (Free) / Admin + Allowed attendees (Pro)"
+- Grayed out with "Coming Soon" badge (visible only to organizers, not standard users per production-ui-visibility-policy -- this is fine since the entire Admin tab is organizer-only)
+
+### Data model
+No new tables needed. Everything maps to existing infrastructure:
+
+| Feature | Existing DB Column/Table |
+|---------|------------------------|
+| Visibility | `trips.privacy_mode` ('standard' = public, 'high' = private) |
+| Tab toggles | `trips.enabled_features` (string array) |
+| Attendees | `trip_members` table |
+| Join requests | `trip_join_requests` table |
+| Organizer check | `trip_admins` table + `useEventPermissions` hook |
+
+---
+
+## Part 4: New Hook for Admin Tab Data
+
+### New file: `src/hooks/useEventAdmin.ts`
+
+Encapsulates all admin dashboard state:
+- Fetches `trips.privacy_mode` and `trips.enabled_features`
+- Provides `toggleVisibility()` mutation (updates `trips.privacy_mode`)
+- Provides `toggleFeature(featureId)` mutation (updates `trips.enabled_features` array)
+- Fetches `trip_members` list with profile data
+- Delegates join request logic to existing `useJoinRequests` hook
+
+---
 
 ## Implementation Order
 
-1. Fix all 5 build errors (quick type fixes)
-2. Remove "Powered by ChravelApp" from all 3 locations
-3. Remove auto-redirect meta tags from both preview edge functions
-4. Deploy updated edge functions
+1. Fix build errors in `demo-concierge` and `dispatch-notification-deliveries` (type annotations)
+2. Update `useFeatureToggle.ts` and `tabParity.ts` for 8-column event layout
+3. Create `useEventAdmin.ts` hook
+4. Create `EventAdminTab.tsx` component
+5. Update `EventDetailContent.tsx` (desktop tabs)
+6. Update `MobileTripTabs.tsx` (mobile tabs)
+7. Deploy updated edge functions
+
+## Files Summary
+
+| File | Change |
+|------|--------|
+| `supabase/functions/demo-concierge/index.ts` | Add `any` type to `.map` / `.filter` callbacks |
+| `supabase/functions/dispatch-notification-deliveries/index.ts` | Change `markDelivery` and `logDeliveryAttempt` param types to `any` |
+| `src/hooks/useFeatureToggle.ts` | Add `admin` to `EVENT_FEATURES`, add `showAdmin` |
+| `src/lib/tabParity.ts` | Update event parity to 8 columns with admin |
+| `src/hooks/useEventAdmin.ts` | **NEW** -- admin dashboard data hook |
+| `src/components/events/EventAdminTab.tsx` | **NEW** -- admin dashboard UI |
+| `src/components/events/EventDetailContent.tsx` | Add admin tab, reorder tabs |
+| `src/components/mobile/MobileTripTabs.tsx` | Add admin tab, reorder event tabs |
