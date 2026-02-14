@@ -236,7 +236,7 @@ async function fetchSourceData(
       return [];
     }
 
-    const docsById = new Map(docs.map((doc: any) => [doc.id, doc]));
+    const docsById = new Map<string, any>(docs.map((doc: any) => [doc.id, doc]));
     return chunks.map((chunk: any) => {
       const doc = docsById.get(chunk.doc_id);
       return {

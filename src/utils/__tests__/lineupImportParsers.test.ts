@@ -2,10 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { parseLineupText, parseLineupURL } from '@/utils/lineupImportParsers';
 import { supabase } from '@/integrations/supabase/client';
 
-interface InvokeResult {
-  data: unknown;
-  error: { message: string } | null;
-}
+// Use `as any` for mock return values to bypass strict FunctionsResponse typing
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -28,7 +25,7 @@ describe('lineupImportParsers', () => {
         names_found: 4,
       },
       error: null,
-    } as InvokeResult);
+    } as any);
 
     const result = await parseLineupURL('https://example.com/lineup');
 
@@ -44,7 +41,7 @@ describe('lineupImportParsers', () => {
     vi.mocked(supabase.functions.invoke).mockResolvedValue({
       data: { success: false, error: 'No lineup names found' },
       error: null,
-    } as InvokeResult);
+    } as any);
 
     const result = await parseLineupText('some pasted content');
 
@@ -58,7 +55,7 @@ describe('lineupImportParsers', () => {
     vi.mocked(supabase.functions.invoke).mockResolvedValue({
       data: null,
       error: { message: 'Network timeout' },
-    } as InvokeResult);
+    } as any);
 
     const result = await parseLineupURL('https://example.com');
 
