@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback } from 'react';
-import { Users, Calendar, MessageCircle, Camera, BarChart3, ClipboardList } from 'lucide-react';
+import { Shield, Users, Calendar, MessageCircle, Camera, BarChart3, ClipboardList } from 'lucide-react';
 import { useEventPermissions } from '@/hooks/useEventPermissions';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useEventAgenda } from '@/hooks/useEventAgenda';
@@ -10,6 +10,9 @@ import { TripContext } from '@/types';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
+const EventAdminTab = lazy(() =>
+  import('./EventAdminTab').then(m => ({ default: m.EventAdminTab })),
+);
 const TripChat = lazy(() =>
   import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })),
 );
@@ -84,12 +87,14 @@ export const EventDetailContent = ({
     [addMembersFromAgenda],
   );
 
+  // Tab order: admin (organizer-only), agenda, calendar, chat, lineup, media, polls, tasks
   const tabs = [
+    { id: 'admin', label: 'Admin', icon: Shield, enabled: isOrganizer },
     { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true },
     { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
     { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: eventData.chatEnabled !== false },
-    { id: 'media', label: 'Media', icon: Camera, enabled: eventData.mediaUploadEnabled !== false },
     { id: 'lineup', label: 'Line-up', icon: Users, enabled: true },
+    { id: 'media', label: 'Media', icon: Camera, enabled: eventData.mediaUploadEnabled !== false },
     { id: 'polls', label: 'Polls', icon: BarChart3, enabled: eventData.pollsEnabled !== false },
     { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true },
   ];
@@ -98,6 +103,8 @@ export const EventDetailContent = ({
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'admin':
+        return <EventAdminTab eventId={tripId} />;
       case 'agenda':
         return (
           <AgendaModal

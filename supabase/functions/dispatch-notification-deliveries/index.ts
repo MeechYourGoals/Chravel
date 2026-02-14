@@ -175,7 +175,7 @@ function buildSmsTemplateData(
 }
 
 async function markDelivery(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   deliveryId: string,
   updates: Record<string, unknown>,
 ): Promise<void> {
@@ -186,7 +186,7 @@ async function markDelivery(
 }
 
 async function logDeliveryAttempt(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   params: {
     userId: string;
     channel: DeliveryChannel;

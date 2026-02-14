@@ -116,7 +116,7 @@ serve(async req => {
     const chatHistoryRaw = Array.isArray(body?.chatHistory) ? body.chatHistory : [];
     const chatHistory = chatHistoryRaw
       .slice(-6)
-      .map(item => ({
+      .map((item: any) => ({
         role:
           item?.role === 'assistant'
             ? ('assistant' as const)
@@ -128,7 +128,7 @@ serve(async req => {
             ? item.content.slice(0, 500)
             : JSON.stringify(item?.content ?? '').slice(0, 500),
       }))
-      .filter(item => item.content.length > 0);
+      .filter((item: any) => item.content.length > 0);
 
     const requestedModel =
       typeof body?.config?.model === 'string' ? body.config.model.trim() : 'gemini-3-flash-preview';

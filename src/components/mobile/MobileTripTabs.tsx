@@ -10,6 +10,7 @@ import {
   CreditCard,
   Lock,
   Users,
+  Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFeatureToggle } from '../../hooks/useFeatureToggle';
@@ -61,6 +62,9 @@ const EventTasksTab = lazy(() =>
   import('../events/EventTasksTab').then(m => ({ default: m.EventTasksTab })),
 );
 const TeamTab = lazy(() => import('../pro/TeamTab').then(m => ({ default: m.TeamTab })));
+const EventAdminTab = lazy(() =>
+  import('../events/EventAdminTab').then(m => ({ default: m.EventAdminTab })),
+);
 
 interface MobileTripTabsProps {
   activeTab: string;
@@ -166,11 +170,12 @@ export const MobileTripTabs = ({
     // Event-specific tabs: Agenda, Calendar, Chat, Media, Line-up, Polls, Tasks
     if (variant === 'event') {
       return [
+        { id: 'admin', label: 'Admin', icon: Shield, enabled: isEventAdmin },
         { id: 'agenda', label: 'Agenda', icon: Calendar, enabled: true },
         { id: 'calendar', label: 'Calendar', icon: Calendar, enabled: true },
         { id: 'chat', label: 'Chat', icon: MessageCircle, enabled: features.showChat },
-        { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
         { id: 'lineup', label: 'Line-up', icon: Users, enabled: true },
+        { id: 'media', label: 'Media', icon: Camera, enabled: features.showMedia },
         { id: 'polls', label: 'Polls', icon: BarChart3, enabled: features.showPolls },
         { id: 'tasks', label: 'Tasks', icon: ClipboardList, enabled: true },
       ];
@@ -330,6 +335,8 @@ export const MobileTripTabs = ({
     (tabId: string) => {
       switch (tabId) {
         // Event-specific tabs
+        case 'admin':
+          return <EventAdminTab eventId={tripId} />;
         case 'agenda':
           return (
             <EnhancedAgendaTab
