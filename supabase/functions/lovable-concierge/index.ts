@@ -94,6 +94,7 @@ const LovableConciergeSchema = z.object({
     .max(20, 'Chat history too long (max 20 messages)')
     .optional(),
   isDemoMode: z.boolean().optional(),
+  stream: z.boolean().optional(),
   config: z
     .object({
       model: z.string().max(100).optional(),
@@ -260,6 +261,260 @@ async function resolveUsagePlanForUser(
   };
 }
 
+// ========== SSE STREAMING HELPERS ==========
+
+/** Encode a single SSE event into bytes. */
+function sseEvent(data: Record<string, unknown>): Uint8Array {
+  return new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+/**
+ * Stream a Gemini `streamGenerateContent` response as SSE chunks.
+ *
+ * When the model returns function-call parts instead of text, this function
+ * collects them, executes the tools, makes a *second* streaming call with
+ * the function results, and continues streaming that follow-up to the client.
+ *
+ * Returns the full accumulated text, grounding metadata, and usage so the
+ * caller can persist them after the stream closes.
+ */
+async function streamGeminiToSSE(
+  controller: ReadableStreamDefaultController,
+  geminiRequestBody: any,
+  geminiContents: any[],
+  systemInstruction: string,
+  selectedModel: string,
+  temperature: number,
+  maxTokens: number,
+  supabase: any,
+  tripId: string,
+  userId: string | undefined,
+  locationData: any,
+): Promise<{
+  fullText: string;
+  groundingMetadata: any;
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  functionCalls: string[];
+}> {
+  const geminiStreamEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
+
+  const response = await fetch(geminiStreamEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(geminiRequestBody),
+    signal: AbortSignal.timeout(50_000),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      `Gemini streaming API Error: ${response.status} - ${errorData.error?.message || JSON.stringify(errorData)}`,
+    );
+  }
+
+  let fullText = '';
+  let groundingMetadata: any = null;
+  let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  const functionCallParts: any[] = [];
+  const executedFunctions: string[] = [];
+
+  // Read the SSE stream from Gemini
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let sseBuffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    sseBuffer += decoder.decode(value, { stream: true });
+
+    // Parse SSE lines — each Gemini chunk is `data: {json}\n\n`
+    const lines = sseBuffer.split('\n');
+    sseBuffer = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line.startsWith('data: ')) {
+        const jsonStr = line.slice(6);
+        if (!jsonStr.trim()) continue;
+
+        let chunk: any;
+        try {
+          chunk = JSON.parse(jsonStr);
+        } catch {
+          // Incomplete JSON — push back into buffer
+          sseBuffer = lines.slice(i).join('\n');
+          break;
+        }
+
+        const candidate = chunk.candidates?.[0];
+        if (!candidate) continue;
+
+        // Collect function call parts (don't stream them to client)
+        const parts = candidate.content?.parts || [];
+        for (const part of parts) {
+          if (part.functionCall) {
+            functionCallParts.push(part);
+          } else if (typeof part.text === 'string') {
+            fullText += part.text;
+            // Stream text chunk to client immediately
+            controller.enqueue(sseEvent({ type: 'chunk', text: part.text }));
+          }
+        }
+
+        // Capture grounding metadata from the final chunk
+        if (candidate.groundingMetadata) {
+          groundingMetadata = candidate.groundingMetadata;
+        }
+
+        // Capture usage from the final chunk
+        if (chunk.usageMetadata) {
+          usage = {
+            prompt_tokens: chunk.usageMetadata.promptTokenCount || 0,
+            completion_tokens: chunk.usageMetadata.candidatesTokenCount || 0,
+            total_tokens: chunk.usageMetadata.totalTokenCount || 0,
+          };
+        }
+      }
+      // Non-data lines (empty lines, comments) are ignored
+    }
+  }
+
+  // ========== HANDLE FUNCTION CALLS IN STREAM ==========
+  if (functionCallParts.length > 0) {
+    const functionCallResults: any[] = [];
+
+    for (const part of functionCallParts) {
+      const fc = part.functionCall;
+      let parsedArgs: Record<string, unknown> = {};
+      if (typeof fc.args === 'string') {
+        try {
+          parsedArgs = JSON.parse(fc.args || '{}');
+        } catch {
+          /* skip */
+        }
+      } else if (fc.args && typeof fc.args === 'object') {
+        parsedArgs = fc.args as Record<string, unknown>;
+      }
+
+      console.log(`[Stream/FunctionCall] Executing: ${fc.name}`, parsedArgs);
+      executedFunctions.push(fc.name);
+
+      let result: any;
+      try {
+        result = await executeFunctionCall(
+          supabase,
+          fc.name,
+          parsedArgs,
+          tripId,
+          userId,
+          locationData,
+        );
+      } catch (fcError) {
+        console.error(`[Stream/FunctionCall] Error executing ${fc.name}:`, fcError);
+        result = {
+          error: `Failed to execute ${fc.name}: ${fcError instanceof Error ? fcError.message : String(fcError)}`,
+        };
+      }
+
+      functionCallResults.push({ name: fc.name, response: result });
+
+      // Notify client that a function was called
+      controller.enqueue(sseEvent({ type: 'function_call', name: fc.name, result }));
+    }
+
+    // Follow-up streaming call with function results
+    const followUpContents = [
+      ...geminiContents,
+      { role: 'model', parts: functionCallParts },
+      {
+        role: 'user',
+        parts: functionCallResults.map(r => ({
+          functionResponse: { name: r.name, response: r.response },
+        })),
+      },
+    ];
+
+    const followUpBody = {
+      contents: followUpContents,
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      generationConfig: { temperature, maxOutputTokens: maxTokens },
+    };
+
+    const followUpResponse = await fetch(geminiStreamEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(followUpBody),
+      signal: AbortSignal.timeout(40_000),
+    });
+
+    if (followUpResponse.ok) {
+      const followUpReader = followUpResponse.body!.getReader();
+      let followUpBuffer = '';
+
+      while (true) {
+        const { done, value } = await followUpReader.read();
+        if (done) break;
+
+        followUpBuffer += decoder.decode(value, { stream: true });
+        const followUpLines = followUpBuffer.split('\n');
+        followUpBuffer = '';
+
+        for (let i = 0; i < followUpLines.length; i++) {
+          const line = followUpLines[i];
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6);
+            if (!jsonStr.trim()) continue;
+
+            let chunk: any;
+            try {
+              chunk = JSON.parse(jsonStr);
+            } catch {
+              followUpBuffer = followUpLines.slice(i).join('\n');
+              break;
+            }
+
+            const candidate = chunk.candidates?.[0];
+            if (!candidate) continue;
+
+            for (const part of candidate.content?.parts || []) {
+              if (typeof part.text === 'string') {
+                fullText += part.text;
+                controller.enqueue(sseEvent({ type: 'chunk', text: part.text }));
+              }
+            }
+
+            if (candidate.groundingMetadata) {
+              groundingMetadata = candidate.groundingMetadata;
+            }
+
+            if (chunk.usageMetadata) {
+              usage = {
+                prompt_tokens: usage.prompt_tokens + (chunk.usageMetadata.promptTokenCount || 0),
+                completion_tokens:
+                  usage.completion_tokens + (chunk.usageMetadata.candidatesTokenCount || 0),
+                total_tokens: usage.total_tokens + (chunk.usageMetadata.totalTokenCount || 0),
+              };
+            }
+          }
+        }
+      }
+    } else {
+      controller.enqueue(
+        sseEvent({
+          type: 'chunk',
+          text: '\n\nAction completed. Check your trip tabs for the update.',
+        }),
+      );
+      fullText += '\n\nAction completed. Check your trip tabs for the update.';
+    }
+  }
+
+  return { fullText, groundingMetadata, usage, functionCalls: executedFunctions };
+}
+
 serve(async req => {
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
@@ -317,6 +572,7 @@ serve(async req => {
       chatHistory = [],
       config = {},
       isDemoMode: requestedDemoMode = false,
+      stream: requestedStream = false,
     } = validatedData;
 
     // 🆕 SAFETY: Content filtering and PII redaction
@@ -814,6 +1070,144 @@ serve(async req => {
       },
       tools: geminiTools,
     };
+
+    // ========== STREAMING PATH (SSE) ==========
+    // When stream=true and Gemini is the provider, use streamGenerateContent
+    // and return Server-Sent Events instead of a single JSON blob.
+    const useStreaming = requestedStream && GEMINI_API_KEY && !FORCE_LOVABLE_PROVIDER;
+
+    if (useStreaming) {
+      console.log(`[Gemini] Streaming response via ${selectedModel}`);
+
+      const streamBody = new ReadableStream({
+        async start(controller) {
+          try {
+            const {
+              fullText,
+              groundingMetadata,
+              usage: streamUsage,
+              functionCalls: streamFnCalls,
+            } = await streamGeminiToSSE(
+              controller,
+              geminiRequestBody,
+              geminiContents,
+              systemInstruction,
+              selectedModel,
+              temperature,
+              config.maxTokens || 2048,
+              supabase,
+              tripId,
+              user?.id,
+              locationData,
+            );
+
+            // Extract grounding citations
+            const groundingChunks = groundingMetadata?.groundingChunks || [];
+            const googleMapsWidget = groundingMetadata?.searchEntryPoint?.renderedContent || null;
+
+            const citations = groundingChunks.map((chunk: any, index: number) => ({
+              id: `citation_${index}`,
+              title: chunk.web?.title || 'Source',
+              url: chunk.web?.uri || '#',
+              snippet: chunk.web?.snippet || '',
+              source: groundingMetadata?.searchEntryPoint
+                ? 'google_search_grounding'
+                : 'google_maps_grounding',
+            }));
+
+            // Send final metadata event
+            controller.enqueue(
+              sseEvent({
+                type: 'metadata',
+                usage: streamUsage,
+                sources: citations,
+                googleMapsWidget,
+                model: selectedModel,
+                complexity: {
+                  score: complexity.score,
+                  recommended: complexity.recommendedModel,
+                  factors: complexity.factors,
+                },
+                usedChainOfThought: useChainOfThought,
+                functionCalls: streamFnCalls.length > 0 ? streamFnCalls : undefined,
+              }),
+            );
+
+            // Send done event
+            controller.enqueue(sseEvent({ type: 'done' }));
+
+            // Post-stream side effects (usage tracking, storage)
+            const resolvedTripId = comprehensiveContext?.tripMetadata?.id || tripId || 'unknown';
+
+            if (
+              !serverDemoMode &&
+              user &&
+              tripQueryLimit !== null &&
+              resolvedTripId !== 'unknown'
+            ) {
+              const incrementResult = await incrementConciergeTripUsage(
+                supabase,
+                resolvedTripId,
+                tripQueryLimit,
+              );
+              if (incrementResult.status === 'verification_unavailable') {
+                console.error(
+                  '[Usage/Stream] Failed to increment trip usage:',
+                  incrementResult.error,
+                );
+              }
+            }
+
+            if (!serverDemoMode && resolvedTripId !== 'unknown') {
+              await storeConversation(supabase, resolvedTripId, message, fullText, 'chat', {
+                grounding_sources: citations.length,
+                has_map_widget: !!googleMapsWidget,
+                function_calls: streamFnCalls,
+                streamed: true,
+              });
+            }
+
+            if (!serverDemoMode && user) {
+              try {
+                await supabase.from('concierge_usage').insert({
+                  user_id: user.id,
+                  trip_id: resolvedTripId,
+                  query_text: logMessage.substring(0, 500),
+                  response_tokens: streamUsage.completion_tokens,
+                  model_used: selectedModel,
+                  complexity_score: complexity.score,
+                  used_pro_model: complexity.recommendedModel === 'pro',
+                });
+              } catch (usageError) {
+                console.error('Failed to track usage:', usageError);
+              }
+            }
+          } catch (streamError) {
+            console.error('[Gemini/Stream] Streaming failed:', streamError);
+            // Send error event so the client knows something went wrong
+            controller.enqueue(
+              sseEvent({
+                type: 'error',
+                message: 'Streaming response failed. Please try again.',
+              }),
+            );
+            controller.enqueue(sseEvent({ type: 'done' }));
+          } finally {
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(streamBody, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+        status: 200,
+      });
+    }
 
     // ========== LOVABLE GATEWAY PROVIDER (unified for initial + runtime fallback) ==========
     const invokeLovableGateway = async (

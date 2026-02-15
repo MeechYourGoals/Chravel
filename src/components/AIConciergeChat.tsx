@@ -11,7 +11,11 @@ import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
 import { useWebSpeechVoice as useGeminiVoice } from '../hooks/useWebSpeechVoice';
 import { useGeminiLive } from '../hooks/useGeminiLive';
 import type { ToolCallRequest } from '../hooks/useGeminiLive';
-import { invokeConcierge } from '@/services/conciergeGateway';
+import {
+  invokeConcierge,
+  invokeConciergeStream,
+  type StreamMetadataEvent,
+} from '@/services/conciergeGateway';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
@@ -610,23 +614,150 @@ export const AIConciergeChat = ({
             : msg.content,
       }));
 
-      const { data, error } = await invokeConciergeWithTimeout(
-        {
-          message: currentInput,
-          tripId,
-          preferences,
-          chatHistory,
-          attachments,
-          isDemoMode,
-          // Force flash path for predictable low-latency responses.
-          config: {
-            model: 'gemini-3-flash-preview',
-            temperature: 0.55,
-            maxTokens: 1024,
-          },
+      const requestBody = {
+        message: currentInput,
+        tripId,
+        preferences,
+        chatHistory,
+        attachments,
+        isDemoMode,
+        config: {
+          model: 'gemini-3-flash-preview',
+          temperature: 0.55,
+          maxTokens: 1024,
         },
-        { demoMode: isDemoMode },
-      );
+      };
+
+      // ========== STREAMING PATH ==========
+      // Demo mode falls back to non-streaming since demo-concierge doesn't support SSE.
+      if (!isDemoMode) {
+        const streamingMessageId = `stream-${Date.now()}`;
+
+        // Create an empty assistant message bubble immediately
+        const placeholderMessage: ChatMessage = {
+          id: streamingMessageId,
+          type: 'assistant',
+          content: '',
+          timestamp: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, placeholderMessage]);
+
+        let receivedAnyChunk = false;
+
+        const streamHandle = invokeConciergeStream(
+          requestBody,
+          {
+            onChunk: (text: string) => {
+              receivedAnyChunk = true;
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                if (idx === -1) return prev;
+                const updated = [...prev];
+                updated[idx] = { ...updated[idx], content: updated[idx].content + text };
+                return updated;
+              });
+            },
+            onMetadata: (metadata: StreamMetadataEvent) => {
+              setAiStatus('connected');
+
+              if (isLimitedPlan) {
+                void refreshUsage();
+              }
+
+              // Attach metadata (usage, sources, widget) to the streaming message
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                if (idx === -1) return prev;
+                const updated = [...prev];
+                updated[idx] = {
+                  ...updated[idx],
+                  usage: metadata.usage,
+                  sources: metadata.sources as ChatMessage['sources'],
+                  googleMapsWidget: metadata.googleMapsWidget ?? undefined,
+                };
+                return updated;
+              });
+            },
+            onError: (errorMsg: string) => {
+              if (import.meta.env.DEV) {
+                console.error('[Stream] Concierge streaming error:', errorMsg);
+              }
+
+              // If we never received any chunks, replace the empty bubble with fallback
+              if (!receivedAnyChunk) {
+                setAiStatus('degraded');
+                const fallbackResponse = generateFallbackResponse(
+                  currentInput,
+                  fallbackContext,
+                  basecampLocation,
+                );
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === streamingMessageId);
+                  if (idx === -1) return prev;
+                  const updated = [...prev];
+                  updated[idx] = { ...updated[idx], content: fallbackResponse };
+                  return updated;
+                });
+              }
+            },
+            onDone: () => {
+              if (!isMounted.current) return;
+              setIsTyping(false);
+
+              // If the message is still empty after done, show fallback
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                if (idx === -1) return prev;
+                if (prev[idx].content.length > 0) return prev;
+                const updated = [...prev];
+                updated[idx] = {
+                  ...updated[idx],
+                  content: 'Sorry, I encountered an error processing your request.',
+                };
+                return updated;
+              });
+            },
+          },
+          { demoMode: isDemoMode },
+        );
+
+        // Set up a timeout to abort if nothing comes back
+        const streamTimeout = setTimeout(() => {
+          if (!receivedAnyChunk) {
+            streamHandle.abort();
+            if (isMounted.current) {
+              setAiStatus('timeout');
+              setIsTyping(false);
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                if (idx === -1) return prev;
+                const updated = [...prev];
+                const fallbackResponse = generateFallbackResponse(
+                  currentInput,
+                  fallbackContext,
+                  basecampLocation,
+                );
+                updated[idx] = {
+                  ...updated[idx],
+                  content: `⚠️ **Request timed out**\n\n${fallbackResponse}`,
+                };
+                return updated;
+              });
+            }
+          }
+        }, FAST_RESPONSE_TIMEOUT_MS);
+
+        // The timeout checks receivedAnyChunk (mutated by onChunk). If
+        // streaming completes before the timeout fires, the abort() is a no-op.
+        void streamTimeout;
+
+        return; // Exit early — streaming handles its own finally via onDone
+      }
+
+      // ========== NON-STREAMING FALLBACK (demo mode) ==========
+      const { data, error } = await invokeConciergeWithTimeout(requestBody, {
+        demoMode: isDemoMode,
+      });
 
       // Graceful degradation: If AI service unavailable, provide helpful fallback
       if (!data || error) {
@@ -635,7 +766,6 @@ export const AIConciergeChat = ({
         }
         setAiStatus('degraded');
 
-        // Try to provide context-aware fallback response
         const fallbackResponse = generateFallbackResponse(
           currentInput,
           fallbackContext,
@@ -667,13 +797,13 @@ export const AIConciergeChat = ({
         timestamp: new Date().toISOString(),
         usage: data.usage,
         sources: data.sources || data.citations,
-        googleMapsWidget: data.googleMapsWidget, // 🆕 Pass widget token
+        googleMapsWidget: data.googleMapsWidget,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('❌ AI Concierge error:', error);
+        console.error('AI Concierge error:', error);
       }
       setAiStatus('error');
 
