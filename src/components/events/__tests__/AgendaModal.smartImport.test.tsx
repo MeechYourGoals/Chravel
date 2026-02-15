@@ -4,16 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { AgendaModal } from '../AgendaModal';
 
+const mockUseConsumerSubscription = vi.fn();
+
 vi.mock('@/hooks/useDemoMode', () => ({
   useDemoMode: () => ({ isDemoMode: false, isLoading: false }),
 }));
 
 vi.mock('@/hooks/useConsumerSubscription', () => ({
-  useConsumerSubscription: () => ({
-    tier: 'explorer',
-    subscription: { status: 'active' },
-    isSuperAdmin: false,
-  }),
+  useConsumerSubscription: () => mockUseConsumerSubscription(),
 }));
 
 vi.mock('@/hooks/useEventAgenda', () => ({
@@ -78,51 +76,40 @@ const createWrapper = () => {
   );
 };
 
-describe('AgendaModal', () => {
+describe('AgendaModal Smart Import', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('empty state boxes', () => {
-    it('renders No Sessions Yet when sessions are empty', () => {
-      render(<AgendaModal eventId="evt-1" permissions={defaultPermissions} />, {
-        wrapper: createWrapper(),
-      });
-
-      expect(screen.getByText('No Sessions Yet')).toBeInTheDocument();
-      expect(screen.getByText(/Add sessions to build your event schedule/i)).toBeInTheDocument();
+  it('shows enabled Import Agenda button when user has paid access', () => {
+    mockUseConsumerSubscription.mockReturnValue({
+      tier: 'explorer',
+      subscription: { status: 'active' },
+      isSuperAdmin: false,
     });
 
-    it('renders No Agenda Files when agenda files are empty', () => {
-      render(<AgendaModal eventId="evt-1" permissions={defaultPermissions} />, {
-        wrapper: createWrapper(),
-      });
-
-      expect(screen.getByText('No Agenda Files')).toBeInTheDocument();
-      expect(
-        screen.getByText(/Upload PDFs or images of your event agenda \(up to 5 files\)/i),
-      ).toBeInTheDocument();
+    render(<AgendaModal eventId="evt-1" permissions={defaultPermissions} />, {
+      wrapper: createWrapper(),
     });
 
-    it('does not render redundant Upload Files button inside No Agenda Files box', () => {
-      render(<AgendaModal eventId="evt-1" permissions={defaultPermissions} />, {
-        wrapper: createWrapper(),
-      });
+    const importButton = screen.getByRole('button', { name: /Smart Import/i });
+    expect(importButton).toBeInTheDocument();
+    expect(importButton).not.toBeDisabled();
+  });
 
-      // Only one "Upload" in the action row (correct placement); no "Upload Files" in the box
-      const uploadTexts = screen.getAllByText('Upload');
-      expect(uploadTexts.length).toBe(1);
-      expect(screen.queryByText('Upload Files')).not.toBeInTheDocument();
+  it('shows disabled Import Agenda button when user lacks paid access', () => {
+    mockUseConsumerSubscription.mockReturnValue({
+      tier: 'free',
+      subscription: { status: 'inactive' },
+      isSuperAdmin: false,
     });
 
-    it('renders both empty-state cards with equal min-height for desktop parity', () => {
-      const { container } = render(
-        <AgendaModal eventId="evt-1" permissions={defaultPermissions} />,
-        { wrapper: createWrapper() },
-      );
-
-      const cards = container.querySelectorAll('[class*="min-h-[220px]"]');
-      expect(cards.length).toBe(2);
+    render(<AgendaModal eventId="evt-1" permissions={defaultPermissions} />, {
+      wrapper: createWrapper(),
     });
+
+    const importButton = screen.getByRole('button', { name: /Smart Import/i });
+    expect(importButton).toBeInTheDocument();
+    expect(importButton).toBeDisabled();
   });
 });

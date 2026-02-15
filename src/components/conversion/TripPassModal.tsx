@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -31,7 +25,8 @@ const passes = [
       'Unlimited saved trips + restore archived',
       '10 AI queries per user per trip',
       'Unlimited PDF exports',
-      'Calendar importing & ICS export',
+      'Smart Import (Calendar, Agenda, Line-up from URL)',
+      'ICS calendar export',
       'Location-aware AI recommendations',
       'Search past trips and memories',
     ],
@@ -48,7 +43,7 @@ const passes = [
     features: [
       'Everything in Explorer Trip Pass',
       'Unlimited AI queries (24/7 concierge)',
-      'Smart Calendar Import (URL, ICS, PDF, Excel)',
+      'Smart Import (Calendar, Agenda, Line-up from URL, paste, or file)',
       'Role-based channels & Pro features',
       'Custom trip categories',
       'Early feature access',
@@ -63,7 +58,9 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
   const handlePurchase = async (passId: string) => {
     setLoading(passId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         toast.error('Please sign in to purchase a Trip Pass');
         setLoading(null);
@@ -93,20 +90,16 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">
-            🎫 Trip Pass
-          </DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-center">🎫 Trip Pass</DialogTitle>
           <DialogDescription className="text-center text-base">
-            Full premium features for one trip — planning through post-trip. No commitment. Keep your exports forever.
+            Full premium features for one trip — planning through post-trip. No commitment. Keep
+            your exports forever.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          {passes.map((pass) => (
-            <Card
-              key={pass.id}
-              className="bg-card/80 border-border/50 flex flex-col"
-            >
+          {passes.map(pass => (
+            <Card key={pass.id} className="bg-card/80 border-border/50 flex flex-col">
               <CardHeader className="text-center pb-3">
                 <div className="w-12 h-12 mx-auto rounded-full bg-primary/20 text-primary flex items-center justify-center mb-3">
                   {pass.icon}
@@ -142,14 +135,10 @@ export const TripPassModal: React.FC<TripPassModalProps> = ({ open, onOpenChange
                   disabled={loading !== null}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
-                  {loading === pass.id ? (
-                    <Loader2 size={16} className="animate-spin mr-2" />
-                  ) : null}
+                  {loading === pass.id ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
                   Get Trip Pass
                 </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  {pass.nudge}
-                </p>
+                <p className="text-xs text-muted-foreground text-center">{pass.nudge}</p>
               </CardFooter>
             </Card>
           ))}

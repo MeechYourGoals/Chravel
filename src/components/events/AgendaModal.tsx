@@ -16,6 +16,7 @@ import {
   Eye,
   Loader2,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 import { AgendaImportModal } from './AgendaImportModal';
 import { useBackgroundAgendaImport } from '@/features/calendar/hooks/useBackgroundAgendaImport';
@@ -35,6 +36,9 @@ import {
   EVENT_PARITY_ROW_CLASS,
   PARITY_ACTION_BUTTON_CLASS,
 } from '@/lib/tabParity';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
+import { hasPaidAccess } from '@/utils/paidAccess';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface AgendaPermissions {
   canView: boolean;
@@ -250,6 +254,9 @@ export const AgendaModal = ({
     setEditingSession(null);
   };
 
+  const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
+  const hasPaidSmartImport = hasPaidAccess({ tier, status: subscription?.status, isSuperAdmin });
+
   const showAdminActions = (canCreateSessions || canUpload) && !isAddingSession;
   const showActionRow = Boolean(onClose) || showAdminActions;
 
@@ -280,14 +287,37 @@ export const AgendaModal = ({
               <>
                 {canCreateSessions && (
                   <>
-                    <Button
-                      onClick={() => setShowImportModal(true)}
-                      variant="outline"
-                      className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
-                    >
-                      <Sparkles size={16} className="flex-shrink-0" />
-                      <span className="whitespace-nowrap">Import Agenda</span>
-                    </Button>
+                    {hasPaidSmartImport ? (
+                      <Button
+                        onClick={() => setShowImportModal(true)}
+                        variant="outline"
+                        className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
+                      >
+                        <Sparkles size={16} className="flex-shrink-0" />
+                        <span className="whitespace-nowrap">Smart Import</span>
+                      </Button>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span tabIndex={0}>
+                              <Button
+                                disabled
+                                variant="outline"
+                                className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400/70`}
+                              >
+                                <Lock size={16} className="flex-shrink-0" />
+                                <span className="whitespace-nowrap">Smart Import</span>
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro /
+                            Enterprise).
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     <Button
                       onClick={() => setIsAddingSession(true)}
                       className={`${EVENT_PARITY_COL_START.chat} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
@@ -327,7 +357,7 @@ export const AgendaModal = ({
                           <Upload size={16} className="flex-shrink-0" />
                         )}
                         <span className="whitespace-nowrap">
-                          {isUploading ? 'Uploading...' : 'Upload'}
+                          {isUploading ? 'Uploading...' : 'Upload Schedule'}
                         </span>
                       </span>
                     </Button>

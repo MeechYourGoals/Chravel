@@ -7,7 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const ConsumerBillingSection = () => {
-  const { subscription, tier, isSubscribed, upgradeToTier, isLoading, isSuperAdmin, proTier } = useConsumerSubscription();
+  const { subscription, tier, isSubscribed, upgradeToTier, isLoading, isSuperAdmin, proTier } =
+    useConsumerSubscription();
   const [expandedPlan, setExpandedPlan] = useState<string | null>(tier);
   const [expandedProPlan, setExpandedProPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
@@ -16,13 +17,16 @@ export const ConsumerBillingSection = () => {
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
-      
+
       // Handle case where user has no Stripe subscription history
       if (data?.error === 'no_subscription') {
-        toast.info(data.message || "You don't have an active subscription yet. Choose a plan below to get started!");
+        toast.info(
+          data.message ||
+            "You don't have an active subscription yet. Choose a plan below to get started!",
+        );
         return;
       }
-      
+
       if (data?.url) {
         window.open(data.url, '_blank');
       } else {
@@ -46,13 +50,13 @@ export const ConsumerBillingSection = () => {
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
-      
+
       // Handle case where user has no Stripe subscription history
       if (data?.error === 'no_subscription') {
         toast.info("You don't have an active subscription to cancel.");
         return;
       }
-      
+
       if (data?.url) {
         window.open(data.url, '_blank');
       } else {
@@ -65,22 +69,24 @@ export const ConsumerBillingSection = () => {
       console.error(error);
     }
   };
-  
+
   const handleUpgradeToProPlan = async (planKey: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { tier: planKey }
+        body: { tier: planKey },
       });
-      
+
       if (error) throw error;
-      
+
       if (data?.url) {
         window.open(data.url, '_blank');
       } else {
         toast.error('Failed to create checkout session');
       }
     } catch (error) {
-      toast.error(`Failed to start checkout: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to start checkout: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       console.error(error);
     }
   };
@@ -112,6 +118,7 @@ export const ConsumerBillingSection = () => {
         'Unlimited saved trips + restore archived',
         '10 AI queries per user per trip',
         'Unlimited PDF exports',
+        'Smart Import (Calendar, Agenda, Line-up from URL)',
         'Location-aware AI suggestions',
         'Smart notifications',
         'Search past trips',
@@ -127,6 +134,7 @@ export const ConsumerBillingSection = () => {
       features: [
         'Everything in Explorer',
         'Unlimited AI queries',
+        'Smart Import (Calendar, Agenda, Line-up from URL, paste, or file)',
         'Calendar sync (Google, Apple, Outlook)',
         'PDF trip export',
         'Create 1 Chravel Pro trip per month (50-seat limit)',
@@ -331,11 +339,14 @@ export const ConsumerBillingSection = () => {
 
       {/* Pro Organization Plans Section */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-        <h4 className="text-base font-semibold text-white mb-2">Organization Plans (ChravelApp Pro)</h4>
+        <h4 className="text-base font-semibold text-white mb-2">
+          Organization Plans (ChravelApp Pro)
+        </h4>
         <p className="text-sm text-muted-foreground mb-4">
-          For teams, sports organizations, tours, and enterprises. Pro subscribers get all Frequent Chraveler benefits included.
+          For teams, sports organizations, tours, and enterprises. Pro subscribers get all Frequent
+          Chraveler benefits included.
         </p>
-        
+
         <div className="space-y-3">
           {Object.entries(proPlans).map(([key, plan]) => {
             const PlanIcon = plan.icon;
@@ -347,26 +358,35 @@ export const ConsumerBillingSection = () => {
                 onOpenChange={() => setExpandedProPlan(expandedProPlan === key ? null : key)}
               >
                 <CollapsibleTrigger className="w-full">
-                  <div className={`border rounded-lg p-3 transition-colors hover:bg-white/10 ${
-                    isCurrentProPlan 
-                      ? 'border-amber-500/50 bg-amber-500/10' 
-                      : 'border-white/10 bg-white/5'
-                  }`}>
+                  <div
+                    className={`border rounded-lg p-3 transition-colors hover:bg-white/10 ${
+                      isCurrentProPlan
+                        ? 'border-amber-500/50 bg-amber-500/10'
+                        : 'border-white/10 bg-white/5'
+                    }`}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="text-left flex items-center gap-3">
-                        <PlanIcon size={20} className={isCurrentProPlan ? 'text-amber-400' : 'text-primary'} />
+                        <PlanIcon
+                          size={20}
+                          className={isCurrentProPlan ? 'text-amber-400' : 'text-primary'}
+                        />
                         <div>
                           <h5 className="font-semibold text-foreground flex items-center gap-2">
                             {plan.name}
                           </h5>
-                          <div className="text-xl font-bold text-foreground">${plan.price}/month</div>
+                          <div className="text-xl font-bold text-foreground">
+                            ${plan.price}/month
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {isCurrentProPlan && (
                           <div className="text-sm text-amber-400 font-medium">Current Plan</div>
                         )}
-                        <div className="text-muted-foreground">{expandedProPlan === key ? '−' : '+'}</div>
+                        <div className="text-muted-foreground">
+                          {expandedProPlan === key ? '−' : '+'}
+                        </div>
                       </div>
                     </div>
                   </div>

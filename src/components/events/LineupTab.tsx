@@ -12,6 +12,12 @@ import {
   MapPin,
   Sparkles,
   Lock,
+  Upload,
+  FileText,
+  Download,
+  Eye,
+  Image,
+  Loader2,
 } from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
@@ -22,7 +28,9 @@ import { Card, CardContent } from '../ui/card';
 import { Textarea } from '../ui/textarea';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useEventLineup } from '@/hooks/useEventLineup';
+import { useEventLineupFiles } from '@/hooks/useEventLineupFiles';
 import { LineupImportModal } from './LineupImportModal';
+import type { AgendaFile } from '../../types/events';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
@@ -62,6 +70,22 @@ export const LineupTab = ({
     eventId,
     initialMembers: initialSpeakers,
   });
+  const {
+    files: lineupFiles,
+    isLoading: isLoadingFiles,
+    isUploading,
+    uploadError,
+    loadError,
+    clearError,
+    uploadFiles,
+    deleteFile,
+    maxFiles,
+    remainingSlots,
+    canUpload: canUploadMore,
+    formatFileSize,
+  } = useEventLineupFiles({ eventId, enabled: !isDemoMode });
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['event-lineup', eventId] });
@@ -155,6 +179,23 @@ export const LineupTab = ({
 
   const memberSessions = selectedMember ? getSessionsForMember(selectedMember.name) : [];
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files;
+    if (!selected || selected.length === 0) return;
+    if (isDemoMode) return;
+    await uploadFiles(Array.from(selected));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDeleteLineupFile = async (file: AgendaFile) => {
+    if (!canDelete) return;
+    if (isDemoMode) return;
+    await deleteFile(file.storagePath);
+  };
+
+  const isPdfMime = (mime: string) => mime === 'application/pdf';
+  const isImageMime = (mime: string) => mime.startsWith('image/');
+
   return (
     <div className="relative p-4 space-y-4">
       {(isRefreshing || pullDistance > 0) && (
@@ -179,8 +220,40 @@ export const LineupTab = ({
         </div>
         {canCreate && !isAddingMember && (
           <div
-            className={`${EVENT_PARITY_COL_START.tasks} flex flex-col sm:flex-row gap-2 w-full sm:w-auto`}
+            className={`${EVENT_PARITY_COL_START.tasks} flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap`}
           >
+            {canUploadMore && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  disabled={isUploading}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-yellow-500/40 text-yellow-300/90 hover:text-yellow-200"
+                  disabled={isUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 size={16} className="flex-shrink-0 animate-spin" />
+                      <span className="whitespace-nowrap">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={16} className="flex-shrink-0" />
+                      <span className="whitespace-nowrap">Upload Line-up</span>
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
             {hasPaidSmartImport ? (
               <Button
                 onClick={() => setShowSmartImport(true)}
@@ -223,6 +296,183 @@ export const LineupTab = ({
           </div>
         )}
       </div>
+
+      {/* Load error */}
+      {loadError && !isDemoMode && (
+        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-2">
+          <X size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-red-300 text-sm">{loadError}</p>
+        </div>
+      )}
+
+      {/* Upload error */}
+      {uploadError && (
+        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-2">
+          <X size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-red-300 text-sm flex-1">{uploadError}</p>
+          <button onClick={clearError} className="text-red-400 hover:text-red-300">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* Line-up Files (uploaded PDFs/images for viewing) */}
+      {(lineupFiles.length > 0 || isLoadingFiles) && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-gray-400">
+            Line-up Files ({lineupFiles.length}/{maxFiles})
+          </h3>
+          {isLoadingFiles ? (
+            <div className="flex justify-center py-4">
+              <span className="text-gray-500 text-sm">Loading...</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {lineupFiles.map(file => (
+                <Card key={file.id} className="bg-gray-800/50 border-gray-700">
+                  <CardContent className="p-3">
+                    {isImageMime(file.mimeType) ? (
+                      <div className="space-y-2">
+                        <div className="rounded-lg overflow-hidden bg-gray-900/50">
+                          <img
+                            src={file.publicUrl}
+                            alt={file.name}
+                            className="w-full h-auto object-contain max-h-[200px]"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Image size={14} className="text-yellow-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-300 truncate">{file.name}</span>
+                            <span className="text-xs text-gray-500 flex-shrink-0">
+                              {formatFileSize(file.size)}
+                            </span>
+                          </div>
+                          <div className="flex gap-1">
+                            <a
+                              href={file.publicUrl}
+                              download={file.name}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-gray-400 hover:text-white"
+                              >
+                                <Download size={14} />
+                              </Button>
+                            </a>
+                            {canDelete && (
+                              <Button
+                                onClick={() => handleDeleteLineupFile(file)}
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-gray-400 hover:text-red-400"
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : isPdfMime(file.mimeType) ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                            <FileText size={20} className="text-red-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm text-white font-medium truncate">{file.name}</p>
+                            <p className="text-xs text-gray-500">
+                              PDF · {formatFileSize(file.size)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <a href={file.publicUrl} target="_blank" rel="noopener noreferrer">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-gray-400 hover:text-yellow-400"
+                              title="View"
+                            >
+                              <Eye size={14} />
+                            </Button>
+                          </a>
+                          <a
+                            href={file.publicUrl}
+                            download={file.name}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-gray-400 hover:text-white"
+                              title="Download"
+                            >
+                              <Download size={14} />
+                            </Button>
+                          </a>
+                          {canDelete && (
+                            <Button
+                              onClick={() => handleDeleteLineupFile(file)}
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-gray-400 hover:text-red-400"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <FileText size={20} className="text-gray-400 flex-shrink-0" />
+                        <span className="text-sm text-gray-300 truncate flex-1">{file.name}</span>
+                        <a
+                          href={file.publicUrl}
+                          download={file.name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <Download size={14} />
+                          </Button>
+                        </a>
+                        {canDelete && (
+                          <Button
+                            onClick={() => handleDeleteLineupFile(file)}
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-gray-400 hover:text-red-400"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+              {canUploadMore && lineupFiles.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-dashed border-gray-600 text-gray-400"
+                  disabled={isUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload size={14} className="mr-2" />
+                  Add more ({remainingSlots} remaining)
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Add Member Form */}
       {isAddingMember && canCreate && (
