@@ -340,7 +340,7 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
             <div className="flex items-center justify-center gap-1 mb-0.5">
               <MapPin size={12} className="text-white/50" />
             </div>
-            <div className="text-xl md:text-2xl font-bold text-white">{calculateProTripPlacesCount(trip)}</div>
+            <div className="text-xl md:text-2xl font-bold text-white">{trip.placesCount != null ? (trip.placesCount > 0 ? trip.placesCount.toString() : '—') : calculateProTripPlacesCount(trip)}</div>
             <div className="text-xs md:text-sm text-white/60">Places</div>
           </div>
         </div>

@@ -425,6 +425,8 @@ export interface ProTripData {
   compliance: ComplianceRule[];
   media: MediaSlot[];
   sponsors: SponsorActivation[];
+  // Supabase-derived count of calendar events with locations
+  placesCount?: number;
 }
 
 export const SUBSCRIPTION_TIERS = {

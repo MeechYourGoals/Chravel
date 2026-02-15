@@ -275,7 +275,7 @@ export const MobileEventCard = ({
               <MapPin size={12} className={`text-${accentColors.primary}`} />
               <span className="text-xs text-white/60 uppercase tracking-wide">Places</span>
             </div>
-            <div className="text-sm font-bold text-white">{calculateEventPlacesCount(event)}</div>
+            <div className="text-sm font-bold text-white">{event.placesCount != null ? (event.placesCount > 0 ? event.placesCount.toString() : '—') : calculateEventPlacesCount(event)}</div>
           </div>
         </div>
 

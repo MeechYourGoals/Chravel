@@ -33,6 +33,7 @@ import { demoModeService } from '../services/demoModeService';
 import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
+import { calculateDaysCount } from '../utils/tripStatsUtils';
 import { usePrefetchTrip } from '../hooks/usePrefetchTrip';
 import {
   DropdownMenu,
@@ -516,7 +517,7 @@ export const TripCard = ({
             <div className="text-xs md:text-sm text-gray-400">People</div>
           </div>
           <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">5</div>
+            <div className="text-xl md:text-2xl font-bold text-white">{calculateDaysCount(trip.dateRange)}</div>
             <div className="text-xs md:text-sm text-gray-400">Days</div>
           </div>
           <div className="text-center">

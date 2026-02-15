@@ -192,6 +192,9 @@ export interface EventData {
   // User context
   userRole: EventUserRole;
 
+  // Supabase-derived count of calendar events with locations
+  placesCount?: number;
+
   // Analytics
   checkedInCount: number;
 
