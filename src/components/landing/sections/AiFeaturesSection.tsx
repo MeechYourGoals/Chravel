@@ -36,7 +36,7 @@ export const AiFeaturesSection = () => {
       icon: <Upload className="text-accent" size={28} />,
       title: 'Smart Import',
       description:
-        'Calendar AI: Automatically Import tours, conferences, & game schedules with just a URL or upload',
+        'Paid feature: Import calendar, agenda & lineup from URLs or paste—AI extracts schedules and names automatically (Explorer+ / Trip Pass / Pro)',
     },
     {
       icon: <ScrollText className="text-primary" size={28} />,

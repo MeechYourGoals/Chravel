@@ -36,6 +36,7 @@ Access your itineraries, contacts, and essential trip info even without internet
 
 **CHRAVEL PLUS ($9.99/month)**
 • Unlimited trip participants
+• Smart Import (Calendar, Agenda, Line-up from URL)
 • Priority AI concierge access
 • 50GB media storage
 • Advanced expense analytics

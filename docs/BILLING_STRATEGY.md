@@ -55,7 +55,7 @@ Per Apple's [App Store Review Guidelines 3.1](https://developer.apple.com/app-st
 | Category | Examples | IAP Required? |
 |----------|----------|---------------|
 | Consumer Subscriptions | Explorer, Frequent Chraveler | ✅ YES |
-| AI Features | Concierge queries | ✅ YES |
+| AI Features | Concierge queries, Smart Import (Calendar/Agenda/Line-up) | ✅ YES |
 | Digital Storage | Extended media storage | ✅ YES |
 | Export Features | PDF itinerary export | ✅ YES |
 

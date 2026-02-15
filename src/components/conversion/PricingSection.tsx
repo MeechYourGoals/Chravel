@@ -83,7 +83,7 @@ const consumerTiers: PricingTier[] = [
       '10 AI queries per user per trip',
       'Unlimited PDF exports',
       'ICS calendar export',
-      'Calendar Importing',
+      'Smart Import (Calendar, Agenda, Line-up from URL)',
       'Location-aware AI recommendations',
       'Search past trips and memories',
     ],
@@ -104,7 +104,7 @@ const consumerTiers: PricingTier[] = [
     features: [
       'Everything in Explorer',
       'Unlimited AI queries (24/7 concierge)',
-      'Smart Calendar Import (URL, ICS, PDF, Excel)',
+      'Smart Import (Calendar, Agenda, Line-up from URL, paste, or file)',
       'One-click PDF trip exports',
       'Role-based channels & Pro features',
       'Custom trip categories',
