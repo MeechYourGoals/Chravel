@@ -61,7 +61,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
       case 'connecting':
         return 'Connecting...';
       case 'listening':
-        return 'Tap to send';
+        return 'Listening...';
       case 'thinking':
         return 'Processing...';
       case 'speaking':
@@ -73,6 +73,8 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
     }
   };
 
+  const isActive = isEligible && (voiceState === 'listening' || voiceState === 'speaking');
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -82,6 +84,25 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
             className={`relative size-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${getStyle()}`}
             aria-label={getTooltip()}
           >
+            {/* Animated pulse rings for listening/speaking — mimics Gemini's
+                live-conversation visual. Two concentric rings pulse outward at
+                staggered delays using the voice-pulse keyframe. */}
+            {isActive && (
+              <>
+                <span
+                  aria-hidden
+                  className={`pointer-events-none absolute inset-0 rounded-full animate-[voice-pulse_2s_ease-out_infinite] ${
+                    voiceState === 'listening' ? 'bg-emerald-400/25' : 'bg-blue-400/25'
+                  }`}
+                />
+                <span
+                  aria-hidden
+                  className={`pointer-events-none absolute inset-0 rounded-full animate-[voice-pulse_2s_ease-out_0.6s_infinite] ${
+                    voiceState === 'listening' ? 'bg-emerald-400/15' : 'bg-blue-400/15'
+                  }`}
+                />
+              </>
+            )}
             {isEligible && voiceState === 'listening' && (
               <span
                 aria-hidden

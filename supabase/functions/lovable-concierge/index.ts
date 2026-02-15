@@ -380,62 +380,162 @@ serve(async req => {
 
     user = authenticatedUser;
 
-    // Skip usage limits check in demo mode
-    if (!serverDemoMode && user) {
-      if (tripId && tripId !== 'unknown') {
-        const { data: membership, error: membershipError } = await supabase
-          .from('trip_members')
-          .select('user_id')
-          .eq('trip_id', tripId)
-          .eq('user_id', user.id)
-          .maybeSingle();
+    // --- PARALLELIZED PRE-FLIGHT CHECKS ---
+    // Membership, usage plan, context building, RAG retrieval, and privacy
+    // were previously sequential (~3-5 s total). Running them concurrently
+    // collapses that to the duration of the single slowest query.
+    const hasTripId = tripId && tripId !== 'unknown';
+    const runRAGRetrieval = shouldRunRAGRetrieval(message, tripId);
 
-        if (membershipError || !membership) {
-          return createErrorResponse('Forbidden - you must be a member of this trip', 403);
-        }
-      }
+    // Fire all independent queries at once
+    const [membershipResult, planResolution, contextResult, ragResult, privacyResult] =
+      await Promise.all([
+        // 1. Trip membership check
+        hasTripId && !serverDemoMode && user
+          ? supabase
+              .from('trip_members')
+              .select('user_id')
+              .eq('trip_id', tripId)
+              .eq('user_id', user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: { user_id: 'skip' }, error: null }),
 
-      const planResolution = await resolveUsagePlanForUser(supabase, user.id);
-      usagePlan = planResolution.usagePlan;
-      tripQueryLimit = planResolution.tripQueryLimit;
+        // 2. Usage plan resolution
+        !serverDemoMode && user
+          ? resolveUsagePlanForUser(supabase, user.id)
+          : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 5 }),
 
-      if (tripQueryLimit !== null && tripId && tripId !== 'unknown') {
-        const { data: tripUsageData, error: tripUsageError } = await supabase.rpc(
-          'get_concierge_trip_usage',
-          {
-            p_trip_id: tripId,
-          },
-        );
+        // 3. Trip context building (heaviest — ~2-5 s)
+        hasTripId && !tripContext
+          ? TripContextBuilder.buildContext(tripId, user?.id, authHeader).catch(error => {
+              console.error('Failed to build comprehensive context:', error);
+              return null;
+            })
+          : Promise.resolve(tripContext || null),
 
-        if (tripUsageError) {
-          console.error('[Usage] Failed to fetch trip concierge usage:', tripUsageError);
-          return buildUsageVerificationUnavailableResponse(corsHeaders);
-        } else {
-          const usedCount = Number(tripUsageData ?? 0);
-          if (usedCount >= tripQueryLimit) {
-            return buildTripLimitReachedResponse(corsHeaders, usagePlan);
-          }
-        }
+        // 4. RAG keyword retrieval
+        runRAGRetrieval
+          ? (async () => {
+              try {
+                console.log('Using keyword-only search for RAG retrieval');
+                const { data: keywordResults, error: keywordError } = await supabase
+                  .from('kb_chunks')
+                  .select('id, content, doc_id, modality')
+                  .textSearch('content_tsv', message.split(' ').slice(0, 5).join(' & '), {
+                    type: 'plain',
+                  })
+                  .limit(10);
+
+                if (keywordError || !keywordResults?.length) return '';
+
+                const docIds = [
+                  ...new Set(keywordResults.map((r: any) => r.doc_id).filter(Boolean)),
+                ];
+                const docMap = new Map();
+
+                if (docIds.length > 0) {
+                  const { data: docs } = await supabase
+                    .from('kb_documents')
+                    .select('id, source, trip_id')
+                    .in('id', docIds)
+                    .eq('trip_id', tripId);
+                  docs?.forEach((d: any) => docMap.set(d.id, d));
+                }
+
+                const tripChunks = keywordResults.filter((r: any) => {
+                  const doc = docMap.get(r.doc_id);
+                  return doc?.trip_id === tripId;
+                });
+
+                if (!tripChunks.length) return '';
+
+                console.log(`Found ${tripChunks.length} relevant context items via keyword search`);
+                let ctx = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n';
+                ctx += 'Retrieved using keyword matching:\n';
+                tripChunks.forEach((result: any, idx: number) => {
+                  const doc = docMap.get(result.doc_id);
+                  const sourceType = doc?.source || result.modality || 'unknown';
+                  ctx += `\n[${idx + 1}] [${sourceType}] ${(result.content || '').substring(0, 300)}`;
+                });
+                ctx +=
+                  '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
+                return ctx;
+              } catch (ragError) {
+                console.error('RAG retrieval failed:', ragError);
+                return '';
+              }
+            })()
+          : Promise.resolve(''),
+
+        // 5. Privacy config check
+        hasTripId && !serverDemoMode
+          ? supabase
+              .from('trip_privacy_configs')
+              .select('ai_access_enabled')
+              .eq('trip_id', tripId)
+              .maybeSingle()
+              .catch(() => ({ data: null }))
+          : Promise.resolve({ data: null }),
+      ]);
+
+    // --- EVALUATE PARALLEL RESULTS ---
+
+    // Membership gate
+    if (!serverDemoMode && user && hasTripId) {
+      if (membershipResult.error || !membershipResult.data) {
+        return createErrorResponse('Forbidden - you must be a member of this trip', 403);
       }
     }
 
-    // Build comprehensive context if tripId is provided
-    let comprehensiveContext = tripContext;
-    if (tripId && !tripContext) {
-      try {
-        // 🆕 Pass user.id to get personalized context with preferences + personal basecamp
-        comprehensiveContext = await TripContextBuilder.buildContext(tripId, user?.id, authHeader);
-        console.log(
-          '[Context] Built context with user preferences:',
-          !!comprehensiveContext?.userPreferences,
-        );
-      } catch (error) {
-        console.error('Failed to build comprehensive context:', error);
-        // Continue with basic context
+    // Privacy gate
+    if ((privacyResult as any)?.data?.ai_access_enabled === false) {
+      return new Response(
+        JSON.stringify({
+          response:
+            '🔒 **AI Concierge is disabled for this trip.**\n\nA trip organizer turned off AI access in privacy settings. You can still use all other trip features.',
+          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+          sources: [],
+          success: true,
+          model: 'privacy-mode',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      );
+    }
+
+    // Usage limits
+    usagePlan = planResolution.usagePlan;
+    tripQueryLimit = planResolution.tripQueryLimit;
+
+    if (!serverDemoMode && user && tripQueryLimit !== null && hasTripId) {
+      const { data: tripUsageData, error: tripUsageError } = await supabase.rpc(
+        'get_concierge_trip_usage',
+        { p_trip_id: tripId },
+      );
+
+      if (tripUsageError) {
+        console.error('[Usage] Failed to fetch trip concierge usage:', tripUsageError);
+        return buildUsageVerificationUnavailableResponse(corsHeaders);
+      }
+
+      const usedCount = Number(tripUsageData ?? 0);
+      if (usedCount >= tripQueryLimit) {
+        return buildTripLimitReachedResponse(corsHeaders, usagePlan);
       }
     }
 
-    // 🆕 FALLBACK: Use client-passed preferences if context builder didn't find any
+    // Assemble context
+    let comprehensiveContext = contextResult || tripContext;
+    if (comprehensiveContext) {
+      console.log(
+        '[Context] Built context with user preferences:',
+        !!comprehensiveContext?.userPreferences,
+      );
+    }
+
+    // Client-passed preferences fallback
     if (validatedData.preferences) {
       const clientPrefs = validatedData.preferences;
       const hasClientPrefs =
@@ -453,7 +553,6 @@ serve(async req => {
       ) {
         console.log('[Context] Using client-passed preferences as fallback');
 
-        // Build userPreferences from client data
         const fallbackPrefs = {
           dietary: clientPrefs.dietary || [],
           vibe: clientPrefs.vibe || [],
@@ -476,106 +575,7 @@ serve(async req => {
       }
     }
 
-    const runRAGRetrieval = shouldRunRAGRetrieval(message, tripId);
-
-    // 🆕 HYBRID RAG RETRIEVAL: Semantic + Keyword search for relevant trip context
-    let ragContext = '';
-    if (runRAGRetrieval) {
-      try {
-        {
-          // Keyword-only search for RAG retrieval
-          console.log('Using keyword-only search for RAG retrieval (embedding model unavailable)');
-
-          try {
-            // Keyword search via kb_chunks full-text search
-            const { data: keywordResults, error: keywordError } = await supabase
-              .from('kb_chunks')
-              .select('id, content, doc_id, modality')
-              .textSearch('content_tsv', message.split(' ').slice(0, 5).join(' & '), {
-                type: 'plain',
-              })
-              .limit(10);
-
-            if (!keywordError && keywordResults && keywordResults.length > 0) {
-              // Get doc metadata
-              const docIds = [...new Set(keywordResults.map((r: any) => r.doc_id).filter(Boolean))];
-              let docMap = new Map();
-
-              if (docIds.length > 0) {
-                const { data: docs } = await supabase
-                  .from('kb_documents')
-                  .select('id, source, trip_id')
-                  .in('id', docIds)
-                  .eq('trip_id', tripId);
-
-                docs?.forEach((d: any) => docMap.set(d.id, d));
-              }
-
-              // Filter to only chunks belonging to this trip
-              const tripChunks = keywordResults.filter((r: any) => {
-                const doc = docMap.get(r.doc_id);
-                return doc?.trip_id === tripId;
-              });
-
-              if (tripChunks.length > 0) {
-                console.log(`Found ${tripChunks.length} relevant context items via keyword search`);
-
-                ragContext = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n';
-                ragContext += 'Retrieved using keyword matching:\n';
-
-                tripChunks.forEach((result: any, idx: number) => {
-                  const doc = docMap.get(result.doc_id);
-                  const sourceType = doc?.source || result.modality || 'unknown';
-                  ragContext += `\n[${idx + 1}] [${sourceType}] ${(result.content || '').substring(0, 300)}`;
-                });
-
-                ragContext +=
-                  '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
-              }
-            }
-          } catch (keywordErr) {
-            console.error('Keyword search failed:', keywordErr);
-            // Don't fail the request
-          }
-        }
-      } catch (ragError) {
-        console.error('Hybrid RAG retrieval failed, falling back to basic context:', ragError);
-        // Don't fail the request if RAG fails
-      }
-    } else {
-      console.log('[RAG] Skipping retrieval for non-trip/general query');
-    }
-
-    // Skip privacy check in demo mode
-    if (!serverDemoMode && comprehensiveContext?.tripMetadata?.id) {
-      try {
-        const { data: privacyConfig } = await supabase
-          .from('trip_privacy_configs')
-          .select('*')
-          .eq('trip_id', comprehensiveContext.tripMetadata.id)
-          .single();
-
-        // AI can run in high privacy mode. Only block when explicitly disabled.
-        if (privacyConfig?.ai_access_enabled === false) {
-          return new Response(
-            JSON.stringify({
-              response:
-                '🔒 **AI Concierge is disabled for this trip.**\n\nA trip organizer turned off AI access in privacy settings. You can still use all other trip features.',
-              usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-              sources: [],
-              success: true,
-              model: 'privacy-mode',
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            },
-          );
-        }
-      } catch (privacyError) {
-        console.log('Privacy check failed, proceeding with default behavior:', privacyError);
-      }
-    }
+    const ragContext = ragResult || '';
 
     // 🆕 SMART MODEL SELECTION: Analyze query complexity
     const contextSize = comprehensiveContext ? JSON.stringify(comprehensiveContext).length : 0;
@@ -878,7 +878,9 @@ serve(async req => {
       const response = await callLovable(lovableMessages);
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`Lovable ${modelLabel} error: ${response.status} - ${errText || 'Unknown gateway error'}`);
+        throw new Error(
+          `Lovable ${modelLabel} error: ${response.status} - ${errText || 'Unknown gateway error'}`,
+        );
       }
 
       let data = await response.json();
@@ -889,7 +891,8 @@ serve(async req => {
       // Handle tool calls
       const toolCalls = Array.isArray(lovableMessage?.tool_calls) ? lovableMessage.tool_calls : [];
       if (toolCalls.length > 0) {
-        const toolResultMessages: Array<{ role: 'tool'; tool_call_id: string; content: string }> = [];
+        const toolResultMessages: Array<{ role: 'tool'; tool_call_id: string; content: string }> =
+          [];
 
         for (const toolCall of toolCalls) {
           const functionName = String(toolCall?.function?.name || '');
@@ -899,7 +902,11 @@ serve(async req => {
           let parsedArgs: Record<string, unknown> = {};
           const rawArgs = toolCall?.function?.arguments;
           if (typeof rawArgs === 'string') {
-            try { parsedArgs = JSON.parse(rawArgs || '{}'); } catch (_) { /* skip */ }
+            try {
+              parsedArgs = JSON.parse(rawArgs || '{}');
+            } catch (_) {
+              /* skip */
+            }
           } else if (rawArgs && typeof rawArgs === 'object') {
             parsedArgs = rawArgs as Record<string, unknown>;
           }
@@ -908,10 +915,19 @@ serve(async req => {
 
           let functionResult: any;
           try {
-            functionResult = await executeFunctionCall(supabase, functionName, parsedArgs, tripId, user?.id, locationData);
+            functionResult = await executeFunctionCall(
+              supabase,
+              functionName,
+              parsedArgs,
+              tripId,
+              user?.id,
+              locationData,
+            );
           } catch (toolError) {
             console.error(`[LovableTool] Error executing ${functionName}:`, toolError);
-            functionResult = { error: `Failed to execute ${functionName}: ${toolError instanceof Error ? toolError.message : String(toolError)}` };
+            functionResult = {
+              error: `Failed to execute ${functionName}: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
+            };
           }
 
           toolResultMessages.push({
@@ -929,7 +945,9 @@ serve(async req => {
         ]);
         if (!followUpResponse.ok) {
           const errText = await followUpResponse.text();
-          throw new Error(`Lovable ${modelLabel} follow-up error: ${followUpResponse.status} - ${errText || 'Unknown'}`);
+          throw new Error(
+            `Lovable ${modelLabel} follow-up error: ${followUpResponse.status} - ${errText || 'Unknown'}`,
+          );
         }
         data = await followUpResponse.json();
         lovableUsage = data?.usage || lovableUsage;
@@ -942,7 +960,9 @@ serve(async req => {
         typeof rawContent === 'string'
           ? rawContent
           : Array.isArray(rawContent)
-            ? rawContent.map((part: any) => (typeof part?.text === 'string' ? part.text : '')).join('')
+            ? rawContent
+                .map((part: any) => (typeof part?.text === 'string' ? part.text : ''))
+                .join('')
             : 'Sorry, I could not generate a response right now.';
 
       // Increment usage

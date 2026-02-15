@@ -14,6 +14,7 @@ interface UseGeminiLiveOptions {
   voice?: string;
   onTranscript?: (text: string) => void;
   onToolCall?: (call: ToolCallRequest) => Promise<Record<string, unknown>>;
+  onTurnComplete?: () => void;
 }
 
 interface UseGeminiLiveReturn {
@@ -63,6 +64,7 @@ export function useGeminiLive({
   voice = 'Puck',
   onTranscript,
   onToolCall,
+  onTurnComplete,
 }: UseGeminiLiveOptions): UseGeminiLiveReturn {
   const [state, setState] = useState<GeminiLiveState>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -366,9 +368,10 @@ export function useGeminiLive({
               }
             }
 
-            // Turn complete
+            // Turn complete — model finished responding, ready for next user input
             if (data.serverContent.turnComplete) {
               setState('listening');
+              onTurnComplete?.();
             }
           }
 
@@ -412,6 +415,7 @@ export function useGeminiLive({
     cleanup,
     playAudioChunk,
     onTranscript,
+    onTurnComplete,
     startAudioCapture,
     handleToolCall,
   ]);

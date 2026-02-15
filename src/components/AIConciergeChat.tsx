@@ -339,11 +339,18 @@ export const AIConciergeChat = ({
     [tripId],
   );
 
+  // Reset streaming message ref when the AI finishes a turn so the next
+  // response starts a fresh message bubble.
+  const handleGeminiLiveTurnComplete = useCallback(() => {
+    streamingMessageIdRef.current = null;
+  }, []);
+
   // Gemini Live hook (bidirectional audio)
   const geminiLive = useGeminiLive({
     tripId,
     onTranscript: handleGeminiLiveTranscript,
     onToolCall: handleGeminiLiveToolCall,
+    onTurnComplete: handleGeminiLiveTurnComplete,
   });
 
   const {
