@@ -632,126 +632,93 @@ export const AIConciergeChat = ({
       // Demo mode falls back to non-streaming since demo-concierge doesn't support SSE.
       if (!isDemoMode) {
         const streamingMessageId = `stream-${Date.now()}`;
+        let receivedAnyChunk = false;
+        const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
+
+        // Helper: update the streaming message by ID. Returns prev unchanged
+        // when updater yields an empty patch (avoids unnecessary re-renders).
+        const updateStreamMsg = (updater: (msg: ChatMessage) => Partial<ChatMessage>) => {
+          setMessages(prev => {
+            const idx = prev.findIndex(m => m.id === streamingMessageId);
+            if (idx === -1) return prev;
+            const patch = updater(prev[idx]);
+            if (Object.keys(patch).length === 0) return prev;
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], ...patch };
+            return updated;
+          });
+        };
 
         // Create an empty assistant message bubble immediately
-        const placeholderMessage: ChatMessage = {
-          id: streamingMessageId,
-          type: 'assistant',
-          content: '',
-          timestamp: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, placeholderMessage]);
-
-        let receivedAnyChunk = false;
+        setMessages(prev => [
+          ...prev,
+          {
+            id: streamingMessageId,
+            type: 'assistant' as const,
+            content: '',
+            timestamp: new Date().toISOString(),
+          },
+        ]);
 
         const streamHandle = invokeConciergeStream(
           requestBody,
           {
             onChunk: (text: string) => {
               receivedAnyChunk = true;
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                if (idx === -1) return prev;
-                const updated = [...prev];
-                updated[idx] = { ...updated[idx], content: updated[idx].content + text };
-                return updated;
-              });
+              updateStreamMsg(msg => ({ content: msg.content + text }));
             },
             onMetadata: (metadata: StreamMetadataEvent) => {
               setAiStatus('connected');
-
-              if (isLimitedPlan) {
-                void refreshUsage();
-              }
-
-              // Attach metadata (usage, sources, widget) to the streaming message
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                if (idx === -1) return prev;
-                const updated = [...prev];
-                updated[idx] = {
-                  ...updated[idx],
-                  usage: metadata.usage,
-                  sources: metadata.sources as ChatMessage['sources'],
-                  googleMapsWidget: metadata.googleMapsWidget ?? undefined,
-                };
-                return updated;
-              });
+              if (isLimitedPlan) void refreshUsage();
+              updateStreamMsg(() => ({
+                usage: metadata.usage,
+                sources: metadata.sources as ChatMessage['sources'],
+                googleMapsWidget: metadata.googleMapsWidget ?? undefined,
+              }));
             },
             onError: (errorMsg: string) => {
               if (import.meta.env.DEV) {
                 console.error('[Stream] Concierge streaming error:', errorMsg);
               }
-
-              // If we never received any chunks, replace the empty bubble with fallback
               if (!receivedAnyChunk) {
                 setAiStatus('degraded');
-                const fallbackResponse = generateFallbackResponse(
-                  currentInput,
-                  fallbackContext,
-                  basecampLocation,
-                );
-                setMessages(prev => {
-                  const idx = prev.findIndex(m => m.id === streamingMessageId);
-                  if (idx === -1) return prev;
-                  const updated = [...prev];
-                  updated[idx] = { ...updated[idx], content: fallbackResponse };
-                  return updated;
-                });
+                updateStreamMsg(() => ({
+                  content: generateFallbackResponse(
+                    currentInput,
+                    fallbackContext,
+                    basecampLocation,
+                  ),
+                }));
               }
             },
             onDone: () => {
+              clearTimeout(streamTimer.id);
               if (!isMounted.current) return;
               setIsTyping(false);
-
-              // If the message is still empty after done, show fallback
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                if (idx === -1) return prev;
-                if (prev[idx].content.length > 0) return prev;
-                const updated = [...prev];
-                updated[idx] = {
-                  ...updated[idx],
-                  content: 'Sorry, I encountered an error processing your request.',
-                };
-                return updated;
-              });
+              // If still empty after stream ended, show a generic error
+              updateStreamMsg(msg =>
+                msg.content.length > 0
+                  ? {}
+                  : { content: 'Sorry, I encountered an error processing your request.' },
+              );
             },
           },
           { demoMode: isDemoMode },
         );
 
-        // Set up a timeout to abort if nothing comes back
-        const streamTimeout = setTimeout(() => {
-          if (!receivedAnyChunk) {
-            streamHandle.abort();
-            if (isMounted.current) {
-              setAiStatus('timeout');
-              setIsTyping(false);
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                if (idx === -1) return prev;
-                const updated = [...prev];
-                const fallbackResponse = generateFallbackResponse(
-                  currentInput,
-                  fallbackContext,
-                  basecampLocation,
-                );
-                updated[idx] = {
-                  ...updated[idx],
-                  content: `⚠️ **Request timed out**\n\n${fallbackResponse}`,
-                };
-                return updated;
-              });
-            }
-          }
+        // Abort if no chunks arrive within the timeout window
+        streamTimer.id = setTimeout(() => {
+          if (receivedAnyChunk) return;
+          streamHandle.abort();
+          if (!isMounted.current) return;
+          setAiStatus('timeout');
+          setIsTyping(false);
+          updateStreamMsg(() => ({
+            content: `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`,
+          }));
         }, FAST_RESPONSE_TIMEOUT_MS);
 
-        // The timeout checks receivedAnyChunk (mutated by onChunk). If
-        // streaming completes before the timeout fires, the abort() is a no-op.
-        void streamTimeout;
-
-        return; // Exit early — streaming handles its own finally via onDone
+        return; // Streaming manages its own lifecycle via onDone
       }
 
       // ========== NON-STREAMING FALLBACK (demo mode) ==========

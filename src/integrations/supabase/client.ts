@@ -35,12 +35,11 @@ const env = (import.meta as any)?.env ?? {};
 // Hardcoded defaults - these are the project's anon key (public, not secret)
 // TODO: Remove these defaults once env vars are properly configured in all environments
 const DEFAULT_SUPABASE_URL = 'https://jmjiyekmxwsxkfnqwyaa.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI';
+const DEFAULT_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI';
 
 // Read from env vars, fall back to defaults
-const SUPABASE_URL = 
-  (env.VITE_SUPABASE_URL as string | undefined) || 
-  DEFAULT_SUPABASE_URL;
+const SUPABASE_URL = (env.VITE_SUPABASE_URL as string | undefined) || DEFAULT_SUPABASE_URL;
 
 const SUPABASE_ANON_KEY =
   (env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
@@ -49,13 +48,13 @@ const SUPABASE_ANON_KEY =
 
 // Track whether we're using env vars or defaults (for dev banner)
 export const isUsingEnvVars = Boolean(
-  env.VITE_SUPABASE_URL && (env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY)
+  env.VITE_SUPABASE_URL && (env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY),
 );
 
 // Log warning in dev if using hardcoded defaults
 if (!isUsingEnvVars && import.meta.env.DEV) {
   console.warn(
-    '[Supabase] Using hardcoded defaults. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY for proper configuration.'
+    '[Supabase] Using hardcoded defaults. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY for proper configuration.',
   );
 }
 
@@ -72,8 +71,11 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
       storageKey: 'chravel-auth-session', // Explicit key for consistent session storage
       detectSessionInUrl: true, // Ensure OAuth callbacks are detected
     },
-  }
+  },
 );
 
 // Export URL for edge function calls
 export const SUPABASE_PROJECT_URL = SUPABASE_URL;
+
+// Export anon key for raw fetch calls to edge functions (apikey header)
+export const SUPABASE_PUBLIC_ANON_KEY = SUPABASE_ANON_KEY;

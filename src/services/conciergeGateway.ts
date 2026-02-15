@@ -1,4 +1,8 @@
-import { supabase, SUPABASE_PROJECT_URL } from '@/integrations/supabase/client';
+import {
+  supabase,
+  SUPABASE_PROJECT_URL,
+  SUPABASE_PUBLIC_ANON_KEY,
+} from '@/integrations/supabase/client';
 
 export const CONCIERGE_FUNCTION_NAME = 'lovable-concierge';
 export const DEMO_CONCIERGE_FUNCTION_NAME = 'demo-concierge';
@@ -132,7 +136,7 @@ export function invokeConciergeStream(
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
-          apikey: session?.access_token || '',
+          apikey: SUPABASE_PUBLIC_ANON_KEY,
         },
         body: JSON.stringify({ ...body, stream: true }),
         signal: abortController.signal,

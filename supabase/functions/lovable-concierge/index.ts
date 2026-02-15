@@ -268,15 +268,94 @@ function sseEvent(data: Record<string, unknown>): Uint8Array {
   return new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`);
 }
 
+/** Accumulated state while reading a Gemini SSE stream. */
+interface GeminiStreamState {
+  fullText: string;
+  groundingMetadata: any;
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  functionCallParts: any[];
+}
+
 /**
- * Stream a Gemini `streamGenerateContent` response as SSE chunks.
+ * Read a Gemini `streamGenerateContent?alt=sse` response body and forward
+ * text chunks to the client SSE controller. Function-call parts are collected
+ * (not forwarded) so the caller can execute them and optionally start a
+ * follow-up stream.
+ */
+async function readGeminiSSEStream(
+  body: ReadableStream<Uint8Array>,
+  controller: ReadableStreamDefaultController,
+  accumulateUsage: boolean,
+  prior: GeminiStreamState,
+): Promise<GeminiStreamState> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line.startsWith('data: ')) continue;
+
+      const jsonStr = line.slice(6);
+      if (!jsonStr.trim()) continue;
+
+      let chunk: any;
+      try {
+        chunk = JSON.parse(jsonStr);
+      } catch {
+        buffer = lines.slice(i).join('\n');
+        break;
+      }
+
+      const candidate = chunk.candidates?.[0];
+      if (!candidate) continue;
+
+      for (const part of candidate.content?.parts || []) {
+        if (part.functionCall) {
+          prior.functionCallParts.push(part);
+        } else if (typeof part.text === 'string') {
+          prior.fullText += part.text;
+          controller.enqueue(sseEvent({ type: 'chunk', text: part.text }));
+        }
+      }
+
+      if (candidate.groundingMetadata) {
+        prior.groundingMetadata = candidate.groundingMetadata;
+      }
+
+      if (chunk.usageMetadata) {
+        const u = chunk.usageMetadata;
+        if (accumulateUsage) {
+          prior.usage.prompt_tokens += u.promptTokenCount || 0;
+          prior.usage.completion_tokens += u.candidatesTokenCount || 0;
+          prior.usage.total_tokens += u.totalTokenCount || 0;
+        } else {
+          prior.usage = {
+            prompt_tokens: u.promptTokenCount || 0,
+            completion_tokens: u.candidatesTokenCount || 0,
+            total_tokens: u.totalTokenCount || 0,
+          };
+        }
+      }
+    }
+  }
+
+  return prior;
+}
+
+/**
+ * Stream a Gemini response as SSE chunks to the client.
  *
- * When the model returns function-call parts instead of text, this function
- * collects them, executes the tools, makes a *second* streaming call with
- * the function results, and continues streaming that follow-up to the client.
- *
- * Returns the full accumulated text, grounding metadata, and usage so the
- * caller can persist them after the stream closes.
+ * When the model returns function-call parts, this function executes them,
+ * makes a second streaming call with the results, and continues streaming.
  */
 async function streamGeminiToSSE(
   controller: ReadableStreamDefaultController,
@@ -312,81 +391,22 @@ async function streamGeminiToSSE(
     );
   }
 
-  let fullText = '';
-  let groundingMetadata: any = null;
-  let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
-  const functionCallParts: any[] = [];
+  const state: GeminiStreamState = {
+    fullText: '',
+    groundingMetadata: null,
+    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+    functionCallParts: [],
+  };
+
+  await readGeminiSSEStream(response.body!, controller, false, state);
+
   const executedFunctions: string[] = [];
 
-  // Read the SSE stream from Gemini
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-  let sseBuffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    sseBuffer += decoder.decode(value, { stream: true });
-
-    // Parse SSE lines — each Gemini chunk is `data: {json}\n\n`
-    const lines = sseBuffer.split('\n');
-    sseBuffer = '';
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      if (line.startsWith('data: ')) {
-        const jsonStr = line.slice(6);
-        if (!jsonStr.trim()) continue;
-
-        let chunk: any;
-        try {
-          chunk = JSON.parse(jsonStr);
-        } catch {
-          // Incomplete JSON — push back into buffer
-          sseBuffer = lines.slice(i).join('\n');
-          break;
-        }
-
-        const candidate = chunk.candidates?.[0];
-        if (!candidate) continue;
-
-        // Collect function call parts (don't stream them to client)
-        const parts = candidate.content?.parts || [];
-        for (const part of parts) {
-          if (part.functionCall) {
-            functionCallParts.push(part);
-          } else if (typeof part.text === 'string') {
-            fullText += part.text;
-            // Stream text chunk to client immediately
-            controller.enqueue(sseEvent({ type: 'chunk', text: part.text }));
-          }
-        }
-
-        // Capture grounding metadata from the final chunk
-        if (candidate.groundingMetadata) {
-          groundingMetadata = candidate.groundingMetadata;
-        }
-
-        // Capture usage from the final chunk
-        if (chunk.usageMetadata) {
-          usage = {
-            prompt_tokens: chunk.usageMetadata.promptTokenCount || 0,
-            completion_tokens: chunk.usageMetadata.candidatesTokenCount || 0,
-            total_tokens: chunk.usageMetadata.totalTokenCount || 0,
-          };
-        }
-      }
-      // Non-data lines (empty lines, comments) are ignored
-    }
-  }
-
-  // ========== HANDLE FUNCTION CALLS IN STREAM ==========
-  if (functionCallParts.length > 0) {
+  // Handle function calls collected during the stream
+  if (state.functionCallParts.length > 0) {
     const functionCallResults: any[] = [];
 
-    for (const part of functionCallParts) {
+    for (const part of state.functionCallParts) {
       const fc = part.functionCall;
       let parsedArgs: Record<string, unknown> = {};
       if (typeof fc.args === 'string') {
@@ -420,25 +440,21 @@ async function streamGeminiToSSE(
       }
 
       functionCallResults.push({ name: fc.name, response: result });
-
-      // Notify client that a function was called
       controller.enqueue(sseEvent({ type: 'function_call', name: fc.name, result }));
     }
 
     // Follow-up streaming call with function results
-    const followUpContents = [
-      ...geminiContents,
-      { role: 'model', parts: functionCallParts },
-      {
-        role: 'user',
-        parts: functionCallResults.map(r => ({
-          functionResponse: { name: r.name, response: r.response },
-        })),
-      },
-    ];
-
     const followUpBody = {
-      contents: followUpContents,
+      contents: [
+        ...geminiContents,
+        { role: 'model', parts: state.functionCallParts },
+        {
+          role: 'user',
+          parts: functionCallResults.map(r => ({
+            functionResponse: { name: r.name, response: r.response },
+          })),
+        },
+      ],
       systemInstruction: { parts: [{ text: systemInstruction }] },
       generationConfig: { temperature, maxOutputTokens: maxTokens },
     };
@@ -451,68 +467,22 @@ async function streamGeminiToSSE(
     });
 
     if (followUpResponse.ok) {
-      const followUpReader = followUpResponse.body!.getReader();
-      let followUpBuffer = '';
-
-      while (true) {
-        const { done, value } = await followUpReader.read();
-        if (done) break;
-
-        followUpBuffer += decoder.decode(value, { stream: true });
-        const followUpLines = followUpBuffer.split('\n');
-        followUpBuffer = '';
-
-        for (let i = 0; i < followUpLines.length; i++) {
-          const line = followUpLines[i];
-          if (line.startsWith('data: ')) {
-            const jsonStr = line.slice(6);
-            if (!jsonStr.trim()) continue;
-
-            let chunk: any;
-            try {
-              chunk = JSON.parse(jsonStr);
-            } catch {
-              followUpBuffer = followUpLines.slice(i).join('\n');
-              break;
-            }
-
-            const candidate = chunk.candidates?.[0];
-            if (!candidate) continue;
-
-            for (const part of candidate.content?.parts || []) {
-              if (typeof part.text === 'string') {
-                fullText += part.text;
-                controller.enqueue(sseEvent({ type: 'chunk', text: part.text }));
-              }
-            }
-
-            if (candidate.groundingMetadata) {
-              groundingMetadata = candidate.groundingMetadata;
-            }
-
-            if (chunk.usageMetadata) {
-              usage = {
-                prompt_tokens: usage.prompt_tokens + (chunk.usageMetadata.promptTokenCount || 0),
-                completion_tokens:
-                  usage.completion_tokens + (chunk.usageMetadata.candidatesTokenCount || 0),
-                total_tokens: usage.total_tokens + (chunk.usageMetadata.totalTokenCount || 0),
-              };
-            }
-          }
-        }
-      }
+      // Reset functionCallParts so the second stream doesn't re-collect
+      state.functionCallParts = [];
+      await readGeminiSSEStream(followUpResponse.body!, controller, true, state);
     } else {
-      controller.enqueue(
-        sseEvent({
-          type: 'chunk',
-          text: '\n\nAction completed. Check your trip tabs for the update.',
-        }),
-      );
-      fullText += '\n\nAction completed. Check your trip tabs for the update.';
+      const fallback = '\n\nAction completed. Check your trip tabs for the update.';
+      controller.enqueue(sseEvent({ type: 'chunk', text: fallback }));
+      state.fullText += fallback;
     }
   }
 
-  return { fullText, groundingMetadata, usage, functionCalls: executedFunctions };
+  return {
+    fullText: state.fullText,
+    groundingMetadata: state.groundingMetadata,
+    usage: state.usage,
+    functionCalls: executedFunctions,
+  };
 }
 
 serve(async req => {
