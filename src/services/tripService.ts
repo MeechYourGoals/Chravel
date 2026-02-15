@@ -366,31 +366,50 @@ export const tripService = {
 
       if (allTrips.length === 0) return [];
 
-      // Batch-fetch member and link counts separately (no FK required)
+      // Batch-fetch member counts and places (calendar events with locations)
       const tripIds = allTrips.map(t => t.id);
 
-      const [membersResult, linksResult] = await Promise.all([
+      const [membersResult, eventsResult] = await Promise.all([
         supabase.from('trip_members').select('trip_id').in('trip_id', tripIds),
-        supabase.from('trip_links').select('trip_id').in('trip_id', tripIds),
+        supabase
+          .from('trip_events')
+          .select('trip_id, location')
+          .in('trip_id', tripIds)
+          .not('location', 'is', null)
+          .neq('location', ''),
       ]);
 
-      // Count occurrences per trip
+      // Count members per trip
       const memberCountMap = new Map<string, number>();
-      const linkCountMap = new Map<string, number>();
-
       membersResult.data?.forEach(m => {
         memberCountMap.set(m.trip_id, (memberCountMap.get(m.trip_id) || 0) + 1);
       });
 
-      linksResult.data?.forEach(l => {
-        linkCountMap.set(l.trip_id, (linkCountMap.get(l.trip_id) || 0) + 1);
+      // Count distinct locations per trip (unique places)
+      const placesCountMap = new Map<string, number>();
+      eventsResult.data?.forEach(e => {
+        const key = e.trip_id;
+        if (!placesCountMap.has(key)) {
+          placesCountMap.set(key, 0);
+        }
+      });
+      // Build sets of unique locations per trip, then count
+      const locationSets = new Map<string, Set<string>>();
+      eventsResult.data?.forEach(e => {
+        if (!locationSets.has(e.trip_id)) {
+          locationSets.set(e.trip_id, new Set());
+        }
+        locationSets.get(e.trip_id)!.add(e.location!.toLowerCase().trim());
+      });
+      locationSets.forEach((locations, tripId) => {
+        placesCountMap.set(tripId, locations.size);
       });
 
       // Attach counts to trips in the format expected by tripConverter
       return allTrips.map(trip => ({
         ...trip,
         trip_members: [{ count: memberCountMap.get(trip.id) || 0 }],
-        trip_links: [{ count: linkCountMap.get(trip.id) || 0 }],
+        trip_events_places: [{ count: placesCountMap.get(trip.id) || 0 }],
       }));
     } catch (error) {
       if (import.meta.env.DEV) {

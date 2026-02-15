@@ -23,7 +23,8 @@ export function convertSupabaseTripToMock(supabaseTrip: SupabaseTrip): MockTrip 
 
   // Extract counts from joined tables (Supabase returns [{count: N}] for count aggregates)
   const peopleCount = (supabaseTrip as any).trip_members?.[0]?.count ?? 0;
-  const placesCount = (supabaseTrip as any).trip_links?.[0]?.count ?? 0;
+  // Places count now comes from calendar events with locations (not trip_links)
+  const placesCount = (supabaseTrip as any).trip_events_places?.[0]?.count ?? 0;
 
   return {
     id: supabaseTrip.id as any, // Keep UUID string for service calls
