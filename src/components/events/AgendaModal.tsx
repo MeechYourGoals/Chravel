@@ -16,6 +16,7 @@ import {
   Eye,
   Loader2,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 import { AgendaImportModal } from './AgendaImportModal';
 import { useBackgroundAgendaImport } from '@/features/calendar/hooks/useBackgroundAgendaImport';
@@ -26,10 +27,13 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Card, CardContent } from '../ui/card';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { useEventAgendaFiles } from '@/hooks/useEventAgendaFiles';
+import { hasPaidAccess } from '@/utils/paidAccess';
 import { EventAgendaItem, AgendaFile } from '@/types/events';
 import { format, parseISO } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import {
   EVENT_PARITY_COL_START,
   EVENT_PARITY_ROW_CLASS,
@@ -81,6 +85,8 @@ export const AgendaModal = ({
   onLineupUpdate,
 }: AgendaModalProps) => {
   const { isDemoMode } = useDemoMode();
+  const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
+  const hasPaidSmartImport = hasPaidAccess({ tier, status: subscription?.status, isSuperAdmin });
   const { sessions, addSession, updateSession, deleteSession, isAdding, isUpdating } =
     useEventAgenda({
       eventId,
@@ -280,14 +286,40 @@ export const AgendaModal = ({
               <>
                 {canCreateSessions && (
                   <>
-                    <Button
-                      onClick={() => setShowImportModal(true)}
-                      variant="outline"
-                      className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
-                    >
-                      <Sparkles size={16} className="flex-shrink-0" />
-                      <span className="whitespace-nowrap">Import Agenda</span>
-                    </Button>
+                    {hasPaidSmartImport ? (
+                      <Button
+                        onClick={() => setShowImportModal(true)}
+                        variant="outline"
+                        className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
+                      >
+                        <Sparkles size={16} className="flex-shrink-0" />
+                        <span className="whitespace-nowrap">Smart Import</span>
+                      </Button>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span
+                              className={`${EVENT_PARITY_COL_START.calendar} w-full`}
+                              tabIndex={0}
+                            >
+                              <Button
+                                disabled
+                                variant="outline"
+                                className={`${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/20 text-yellow-400/60`}
+                              >
+                                <Lock size={16} className="flex-shrink-0" />
+                                <span className="whitespace-nowrap">Smart Import</span>
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro /
+                            Enterprise).
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     <Button
                       onClick={() => setIsAddingSession(true)}
                       className={`${EVENT_PARITY_COL_START.chat} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}

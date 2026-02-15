@@ -372,6 +372,7 @@ export const MobileTripTabs = ({
           return (
             <LineupTab
               eventId={tripId}
+              isOrganizer={isEventAdmin}
               permissions={{
                 canView: true,
                 canCreate: isEventAdmin,

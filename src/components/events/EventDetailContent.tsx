@@ -171,6 +171,7 @@ export const EventDetailContent = ({
           <LineupTab
             eventId={tripId}
             permissions={eventPermissions.lineup}
+            isOrganizer={isOrganizer}
             agendaSessions={agendaSessions}
             initialSpeakers={eventData.speakers}
           />

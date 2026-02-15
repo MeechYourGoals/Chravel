@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBackgroundImport } from '@/features/calendar/hooks/useBackgroundImport';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
+import { hasPaidAccess } from '@/utils/paidAccess';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -48,8 +50,10 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   } = useCalendarManagement(tripId);
   const { toast } = useToast();
   const { canPerformAction, isLoading: permissionsLoading } = useRolePermissions(tripId);
+  const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
   // Demo mode available for future conditional rendering
   const { isDemoMode: _isDemoMode } = useDemoMode();
+  const canUseSmartImport = hasPaidAccess({ tier, status: subscription?.status, isSuperAdmin });
 
   // Background URL import
   const {
@@ -66,9 +70,12 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     setShowImportModal(true);
   }, []);
 
-  const handleStartBackgroundImport = useCallback((url: string) => {
-    startBackgroundImport(url, handleBackgroundImportComplete);
-  }, [startBackgroundImport, handleBackgroundImportComplete]);
+  const handleStartBackgroundImport = useCallback(
+    (url: string) => {
+      startBackgroundImport(url, handleBackgroundImportComplete);
+    },
+    [startBackgroundImport, handleBackgroundImportComplete],
+  );
 
   const handleImport = useCallback(() => {
     // Allow action optimistically while permissions are still loading
@@ -80,8 +87,18 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       });
       return;
     }
+
+    if (!canUseSmartImport) {
+      toast({
+        title: 'Upgrade required',
+        description:
+          'Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro / Enterprise).',
+        variant: 'destructive',
+      });
+      return;
+    }
     setShowImportModal(true);
-  }, [canPerformAction, permissionsLoading, toast]);
+  }, [canPerformAction, canUseSmartImport, permissionsLoading, toast]);
 
   const handleImportComplete = useCallback(async () => {
     // Invalidate cache before refetch to ensure we pull the latest events

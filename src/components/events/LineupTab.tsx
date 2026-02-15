@@ -1,5 +1,18 @@
 import React, { useState, useCallback } from 'react';
-import { Search, Users, X, Mic, Calendar, Plus, Edit2, Trash2, Clock, MapPin } from 'lucide-react';
+import {
+  Search,
+  Users,
+  X,
+  Mic,
+  Calendar,
+  Plus,
+  Edit2,
+  Trash2,
+  Clock,
+  MapPin,
+  Sparkles,
+  Lock,
+} from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
 import { useQueryClient } from '@tanstack/react-query';
@@ -9,6 +22,10 @@ import { Card, CardContent } from '../ui/card';
 import { Textarea } from '../ui/textarea';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useEventLineup } from '@/hooks/useEventLineup';
+import { LineupImportModal } from './LineupImportModal';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
+import { hasPaidAccess } from '@/utils/paidAccess';
 import type { Speaker, EventAgendaItem } from '../../types/events';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { format, parseISO } from 'date-fns';
@@ -29,6 +46,7 @@ interface LineupPermissions {
 interface LineupTabProps {
   eventId: string;
   permissions: LineupPermissions;
+  isOrganizer?: boolean;
   agendaSessions?: EventAgendaItem[];
   initialSpeakers?: Speaker[];
 }
@@ -36,12 +54,13 @@ interface LineupTabProps {
 export const LineupTab = ({
   eventId,
   permissions,
+  isOrganizer = false,
   agendaSessions = [],
   initialSpeakers = [],
 }: LineupTabProps) => {
   const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
-  const { members, addMember, updateMember, deleteMember } = useEventLineup({
+  const { members, addMember, updateMember, deleteMember, importMembers } = useEventLineup({
     eventId,
     initialMembers: initialSpeakers,
   });
@@ -56,9 +75,11 @@ export const LineupTab = ({
     maxPullDistance: 120,
   });
 
-  const canCreate = isDemoMode || permissions.canCreate;
-  const canEdit = isDemoMode || permissions.canEdit;
-  const canDelete = isDemoMode || permissions.canDelete;
+  const canCreate = isDemoMode || isOrganizer || permissions.canCreate;
+  const canEdit = isDemoMode || isOrganizer || permissions.canEdit;
+  const canDelete = isDemoMode || isOrganizer || permissions.canDelete;
+  const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
+  const hasPaidSmartImport = hasPaidAccess({ tier, status: subscription?.status, isSuperAdmin });
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Speaker | null>(null);
@@ -66,6 +87,7 @@ export const LineupTab = ({
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [newMember, setNewMember] = useState({ name: '', title: '', company: '', bio: '' });
   const [editMember, setEditMember] = useState({ name: '', title: '', company: '', bio: '' });
+  const [showSmartImport, setShowSmartImport] = useState(false);
 
   const filteredMembers = members.filter(
     speaker =>
@@ -158,13 +180,47 @@ export const LineupTab = ({
           </div>
         </div>
         {canCreate && !isAddingMember && (
-          <Button
-            onClick={() => setIsAddingMember(true)}
-            className={`${EVENT_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
-          >
-            <Plus size={16} className="flex-shrink-0" />
-            <span className="whitespace-nowrap">Add to Line-up</span>
-          </Button>
+          <div className={`${EVENT_PARITY_COL_START.tasks} flex flex-col gap-2 w-full sm:w-auto`}>
+            {hasPaidSmartImport ? (
+              <Button
+                onClick={() => setShowSmartImport(true)}
+                variant="outline"
+                className="border-yellow-500/50 text-yellow-300 hover:text-yellow-200"
+              >
+                <Sparkles size={16} className="flex-shrink-0" />
+                <span className="whitespace-nowrap">Smart Import</span>
+              </Button>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0}>
+                      <Button
+                        disabled
+                        variant="outline"
+                        className="border-yellow-500/30 text-yellow-300/70"
+                      >
+                        <Lock size={16} className="flex-shrink-0" />
+                        <span className="whitespace-nowrap">Smart Import</span>
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro /
+                    Enterprise).
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
+            <Button
+              onClick={() => setIsAddingMember(true)}
+              className={`${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
+            >
+              <Plus size={16} className="flex-shrink-0" />
+              <span className="whitespace-nowrap">Add to Line-up</span>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -390,6 +446,16 @@ export const LineupTab = ({
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {canCreate && hasPaidSmartImport && (
+        <LineupImportModal
+          isOpen={showSmartImport}
+          onClose={() => setShowSmartImport(false)}
+          onImportNames={async ({ names, mode, sourceUrl }) => {
+            return importMembers({ names, mode, sourceUrl });
+          }}
+        />
       )}
 
       {/* Read-Only Speaker Session Detail Modal */}

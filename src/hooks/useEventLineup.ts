@@ -199,6 +199,71 @@ export function useEventLineup({
       console.error('Failed to auto-add lineup members:', err);
     },
   });
+  // Batch smart import for lineup names (merge or replace)
+  const importMembers = useMutation({
+    mutationFn: async (payload: {
+      names: string[];
+      mode: 'merge' | 'replace';
+      sourceUrl?: string;
+    }): Promise<number> => {
+      const normalized = Array.from(
+        new Map(
+          payload.names
+            .filter(name => typeof name === 'string')
+            .map(name => [name.trim().toLocaleLowerCase(), name.trim()])
+            .filter(([key]) => key.length > 0),
+        ).values(),
+      ).sort((a, b) => a.localeCompare(b));
+
+      if (isDemoMode || normalized.length === 0) {
+        return normalized.length;
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+
+      let namesToInsert = normalized;
+
+      if (payload.mode === 'replace') {
+        const { error: deleteError } = await supabase
+          .from('event_lineup_members')
+          .delete()
+          .eq('event_id', eventId);
+
+        if (deleteError) throw deleteError;
+      } else {
+        const { data: existingRows, error: existingError } = await supabase
+          .from('event_lineup_members')
+          .select('name')
+          .eq('event_id', eventId);
+
+        if (existingError) throw existingError;
+
+        const existing = new Set((existingRows || []).map(row => row.name.toLocaleLowerCase()));
+        namesToInsert = normalized.filter(name => !existing.has(name.toLocaleLowerCase()));
+      }
+
+      if (namesToInsert.length === 0) return 0;
+
+      const rows = namesToInsert.map(name => ({
+        event_id: eventId,
+        name,
+        performer_type: 'speaker',
+        created_by: userId || null,
+      }));
+
+      const { error: insertError } = await supabase.from('event_lineup_members').insert(rows);
+      if (insertError) throw insertError;
+
+      return namesToInsert.length;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (err: Error) => {
+      console.error('Failed to smart import lineup members:', err);
+    },
+  });
 
   return {
     members,
@@ -207,5 +272,6 @@ export function useEventLineup({
     updateMember: updateMember.mutateAsync,
     deleteMember: deleteMember.mutateAsync,
     addMembersFromAgenda: addMembersFromAgenda.mutateAsync,
+    importMembers: importMembers.mutateAsync,
   };
 }

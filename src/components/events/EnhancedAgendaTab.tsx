@@ -17,6 +17,7 @@ import {
   Image,
   Loader2,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
@@ -31,6 +32,9 @@ import { Textarea } from '../ui/textarea';
 import { Card, CardContent } from '../ui/card';
 import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { useEventAgendaFiles } from '@/hooks/useEventAgendaFiles';
+import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
+import { hasPaidAccess } from '@/utils/paidAccess';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { EventAgendaItem, AgendaFile } from '@/types/events';
 import { format, parseISO } from 'date-fns';
 
@@ -55,6 +59,8 @@ export const EnhancedAgendaTab = ({
 }: EnhancedAgendaTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
+  const hasPaidSmartImport = hasPaidAccess({ tier, status: subscription?.status, isSuperAdmin });
   const { sessions, addSession, updateSession, deleteSession, isAdding, isUpdating } =
     useEventAgenda({ eventId });
 
@@ -258,14 +264,37 @@ export const EnhancedAgendaTab = ({
                 </Button>
               </>
             )}
-            <Button
-              onClick={() => setShowImportModal(true)}
-              variant="outline"
-              className="flex-1 sm:flex-none border-primary/30 text-primary"
-            >
-              <Sparkles size={16} className="mr-2" />
-              Import Agenda
-            </Button>
+            {hasPaidSmartImport ? (
+              <Button
+                onClick={() => setShowImportModal(true)}
+                variant="outline"
+                className="flex-1 sm:flex-none border-primary/30 text-primary"
+              >
+                <Sparkles size={16} className="mr-2" />
+                Smart Import
+              </Button>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex-1 sm:flex-none" tabIndex={0}>
+                      <Button
+                        disabled
+                        variant="outline"
+                        className="w-full border-primary/20 text-primary/60"
+                      >
+                        <Lock size={16} className="mr-2" />
+                        Smart Import
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro /
+                    Enterprise).
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             <Button
               onClick={() => setIsAddingSession(true)}
               className="flex-1 sm:flex-none bg-primary hover:bg-primary/90"
