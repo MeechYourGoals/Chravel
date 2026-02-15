@@ -206,12 +206,12 @@ export const LineupTab = ({
         />
       )}
       {/* Header */}
-      <div className={`${EVENT_PARITY_ROW_CLASS} items-start`}>
-        <div className={`flex items-center gap-3 ${EVENT_PARITY_HEADER_SPAN_CLASS}`}>
+      <div className={`${EVENT_PARITY_ROW_CLASS} items-center`}>
+        <div className={`flex items-center gap-3 ${EVENT_PARITY_COL_START.admin} md:col-span-5`}>
           <Users size={24} className="text-yellow-500" />
           <div>
             <h2 className="text-xl font-semibold text-white">Line-up</h2>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-400 text-sm hidden md:block">
               {canCreate
                 ? 'Manage speakers, artists, and presenters'
                 : 'Speakers, artists, and presenters at this event'}
@@ -219,9 +219,39 @@ export const LineupTab = ({
           </div>
         </div>
         {canCreate && !isAddingMember && (
-          <div
-            className={`${EVENT_PARITY_COL_START.tasks} flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap`}
-          >
+          <>
+            {hasPaidSmartImport ? (
+              <Button
+                onClick={() => setShowSmartImport(true)}
+                variant="outline"
+                className={`${EVENT_PARITY_COL_START.media} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/50 text-yellow-300 hover:text-yellow-200`}
+              >
+                <Sparkles size={16} className="flex-shrink-0" />
+                <span className="whitespace-nowrap">Import</span>
+              </Button>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className={EVENT_PARITY_COL_START.media}>
+                      <Button
+                        disabled
+                        variant="outline"
+                        className={`${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-300/70`}
+                      >
+                        <Lock size={16} className="flex-shrink-0" />
+                        <span className="whitespace-nowrap">Import</span>
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro /
+                    Enterprise).
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
             {canUploadMore && (
               <>
                 <input
@@ -236,7 +266,7 @@ export const LineupTab = ({
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-yellow-500/40 text-yellow-300/90 hover:text-yellow-200"
+                  className={`${EVENT_PARITY_COL_START.polls} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/40 text-yellow-300/90 hover:text-yellow-200`}
                   disabled={isUploading}
                   onClick={() => fileInputRef.current?.click()}
                 >
@@ -248,54 +278,29 @@ export const LineupTab = ({
                   ) : (
                     <>
                       <Upload size={16} className="flex-shrink-0" />
-                      <span className="whitespace-nowrap">Upload Line-up</span>
+                      <span className="whitespace-nowrap">Upload</span>
                     </>
                   )}
                 </Button>
               </>
             )}
-            {hasPaidSmartImport ? (
-              <Button
-                onClick={() => setShowSmartImport(true)}
-                variant="outline"
-                className="border-yellow-500/50 text-yellow-300 hover:text-yellow-200"
-              >
-                <Sparkles size={16} className="flex-shrink-0" />
-                <span className="whitespace-nowrap">Smart Import</span>
-              </Button>
-            ) : (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span tabIndex={0}>
-                      <Button
-                        disabled
-                        variant="outline"
-                        className="border-yellow-500/30 text-yellow-300/70"
-                      >
-                        <Lock size={16} className="flex-shrink-0" />
-                        <span className="whitespace-nowrap">Smart Import</span>
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro /
-                    Enterprise).
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
 
             <Button
               onClick={() => setIsAddingMember(true)}
-              className={`${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
+              className={`${EVENT_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
             >
               <Plus size={16} className="flex-shrink-0" />
-              <span className="whitespace-nowrap">Add to Line-up</span>
+              <span className="whitespace-nowrap">Add</span>
             </Button>
-          </div>
+          </>
         )}
       </div>
+      {/* Mobile subtitle */}
+      <p className="text-gray-400 text-sm md:hidden -mt-2">
+        {canCreate
+          ? 'Manage speakers, artists, and presenters'
+          : 'Speakers, artists, and presenters at this event'}
+      </p>
 
       {/* Load error */}
       {loadError && !isDemoMode && (
