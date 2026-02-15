@@ -9,7 +9,10 @@ import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
 import { useWebSpeechVoice as useGeminiVoice } from '../hooks/useWebSpeechVoice';
+import { useGeminiLive } from '../hooks/useGeminiLive';
+import type { ToolCallRequest } from '../hooks/useGeminiLive';
 import { invokeConcierge } from '@/services/conciergeGateway';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 
@@ -183,6 +186,98 @@ export const AIConciergeChat = ({
     setVoicePendingText(transcript);
   }, []);
 
+  // Handle Gemini Live AI transcript — display as assistant message directly
+  const handleGeminiLiveTranscript = useCallback((text: string) => {
+    if (!text.trim()) return;
+    setMessages(prev => {
+      // Append to last assistant message if it exists and is recent (streaming)
+      const last = prev[prev.length - 1];
+      if (last?.type === 'assistant' && Date.now() - new Date(last.timestamp).getTime() < 5000) {
+        return [
+          ...prev.slice(0, -1),
+          { ...last, content: last.content + text },
+        ];
+      }
+      return [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          type: 'assistant' as const,
+          content: text,
+          timestamp: new Date().toISOString(),
+        },
+      ];
+    });
+  }, []);
+
+  // Handle tool calls from Gemini Live
+  const handleGeminiLiveToolCall = useCallback(async (call: ToolCallRequest): Promise<Record<string, unknown>> => {
+    try {
+      // Get current user for created_by fields
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      if (!userId) return { error: 'Not authenticated' };
+
+      switch (call.name) {
+        case 'addToCalendar': {
+          const { data, error } = await supabase.from('trip_events').insert({
+            trip_id: tripId,
+            created_by: userId,
+            title: String(call.args.title || 'New Event'),
+            start_time: String(call.args.startTime),
+            end_time: call.args.endTime ? String(call.args.endTime) : null,
+            location: call.args.location ? String(call.args.location) : null,
+            description: call.args.description ? String(call.args.description) : null,
+          }).select().single();
+          if (error) throw error;
+          return { success: true, eventId: data?.id, message: `Added "${call.args.title}" to calendar` };
+        }
+        case 'createTask': {
+          const { data, error } = await supabase.from('trip_tasks').insert({
+            trip_id: tripId,
+            creator_id: userId,
+            title: String(call.args.content),
+            due_at: call.args.dueDate ? String(call.args.dueDate) : null,
+          }).select().single();
+          if (error) throw error;
+          return { success: true, taskId: data?.id, message: `Created task: "${call.args.content}"` };
+        }
+        case 'createPoll': {
+          const options = (call.args.options as string[] || []).map((text: string) => ({
+            text, votes: 0,
+          }));
+          const { data, error } = await supabase.from('trip_polls').insert({
+            trip_id: tripId,
+            created_by: userId,
+            question: String(call.args.question),
+            options: JSON.stringify(options),
+          }).select().single();
+          if (error) throw error;
+          return { success: true, pollId: data?.id, message: `Created poll: "${call.args.question}"` };
+        }
+        case 'getPaymentSummary': {
+          const { data } = await supabase.from('trip_payment_messages')
+            .select('description, amount, is_settled')
+            .eq('trip_id', tripId);
+          const unsettled = (data || []).filter((p: any) => !p.is_settled);
+          const total = unsettled.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+          return { totalUnsettled: total, count: unsettled.length, payments: unsettled.slice(0, 5) };
+        }
+        default:
+          return { error: `Unknown tool: ${call.name}` };
+      }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Tool execution failed' };
+    }
+  }, [tripId]);
+
+  // Gemini Live hook (bidirectional audio)
+  const geminiLive = useGeminiLive({
+    tripId,
+    onTranscript: handleGeminiLiveTranscript,
+    onToolCall: handleGeminiLiveToolCall,
+  });
+
   const {
     voiceState: webSpeechVoiceState,
     errorMessage: voiceError,
@@ -190,15 +285,32 @@ export const AIConciergeChat = ({
     stopVoice: stopWebSpeechVoice,
   } = useGeminiVoice(handleVoiceUserMessage);
 
-  const voiceState = webSpeechVoiceState;
-  const currentVoiceError = voiceError;
-  const toggleVoice = toggleWebSpeechVoice;
+  // Use Gemini Live when supported, fall back to Web Speech
+  const useGeminiLiveVoice = geminiLive.isSupported && isVoiceEligible;
+
+  const voiceState = useGeminiLiveVoice ? geminiLive.state : webSpeechVoiceState;
+  const currentVoiceError = useGeminiLiveVoice ? geminiLive.error : voiceError;
+
+  const toggleVoice = useCallback(() => {
+    if (useGeminiLiveVoice) {
+      if (geminiLive.state === 'idle' || geminiLive.state === 'error') {
+        geminiLive.startSession();
+      } else {
+        geminiLive.endSession();
+      }
+    } else {
+      toggleWebSpeechVoice();
+    }
+  }, [useGeminiLiveVoice, geminiLive, toggleWebSpeechVoice]);
 
   useEffect(() => {
     return () => {
       stopWebSpeechVoice();
+      if (geminiLive.state !== 'idle') {
+        geminiLive.endSession();
+      }
     };
-  }, [stopWebSpeechVoice]);
+  }, [stopWebSpeechVoice, geminiLive]);
 
   // Auto-send voice transcripts through the same pipeline as typed messages
   useEffect(() => {
