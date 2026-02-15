@@ -326,7 +326,7 @@ export const MobileEventCard = ({
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => setShowExportModal(true)}
-            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-all duration-300 text-sm border border-white/10 flex items-center justify-center gap-2"
+            className="bg-black/30 hover:bg-black/40 text-white py-3 rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-sm flex items-center justify-center gap-2"
           >
             <FileDown size={16} />
             Recap
