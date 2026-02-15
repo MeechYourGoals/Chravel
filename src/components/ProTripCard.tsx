@@ -369,6 +369,7 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
           {/* View button uses neutral dark style (NOT yellow like Regular TripCard) */}
           <Button
             onClick={handleViewTrip}
+            variant="ghost"
             className="bg-black/30 hover:bg-black/40 text-white font-medium py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 text-xs md:text-sm h-auto border border-white/20 hover:border-white/30"
           >
             View
