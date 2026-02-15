@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { TripContextBuilder } from '../_shared/contextBuilder.ts';
+import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const GEMINI_LIVE_MODEL =
@@ -38,6 +40,87 @@ const GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS = parseEnvInt(
 );
 const GEMINI_EPHEMERAL_USES = parseEnvInt(Deno.env.get('GEMINI_EPHEMERAL_USES'), 1, 0, 100);
 
+/** Function declarations for Gemini Live tool use */
+const VOICE_FUNCTION_DECLARATIONS = [
+  {
+    name: 'addToCalendar',
+    description: 'Add an event to the trip calendar',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        title: { type: 'STRING', description: 'Event title' },
+        startTime: { type: 'STRING', description: 'ISO 8601 start time' },
+        endTime: { type: 'STRING', description: 'ISO 8601 end time (optional)' },
+        location: { type: 'STRING', description: 'Event location (optional)' },
+        description: { type: 'STRING', description: 'Event description (optional)' },
+      },
+      required: ['title', 'startTime'],
+    },
+  },
+  {
+    name: 'createTask',
+    description: 'Create a task for the trip group',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        content: { type: 'STRING', description: 'Task description' },
+        dueDate: { type: 'STRING', description: 'Due date in ISO format (optional)' },
+      },
+      required: ['content'],
+    },
+  },
+  {
+    name: 'createPoll',
+    description: 'Create a poll for the group to vote on',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        question: { type: 'STRING', description: 'Poll question' },
+        options: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description: 'Poll options (2-6 choices)',
+        },
+      },
+      required: ['question', 'options'],
+    },
+  },
+  {
+    name: 'searchPlaces',
+    description: 'Search for nearby places like restaurants, hotels, or attractions',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        query: { type: 'STRING', description: 'Search query (e.g. "Italian restaurant")' },
+        type: { type: 'STRING', description: 'Place type filter (optional)' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'getPaymentSummary',
+    description: 'Get a summary of who owes money to whom in the trip',
+    parameters: {
+      type: 'OBJECT',
+      properties: {},
+    },
+  },
+];
+
+/** Voice-specific addendum appended to the full system prompt */
+const VOICE_ADDENDUM = `
+
+=== VOICE DELIVERY GUIDELINES ===
+You are now speaking via bidirectional voice audio. Adapt your responses:
+- Keep responses under 3 sentences unless the user asks for detail
+- Use natural conversational language — NO markdown, NO links, NO bullet points, NO formatting
+- Say numbers as words when natural ("about twenty dollars" not "$20.00")
+- Avoid lists — narrate sequentially instead
+- Be warm, concise, and personable
+- If you don't know something specific, say so briefly and suggest checking the app
+- For places, say the name and a brief description — don't try to give URLs
+- When executing actions (adding events, creating tasks), confirm what you did conversationally`;
+
 async function canUseVoiceConcierge(
   supabaseAdmin: any,
   userId: string,
@@ -71,8 +154,6 @@ async function canUseVoiceConcierge(
   const status = String(entitlements?.status ?? '').toLowerCase();
   const isActiveSubscription = status === 'active' || status === 'trialing';
 
-  // Voice is enabled for any active paid plan (explorer, frequent-chraveler, pro-*),
-  // and denied for free/no-plan users.
   return isActiveSubscription && plan.length > 0 && plan !== 'free';
 }
 
@@ -95,8 +176,6 @@ async function createEphemeralToken(params: {
     uses: GEMINI_EPHEMERAL_USES,
     expireTime,
     newSessionExpireTime,
-    // Constrain the token to this model/voice/session setup so leaked tokens have
-    // a narrow blast radius.
     bidiGenerateContentSetup: {
       model: params.model,
       generationConfig: {
@@ -112,6 +191,10 @@ async function createEphemeralToken(params: {
       systemInstruction: {
         parts: [{ text: params.systemInstruction }],
       },
+      tools: [
+        { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
+        { googleSearch: {} },
+      ],
     },
   };
 
@@ -203,51 +286,23 @@ serve(async req => {
     const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : 'Puck';
     const tripId = typeof body?.tripId === 'string' ? body.tripId : undefined;
 
-    // Build trip context for the voice session system instruction
-    let systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. You are speaking with a user via voice. Keep responses conversational, concise, and natural for spoken delivery. Current date: ${new Date().toISOString().split('T')[0]}.`;
+    // Build full system instruction using shared context builder + prompt builder
+    let systemInstruction: string;
 
     if (tripId) {
       try {
-        // Fetch basic trip context for the voice session
-        const { data: trip } = await supabase
-          .from('trips')
-          .select('name, destination, start_date, end_date')
-          .eq('id', tripId)
-          .single();
-
-        if (trip) {
-          systemInstruction += `\n\nThe user is on a trip called "${trip.name}" to ${trip.destination || 'an unspecified destination'}.`;
-          if (trip.start_date && trip.end_date) {
-            systemInstruction += ` Travel dates: ${trip.start_date} to ${trip.end_date}.`;
-          }
-        }
-
-        // Fetch upcoming events
-        const { data: events } = await supabase
-          .from('trip_events')
-          .select('title, start_time, location')
-          .eq('trip_id', tripId)
-          .gte('start_time', new Date().toISOString())
-          .order('start_time', { ascending: true })
-          .limit(5);
-
-        if (events?.length) {
-          systemInstruction += `\n\nUpcoming events:`;
-          events.forEach((e: any) => {
-            systemInstruction += `\n- ${e.title} at ${e.start_time}${e.location ? ` (${e.location})` : ''}`;
-          });
-        }
+        const tripContext = await TripContextBuilder.buildContext(tripId, user.id, authHeader);
+        systemInstruction = buildSystemPrompt(tripContext);
       } catch (contextError) {
-        console.error('Failed to build voice context:', contextError);
-        // Continue with basic system instruction
+        console.error('[gemini-voice-session] Failed to build full context, using minimal:', contextError);
+        systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
       }
+    } else {
+      systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
     }
 
-    systemInstruction += `\n\nVoice guidelines:
-- Keep responses under 3 sentences unless the user asks for detail
-- Use natural conversational language (no markdown, no links, no formatting)
-- Be warm and helpful
-- If you don't know something specific to the trip, say so and suggest checking the app`;
+    // Append voice-specific delivery guidelines
+    systemInstruction += VOICE_ADDENDUM;
 
     const ephemeral = await createEphemeralToken({
       model: GEMINI_LIVE_MODEL,
@@ -255,8 +310,6 @@ serve(async req => {
       voice,
     });
 
-    // Return session config for client-side WebSocket connection.
-    // We return an ephemeral token instead of exposing GEMINI_API_KEY.
     return new Response(
       JSON.stringify({
         accessToken: ephemeral.token,

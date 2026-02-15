@@ -3,10 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type GeminiLiveState = 'idle' | 'connecting' | 'listening' | 'speaking' | 'error';
 
+export interface ToolCallRequest {
+  name: string;
+  args: Record<string, unknown>;
+  id: string;
+}
+
 interface UseGeminiLiveOptions {
   tripId: string;
   voice?: string;
   onTranscript?: (text: string) => void;
+  onToolCall?: (call: ToolCallRequest) => Promise<Record<string, unknown>>;
 }
 
 interface UseGeminiLiveReturn {
@@ -20,9 +27,7 @@ interface UseGeminiLiveReturn {
 const LIVE_INPUT_SAMPLE_RATE = 16000;
 
 const downsampleTo16k = (input: Float32Array, inputSampleRate: number): Float32Array => {
-  if (inputSampleRate <= LIVE_INPUT_SAMPLE_RATE) {
-    return input;
-  }
+  if (inputSampleRate <= LIVE_INPUT_SAMPLE_RATE) return input;
 
   const sampleRateRatio = inputSampleRate / LIVE_INPUT_SAMPLE_RATE;
   const outputLength = Math.floor(input.length / sampleRateRatio);
@@ -57,6 +62,7 @@ export function useGeminiLive({
   tripId,
   voice = 'Puck',
   onTranscript,
+  onToolCall,
 }: UseGeminiLiveOptions): UseGeminiLiveReturn {
   const [state, setState] = useState<GeminiLiveState>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -66,8 +72,6 @@ export function useGeminiLive({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const processorNodeRef = useRef<ScriptProcessorNode | null>(null);
-  const playbackQueueRef = useRef<Float32Array[]>([]);
-  const isPlayingRef = useRef(false);
 
   // Check browser support
   const isSupported =
@@ -77,63 +81,49 @@ export function useGeminiLive({
     typeof navigator?.mediaDevices?.getUserMedia === 'function';
 
   const cleanup = useCallback(() => {
-    // Stop microphone
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
-
     if (sourceNodeRef.current) {
       sourceNodeRef.current.disconnect();
       sourceNodeRef.current = null;
     }
-
     if (processorNodeRef.current) {
       processorNodeRef.current.disconnect();
       processorNodeRef.current.onaudioprocess = null;
       processorNodeRef.current = null;
     }
-
-    // Close audio context
     if (audioContextRef.current?.state !== 'closed') {
       audioContextRef.current?.close().catch(() => {});
       audioContextRef.current = null;
     }
-
-    // Close WebSocket
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
-
-    playbackQueueRef.current = [];
-    isPlayingRef.current = false;
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => cleanup();
   }, [cleanup]);
 
-  const playAudioChunk = useCallback(async (base64Audio: string) => {
+  const playAudioChunk = useCallback((base64Audio: string) => {
     if (!audioContextRef.current) return;
 
     try {
-      // Decode base64 PCM 16-bit mono 24kHz
       const binaryString = atob(base64Audio);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // Convert PCM 16-bit to Float32
       const int16Array = new Int16Array(bytes.buffer);
       const float32Array = new Float32Array(int16Array.length);
       for (let i = 0; i < int16Array.length; i++) {
         float32Array[i] = int16Array[i] / 32768.0;
       }
 
-      // Create and play audio buffer
       const sampleRate = 24000;
       const audioBuffer = audioContextRef.current.createBuffer(1, float32Array.length, sampleRate);
       audioBuffer.getChannelData(0).set(float32Array);
@@ -153,8 +143,6 @@ export function useGeminiLive({
 
       try {
         const sourceNode = audioContextRef.current.createMediaStreamSource(stream);
-
-        // Use ScriptProcessorNode as fallback (AudioWorklet requires HTTPS + module)
         const processorNode = audioContextRef.current.createScriptProcessor(4096, 1, 1);
         sourceNodeRef.current = sourceNode;
         processorNodeRef.current = processorNode;
@@ -166,14 +154,12 @@ export function useGeminiLive({
           const inputSampleRate = audioContextRef.current?.sampleRate || LIVE_INPUT_SAMPLE_RATE;
           const downsampledData = downsampleTo16k(inputData, inputSampleRate);
 
-          // Convert to PCM 16-bit mono
           const pcm16 = new Int16Array(downsampledData.length);
           for (let i = 0; i < downsampledData.length; i++) {
             const s = Math.max(-1, Math.min(1, downsampledData[i]));
             pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
           }
 
-          // Convert to base64
           const uint8 = new Uint8Array(pcm16.buffer);
           let binary = '';
           for (let i = 0; i < uint8.length; i++) {
@@ -181,7 +167,6 @@ export function useGeminiLive({
           }
           const base64 = btoa(binary);
 
-          // Send audio to Gemini
           ws.send(
             JSON.stringify({
               realtimeInput: {
@@ -206,6 +191,57 @@ export function useGeminiLive({
       }
     },
     [cleanup],
+  );
+
+  /** Handle tool calls from Gemini Live and send results back */
+  const handleToolCall = useCallback(
+    async (ws: WebSocket, toolCallData: any) => {
+      if (!onToolCall) {
+        // No handler — send empty response so Gemini can continue
+        ws.send(
+          JSON.stringify({
+            toolResponse: {
+              functionResponses: (toolCallData.functionCalls || []).map((fc: any) => ({
+                id: fc.id,
+                name: fc.name,
+                response: { result: 'Tool execution not available' },
+              })),
+            },
+          }),
+        );
+        return;
+      }
+
+      const functionCalls = toolCallData.functionCalls || [];
+      const responses = await Promise.all(
+        functionCalls.map(async (fc: any) => {
+          try {
+            const result = await onToolCall({
+              id: fc.id,
+              name: fc.name,
+              args: fc.args || {},
+            });
+            return { id: fc.id, name: fc.name, response: result };
+          } catch (err) {
+            console.error(`[GeminiLive] Tool call ${fc.name} failed:`, err);
+            return {
+              id: fc.id,
+              name: fc.name,
+              response: { error: err instanceof Error ? err.message : 'Tool execution failed' },
+            };
+          }
+        }),
+      );
+
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            toolResponse: { functionResponses: responses },
+          }),
+        );
+      }
+    },
+    [onToolCall],
   );
 
   const startSession = useCallback(async () => {
@@ -266,7 +302,6 @@ export function useGeminiLive({
           ? rawModel
           : `models/${rawModel.replace(/^models\//, '')}`;
 
-        // Send setup message
         const setupMessage = {
           setup: {
             model: normalizedModel,
@@ -298,6 +333,13 @@ export function useGeminiLive({
             console.log('[GeminiLive] Setup complete, starting audio capture');
             setState('listening');
             startAudioCapture(ws, stream);
+            return;
+          }
+
+          // Tool call from Gemini
+          if (data.toolCall) {
+            console.log('[GeminiLive] Tool call received:', data.toolCall);
+            handleToolCall(ws, data.toolCall);
             return;
           }
 
@@ -354,7 +396,7 @@ export function useGeminiLive({
       setState('error');
       cleanup();
     }
-  }, [isSupported, tripId, voice, cleanup, playAudioChunk, onTranscript, startAudioCapture]);
+  }, [isSupported, tripId, voice, cleanup, playAudioChunk, onTranscript, startAudioCapture, handleToolCall]);
 
   const endSession = useCallback(() => {
     setState('idle');
