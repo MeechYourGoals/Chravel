@@ -1,126 +1,59 @@
 
-# Admin Dashboard Redesign + Per-Tab Permissions + Build Error Fixes
 
-## Summary
+# Fix "Places" Counter: Pull from Calendar Events with Locations
 
-Redesign the Admin dashboard to replace "Event Visibility" with a clean "Visibility" toggle in the Permissions slot, remove the Permissions card entirely, and add gear icons on Chat and Media tab rows that open permission modals. Also fix all 13 build errors across 7 files.
+## Problem
+The "Places" counter on trip cards currently pulls from `trip_links` (curated links in the Ideas section). This is inaccurate because trip links include non-place items like wedding registries, articles, forms, and docs.
 
----
+## Solution
+Change the "Places" counter to count **calendar entries (`trip_events`) that have a non-empty `location` field**. This is naturally accurate: only events with real locations count as "places."
 
-## Part 1: Fix All Build Errors (7 files, 13 errors)
+- Keep the label **"Places"** (no rename)
+- Keep Trip Links as-is (no rename to "Ideas" or "Links")
+- Consistent logic across Consumer, Pro, and Events
 
-### Edge Function Errors (2 files, 2 errors)
+## Why Calendar Events > Trip Links
 
-**`supabase/functions/gemini-voice-session/index.ts` line 65**
-- Add explicit type: `.some((row: any) => ...)`
+- Calendar entries with locations = actual places the group is going
+- Entries without locations (reminders, tasks, flights without venue) are automatically excluded
+- Works perfectly for touring artists (tour stops), sports teams (game venues), weddings (ceremony/reception venues), group trips (restaurants, attractions)
+- All trip types share the same `trip_events` table -- one consistent counter
 
-**`supabase/functions/generate-embeddings/index.ts` line 239**
-- Already has `(doc: any)` -- the issue is that the `Map` constructor doesn't infer the value type. Change to `new Map<string, any>(docs.map(...))`.
+## Technical Changes
 
-### Frontend Errors (5 files, 11 errors)
+### 1. Database Query (`src/services/tripService.ts`)
+- Replace `trip_links` count query with `trip_events` count query
+- Filter: `location IS NOT NULL AND location != ''`
+- Count distinct locations to avoid duplicates (e.g., two events at the same venue)
 
-**`src/utils/paidAccess.ts` line 9**
-- `PaidAccessStatus` is missing `'cancelled'`. The `ConsumerSubscription` type in `consumer.ts` includes `'cancelled'` but `PaidAccessStatus` only has `'inactive'`. Add `'cancelled'` to the union: `'active' | 'trial' | 'expired' | 'inactive' | 'cancelled'`
-
-**`src/components/events/LineupImportModal.tsx` lines 250, 252**
-- The `state` type is `ImportState = 'idle' | 'parsing' | 'preview' | 'importing'` but the comparisons happen inside a block that already narrowed state to `'preview'`. This means `state === 'importing'` is flagged as impossible. Fix: use a local variable or widen the comparison.
-
-**`src/hooks/useEventLineup.ts` lines 211, 216, 243, 255**
-- Line 211: The `.map()` returns `string[][]` but `new Map()` expects `[K, V][]` tuples. Fix: add `as [string, string]` cast to the map return.
-- Line 216: `.localeCompare()` on `unknown`. Fix: type the `.values()` result or cast.
-- Line 243: `.toLocaleLowerCase()` on `unknown`. Same fix.
-- Line 255: `name: unknown` not assignable to `name: string`. Same root cause.
-
-**`src/utils/__tests__/lineupImportParsers.test.ts` lines 24, 44, 58**
-- `InvokeResult` type has `error: { message: string } | null` which doesn't match `FunctionsResponseSuccess` expecting `error: null`. Fix: change the mock return type assertion or widen the `InvokeResult` interface to match.
-
----
-
-## Part 2: Database Migration
-
-Add two columns to the `trips` table:
-
-```sql
-ALTER TABLE public.trips
-  ADD COLUMN IF NOT EXISTS chat_mode text NOT NULL DEFAULT 'broadcasts'
-    CHECK (chat_mode IN ('broadcasts', 'admin_only', 'everyone')),
-  ADD COLUMN IF NOT EXISTS media_upload_mode text NOT NULL DEFAULT 'admin_only'
-    CHECK (media_upload_mode IN ('admin_only', 'everyone'));
+```text
+Before: supabase.from('trip_links').select('trip_id').in('trip_id', tripIds)
+After:  supabase.from('trip_events').select('trip_id, location').in('trip_id', tripIds).not('location', 'is', null).neq('location', '')
 ```
 
-No new tables needed. These columns store per-event permission settings. RLS on `trips` already restricts updates to admins/creators.
+Then count unique locations per trip instead of raw row count.
 
----
+### 2. Trip Converter (`src/utils/tripConverter.ts`)
+- Update the property name from `trip_links` to `trip_events_places` (or similar) when extracting counts
+- The `placesCount` prop continues to flow to components unchanged
 
-## Part 3: Admin Dashboard UI Redesign
+### 3. Demo Data (`src/data/tripsData.ts`)
+- Keep existing hardcoded `placesCount` values for demo trips -- these are already reasonable numbers
 
-### `src/components/events/EventAdminTab.tsx` -- full rewrite of Row 1
+### 4. Pro/Event Card Stats (`src/utils/tripStatsUtils.ts`)
+- For real (Supabase) Pro/Event trips, use the same `trip_events` location count
+- For demo Pro/Event trips, keep existing `calculateProTripPlacesCount` / `calculateEventPlacesCount` as fallback
 
-**Before (3 columns):**
-```
-[Admin Dashboard] [Event Visibility] [Permissions (Coming Soon)]
-```
+### 5. No Changes Needed
+- Trip Links UI (Places > Ideas section) -- unchanged
+- `trip_link_index` table -- unchanged
+- `trip_links` table -- still used for its original purpose, just not for the counter
+- Label stays "Places" everywhere
 
-**After (2 columns):**
-```
-[Admin Dashboard + Visibility toggle] [removed]
-```
+## Edge Cases Handled
+- "Get passport by Thursday" (no location) -- not counted
+- "Chicago Bulls @ Atlanta Hawks" (has location) -- counted
+- Two events at same venue -- counted as 1 place (distinct locations)
+- Flight "Depart LAX 8am" (location: "LAX") -- counted (airports are places, and this is a feature, not a bug -- it shows the trip involves that location)
+- Empty calendar -- shows 0 or dash, same as today
 
-Changes:
-- Remove the center "Event Visibility" card and right "Permissions" card entirely
-- Move Visibility into the Admin Dashboard header row as a compact segmented control or labeled switch showing "Public" / "Private"
-- Microcopy below: "Anyone with the link can join." or "Join requests required."
-- No truncation issues since text is much shorter
-
-### Tabs card -- add gear icons for Chat and Media
-
-In the tab list (Row 2 left card), add a small `Settings2` (gear) icon button on the right side of the Chat and Media rows, next to their toggle switches.
-
-Clicking the gear opens a `Dialog` modal:
-
-**Chat gear modal:**
-- Title: "Chat permissions"
-- 3 radio options with descriptions (as specified)
-- Save / Cancel buttons
-- Default: "broadcasts"
-
-**Media gear modal:**
-- Title: "Media upload permissions"
-- 2 radio options with descriptions (as specified)
-- Default: "admin_only"
-
-### `src/hooks/useEventAdmin.ts` -- extend
-
-- Fetch `chat_mode` and `media_upload_mode` from the trips query (add to select)
-- Add `chatMode` and `mediaUploadMode` to return values
-- Add `setChatMode(mode)` and `setMediaUploadMode(mode)` mutation functions with optimistic updates
-
----
-
-## Part 4: Server-Side Enforcement (future edge function updates)
-
-The plan adds DB columns with CHECK constraints. Server-side enforcement of chat/media modes in the actual chat and media upload flows will be addressed in a follow-up since those flows live in separate components and edge functions. The DB columns + admin UI are the foundation.
-
----
-
-## Files Modified
-
-| File | Change |
-|------|--------|
-| `supabase/functions/gemini-voice-session/index.ts` | Add `any` type to `.some` callback |
-| `supabase/functions/generate-embeddings/index.ts` | Type `Map` generic |
-| `src/utils/paidAccess.ts` | Add `'cancelled'` to `PaidAccessStatus` |
-| `src/components/events/LineupImportModal.tsx` | Fix narrowed type comparisons |
-| `src/hooks/useEventLineup.ts` | Add tuple types to Map constructor + cast values |
-| `src/utils/__tests__/lineupImportParsers.test.ts` | Fix mock return type |
-| DB migration | Add `chat_mode` + `media_upload_mode` columns to `trips` |
-| `src/hooks/useEventAdmin.ts` | Fetch + mutate chat_mode and media_upload_mode |
-| `src/components/events/EventAdminTab.tsx` | Redesign layout: move visibility, remove permissions card, add gear modals |
-
-## Implementation Order
-
-1. Fix all 13 build errors across 7 files
-2. Run DB migration (add 2 columns)
-3. Extend `useEventAdmin` hook
-4. Rewrite `EventAdminTab` UI
-5. Deploy updated edge functions
