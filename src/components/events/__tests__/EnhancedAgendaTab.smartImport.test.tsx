@@ -97,7 +97,7 @@ describe('EnhancedAgendaTab Smart Import', () => {
       wrapper: createWrapper(),
     });
 
-    const importButton = screen.getByRole('button', { name: /Import Agenda/i });
+    const importButton = screen.getByRole('button', { name: /Smart Import/i });
     expect(importButton).toBeInTheDocument();
     expect(importButton).not.toBeDisabled();
   });
@@ -113,7 +113,7 @@ describe('EnhancedAgendaTab Smart Import', () => {
       wrapper: createWrapper(),
     });
 
-    const importButton = screen.getByRole('button', { name: /Import Agenda/i });
+    const importButton = screen.getByRole('button', { name: /Smart Import/i });
     expect(importButton).toBeInTheDocument();
     expect(importButton).toBeDisabled();
   });
@@ -127,6 +127,6 @@ describe('EnhancedAgendaTab Smart Import', () => {
 
     render(<EnhancedAgendaTab eventId="evt-1" userRole="attendee" />, { wrapper: createWrapper() });
 
-    expect(screen.queryByRole('button', { name: /Import Agenda/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Smart Import/i })).not.toBeInTheDocument();
   });
 });

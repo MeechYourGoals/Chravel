@@ -294,7 +294,7 @@ export const AgendaModal = ({
                         className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
                       >
                         <Sparkles size={16} className="flex-shrink-0" />
-                        <span className="whitespace-nowrap">Import Agenda</span>
+                        <span className="whitespace-nowrap">Smart Import</span>
                       </Button>
                     ) : (
                       <TooltipProvider>
@@ -307,7 +307,7 @@ export const AgendaModal = ({
                                 className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400/70`}
                               >
                                 <Lock size={16} className="flex-shrink-0" />
-                                <span className="whitespace-nowrap">Import Agenda</span>
+                                <span className="whitespace-nowrap">Smart Import</span>
                               </Button>
                             </span>
                           </TooltipTrigger>
@@ -357,7 +357,7 @@ export const AgendaModal = ({
                           <Upload size={16} className="flex-shrink-0" />
                         )}
                         <span className="whitespace-nowrap">
-                          {isUploading ? 'Uploading...' : 'Upload'}
+                          {isUploading ? 'Uploading...' : 'Upload Schedule'}
                         </span>
                       </span>
                     </Button>

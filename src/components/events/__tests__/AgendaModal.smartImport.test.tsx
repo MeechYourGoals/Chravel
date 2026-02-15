@@ -92,7 +92,7 @@ describe('AgendaModal Smart Import', () => {
       wrapper: createWrapper(),
     });
 
-    const importButton = screen.getByRole('button', { name: /Import Agenda/i });
+    const importButton = screen.getByRole('button', { name: /Smart Import/i });
     expect(importButton).toBeInTheDocument();
     expect(importButton).not.toBeDisabled();
   });
@@ -108,7 +108,7 @@ describe('AgendaModal Smart Import', () => {
       wrapper: createWrapper(),
     });
 
-    const importButton = screen.getByRole('button', { name: /Import Agenda/i });
+    const importButton = screen.getByRole('button', { name: /Smart Import/i });
     expect(importButton).toBeInTheDocument();
     expect(importButton).toBeDisabled();
   });

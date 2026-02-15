@@ -260,7 +260,7 @@ export const EnhancedAgendaTab = ({
                   )}
                   {isUploading
                     ? 'Uploading...'
-                    : `Upload Files (${agendaFiles.length}/${maxFiles})`}
+                    : `Upload Schedule (${agendaFiles.length}/${maxFiles})`}
                 </Button>
               </>
             )}
@@ -271,7 +271,7 @@ export const EnhancedAgendaTab = ({
                 className="flex-1 sm:flex-none border-primary/30 text-primary"
               >
                 <Sparkles size={16} className="mr-2" />
-                Import Agenda
+                Smart Import
               </Button>
             ) : (
               <TooltipProvider>
@@ -284,7 +284,7 @@ export const EnhancedAgendaTab = ({
                         className="flex-1 sm:flex-none border-primary/30 text-primary/70"
                       >
                         <Lock size={16} className="mr-2" />
-                        Import Agenda
+                        Smart Import
                       </Button>
                     </span>
                   </TooltipTrigger>
