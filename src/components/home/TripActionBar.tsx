@@ -23,7 +23,13 @@ import { mockNotifications } from '@/mockData/notifications';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 interface Notification {
   id: string;
@@ -311,6 +317,7 @@ export const TripActionBar = ({
     >
       {/* New Trip */}
       <button
+        data-testid="create-trip-button"
         onClick={() => {
           if (requireAuth) {
             onAuthRequired?.();
@@ -358,7 +365,10 @@ export const TripActionBar = ({
 
       {/* Notifications Modal */}
       <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
-        <DialogContent showClose={false} className="sm:max-w-[500px] max-h-[80vh] bg-card/95 backdrop-blur-xl border-2 border-border/50 text-foreground p-0">
+        <DialogContent
+          showClose={false}
+          className="sm:max-w-[500px] max-h-[80vh] bg-card/95 backdrop-blur-xl border-2 border-border/50 text-foreground p-0"
+        >
           <DialogHeader className="p-4 border-b border-border/50">
             {/* Row 1: Title + Close button - properly spaced */}
             <div className="flex items-center justify-between">
@@ -372,7 +382,7 @@ export const TripActionBar = ({
                 </button>
               </DialogClose>
             </div>
-            
+
             {/* Row 2: Action buttons - separate row with spacing */}
             {notifications.length > 0 && (
               <div className="flex items-center gap-4 mt-3 pt-2">
