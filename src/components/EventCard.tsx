@@ -337,7 +337,7 @@ export const EventCard = ({
           </button>
           <button
             onClick={handleViewEvent}
-            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-300 text-xs md:text-sm border border-white/10 shadow-lg shadow-yellow-500/25"
+            className="bg-black/30 hover:bg-black/40 text-white font-medium py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 text-xs md:text-sm border border-white/20 hover:border-white/30 flex items-center justify-center gap-2"
           >
             View Event
           </button>
