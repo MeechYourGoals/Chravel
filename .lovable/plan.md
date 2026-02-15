@@ -1,57 +1,93 @@
 
-# Fix Places Counter: Root Cause Analysis and Solution
+# Activate Gemini Live Voice + Enrich Context Parity
 
-## Root Cause (3 separate issues)
+## Summary
 
-### Issue 1: Consumer TripCard Days counter is hardcoded to "5"
-Line 519 of `TripCard.tsx` has a hardcoded `5` instead of using `calculateDaysCount(trip.dateRange)`. Every consumer trip shows "5 Days" regardless of actual dates.
+ElevenLabs is already fully removed from the codebase (confirmed zero references in `src/` and `supabase/`). No cleanup needed there.
 
-### Issue 2: Pro and Event cards ignore Supabase placesCount entirely
-`ProTripCard.tsx` calls `calculateProTripPlacesCount(trip)` which inspects `trip.schedule` and `trip.itinerary` arrays. For real Supabase trips, the converter (`convertSupabaseTripToProTrip`) sets these to empty arrays `[]`, so the function always returns "0" or a dash.
+The real work is activating the Gemini Live bidirectional voice and giving it the same rich context the text concierge has. Right now the voice button works but only does browser Speech-to-Text (transcribes your voice, sends text to the normal AI pipeline). The full Gemini Live WebSocket infrastructure (`useGeminiLive.ts` + `gemini-voice-session` edge function) is built but disconnected from the UI.
 
-Same issue for `EventCard.tsx` and `MobileEventCard.tsx` -- they call `calculateEventPlacesCount(event)` which checks `event.sessions` and `event.itinerary`, both empty for Supabase trips.
+## Problem: Voice Session Context Gap
 
-The Supabase query in `tripService.ts` correctly fetches `trip_events` with locations and attaches the count as `trip_events_places`, but **only the consumer `TripCard` reads `trip.placesCount`**. Pro and Event cards never look at that value.
+The `gemini-voice-session` edge function currently builds a minimal system instruction with only:
+- Trip name, destination, dates
+- 5 upcoming calendar events
 
-### Issue 3: placesCount not passed through to ProTripData/EventData
-`convertSupabaseTripToProTrip` and `convertSupabaseTripToEvent` don't carry `placesCount` from the mock trip into the Pro/Event data structures. There's no `placesCount` field on these types.
+The text-based `lovable-concierge` gets ALL of this via `TripContextBuilder` + `promptBuilder`:
+- Broadcasts (with priority levels)
+- Calendar events (with locations, descriptions)
+- Polls (questions, options, votes)
+- Tasks (assignees, due dates, status)
+- Payments (who owes whom, amounts, methods)
+- Chat messages (recent context)
+- Places (trip basecamp, personal basecamp with coordinates)
+- User preferences (dietary, vibe, budget, accessibility, time preference)
+- Saved links
+- RAG context from kb_chunks
 
-## Database Verification
-The data IS correct in Supabase:
-- Trevor Noah Tour: 24 events with locations (showing 0 on card)
-- Lakers 2026: 43 events with locations (showing 0 on card)
-- Netflix is a Joke: 42 events with locations (showing 0 on card)
+## Implementation Plan
 
-The Supabase query logic is working. The problem is purely in how the UI reads the count.
+### Step 1: Enrich `gemini-voice-session` edge function with full trip context
 
-## Solution
+Reuse the existing `TripContextBuilder` and `buildSystemPrompt` from `_shared/` to build the voice session's system instruction. This gives voice feature parity with text concierge.
 
-### Step 1: Add `placesCount` to ProTripData and EventData types
-Add an optional `placesCount?: number` field to both type definitions so the Supabase-fetched count can flow through.
+Changes to `supabase/functions/gemini-voice-session/index.ts`:
+- Import `TripContextBuilder` from `_shared/contextBuilder.ts`
+- Import `buildSystemPrompt` from `_shared/promptBuilder.ts`
+- Replace the manual trip query + minimal system instruction with `TripContextBuilder.buildContext()` + `buildSystemPrompt()`
+- Fetch user preferences via `TripContextBuilder` (it already supports `userId`)
+- Add voice-specific guidelines as an addendum to the full system prompt (keep responses conversational, no markdown, concise for spoken delivery)
+- Include function declarations in the ephemeral token's `bidiGenerateContentSetup` so Gemini Live can call tools (addToCalendar, createTask, createPoll, searchPlaces, getPaymentSummary)
+- Enable Google Search grounding in the setup for real-time queries
 
-### Step 2: Pass placesCount through converters
-In `convertSupabaseTripToProTrip` and `convertSupabaseTripToEvent`, copy `mockTrip.placesCount` into the returned object.
+### Step 2: Wire `useGeminiLive` into `AIConciergeChat`
 
-### Step 3: Update ProTripCard to use placesCount
-Replace `calculateProTripPlacesCount(trip)` with `trip.placesCount ?? calculateProTripPlacesCount(trip)`. This prefers the Supabase count when available, falls back to demo data calculation.
+Currently `AIConciergeChat` uses `useWebSpeechVoice` (aliased as `useGeminiVoice`). Switch to `useGeminiLive` for eligible users while keeping `useWebSpeechVoice` as fallback for unsupported browsers.
 
-### Step 4: Update EventCard and MobileEventCard similarly
-Replace `calculateEventPlacesCount(event)` with `event.placesCount ?? calculateEventPlacesCount(event)`.
+Changes to `src/components/AIConciergeChat.tsx`:
+- Import `useGeminiLive` alongside the existing `useWebSpeechVoice`
+- Use `useGeminiLive` when the browser supports WebSocket + AudioContext and user is voice-eligible
+- Fall back to `useWebSpeechVoice` when Gemini Live is not supported
+- Route `onTranscript` callbacks from Gemini Live to display AI spoken responses as chat messages
+- Map Gemini Live states (`idle`, `connecting`, `listening`, `speaking`, `error`) to the existing `VoiceState` type so the `VoiceButton` component works without changes
 
-### Step 5: Fix consumer TripCard Days counter
-Replace hardcoded `5` with `calculateDaysCount(trip.dateRange)` so days are calculated correctly too.
+### Step 3: Handle Gemini Live tool execution results in the client
+
+When Gemini Live calls a function (e.g., addToCalendar), the client-side WebSocket handler in `useGeminiLive` needs to:
+- Detect `toolCall` messages from the WebSocket
+- Execute them via a callback (or send results back to the WebSocket)
+- Display confirmation in the chat
+
+Changes to `src/hooks/useGeminiLive.ts`:
+- Add `onToolCall` callback option for function calling responses
+- Parse `toolCall` messages from the Gemini Live WebSocket protocol
+- Send `toolResponse` back through the WebSocket so Gemini can continue the conversation
+
+### Step 4: Update VoiceButton states for Gemini Live
+
+The existing `VoiceButton` component already supports all needed states (`idle`, `connecting`, `listening`, `speaking`, `error`). No changes needed to the button itself -- just ensure the state mapping is correct.
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/types/pro.ts` | Add `placesCount?: number` to ProTripData |
-| `src/types/events.ts` | Add `placesCount?: number` to EventData |
-| `src/utils/tripConverter.ts` | Pass `placesCount` through to Pro and Event converters |
-| `src/components/ProTripCard.tsx` | Use `trip.placesCount` with fallback |
-| `src/components/EventCard.tsx` | Use `event.placesCount` with fallback |
-| `src/components/MobileEventCard.tsx` | Use `event.placesCount` with fallback |
-| `src/components/TripCard.tsx` | Fix hardcoded "5" Days counter |
+| `supabase/functions/gemini-voice-session/index.ts` | Use TripContextBuilder + buildSystemPrompt for full context, add function declarations and grounding to ephemeral token setup |
+| `src/components/AIConciergeChat.tsx` | Wire useGeminiLive as primary voice with useWebSpeechVoice fallback |
+| `src/hooks/useGeminiLive.ts` | Add tool call handling, onToolCall callback |
 
-## Result
-All trip types (Consumer, Pro, Event) will show accurate Places counts from calendar events with locations, consistent across demo and real Supabase trips. The Days counter for consumer trips will also be fixed.
+## What This Achieves
+
+After implementation, the voice concierge will:
+- Have full awareness of broadcasts, calendar, polls, payments, tasks, chat, places, and basecamps
+- Filter recommendations by user preferences (dietary, vibe, budget, accessibility)
+- Execute real actions (add calendar events, create tasks/polls, search places)
+- Use Google Search grounding for real-time queries (scores, weather, news)
+- Speak responses back via bidirectional audio (not just transcribe-and-type)
+- Fall back gracefully to browser Speech-to-Text on unsupported browsers
+
+## Technical Notes
+
+- The ephemeral token approach (already implemented) keeps the GEMINI_API_KEY server-side -- only a scoped, short-lived token reaches the client
+- The system prompt for voice will be the same rich prompt as text, with an addendum for spoken delivery style (no markdown, concise, conversational)
+- Voice entitlement checks are already implemented in the edge function (`canUseVoiceConcierge`)
+- The `VoiceButton` UI component needs zero changes
