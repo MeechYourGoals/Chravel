@@ -323,7 +323,7 @@ export const EventCard = ({
         <div className="grid grid-cols-2 gap-2 md:gap-3">
           <button
             onClick={() => setShowExportModal(true)}
-            className="bg-white/10 hover:bg-white/20 text-white font-semibold py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-300 text-xs md:text-sm border border-white/10 flex items-center justify-center gap-2"
+            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm flex items-center justify-center gap-2"
           >
             <FileDown size={16} />
             Recap
