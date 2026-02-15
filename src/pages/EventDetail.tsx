@@ -41,7 +41,7 @@ const EventDetail = () => {
   const { trips: userTrips, loading: tripsLoading } = useTrips();
   // 🔄 Fetch real trip members from database for authenticated events
   const { tripMembers, loading: membersLoading } = useTripMembers(eventId);
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState('admin');
   const [showInbox, setShowInbox] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
