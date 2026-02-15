@@ -121,10 +121,7 @@ You are now speaking via bidirectional voice audio. Adapt your responses:
 - For places, say the name and a brief description — don't try to give URLs
 - When executing actions (adding events, creating tasks), confirm what you did conversationally`;
 
-async function canUseVoiceConcierge(
-  supabaseAdmin: any,
-  userId: string,
-): Promise<boolean> {
+async function canUseVoiceConcierge(supabaseAdmin: any, userId: string): Promise<boolean> {
   const [{ data: entitlements, error: entitlementsError }, { data: roles, error: rolesError }] =
     await Promise.all([
       supabaseAdmin
@@ -145,7 +142,9 @@ async function canUseVoiceConcierge(
     );
   }
 
-  const isEnterpriseAdmin = (roles ?? []).some((row: any) => String(row?.role) === 'enterprise_admin');
+  const isEnterpriseAdmin = (roles ?? []).some(
+    (row: any) => String(row?.role) === 'enterprise_admin',
+  );
   if (isEnterpriseAdmin) {
     return true;
   }
@@ -191,10 +190,7 @@ async function createEphemeralToken(params: {
       systemInstruction: {
         parts: [{ text: params.systemInstruction }],
       },
-      tools: [
-        { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
-        { googleSearch: {} },
-      ],
+      tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }, { googleSearch: {} }],
     },
   };
 
@@ -294,7 +290,10 @@ serve(async req => {
         const tripContext = await TripContextBuilder.buildContext(tripId, user.id, authHeader);
         systemInstruction = buildSystemPrompt(tripContext);
       } catch (contextError) {
-        console.error('[gemini-voice-session] Failed to build full context, using minimal:', contextError);
+        console.error(
+          '[gemini-voice-session] Failed to build full context, using minimal:',
+          contextError,
+        );
         systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
       }
     } else {
@@ -310,13 +309,16 @@ serve(async req => {
       voice,
     });
 
+    // The ephemeral token already embeds model, voice, system instruction, and
+    // tools. We intentionally omit systemInstruction from the response to avoid
+    // leaking the full prompt to the client and to prevent the client from
+    // sending a duplicate setup message that could strip tool declarations.
     return new Response(
       JSON.stringify({
         accessToken: ephemeral.token,
         accessTokenExpiresAt: ephemeral.expireTime ?? null,
         newSessionExpiresAt: ephemeral.newSessionExpireTime ?? null,
         model: GEMINI_LIVE_MODEL,
-        systemInstruction,
         voice,
         websocketUrl: LIVE_WEBSOCKET_URL,
       }),

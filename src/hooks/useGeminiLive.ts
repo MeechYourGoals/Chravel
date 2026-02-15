@@ -295,33 +295,42 @@ export function useGeminiLive({
 
       ws.onopen = () => {
         console.log('[GeminiLive] WebSocket connected');
-        const rawModel = String(
-          sessionData.model || 'models/gemini-2.5-flash-native-audio-preview-12-2025',
-        );
-        const normalizedModel = rawModel.startsWith('models/')
-          ? rawModel
-          : `models/${rawModel.replace(/^models\//, '')}`;
 
-        const setupMessage = {
-          setup: {
-            model: normalizedModel,
-            generationConfig: {
-              responseModalities: ['AUDIO', 'TEXT'],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: {
-                    voiceName: sessionData.voice,
+        // When using an ephemeral access token, the session setup (model, voice,
+        // system instruction, AND tools) is already baked into the token by the
+        // edge function. Sending a duplicate setup message risks overriding the
+        // token config and stripping tool declarations.
+        // Only send a client-side setup when using an API key directly (fallback).
+        if (!accessToken) {
+          const rawModel = String(
+            sessionData.model || 'models/gemini-2.5-flash-native-audio-preview-12-2025',
+          );
+          const normalizedModel = rawModel.startsWith('models/')
+            ? rawModel
+            : `models/${rawModel.replace(/^models\//, '')}`;
+
+          const setupMessage = {
+            setup: {
+              model: normalizedModel,
+              generationConfig: {
+                responseModalities: ['AUDIO', 'TEXT'],
+                speechConfig: {
+                  voiceConfig: {
+                    prebuiltVoiceConfig: {
+                      voiceName: sessionData.voice,
+                    },
                   },
                 },
               },
+              systemInstruction: {
+                parts: [{ text: sessionData.systemInstruction }],
+              },
+              tools: sessionData.tools ?? [],
             },
-            systemInstruction: {
-              parts: [{ text: sessionData.systemInstruction }],
-            },
-          },
-        };
+          };
 
-        ws.send(JSON.stringify(setupMessage));
+          ws.send(JSON.stringify(setupMessage));
+        }
       };
 
       ws.onmessage = event => {
@@ -396,7 +405,16 @@ export function useGeminiLive({
       setState('error');
       cleanup();
     }
-  }, [isSupported, tripId, voice, cleanup, playAudioChunk, onTranscript, startAudioCapture, handleToolCall]);
+  }, [
+    isSupported,
+    tripId,
+    voice,
+    cleanup,
+    playAudioChunk,
+    onTranscript,
+    startAudioCapture,
+    handleToolCall,
+  ]);
 
   const endSession = useCallback(() => {
     setState('idle');
