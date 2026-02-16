@@ -119,14 +119,30 @@ const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null
 export const tripService = {
   async createTrip(tripData: CreateTripData): Promise<Trip | null> {
     try {
-      const {
+      let {
         data: { user },
       } = await supabase.auth.getUser();
+
+      // Fallback: if getUser() returns null, try refreshing the session
+      if (!user) {
+        if (import.meta.env.DEV) {
+          console.warn('[tripService] getUser() returned null, attempting session refresh...');
+        }
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          // Session exists but getUser failed — force refresh
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          user = refreshData?.user ?? null;
+          if (user && import.meta.env.DEV) {
+            console.log('[tripService] Session refresh recovered user:', user.id);
+          }
+        }
+      }
 
       // Enhanced validation with detailed error logging
       if (!user) {
         if (import.meta.env.DEV) {
-          console.error('[tripService] No authenticated user found');
+          console.error('[tripService] No authenticated user found after refresh attempt');
         }
         throw new Error('No authenticated user');
       }
