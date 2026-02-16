@@ -7,7 +7,7 @@ export const nvidiaBowlingNight: ProTripData = {
   description: 'Venture capital team attending LA Tech Week conferences, networking events, and startup showcases.',
   location: 'Los Angeles, CA',
   dateRange: 'October 20 - October 28, 2026',
-  proTripCategory: 'Business Travel',
+  proTripCategory: 'work',
   tags: [],
   basecamp_name: 'Hotel Figueroa',
   basecamp_address: '939 S Figueroa St, Los Angeles, CA 90015',

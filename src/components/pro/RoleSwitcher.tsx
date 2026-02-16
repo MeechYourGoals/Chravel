@@ -1,43 +1,49 @@
-
 import React, { useEffect } from 'react';
 import { Users, Shield, Star, Play, Wrench, Lock, Heart, Camera, Crown, Building, GraduationCap, Lightbulb } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/button';
-import { ProTripCategory, getCategoryConfig } from '../../types/proCategories';
+import { ProCategoryEnum, getCategoryConfig } from '../../types/proCategories';
+
+// Keep backward compat alias
+type ProTripCategory = ProCategoryEnum;
 
 const getRoleIcon = (role: string, category: ProTripCategory) => {
   const lowerRole = role.toLowerCase();
   
   switch (category) {
-    case 'Sports – Pro, Collegiate, Youth':
+    case 'sports':
       if (lowerRole.includes('player')) return Play;
       if (lowerRole.includes('coach')) return Users;
       if (lowerRole.includes('medical') || lowerRole.includes('trainer')) return Heart;
       return Shield;
     
-    case 'Tour – Music, Comedy, etc.':
+    case 'touring':
       if (lowerRole.includes('artist')) return Star;
       if (lowerRole.includes('manager')) return Users;
       if (lowerRole.includes('security')) return Lock;
       if (lowerRole.includes('sound') || lowerRole.includes('production')) return Wrench;
       return Camera;
     
-    case 'Business Travel':
+    case 'work':
       if (lowerRole.includes('executive')) return Crown;
       if (lowerRole.includes('manager')) return Users;
       return Building;
     
-    case 'School Trip':
+    case 'school':
       if (lowerRole.includes('teacher') || lowerRole.includes('supervisor')) return GraduationCap;
       if (lowerRole.includes('student')) return Users;
       return Shield;
     
-    case 'Content':
+    case 'productions':
       if (lowerRole.includes('cast') || lowerRole.includes('talent')) return Star;
       if (lowerRole.includes('producer') || lowerRole.includes('director')) return Camera;
       return Wrench;
     
-    case 'Other':
+    case 'celebrations':
+      if (lowerRole.includes('host')) return Crown;
+      return Users;
+
+    case 'other':
       if (lowerRole.includes('founder')) return Lightbulb;
       if (lowerRole.includes('mentor')) return GraduationCap;
       return Users;
@@ -51,33 +57,36 @@ const getRoleColor = (role: string, category: ProTripCategory) => {
   const lowerRole = role.toLowerCase();
   
   switch (category) {
-    case 'Sports – Pro, Collegiate, Youth':
+    case 'sports':
       if (lowerRole.includes('player')) return 'bg-green-500';
       if (lowerRole.includes('coach')) return 'bg-blue-500';
       if (lowerRole.includes('medical')) return 'bg-pink-500';
       return 'bg-gray-500';
     
-    case 'Tour – Music, Comedy, etc.':
+    case 'touring':
       if (lowerRole.includes('artist')) return 'bg-yellow-500';
       if (lowerRole.includes('manager')) return 'bg-blue-500';
       if (lowerRole.includes('security')) return 'bg-purple-500';
       return 'bg-gray-500';
     
-    case 'Business Travel':
+    case 'work':
       if (lowerRole.includes('executive')) return 'bg-red-500';
       return 'bg-blue-500';
     
-    case 'School Trip':
+    case 'school':
       if (lowerRole.includes('teacher')) return 'bg-blue-500';
       if (lowerRole.includes('student')) return 'bg-green-500';
       return 'bg-gray-500';
     
-    case 'Content':
+    case 'productions':
       if (lowerRole.includes('cast')) return 'bg-yellow-500';
       if (lowerRole.includes('producer')) return 'bg-red-500';
       return 'bg-gray-500';
     
-    case 'Other':
+    case 'celebrations':
+      return 'bg-pink-500';
+
+    case 'other':
       if (lowerRole.includes('founder')) return 'bg-yellow-500';
       if (lowerRole.includes('mentor')) return 'bg-blue-500';
       return 'bg-gray-500';
@@ -107,7 +116,7 @@ export const RoleSwitcher = ({ category }: RoleSwitcherProps) => {
 
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-6 mb-6">
-      <h3 className="text-lg font-bold text-white mb-2">Roles - {config.name}</h3>
+      <h3 className="text-lg font-bold text-white mb-2">Roles - {config.label}</h3>
       <p className="text-gray-400 text-sm mb-4">
         Current role: <span className="text-white font-medium">{user.proRole}</span>
       </p>

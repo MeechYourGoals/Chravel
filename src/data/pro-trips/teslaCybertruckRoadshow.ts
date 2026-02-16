@@ -7,7 +7,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
   description: 'Internal company off-site for strategy planning, team bonding, and foundational work. Invite-only event with travel and lodging coordination.',
   location: 'Joshua Tree, CA',
   dateRange: 'Apr 17 - Apr 20, 2026',
-  proTripCategory: 'Business Travel',
+  proTripCategory: 'work',
   tags: [],
   basecamp_name: 'The Ruin Venue',
   basecamp_address: '61896 Sunburst Ave, Joshua Tree, CA 92252',

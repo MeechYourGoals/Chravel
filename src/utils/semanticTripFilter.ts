@@ -1,5 +1,8 @@
 // Unified semantic keyword search + date facet filter for trips
 // Supports partial matching, case-insensitive, multi-field search
+// Supports category synonyms and cat:<value> power syntax
+
+import { PRO_CATEGORIES_ORDERED, normalizeLegacyCategory } from '../types/proCategories';
 
 interface TripSearchableFields {
   id: string | number;
@@ -10,6 +13,8 @@ interface TripSearchableFields {
   categories?: string[];
   dateRange: string;
   metadata?: Record<string, any>;
+  // Pro trip category for category-aware search
+  proTripCategory?: string;
 }
 
 export type DateFacet = 'upcoming' | 'completed' | 'inProgress' | 'total';
@@ -18,11 +23,20 @@ export type DateFacet = 'upcoming' | 'completed' | 'inProgress' | 'total';
 const normalize = (s?: string): string => 
   (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+// Build a flat synonym map: keyword -> enum value
+const SYNONYM_MAP: Record<string, string> = {};
+for (const cat of PRO_CATEGORIES_ORDERED) {
+  // Map each synonym to the category's label (normalized) for matching
+  for (const syn of cat.searchSynonyms) {
+    SYNONYM_MAP[normalize(syn)] = cat.id;
+  }
+  // Also map the label itself
+  SYNONYM_MAP[normalize(cat.label)] = cat.id;
+}
+
 // Parse date range to get start and end dates
 const getDateRange = (dateRange: string): { start: Date | null, end: Date | null } => {
   try {
-    // Handle formats like "Mar 12 - Mar 31, 2025" (from tripConverter)
-    // Pattern: "MMM d - MMM d, yyyy"
     if (dateRange.includes(' - ') && dateRange.includes(',')) {
       const parts = dateRange.split(',');
       const year = parseInt(parts[1].trim());
@@ -47,7 +61,6 @@ const getDateRange = (dateRange: string): { start: Date | null, end: Date | null
       }
     }
     
-    // Handle formats like "Dec 15-22, 2024" (single month, day range)
     if (dateRange.includes('-') && dateRange.includes(',') && !dateRange.includes(' - ')) {
       const parts = dateRange.split(',');
       const year = parseInt(parts[1].trim());
@@ -64,7 +77,6 @@ const getDateRange = (dateRange: string): { start: Date | null, end: Date | null
       }
     }
     
-    // For single month formats like "January 2025", assume full month
     if (dateRange.includes(' ') && !dateRange.includes('-')) {
       const [month, year] = dateRange.split(' ');
       const date = new Date(parseInt(year), new Date(`${month} 1, ${year}`).getMonth(), 1);
@@ -90,7 +102,21 @@ const getStatus = (dateRange: string): DateFacet => {
   return 'completed';
 };
 
-// Check if trip matches semantic query
+/**
+ * Parse `cat:<value>` power syntax from query.
+ * Returns { catFilter, remainingQuery }.
+ */
+function parseCatSyntax(query: string): { catFilter: string | null; remainingQuery: string } {
+  const match = query.match(/\bcat:(\S+)/i);
+  if (!match) return { catFilter: null, remainingQuery: query };
+
+  const rawCat = match[1].toLowerCase();
+  const normalized = normalizeLegacyCategory(rawCat);
+  const remaining = query.replace(match[0], '').trim();
+  return { catFilter: normalized, remainingQuery: remaining };
+}
+
+// Check if trip matches semantic query (including category synonyms)
 const matchesQuery = (trip: TripSearchableFields, query: string): boolean => {
   if (!query) return true;
   const q = normalize(query);
@@ -102,9 +128,20 @@ const matchesQuery = (trip: TripSearchableFields, query: string): boolean => {
     normalize(trip.location),
     ...(trip.tags || []).map(normalize),
     ...(trip.categories || []).map(normalize),
-    // Expand metadata if exists
     ...Object.values(trip.metadata || {}).map(v => normalize(String(v)))
   ];
+
+  // If trip has a proTripCategory, add its synonyms to searchable fields
+  if (trip.proTripCategory) {
+    const catEnum = normalizeLegacyCategory(trip.proTripCategory);
+    const catConfig = PRO_CATEGORIES_ORDERED.find(c => c.id === catEnum);
+    if (catConfig) {
+      searchableFields.push(normalize(catConfig.label));
+      for (const syn of catConfig.searchSynonyms) {
+        searchableFields.push(normalize(syn));
+      }
+    }
+  }
   
   // Substring matching across all fields (OR logic)
   return searchableFields.some(field => field.includes(q));
@@ -117,20 +154,31 @@ const matchesDateFacet = (trip: TripSearchableFields, facet: DateFacet | ''): bo
   return status === facet;
 };
 
+// Check if trip matches a category filter
+const matchesCategoryFilter = (trip: TripSearchableFields, catFilter: string | null): boolean => {
+  if (!catFilter) return true;
+  if (!trip.proTripCategory) return false;
+  const tripCat = normalizeLegacyCategory(trip.proTripCategory);
+  return tripCat === catFilter;
+};
+
 /**
- * Main filter function - combines semantic search + date facet
- * @param trips - Array of trips to filter
- * @param query - Search query string
- * @param facet - Date filter facet
- * @returns Filtered trips matching both query AND facet
+ * Main filter function - combines semantic search + date facet + category filter
  */
 export const filterTrips = <T extends TripSearchableFields>(
   trips: T[],
   query: string,
-  facet: DateFacet | ''
+  facet: DateFacet | '',
+  categoryFilter?: string | null
 ): T[] => {
+  // Parse cat: syntax from query
+  const { catFilter: parsedCat, remainingQuery } = parseCatSyntax(query);
+  const effectiveCat = categoryFilter || parsedCat;
+
   return trips.filter(trip => 
-    matchesQuery(trip, query) && matchesDateFacet(trip, facet)
+    matchesQuery(trip, remainingQuery) && 
+    matchesDateFacet(trip, facet) &&
+    matchesCategoryFilter(trip, effectiveCat)
   );
 };
 
@@ -140,12 +188,12 @@ export const filterTrips = <T extends TripSearchableFields>(
 export const filterProTrips = <T extends TripSearchableFields>(
   proTrips: Record<string, T>,
   query: string,
-  facet: DateFacet | ''
+  facet: DateFacet | '',
+  categoryFilter?: string | null
 ): Record<string, T> => {
   const trips = Object.values(proTrips);
-  const filtered = filterTrips(trips, query, facet);
+  const filtered = filterTrips(trips, query, facet, categoryFilter);
   
-  // Convert back to Record format
   return filtered.reduce((acc, trip) => {
     acc[trip.id] = trip;
     return acc;
@@ -163,7 +211,6 @@ export const filterEvents = <T extends TripSearchableFields>(
   const eventList = Object.values(events);
   const filtered = filterTrips(eventList, query, facet);
   
-  // Convert back to Record format
   return filtered.reduce((acc, event) => {
     acc[event.id] = event;
     return acc;

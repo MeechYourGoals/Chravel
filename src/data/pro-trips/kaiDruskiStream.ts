@@ -7,7 +7,7 @@ export const kaiDruskiStream: ProTripData = {
   description: 'On-site production and broadcast operations for live-streamed sports programming.',
   location: 'Miami, FL',
   dateRange: 'March 12 - March 17, 2026',
-  proTripCategory: 'Content',
+  proTripCategory: 'productions',
   tags: [],
   basecamp_name: 'Hard Rock Stadium',
   basecamp_address: '347 Don Shula Dr, Miami Gardens, FL 33056',

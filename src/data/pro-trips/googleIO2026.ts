@@ -8,7 +8,7 @@ export const googleIO2026: ProTripData = {
   location: 'Mountain View, CA',
   dateRange: 'May 12 - May 15, 2026',
   category: 'Enterprise',
-  proTripCategory: 'Business Travel',
+  proTripCategory: 'work',
   tags: [],
   participants: [
     { id: '1', name: 'Sundar Pichai', avatar: getMockAvatar('Sundar Pichai'), role: 'Keynote Speakers' },

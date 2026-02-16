@@ -7,7 +7,7 @@ export const ohioStateNotreDame: ProTripData = {
   description: 'Ohio State Buckeyes away game against Notre Dame Fighting Irish at Notre Dame Stadium.',
   location: 'South Bend, IN',
   dateRange: 'Sep 13 - Sep 14, 2025',
-  proTripCategory: 'Sports – Pro, Collegiate, Youth',
+  proTripCategory: 'sports',
   tags: [],
   basecamp_name: 'Notre Dame Stadium',
   basecamp_address: 'Notre Dame, IN 46556',

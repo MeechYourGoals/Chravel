@@ -7,7 +7,7 @@ export const lakersRoadTrip: ProTripData = {
   description: 'Los Angeles Lakers road trip covering 5 games across the Western Conference.',
   location: 'Phoenix AZ, Denver CO, Portland OR',
   dateRange: 'Jan 20 - Feb 3, 2025',
-  proTripCategory: 'Sports – Pro, Collegiate, Youth',
+  proTripCategory: 'sports',
   tags: [],
   basecamp_name: 'Staples Center',
   basecamp_address: '1111 S Figueroa St, Los Angeles, CA 90015',
