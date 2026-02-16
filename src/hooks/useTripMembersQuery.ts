@@ -25,6 +25,7 @@ export interface TripMember {
 interface TripMembersData {
   members: TripMember[];
   creatorId: string | null;
+  hadError?: boolean;
 }
 
 const getMockFallbackMembers = (tripId: string): TripMember[] => {
@@ -78,7 +79,8 @@ async function fetchTripMembersData(
     const mockMembers = getMockFallbackMembers(tripId);
     return {
       members: mockMembers,
-      creatorId: mockMembers[0]?.id || null
+      creatorId: mockMembers[0]?.id || null,
+      hadError: false,
     };
   }
 
@@ -97,12 +99,12 @@ async function fetchTripMembersData(
     return {
       members: formattedMembers,
       creatorId,
+      hadError: false,
     };
   } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('[useTripMembersQuery] Failed to fetch members:', error);
-    }
-    return { members: [], creatorId: null };
+    // Log in all envs so prod breakage (RLS, network) is visible
+    console.error('[useTripMembersQuery] Failed to fetch members:', error);
+    return { members: [], creatorId: null, hadError: true };
   }
 }
 
@@ -128,6 +130,7 @@ export const useTripMembersQuery = (tripId?: string) => {
 
   const tripMembers = data?.members || [];
   const tripCreatorId = data?.creatorId || null;
+  const hadMembersError = data?.hadError ?? false;
 
   // Check if current user can remove members
   const canRemoveMembers = useCallback(async (): Promise<boolean> => {
@@ -240,6 +243,7 @@ export const useTripMembersQuery = (tripId?: string) => {
     tripMembers,
     loading: isLoading,
     tripCreatorId,
+    hadMembersError,
     canRemoveMembers,
     removeMember: (userId: string) => removeMemberMutation.mutateAsync(userId),
     leaveTrip: (tripName: string) => leaveTripMutation.mutateAsync(tripName),
