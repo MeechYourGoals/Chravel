@@ -637,21 +637,24 @@ export const calendarService = {
 
     // 4. For batches <= 50, try a single bulk insert first
     if (rows.length <= 50) {
-      const { data, error } = await supabase.from('trip_events').insert(rows).select('*');
+      // Don't use .select('*') on bulk inserts — PostgREST can return empty data
+      // even when the insert succeeds, causing false "failed" reports.
+      const { error } = await supabase.from('trip_events').insert(rows);
 
-      if (!error && data && data.length > 0) {
-        this.cacheEventsInBackground(data);
-        return { imported: data.length, failed: 0, events: data };
-      }
-
-      if (error) {
-        console.error(
-          `[calendarService] Single insert failed: ${error.message} (code: ${error.code})`,
+      if (!error) {
+        // Insert succeeded at DB level — trust the row count
+        onProgress?.(rows.length, rows.length);
+        console.info(
+          `[calendarService] Bulk insert succeeded for ${rows.length} events`,
         );
+        // Best-effort: fetch inserted events for caching (non-blocking)
+        this.fetchAndCacheRecentEvents(tripId, rows.length);
+        return { imported: rows.length, failed: 0, events: [] };
       }
 
-      console.warn(
-        '[calendarService] Single insert returned no data, falling back to individual inserts',
+      // Actual error — log and fall through to sequential
+      console.error(
+        `[calendarService] Bulk insert failed: ${error.message} (code: ${error.code}). Falling back to sequential.`,
       );
     }
 
@@ -755,6 +758,27 @@ export const calendarService = {
           .catch(() => {}),
       ),
     ).catch(() => {});
+  },
+
+  /**
+   * After a successful bulk insert, fetch the recently inserted events for caching.
+   * Best-effort and non-blocking — does not affect the import result.
+   */
+  fetchAndCacheRecentEvents(tripId: string, expectedCount: number): void {
+    Promise.resolve(
+      supabase
+        .from('trip_events')
+        .select('*')
+        .eq('trip_id', tripId)
+        .order('created_at', { ascending: false })
+        .limit(expectedCount)
+    )
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          this.cacheEventsInBackground(data);
+        }
+      })
+      .catch(() => {});
   },
 
   // Convert database event to CalendarEvent format
