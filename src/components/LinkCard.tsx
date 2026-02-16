@@ -113,7 +113,7 @@ export const LinkCard = ({ link }: LinkCardProps) => {
       {showComments && (
         <div className="px-4 py-3 bg-slate-900/20 border-t border-slate-700/30">
           <div className="text-sm text-slate-400 mb-3">
-            Comments coming soon...
+            Add a comment to share feedback with your group.
           </div>
         </div>
       )}

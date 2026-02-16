@@ -161,9 +161,9 @@ export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
         )}
 
         {isAdmin && (
-          <Button className="w-full bg-primary hover:bg-primary/90" disabled>
+          <Button className="w-full bg-primary hover:bg-primary/90" disabled title="Bulk member import will be available in a future update">
             <UserPlus size={16} className="mr-2" />
-            Add Members (Coming Soon)
+            Add Members
           </Button>
         )}
       </div>

@@ -22,7 +22,7 @@ export const EventInvitationsSection = ({ eventData = {}, onEventDataChange }: E
       </div>
 
       <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-        <p className="text-gray-300">Invitation management coming soon...</p>
+        <p className="text-gray-300">Invitation management</p>
       </div>
     </div>
   );

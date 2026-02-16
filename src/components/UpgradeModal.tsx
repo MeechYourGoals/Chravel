@@ -40,8 +40,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
         toast.error('Failed to start checkout');
       }
     } else {
-      // Events tier - coming soon
-      toast.info('Events tier coming soon!');
+      // Events tier - in development
+      toast.info('Events tier will be available in a future update.');
       onClose();
     }
   };

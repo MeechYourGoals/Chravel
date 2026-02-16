@@ -444,6 +444,12 @@ async function streamGeminiToSSE(
     }
 
     // Follow-up streaming call with function results
+    const followUpSafetySettings = [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    ];
     const followUpBody = {
       contents: [
         ...geminiContents,
@@ -457,6 +463,7 @@ async function streamGeminiToSSE(
       ],
       systemInstruction: { parts: [{ text: systemInstruction }] },
       generationConfig: { temperature, maxOutputTokens: maxTokens },
+      safetySettings: followUpSafetySettings,
     };
 
     const followUpResponse = await fetch(geminiStreamEndpoint, {
@@ -1032,6 +1039,13 @@ serve(async req => {
       }
     }
 
+    const GEMINI_SAFETY_SETTINGS = [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    ];
+
     const geminiRequestBody: any = {
       contents: geminiContents,
       systemInstruction: { parts: [{ text: systemInstruction }] },
@@ -1039,6 +1053,7 @@ serve(async req => {
         temperature,
         maxOutputTokens: config.maxTokens || 2048,
       },
+      safetySettings: GEMINI_SAFETY_SETTINGS,
       tools: geminiTools,
     };
 

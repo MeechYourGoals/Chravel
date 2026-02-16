@@ -27,10 +27,10 @@ export const ComingSoonBadge = ({
   return (
     <span 
       className={`inline-flex items-center gap-1 rounded-full font-medium ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
-      title="This feature is coming soon"
+      title="This feature is in development"
     >
       {variant !== 'minimal' && <Sparkles size={size === 'sm' ? 10 : size === 'md' ? 12 : 14} />}
-      Coming Soon
+      New
     </span>
   );
 };

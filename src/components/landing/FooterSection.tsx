@@ -71,16 +71,16 @@ export const FooterSection = () => {
             <h3 className="font-semibold text-lg text-foreground">Company</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a
-                  href="mailto:hello@chravelapp.com"
+                <Link
+                  to="/support"
                   className="text-foreground hover:text-primary transition-colors"
                 >
                   Contact
-                </a>
+                </Link>
               </li>
               <li>
                 <a
-                  href="mailto:support@chravelapp.com"
+                  href="mailto:support@chravel.app"
                   className="text-foreground hover:text-primary transition-colors"
                 >
                   Support

@@ -142,12 +142,12 @@ export const EventSetupWizard = ({ onComplete, onCancel }: EventSetupWizardProps
           <div className="space-y-6">
             <div className="bg-white/5 border border-white/10 rounded-lg p-6">
               <h4 className="text-lg font-semibold text-white mb-4">Industry & Template</h4>
-              <p className="text-gray-300">Template selection coming soon...</p>
+              <p className="text-gray-300">Template selection</p>
             </div>
             
             <div className="bg-white/5 border border-white/10 rounded-lg p-6">
               <h4 className="text-lg font-semibold text-white mb-4">Schedule</h4>
-              <p className="text-gray-300">Schedule configuration coming soon...</p>
+              <p className="text-gray-300">Schedule configuration</p>
             </div>
           </div>
         );
@@ -157,7 +157,7 @@ export const EventSetupWizard = ({ onComplete, onCancel }: EventSetupWizardProps
           <div className="space-y-6">
             <div className="bg-white/5 border border-white/10 rounded-lg p-6">
               <h4 className="text-lg font-semibold text-white mb-4">Invitations</h4>
-              <p className="text-gray-300">Invitation management coming soon...</p>
+              <p className="text-gray-300">Invitation management</p>
             </div>
           </div>
         );

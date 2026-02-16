@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import html2canvas from 'html2canvas';
 import { Button } from '../ui/button';
 import { ZoomIn, ZoomOut, Maximize2, Download } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
@@ -33,8 +34,19 @@ export const TeamOrgChart = ({
   };
 
   const handleExportChart = () => {
-    // TODO: Implement chart export as PNG/PDF
-    alert('Chart export feature coming soon!');
+    const chartEl = document.querySelector('[data-org-chart-container]');
+    if (chartEl) {
+      html2canvas(chartEl as HTMLElement)
+        .then(canvas => {
+          const link = document.createElement('a');
+          link.download = 'org-chart.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        })
+        .catch(() => window.print());
+    } else {
+      window.print();
+    }
   };
 
   if (rootNodes.length === 0) {
@@ -43,8 +55,8 @@ export const TeamOrgChart = ({
         <div className="bg-white/5 rounded-lg p-8 max-w-md mx-auto">
           <h3 className="text-lg font-medium text-white mb-2">No Hierarchy Defined</h3>
           <p className="text-gray-400 text-sm mb-4">
-            To create an org chart, team members need to be assigned reporting relationships. 
-            This feature is coming soon!
+            To create an org chart, team members need to be assigned reporting relationships.
+            Use Grid View to manage your team in the meantime.
           </p>
           <p className="text-gray-500 text-xs">
             For now, use Grid View to see all team members and their roles.
@@ -107,7 +119,7 @@ export const TeamOrgChart = ({
       </div>
 
       {/* Org Chart Container */}
-      <div className="bg-white/5 border border-gray-700 rounded-lg p-8 overflow-auto min-h-[500px]">
+      <div data-org-chart-container className="bg-white/5 border border-gray-700 rounded-lg p-8 overflow-auto min-h-[500px]">
         <div
           className="flex flex-col items-center justify-start transition-transform"
           style={{
@@ -135,7 +147,7 @@ export const TeamOrgChart = ({
           <li>• Click on any member to view their details</li>
           <li>• Use zoom controls to adjust the view</li>
           <li>• Hierarchy levels are auto-calculated based on reporting structure</li>
-          <li>• Drag and drop to reorganize (coming soon)</li>
+          <li>• Use Grid View to manage member roles and reporting structure</li>
         </ul>
       </div>
     </div>

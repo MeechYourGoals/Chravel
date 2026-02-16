@@ -164,7 +164,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
         onEditTask={task =>
           toast({
             title: 'Edit Task',
-            description: `Editing "${task.title}" - Feature coming soon!`,
+            description: `Editing "${task.title}" - Task editing will be available in a future update.`,
           })
         }
       />
@@ -180,7 +180,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
           onEditTask={task =>
             toast({
               title: 'Edit Task',
-              description: `Editing "${task.title}" - Feature coming soon!`,
+              description: `Editing "${task.title}" - Task editing will be available in a future update.`,
             })
           }
         />
