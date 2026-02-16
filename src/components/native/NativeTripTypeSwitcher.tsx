@@ -276,7 +276,7 @@ export const NativeTripTypeSwitcher = ({
                       </span>
                       {isRecsDisabled && (
                         <span className="text-[11px] text-white/50 bg-white/10 px-2 py-0.5 rounded-full">
-                          Coming Soon
+                          New
                         </span>
                       )}
                       {!isRecsDisabled && count > 0 && (

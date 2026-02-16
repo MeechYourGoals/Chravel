@@ -195,7 +195,7 @@ export const ProTabContent = ({
                 <DollarSign size={48} className="text-red-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Per-diem & Settlement</h3>
                 <p className="text-gray-500 text-sm">
-                  Per-diem automation and settlement tracking coming soon
+                  Per-diem automation and settlement tracking
                 </p>
               </div>
             </div>
@@ -215,7 +215,7 @@ export const ProTabContent = ({
                 <Shield size={48} className="text-red-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Health Monitoring</h3>
                 <p className="text-gray-500 text-sm">
-                  Injury status tracking and compliance monitoring coming soon
+                  Injury status tracking and compliance monitoring
                 </p>
               </div>
             </div>
@@ -235,7 +235,7 @@ export const ProTabContent = ({
                 <FileCheck size={48} className="text-red-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Regulatory Compliance</h3>
                 <p className="text-gray-500 text-sm">
-                  Visa, union, and safety compliance tracking coming soon
+                  Visa, union, and safety compliance tracking
                 </p>
               </div>
             </div>
@@ -255,7 +255,7 @@ export const ProTabContent = ({
                 <Award size={48} className="text-red-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Partnership Tracking</h3>
                 <p className="text-gray-500 text-sm">
-                  Activation checklists and deliverable tracking coming soon
+                  Activation checklists and deliverable tracking
                 </p>
               </div>
             </div>

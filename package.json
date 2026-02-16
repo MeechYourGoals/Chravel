@@ -30,7 +30,8 @@
     "build-storybook": "storybook build",
     "docs:generate": "typedoc",
     "doctor": "bash scripts/doctor.sh",
-    "validate-env": "npx tsx scripts/validate-env.ts"
+    "validate-env": "npx tsx scripts/validate-env.ts",
+    "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.0",

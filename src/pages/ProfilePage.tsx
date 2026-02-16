@@ -90,7 +90,7 @@ const ProfilePage = () => {
           variant="outline" 
           className="w-full justify-start h-12" 
           size="lg"
-          onClick={() => alert('Feature coming soon!')}
+          onClick={() => navigate('/')}
           microAnimation="scale"
         >
           <Camera className="mr-3" size={18} />
@@ -112,7 +112,7 @@ const ProfilePage = () => {
           variant="outline" 
           className="w-full justify-start h-12" 
           size="lg"
-          onClick={() => alert('Feature coming soon!')}
+          onClick={() => navigate('/')}
           microAnimation="scale"
         >
           <Share2 className="mr-3" size={18} />

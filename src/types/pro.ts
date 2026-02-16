@@ -443,9 +443,9 @@ export const SUBSCRIPTION_TIERS = {
     seatLimit: 100,
     features: [
       'Up to 100 team members',
-      'Multi-language support (coming soon)',
+      'Multi-language support',
       'Priority support',
-      'Advanced integrations (coming soon)',
+      'Advanced integrations',
       'Custom workflows',
       'Unlimited Events for your team',
       'Your first Pro Trip + Event included free'

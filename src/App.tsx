@@ -118,6 +118,7 @@ const ForTeams = lazy(() =>
 const AdvertiserDashboard = lazy(() => retryImport(() => import('./pages/AdvertiserDashboard')));
 const Healthz = lazy(() => retryImport(() => import('./pages/Healthz')));
 const PrivacyPolicy = lazy(() => retryImport(() => import('./pages/PrivacyPolicy')));
+const SupportPage = lazy(() => retryImport(() => import('./pages/SupportPage')));
 const TermsOfService = lazy(() => retryImport(() => import('./pages/TermsOfService')));
 const DemoEntry = lazy(() => retryImport(() => import('./pages/DemoEntry')));
 const TripPreview = lazy(() => retryImport(() => import('./pages/TripPreview')));
@@ -227,6 +228,7 @@ const OfflineIndicatorGate = () => {
     pathname.startsWith('/recs') ||
     pathname.startsWith('/advertiser') ||
     pathname.startsWith('/privacy') ||
+    pathname.startsWith('/support') ||
     pathname.startsWith('/terms') ||
     pathname.startsWith('/demo') ||
     pathname.startsWith('/healthz');
@@ -644,6 +646,14 @@ const App = () => {
                         element={
                           <LazyRoute>
                             <PrivacyPolicy />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/support"
+                        element={
+                          <LazyRoute>
+                            <SupportPage />
                           </LazyRoute>
                         }
                       />

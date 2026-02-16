@@ -2,7 +2,7 @@
  * Feature Gating Utility
  * 
  * Controls which features are available in demo mode vs authenticated mode.
- * Used to show "Coming Soon" states for features not yet ready for production.
+ * Controls feature availability in demo vs authenticated mode.
  */
 
 export type FeatureName = 
@@ -23,7 +23,7 @@ const featureMatrix: Record<FeatureName, FeatureAvailability> = {
   'chravel-recs': {
     demoMode: true,
     authenticated: false,
-    comingSoonMessage: 'ChravelApp Recommendations are coming soon for authenticated users!'
+    comingSoonMessage: 'ChravelApp Recommendations are available in demo mode. Full access for authenticated users will be available in a future update.'
   },
   'events-module': {
     demoMode: true,
@@ -81,7 +81,7 @@ export const isFeatureAvailable = (
 };
 
 /**
- * Get the "Coming Soon" message for a feature if it's unavailable
+ * Get the message for a gated feature if it's unavailable
  * @param feature - The feature to check
  * @returns Coming soon message or null if feature is available
  */

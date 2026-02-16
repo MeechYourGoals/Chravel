@@ -273,7 +273,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
             className="w-full border-white/10 hover:bg-white/5 text-white"
             onClick={() => {
               toast({
-                title: "Coming Soon",
+                title: "Payment Methods",
                 description: "Payment method setup will be available in a future update."
               });
             }}
