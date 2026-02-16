@@ -906,8 +906,8 @@ export const AIConciergeChat = ({
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-semibold text-white">AI Concierge</h3>
               <p className="text-xs text-gray-400">🔒 This conversation is private to you</p>
-              <p className={`text-xs mt-0.5 ${queryAllowanceTone}`}>{queryAllowanceText}</p>
             </div>
+            <span className={`text-xs whitespace-nowrap ${queryAllowanceTone}`}>{queryAllowanceText}</span>
           </div>
         </div>
 

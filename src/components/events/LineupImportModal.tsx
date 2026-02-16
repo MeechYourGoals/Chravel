@@ -54,7 +54,7 @@ interface LineupImportModalProps {
   }) => Promise<number>;
 }
 
-type ImportState = 'idle' | 'parsing' | 'preview' | 'importing';
+type ImportState = 'idle' | 'parsing' | 'preview';
 
 const ACCEPTED_FILE_TYPES =
   '.ics,.csv,.xlsx,.xls,.pdf,image/jpeg,image/png,image/webp,text/calendar,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
@@ -74,6 +74,7 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
   onImportNames,
 }) => {
   const [state, setState] = useState<ImportState>('idle');
+  const [isImporting, setIsImporting] = useState(false);
   const [parseResult, setParseResult] = useState<LineupParseResult | null>(null);
   const [parsedNames, setParsedNames] = useState<string[]>([]);
   const [sourceUrl, setSourceUrl] = useState<string | undefined>(undefined);
@@ -184,14 +185,15 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
 
   const handleImport = useCallback(async () => {
     if (parsedNames.length === 0) return;
-    setState('importing');
+    setIsImporting(true);
     try {
       const imported = await onImportNames({ names: parsedNames, mode, sourceUrl });
       toast.success(`Imported ${imported} names to Line-up`);
       handleClose();
     } catch {
-      setState('preview');
       toast.error('Import failed');
+    } finally {
+      setIsImporting(false);
     }
   }, [parsedNames, onImportNames, mode, sourceUrl, handleClose]);
 
@@ -387,10 +389,10 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
                 </Button>
                 <Button
                   onClick={handleImport}
-                  disabled={parsedNames.length === 0 || state === 'importing'}
+                  disabled={parsedNames.length === 0 || isImporting}
                   className="flex-1 min-h-[44px]"
                 >
-                  {state === 'importing'
+                  {isImporting
                     ? 'Importing...'
                     : mode === 'replace'
                       ? 'Replace all'
