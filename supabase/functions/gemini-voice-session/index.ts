@@ -233,6 +233,25 @@ serve(async req => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Health/diagnostic check: GET returns config status (no auth required)
+  // Use this to verify GEMINI_API_KEY is set in Supabase secrets.
+  if (req.method === 'GET') {
+    return new Response(
+      JSON.stringify({
+        service: 'gemini-voice-session',
+        configured: !!GEMINI_API_KEY,
+        model: GEMINI_LIVE_MODEL,
+        message: GEMINI_API_KEY
+          ? 'GEMINI_API_KEY is set. Voice sessions should work.'
+          : 'GEMINI_API_KEY not set. Add it in Supabase Dashboard → Project Settings → Edge Functions → Secrets, then redeploy.',
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    );
+  }
+
   try {
     if (!GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY not configured');

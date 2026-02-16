@@ -58,6 +58,7 @@ These are set as Supabase project secrets (`supabase secrets set KEY=value`).
 | **Stripe Webhook** | Stripe | `STRIPE_WEBHOOK_SECRET` | `stripe-webhook` | Stripe Dashboard > Webhooks | Y — disable via feature flag |
 | **Stripe Prices** | Stripe | `STRIPE_PLUS_PRICE_ID`, `STRIPE_PRO_PRICE_ID` | `create-checkout` | Stripe Dashboard > Products | Y |
 | **AI / LLM** | Lovable | `LOVABLE_API_KEY` | `ai-answer`, `ai-search`, `ai-ingest`, `daily-digest`, `document-processor`, `file-ai-parser` | Lovable.dev dashboard | Y — disable via `VITE_ENABLE_AI_CONCIERGE=false` |
+| **Gemini (AI Concierge + Voice)** | Google AI Studio | `GEMINI_API_KEY` | `lovable-concierge`, `gemini-voice-session` | [Google AI Studio](https://aistudio.google.com/apikey) | **Required** for direct Gemini. If missing, text falls back to Lovable; voice fails. Set via `supabase secrets set GEMINI_API_KEY=...` then redeploy. |
 | **Email** | Resend | `RESEND_API_KEY` | `send-email-with-retry` | Resend.com dashboard | Y — invites work without email (link-only) |
 | **Email From** | Resend | `RESEND_FROM_EMAIL` | `send-email-with-retry` | Set to `noreply@chravel.app` | Y |
 | **Web Push Private** | Self-generated | `VAPID_PRIVATE_KEY` | `push-notifications`, `web-push-send` | `npx tsx scripts/generate-vapid-keys.ts` | Y — disable via feature flag |
