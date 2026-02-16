@@ -26,6 +26,9 @@ interface UseGeminiLiveReturn {
 }
 
 const LIVE_INPUT_SAMPLE_RATE = 16000;
+const SESSION_FETCH_TIMEOUT_MS = 15_000;
+const WEBSOCKET_SETUP_TIMEOUT_MS = 15_000;
+const GET_USER_MEDIA_TIMEOUT_MS = 10_000;
 
 const downsampleTo16k = (input: Float32Array, inputSampleRate: number): Float32Array => {
   if (inputSampleRate <= LIVE_INPUT_SAMPLE_RATE) return input;
@@ -53,6 +56,20 @@ const downsampleTo16k = (input: Float32Array, inputSampleRate: number): Float32A
 
   return output;
 };
+
+/** Extract HTTP status from Supabase FunctionsHttpError (context may be Response) */
+function getHttpStatus(err: unknown): number | undefined {
+  const ctx = (err as { context?: { status?: number } })?.context;
+  return typeof ctx?.status === 'number' ? ctx.status : undefined;
+}
+
+/** Map session fetch errors to user-friendly messages (401/403 vs generic) */
+function getSessionErrorMessage(err: unknown, fallback: string): string {
+  const status = getHttpStatus(err);
+  if (status === 401) return 'Please sign in to use voice';
+  if (status === 403) return 'Voice requires Pro subscription';
+  return err instanceof Error ? err.message : fallback;
+}
 
 /**
  * Hook for Gemini Live bidirectional audio via WebSocket.
@@ -257,21 +274,28 @@ export function useGeminiLive({
       setState('connecting');
       setError(null);
 
-      // 1. Get session config from edge function
-      const { data: sessionData, error: sessionError } = await supabase.functions.invoke(
-        'gemini-voice-session',
-        { body: { tripId, voice } },
-      );
+      // 1. Get session config from edge function (with hard timeout to prevent infinite spinner)
+      const sessionFetchPromise = supabase.functions.invoke('gemini-voice-session', {
+        body: { tripId, voice },
+      });
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Voice session timed out')), SESSION_FETCH_TIMEOUT_MS);
+      });
+      const { data: sessionData, error: sessionError } = await Promise.race([
+        sessionFetchPromise,
+        timeoutPromise,
+      ]);
 
       const accessToken =
         typeof sessionData?.accessToken === 'string' ? sessionData.accessToken : null;
       const apiKey = typeof sessionData?.apiKey === 'string' ? sessionData.apiKey : null;
       if (sessionError || (!accessToken && !apiKey)) {
-        throw new Error(sessionError?.message || 'Failed to get voice session');
+        const msg = getSessionErrorMessage(sessionError, 'Failed to get voice session');
+        throw new Error(msg);
       }
 
-      // 2. Request microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // 2. Request microphone access (with timeout)
+      const getUserMediaPromise = navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 16000,
           channelCount: 1,
@@ -279,6 +303,13 @@ export function useGeminiLive({
           noiseSuppression: true,
         },
       });
+      const getUserMediaTimeout = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error('Microphone access timed out')),
+          GET_USER_MEDIA_TIMEOUT_MS,
+        );
+      });
+      const stream = await Promise.race([getUserMediaPromise, getUserMediaTimeout]);
       mediaStreamRef.current = stream;
 
       // 3. Create audio context for playback
@@ -294,6 +325,15 @@ export function useGeminiLive({
         : `${websocketUrl}?key=${encodeURIComponent(apiKey as string)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
+
+      let setupCompleteReceived = false;
+      const setupTimeoutId = setTimeout(() => {
+        if (setupCompleteReceived) return;
+        console.error('[GeminiLive] WebSocket setup timed out');
+        setError('Voice connection timed out');
+        setState('error');
+        cleanup();
+      }, WEBSOCKET_SETUP_TIMEOUT_MS);
 
       ws.onopen = () => {
         console.log('[GeminiLive] WebSocket connected');
@@ -341,6 +381,8 @@ export function useGeminiLive({
 
           // Setup complete
           if (data.setupComplete) {
+            setupCompleteReceived = true;
+            clearTimeout(setupTimeoutId);
             console.log('[GeminiLive] Setup complete, starting audio capture');
             setState('listening');
             startAudioCapture(ws, stream);
@@ -385,14 +427,16 @@ export function useGeminiLive({
         }
       };
 
-      ws.onerror = event => {
-        console.error('[GeminiLive] WebSocket error:', event);
+      ws.onerror = () => {
+        clearTimeout(setupTimeoutId);
+        console.error('[GeminiLive] WebSocket error');
         setError('Voice connection error');
         setState('error');
         cleanup();
       };
 
       ws.onclose = event => {
+        clearTimeout(setupTimeoutId);
         console.log('[GeminiLive] WebSocket closed:', event.code, event.reason);
         if (event.code !== 1000 && event.code !== 1005) {
           setError(event.reason || 'Voice session disconnected');
