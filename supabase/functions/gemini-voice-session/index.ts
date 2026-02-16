@@ -121,7 +121,39 @@ You are now speaking via bidirectional voice audio. Adapt your responses:
 - For places, say the name and a brief description — don't try to give URLs
 - When executing actions (adding events, creating tasks), confirm what you did conversationally`;
 
-async function canUseVoiceConcierge(supabaseAdmin: any, userId: string): Promise<boolean> {
+/** Demo trip IDs that bypass entitlement check when isDemoMode is true */
+const DEMO_TRIP_IDS = new Set([
+  '1',
+  '13',
+  '14',
+  '15',
+  '16',
+  'lakers-road-trip',
+  'beyonce-cowboy-carter-tour',
+  'eli-lilly-c-suite-retreat-2026',
+]);
+
+function getSuperAdminEmails(): string[] {
+  const envVal = Deno.env.get('SUPABASE_SUPER_ADMIN_EMAILS');
+  if (!envVal) return [];
+  return envVal
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+async function canUseVoiceConcierge(
+  supabaseAdmin: any,
+  userId: string,
+  userEmail: string | undefined,
+  options: { isDemoMode?: boolean; tripId?: string },
+): Promise<boolean> {
+  // Super admin bypass (founder/team emails from env)
+  const superAdminEmails = getSuperAdminEmails();
+  if (userEmail && superAdminEmails.includes(userEmail.toLowerCase().trim())) {
+    return true;
+  }
+
   const [{ data: entitlements, error: entitlementsError }, { data: roles, error: rolesError }] =
     await Promise.all([
       supabaseAdmin
@@ -146,6 +178,11 @@ async function canUseVoiceConcierge(supabaseAdmin: any, userId: string): Promise
     (row: any) => String(row?.role) === 'enterprise_admin',
   );
   if (isEnterpriseAdmin) {
+    return true;
+  }
+
+  // Demo mode: allow when viewing a known demo trip (server-validated, not client spoof)
+  if (options.isDemoMode && options.tripId && DEMO_TRIP_IDS.has(options.tripId)) {
     return true;
   }
 
@@ -263,10 +300,19 @@ serve(async req => {
       });
     }
 
+    const body = await req.json().catch(() => ({}));
+    const requestedVoice = typeof body?.voice === 'string' ? body.voice : 'Puck';
+    const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : 'Puck';
+    const tripId = typeof body?.tripId === 'string' ? body.tripId : undefined;
+    const isDemoMode = body?.isDemoMode === true;
+
     const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
       ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
       : supabase;
-    const hasVoiceAccess = await canUseVoiceConcierge(supabaseAdmin, user.id);
+    const hasVoiceAccess = await canUseVoiceConcierge(supabaseAdmin, user.id, user.email, {
+      isDemoMode,
+      tripId,
+    });
     if (!hasVoiceAccess) {
       return new Response(
         JSON.stringify({ error: 'Voice concierge is not enabled for this account' }),
@@ -276,11 +322,6 @@ serve(async req => {
         },
       );
     }
-
-    const body = await req.json();
-    const requestedVoice = typeof body?.voice === 'string' ? body.voice : 'Puck';
-    const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : 'Puck';
-    const tripId = typeof body?.tripId === 'string' ? body.tripId : undefined;
 
     // Build full system instruction using shared context builder + prompt builder
     let systemInstruction: string;

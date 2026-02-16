@@ -12,6 +12,7 @@ export interface ToolCallRequest {
 interface UseGeminiLiveOptions {
   tripId: string;
   voice?: string;
+  isDemoMode?: boolean;
   onTranscript?: (text: string) => void;
   onToolCall?: (call: ToolCallRequest) => Promise<Record<string, unknown>>;
   onTurnComplete?: () => void;
@@ -79,6 +80,7 @@ function getSessionErrorMessage(err: unknown, fallback: string): string {
 export function useGeminiLive({
   tripId,
   voice = 'Puck',
+  isDemoMode = false,
   onTranscript,
   onToolCall,
   onTurnComplete,
@@ -276,10 +278,13 @@ export function useGeminiLive({
 
       // 1. Get session config from edge function (with hard timeout to prevent infinite spinner)
       const sessionFetchPromise = supabase.functions.invoke('gemini-voice-session', {
-        body: { tripId, voice },
+        body: { tripId, voice, isDemoMode },
       });
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Voice session timed out')), SESSION_FETCH_TIMEOUT_MS);
+        setTimeout(
+          () => reject(new Error('Voice session timed out. Please try again.')),
+          SESSION_FETCH_TIMEOUT_MS,
+        );
       });
       const { data: sessionData, error: sessionError } = await Promise.race([
         sessionFetchPromise,
@@ -456,6 +461,7 @@ export function useGeminiLive({
     isSupported,
     tripId,
     voice,
+    isDemoMode,
     cleanup,
     playAudioChunk,
     onTranscript,

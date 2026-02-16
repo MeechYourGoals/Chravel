@@ -27,10 +27,16 @@ The client **already uses** `supabase.functions.invoke('gemini-voice-session', {
 
 ### `src/hooks/useGeminiLive.ts`
 
-- **Session fetch timeout** (15s): `Promise.race` with timeout; on timeout, spinner clears and user sees "Voice session timed out"
+- **Session fetch timeout** (15s): `Promise.race` with timeout; on timeout, spinner clears and user sees "Voice session timed out. Please try again."
 - **getUserMedia timeout** (10s): Prevents indefinite wait for mic permission
 - **WebSocket setup timeout** (15s): If `setupComplete` never arrives, transition to error and cleanup
 - **401/403 handling**: `getSessionErrorMessage()` maps HTTP status to user-friendly messages
+- **isDemoMode**: Passed to edge function so demo trip users get voice access
+
+### `supabase/functions/gemini-voice-session/index.ts`
+
+- **Super admin bypass**: Optional `SUPABASE_SUPER_ADMIN_EMAILS` env var (comma-separated) grants voice access
+- **Demo mode bypass**: When `isDemoMode` + `tripId` is in known demo trip list, allow voice (server-validated)
 
 ## Manual Verification
 
