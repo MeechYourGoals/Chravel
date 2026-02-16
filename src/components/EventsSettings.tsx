@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
-import { User, Bell, ChevronDown } from 'lucide-react';
-import { EventProfileSection } from './events/EventProfileSection';
+import { Bell, ChevronDown, Settings } from 'lucide-react';
 import { EventNotificationsSection } from './events/EventNotificationsSection';
+import { EventGeneralPrivacySection } from './events/EventGeneralPrivacySection';
 import { useIsMobile } from '../hooks/use-mobile';
 
 interface EventsSettingsProps {
@@ -13,28 +12,31 @@ interface EventsSettingsProps {
   onShowAdvertiserHub?: () => void;
 }
 
-export const EventsSettings = ({ 
-  currentUserId: _currentUserId, 
+export const EventsSettings = ({
+  currentUserId: _currentUserId,
   userOrganization: _userOrganization,
   onShowProModal: _onShowProModal,
   onShowEnterpriseSettings: _onShowEnterpriseSettings,
-  onShowAdvertiserHub: _onShowAdvertiserHub
+  onShowAdvertiserHub: _onShowAdvertiserHub,
 }: EventsSettingsProps) => {
-  const [activeSection, setActiveSection] = useState('profile');
+  const [activeSection, setActiveSection] = useState('notifications');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
 
-  // Only Profile and Notifications - event-specific features belong in individual events
+  // Organizer profile removed: per-event data belongs in each event's edit flow
   const sections = [
-    { id: 'profile', label: 'Organizer Profile', icon: User },
-    { id: 'notifications', label: 'Notifications', icon: Bell }
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'general', label: 'General & Privacy', icon: Settings },
   ];
 
   const renderSection = () => {
     switch (activeSection) {
-      case 'profile': return <EventProfileSection />;
-      case 'notifications': return <EventNotificationsSection />;
-      default: return <EventProfileSection />;
+      case 'notifications':
+        return <EventNotificationsSection />;
+      case 'general':
+        return <EventGeneralPrivacySection />;
+      default:
+        return <EventNotificationsSection />;
     }
   };
 
@@ -53,15 +55,15 @@ export const EventsSettings = ({
               {currentSection && <currentSection.icon size={20} />}
               <span className="text-sm">{currentSection?.label}</span>
             </div>
-            <ChevronDown 
-              size={20} 
+            <ChevronDown
+              size={20}
               className={`transform transition-transform ${showMobileMenu ? 'rotate-180' : ''}`}
             />
           </button>
-          
+
           {showMobileMenu && (
             <div className="mt-2 bg-white/10 rounded-xl overflow-hidden">
-              {sections.map((section) => {
+              {sections.map(section => {
                 const Icon = section.icon;
                 return (
                   <button
@@ -87,9 +89,7 @@ export const EventsSettings = ({
 
         {/* Mobile Content */}
         <div className="flex-1 min-w-0 overflow-y-auto">
-          <div className="p-4">
-            {renderSection()}
-          </div>
+          <div className="p-4">{renderSection()}</div>
         </div>
       </div>
     );
@@ -101,10 +101,10 @@ export const EventsSettings = ({
       <div className="w-64 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-4 overflow-y-auto">
         <h2 className="text-xl font-bold text-white mb-3">Event Settings</h2>
         <p className="text-xs text-gray-400 mb-4">
-          Global organizer settings. Event-specific features (Agenda, Attendees, Chat) are in each event.
+          Notification and privacy preferences for events. Organizer details are set per event.
         </p>
         <div className="space-y-1.5">
-          {sections.map((section) => {
+          {sections.map(section => {
             const Icon = section.icon;
             return (
               <button
@@ -126,9 +126,7 @@ export const EventsSettings = ({
 
       {/* Desktop Main Content */}
       <div className="flex-1 min-w-0 overflow-y-auto">
-        <div className="p-4 pb-16">
-          {renderSection()}
-        </div>
+        <div className="p-4 pb-16">{renderSection()}</div>
       </div>
     </div>
   );
