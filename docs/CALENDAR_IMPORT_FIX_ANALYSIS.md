@@ -129,7 +129,10 @@ COMMENT ON FUNCTION public.notify_on_calendar_event IS
 
 - **Remove the timeout race** — agreed; it kills working imports
 - **Simple `await`** with progress callback
+- **Real-time progress bar** — per-event completion visible; no timeout needed
 - For chunked bulk: progress = `(chunkIndex * chunkSize + eventsInChunk) / total`
+
+**Why disable timeouts and rely on visible progress?** When users see "45/100 events" and a filling progress bar, they know the import is working. A timeout that kills a working import (e.g. at 60s when 80/100 events are done) is worse than no timeout. The only reason for a timeout would be if the import could hang indefinitely with no feedback — but with real-time progress, that case doesn't apply.
 
 ---
 
@@ -217,3 +220,13 @@ Requires a new RPC that sends one notification to all members. Can be a follow-u
 - **Modal**: Re-add timeout (with higher limit) if needed
 
 **Regression Risk:** LOW — trigger change is additive (new branch); bulk path already exists and is tested.
+
+---
+
+## 9. Launch Checklist
+
+Before deploying to production:
+
+1. **Run the migration** — `supabase db push` or `supabase migration up`. The trigger fix only takes effect after the migration.
+2. **Demo mode** — bulkCreateEvents now routes to calendarStorageService when demo mode is enabled.
+3. **Offline** — bulkCreateEvents throws a clear error if the user is offline.

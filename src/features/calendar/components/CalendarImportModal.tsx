@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -567,17 +568,27 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
           {/* ── Importing State ── */}
           {state === 'importing' && (
-            <div className="flex flex-col items-center justify-center py-12">
+            <div className="flex flex-col items-center justify-center py-12 px-4 w-full max-w-sm mx-auto">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
-              <p className="text-muted-foreground mb-2">
+              <p className="text-muted-foreground mb-3 text-center">
                 {importingProgress.total > 0
-                  ? `Importing ${importingProgress.completed}/${importingProgress.total} events...`
+                  ? `Importing ${importingProgress.completed}/${importingProgress.total} events`
                   : `Importing ${eventsToImport} event${eventsToImport !== 1 ? 's' : ''}...`}
               </p>
-              <p className="text-xs text-muted-foreground">
+              {importingProgress.total > 0 && (
+                <Progress
+                  value={
+                    importingProgress.total > 0
+                      ? (importingProgress.completed / importingProgress.total) * 100
+                      : 0
+                  }
+                  className="w-full h-2.5 mb-2"
+                />
+              )}
+              <p className="text-xs text-muted-foreground text-center">
                 {importingProgress.total > 0 && importingProgress.completed > 0
-                  ? 'Almost there...'
-                  : 'This should only take a moment'}
+                  ? 'Progress updates as each event is imported'
+                  : 'Starting import...'}
               </p>
             </div>
           )}
