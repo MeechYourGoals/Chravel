@@ -246,6 +246,9 @@ export function useGeminiLive({
     [onToolCall],
   );
 
+  const SESSION_TIMEOUT_MS = 15_000;
+  const WEBSOCKET_SETUP_TIMEOUT_MS = 15_000;
+
   const startSession = useCallback(async () => {
     if (!isSupported) {
       setError('Browser does not support Gemini Live voice');
@@ -257,17 +260,38 @@ export function useGeminiLive({
       setState('connecting');
       setError(null);
 
-      // 1. Get session config from edge function
-      const { data: sessionData, error: sessionError } = await supabase.functions.invoke(
-        'gemini-voice-session',
-        { body: { tripId, voice } },
+      // 1. Get session config from edge function (with timeout to prevent infinite spinner)
+      const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
+        body: { tripId, voice },
+      });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Voice session timed out. Please try again.')), SESSION_TIMEOUT_MS),
       );
+
+      const { data: sessionData, error: sessionError } = (await Promise.race([
+        sessionPromise,
+        timeoutPromise,
+      ])) as Awaited<typeof sessionPromise>;
 
       const accessToken =
         typeof sessionData?.accessToken === 'string' ? sessionData.accessToken : null;
       const apiKey = typeof sessionData?.apiKey === 'string' ? sessionData.apiKey : null;
+      const sessionErrMsg =
+        typeof (sessionData as { error?: string })?.error === 'string'
+          ? (sessionData as { error: string }).error
+          : sessionError?.message;
+
       if (sessionError || (!accessToken && !apiKey)) {
-        throw new Error(sessionError?.message || 'Failed to get voice session');
+        const errMsg = sessionErrMsg || 'Failed to get voice session';
+        // 403 or "not enabled" = voice requires Pro subscription
+        if (
+          errMsg.includes('403') ||
+          errMsg.toLowerCase().includes('not enabled') ||
+          errMsg.toLowerCase().includes('not enabled for this account')
+        ) {
+          throw new Error('Voice requires a Pro subscription. Upgrade to use voice.');
+        }
+        throw new Error(errMsg);
       }
 
       // 2. Request microphone access
@@ -295,8 +319,26 @@ export function useGeminiLive({
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
+      // Timeout if setupComplete never arrives (prevents infinite "connecting" spinner)
+      let setupTimeoutId: ReturnType<typeof setTimeout> | undefined;
+      const clearSetupTimeout = () => {
+        if (setupTimeoutId) {
+          clearTimeout(setupTimeoutId);
+          setupTimeoutId = undefined;
+        }
+      };
+
       ws.onopen = () => {
         console.log('[GeminiLive] WebSocket connected');
+
+        setupTimeoutId = setTimeout(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            console.warn('[GeminiLive] Setup timeout - no setupComplete received');
+            setError('Voice connection timed out. Please try again.');
+            setState('error');
+            cleanup();
+          }
+        }, WEBSOCKET_SETUP_TIMEOUT_MS);
 
         // When using an ephemeral access token, the session setup (model, voice,
         // system instruction, AND tools) is already baked into the token by the
@@ -341,6 +383,7 @@ export function useGeminiLive({
 
           // Setup complete
           if (data.setupComplete) {
+            clearSetupTimeout();
             console.log('[GeminiLive] Setup complete, starting audio capture');
             setState('listening');
             startAudioCapture(ws, stream);
@@ -386,6 +429,7 @@ export function useGeminiLive({
       };
 
       ws.onerror = event => {
+        clearSetupTimeout();
         console.error('[GeminiLive] WebSocket error:', event);
         setError('Voice connection error');
         setState('error');
@@ -393,6 +437,7 @@ export function useGeminiLive({
       };
 
       ws.onclose = event => {
+        clearSetupTimeout();
         console.log('[GeminiLive] WebSocket closed:', event.code, event.reason);
         if (event.code !== 1000 && event.code !== 1005) {
           setError(event.reason || 'Voice session disconnected');

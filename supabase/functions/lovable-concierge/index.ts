@@ -131,6 +131,40 @@ function shouldRunRAGRetrieval(query: string, tripId: string): boolean {
   return true;
 }
 
+/**
+ * Returns true if the query is about trip-specific data (calendar, chat, tasks,
+ * polls, payments, preferences). When false, we skip heavy context building
+ * and RAG for faster answers via direct Gemini + Google Search.
+ */
+function isTripRelatedQuery(query: string): boolean {
+  const q = query.trim();
+  if (q.length < 4) return true; // short queries: default to full context
+
+  const normalized = q.toLowerCase();
+
+  // Explicit trip-scoped or artifact terms → need full context
+  if (TRIP_SCOPED_QUERY_PATTERN.test(normalized)) return true;
+  if (ARTIFACT_QUERY_PATTERN.test(normalized)) return true;
+
+  // Trip-ownership phrasing
+  if (/\b(our|my|we're|who's going|who is going|our trip|my trip)\b/i.test(normalized)) {
+    return true;
+  }
+
+  // Clearly general (sports, crypto, etc.) → skip context
+  if (CLEARLY_GENERAL_QUERY_PATTERN.test(normalized)) return false;
+
+  // General web-only patterns (tour dates, weather, news) with no trip terms
+  const generalWebPattern =
+    /\b(weather|forecast|tour dates|upcoming|concert|festival|score|scores|news|stock|price|restaurant near|hotel in)\b/i;
+  if (generalWebPattern.test(normalized) && !TRIP_SCOPED_QUERY_PATTERN.test(normalized)) {
+    return false;
+  }
+
+  // Ambiguous: default to full context for accuracy
+  return true;
+}
+
 type UsagePlan = 'free' | 'explorer' | 'frequent_chraveler';
 
 interface UsagePlanResolution {
@@ -514,6 +548,8 @@ serve(async req => {
         service: 'lovable-concierge',
         timestamp: new Date().toISOString(),
         message: 'AI Concierge service is online',
+        geminiConfigured: !!GEMINI_API_KEY,
+        provider: GEMINI_API_KEY && !FORCE_LOVABLE_PROVIDER ? 'gemini' : 'lovable',
       });
     }
 
@@ -618,7 +654,12 @@ serve(async req => {
     // were previously sequential (~3-5 s total). Running them concurrently
     // collapses that to the duration of the single slowest query.
     const hasTripId = tripId && tripId !== 'unknown';
-    const runRAGRetrieval = shouldRunRAGRetrieval(message, tripId);
+    const tripRelated = isTripRelatedQuery(message);
+    const runRAGRetrieval = tripRelated && shouldRunRAGRetrieval(message, tripId);
+
+    if (!tripRelated) {
+      console.log('[Context] General web query detected — skipping trip context for speed');
+    }
 
     // Fire all independent queries at once
     const [membershipResult, planResolution, contextResult, ragResult, privacyResult] =
@@ -638,15 +679,15 @@ serve(async req => {
           ? resolveUsagePlanForUser(supabase, user.id)
           : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 5 }),
 
-        // 3. Trip context building (heaviest — ~2-5 s)
-        hasTripId && !tripContext
+        // 3. Trip context building (heaviest — ~2-5 s). Skip for general web queries.
+        hasTripId && !tripContext && tripRelated
           ? TripContextBuilder.buildContext(tripId, user?.id, authHeader).catch(error => {
               console.error('Failed to build comprehensive context:', error);
               return null;
             })
           : Promise.resolve(tripContext || null),
 
-        // 4. RAG keyword retrieval
+        // 4. RAG keyword retrieval (skip for general web queries)
         runRAGRetrieval
           ? (async () => {
               try {
@@ -822,16 +863,23 @@ serve(async req => {
     // Determine if chain-of-thought is needed
     const useChainOfThought = requiresChainOfThought(message, complexity);
 
-    // Build context-aware system prompt with RAG context injected
-    let baseSystemPrompt =
-      buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext;
+    // Build context-aware system prompt. For general web queries, use minimal prompt for speed.
+    let baseSystemPrompt: string;
+    if (!tripRelated || !comprehensiveContext) {
+      baseSystemPrompt = `You are Chravel Concierge, a helpful AI travel assistant.
+Current date: ${new Date().toISOString().split('T')[0]}
 
-    // 🆕 ENHANCED PROMPTS: Add few-shot examples and chain-of-thought
-    const systemPrompt = buildEnhancedSystemPrompt(
-      baseSystemPrompt,
-      useChainOfThought,
-      true, // Always include few-shot examples
-    );
+Answer the user's question concisely. Use web search for real-time info (weather, scores, tour dates, etc.).
+Be conversational and helpful. Use markdown for formatting.`;
+    } else {
+      baseSystemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext;
+    }
+
+    // 🆕 ENHANCED PROMPTS: Add few-shot examples and chain-of-thought (skip for general web queries)
+    const systemPrompt =
+      tripRelated && comprehensiveContext
+        ? buildEnhancedSystemPrompt(baseSystemPrompt, useChainOfThought, true)
+        : baseSystemPrompt;
 
     // 🆕 EXPLICIT CONTEXT WINDOW MANAGEMENT
     // Limit chat history to prevent token overflow
@@ -903,10 +951,11 @@ serve(async req => {
       );
 
     // Smart grounding detection - real-time info queries and event/knowledge queries
+    // Includes tour/upcoming for artist/event queries (e.g. "Becky Robinson's tour dates")
     const isRealtimeQuery = message
       .toLowerCase()
       .match(
-        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel|festival|concert|music week|lineup|conference|expo|convention|marathon|parade|tournament|championship|season|tickets|sold out|when is|what is .+ week|how many)\b/i,
+        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel|festival|concert|music week|lineup|conference|expo|convention|marathon|parade|tournament|championship|season|tickets|sold out|tour|upcoming|tour dates|when is|what is .+ week|how many)\b/i,
       );
 
     const tripBasecamp = comprehensiveContext?.places?.tripBasecamp;
@@ -1002,12 +1051,19 @@ serve(async req => {
     ];
 
     // ========== BUILD GEMINI TOOLS ==========
-    const geminiTools: any[] = [{ functionDeclarations }];
+    // General web queries: Google Search only (no function tools) for speed
+    // Trip-related queries: full tools + Google Search when real-time
+    const geminiTools: any[] = tripRelated
+      ? isRealtimeQuery
+        ? [{ functionDeclarations }, { googleSearch: {} }]
+        : [{ functionDeclarations }]
+      : [{ googleSearch: {} }];
 
-    // Add Google Search grounding for real-time queries
-    if (isRealtimeQuery) {
-      geminiTools.push({ googleSearch: {} });
-      console.log('[Grounding] Enabling Google Search for real-time query');
+    if (!tripRelated || isRealtimeQuery) {
+      console.log(
+        '[Grounding] Enabling Google Search',
+        tripRelated ? 'for real-time query' : 'for general web query',
+      );
     }
 
     // ========== CALL GEMINI API DIRECTLY ==========
