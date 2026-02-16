@@ -10,7 +10,7 @@ import {
   Users,
   Tag,
 } from 'lucide-react';
-import { ProTripCategory, getAllCategories, getCategoryConfig } from '@/types/proCategories';
+import { ProCategoryEnum, PRO_CATEGORIES_ORDERED, getCategoryConfig, normalizeLegacyCategory } from '@/types/proCategories';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseDateRange, formatDateRange } from '@/utils/dateFormatters';
 import { tripService, Trip } from '@/services/tripService';
@@ -64,9 +64,9 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
   const isEvent = trip.trip_type === 'event';
 
   // Pro category state
-  const allCategories = getAllCategories();
-  const initialCategory = (trip.categories?.find(c => c.type === 'pro_category')?.value as ProTripCategory) || 'Other';
-  const [proCategory, setProCategory] = useState<ProTripCategory>(initialCategory);
+  const allCategories = PRO_CATEGORIES_ORDERED;
+  const initialCategory = normalizeLegacyCategory(trip.categories?.find(c => c.type === 'pro_category')?.value);
+  const [proCategory, setProCategory] = useState<ProCategoryEnum>(initialCategory);
 
   // Initialize form data when modal opens
   useEffect(() => {
@@ -80,7 +80,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         organizer_display_name: trip.organizer_display_name || '',
       });
       setSelectedCardColor(trip.card_color);
-      const cat = (trip.categories?.find(c => c.type === 'pro_category')?.value as ProTripCategory) || 'Other';
+      const cat = normalizeLegacyCategory(trip.categories?.find(c => c.type === 'pro_category')?.value);
       setProCategory(cat);
     }
   }, [isOpen, trip]);
@@ -271,13 +271,13 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
               </label>
               <select
                 value={proCategory}
-                onChange={e => setProCategory(e.target.value as ProTripCategory)}
+                onChange={e => setProCategory(e.target.value as ProCategoryEnum)}
                 disabled={loading}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none"
               >
                 {allCategories.map(cat => (
-                  <option key={cat} value={cat} className="bg-gray-900 text-white">
-                    {cat}
+                  <option key={cat.id} value={cat.id} className="bg-gray-900 text-white">
+                    {cat.label}
                   </option>
                 ))}
               </select>

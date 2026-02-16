@@ -307,14 +307,7 @@ export interface ProTripData {
   coverPhoto?: string; // Cover photo URL for the trip
   card_color?: string; // User-selected card color (red, amber, blue, purple, emerald, rose, cyan, indigo)
   category?: string; // Legacy field - use proTripCategory instead
-  // Updated category options - consolidated and simplified
-  proTripCategory?:
-    | 'Sports – Pro, Collegiate, Youth'
-    | 'Tour – Music, Comedy, etc.'
-    | 'Business Travel'
-    | 'School Trip'
-    | 'Content'
-    | 'Other';
+  proTripCategory?: import('./proCategories').ProCategoryEnum;
   tags: string[];
   participants: ProTripParticipant[];
   // Basecamp info

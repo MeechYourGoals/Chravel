@@ -8,7 +8,7 @@ export const harrisElementaryFieldTrip: ProTripData = {
   location: 'Washington DC',
   dateRange: 'Apr 10 - Apr 14, 2025',
   category: 'Education',
-  proTripCategory: 'School Trip',
+  proTripCategory: 'school',
   tags: [],
   participants: [
     { id: '16', name: 'Ms. Jennifer Wilson', avatar: getMockAvatar('Ms. Jennifer Wilson'), role: 'Teachers' },

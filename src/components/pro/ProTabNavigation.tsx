@@ -34,7 +34,7 @@ export const ProTabNavigation = ({ tabs, activeTab, onTabChange, category }: Pro
         // Super admins bypass read-only restrictions
         const isReadOnly = isSuperAdmin ? false : isReadOnlyTab(tab.id, userRole, userPermissions, isDemoMode);
         const displayLabel =
-          tab.id === 'team' && category === 'Content' ? 'Cast & Crew' : tab.label;
+          tab.id === 'team' && category === 'productions' ? 'Cast & Crew' : tab.label;
         
         const buttonSizeClass = 'flex-1';
         

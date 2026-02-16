@@ -69,11 +69,12 @@ export interface CreateTripData {
   trip_type?: string;
   basecamp_name?: string;
   basecamp_address?: string;
-  enabled_features?: string[]; // ✅ Phase 2: Feature toggles for Pro/Event trips
-  card_color?: string; // Color coding for Pro/Event cards
-  organizer_display_name?: string; // Organizer name for Events (e.g., "Los Angeles Rams")
-  privacy_mode?: string; // Privacy mode: 'standard' | 'enhanced' | 'maximum'
-  ai_access_enabled?: boolean; // Whether AI concierge can access trip data
+  enabled_features?: string[];
+  card_color?: string;
+  organizer_display_name?: string;
+  privacy_mode?: string;
+  ai_access_enabled?: boolean;
+  category?: string; // Pro trip category enum value
 }
 
 type TripDetailErrorCode = 'AUTH_REQUIRED' | 'TRIP_NOT_FOUND' | 'ACCESS_DENIED' | 'BAD_REQUEST';
@@ -196,11 +197,12 @@ export const tripService = {
           end_date: tripData.end_date,
           trip_type: tripData.trip_type || 'consumer',
           cover_image_url: tripData.cover_image_url,
-          card_color: tripData.card_color, // ✅ Pass card color for Pro/Event trips
-          organizer_display_name: tripData.organizer_display_name, // ✅ Organizer name for Events
-          enabled_features: tripData.enabled_features, // ✅ Phase 2: Pass feature toggles
-          privacy_mode: tripData.privacy_mode, // ✅ Privacy mode for trip
-          ai_access_enabled: tripData.ai_access_enabled, // ✅ AI concierge access flag
+          card_color: tripData.card_color,
+          organizer_display_name: tripData.organizer_display_name,
+          enabled_features: tripData.enabled_features,
+          privacy_mode: tripData.privacy_mode,
+          ai_access_enabled: tripData.ai_access_enabled,
+          category: tripData.category, // Pro trip category enum value
         },
       });
 

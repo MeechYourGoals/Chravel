@@ -7,7 +7,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
   description: 'Indiana Hoosiers facing Alabama Crimson Tide in the historic Rose Bowl Championship.',
   location: 'Pasadena, California',
   dateRange: 'December 29, 2025 - Jan 2, 2026',
-  proTripCategory: 'Sports – Pro, Collegiate, Youth',
+  proTripCategory: 'sports',
   tags: [],
   basecamp_name: 'Rose Bowl Stadium',
   basecamp_address: '1001 Rose Bowl Dr, Pasadena, CA 91103',

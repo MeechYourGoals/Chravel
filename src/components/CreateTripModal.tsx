@@ -20,7 +20,7 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PrivacyMode, getDefaultPrivacyMode } from '../types/privacy';
-import { ProTripCategory } from '../types/proCategories';
+import { ProCategoryEnum, PRO_CATEGORIES_ORDERED, getCategoryLabel } from '../types/proCategories';
 import { getAllProTripColors } from '../utils/proTripColors';
 
 interface CreateTripModalProps {
@@ -32,9 +32,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const [tripType, setTripType] = useState<'consumer' | 'pro' | 'event'>('consumer');
-  const [proTripCategory, setProTripCategory] = useState<ProTripCategory>(
-    'Sports – Pro, Collegiate, Youth',
-  );
+  const [proTripCategory, setProTripCategory] = useState<ProCategoryEnum>('touring');
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>(() =>
     getDefaultPrivacyMode('consumer'),
   );
@@ -414,17 +412,14 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             </label>
             <select
               value={proTripCategory}
-              onChange={e => setProTripCategory(e.target.value as ProTripCategory)}
+              onChange={e => setProTripCategory(e.target.value as ProCategoryEnum)}
               className="w-full bg-slate-700/50 border border-slate-600 text-white rounded-xl px-4 py-3 focus:border-blue-500 focus:outline-none transition-colors"
             >
-              <option value="Sports – Pro, Collegiate, Youth">
-                Sports – Pro, Collegiate, Youth
-              </option>
-              <option value="Tour – Music, Comedy, etc.">Tour – Music, Comedy, etc.</option>
-              <option value="Business Travel">Business Travel</option>
-              <option value="School Trip">School Trip</option>
-              <option value="Content">Content</option>
-              <option value="Other">Other</option>
+              {PRO_CATEGORIES_ORDERED.map(cat => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.label}
+                </option>
+              ))}
             </select>
             <p className="text-xs text-slate-400 mt-1">
               This determines available roles and features for your Pro trip.

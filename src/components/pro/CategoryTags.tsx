@@ -13,7 +13,7 @@ export const CategoryTags = ({ category, tags, className = '' }: CategoryTagsPro
   
   // MVP: Only show the category pill, ignore additional tags for now
   // Future: Will add custom hashtag feature similar to custom roles
-  const allTags = [config.name];
+  const allTags = [config.label];
 
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>

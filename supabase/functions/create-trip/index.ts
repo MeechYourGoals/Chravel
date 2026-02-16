@@ -59,6 +59,7 @@ serve(async req => {
       organizer_display_name,
       privacy_mode,
       ai_access_enabled,
+      category,
     } = validation.data;
 
     // Get user's subscription tier, taste test usage, and email
@@ -145,12 +146,16 @@ serve(async req => {
         end_date,
         trip_type: effectiveTripType,
         cover_image_url,
-        card_color, // Persist selected card color for Pro/Event trips
-        organizer_display_name, // Organizer name for Events (e.g., "Los Angeles Rams")
-        privacy_mode: privacy_mode || 'standard', // Default to standard privacy
-        ai_access_enabled: ai_access_enabled ?? true, // Default to enabled
+        card_color,
+        organizer_display_name,
+        privacy_mode: privacy_mode || 'standard',
+        ai_access_enabled: ai_access_enabled ?? true,
         created_by: user.id,
         enabled_features: enabled_features || defaultFeatures,
+        // Persist Pro trip category as JSONB array
+        ...(effectiveTripType === 'pro' && category
+          ? { categories: [{ type: 'pro_category', value: category }] }
+          : {}),
       })
       .select()
       .single();

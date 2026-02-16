@@ -341,15 +341,12 @@ export const CreateTripSchema = z.object({
     .optional(),
   trip_type: z.enum(['consumer', 'pro', 'event']).optional(),
   cover_image_url: z.string().url().max(500).optional(),
-  card_color: z.string().max(50).optional(), // Color coding for Pro/Event cards
-  // Organizer display name for Events (e.g., "Los Angeles Rams", "Boys & Girls Club")
+  card_color: z.string().max(50).optional(),
   organizer_display_name: z.string().max(200).optional(),
-  // Privacy mode: controls data access level ('standard' for consumer, 'high' for pro/event)
   privacy_mode: z.enum(['standard', 'high']).optional(),
-  // AI concierge access flag
   ai_access_enabled: z.boolean().optional(),
-  // ✅ Phase 2: Feature toggles for Pro/Event trips
-  // Includes all feature types: Pro ('team'), Event ('agenda', 'lineup'), and shared features
+  // Pro trip category (internal enum value)
+  category: z.enum(['touring', 'sports', 'work', 'school', 'productions', 'celebrations', 'other']).optional(),
   enabled_features: z
     .array(
       z.enum([

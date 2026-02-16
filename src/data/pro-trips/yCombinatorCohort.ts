@@ -7,7 +7,7 @@ export const yCombinatorCohort: ProTripData = {
   description: 'Multi-day content production shoot with crew, talent, tight schedules, locations, releases, shoot times, payments, logistics, and file management.',
   location: 'Miami, FL',
   dateRange: 'Aug 3 - Aug 8, 2026',
-  proTripCategory: 'Content',
+  proTripCategory: 'productions',
   tags: [],
   basecamp_name: 'Miami Creator House',
   basecamp_address: '1200 Ocean Dr, Miami Beach, FL 33139',
