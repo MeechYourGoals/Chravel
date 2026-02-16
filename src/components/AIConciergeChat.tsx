@@ -999,7 +999,13 @@ export const AIConciergeChat = ({
             voiceState={voiceState}
             isVoiceEligible={isVoiceEligible}
             onVoiceToggle={toggleVoice}
-            onVoiceUpgrade={() => (window.location.href = upgradeUrl)}
+            onVoiceUpgrade={() => {
+              toast.info('Voice concierge requires a subscription', {
+                description:
+                  'Upgrade to Frequent Chraveler or Pro to use hands-free voice conversations.',
+                action: { label: 'Upgrade', onClick: () => (window.location.href = upgradeUrl) },
+              });
+            }}
             showImageAttach={true}
             attachedImages={attachedImages}
             onImageAttach={files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}

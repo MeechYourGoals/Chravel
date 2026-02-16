@@ -20,7 +20,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
   };
 
   const getIcon = () => {
-    if (!isEligible) return <Mic size={16} />;
+    if (!isEligible) return <MicOff size={16} className="opacity-70" />;
     switch (voiceState) {
       case 'connecting':
       case 'thinking':
@@ -38,7 +38,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
 
   const getStyle = () => {
     if (!isEligible) {
-      return 'bg-gradient-to-r from-emerald-600/40 to-cyan-600/40 text-neutral-400 cursor-pointer hover:from-emerald-600/50 hover:to-cyan-600/50';
+      return 'bg-white/5 border border-white/10 text-neutral-500 cursor-pointer hover:bg-white/10 hover:text-neutral-400 hover:border-white/20';
     }
     switch (voiceState) {
       case 'listening':
@@ -56,7 +56,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
   };
 
   const getTooltip = () => {
-    if (!isEligible) return 'Voice (Pro)';
+    if (!isEligible) return 'Voice concierge — Upgrade to use';
     switch (voiceState) {
       case 'connecting':
         return 'Connecting...';
@@ -112,8 +112,8 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
             <span className="relative z-10">{getIcon()}</span>
             {!isEligible && (
               <Lock
-                size={8}
-                className="absolute -top-0.5 -right-0.5 text-white drop-shadow-md z-10"
+                size={10}
+                className="absolute -top-0.5 -right-0.5 text-amber-400/90 drop-shadow-md z-10"
               />
             )}
           </button>
