@@ -20,6 +20,7 @@ import {
   userPreferencesService,
   NotificationPreferences,
 } from '../../services/userPreferencesService';
+import { notificationService } from '../../services/notificationService';
 import { useToast } from '../../hooks/use-toast';
 import { useNativePush } from '@/hooks/useNativePush';
 import { useDemoMode } from '../../hooks/useDemoMode';
@@ -107,6 +108,7 @@ export const ConsumerNotificationsSection = () => {
   const [smsPhoneNumber, setSmsPhoneNumber] = useState('');
   const [smsPhoneInput, setSmsPhoneInput] = useState('');
   const [isSavingPhone, setIsSavingPhone] = useState(false);
+  const [isSendingTestSms, setIsSendingTestSms] = useState(false);
   const [phoneError, setPhoneError] = useState('');
 
   // State for notification settings - matching database columns
@@ -317,6 +319,43 @@ export const ConsumerNotificationsSection = () => {
     }
   };
 
+  // Send test SMS
+  const handleSendTestSms = useCallback(async () => {
+    if (!user?.id || !smsPhoneNumber) return;
+    if (!smsDeliveryEligible) {
+      toast({
+        title: 'Upgrade required',
+        description: 'SMS is available on Frequent Chraveler and Pro plans.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsSendingTestSms(true);
+    try {
+      const ok = await notificationService.sendSMSNotification(
+        user.id,
+        'ChravelApp: Test message — SMS notifications are working!',
+      );
+      if (ok) {
+        toast({
+          title: 'Test SMS sent',
+          description: `Check ${formatPhoneNumber(smsPhoneNumber)} for the message.`,
+        });
+      } else {
+        toast({
+          title: 'Failed to send',
+          description: 'Check your settings and try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Test SMS error:', error);
+      toast({ title: 'Error', description: 'Could not send test SMS.', variant: 'destructive' });
+    } finally {
+      setIsSendingTestSms(false);
+    }
+  }, [user?.id, smsPhoneNumber, smsDeliveryEligible]);
+
   // Handle SMS phone number submission
   const handleSmsPhoneSubmit = async () => {
     if (!user?.id) return;
@@ -336,8 +375,18 @@ export const ConsumerNotificationsSection = () => {
     setPhoneError('');
 
     try {
-      // Normalize phone number (remove formatting)
-      const normalizedPhone = smsPhoneInput.replace(/[^\d+]/g, '');
+      // Normalize to E.164 (required by DB constraint)
+      const digits = smsPhoneInput.replace(/\D/g, '');
+      let normalizedPhone: string;
+      if (digits.length === 10 && digits[0] >= '2' && digits[0] <= '9') {
+        normalizedPhone = `+1${digits}`; // US 10-digit
+      } else if (digits.length === 11 && digits[0] === '1') {
+        normalizedPhone = `+${digits}`; // US with country code
+      } else if (smsPhoneInput.trim().startsWith('+') && digits.length >= 10) {
+        normalizedPhone = `+${digits}`;
+      } else {
+        normalizedPhone = digits.length >= 10 ? `+${digits}` : smsPhoneInput.replace(/[^\d+]/g, '');
+      }
 
       // Save phone number and enable SMS
       await userPreferencesService.updateNotificationPreferences(user.id, {
@@ -471,23 +520,35 @@ export const ConsumerNotificationsSection = () => {
                   {!smsDeliveryEligible
                     ? 'Upgrade required for SMS delivery'
                     : smsPhoneNumber
-                    ? `Texts sent to ${formatPhoneNumber(smsPhoneNumber)}`
-                    : 'Get text messages for urgent updates'}
+                      ? `Texts sent to ${formatPhoneNumber(smsPhoneNumber)}`
+                      : 'Get text messages for urgent updates'}
                 </p>
                 {smsPhoneNumber && notificationSettings.sms && smsDeliveryEligible && (
-                  <button
-                    onClick={() => {
-                      setSmsPhoneInput(smsPhoneNumber);
-                      setPhoneError('');
-                      setShowSmsPhoneModal(true);
-                    }}
-                    className="text-xs text-glass-orange hover:text-glass-yellow mt-1"
-                  >
-                    Change number
-                  </button>
+                  <div className="flex items-center gap-2 mt-1">
+                    <button
+                      onClick={() => {
+                        setSmsPhoneInput(smsPhoneNumber);
+                        setPhoneError('');
+                        setShowSmsPhoneModal(true);
+                      }}
+                      className="text-xs text-glass-orange hover:text-glass-yellow"
+                    >
+                      Change number
+                    </button>
+                    <span className="text-gray-500">•</span>
+                    <button
+                      onClick={handleSendTestSms}
+                      disabled={isSendingTestSms}
+                      className="text-xs text-green-400 hover:text-green-300 disabled:opacity-50"
+                    >
+                      {isSendingTestSms ? 'Sending...' : 'Send test SMS'}
+                    </button>
+                  </div>
                 )}
                 {!smsDeliveryEligible && (
-                  <p className="text-xs text-amber-400 mt-1">Upgrade to Frequent Chraveler to unlock SMS</p>
+                  <p className="text-xs text-amber-400 mt-1">
+                    Upgrade to Frequent Chraveler to unlock SMS
+                  </p>
                 )}
               </div>
             </div>
