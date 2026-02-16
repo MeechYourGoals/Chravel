@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { MessageCircle, BarChart3, Plus, Vote, Clock, ListChecks } from 'lucide-react';
+import { MessageCircle, Plus } from 'lucide-react';
 import { Button } from './ui/button';
 import { PollComponent } from './PollComponent';
 import { useTripVariant } from '@/contexts/TripVariantContext';
@@ -76,36 +76,16 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         {effectivePermissions.canCreate && (
           <Button
             onClick={() => setShowCreatePoll(true)}
-            className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg`}
+            className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg min-w-[110px] px-4`}
           >
             <Plus size={14} className="flex-shrink-0" />
-            <span className="whitespace-nowrap">New Poll</span>
+            <span className="whitespace-nowrap text-sm">New Poll</span>
           </Button>
         )}
       </div>
 
-      {/* Row 2: Description + Feature Badges */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <p className="text-gray-400 text-sm">
-          {effectivePermissions.canCreate
-            ? "Create polls to get everyone's input on destinations, activities, and more."
-            : 'Vote on polls to share your preferences with the group.'}
-        </p>
-        <div className="flex gap-2 flex-shrink-0">
-          <div className="flex items-center gap-1 px-2 py-1 bg-white/5 rounded-lg border border-white/10">
-            <Vote size={12} className="text-gray-400" />
-            <span className="text-xs text-gray-400">Group Decisions</span>
-          </div>
-          <div className="flex items-center gap-1 px-2 py-1 bg-white/5 rounded-lg border border-white/10">
-            <Clock size={12} className="text-gray-400" />
-            <span className="text-xs text-gray-400">Real-Time</span>
-          </div>
-          <div className="flex items-center gap-1 px-2 py-1 bg-white/5 rounded-lg border border-white/10">
-            <ListChecks size={12} className="text-gray-400" />
-            <span className="text-xs text-gray-400">Multiple Options</span>
-          </div>
-        </div>
-      </div>
+
+
 
       {/* Row 3: Poll Content */}
       <PollComponent
