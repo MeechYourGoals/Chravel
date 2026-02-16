@@ -15,8 +15,6 @@ import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
-import { resolveDisplayName, UNRESOLVED_NAME_SENTINEL, FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
-
 export interface TripMember {
   id: string;
   name: string;
@@ -28,18 +26,6 @@ interface TripMembersData {
   members: TripMember[];
   creatorId: string | null;
 }
-
-const formatTripMembers = (dbMembers: any[], creatorId?: string): TripMember[] => {
-  return dbMembers.map(member => ({
-    id: member.user_id,
-    name: (() => {
-      const resolved = resolveDisplayName(member.profiles);
-      return resolved === UNRESOLVED_NAME_SENTINEL ? FORMER_MEMBER_LABEL : resolved;
-    })(),
-    avatar: member.profiles?.avatar_url,
-    isCreator: member.user_id === creatorId
-  }));
-};
 
 const getMockFallbackMembers = (tripId: string): TripMember[] => {
   const isNumericOnly = /^\d+$/.test(tripId);
@@ -96,62 +82,28 @@ async function fetchTripMembersData(
     };
   }
 
-  // ⚡ PARALLEL FETCH: Get trip creator and members simultaneously
-  const [tripResult, membersResult] = await Promise.all([
-    supabase
-      .from('trips')
-      .select('created_by')
-      .eq('id', tripId)
-      .single(),
-    tripService.getTripMembers(tripId)
-  ]);
+  try {
+    // Use canonical source: getTripMembersWithCreator guarantees creator is always in the list
+    const { members, creatorId } = await tripService.getTripMembersWithCreator(tripId);
 
-  const creatorId = tripResult.data?.created_by || null;
-  let dbMembers = membersResult || [];
+    // Map to TripMember format (members already have id, name, avatar, isCreator)
+    const formattedMembers: TripMember[] = members.map(m => ({
+      id: m.id,
+      name: m.name,
+      avatar: m.avatar,
+      isCreator: m.isCreator,
+    }));
 
-  // Safety check: Ensure creator is always a member
-  if (creatorId && !isDemoMode) {
-    const creatorInList = dbMembers.some((m: any) => m.user_id === creatorId);
-    if (!creatorInList) {
-      // Auto-fix: add creator to trip (background)
-      tripService.addTripMember(tripId, creatorId, 'admin').catch(console.error);
-      
-      // Fetch creator profile for local display
-      const { data: creatorProfile } = await supabase
-        .from('profiles_public')
-        .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
-        .eq('user_id', creatorId)
-        .single();
-
-      if (creatorProfile) {
-        dbMembers = [...dbMembers, {
-          user_id: creatorId,
-          role: 'admin',
-          created_at: new Date().toISOString(),
-          profiles: creatorProfile,
-          id: 'temp-fix-' + Date.now()
-        }] as any;
-      }
+    return {
+      members: formattedMembers,
+      creatorId,
+    };
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('[useTripMembersQuery] Failed to fetch members:', error);
     }
+    return { members: [], creatorId: null };
   }
-
-  if (dbMembers && dbMembers.length > 0) {
-    return {
-      members: formatTripMembers(dbMembers, creatorId),
-      creatorId
-    };
-  }
-
-  // Demo fallback
-  if (isDemoMode) {
-    const mockMembers = getMockFallbackMembers(tripId);
-    return {
-      members: mockMembers,
-      creatorId: mockMembers[0]?.id || null
-    };
-  }
-
-  return { members: [], creatorId };
 }
 
 export const useTripMembersQuery = (tripId?: string) => {

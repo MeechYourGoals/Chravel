@@ -67,9 +67,9 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const { data: authPaymentData, isLoading: authQueryLoading, refetch: refetchPayments } = useQuery({
     queryKey: tripKeys.payments(tripId),
     queryFn: async () => {
-      // ⚡ Parallel fetch: members + payments + user profile + balance summary all at once
+      // ⚡ Parallel fetch: members (creator-guaranteed) + payments + user profile + balance
       const [membersData, paymentsData, userProfileResult] = await Promise.all([
-        tripService.getTripMembers(tripId),
+        tripService.getTripMembersWithCreator(tripId),
         paymentService.getTripPaymentMessages(tripId),
         // Pre-fetch user profile in parallel (in case user isn't in members list)
         user ? supabase
@@ -79,14 +79,14 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
           .single() : Promise.resolve({ data: null }),
       ]);
 
-      // Format members
-      const formattedMembers = membersData.map(m => ({
-        id: m.user_id,
-        name: m.profiles?.display_name || 'Former Member',
-        avatar: m.profiles?.avatar_url || undefined,
+      // getTripMembersWithCreator guarantees creator is always in the list
+      const formattedMembers = membersData.members.map(m => ({
+        id: m.id,
+        name: m.name,
+        avatar: m.avatar,
       }));
 
-      // Ensure current user is always in members list
+      // Ensure current user is in members list when viewing (e.g. shared trip)
       let finalMembers = formattedMembers;
       if (user && !formattedMembers.find(m => m.id === user.id)) {
         const profile = userProfileResult?.data;

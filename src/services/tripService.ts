@@ -631,7 +631,7 @@ export const tripService = {
 
     const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
 
-    const members = membersResult.data.map(m => {
+    let members = membersResult.data.map(m => {
       const profile = profilesMap.get(m.user_id);
       return {
         id: m.user_id,
@@ -640,6 +640,28 @@ export const tripService = {
         isCreator: m.user_id === creatorId,
       };
     });
+
+    // CRITICAL: Creator must always be in the list (collaborators, payments, tasks)
+    if (creatorId && !members.some(m => m.id === creatorId)) {
+      const { data: creatorProfile } = await supabase
+        .from('profiles_public')
+        .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
+        .eq('user_id', creatorId)
+        .maybeSingle();
+
+      members = [
+        {
+          id: creatorId,
+          name:
+            creatorProfile?.resolved_display_name ||
+            creatorProfile?.display_name ||
+            'Trip Creator',
+          avatar: creatorProfile?.avatar_url,
+          isCreator: true,
+        },
+        ...members,
+      ];
+    }
 
     if (import.meta.env.DEV) {
       console.log('[tripService.getTripMembersWithCreator] Returning', members.length, 'members');
