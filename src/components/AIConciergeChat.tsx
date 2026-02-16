@@ -900,14 +900,12 @@ export const AIConciergeChat = ({
         {/* Header */}
         <div className="border-b border-white/10 bg-black/30 p-3 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
               <Search size={20} className="text-white" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-white">AI Concierge</h3>
-              <p className="text-xs text-gray-400">🔒 This conversation is private to you</p>
-            </div>
-            <span className={`text-xs whitespace-nowrap ${queryAllowanceTone}`}>{queryAllowanceText}</span>
+            <h3 className="text-lg font-semibold text-white whitespace-nowrap">AI Concierge</h3>
+            <p className="text-xs text-gray-400 text-center flex-1 min-w-0">🔒 This conversation is private to you</p>
+            <span className={`text-xs whitespace-nowrap flex-shrink-0 ${queryAllowanceTone}`}>{queryAllowanceText}</span>
           </div>
         </div>
 
