@@ -900,7 +900,7 @@ export const AIConciergeChat = ({
         {/* Header */}
         <div className="border-b border-white/10 bg-black/30 p-3 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
               <Search size={20} className="text-white" />
             </div>
             <h3 className="text-lg font-semibold text-white whitespace-nowrap">AI Concierge</h3>
