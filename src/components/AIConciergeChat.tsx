@@ -425,11 +425,16 @@ export const AIConciergeChat = ({
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
 
-  // PHASE 1 BUG FIX #7: Set up cleanup to track component mount state
+  // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
+  const streamAbortRef = useRef<(() => void) | null>(null);
+
+  // PHASE 1 BUG FIX #7: Set up cleanup to track component mount state + abort stream on unmount
   useEffect(() => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
+      streamAbortRef.current?.();
+      streamAbortRef.current = null;
     };
   }, []);
 
@@ -664,10 +669,15 @@ export const AIConciergeChat = ({
           requestBody,
           {
             onChunk: (text: string) => {
-              receivedAnyChunk = true;
+              if (!isMounted.current) return;
+              if (!receivedAnyChunk) {
+                receivedAnyChunk = true;
+                setIsTyping(false); // Hide typing dots once first chunk arrives; streaming text is visible
+              }
               updateStreamMsg(msg => ({ content: msg.content + text }));
             },
             onMetadata: (metadata: StreamMetadataEvent) => {
+              if (!isMounted.current) return;
               setAiStatus('connected');
               if (isLimitedPlan) void refreshUsage();
               updateStreamMsg(() => ({
@@ -680,7 +690,9 @@ export const AIConciergeChat = ({
               if (import.meta.env.DEV) {
                 console.error('[Stream] Concierge streaming error:', errorMsg);
               }
+              if (!isMounted.current) return;
               if (!receivedAnyChunk) {
+                setIsTyping(false); // Hide typing indicator when showing fallback
                 setAiStatus('degraded');
                 updateStreamMsg(() => ({
                   content: generateFallbackResponse(
@@ -693,6 +705,7 @@ export const AIConciergeChat = ({
             },
             onDone: () => {
               clearTimeout(streamTimer.id);
+              streamAbortRef.current = null; // Clear so cleanup doesn't double-abort
               if (!isMounted.current) return;
               setIsTyping(false);
               // If still empty after stream ended, show a generic error
@@ -706,10 +719,13 @@ export const AIConciergeChat = ({
           { demoMode: isDemoMode },
         );
 
+        streamAbortRef.current = streamHandle.abort;
+
         // Abort if no chunks arrive within the timeout window
         streamTimer.id = setTimeout(() => {
           if (receivedAnyChunk) return;
           streamHandle.abort();
+          streamAbortRef.current = null;
           if (!isMounted.current) return;
           setAiStatus('timeout');
           setIsTyping(false);
