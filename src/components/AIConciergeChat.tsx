@@ -903,9 +903,9 @@ export const AIConciergeChat = ({
             <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
               <Search size={20} className="text-white" />
             </div>
-            <p className="text-xs text-gray-400 whitespace-nowrap">🔒 This conversation is private to you</p>
-            <h3 className="text-lg font-semibold text-white text-center flex-1 min-w-0">AI Concierge</h3>
-            <span className={`text-xs whitespace-nowrap flex-shrink-0 ${queryAllowanceTone}`}>{queryAllowanceText}</span>
+            <span className={`text-xs whitespace-nowrap ${queryAllowanceTone}`}>{queryAllowanceText}</span>
+            <h3 className="text-lg font-semibold text-white flex-1 text-center">AI Concierge</h3>
+            <p className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">🔒 This conversation is private to you</p>
           </div>
         </div>
 
