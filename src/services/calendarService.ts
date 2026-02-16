@@ -599,7 +599,31 @@ export const calendarService = {
       return { imported: 0, failed: 0, events: [] };
     }
 
-    // 1. Auth check ONCE
+    // Demo mode: use localStorage (no Supabase)
+    const isDemoMode = await demoModeService.isDemoModeEnabled();
+    if (isDemoMode) {
+      let imported = 0;
+      let failed = 0;
+      const createdEvents: TripEvent[] = [];
+      for (let i = 0; i < events.length; i++) {
+        try {
+          const event = await calendarStorageService.createEvent(events[i]);
+          imported++;
+          createdEvents.push(event);
+        } catch {
+          failed++;
+        }
+        onProgress?.(i + 1, events.length);
+      }
+      return { imported, failed, events: createdEvents };
+    }
+
+    // 1. Auth and connectivity
+    if (!navigator.onLine) {
+      throw new Error(
+        'You must be online to import events. Please check your connection and try again.',
+      );
+    }
     const {
       data: { user },
     } = await supabase.auth.getUser();

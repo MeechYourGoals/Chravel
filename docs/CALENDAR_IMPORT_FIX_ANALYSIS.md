@@ -220,3 +220,13 @@ Requires a new RPC that sends one notification to all members. Can be a follow-u
 - **Modal**: Re-add timeout (with higher limit) if needed
 
 **Regression Risk:** LOW — trigger change is additive (new branch); bulk path already exists and is tested.
+
+---
+
+## 9. Launch Checklist
+
+Before deploying to production:
+
+1. **Run the migration** — `supabase db push` or `supabase migration up`. The trigger fix only takes effect after the migration.
+2. **Demo mode** — bulkCreateEvents now routes to calendarStorageService when demo mode is enabled.
+3. **Offline** — bulkCreateEvents throws a clear error if the user is offline.
