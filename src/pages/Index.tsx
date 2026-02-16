@@ -157,7 +157,7 @@ const Index = () => {
       setSearchQuery('');
       navigate(`/trip/${tripId}`);
     },
-    [navigate]
+    [navigate],
   );
 
   // Clear stale demo mode for unauthenticated users visiting root (not from /demo redirect)
@@ -666,7 +666,7 @@ const Index = () => {
     // This renders the app interface as if logged in, but with empty/default state
     if (demoView === 'marketing') {
       return (
-        <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
+        <div className="min-h-screen min-h-mobile-screen bg-background font-sans">
           <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
             {/* Desktop floating auth button */}
             {!isMobile && (
@@ -825,7 +825,7 @@ const Index = () => {
 
     // MOCK (app-preview state): Show full app interface WITH mock data
     return (
-      <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
+      <div className="min-h-screen min-h-mobile-screen bg-background font-sans">
         <div className="container mx-auto px-4 py-6 max-w-[1600px] relative z-10">
           {/* Desktop floating auth button */}
           {!isMobile && (
@@ -986,7 +986,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen min-h-mobile-screen bg-background font-sans geometric-bg wireframe-overlay">
+    <div className="min-h-screen min-h-mobile-screen bg-background font-sans">
       {/* Enhanced animated background elements (disabled on mobile portrait) */}
       {!isMobilePortrait && (
         <div className="fixed inset-0 overflow-hidden pointer-events-none animated-bg">
