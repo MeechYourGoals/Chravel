@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { extractInviteCodeFromLink, isDemoInviteCode } from '@/lib/inviteLinkUtils';
 
 interface UseInviteLinkProps {
   isOpen: boolean;
@@ -255,9 +256,14 @@ export const useInviteLink = ({
     // Deactivate old invite if it exists (only for real invites)
     if (inviteLink && !isDemoMode) {
       try {
-        const oldCode = inviteLink.split('/j/')[1]?.split('?')[0];
-        if (oldCode && !oldCode.startsWith('demo-')) {
+        const oldCode = extractInviteCodeFromLink(inviteLink);
+        if (oldCode && !isDemoInviteCode(oldCode)) {
           await supabase.from('trip_invites').update({ is_active: false }).eq('code', oldCode);
+        } else if (inviteLink && !oldCode) {
+          console.warn(
+            '[InviteLink] Could not extract code from invite link for deactivation:',
+            inviteLink.substring(0, 50),
+          );
         }
       } catch (error) {
         console.error('[InviteLink] Error deactivating old invite:', error);
