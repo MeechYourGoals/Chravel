@@ -580,11 +580,12 @@ export const calendarService = {
 
   /**
    * Bulk create events using batched inserts.
-   * Performs auth and membership checks ONCE,
-   * then inserts events in small batches for reliability.
+   * Uses source_type: 'bulk_import' so the notify_on_calendar_event trigger
+   * skips per-event notifications (avoids DB timeout on 82+ games, 100+ city tours).
    *
-   * For <= 5 events: single insert (fast path).
-   * For >5 events: sequential batches of 5 parallel inserts each.
+   * For <= 50 events: single bulk insert (fast).
+   * For > 50 events: chunked bulk inserts (50 per chunk) with progress.
+   * Falls back to sequential one-by-one on any chunk error.
    */
   async bulkCreateEvents(
     events: CreateEventData[],
@@ -608,7 +609,7 @@ export const calendarService = {
     const tripId = events[0].trip_id;
     await this.ensureTripMembership(tripId, user.id);
 
-    // 3. Build insert rows
+    // 3. Build insert rows — use bulk_import so trigger skips notifications
     const rows: Array<{
       trip_id: string;
       title: string;
@@ -631,35 +632,66 @@ export const calendarService = {
       created_by: user.id,
       event_category: e.event_category || 'other',
       include_in_itinerary: e.include_in_itinerary ?? true,
-      source_type: e.source_type || 'manual',
+      source_type: 'bulk_import',
       source_data: (e.source_data || {}) as Json,
     }));
 
-    // 4. For batches <= 50, try a single bulk insert first
-    if (rows.length <= 50) {
-      // Don't use .select('*') on bulk inserts — PostgREST can return empty data
-      // even when the insert succeeds, causing false "failed" reports.
+    const CHUNK_SIZE = 50;
+
+    // 4. Single batch: <= CHUNK_SIZE events
+    if (rows.length <= CHUNK_SIZE) {
       const { error } = await supabase.from('trip_events').insert(rows);
 
       if (!error) {
-        // Insert succeeded at DB level — trust the row count
         onProgress?.(rows.length, rows.length);
-        console.info(
-          `[calendarService] Bulk insert succeeded for ${rows.length} events`,
-        );
-        // Best-effort: fetch inserted events for caching (non-blocking)
+        console.info(`[calendarService] Bulk insert succeeded for ${rows.length} events`);
         this.fetchAndCacheRecentEvents(tripId, rows.length);
         return { imported: rows.length, failed: 0, events: [] };
       }
 
-      // Actual error — log and fall through to sequential
       console.error(
         `[calendarService] Bulk insert failed: ${error.message} (code: ${error.code}). Falling back to sequential.`,
       );
+      return await this.batchInsertEvents(rows, onProgress);
     }
 
-    // 5. For larger batches or failed single insert, use sequential batches
-    return await this.batchInsertEvents(rows, onProgress);
+    // 5. Chunked bulk: > CHUNK_SIZE events — insert 50 at a time with progress
+    let imported = 0;
+    let failed = 0;
+    const allEvents: TripEvent[] = [];
+
+    for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+      const chunk = rows.slice(i, i + CHUNK_SIZE);
+      const { error } = await supabase.from('trip_events').insert(chunk);
+
+      if (!error) {
+        imported += chunk.length;
+        onProgress?.(Math.min(i + CHUNK_SIZE, rows.length), rows.length);
+      } else {
+        // Chunk failed — fall back to sequential for this chunk
+        console.warn(
+          `[calendarService] Chunk ${Math.floor(i / CHUNK_SIZE) + 1} failed: ${error.message}. Falling back to sequential for chunk.`,
+        );
+        const result = await this.batchInsertEvents(chunk, (c, t) =>
+          onProgress?.(i + c, rows.length),
+        );
+        imported += result.imported;
+        failed += result.failed;
+        allEvents.push(...result.events);
+      }
+    }
+
+    if (allEvents.length > 0) {
+      this.cacheEventsInBackground(allEvents);
+    } else if (imported > 0) {
+      this.fetchAndCacheRecentEvents(tripId, imported);
+    }
+
+    console.info(
+      `[calendarService] Chunked bulk import complete: ${imported} imported, ${failed} failed out of ${rows.length}`,
+    );
+
+    return { imported, failed, events: allEvents };
   },
 
   /**
@@ -692,11 +724,7 @@ export const calendarService = {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       try {
-        const { data, error } = await supabase
-          .from('trip_events')
-          .insert(row)
-          .select('*')
-          .single();
+        const { data, error } = await supabase.from('trip_events').insert(row).select('*').single();
 
         if (error) {
           console.error(
@@ -771,7 +799,7 @@ export const calendarService = {
         .select('*')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false })
-        .limit(expectedCount)
+        .limit(expectedCount),
     )
       .then(({ data }) => {
         if (data && data.length > 0) {

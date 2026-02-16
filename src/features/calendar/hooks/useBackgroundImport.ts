@@ -30,13 +30,15 @@ export function useBackgroundImport() {
   const toastIdRef = useRef<string | number | null>(null);
   // AbortController for cancellation
   const abortRef = useRef<AbortController | null>(null);
+  // Ref for duplicate-import guard (avoids stale closure on double-click)
+  const importingRef = useRef(false);
 
   const startImport = useCallback((url: string, onComplete?: () => void) => {
-    // Prevent duplicate imports
-    if (state.isImporting) {
+    if (importingRef.current) {
       toast.warning('An import is already in progress');
       return;
     }
+    importingRef.current = true;
 
     // Extract domain for display
     let domain = url;
@@ -60,15 +62,15 @@ export function useBackgroundImport() {
     // Show persistent loading toast
     toastIdRef.current = toast.loading(`Scanning ${domain} for schedule...`, {
       duration: Infinity,
-      description: 'You can navigate away — we\'ll notify you when it\'s done.',
+      description: "You can navigate away — we'll notify you when it's done.",
     });
 
     // Run the import in the background (not awaited)
     parseURLSchedule(url)
-      .then((result) => {
-        // Check if cancelled
+      .then(result => {
         if (abortController.signal.aborted) return;
 
+        importingRef.current = false;
         setState({
           isImporting: false,
           pendingResult: result,
@@ -80,16 +82,19 @@ export function useBackgroundImport() {
         }
 
         if (result.isValid && result.events.length > 0) {
-          toast.success(`Found ${result.events.length} event${result.events.length !== 1 ? 's' : ''} from ${domain}`, {
-            description: 'Open the import modal to review and add them to your calendar.',
-            duration: Infinity,
-            action: onComplete
-              ? {
-                  label: 'View Events',
-                  onClick: onComplete,
-                }
-              : undefined,
-          });
+          toast.success(
+            `Found ${result.events.length} event${result.events.length !== 1 ? 's' : ''} from ${domain}`,
+            {
+              description: 'Open the import modal to review and add them to your calendar.',
+              duration: Infinity,
+              action: onComplete
+                ? {
+                    label: 'View Events',
+                    onClick: onComplete,
+                  }
+                : undefined,
+            },
+          );
         } else {
           const errorMsg = result.errors[0] || 'No schedule data found on this page';
           toast.error('Import failed', {
@@ -98,9 +103,10 @@ export function useBackgroundImport() {
           });
         }
       })
-      .catch((err) => {
+      .catch(err => {
         if (abortController.signal.aborted) return;
 
+        importingRef.current = false;
         setState({
           isImporting: false,
           pendingResult: null,
@@ -116,7 +122,7 @@ export function useBackgroundImport() {
           duration: 8000,
         });
       });
-  }, [state.isImporting]);
+  }, []);
 
   const clearResult = useCallback(() => {
     setState({
@@ -127,6 +133,7 @@ export function useBackgroundImport() {
   }, []);
 
   const cancelImport = useCallback(() => {
+    importingRef.current = false;
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
