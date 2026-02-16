@@ -664,7 +664,10 @@ export const AIConciergeChat = ({
           requestBody,
           {
             onChunk: (text: string) => {
-              receivedAnyChunk = true;
+              if (!receivedAnyChunk) {
+                receivedAnyChunk = true;
+                setIsTyping(false); // Hide typing dots once first chunk arrives; streaming text is visible
+              }
               updateStreamMsg(msg => ({ content: msg.content + text }));
             },
             onMetadata: (metadata: StreamMetadataEvent) => {
