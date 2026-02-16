@@ -72,7 +72,8 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
             return {
               ...request,
               profiles: {
-                display_name: profile.resolved_display_name || profile.display_name || 'Former Member',
+                display_name:
+                  profile.resolved_display_name || profile.display_name || 'Former Member',
                 avatar_url: profile.avatar_url || null,
               },
             };
