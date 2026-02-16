@@ -11,7 +11,11 @@ import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
 import { useWebSpeechVoice as useGeminiVoice } from '../hooks/useWebSpeechVoice';
 import { useGeminiLive } from '../hooks/useGeminiLive';
 import type { ToolCallRequest } from '../hooks/useGeminiLive';
-import { invokeConcierge } from '@/services/conciergeGateway';
+import {
+  invokeConcierge,
+  invokeConciergeStream,
+  type StreamMetadataEvent,
+} from '@/services/conciergeGateway';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
@@ -610,23 +614,117 @@ export const AIConciergeChat = ({
             : msg.content,
       }));
 
-      const { data, error } = await invokeConciergeWithTimeout(
-        {
-          message: currentInput,
-          tripId,
-          preferences,
-          chatHistory,
-          attachments,
-          isDemoMode,
-          // Force flash path for predictable low-latency responses.
-          config: {
-            model: 'gemini-3-flash-preview',
-            temperature: 0.55,
-            maxTokens: 1024,
-          },
+      const requestBody = {
+        message: currentInput,
+        tripId,
+        preferences,
+        chatHistory,
+        attachments,
+        isDemoMode,
+        config: {
+          model: 'gemini-3-flash-preview',
+          temperature: 0.55,
+          maxTokens: 1024,
         },
-        { demoMode: isDemoMode },
-      );
+      };
+
+      // ========== STREAMING PATH ==========
+      // Demo mode falls back to non-streaming since demo-concierge doesn't support SSE.
+      if (!isDemoMode) {
+        const streamingMessageId = `stream-${Date.now()}`;
+        let receivedAnyChunk = false;
+        const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
+
+        // Helper: update the streaming message by ID. Returns prev unchanged
+        // when updater yields an empty patch (avoids unnecessary re-renders).
+        const updateStreamMsg = (updater: (msg: ChatMessage) => Partial<ChatMessage>) => {
+          setMessages(prev => {
+            const idx = prev.findIndex(m => m.id === streamingMessageId);
+            if (idx === -1) return prev;
+            const patch = updater(prev[idx]);
+            if (Object.keys(patch).length === 0) return prev;
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], ...patch };
+            return updated;
+          });
+        };
+
+        // Create an empty assistant message bubble immediately
+        setMessages(prev => [
+          ...prev,
+          {
+            id: streamingMessageId,
+            type: 'assistant' as const,
+            content: '',
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+
+        const streamHandle = invokeConciergeStream(
+          requestBody,
+          {
+            onChunk: (text: string) => {
+              receivedAnyChunk = true;
+              updateStreamMsg(msg => ({ content: msg.content + text }));
+            },
+            onMetadata: (metadata: StreamMetadataEvent) => {
+              setAiStatus('connected');
+              if (isLimitedPlan) void refreshUsage();
+              updateStreamMsg(() => ({
+                usage: metadata.usage,
+                sources: metadata.sources as ChatMessage['sources'],
+                googleMapsWidget: metadata.googleMapsWidget ?? undefined,
+              }));
+            },
+            onError: (errorMsg: string) => {
+              if (import.meta.env.DEV) {
+                console.error('[Stream] Concierge streaming error:', errorMsg);
+              }
+              if (!receivedAnyChunk) {
+                setAiStatus('degraded');
+                updateStreamMsg(() => ({
+                  content: generateFallbackResponse(
+                    currentInput,
+                    fallbackContext,
+                    basecampLocation,
+                  ),
+                }));
+              }
+            },
+            onDone: () => {
+              clearTimeout(streamTimer.id);
+              if (!isMounted.current) return;
+              setIsTyping(false);
+              // If still empty after stream ended, show a generic error
+              updateStreamMsg(msg =>
+                msg.content.length > 0
+                  ? {}
+                  : { content: 'Sorry, I encountered an error processing your request.' },
+              );
+            },
+          },
+          { demoMode: isDemoMode },
+        );
+
+        // Abort if no chunks arrive within the timeout window
+        streamTimer.id = setTimeout(() => {
+          if (receivedAnyChunk) return;
+          streamHandle.abort();
+          if (!isMounted.current) return;
+          setAiStatus('timeout');
+          setIsTyping(false);
+          updateStreamMsg(() => ({
+            content: `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`,
+          }));
+        }, FAST_RESPONSE_TIMEOUT_MS);
+
+        return; // Streaming manages its own lifecycle via onDone
+      }
+
+      // ========== NON-STREAMING FALLBACK (demo mode) ==========
+      const { data, error } = await invokeConciergeWithTimeout(requestBody, {
+        demoMode: isDemoMode,
+      });
 
       // Graceful degradation: If AI service unavailable, provide helpful fallback
       if (!data || error) {
@@ -635,7 +733,6 @@ export const AIConciergeChat = ({
         }
         setAiStatus('degraded');
 
-        // Try to provide context-aware fallback response
         const fallbackResponse = generateFallbackResponse(
           currentInput,
           fallbackContext,
@@ -667,13 +764,13 @@ export const AIConciergeChat = ({
         timestamp: new Date().toISOString(),
         usage: data.usage,
         sources: data.sources || data.citations,
-        googleMapsWidget: data.googleMapsWidget, // 🆕 Pass widget token
+        googleMapsWidget: data.googleMapsWidget,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('❌ AI Concierge error:', error);
+        console.error('AI Concierge error:', error);
       }
       setAiStatus('error');
 
