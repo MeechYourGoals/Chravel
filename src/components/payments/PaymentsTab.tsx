@@ -36,7 +36,12 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const { balanceSummary, balanceLoading, refreshBalanceSummary } = useBalanceSummary(tripId);
 
   // ⚡ TanStack Query: trip members (reuses shared cache instead of separate fetch)
-  const { tripMembers: rawMembers, loading: membersLoading } = useTripMembersQuery(tripId);
+  const {
+    tripMembers: rawMembers,
+    loading: membersLoading,
+    hadMembersError,
+    refreshMembers,
+  } = useTripMembersQuery(tripId);
 
   const [showAuthModal, setShowAuthModal] = useState(false);
 
@@ -183,6 +188,17 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">Loading trip members...</span>
         </div>
+      ) : hadMembersError ? (
+        <Card className="bg-gradient-to-br from-amber-900/20 to-amber-950/20 border-amber-500/30">
+          <CardContent className="p-6 text-center">
+            <p className="text-sm text-muted-foreground mb-3">
+              Couldn&apos;t load trip members. This might be a connection issue.
+            </p>
+            <Button variant="outline" onClick={() => refreshMembers()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
       ) : !canCreateMorePayments && tier === 'free' && !isSuperAdmin ? (
         <Card className="bg-gradient-to-br from-amber-900/20 to-amber-950/20 border-amber-500/30">
           <CardContent className="p-6 text-center">
