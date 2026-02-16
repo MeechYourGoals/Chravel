@@ -106,7 +106,7 @@ export const useTripMembers = (tripId?: string) => {
       // Always try database first for authenticated trips
       let dbMembers = await tripService.getTripMembers(tripId);
 
-      // SAFETY CHECK: Ensure creator is always a member
+      // SAFETY CHECK: Ensure creator is always a member (collaborators, payments, tasks)
       if (tripData?.created_by && !isDemoMode) {
         const creatorInList = dbMembers?.some((m: any) => m.user_id === tripData.created_by);
         if (!creatorInList) {
@@ -117,24 +117,29 @@ export const useTripMembers = (tripId?: string) => {
           // 1. Attempt to add to DB (background operation)
           tripService.addTripMember(tripId, tripData.created_by, 'admin').catch(console.error);
 
-          // 2. Fetch profile for local display
+          // 2. Fetch profile for local display (use fallback if profile missing)
           const { data: creatorProfile } = await supabase
             .from('profiles_public')
             .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
             .eq('user_id', tripData.created_by)
-            .single();
+            .maybeSingle();
 
-          // 3. Add to local list if profile found
-          if (creatorProfile) {
-            const tempMember = {
+          // 3. Always add creator to list (use "Trip Creator" fallback when profile missing)
+          const tempMember = {
+            user_id: tripData.created_by,
+            role: 'admin',
+            created_at: new Date().toISOString(),
+            profiles: creatorProfile || {
               user_id: tripData.created_by,
-              role: 'admin',
-              created_at: new Date().toISOString(),
-              profiles: creatorProfile,
-              id: 'temp-fix-' + Date.now(),
-            };
-            dbMembers = [...(dbMembers || []), tempMember] as any;
-          }
+              display_name: 'Trip Creator',
+              first_name: null,
+              last_name: null,
+              resolved_display_name: 'Trip Creator',
+              avatar_url: null,
+            },
+            id: 'temp-fix-' + Date.now(),
+          };
+          dbMembers = [...(dbMembers || []), tempMember] as any;
         }
       }
 
@@ -150,7 +155,7 @@ export const useTripMembers = (tripId?: string) => {
         // Production mode + no DB members = truly empty
         setTripMembers([]);
       }
-    } catch (error) {
+    } catch (_error) {
       // On error: demo gets mocks, production gets empty
       if (isDemoMode) {
         const mockMembers = getMockFallbackMembers(tripId);
