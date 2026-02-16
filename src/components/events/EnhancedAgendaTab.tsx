@@ -94,14 +94,13 @@ export const EnhancedAgendaTab = ({
   const [editingSession, setEditingSession] = useState<EventAgendaItem | null>(null);
   const [speakerInput, setSpeakerInput] = useState('');
 
-  // New session form state
+  // New session form state (Category/track removed per requirements)
   const [newSession, setNewSession] = useState<Partial<EventAgendaItem>>({
     title: '',
     session_date: '',
     start_time: '',
     end_time: '',
     location: '',
-    track: '',
     speakers: [],
     description: '',
   });
@@ -148,7 +147,6 @@ export const EnhancedAgendaTab = ({
       start_time: newSession.start_time || undefined,
       end_time: newSession.end_time || undefined,
       location: newSession.location || undefined,
-      track: newSession.track || undefined,
       speakers: newSession.speakers || [],
       description: newSession.description || undefined,
     };
@@ -179,7 +177,6 @@ export const EnhancedAgendaTab = ({
       start_time: session.start_time,
       end_time: session.end_time,
       location: session.location,
-      track: session.track,
       speakers: session.speakers || [],
       description: session.description,
     });
@@ -201,7 +198,6 @@ export const EnhancedAgendaTab = ({
       start_time: '',
       end_time: '',
       location: '',
-      track: '',
       speakers: [],
       description: '',
     });
@@ -601,28 +597,16 @@ export const EnhancedAgendaTab = ({
                 </div>
               </div>
 
-              {/* Row 3: Location, Category */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="session-location">Location</Label>
-                  <Input
-                    id="session-location"
-                    value={newSession.location}
-                    onChange={e => setNewSession(prev => ({ ...prev, location: e.target.value }))}
-                    placeholder="e.g., Main Hall, Room 301"
-                    className="bg-background border-border"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="session-track">Category</Label>
-                  <Input
-                    id="session-track"
-                    value={newSession.track}
-                    onChange={e => setNewSession(prev => ({ ...prev, track: e.target.value }))}
-                    placeholder="e.g., Main Stage, Workshop"
-                    className="bg-background border-border"
-                  />
-                </div>
+              {/* Row 3: Location (full width) */}
+              <div className="space-y-2">
+                <Label htmlFor="session-location">Location</Label>
+                <Input
+                  id="session-location"
+                  value={newSession.location}
+                  onChange={e => setNewSession(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="e.g., Main Hall, Room 301"
+                  className="bg-background border-border"
+                />
               </div>
 
               {/* Row 4: Speakers/Performers */}
@@ -704,11 +688,6 @@ export const EnhancedAgendaTab = ({
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    {session.track && (
-                      <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-xs mb-1 inline-block">
-                        {session.track}
-                      </span>
-                    )}
                     <h3 className="text-foreground font-medium mb-2 truncate">{session.title}</h3>
                     <div className="space-y-1 text-sm">
                       <div className="flex items-center gap-2 text-muted-foreground">
@@ -798,6 +777,12 @@ export const EnhancedAgendaTab = ({
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         eventId={eventId}
+        existingSessions={sessions.map(s => ({
+          title: s.title,
+          session_date: s.session_date,
+          start_time: s.start_time,
+          location: s.location,
+        }))}
         onImportSessions={async (importedSessions: ParsedAgendaSession[]) => {
           for (const s of importedSessions) {
             await addSession(s);
