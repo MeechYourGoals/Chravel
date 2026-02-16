@@ -695,12 +695,13 @@ serve(async req => {
 
         // 5. Privacy config check
         hasTripId && !serverDemoMode
-          ? supabase
-              .from('trip_privacy_configs')
-              .select('ai_access_enabled')
-              .eq('trip_id', tripId)
-              .maybeSingle()
-              .catch(() => ({ data: null }))
+          ? Promise.resolve(
+              supabase
+                .from('trip_privacy_configs')
+                .select('ai_access_enabled')
+                .eq('trip_id', tripId)
+                .maybeSingle(),
+            ).catch(() => ({ data: null }))
           : Promise.resolve({ data: null }),
       ]);
 

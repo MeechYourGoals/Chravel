@@ -302,7 +302,7 @@ export const AIConciergeChat = ({
             // grounding handles web results; this returns places already saved to
             // the trip so the AI can reference them conversationally.
             const query = String(call.args.query || '').toLowerCase();
-            const { data: places } = await supabase
+            const { data: places } = await (supabase as any)
               .from('trip_places')
               .select('name, address, category, lat, lng')
               .eq('trip_id', tripId);

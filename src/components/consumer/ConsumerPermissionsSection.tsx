@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bell, FileImage, MapPin, Mic, RefreshCcw, Settings as SettingsIcon } from 'lucide-react';
+import { Bell, Camera, MapPin, Mic, RefreshCcw, Settings as SettingsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import {
   getPermissionStatus,
   openAppSettings,
@@ -72,15 +74,8 @@ export const ConsumerPermissionsSection = () => {
         id: 'notifications',
         title: 'Notifications',
         description:
-          'Used for trip updates, chat messages, broadcasts, and reminders—so you don’t miss important moments when the app is closed.',
+          'Used for trip updates, chat messages, broadcasts, and reminders so you do not miss important moments when the app is closed.',
         icon: <Bell size={18} className="text-glass-orange" />,
-      },
-      {
-        id: 'photos_files',
-        title: 'Photos & Files',
-        description:
-          'Used to upload photos, videos, and documents into trip chats and shared media.',
-        icon: <FileImage size={18} className="text-blue-300" />,
       },
       {
         id: 'location',
@@ -88,6 +83,13 @@ export const ConsumerPermissionsSection = () => {
         description:
           'Used only when you turn on location sharing (e.g., coordinating meetups and tracking trip movement).',
         icon: <MapPin size={18} className="text-pink-300" />,
+      },
+      {
+        id: 'camera',
+        title: 'Camera',
+        description:
+          'Used when you take photos or scan documents within trips. Requested just-in-time when needed.',
+        icon: <Camera size={18} className="text-emerald-300" />,
       },
       {
         id: 'microphone',
@@ -110,10 +112,13 @@ export const ConsumerPermissionsSection = () => {
         }),
       );
 
-      const next: Record<PermissionId, PermissionStatus> = entries.reduce((acc, [id, status]) => {
-        acc[id] = status;
-        return acc;
-      }, {} as Record<PermissionId, PermissionStatus>);
+      const next: Record<PermissionId, PermissionStatus> = entries.reduce(
+        (acc, [id, status]) => {
+          acc[id] = status;
+          return acc;
+        },
+        {} as Record<PermissionId, PermissionStatus>,
+      );
 
       setStatuses(next);
     } finally {
@@ -176,6 +181,33 @@ export const ConsumerPermissionsSection = () => {
     }
   }, [toast]);
 
+  const handleToggleChange = useCallback(
+    async (id: PermissionId, checked: boolean) => {
+      const status = statuses?.[id];
+      if (!status) return;
+
+      if (checked) {
+        // Toggle ON: trigger just-in-time permission request
+        await handleRequest(id);
+        return;
+      }
+
+      // Toggle OFF: user wants to revoke — we can't do that from JS
+      const canOpenSettings = status.canOpenSettings ?? false;
+      toast({
+        title: 'Revoke in Settings',
+        description:
+          'To turn off this permission, open iOS Settings → Chravel and toggle it off there.',
+        action: canOpenSettings ? (
+          <ToastAction altText="Open Settings" onClick={() => void handleOpenSettings()}>
+            Open Settings
+          </ToastAction>
+        ) : undefined,
+      });
+    },
+    [statuses, handleRequest, handleOpenSettings, toast],
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4">
@@ -185,7 +217,8 @@ export const ConsumerPermissionsSection = () => {
             Permissions Center
           </h3>
           <p className="text-sm text-gray-400 mt-1">
-            We only ask for permissions when you use a feature. You can review and update access here anytime.
+            We only ask for permissions when you use a feature. You can review and update access
+            here anytime.
           </p>
         </div>
 
@@ -206,14 +239,11 @@ export const ConsumerPermissionsSection = () => {
           const status = statuses?.[card.id];
           const state = status?.state ?? 'unknown';
           const canOpenSettings = status?.canOpenSettings ?? false;
-          const canRequest = status?.canRequest ?? false;
           const detail = status?.detail;
 
-          const showEnable =
-            (state === 'prompt' || state === 'unknown') &&
-            canRequest &&
-            card.id !== 'photos_files';
-          const showOpenSettings = state === 'denied' && canOpenSettings;
+          const isGranted = state === 'granted';
+          const isNotApplicable = state === 'not_applicable';
+          const isDisabled = isNotApplicable || busyId === card.id;
 
           return (
             <div key={card.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
@@ -224,9 +254,7 @@ export const ConsumerPermissionsSection = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="text-white font-semibold">{card.title}</div>
                       <span
-                        className={`text-xs px-2 py-0.5 rounded-full border ${badgeClasses(
-                          state,
-                        )}`}
+                        className={`text-xs px-2 py-0.5 rounded-full border ${badgeClasses(state)}`}
                       >
                         {formatState(state)}
                       </span>
@@ -236,40 +264,12 @@ export const ConsumerPermissionsSection = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 flex-shrink-0">
-                  {showEnable && (
-                    <Button
-                      type="button"
-                      onClick={() => void handleRequest(card.id)}
-                      disabled={busyId === card.id}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      {busyId === card.id ? 'Working…' : 'Enable'}
-                    </Button>
-                  )}
-
-                  {card.id === 'photos_files' && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => void handleRequest('photos_files')}
-                      disabled={busyId === 'photos_files'}
-                      className="border-white/10 bg-white/5 hover:bg-white/10"
-                    >
-                      {busyId === 'photos_files' ? 'Opening…' : 'Choose a file'}
-                    </Button>
-                  )}
-
-                  {showOpenSettings && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => void handleOpenSettings()}
-                      className="border-white/10 bg-white/5 hover:bg-white/10"
-                    >
-                      Open Settings
-                    </Button>
-                  )}
+                <div className="flex flex-shrink-0 items-center">
+                  <Switch
+                    checked={isGranted}
+                    disabled={isDisabled}
+                    onCheckedChange={checked => void handleToggleChange(card.id, checked)}
+                  />
                 </div>
               </div>
             </div>
@@ -279,4 +279,3 @@ export const ConsumerPermissionsSection = () => {
     </div>
   );
 };
-
