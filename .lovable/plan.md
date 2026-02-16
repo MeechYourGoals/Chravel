@@ -1,93 +1,154 @@
 
-# Activate Gemini Live Voice + Enrich Context Parity
 
-## Summary
+# Pro Trip Categories Revamp
 
-ElevenLabs is already fully removed from the codebase (confirmed zero references in `src/` and `supabase/`). No cleanup needed there.
+## Overview
 
-The real work is activating the Gemini Live bidirectional voice and giving it the same rich context the text concierge has. Right now the voice button works but only does browser Speech-to-Text (transcribes your voice, sends text to the normal AI pipeline). The full Gemini Live WebSocket infrastructure (`useGeminiLive.ts` + `gemini-voice-session` edge function) is built but disconnected from the UI.
+Replace the legacy Pro trip category system (long labels like "Sports -- Pro, Collegiate, Youth") with a clean 7-category enum system using stable internal values. Add category-aware search/filtering to the Trips list.
 
-## Problem: Voice Session Context Gap
+## What Changes
 
-The `gemini-voice-session` edge function currently builds a minimal system instruction with only:
-- Trip name, destination, dates
-- 5 upcoming calendar events
+### 1. New Category Enum System
 
-The text-based `lovable-concierge` gets ALL of this via `TripContextBuilder` + `promptBuilder`:
-- Broadcasts (with priority levels)
-- Calendar events (with locations, descriptions)
-- Polls (questions, options, votes)
-- Tasks (assignees, due dates, status)
-- Payments (who owes whom, amounts, methods)
-- Chat messages (recent context)
-- Places (trip basecamp, personal basecamp with coordinates)
-- User preferences (dietary, vibe, budget, accessibility, time preference)
-- Saved links
-- RAG context from kb_chunks
+Replace the current 6 categories with 7 new ones, in this exact order:
 
-## Implementation Plan
+| # | Display Label | Internal Enum Value |
+|---|--------------|-------------------|
+| 1 | Touring | `touring` |
+| 2 | Sports | `sports` |
+| 3 | Work | `work` |
+| 4 | School | `school` |
+| 5 | Productions | `productions` |
+| 6 | Celebrations | `celebrations` |
+| 7 | Other | `other` |
 
-### Step 1: Enrich `gemini-voice-session` edge function with full trip context
+### 2. Legacy Migration Map
 
-Reuse the existing `TripContextBuilder` and `buildSystemPrompt` from `_shared/` to build the voice session's system instruction. This gives voice feature parity with text concierge.
+Old labels stored in DB (`categories` JSONB column) will be mapped to new enum values:
 
-Changes to `supabase/functions/gemini-voice-session/index.ts`:
-- Import `TripContextBuilder` from `_shared/contextBuilder.ts`
-- Import `buildSystemPrompt` from `_shared/promptBuilder.ts`
-- Replace the manual trip query + minimal system instruction with `TripContextBuilder.buildContext()` + `buildSystemPrompt()`
-- Fetch user preferences via `TripContextBuilder` (it already supports `userId`)
-- Add voice-specific guidelines as an addendum to the full system prompt (keep responses conversational, no markdown, concise for spoken delivery)
-- Include function declarations in the ephemeral token's `bidiGenerateContentSetup` so Gemini Live can call tools (addToCalendar, createTask, createPoll, searchPlaces, getPaymentSummary)
-- Enable Google Search grounding in the setup for real-time queries
+- "Sports -- Pro, Collegiate, Youth" -> `sports`
+- "Tour -- Music, Comedy, etc." -> `touring`
+- "Business Travel" / "Business Trips" -> `work`
+- "School Trip" -> `school`
+- "Content" -> `productions`
+- "Other" / unknown / missing -> `other`
 
-### Step 2: Wire `useGeminiLive` into `AIConciergeChat`
+No new categories need backfill since "Celebrations" is brand new.
 
-Currently `AIConciergeChat` uses `useWebSpeechVoice` (aliased as `useGeminiVoice`). Switch to `useGeminiLive` for eligible users while keeping `useWebSpeechVoice` as fallback for unsupported browsers.
+### 3. Search Synonym Map
 
-Changes to `src/components/AIConciergeChat.tsx`:
-- Import `useGeminiLive` alongside the existing `useWebSpeechVoice`
-- Use `useGeminiLive` when the browser supports WebSocket + AudioContext and user is voice-eligible
-- Fall back to `useWebSpeechVoice` when Gemini Live is not supported
-- Route `onTranscript` callbacks from Gemini Live to display AI spoken responses as chat messages
-- Map Gemini Live states (`idle`, `connecting`, `listening`, `speaking`, `error`) to the existing `VoiceState` type so the `VoiceButton` component works without changes
+Each category gets a list of search keywords that match it:
 
-### Step 3: Handle Gemini Live tool execution results in the client
+- `touring`: tour, touring, music, comedy, concert
+- `sports`: sport, sports, athletic, game, team
+- `work`: work, business, corporate, retreat, office
+- `school`: school, education, student, academic, campus
+- `productions`: production, productions, content, shoot, film, tv, media
+- `celebrations`: celebration, celebrations, wedding, bachelor, bachelorette, party, anniversary
+- `other`: other
 
-When Gemini Live calls a function (e.g., addToCalendar), the client-side WebSocket handler in `useGeminiLive` needs to:
-- Detect `toolCall` messages from the WebSocket
-- Execute them via a callback (or send results back to the WebSocket)
-- Display confirmation in the chat
+### 4. Category Filter Chips on Trips List
 
-Changes to `src/hooks/useGeminiLive.ts`:
-- Add `onToolCall` callback option for function calling responses
-- Parse `toolCall` messages from the Gemini Live WebSocket protocol
-- Send `toolResponse` back through the WebSocket so Gemini can continue the conversation
+When viewing Pro trips, a horizontal row of filter chips appears below the search bar. Tapping a chip filters to that category. Tapping again clears the filter.
 
-### Step 4: Update VoiceButton states for Gemini Live
-
-The existing `VoiceButton` component already supports all needed states (`idle`, `connecting`, `listening`, `speaking`, `error`). No changes needed to the button itself -- just ensure the state mapping is correct.
-
-## Files to Modify
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `supabase/functions/gemini-voice-session/index.ts` | Use TripContextBuilder + buildSystemPrompt for full context, add function declarations and grounding to ephemeral token setup |
-| `src/components/AIConciergeChat.tsx` | Wire useGeminiLive as primary voice with useWebSpeechVoice fallback |
-| `src/hooks/useGeminiLive.ts` | Add tool call handling, onToolCall callback |
+| `src/types/proCategories.ts` | Full rewrite: new `ProCategoryEnum` type with 7 values, display config, legacy mapping function, synonym map, ordered list |
+| `src/types/pro.ts` | Update `ProTripData.proTripCategory` type to use new enum values |
+| `src/components/CreateTripModal.tsx` | Update category dropdown to show 7 new labels in correct order, default to `touring`, pass enum value |
+| `src/components/EditTripModal.tsx` | Update category selector to use new enum values and display labels |
+| `src/components/pro/CategorySelector.tsx` | Update to use new category configs |
+| `src/components/pro/CategoryTags.tsx` | Update to use new display labels from enum |
+| `src/utils/tripConverter.ts` | `convertSupabaseTripToProTrip`: use legacy mapping function to normalize old DB values to new enum |
+| `src/utils/semanticTripFilter.ts` | Add category field to `TripSearchableFields`, include category + synonyms in `matchesQuery`, add `cat:` power syntax support |
+| `src/data/pro-trips/*.ts` | Update all mock data `proTripCategory` values to new enum values |
+| `src/pages/Index.tsx` | Add category filter state, render category chips when `viewMode === 'tripsPro'`, pass filter to `filterProTrips` |
+| `src/services/tripService.ts` | Add `category` to `CreateTripData` interface |
+| `supabase/functions/create-trip/index.ts` | Accept `category` from request body, store as `categories: [{type: 'pro_category', value: category}]` in the trips insert |
+| `src/services/mockRolesService.ts` | No change needed (already ignores category param) |
+| `src/components/pro/RoleSwitcher.tsx`, `OrgChartNode.tsx`, `EditMemberRoleModal.tsx`, etc. | Update type imports to use new enum type (mostly just type annotation changes) |
 
-## What This Achieves
+### Database
 
-After implementation, the voice concierge will:
-- Have full awareness of broadcasts, calendar, polls, payments, tasks, chat, places, and basecamps
-- Filter recommendations by user preferences (dietary, vibe, budget, accessibility)
-- Execute real actions (add calendar events, create tasks/polls, search places)
-- Use Google Search grounding for real-time queries (scores, weather, news)
-- Speak responses back via bidirectional audio (not just transcribe-and-type)
-- Fall back gracefully to browser Speech-to-Text on unsupported browsers
+**Backfill migration** -- Update existing Pro trips with legacy category labels to new enum values:
 
-## Technical Notes
+```sql
+UPDATE trips
+SET categories = jsonb_build_array(
+  jsonb_build_object('type', 'pro_category', 'value',
+    CASE
+      WHEN categories->0->>'value' ILIKE '%tour%' THEN 'touring'
+      WHEN categories->0->>'value' ILIKE '%sport%' THEN 'sports'
+      WHEN categories->0->>'value' ILIKE '%business%' THEN 'work'
+      WHEN categories->0->>'value' ILIKE '%school%' THEN 'school'
+      WHEN categories->0->>'value' ILIKE '%content%' THEN 'productions'
+      ELSE 'other'
+    END
+  )
+)
+WHERE trip_type = 'pro'
+  AND categories IS NOT NULL
+  AND jsonb_array_length(categories) > 0
+  AND categories->0->>'type' = 'pro_category';
+```
 
-- The ephemeral token approach (already implemented) keeps the GEMINI_API_KEY server-side -- only a scoped, short-lived token reaches the client
-- The system prompt for voice will be the same rich prompt as text, with an addendum for spoken delivery style (no markdown, concise, conversational)
-- Voice entitlement checks are already implemented in the edge function (`canUseVoiceConcierge`)
-- The `VoiceButton` UI component needs zero changes
+No schema changes needed -- the `categories` JSONB column already exists and stores the right structure.
+
+## Technical Details
+
+### New `proCategories.ts` Structure
+
+```typescript
+export type ProCategoryEnum =
+  | 'touring' | 'sports' | 'work' | 'school'
+  | 'productions' | 'celebrations' | 'other';
+
+export interface ProCategoryConfig {
+  id: ProCategoryEnum;
+  label: string;           // Display label
+  description: string;
+  searchSynonyms: string[]; // Words that match this category in search
+  roles: string[];          // Default roles for this category
+  terminology: { teamLabel: string; memberLabel: string; leaderLabel: string };
+}
+
+// Ordered array (not a Record) to guarantee UI order
+export const PRO_CATEGORIES_ORDERED: ProCategoryConfig[] = [
+  { id: 'touring', label: 'Touring', ... },
+  { id: 'sports', label: 'Sports', ... },
+  ...
+];
+
+// Legacy label -> enum mapping
+export function normalizeLegacyCategory(raw: string): ProCategoryEnum { ... }
+```
+
+### Search Integration
+
+The `semanticTripFilter.ts` will be updated so that when searching Pro trips:
+
+1. The `TripSearchableFields` interface gets a `categories` field populated with the enum value AND its synonym list
+2. Typing "wedding" matches "celebrations" category trips even if "wedding" isn't in the title
+3. `cat:touring` syntax filters by exact category match (parsed before the general substring search)
+
+### Edge Function Fix
+
+The `create-trip` edge function currently ignores the `category` field. It will be updated to:
+
+1. Accept `category` from the request body
+2. If `trip_type === 'pro'` and `category` is provided, set `categories: [{type: 'pro_category', value: category}]` in the insert
+
+### Backward Compatibility
+
+- `convertSupabaseTripToProTrip` already reads `categories` JSONB -- will add `normalizeLegacyCategory()` call so old values display correctly
+- Unknown/missing categories gracefully fall back to `other`
+- The old `ProTripCategory` type alias will be kept temporarily as a deprecated alias pointing to `ProCategoryEnum` to avoid breaking 27+ files at once; components will be migrated incrementally
+
+### No Regressions
+
+- Group (consumer) trips: no category selector shown, no changes
+- Event trips: no category selector shown, no changes
+- Only Pro trip creation/editing/display affected
+
