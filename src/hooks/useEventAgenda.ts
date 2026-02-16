@@ -79,7 +79,6 @@ export function useEventAgenda({
           start_time: session.start_time || null,
           end_time: session.end_time || null,
           location: session.location || null,
-          track: session.track || null,
           speakers: session.speakers || null,
           created_by: userId || null,
         })
@@ -96,7 +95,6 @@ export function useEventAgenda({
         start_time: data.start_time ?? undefined,
         end_time: data.end_time ?? undefined,
         location: data.location ?? undefined,
-        track: data.track ?? undefined,
         speakers: data.speakers ?? undefined,
       } as EventAgendaItem;
     },
@@ -124,7 +122,6 @@ export function useEventAgenda({
           start_time: session.start_time || null,
           end_time: session.end_time || null,
           location: session.location || null,
-          track: session.track || null,
           speakers: session.speakers || null,
         })
         .eq('id', session.id);

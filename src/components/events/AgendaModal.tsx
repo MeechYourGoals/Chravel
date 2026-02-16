@@ -122,7 +122,7 @@ export const AgendaModal = ({
   const [isAddingSession, setIsAddingSession] = useState(false);
   const [editingSession, setEditingSession] = useState<EventAgendaItem | null>(null);
 
-  // New session form state
+  // New session form state (Category/track removed per requirements)
   const [newSession, setNewSession] = useState<Partial<EventAgendaItem>>({
     title: '',
     session_date: '',
@@ -131,7 +131,6 @@ export const AgendaModal = ({
     location: '',
     description: '',
     speakers: [],
-    track: '',
   });
 
   const [speakerInput, setSpeakerInput] = useState('');
@@ -192,7 +191,6 @@ export const AgendaModal = ({
       location: newSession.location || undefined,
       description: newSession.description || undefined,
       speakers: newSession.speakers || [],
-      track: newSession.track || undefined,
     };
 
     try {
@@ -224,7 +222,6 @@ export const AgendaModal = ({
       location: session.location,
       description: session.description,
       speakers: session.speakers || [],
-      track: session.track,
     });
     setIsAddingSession(true);
   };
@@ -247,7 +244,6 @@ export const AgendaModal = ({
       location: '',
       description: '',
       speakers: [],
-      track: '',
     });
     setSpeakerInput('');
     setIsAddingSession(false);
@@ -447,34 +443,18 @@ export const AgendaModal = ({
                     </div>
                   </div>
 
-                  {/* Row 3: Location, Category */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="location" className="text-sm">
-                        Location
-                      </Label>
-                      <Input
-                        id="location"
-                        value={newSession.location}
-                        onChange={e =>
-                          setNewSession(prev => ({ ...prev, location: e.target.value }))
-                        }
-                        placeholder="Room or venue"
-                        className="bg-white/5 border-white/10"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="track" className="text-sm">
-                        Category
-                      </Label>
-                      <Input
-                        id="track"
-                        value={newSession.track}
-                        onChange={e => setNewSession(prev => ({ ...prev, track: e.target.value }))}
-                        placeholder="e.g., Main Stage, Workshop"
-                        className="bg-white/5 border-white/10"
-                      />
-                    </div>
+                  {/* Row 3: Location (full width) */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="location" className="text-sm">
+                      Location
+                    </Label>
+                    <Input
+                      id="location"
+                      value={newSession.location}
+                      onChange={e => setNewSession(prev => ({ ...prev, location: e.target.value }))}
+                      placeholder="Room or venue"
+                      className="bg-white/5 border-white/10"
+                    />
                   </div>
 
                   {/* Row 4: Speakers/Performers */}
@@ -561,13 +541,6 @@ export const AgendaModal = ({
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {session.track && (
-                            <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded text-xs">
-                              {session.track}
-                            </span>
-                          )}
-                        </div>
                         <h4 className="text-white font-medium truncate">{session.title}</h4>
                         <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-400">
                           <span className="flex items-center gap-1">
@@ -895,6 +868,12 @@ export const AgendaModal = ({
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         eventId={eventId}
+        existingSessions={sessions.map(s => ({
+          title: s.title,
+          session_date: s.session_date,
+          start_time: s.start_time,
+          location: s.location,
+        }))}
         onImportSessions={async (importedSessions: ParsedAgendaSession[]) => {
           for (const s of importedSessions) {
             await addSession(s);
