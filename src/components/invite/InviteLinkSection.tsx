@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Copy, Check, RotateCcw, AlertTriangle, Share2 } from 'lucide-react';
+import { isDemoInviteLink } from '@/lib/inviteLinkUtils';
 
 interface InviteLinkSectionProps {
   inviteLink: string;
@@ -23,7 +24,7 @@ export const InviteLinkSection = ({
   tripName,
 }: InviteLinkSectionProps) => {
   const [isSharing, setIsSharing] = useState(false);
-  const isDemoLink = inviteLink?.includes('/j/demo-');
+  const isDemoLink = inviteLink ? isDemoInviteLink(inviteLink) : false;
 
   // Check if native share is available (iOS, Android, some desktop browsers)
   const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
