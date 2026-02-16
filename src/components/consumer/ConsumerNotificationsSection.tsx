@@ -332,11 +332,11 @@ export const ConsumerNotificationsSection = () => {
     }
     setIsSendingTestSms(true);
     try {
-      const ok = await notificationService.sendSMSNotification(
+      const result = await notificationService.sendSMSNotification(
         user.id,
         'ChravelApp: Test message — SMS notifications are working!',
       );
-      if (ok) {
+      if (result.success) {
         toast({
           title: 'Test SMS sent',
           description: `Check ${formatPhoneNumber(smsPhoneNumber)} for the message.`,
@@ -344,7 +344,7 @@ export const ConsumerNotificationsSection = () => {
       } else {
         toast({
           title: 'Failed to send',
-          description: 'Check your settings and try again.',
+          description: result.errorMessage || 'Check your settings and try again.',
           variant: 'destructive',
         });
       }

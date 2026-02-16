@@ -8,6 +8,7 @@ const ALLOWED_ORIGINS = [
   '.supabase.co',
   // Lovable preview domains
   '.lovable.app',
+  '.lovable.dev',
   '.lovableproject.com',
   // Local development
   'http://localhost:5173',
@@ -26,11 +27,15 @@ const ALLOWED_ORIGINS = [
  */
 export function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return false;
-  
+
   return ALLOWED_ORIGINS.some(allowed => {
     // Suffix match for subdomains (e.g., '.supabase.co' matches 'xyz.supabase.co')
     if (allowed.startsWith('.')) {
-      return origin.endsWith(allowed) || origin === `https://${allowed.slice(1)}` || origin === `http://${allowed.slice(1)}`;
+      return (
+        origin.endsWith(allowed) ||
+        origin === `https://${allowed.slice(1)}` ||
+        origin === `http://${allowed.slice(1)}`
+      );
     }
     // Exact match
     return origin === allowed;
@@ -44,7 +49,7 @@ export function isOriginAllowed(origin: string | null): boolean {
 export function getCorsHeaders(req?: Request): Record<string, string> {
   const origin = req?.headers?.get('origin') || '';
   const allowedOrigin = isOriginAllowed(origin) ? origin : 'https://chravel.app';
-  
+
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
