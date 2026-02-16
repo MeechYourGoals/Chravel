@@ -116,9 +116,19 @@ export function useWebSpeechVoice(
     accumulatedTranscriptRef.current = '';
 
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      setErrorMessage('Microphone access denied. Please allow mic permission.');
+      // Timeout after 15s if user never responds to mic permission prompt
+      const mediaPromise = navigator.mediaDevices.getUserMedia({ audio: true });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Microphone permission timed out')), 15_000),
+      );
+      await Promise.race([mediaPromise, timeoutPromise]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Microphone access failed';
+      setErrorMessage(
+        msg.includes('timed out')
+          ? 'Microphone permission timed out. Please allow mic access and try again.'
+          : 'Microphone access denied. Please allow mic permission.',
+      );
       setVoiceState('error');
       return;
     }

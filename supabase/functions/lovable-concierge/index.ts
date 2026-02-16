@@ -903,10 +903,11 @@ serve(async req => {
       );
 
     // Smart grounding detection - real-time info queries and event/knowledge queries
+    // Includes tour/upcoming for artist/event queries (e.g. "Becky Robinson's tour dates")
     const isRealtimeQuery = message
       .toLowerCase()
       .match(
-        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel|festival|concert|music week|lineup|conference|expo|convention|marathon|parade|tournament|championship|season|tickets|sold out|when is|what is .+ week|how many)\b/i,
+        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel|festival|concert|music week|lineup|conference|expo|convention|marathon|parade|tournament|championship|season|tickets|sold out|tour|upcoming|tour dates|when is|what is .+ week|how many)\b/i,
       );
 
     const tripBasecamp = comprehensiveContext?.places?.tripBasecamp;

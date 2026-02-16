@@ -85,7 +85,9 @@ interface FallbackTripContext {
   payments?: FallbackPayment[];
 }
 
-const FAST_RESPONSE_TIMEOUT_MS = 45000;
+// 60s timeout: backend pre-flight (context/RAG) + Gemini streaming with Google Search
+// can exceed 45s for real-time queries. Gemini Flash typically responds in 5–15s.
+const FAST_RESPONSE_TIMEOUT_MS = 60_000;
 
 const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -903,9 +905,13 @@ export const AIConciergeChat = ({
             <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
               <Search size={20} className="text-white" />
             </div>
-            <span className={`text-xs whitespace-nowrap ${queryAllowanceTone}`}>{queryAllowanceText}</span>
+            <span className={`text-xs whitespace-nowrap ${queryAllowanceTone}`}>
+              {queryAllowanceText}
+            </span>
             <h3 className="text-lg font-semibold text-white flex-1 text-center">AI Concierge</h3>
-            <p className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">🔒 This conversation is private to you</p>
+            <p className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
+              🔒 This conversation is private to you
+            </p>
           </div>
         </div>
 
@@ -966,8 +972,8 @@ export const AIConciergeChat = ({
           </div>
         )}
 
-        {/* Chat Messages + Streaming Voice Transcript */}
-        <div className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll">
+        {/* Chat Messages + Streaming Voice Transcript - min-height ensures multiple messages visible */}
+        <div className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-[280px]">
           {messages.length > 0 && (
             <ChatMessages messages={messages} isTyping={isTyping} showMapWidgets={true} />
           )}
