@@ -50,7 +50,7 @@ export interface NotificationPayload {
   requireInteraction?: boolean;
 }
 
-export type NotificationType = 
+export type NotificationType =
   | 'chat_message'
   | 'itinerary_update'
   | 'payment_request'
@@ -157,12 +157,12 @@ export class NotificationService {
     try {
       // Check for existing subscription
       let subscription = await (this.serviceWorker as any).pushManager.getSubscription();
-      
+
       // Create new subscription if none exists
       if (!subscription) {
         subscription = await (this.serviceWorker as any).pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          applicationServerKey: this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         });
       }
 
@@ -175,23 +175,21 @@ export class NotificationService {
         return null;
       }
 
-      const { error } = await supabase
-        .from('web_push_subscriptions')
-        .upsert(
-          {
-            user_id: userId,
-            endpoint: subscription.endpoint,
-            p256dh_key: keys.p256dh,
-            auth_key: keys.auth,
-            user_agent: navigator.userAgent,
-            device_name: this.getDeviceName(),
-            is_active: true,
-            failed_count: 0,
-          },
-          {
-            onConflict: 'user_id,endpoint',
-          }
-        );
+      const { error } = await supabase.from('web_push_subscriptions').upsert(
+        {
+          user_id: userId,
+          endpoint: subscription.endpoint,
+          p256dh_key: keys.p256dh,
+          auth_key: keys.auth,
+          user_agent: navigator.userAgent,
+          device_name: this.getDeviceName(),
+          is_active: true,
+          failed_count: 0,
+        },
+        {
+          onConflict: 'user_id,endpoint',
+        },
+      );
 
       if (error) {
         console.error('[NotificationService] Failed to save subscription:', error);
@@ -213,42 +211,44 @@ export class NotificationService {
    */
   private getDeviceName(): string {
     const ua = navigator.userAgent;
-    
+
     let browser = 'Unknown Browser';
     if (ua.includes('Firefox')) browser = 'Firefox';
     else if (ua.includes('Edg')) browser = 'Edge';
     else if (ua.includes('Chrome')) browser = 'Chrome';
     else if (ua.includes('Safari')) browser = 'Safari';
     else if (ua.includes('Opera')) browser = 'Opera';
-    
+
     let os = 'Unknown OS';
     if (ua.includes('Windows')) os = 'Windows';
     else if (ua.includes('Mac OS')) os = 'macOS';
     else if (ua.includes('Linux')) os = 'Linux';
     else if (ua.includes('Android')) os = 'Android';
     else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
-    
+
     return `${browser} on ${os}`;
   }
 
   /**
    * Save FCM/APNs push token (for native apps)
    */
-  async savePushToken(userId: string, token: string, platform: 'ios' | 'android' | 'web'): Promise<boolean> {
+  async savePushToken(
+    userId: string,
+    token: string,
+    platform: 'ios' | 'android' | 'web',
+  ): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('push_device_tokens')
-        .upsert(
-          {
-            user_id: userId,
-            token,
-            platform,
-            last_seen_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'user_id,token',
-          }
-        );
+      const { error } = await supabase.from('push_device_tokens').upsert(
+        {
+          user_id: userId,
+          token,
+          platform,
+          last_seen_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,token',
+        },
+      );
 
       if (error) {
         console.error('[NotificationService] Error saving push token:', error);
@@ -289,7 +289,7 @@ export class NotificationService {
           polls: true,
           quietHoursEnabled: false,
           quietStart: '22:00',
-          quietEnd: '08:00'
+          quietEnd: '08:00',
         };
       }
 
@@ -306,7 +306,7 @@ export class NotificationService {
         polls: data.polls ?? true,
         quietHoursEnabled: data.quiet_hours_enabled ?? false,
         quietStart: data.quiet_start ?? '22:00',
-        quietEnd: data.quiet_end ?? '08:00'
+        quietEnd: data.quiet_end ?? '08:00',
       };
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -320,8 +320,8 @@ export class NotificationService {
    * Update notification preferences for a user
    */
   async updateNotificationPreferences(
-    userId: string, 
-    preferences: Partial<NotificationPreference>
+    userId: string,
+    preferences: Partial<NotificationPreference>,
   ): Promise<boolean> {
     try {
       // Build update object with proper typing
@@ -333,18 +333,20 @@ export class NotificationService {
         ...(preferences.smsEnabled !== undefined && { sms_enabled: preferences.smsEnabled }),
         ...(preferences.broadcasts !== undefined && { broadcasts: preferences.broadcasts }),
         ...(preferences.chatMessages !== undefined && { chat_messages: preferences.chatMessages }),
-        ...(preferences.calendarEvents !== undefined && { calendar_events: preferences.calendarEvents }),
+        ...(preferences.calendarEvents !== undefined && {
+          calendar_events: preferences.calendarEvents,
+        }),
         ...(preferences.payments !== undefined && { payments: preferences.payments }),
         ...(preferences.tasks !== undefined && { tasks: preferences.tasks }),
         ...(preferences.polls !== undefined && { polls: preferences.polls }),
-        ...(preferences.quietHoursEnabled !== undefined && { quiet_hours_enabled: preferences.quietHoursEnabled }),
+        ...(preferences.quietHoursEnabled !== undefined && {
+          quiet_hours_enabled: preferences.quietHoursEnabled,
+        }),
         ...(preferences.quietStart !== undefined && { quiet_start: preferences.quietStart }),
         ...(preferences.quietEnd !== undefined && { quiet_end: preferences.quietEnd }),
       };
 
-      const { error } = await supabase
-        .from('notification_preferences')
-        .upsert(updateData);
+      const { error } = await supabase.from('notification_preferences').upsert(updateData);
 
       if (error) {
         console.error('[NotificationService] Error updating preferences:', error);
@@ -394,7 +396,7 @@ export class NotificationService {
           requireInteraction: payload.requireInteraction ?? false,
         });
 
-        notification.onclick = (event) => {
+        notification.onclick = event => {
           event.preventDefault();
           window.focus();
           if (payload.data?.url && typeof payload.data.url === 'string') {
@@ -447,7 +449,7 @@ export class NotificationService {
     senderName: string,
     messagePreview: string,
     messageId: string,
-    excludeUserId?: string
+    excludeUserId?: string,
   ): Promise<boolean> {
     return this.sendPushNotification({
       tripId,
@@ -476,7 +478,7 @@ export class NotificationService {
     tripName: string,
     updaterName: string,
     eventId?: string,
-    excludeUserId?: string
+    excludeUserId?: string,
   ): Promise<boolean> {
     return this.sendPushNotification({
       tripId,
@@ -490,9 +492,7 @@ export class NotificationService {
         eventId,
         type: 'itinerary_update',
       },
-      actions: [
-        { action: 'view', title: 'View Changes' },
-      ],
+      actions: [{ action: 'view', title: 'View Changes' }],
     });
   }
 
@@ -505,7 +505,7 @@ export class NotificationService {
     amount: string,
     description: string,
     paymentId: string,
-    userIds: string[]
+    userIds: string[],
   ): Promise<boolean> {
     return this.sendPushNotification({
       userIds,
@@ -533,7 +533,7 @@ export class NotificationService {
     tripId: string,
     tripName: string,
     destination: string,
-    userIds: string[]
+    userIds: string[],
   ): Promise<boolean> {
     return this.sendPushNotification({
       userIds,
@@ -597,7 +597,9 @@ export class NotificationService {
         console.error('[NotificationService] Error sending SMS:', error);
         return false;
       }
-      return true;
+      // Handle explicit success: false in response (e.g. rate_limited, sms_disabled)
+      const result = data as { success?: boolean; error?: string } | null;
+      return result?.success !== false;
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[NotificationService] Error sending SMS notification:', error);
@@ -640,7 +642,7 @@ export class NotificationService {
 
     const now = new Date();
     const currentTime = now.getHours() * 100 + now.getMinutes();
-    
+
     const startTime = parseInt(preferences.quietStart.replace(':', ''));
     const endTime = parseInt(preferences.quietEnd.replace(':', ''));
 
@@ -660,9 +662,7 @@ export class NotificationService {
    */
   private urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
 
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);

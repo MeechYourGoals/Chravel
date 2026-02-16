@@ -11,7 +11,11 @@ import {
   type NotificationCategory,
   type NotificationPreferences,
 } from '../_shared/notificationUtils.ts';
-import { formatTimeForTimezone, generateSmsMessage, type SmsTemplateData } from '../_shared/smsTemplates.ts';
+import {
+  formatTimeForTimezone,
+  generateSmsMessage,
+  type SmsTemplateData,
+} from '../_shared/smsTemplates.ts';
 import { sendWebPushNotification, type WebPushSubscription } from '../_shared/webPushUtils.ts';
 
 type DeliveryChannel = 'push' | 'email' | 'sms';
@@ -99,7 +103,10 @@ function isUserSmsEntitled(entitlement?: EntitlementRow): boolean {
   return ['frequent-chraveler', 'pro-starter', 'pro-growth', 'pro-enterprise'].includes(plan);
 }
 
-function mergePreferences(userId: string, raw?: Partial<NotificationPreferences>): NotificationPreferences {
+function mergePreferences(
+  userId: string,
+  raw?: Partial<NotificationPreferences>,
+): NotificationPreferences {
   return {
     user_id: userId,
     ...DEFAULT_NOTIFICATION_PREFERENCES,
@@ -122,10 +129,7 @@ function parseMetadata(metadata: Record<string, unknown> | null): Record<string,
 
 function getActorUserId(metadata: Record<string, unknown>): string | undefined {
   const actorId =
-    metadata.actor_user_id ||
-    metadata.sender_id ||
-    metadata.requester_id ||
-    metadata.created_by;
+    metadata.actor_user_id || metadata.sender_id || metadata.requester_id || metadata.created_by;
   return typeof actorId === 'string' ? actorId : undefined;
 }
 
@@ -145,9 +149,10 @@ function buildSmsTemplateData(
   return {
     tripName,
     senderName,
-    amount: (typeof metadata.amount === 'number' || typeof metadata.amount === 'string')
-      ? (metadata.amount as number | string)
-      : undefined,
+    amount:
+      typeof metadata.amount === 'number' || typeof metadata.amount === 'string'
+        ? (metadata.amount as number | string)
+        : undefined,
     currency: typeof metadata.currency === 'string' ? metadata.currency : undefined,
     location:
       typeof metadata.new_location_name === 'string'
@@ -163,14 +168,9 @@ function buildSmsTemplateData(
           : undefined,
     eventTime: formatTimeForTimezone(eventTimeRaw, timezone),
     preview: notification.message,
-    taskTitle:
-      typeof metadata.task_title === 'string'
-        ? metadata.task_title
-        : notification.title,
+    taskTitle: typeof metadata.task_title === 'string' ? metadata.task_title : notification.title,
     pollQuestion:
-      typeof metadata.poll_question === 'string'
-        ? metadata.poll_question
-        : notification.title,
+      typeof metadata.poll_question === 'string' ? metadata.poll_question : notification.title,
   };
 }
 
@@ -216,7 +216,10 @@ async function logDeliveryAttempt(
   });
 }
 
-async function sendSms(phoneNumber: string, message: string): Promise<{
+async function sendSms(
+  phoneNumber: string,
+  message: string,
+): Promise<{
   ok: boolean;
   providerMessageId?: string;
   error?: string;
@@ -244,7 +247,10 @@ async function sendSms(phoneNumber: string, message: string): Promise<{
 
   const responseText = await response.text();
   if (!response.ok) {
-    return { ok: false, error: `Twilio error ${response.status}: ${responseText.substring(0, 200)}` };
+    return {
+      ok: false,
+      error: `Twilio error ${response.status}: ${responseText.substring(0, 200)}`,
+    };
   }
 
   try {
@@ -255,7 +261,11 @@ async function sendSms(phoneNumber: string, message: string): Promise<{
   }
 }
 
-async function sendEmail(to: string, subject: string, content: string): Promise<{
+async function sendEmail(
+  to: string,
+  subject: string,
+  content: string,
+): Promise<{
   ok: boolean;
   providerMessageId?: string;
   error?: string;
@@ -290,7 +300,12 @@ async function sendEmail(to: string, subject: string, content: string): Promise<
   return { ok: true };
 }
 
-async function sendPush(tokens: string[], title: string, body: string, data: Record<string, unknown>): Promise<{
+async function sendPush(
+  tokens: string[],
+  title: string,
+  body: string,
+  data: Record<string, unknown>,
+): Promise<{
   ok: boolean;
   providerMessageId?: string;
   error?: string;
@@ -320,7 +335,10 @@ async function sendPush(tokens: string[], title: string, body: string, data: Rec
   try {
     const parsed = JSON.parse(responseText);
     if ((parsed.success || 0) > 0) {
-      return { ok: true, providerMessageId: parsed.multicast_id ? String(parsed.multicast_id) : undefined };
+      return {
+        ok: true,
+        providerMessageId: parsed.multicast_id ? String(parsed.multicast_id) : undefined,
+      };
     }
     return { ok: false, error: parsed.results?.[0]?.error || 'No push delivery succeeded' };
   } catch {
@@ -389,9 +407,12 @@ serve(async req => {
 
     const deliveries = (queuedRows || []) as DeliveryRow[];
     if (deliveries.length === 0) {
-      return new Response(JSON.stringify({ success: true, processed: 0, message: 'No queued deliveries' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ success: true, processed: 0, message: 'No queued deliveries' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     const notificationIds = [...new Set(deliveries.map(delivery => delivery.notification_id))];
@@ -405,10 +426,14 @@ serve(async req => {
     }
 
     const notifications = (notificationRows || []) as NotificationRow[];
-    const notificationById = new Map<string, NotificationRow>(notifications.map(notification => [notification.id, notification]));
+    const notificationById = new Map<string, NotificationRow>(
+      notifications.map(notification => [notification.id, notification]),
+    );
 
     const recipientIds = [...new Set(notifications.map(notification => notification.user_id))];
-    const tripIds = [...new Set(notifications.map(notification => notification.trip_id).filter(Boolean))] as string[];
+    const tripIds = [
+      ...new Set(notifications.map(notification => notification.trip_id).filter(Boolean)),
+    ] as string[];
 
     const actorIds = [
       ...new Set(
@@ -427,12 +452,9 @@ serve(async req => {
       { data: tripRows },
       { data: profileRows },
       { data: pushTokenRows },
-      { data: webPushRows }
+      { data: webPushRows },
     ] = await Promise.all([
-      supabase
-        .from('notification_preferences')
-        .select('*')
-        .in('user_id', recipientIds),
+      supabase.from('notification_preferences').select('*').in('user_id', recipientIds),
       supabase
         .from('user_entitlements')
         .select('user_id, plan, status, current_period_end')
@@ -585,7 +607,8 @@ serve(async req => {
           });
           if (pushResult.ok) {
             pushSucceeded = true;
-            if (pushResult.providerMessageId) providerIds.push(`fcm:${pushResult.providerMessageId}`);
+            if (pushResult.providerMessageId)
+              providerIds.push(`fcm:${pushResult.providerMessageId}`);
           } else {
             pushError = `fcm_failed:${pushResult.error}`;
           }
@@ -620,12 +643,13 @@ serve(async req => {
                 .update({ last_used_at: new Date().toISOString(), failed_count: 0 })
                 .eq('id', sub.id);
             } else {
-              if (!pushSucceeded) pushError = (pushError ? pushError + '; ' : '') + `web_failed:${webResult.error}`;
+              if (!pushSucceeded)
+                pushError = (pushError ? pushError + '; ' : '') + `web_failed:${webResult.error}`;
 
               // Increment failure count
               await supabase.rpc('mark_web_push_subscription_failed', {
                 subscription_id: sub.id,
-                error_message: webResult.error
+                error_message: webResult.error,
               });
             }
           }
@@ -700,7 +724,11 @@ serve(async req => {
           continue;
         }
 
-        const emailResult = await sendEmail(recipientEmail, notification.title, notification.message);
+        const emailResult = await sendEmail(
+          recipientEmail,
+          notification.title,
+          notification.message,
+        );
         if (emailResult.ok) {
           await markDelivery(supabase, delivery.id, {
             status: 'sent',
@@ -787,20 +815,10 @@ serve(async req => {
         continue;
       }
 
+      // sms_opt_in is optional: use it only when fully verified; otherwise use notification_preferences
       const optIn = smsOptInByUser.get(userId);
-      let smsPhone = prefs.sms_phone_number || null;
-      if (optIn) {
-        if (!optIn.opted_in || !optIn.verified) {
-          await markDelivery(supabase, delivery.id, {
-            status: 'skipped',
-            error: 'sms_opt_in_required',
-            attempts: delivery.attempts + 1,
-          });
-          summary.skipped.sms++;
-          continue;
-        }
-        smsPhone = optIn.phone_e164;
-      }
+      const smsPhone =
+        optIn?.opted_in && optIn?.verified ? optIn.phone_e164 : prefs.sms_phone_number || null;
 
       if (!smsPhone) {
         await markDelivery(supabase, delivery.id, {
@@ -812,18 +830,25 @@ serve(async req => {
         continue;
       }
 
-      // Check daily rate limit (10 per day)
+      // Check daily rate limit via RPC (handles DB reset on new day)
       const SMS_DAILY_LIMIT = 10;
-      const today = new Date().toISOString().split('T')[0];
-      const lastReset = prefs.last_sms_reset_date || '1970-01-01';
+      const { data: rateLimitRows, error: rateLimitErr } = await supabase.rpc(
+        'check_sms_rate_limit',
+        {
+          p_user_id: userId,
+          p_daily_limit: SMS_DAILY_LIMIT,
+        },
+      );
 
-      // Reset count if it's a new day
-      if (lastReset < today) {
-        prefs.sms_sent_today = 0;
-        prefs.last_sms_reset_date = today;
+      const rateLimit =
+        Array.isArray(rateLimitRows) && rateLimitRows.length > 0 ? rateLimitRows[0] : null;
+      const allowed = rateLimit?.allowed ?? true;
+
+      if (rateLimitErr) {
+        console.error('[dispatch] Rate limit check failed:', rateLimitErr);
       }
 
-      if ((prefs.sms_sent_today || 0) >= SMS_DAILY_LIMIT) {
+      if (!allowed) {
         await markDelivery(supabase, delivery.id, {
           status: 'skipped',
           error: 'rate_limited',
@@ -836,7 +861,7 @@ serve(async req => {
           title: notification.title,
           body: notification.message,
           status: 'skipped',
-          error: `Daily limit of ${SMS_DAILY_LIMIT} SMS reached`,
+          error: `Daily limit of ${SMS_DAILY_LIMIT} SMS reached. Resets at ${rateLimit?.reset_at ?? 'midnight'}`,
         });
         continue;
       }
@@ -853,7 +878,9 @@ serve(async req => {
         continue;
       }
 
-      const tripName = notification.trip_id ? tripById.get(notification.trip_id)?.name || 'your trip' : 'your trip';
+      const tripName = notification.trip_id
+        ? tripById.get(notification.trip_id)?.name || 'your trip'
+        : 'your trip';
       const actorUserId = getActorUserId(metadata);
       const senderName =
         (typeof metadata.sender_name === 'string' && metadata.sender_name) ||
@@ -862,7 +889,13 @@ serve(async req => {
 
       const smsMessage = generateSmsMessage(
         category as Parameters<typeof generateSmsMessage>[0],
-        buildSmsTemplateData(notification, category, tripName, senderName, prefs.timezone || 'America/Los_Angeles'),
+        buildSmsTemplateData(
+          notification,
+          category,
+          tripName,
+          senderName,
+          prefs.timezone || 'America/Los_Angeles',
+        ),
       );
 
       const smsResult = await sendSms(smsPhone, smsMessage);

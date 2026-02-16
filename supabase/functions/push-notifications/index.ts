@@ -44,7 +44,8 @@ async function isSmsEntitled(userId: string): Promise<boolean> {
   if (!entitlement) return false;
   if (!['active', 'trialing'].includes((entitlement.status || '').toLowerCase())) return false;
   if (!SMS_ENTITLED_PLANS.has((entitlement.plan || '').toLowerCase())) return false;
-  if (entitlement.current_period_end && new Date(entitlement.current_period_end) <= new Date()) return false;
+  if (entitlement.current_period_end && new Date(entitlement.current_period_end) <= new Date())
+    return false;
 
   return true;
 }
@@ -315,18 +316,11 @@ async function sendSMSNotification(
     );
   }
 
-  if (smsOptIn && (!smsOptIn.opted_in || !smsOptIn.verified)) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: 'sms_opt_in_required',
-        message: 'SMS opt-in and verification required',
-      }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
-  }
-
-  const targetPhone = smsOptIn?.phone_e164 || prefs?.sms_phone_number || phoneNumber;
+  // sms_opt_in is optional: use it only when fully verified; otherwise fall back to notification_preferences
+  const targetPhone =
+    smsOptIn?.opted_in && smsOptIn?.verified
+      ? smsOptIn.phone_e164
+      : prefs?.sms_phone_number || phoneNumber;
   if (!targetPhone) {
     return new Response(
       JSON.stringify({
@@ -477,10 +471,7 @@ async function savePushToken(
   });
 }
 
-async function removePushToken(
-  { userId, token }: any,
-  corsHeaders: Record<string, string>,
-) {
+async function removePushToken({ userId, token }: any, corsHeaders: Record<string, string>) {
   const { error } = await supabase
     .from('push_tokens')
     .delete()
