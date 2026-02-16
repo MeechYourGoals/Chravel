@@ -233,13 +233,14 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
     try {
       if (eventsToInsert.length > 0) {
-        // 30-second timeout to prevent infinite hang
+        // Dynamic timeout: 30s base + 1s per event beyond 10, capped at 120s
+        const timeoutMs = Math.min(30000 + Math.max(0, eventsToInsert.length - 10) * 1000, 120000);
         const importPromise = calendarService.bulkCreateEvents(eventsToInsert, (completed, total) => {
           setImportingProgress({ completed, total });
         });
         
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Import timed out after 30 seconds')), 30000);
+          setTimeout(() => reject(new Error(`Import timed out after ${Math.round(timeoutMs / 1000)} seconds`)), timeoutMs);
         });
 
         const result = await Promise.race([importPromise, timeoutPromise]);
