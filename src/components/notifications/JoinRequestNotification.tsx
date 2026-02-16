@@ -26,7 +26,12 @@ interface JoinRequestNotificationProps {
   isDemoMode?: boolean;
 }
 
-export const JoinRequestNotification = ({ notification, onAction, onNavigate, isDemoMode }: JoinRequestNotificationProps) => {
+export const JoinRequestNotification = ({
+  notification,
+  onAction,
+  onNavigate,
+  isDemoMode,
+}: JoinRequestNotificationProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -46,45 +51,60 @@ export const JoinRequestNotification = ({ notification, onAction, onNavigate, is
 
   const handleApprove = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // Demo mode - just show toast and remove notification
     if (isDemoMode) {
       toast({
-        title: "Request Approved",
+        title: 'Request Approved',
         description: `${notification.data?.requester_name || 'User'} has been added to ${notification.data?.trip_name || 'the trip'}.`,
       });
       onAction();
       return;
     }
-    
+
     if (!notification.data?.request_id) return;
 
     setIsProcessing(true);
     try {
       const { data, error } = await supabase.rpc('approve_join_request', {
-        _request_id: notification.data.request_id
+        _request_id: notification.data.request_id,
       });
 
       if (error) throw error;
 
-      // Mark notification as read
-      await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notification.id);
+      const result = data as { success: boolean; message?: string; cleaned_up?: boolean } | null;
+      if (!result?.success) {
+        toast({
+          title: 'Error',
+          description: result?.message || 'Request no longer valid.',
+          variant: 'destructive',
+        });
+        onAction();
+        return;
+      }
 
-      toast({
-        title: "Request Approved",
-        description: `${notification.data.requester_name || 'User'} has been added to ${notification.data.trip_name || 'the trip'}.`,
-      });
+      // Mark notification as read
+      await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
+
+      if (result.cleaned_up) {
+        toast({
+          title: 'Info',
+          description: result.message || 'Request was removed.',
+        });
+      } else {
+        toast({
+          title: 'Request Approved',
+          description: `${notification.data.requester_name || 'User'} has been added to ${notification.data.trip_name || 'the trip'}.`,
+        });
+      }
 
       onAction();
     } catch (error) {
       console.error('Error approving request:', error);
       toast({
-        title: "Error",
-        description: "Failed to approve request. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to approve request. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsProcessing(false);
@@ -93,45 +113,60 @@ export const JoinRequestNotification = ({ notification, onAction, onNavigate, is
 
   const handleReject = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // Demo mode - just show toast and remove notification
     if (isDemoMode) {
       toast({
-        title: "Request Rejected",
-        description: "Join request has been declined.",
+        title: 'Request Rejected',
+        description: 'Join request has been declined.',
       });
       onAction();
       return;
     }
-    
+
     if (!notification.data?.request_id) return;
 
     setIsProcessing(true);
     try {
       const { data, error } = await supabase.rpc('reject_join_request', {
-        _request_id: notification.data.request_id
+        _request_id: notification.data.request_id,
       });
 
       if (error) throw error;
 
-      // Mark notification as read
-      await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notification.id);
+      const result = data as { success: boolean; message?: string; cleaned_up?: boolean } | null;
+      if (!result?.success) {
+        toast({
+          title: 'Error',
+          description: result?.message || 'Failed to reject request.',
+          variant: 'destructive',
+        });
+        onAction();
+        return;
+      }
 
-      toast({
-        title: "Request Rejected",
-        description: `Join request has been declined.`,
-      });
+      // Mark notification as read
+      await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
+
+      if (result.cleaned_up) {
+        toast({
+          title: 'Info',
+          description: result.message || 'Request was removed.',
+        });
+      } else {
+        toast({
+          title: 'Request Rejected',
+          description: 'Join request has been declined.',
+        });
+      }
 
       onAction();
     } catch (error) {
       console.error('Error rejecting request:', error);
       toast({
-        title: "Error",
-        description: "Failed to reject request. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to reject request. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsProcessing(false);
@@ -149,16 +184,14 @@ export const JoinRequestNotification = ({ notification, onAction, onNavigate, is
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <p className={`text-sm font-medium ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}>
+            <p
+              className={`text-sm font-medium ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}
+            >
               {notification.title}
             </p>
-            {!notification.isRead && (
-              <div className="w-2 h-2 bg-glass-orange rounded-full"></div>
-            )}
+            {!notification.isRead && <div className="w-2 h-2 bg-glass-orange rounded-full"></div>}
           </div>
-          <p className="text-xs text-gray-400 mb-2">
-            {notification.description}
-          </p>
+          <p className="text-xs text-gray-400 mb-2">{notification.description}</p>
           <div className="flex items-center gap-2 mb-2">
             <Button
               size="sm"
