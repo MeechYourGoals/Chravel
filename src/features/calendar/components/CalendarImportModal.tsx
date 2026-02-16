@@ -134,7 +134,12 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
   // Load external pending result (from background import) when modal opens
   React.useEffect(() => {
-    if (isOpen && externalPendingResult && externalPendingResult.isValid && externalPendingResult.events.length > 0) {
+    if (
+      isOpen &&
+      externalPendingResult &&
+      externalPendingResult.isValid &&
+      externalPendingResult.events.length > 0
+    ) {
       processParseResult(externalPendingResult);
     }
   }, [isOpen, externalPendingResult, processParseResult]);
@@ -233,23 +238,17 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
     try {
       if (eventsToInsert.length > 0) {
-        // Dynamic timeout: 30s base + 1s per event beyond 10, capped at 120s
-        const timeoutMs = Math.min(30000 + Math.max(0, eventsToInsert.length - 10) * 1000, 120000);
-        const importPromise = calendarService.bulkCreateEvents(eventsToInsert, (completed, total) => {
-          setImportingProgress({ completed, total });
-        });
-        
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error(`Import timed out after ${Math.round(timeoutMs / 1000)} seconds`)), timeoutMs);
-        });
-
-        const result = await Promise.race([importPromise, timeoutPromise]);
+        const result = await calendarService.bulkCreateEvents(
+          eventsToInsert,
+          (completed, total) => {
+            setImportingProgress({ completed, total });
+          },
+        );
         imported = result.imported;
         failed = result.failed;
       }
     } catch (error) {
       console.error('Bulk import failed:', error);
-      // On timeout or error, report whatever progress we had
       failed = eventsToInsert.length - imported;
     }
 
