@@ -72,7 +72,8 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
             return {
               ...request,
               profiles: {
-                display_name: profile.resolved_display_name || profile.display_name || 'Former Member',
+                display_name:
+                  profile.resolved_display_name || profile.display_name || 'Former Member',
                 avatar_url: profile.avatar_url || null,
               },
             };
@@ -94,21 +95,21 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
   const handleApprove = async (requestId: string) => {
     setProcessing(requestId);
     try {
-      const { data, error } = await supabase.functions.invoke('approve-join-request', {
-        body: { requestId, action: 'approve' },
+      const { data, error } = await supabase.rpc('approve_join_request', {
+        _request_id: requestId,
       });
 
       if (error) throw error;
 
-      if (data.success) {
-        toast.success(data.message);
+      const result = data as { success: boolean; message: string; cleaned_up?: boolean } | null;
+      if (result?.success) {
+        toast.success(result.message);
         setRequests(prev => prev.filter(r => r.id !== requestId));
-      } else if (data.cleaned_up) {
-        // Orphaned request was automatically cleaned up
-        toast.info(data.message || 'This request is no longer valid');
+      } else if (result?.cleaned_up) {
+        toast.info(result.message || 'This request is no longer valid');
         setRequests(prev => prev.filter(r => r.id !== requestId));
       } else {
-        toast.error(data.message);
+        toast.error(result?.message || 'Failed to approve request');
       }
     } catch (error) {
       console.error('Error approving request:', error);
@@ -121,21 +122,22 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
   const handleReject = async (requestId: string) => {
     setProcessing(requestId);
     try {
-      const { data, error } = await supabase.functions.invoke('approve-join-request', {
-        body: { requestId, action: 'reject' },
+      const { data, error } = await supabase.rpc('reject_join_request', {
+        _request_id: requestId,
       });
 
       if (error) throw error;
 
-      if (data.success) {
-        toast.success(data.message);
-        setRequests(prev => prev.filter(r => r.id !== requestId));
-      } else if (data.cleaned_up) {
-        // Orphaned request was automatically cleaned up
-        toast.info(data.message || 'Invalid request removed');
+      const result = data as { success: boolean; message: string; cleaned_up?: boolean } | null;
+      if (result?.success) {
+        if (result.cleaned_up) {
+          toast.info(result.message || 'Invalid request removed');
+        } else {
+          toast.success('Request rejected');
+        }
         setRequests(prev => prev.filter(r => r.id !== requestId));
       } else {
-        toast.error(data.message);
+        toast.error(result?.message || 'Failed to reject request');
       }
     } catch (error) {
       console.error('Error rejecting request:', error);

@@ -255,7 +255,7 @@ export const useInviteLink = ({
     // Deactivate old invite if it exists (only for real invites)
     if (inviteLink && !isDemoMode) {
       try {
-        const oldCode = inviteLink.split('/join/')[1]?.split('?')[0];
+        const oldCode = inviteLink.split('/j/')[1]?.split('?')[0];
         if (oldCode && !oldCode.startsWith('demo-')) {
           await supabase.from('trip_invites').update({ is_active: false }).eq('code', oldCode);
         }

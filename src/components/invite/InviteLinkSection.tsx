@@ -23,7 +23,7 @@ export const InviteLinkSection = ({
   tripName,
 }: InviteLinkSectionProps) => {
   const [isSharing, setIsSharing] = useState(false);
-  const isDemoLink = inviteLink?.includes('/join/demo-');
+  const isDemoLink = inviteLink?.includes('/j/demo-');
 
   // Check if native share is available (iOS, Android, some desktop browsers)
   const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
@@ -78,12 +78,12 @@ export const InviteLinkSection = ({
           {copied ? <Check size={16} /> : <Copy size={16} />}
           <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
         </button>
-        
+
         {/* Link display - center */}
         <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-gray-300 text-sm font-mono truncate">
           {loading ? 'Generating invite link...' : inviteLink || 'Failed to generate link'}
         </div>
-        
+
         {/* Share button - last */}
         {canNativeShare && (
           <button
