@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { TRIP_CARD_ACTION_BUTTON_PRO_EVENT } from '../lib/tabParity';
 
 // Stable empty array reference - prevents infinite re-renders from Zustand selector
 const EMPTY_PARTICIPANTS: Array<{id: number | string; name: string; avatar?: string}> = [];
@@ -345,13 +346,12 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
           </div>
         </div>
 
-        {/* CTA Grid 2x2 - Matches TripCard order: Recap/Invite top, View/Share bottom */}
+        {/* CTA Grid 2x2 - Recap/Invite top, View/Share bottom. All four match for demo + auth parity. */}
         <div className="grid grid-cols-2 gap-2 md:gap-3">
-          {/* Top Row: Recap + Invite */}
           <Button
             onClick={() => setShowExportModal(true)}
             variant="ghost"
-            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm h-auto"
+            className={`${TRIP_CARD_ACTION_BUTTON_PRO_EVENT} h-auto`}
           >
             <FileDown size={14} className="mr-1.5" />
             Recap
@@ -359,25 +359,22 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
           <Button
             onClick={() => setShowInviteModal(true)}
             variant="ghost"
-            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm h-auto"
+            className={`${TRIP_CARD_ACTION_BUTTON_PRO_EVENT} h-auto`}
           >
             <UserPlus size={14} className="mr-1.5" />
             Invite
           </Button>
-          
-          {/* Bottom Row: View + Share */}
-          {/* View button uses neutral dark style (NOT yellow like Regular TripCard) */}
           <Button
             onClick={handleViewTrip}
             variant="ghost"
-            className="bg-black/30 hover:bg-black/40 text-white font-medium py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 text-xs md:text-sm h-auto border border-white/20 hover:border-white/30"
+            className={`${TRIP_CARD_ACTION_BUTTON_PRO_EVENT} h-auto`}
           >
             View
           </Button>
           <Button
             onClick={() => setShowShareModal(true)}
             variant="ghost"
-            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm h-auto"
+            className={`${TRIP_CARD_ACTION_BUTTON_PRO_EVENT} h-auto`}
           >
             <Share2 size={14} className="mr-1.5" />
             Share
