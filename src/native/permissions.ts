@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import * as NativePush from '@/native/push';
 
-export type PermissionId = 'notifications' | 'photos_files' | 'location' | 'microphone';
+export type PermissionId = 'notifications' | 'location' | 'microphone' | 'camera';
 
 export type PermissionState =
   | 'granted'
@@ -123,51 +123,33 @@ export async function openAppSettings(): Promise<boolean> {
   }
 }
 
-/**
- * Best-effort file picker to trigger iOS Photos/Files access.
- * Note: iOS decides whether/when to show a prompt; we do not (and cannot) pre-grant this.
- */
-export async function openPhotosOrFilesPicker(options?: {
-  accept?: string;
-  multiple?: boolean;
-}): Promise<boolean> {
-  return new Promise(resolve => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = options?.accept ?? '*/*';
-    input.multiple = options?.multiple ?? false;
-    input.style.position = 'fixed';
-    input.style.opacity = '0';
-    input.style.pointerEvents = 'none';
+async function queryCameraPermission(): Promise<PermissionState> {
+  const permissions = (navigator as unknown as { permissions?: Permissions }).permissions;
+  if (!permissions?.query) return 'unknown';
 
-    let resolved = false;
-    const cleanup = () => {
-      input.remove();
-      window.removeEventListener('focus', onFocus);
-    };
+  try {
+    const result = await permissions.query({ name: 'camera' as PermissionName });
+    return normalizePermissionState(result.state);
+  } catch {
+    return 'unknown';
+  }
+}
 
-    const finish = (value: boolean) => {
-      if (resolved) return;
-      resolved = true;
-      cleanup();
-      resolve(value);
-    };
+async function requestCameraPermission(): Promise<PermissionState> {
+  const mediaDevices = navigator.mediaDevices;
+  if (!mediaDevices?.getUserMedia) return 'unavailable';
 
-    const onFocus = () => {
-      // If user cancels the picker, many browsers only restore focus without firing `change`.
-      // Give the browser a tick to populate `files` if it will.
-      window.setTimeout(() => {
-        if (resolved) return;
-        finish(Boolean(input.files && input.files.length > 0));
-      }, 300);
-    };
-
-    input.addEventListener('change', () => finish(Boolean(input.files && input.files.length > 0)));
-    window.addEventListener('focus', onFocus, { once: false });
-
-    document.body.appendChild(input);
-    input.click();
-  });
+  try {
+    const stream = await mediaDevices.getUserMedia({ video: true });
+    stream.getTracks().forEach(track => track.stop());
+    return 'granted';
+  } catch (error) {
+    if (error instanceof DOMException) {
+      if (error.name === 'NotAllowedError' || error.name === 'SecurityError') return 'denied';
+      if (error.name === 'NotFoundError') return 'unavailable';
+    }
+    return 'unknown';
+  }
 }
 
 export async function getPermissionStatus(id: PermissionId): Promise<PermissionStatus> {
@@ -201,21 +183,21 @@ export async function getPermissionStatus(id: PermissionId): Promise<PermissionS
         canRequest: state === 'prompt' || state === 'unknown',
         canOpenSettings: state === 'denied' && isIOSNative(),
         detail:
-          state === 'unknown'
-            ? 'iOS may only reveal status after the first request.'
-            : undefined,
+          state === 'unknown' ? 'iOS may only reveal status after the first request.' : undefined,
       };
     }
 
-    case 'photos_files': {
-      // Browsers/iOS do not reliably expose a “Photos/Files permission” state.
-      // Access is requested at the moment a user selects a file.
+    case 'camera': {
+      const state = await queryCameraPermission();
       return {
         id,
-        state: 'unknown',
-        canRequest: true,
-        canOpenSettings: isIOSNative(),
-        detail: 'Requested only when you upload a photo, video, or document.',
+        state,
+        canRequest: state === 'prompt' || state === 'unknown',
+        canOpenSettings: state === 'denied' && isIOSNative(),
+        detail:
+          state === 'unknown'
+            ? 'Camera status may only be available after your first use.'
+            : undefined,
       };
     }
 
@@ -254,10 +236,8 @@ export async function requestPermission(id: PermissionId): Promise<PermissionSta
     case 'location': {
       return requestGeolocationPermission();
     }
-    case 'photos_files': {
-      // There is no standalone permission request; opening the picker is the JIT trigger.
-      const selected = await openPhotosOrFilesPicker({ multiple: false });
-      return selected ? 'granted' : 'unknown';
+    case 'camera': {
+      return requestCameraPermission();
     }
     case 'microphone': {
       return requestMicrophonePermission();
@@ -268,4 +248,3 @@ export async function requestPermission(id: PermissionId): Promise<PermissionSta
     }
   }
 }
-
