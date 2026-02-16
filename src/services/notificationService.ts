@@ -582,8 +582,12 @@ export class NotificationService {
 
   /**
    * Send SMS notification via Edge Function
+   * @returns { success, errorMessage? } for UI to surface specific failure reasons
    */
-  async sendSMSNotification(userId: string, message: string): Promise<boolean> {
+  async sendSMSNotification(
+    userId: string,
+    message: string,
+  ): Promise<{ success: boolean; errorMessage?: string }> {
     try {
       const { data, error } = await supabase.functions.invoke('push-notifications', {
         body: {
@@ -593,18 +597,46 @@ export class NotificationService {
         },
       });
 
+      const result = (data ?? {}) as { success?: boolean; error?: string; message?: string };
+
       if (error) {
-        console.error('[NotificationService] Error sending SMS:', error);
-        return false;
+        if (import.meta.env.DEV) {
+          console.error('[NotificationService] SMS error:', error);
+        }
+        let errorMessage = (error as { message?: string }).message || 'Request failed';
+        // Prefer message from response body (data sometimes populated on 4xx)
+        if (result?.message) errorMessage = result.message;
+        else if (result?.error) errorMessage = result.error;
+        else {
+          try {
+            const ctx = (
+              error as { context?: { json?: () => Promise<{ message?: string; error?: string }> } }
+            ).context;
+            if (ctx?.json && typeof ctx.json === 'function') {
+              const body = await ctx.json();
+              if (body?.message) errorMessage = body.message;
+              else if (body?.error) errorMessage = body.error;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        return { success: false, errorMessage };
       }
-      // Handle explicit success: false in response (e.g. rate_limited, sms_disabled)
-      const result = data as { success?: boolean; error?: string } | null;
-      return result?.success !== false;
+
+      if (result.success === false) {
+        return {
+          success: false,
+          errorMessage: result.message || result.error || 'SMS delivery failed',
+        };
+      }
+      return { success: true };
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[NotificationService] Error sending SMS notification:', error);
       }
-      return false;
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, errorMessage: msg };
     }
   }
 

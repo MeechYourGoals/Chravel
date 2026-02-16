@@ -20,13 +20,26 @@ const SMS_ENTITLED_PLANS = new Set([
   'pro-enterprise',
 ]);
 
-async function isSmsEntitled(userId: string): Promise<boolean> {
-  // Super-admin / enterprise admin bypass via role
+// Founder/super-admin emails — bypass SMS entitlement (matches client SUPER_ADMIN_EMAILS)
+// Env SUPER_ADMIN_EMAILS can extend: "email1@x.com,email2@x.com"
+const _envAdmins = (Deno.env.get('SUPER_ADMIN_EMAILS') || '')
+  .split(',')
+  .map((e: string) => e.trim().toLowerCase())
+  .filter(Boolean);
+const SUPER_ADMIN_EMAILS = new Set(['ccamechi@gmail.com', ..._envAdmins]);
+
+async function isSmsEntitled(userId: string, userEmail?: string): Promise<boolean> {
+  // Super-admin email allowlist bypass (matches is_super_admin() and client)
+  if (userEmail && SUPER_ADMIN_EMAILS.has(userEmail.toLowerCase())) {
+    return true;
+  }
+
+  // Super-admin / enterprise admin bypass via role (enterprise_admin always in enum)
   const { data: adminRole } = await supabase
     .from('user_roles')
     .select('role')
     .eq('user_id', userId)
-    .in('role', ['enterprise_admin', 'super_admin'])
+    .in('role', ['enterprise_admin'])
     .maybeSingle();
 
   if (adminRole) {
@@ -77,11 +90,22 @@ serve(async req => {
       });
     }
     const authenticatedUserId = userData.user.id;
+    const userEmail = (userData.user.email || '').toLowerCase();
 
-    const { action, ...payload } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const action = body?.action;
 
-    // Override userId in payload with authenticated user ID from JWT
-    const securePayload = { ...payload, userId: authenticatedUserId };
+    if (!action) {
+      return new Response(
+        JSON.stringify({ error: 'Missing action', message: 'Request body must include action' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const { action: _action, ...payload } = body;
+
+    // Override userId and email in payload with authenticated user from JWT
+    const securePayload = { ...payload, userId: authenticatedUserId, userEmail };
 
     switch (action) {
       case 'send_push':
@@ -226,21 +250,17 @@ async function sendEmailNotification(
 }
 
 async function sendSMSNotification(
-  {
-    userId,
-    phoneNumber,
-    message,
-    category,
-    templateData,
-  }: {
+  payload: {
     userId: string;
-    phoneNumber: string;
+    userEmail?: string;
+    phoneNumber?: string;
     message?: string;
     category?: string;
     templateData?: SmsTemplateData;
   },
   corsHeaders: Record<string, string>,
 ) {
+  const { userId, userEmail, phoneNumber, message, category, templateData } = payload;
   const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
   const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
   const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
@@ -263,7 +283,7 @@ async function sendSMSNotification(
   }
 
   // Enforce premium gating on the server.
-  const entitled = await isSmsEntitled(userId);
+  const entitled = await isSmsEntitled(userId, userEmail);
   if (!entitled) {
     await supabase
       .from('notification_preferences')
