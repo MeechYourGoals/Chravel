@@ -106,13 +106,15 @@ const LovableConciergeSchema = z.object({
 });
 
 const TRIP_SCOPED_QUERY_PATTERN =
-  /\b(trip|itinerary|schedule|calendar|event|dinner|lunch|breakfast|reservation|basecamp|hotel|flight|task|todo|payment|owe|expense|poll|vote|chat|message|broadcast|address|meeting|check[- ]?in|check[- ]?out|plan|agenda|logistics)\b/i;
+  /\b(trip|itinerary|schedule|calendar|event|dinner|lunch|breakfast|reservation|basecamp|hotel|flight|task|todo|payment|owe|expense|poll|vote|chat|message|broadcast|address|meeting|check[- ]?in|check[- ]?out|plan|agenda|logistics|team|member|members|channel|channels|role|roles|who's on|who is on|group|organizer|admin)\b/i;
 
 const ARTIFACT_QUERY_PATTERN =
   /\b(upload|uploaded|document|documents|doc|docs|pdf|file|files|attachment|attachments|link|links|receipt|receipts|invoice|invoices|image|images|photo|photos|media|transcript|note|notes|summary|summarize|summarise)\b/i;
 
+// Expand with common sports, entertainment, and general knowledge terms to skip
+// context-building for obvious non-trip queries, speeding up response time.
 const CLEARLY_GENERAL_QUERY_PATTERN =
-  /\b(nba|nfl|mlb|nhl|premier league|fifa|stock market|bitcoin|ethereum|crypto price|leetcode|algorithm interview|capital of|define |what is photosynthesis|solve for x)\b/i;
+  /\b(nba|nfl|mlb|nhl|mls|nascar|premier league|la liga|serie a|bundesliga|ligue 1|champions league|fifa|super bowl|world cup|oscars|grammys|emmys|golden globes|box office|stock market|s&p|nasdaq|dow jones|bitcoin|ethereum|crypto price|exchange rate|leetcode|algorithm interview|capital of|define |what is photosynthesis|solve for x|who invented|when was .+ born|history of|population of|how to cook|recipe for|calories in|translate)\b/i;
 
 function shouldRunRAGRetrieval(query: string, tripId: string): boolean {
   if (!tripId || tripId === 'unknown') return false;
@@ -670,8 +672,17 @@ serve(async req => {
       console.log('[Context] General web query detected — skipping trip context for speed');
     }
 
-    // Fire all independent queries at once
-    const [membershipResult, planResolution, contextResult, ragResult, privacyResult] =
+    // Resolve usage plan first so we can gate preferences in buildContext.
+    // Plan resolution is fast (~20-50 ms) and keeps all subsequent fetches clean.
+    const planResolution = await (
+      !serverDemoMode && user
+        ? resolveUsagePlanForUser(supabase, user.id)
+        : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 5 })
+    );
+    const isPaidUser = planResolution.usagePlan !== 'free';
+
+    // Fire remaining independent queries at once
+    const [membershipResult, contextResult, ragResult, privacyResult] =
       await Promise.all([
         // 1. Trip membership check
         hasTripId && !serverDemoMode && user
@@ -683,14 +694,9 @@ serve(async req => {
               .maybeSingle()
           : Promise.resolve({ data: { user_id: 'skip' }, error: null }),
 
-        // 2. Usage plan resolution
-        !serverDemoMode && user
-          ? resolveUsagePlanForUser(supabase, user.id)
-          : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 5 }),
-
-        // 3. Trip context building (heaviest — ~2-5 s). Skip for general web queries.
+        // 2. Trip context building (heaviest — ~100-300 ms). Skip for general web queries.
         hasTripId && !tripContext && tripRelated
-          ? TripContextBuilder.buildContext(tripId, user?.id, authHeader).catch(error => {
+          ? TripContextBuilder.buildContext(tripId, user?.id, authHeader, isPaidUser).catch(error => {
               console.error('Failed to build comprehensive context:', error);
               return null;
             })
@@ -872,14 +878,23 @@ serve(async req => {
     // Determine if chain-of-thought is needed
     const useChainOfThought = requiresChainOfThought(message, complexity);
 
-    // Build context-aware system prompt. For general web queries, use minimal prompt for speed.
+    // Build context-aware system prompt. For general web queries, use a lean prompt for speed
+    // but still include full formatting instructions so responses are rich and link-heavy.
     let baseSystemPrompt: string;
     if (!tripRelated || !comprehensiveContext) {
-      baseSystemPrompt = `You are Chravel Concierge, a helpful AI travel assistant.
+      baseSystemPrompt = `You are **Chravel Concierge**, a helpful AI travel and general assistant.
 Current date: ${new Date().toISOString().split('T')[0]}
 
-Answer the user's question concisely. Use web search for real-time info (weather, scores, tour dates, etc.).
-Be conversational and helpful. Use markdown for formatting.`;
+Answer the user's question accurately. Use web search for real-time info (weather, scores, events, tour dates, news, etc.).
+
+**Formatting rules (always follow):**
+- Use markdown for all responses — headers, bullet points, bold, italics as appropriate
+- Format ALL links as clickable markdown: [Title](https://url.com)
+- For places, restaurants, events or attractions always include a link: [Place Name](https://www.google.com/maps/search/Place+Name)
+- Use **bold** for key names, dates, and important facts
+- Use bullet points (-) for lists; numbered lists for ranked items or steps
+- Keep responses concise but information-rich — quality over quantity
+- When citing sources from web search, reference them naturally in-text as hyperlinks`;
     } else {
       baseSystemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext;
     }
@@ -957,14 +972,6 @@ Be conversational and helpful. Use markdown for formatting.`;
       .toLowerCase()
       .match(
         /\b(where|restaurant|hotel|cafe|bar|attraction|place|location|near|around|close|best|find|suggest|recommend|visit|directions|route|food|eat|drink|stay|sushi|pizza|beach|museum|park)\b/i,
-      );
-
-    // Smart grounding detection - real-time info queries and event/knowledge queries
-    // Includes tour/upcoming for artist/event queries (e.g. "Becky Robinson's tour dates")
-    const isRealtimeQuery = message
-      .toLowerCase()
-      .match(
-        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel|festival|concert|music week|lineup|conference|expo|convention|marathon|parade|tournament|championship|season|tickets|sold out|tour|upcoming|tour dates|when is|what is .+ week|how many)\b/i,
       );
 
     const tripBasecamp = comprehensiveContext?.places?.tripBasecamp;
@@ -1060,20 +1067,18 @@ Be conversational and helpful. Use markdown for formatting.`;
     ];
 
     // ========== BUILD GEMINI TOOLS ==========
-    // General web queries: Google Search only (no function tools) for speed
-    // Trip-related queries: full tools + Google Search when real-time
+    // Google Search is enabled for ALL queries — Gemini decides when to use it.
+    // This mirrors the voice session setup which always includes both tools.
+    // Trip-related queries additionally get function declarations for trip actions
+    // (addToCalendar, createTask, createPoll, searchPlaces, getPaymentSummary).
     const geminiTools: any[] = tripRelated
-      ? isRealtimeQuery
-        ? [{ functionDeclarations }, { googleSearch: {} }]
-        : [{ functionDeclarations }]
+      ? [{ functionDeclarations }, { googleSearch: {} }]
       : [{ googleSearch: {} }];
 
-    if (!tripRelated || isRealtimeQuery) {
-      console.log(
-        '[Grounding] Enabling Google Search',
-        tripRelated ? 'for real-time query' : 'for general web query',
-      );
-    }
+    console.log(
+      '[Grounding] Google Search enabled',
+      tripRelated ? 'alongside trip function declarations' : 'for general web query',
+    );
 
     // ========== CALL GEMINI API DIRECTLY ==========
     // Convert OpenAI-format messages to Gemini format

@@ -19,7 +19,7 @@ export interface GroundingCitation {
   title: string;
   url: string;
   snippet: string;
-  source: 'google_maps_grounding' | 'web' | 'other';
+  source: 'google_search_grounding' | 'google_maps_grounding' | 'web' | 'other';
   // 🆕 Enhanced fields for rich citation display
   coordinates?: { lat: number; lng: number };
   placeType?: string; // 'restaurant', 'hotel', 'attraction', etc.
