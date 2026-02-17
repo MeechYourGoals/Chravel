@@ -347,7 +347,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     if (usage.limit === null) {
       return {
         status: 'ok',
-        message: 'Unlimited queries',
+        message: 'unlimited asks',
         color: 'text-green-500',
       };
     }
@@ -355,7 +355,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     if (usage.isLimitReached) {
       return {
         status: 'limit_reached',
-        message: `Queries: 0/${usage.limit}`,
+        message: `0/${usage.limit} Asks`,
         color: 'text-red-500',
       };
     }
@@ -363,14 +363,14 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     if ((usage.remaining ?? 0) <= 2) {
       return {
         status: 'warning',
-        message: `Queries: ${usage.remaining}/${usage.limit}`,
+        message: `${usage.remaining}/${usage.limit} Asks`,
         color: 'text-yellow-500',
       };
     }
 
     return {
       status: 'ok',
-      message: `Queries: ${usage.remaining}/${usage.limit}`,
+      message: `${usage.remaining}/${usage.limit} Asks`,
       color: 'text-green-500',
     };
   };
