@@ -1,78 +1,63 @@
 
-# Fix: Calendar URL Import Failing (33 Events "Failed")
+# Fix: Agenda Session Import Failing for 60 Sessions
 
 ## Root Cause
 
-The scrape-schedule edge function successfully scraped 33 events from the Becky Robinson tour page. The events were successfully inserted into the database (confirmed: 33 rows in `trip_events` with identical `created_at` timestamps from a single bulk insert). However, the UI reported "33 events failed to import."
+The import handler at `AgendaModal.tsx` line 877-880 loops through all 60 sessions calling `addSession` sequentially:
 
-The failure chain:
-
-1. `bulkCreateEvents` calls `supabase.from('trip_events').insert(rows).select('*')` for 33 events
-2. The `.select('*')` after a 33-row bulk insert returns empty/null data (the INSERT succeeds at the DB level, but the PostgREST response body comes back empty or the Supabase JS client interprets the response as having no data)
-3. The code checks `if (!error && data && data.length > 0)` -- this fails because `data` is null/empty despite the insert working
-4. The code falls through to sequential one-by-one inserts as a "fallback", which would create 33 DUPLICATE events
-5. Meanwhile, the 30-second timeout in CalendarImportModal fires
-6. The catch block sets `failed = 33 - 0 = 33`, showing "33 events failed to import"
-
-The events are actually in the database -- the insert worked, but the code didn't know it.
-
-## Fix (2 files)
-
-### 1. `src/services/calendarService.ts` -- Fix bulk insert success detection
-
-Change the bulk insert logic:
-- Remove `.select('*')` from the bulk insert call (it's unnecessary overhead for large batches and can return empty)
-- If the insert has no error, count it as success using the input row count
-- Only fall through to sequential if there IS an actual error
-- Add a verification query after successful insert to get the actual inserted events for caching
-
-```
-// Before (broken):
-const { data, error } = await supabase.from('trip_events').insert(rows).select('*');
-if (!error && data && data.length > 0) { ... }
-// Falls through to sequential on empty data
-
-// After (fixed):
-const { error } = await supabase.from('trip_events').insert(rows);
-if (!error) {
-  // Insert succeeded -- fetch the inserted events for caching
-  // Use a lightweight count-based approach
-  onProgress?.(rows.length, rows.length);
-  return { imported: rows.length, failed: 0, events: [] };
+```text
+for (const s of importedSessions) {
+  await addSession(s);   // <-- This is useMutation.mutateAsync
 }
-// Only fall through to sequential if there was an actual error
 ```
 
-### 2. `src/features/calendar/components/CalendarImportModal.tsx` -- Increase timeout for large batches
+**Two critical problems:**
 
-The 30-second timeout is too aggressive for 33+ events when the fallback path runs. Scale the timeout based on event count:
-- Base: 30 seconds
-- Add 1 second per event beyond 10
-- Cap at 120 seconds
+1. **`onSuccess` fires a toast for EVERY session**: The `useEventAgenda` hook (line 103) calls `toast({ title: 'Session added' })` on each successful insert. For 60 sessions, that's 60 toast notifications flooding the UI.
 
-This is a safety net -- with fix #1, the bulk insert will succeed quickly without needing the fallback.
+2. **`queryClient.invalidateQueries` fires after EVERY insert** (line 102): Each of the 60 inserts triggers a full refetch of the agenda query. This creates a cascade where insert #2 waits for refetch #1, insert #3 waits for refetch #2, etc. With 60 sessions, these compounding refetches cause the overall operation to take far too long, eventually timing out or erroring.
 
-### 3. Database cleanup -- Remove duplicate events
+3. **No progress feedback**: The `AgendaImportModal` `handleImport` function (line 202-243) treats the entire batch as pass/fail. If any single insert throws, the catch block marks ALL sessions as failed (`failed = sessionsToImport.length`). There's no incremental progress counter.
 
-The failed import attempt may have created duplicate events from the sequential fallback. Run a cleanup query to deduplicate the trip's events:
+4. **No throttle delay**: Unlike the calendar import (which has a 100ms delay between inserts), the agenda import fires inserts back-to-back with no breathing room.
 
-```sql
--- Check for and remove duplicates from the Becky Robinson trip
-DELETE FROM trip_events
-WHERE id NOT IN (
-  SELECT DISTINCT ON (title, start_time) id
-  FROM trip_events
-  WHERE trip_id = '34351d34-7375-4121-a469-03c9422dd420'
-  ORDER BY title, start_time, created_at ASC
-);
-```
+## Fix (2 files, minimal changes)
 
-(In this case, the DB shows no duplicates -- only 33 events total -- so the sequential fallback was killed by the timeout before inserting any rows.)
+### File 1: `src/hooks/useEventAgenda.ts` -- Add a bulk insert method
 
-## No Regressions
+Add a new `bulkAddSessions` method that:
+- Inserts sessions one at a time with a 100ms delay (matching calendar import pattern)
+- Suppresses per-item toasts and query invalidation during bulk operations
+- Calls `queryClient.invalidateQueries` once at the end
+- Accepts a progress callback so the UI can show a counter
+- Returns `{ imported: number; failed: number }`
 
-- The fix only changes how success is detected for bulk inserts; it does not change the insert logic itself
-- Sequential fallback still exists for actual errors (constraint violations, RLS failures)
-- Single-event creation (`createEvent`) is untouched
-- The timeout increase is proportional and still prevents infinite hangs
-- All other calendar operations (edit, delete, sync) are unaffected
+The existing `addSession` mutation stays unchanged for single-session adds.
+
+### File 2: `src/components/events/AgendaImportModal.tsx` -- Wire up progress and use bulk method
+
+- Accept a new `onBulkImportSessions` prop (or modify `onImportSessions` signature)
+- Show a progress counter during import (e.g., "Importing 12 / 60...")
+- Use the bulk method instead of looping `addSession`
+
+### File 3: `src/components/events/AgendaModal.tsx` -- Pass bulk handler
+
+- Wire the new bulk handler into the `AgendaImportModal` props
+
+Same change applies to `EnhancedAgendaTab.tsx` if it also renders the import modal.
+
+## Technical Details
+
+| File | Change |
+|------|--------|
+| `src/hooks/useEventAgenda.ts` | Add `bulkAddSessions(sessions, onProgress)` that inserts sequentially with 100ms delay, no per-item toast/invalidation, single invalidation at end |
+| `src/components/events/AgendaImportModal.tsx` | Add progress state; show "Importing X / Y..." during import; call bulk handler |
+| `src/components/events/AgendaModal.tsx` | Pass `bulkAddSessions` to the import modal |
+| `src/components/events/EnhancedAgendaTab.tsx` | Same wiring as AgendaModal |
+
+## What This Fixes
+- 60 sessions will import reliably with a visible progress counter
+- No more 60 toast spam (single summary toast at end)
+- No more 60 query refetches during import (single refetch at end)
+- 100ms throttle prevents database overload
+- Partial failure handling: if session 45 fails, sessions 1-44 are preserved
