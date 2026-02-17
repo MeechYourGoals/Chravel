@@ -92,11 +92,9 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         </div>
       )}
 
-      {/* Error state */}
+      {/* Error state - silently show empty background */}
       {hasError && (
-        <div className="absolute inset-0 bg-muted flex items-center justify-center">
-          <div className="text-muted-foreground text-sm">Failed to load image</div>
-        </div>
+        <div className="absolute inset-0 bg-transparent" />
       )}
 
       {/* Actual image */}

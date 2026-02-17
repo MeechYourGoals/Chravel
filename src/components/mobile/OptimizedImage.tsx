@@ -51,9 +51,7 @@ export const OptimizedImage = ({
 
   if (hasError) {
     return (
-      <div className={`${className} bg-white/10 flex items-center justify-center`}>
-        <span className="text-gray-500 text-sm">Failed to load image</span>
-      </div>
+      <div className={`${className} bg-transparent`} />
     );
   }
 
