@@ -531,29 +531,44 @@ const Index = () => {
     setActiveFilter(activeFilter === filter ? '' : filter);
   };
 
-  // Handle native tab bar changes (mobile only)
-  const handleTabChange = useCallback((tab: TabId) => {
-    setActiveTab(tab);
-    switch (tab) {
-      case 'trips':
-        // Show trip type switcher to let user choose My Trips/Pro/Events
-        setShowTripTypeSwitcher(true);
-        break;
-      case 'search':
-        setIsSearchOpen(true);
-        break;
-      case 'new':
-        setIsCreateModalOpen(true);
-        break;
-      case 'alerts':
-        setIsNotificationsOpen(true);
-        break;
-      case 'profile':
-        setSettingsInitialType('consumer');
-        setIsSettingsOpen(true);
-        break;
-    }
+  // Close all tab-related modals (used before opening a new one to prevent stacking)
+  const closeAllTabModals = useCallback(() => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    setIsCreateModalOpen(false);
+    setIsNotificationsOpen(false);
+    setIsSettingsOpen(false);
+    setShowTripTypeSwitcher(false);
   }, []);
+
+  // Handle native tab bar changes (mobile only)
+  // Core fix: close ALL modals first, then open the one for the selected tab
+  const handleTabChange = useCallback((tab: TabId) => {
+    closeAllTabModals();
+    setActiveTab(tab);
+    // Use setTimeout(0) so the close renders before the open,
+    // preventing stacking artifacts
+    setTimeout(() => {
+      switch (tab) {
+        case 'trips':
+          setShowTripTypeSwitcher(true);
+          break;
+        case 'search':
+          setIsSearchOpen(true);
+          break;
+        case 'new':
+          setIsCreateModalOpen(true);
+          break;
+        case 'alerts':
+          setIsNotificationsOpen(true);
+          break;
+        case 'profile':
+          setSettingsInitialType('consumer');
+          setIsSettingsOpen(true);
+          break;
+      }
+    }, 0);
+  }, [closeAllTabModals]);
 
   // Handle trip type selection from the switcher (including travelRecs)
   const handleTripTypeSelect = useCallback(
@@ -795,10 +810,11 @@ const Index = () => {
           <NativeTabBar
             activeTab={activeTab}
             onTabChange={handleTabChange}
-            onNewPress={() => setIsCreateModalOpen(true)}
+            onNewPress={() => { closeAllTabModals(); setActiveTab('new'); setTimeout(() => setIsCreateModalOpen(true), 0); }}
+            onSearchPress={() => { closeAllTabModals(); setActiveTab('search'); setTimeout(() => setIsSearchOpen(true), 0); }}
             alertsBadge={0}
             tripTypeLabel={getTripTypeForTabBar()}
-            onTripTypePress={() => setShowTripTypeSwitcher(true)}
+            onTripTypePress={() => { closeAllTabModals(); setTimeout(() => setShowTripTypeSwitcher(true), 0); }}
           />
           <NativeTabBarSpacer />
 
@@ -957,10 +973,11 @@ const Index = () => {
         <NativeTabBar
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onNewPress={() => setIsCreateModalOpen(true)}
+          onNewPress={() => { closeAllTabModals(); setActiveTab('new'); setTimeout(() => setIsCreateModalOpen(true), 0); }}
+          onSearchPress={() => { closeAllTabModals(); setActiveTab('search'); setTimeout(() => setIsSearchOpen(true), 0); }}
           alertsBadge={0}
           tripTypeLabel={getTripTypeForTabBar()}
-          onTripTypePress={() => setShowTripTypeSwitcher(true)}
+          onTripTypePress={() => { closeAllTabModals(); setTimeout(() => setShowTripTypeSwitcher(true), 0); }}
         />
         <NativeTabBarSpacer />
 
@@ -1153,10 +1170,11 @@ const Index = () => {
       <NativeTabBar
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        onNewPress={() => setIsCreateModalOpen(true)}
+        onNewPress={() => { closeAllTabModals(); setActiveTab('new'); setTimeout(() => setIsCreateModalOpen(true), 0); }}
+        onSearchPress={() => { closeAllTabModals(); setActiveTab('search'); setTimeout(() => setIsSearchOpen(true), 0); }}
         alertsBadge={0}
         tripTypeLabel={getTripTypeForTabBar()}
-        onTripTypePress={() => setShowTripTypeSwitcher(true)}
+        onTripTypePress={() => { closeAllTabModals(); setTimeout(() => setShowTripTypeSwitcher(true), 0); }}
       />
       <NativeTabBarSpacer />
 
