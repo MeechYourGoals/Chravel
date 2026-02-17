@@ -672,8 +672,17 @@ serve(async req => {
       console.log('[Context] General web query detected — skipping trip context for speed');
     }
 
-    // Fire all independent queries at once
-    const [membershipResult, planResolution, contextResult, ragResult, privacyResult] =
+    // Resolve usage plan first so we can gate preferences in buildContext.
+    // Plan resolution is fast (~20-50 ms) and keeps all subsequent fetches clean.
+    const planResolution = await (
+      !serverDemoMode && user
+        ? resolveUsagePlanForUser(supabase, user.id)
+        : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 5 })
+    );
+    const isPaidUser = planResolution.usagePlan !== 'free';
+
+    // Fire remaining independent queries at once
+    const [membershipResult, contextResult, ragResult, privacyResult] =
       await Promise.all([
         // 1. Trip membership check
         hasTripId && !serverDemoMode && user
@@ -685,14 +694,9 @@ serve(async req => {
               .maybeSingle()
           : Promise.resolve({ data: { user_id: 'skip' }, error: null }),
 
-        // 2. Usage plan resolution
-        !serverDemoMode && user
-          ? resolveUsagePlanForUser(supabase, user.id)
-          : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 5 }),
-
-        // 3. Trip context building (heaviest — ~2-5 s). Skip for general web queries.
+        // 2. Trip context building (heaviest — ~100-300 ms). Skip for general web queries.
         hasTripId && !tripContext && tripRelated
-          ? TripContextBuilder.buildContext(tripId, user?.id, authHeader).catch(error => {
+          ? TripContextBuilder.buildContext(tripId, user?.id, authHeader, isPaidUser).catch(error => {
               console.error('Failed to build comprehensive context:', error);
               return null;
             })

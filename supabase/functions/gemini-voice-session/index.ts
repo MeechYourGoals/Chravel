@@ -306,7 +306,8 @@ serve(async req => {
 
     if (tripId) {
       try {
-        const tripContext = await TripContextBuilder.buildContext(tripId, user.id, authHeader);
+        // Voice is pro-only (checked above), so always include preferences
+        const tripContext = await TripContextBuilder.buildContext(tripId, user.id, authHeader, true);
         systemInstruction = buildSystemPrompt(tripContext);
       } catch (contextError) {
         console.error(
