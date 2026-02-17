@@ -1,99 +1,60 @@
 
 
-# Fix: AI Concierge Blocked by Stale Privacy Trigger
+# Fix: AI Concierge Errors -- Unregistered Callers, Truncated Response, Empty Bubble
 
-## What's Actually Happening
+## Issues Identified
 
-The message "AI Concierge is disabled for this trip" has **nothing to do with your Gemini API key**. Your Gemini key is correctly configured and the concierge code already prioritizes it over the Lovable gateway (confirmed in secrets and edge function logic).
+### Issue 1: "Method doesn't allow unregistered callers" error
+**Root Cause:** The Gemini API is returning HTTP 403 with this error. This happens when the `GEMINI_API_KEY` doesn't have the Generative Language API enabled in Google Cloud Console, OR the key has IP/referrer restrictions that block server-side calls from Supabase Edge Functions. The error text gets truncated to 200 characters by `conciergeGateway.ts` line 147 (`errorText.substring(0, 200)`), which is why you see "Please use API Key or other form of API c" cut off.
 
-The real problem: there is a **stale database trigger** that hard-codes `ai_access_enabled = false` for every Pro and Event trip. A migration was written to fix this (migration `20260212170000`) but it was never applied to the running database.
+**Fix:** Two changes:
+1. **Backend (lovable-concierge):** When the streaming call to Gemini fails with 403 ("unregistered callers"), catch it explicitly and fall back to the Lovable gateway instead of letting the error propagate to the client. This ensures the user always gets a response.
+2. **Frontend (conciergeGateway.ts):** Stop truncating error messages at 200 chars. Show the full error or a user-friendly message instead of the raw API error text.
 
-### Current trigger (ACTIVE in DB -- broken):
-```text
-CASE WHEN NEW.trip_type IN ('pro', 'event') THEN false ELSE true END
-```
+### Issue 2: AI response cut off mid-sentence
+**Root Cause:** The client sends `maxTokens: 1024` (line 634 in `AIConciergeChat.tsx`). For a detailed query like "when are Nurse John's Europe shows", Gemini hits the 1024-token output limit and stops generating mid-sentence ("While he performed several sold"). The `finishReason` from Gemini would be `MAX_TOKENS`.
 
-### Intended trigger (in migration file -- never applied):
-```text
-COALESCE(NEW.ai_access_enabled, true)  -- always defaults to true
-```
+**Fix:** Increase `maxTokens` from `1024` to `4096` in the client request config. The edge function already accepts up to 4000 (validated at line 102), so we also increase that cap to `8192`.
 
-### Affected trips (all have ai_access_enabled = false in trip_privacy_configs):
-- **Nurse John** (pro) -- created 2026-02-09
-- **InvestFest 2026** (event) -- created 2026-02-12
-- **SXSW** (event) -- created 2026-02-17 (AFTER the migration was written)
+### Issue 3: Wrong name (John-Paul Servino vs John de la Cruz)
+**Root Cause:** This is a Gemini hallucination from Google Search grounding returning mixed results. The fix to increase output tokens helps (more room for nuance), and enabling Google Search grounding is already active. We cannot control Gemini's factual accuracy directly, but increasing the token budget and ensuring grounding is enabled gives it the best chance.
 
-## Fix (2 steps)
+### Issue 4: Empty chat bubble before AI responds
+**Root Cause:** Line 660-668 in `AIConciergeChat.tsx` creates an empty assistant message (`content: ''`) immediately. Then `isTyping` is set to `false` only when the first chunk arrives (line 676-677). But the typing dots indicator (three bouncing dots) is rendered BELOW the empty bubble (line 69-78 in `ChatMessages.tsx`). So the user sees: empty dark bubble + dots below it.
 
-### Step 1: Apply the corrected trigger function
-
-Replace the `initialize_trip_privacy_config()` function so new Pro/Event trips get `ai_access_enabled = true` by default. This is the same logic from the unapplied migration, using `COALESCE(NEW.ai_access_enabled, true)` so it respects the value from the trips table insert (which is always `true` from `CreateTripModal`).
-
-### Step 2: Backfill all affected rows
-
-Update both `trips` and `trip_privacy_configs` tables to set `ai_access_enabled = true` for the three affected trips. Since the `is_untouched` check confirmed none of these were manually disabled by an organizer, this is safe.
-
-## Gemini Key Status (Confirmed Working)
-
-| Check | Status |
-|-------|--------|
-| `GEMINI_API_KEY` in Supabase secrets | Set |
-| `AI_PROVIDER` env var | Not set (correct -- defaults to Gemini) |
-| `FORCE_LOVABLE_PROVIDER` | false (correct) |
-| Provider selection logic | Gemini first, Lovable fallback |
-| Streaming support | Uses Gemini streaming when key present |
-
-Your Gemini key with full permissions (grounding, places, distance) is correctly wired. Once the privacy gate stops blocking the request, the concierge will use your Gemini key directly for all AI responses.
+**Fix:** Don't create the empty assistant bubble until the first chunk arrives. The typing dots indicator (which already exists and works) will show alone until streaming text starts appearing.
 
 ## Technical Details
 
-### File: New migration SQL (applied via Supabase)
+### File 1: `src/components/AIConciergeChat.tsx`
 
-Replace the trigger function and backfill:
+| Line | Change |
+|------|--------|
+| 634 | Change `maxTokens: 1024` to `maxTokens: 4096` |
+| 659-668 | Remove the immediate empty bubble creation. Instead, create the bubble inside `onChunk` when the first chunk arrives. |
 
-```text
-CREATE OR REPLACE FUNCTION public.initialize_trip_privacy_config()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-BEGIN
-  INSERT INTO public.trip_privacy_configs (
-    trip_id,
-    privacy_mode,
-    ai_access_enabled,
-    created_by
-  ) VALUES (
-    NEW.id,
-    CASE
-      WHEN NEW.trip_type IN ('pro', 'event') THEN COALESCE(NEW.privacy_mode, 'high')
-      ELSE COALESCE(NEW.privacy_mode, 'standard')
-    END,
-    COALESCE(NEW.ai_access_enabled, true),
-    NEW.created_by
-  );
-  RETURN NEW;
-END;
-$function$;
+### File 2: `src/services/conciergeGateway.ts`
 
--- Backfill ALL rows where ai_access_enabled is false
-UPDATE trip_privacy_configs SET ai_access_enabled = true, updated_at = now()
-WHERE ai_access_enabled = false;
+| Line | Change |
+|------|--------|
+| 147 | Replace raw error text with a user-friendly message: "AI service temporarily unavailable. Please try again." instead of exposing raw Gemini API errors |
 
-UPDATE trips SET ai_access_enabled = true, updated_at = now()
-WHERE COALESCE(ai_access_enabled, false) = false;
-```
+### File 3: `supabase/functions/lovable-concierge/index.ts`
 
-### No code file changes needed
+| Lines | Change |
+|-------|--------|
+| 102 | Increase max validation from 4000 to 8192 |
+| 421-426 | In the streaming Gemini call error handler, detect 403 errors and attempt Lovable gateway fallback before throwing |
+| 1110 | Change default `maxTokens` fallback from 2048 to 4096 |
 
-The edge function logic (`lovable-concierge/index.ts` lines 766-781) correctly checks `trip_privacy_configs.ai_access_enabled`. Once the data is fixed, the gate passes and Gemini handles the request.
+### File 4: `src/features/chat/components/ChatMessages.tsx`
 
-## After Fix
+No changes needed. The existing typing dots indicator (lines 69-78) already works correctly with `isTyping`. Once we stop creating the empty bubble prematurely, the dots will show by themselves.
 
-- Nurse John, InvestFest 2026, and SXSW will all have AI Concierge working
-- All future Pro/Event trips will default to AI enabled (high privacy still controls encryption, not AI access)
-- Gemini key is used for all text concierge queries (streaming + non-streaming)
-- Gemini key is used for voice sessions via `gemini-voice-session`
-- Google Search grounding, Places, and distance features are all available through the Gemini key
+## What This Fixes
+
+- **No more raw API errors shown to users** -- Gemini 403 errors are caught and either retried via Lovable gateway or shown as a friendly message
+- **No more truncated responses** -- 4096 max output tokens gives Gemini enough room for detailed answers about tour dates, schedules, etc.
+- **No more empty chat bubble** -- The three-dot typing animation shows alone until the first streamed token arrives, then the bubble appears with content
+- **Error text no longer cut off** -- User-friendly error message replaces the truncated raw API error
 
