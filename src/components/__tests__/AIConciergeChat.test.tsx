@@ -55,7 +55,7 @@ vi.mock('../../hooks/useConciergeUsage', () => ({
     }),
     getUsageStatus: () => ({
       status: 'ok',
-      message: 'Queries: 5/10',
+      message: '5/10 Asks',
       color: 'text-green-500',
     }),
     incrementUsageOnSuccess: vi.fn(),
@@ -99,7 +99,7 @@ describe('AIConciergeChat', () => {
       await waitFor(() => {
         expect(screen.getByText(/private convo/i)).toBeInTheDocument();
       });
-      expect(screen.getByText(/queries:\s*5\/10/i)).toBeInTheDocument();
+      expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
     });
 
     it('removes legacy status pills from header', () => {

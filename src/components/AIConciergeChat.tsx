@@ -468,7 +468,7 @@ export const AIConciergeChat = ({
       return 'unlimited asks';
     }
 
-    return `Queries: ${usage.remaining}/${usage.limit}`;
+    return `${usage.remaining}/${usage.limit} Asks`;
   }, [usage]);
 
   const queryAllowanceTone = useMemo(() => {
@@ -487,8 +487,8 @@ export const AIConciergeChat = ({
   const showLimitReachedToast = useCallback((plan: 'free' | 'explorer') => {
     const message =
       plan === 'free'
-        ? "You've used all 5 Concierge queries for this trip."
-        : "You've used all 10 Concierge queries for this trip.";
+        ? "You've used all 5 Concierge asks for this trip."
+        : "You've used all 10 Concierge asks for this trip.";
     toast.error(message, {
       description: 'Upgrade to Frequent Chraveler for unlimited Concierge.',
     });
@@ -923,7 +923,7 @@ export const AIConciergeChat = ({
             </div>
             <h4 className="text-white font-medium mb-2">Trip Limit Reached</h4>
             <p className="text-sm text-gray-300 mb-4 max-w-sm mx-auto">
-              You've used all {usage.limit} Concierge queries for this trip.
+              You've used all {usage.limit} Concierge asks for this trip.
             </p>
             <div className="flex flex-col gap-2 max-w-xs mx-auto">
               {userPlan === 'free' && (
@@ -932,7 +932,7 @@ export const AIConciergeChat = ({
                   className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full"
                 >
                   <Crown size={16} className="mr-2" />
-                  Explorer - 10 Queries/Trip ($9.99/mo)
+                  Explorer - 10 Asks/Trip ($9.99/mo)
                 </Button>
               )}
               <Button
