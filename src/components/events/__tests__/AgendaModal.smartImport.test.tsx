@@ -20,6 +20,7 @@ vi.mock('@/hooks/useEventAgenda', () => ({
     addSession: vi.fn(),
     updateSession: vi.fn(),
     deleteSession: vi.fn(),
+    bulkAddSessions: vi.fn().mockResolvedValue({ imported: 0, failed: 0 }),
     isAdding: false,
     isUpdating: false,
   }),

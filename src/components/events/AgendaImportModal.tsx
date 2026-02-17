@@ -47,6 +47,11 @@ interface AgendaImportModalProps {
     Pick<ParsedAgendaSession, 'title' | 'session_date' | 'start_time' | 'location'>
   >;
   onImportSessions: (sessions: ParsedAgendaSession[]) => Promise<void>;
+  /** Bulk import with progress tracking — preferred for large batches */
+  onBulkImportSessions?: (
+    sessions: ParsedAgendaSession[],
+    onProgress?: (current: number, total: number) => void,
+  ) => Promise<{ imported: number; failed: number }>;
   /** Pre-loaded result from background import */
   pendingResult?: AgendaParseResult | null;
   onClearPendingResult?: () => void;
@@ -96,6 +101,7 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
   eventId,
   existingSessions = [],
   onImportSessions,
+  onBulkImportSessions,
   pendingResult: externalPendingResult,
   onClearPendingResult,
   onStartBackgroundImport,
@@ -105,6 +111,7 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
   const [parseResult, setParseResult] = useState<AgendaParseResult | null>(null);
   const [duplicateIndices, setDuplicateIndices] = useState<Set<number>>(new Set());
   const [importProgress, setImportProgress] = useState({ imported: 0, skipped: 0, failed: 0 });
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
   const [showPasteInput, setShowPasteInput] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [urlInput, setUrlInput] = useState('');
@@ -116,6 +123,7 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
     setParseResult(null);
     setDuplicateIndices(new Set());
     setImportProgress({ imported: 0, skipped: 0, failed: 0 });
+    setBulkProgress(null);
     setShowPasteInput(false);
     setPasteText('');
     setUrlInput('');
@@ -202,6 +210,7 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
   const handleImport = useCallback(async () => {
     if (!parseResult) return;
     setState('importing');
+    setBulkProgress(null);
 
     const sessionsToImport = parseResult.sessions.filter((_, i) => !duplicateIndices.has(i));
     const skipped = duplicateIndices.size;
@@ -210,37 +219,51 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
 
     try {
       if (sessionsToImport.length > 0) {
-        await onImportSessions(sessionsToImport);
-        imported = sessionsToImport.length;
+        // Use bulk handler if available (throttled, progress-tracked)
+        if (onBulkImportSessions) {
+          const result = await onBulkImportSessions(sessionsToImport, (current, total) => {
+            setBulkProgress({ current, total });
+          });
+          imported = result.imported;
+          failed = result.failed;
+        } else {
+          // Fallback: original single-insert loop
+          await onImportSessions(sessionsToImport);
+          imported = sessionsToImport.length;
+        }
       }
     } catch (error) {
       console.error('Batch import failed:', error);
       failed = sessionsToImport.length;
     }
 
+    setBulkProgress(null);
     setImportProgress({ imported, skipped, failed });
     setState('complete');
 
-    if (imported > 0) {
-      let description = `${imported} session${imported !== 1 ? 's' : ''} imported`;
-      if (skipped > 0) description += `, ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped`;
-      if (failed > 0) description += `, ${failed} failed`;
-      toast.success('Import complete', { description });
-
-      if (onLineupUpdate) {
-        const allSpeakers = sessionsToImport
-          .flatMap(s => s.speakers || [])
-          .filter((name, i, arr) => name && arr.indexOf(name) === i);
-        if (allSpeakers.length > 0) onLineupUpdate(allSpeakers);
+    // Only show toast if we used the fallback path (bulk handler shows its own toast)
+    if (!onBulkImportSessions) {
+      if (imported > 0) {
+        let description = `${imported} session${imported !== 1 ? 's' : ''} imported`;
+        if (skipped > 0) description += `, ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped`;
+        if (failed > 0) description += `, ${failed} failed`;
+        toast.success('Import complete', { description });
+      } else if (skipped > 0) {
+        toast.info('No new sessions', {
+          description: `All ${skipped} session${skipped !== 1 ? 's' : ''} were already in your agenda`,
+        });
+      } else {
+        toast.error('Import failed', { description: 'No sessions could be imported' });
       }
-    } else if (skipped > 0) {
-      toast.info('No new sessions', {
-        description: `All ${skipped} session${skipped !== 1 ? 's' : ''} were already in your agenda`,
-      });
-    } else {
-      toast.error('Import failed', { description: 'No sessions could be imported' });
     }
-  }, [parseResult, duplicateIndices, onImportSessions, onLineupUpdate]);
+
+    if (imported > 0 && onLineupUpdate) {
+      const allSpeakers = sessionsToImport
+        .flatMap(s => s.speakers || [])
+        .filter((name, i, arr) => name && arr.indexOf(name) === i);
+      if (allSpeakers.length > 0) onLineupUpdate(allSpeakers);
+    }
+  }, [parseResult, duplicateIndices, onImportSessions, onBulkImportSessions, onLineupUpdate]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -492,7 +515,23 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
           {state === 'importing' && (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
-              <p className="text-muted-foreground">Importing sessions...</p>
+              {bulkProgress ? (
+                <div className="w-full max-w-xs space-y-2">
+                  <p className="text-muted-foreground text-center">
+                    Importing {bulkProgress.current} / {bulkProgress.total}...
+                  </p>
+                  <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full bg-primary transition-all duration-300"
+                      style={{
+                        width: `${Math.round((bulkProgress.current / bulkProgress.total) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">Importing sessions...</p>
+              )}
             </div>
           )}
 
