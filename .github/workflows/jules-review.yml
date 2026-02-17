@@ -1,0 +1,57 @@
+name: Jules PR Review Trigger
+
+on:
+  pull_request:
+    types: [opened, labeled, synchronize]
+
+jobs:
+  jules:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    if: contains(github.event.pull_request.labels.*.name, 'ai-review:jules')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate diff
+        run: |
+          git diff origin/${{ github.event.pull_request.base.ref }}...HEAD > pr.diff
+
+      - name: Upload diff artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-diff
+          path: pr.diff
+
+      - name: Comment with instructions
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { context, github } = require('@actions/github');
+            const pr = context.payload.pull_request;
+            const url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              '🔔 **Jules review requested**',
+              '',
+              `PR: ${pr.html_url}`,
+              '',
+              'Download the `pr-diff` artifact from this run:',
+              url,
+              '',
+              'Workflow:',
+              '1) Download `pr-diff`',
+              '2) Paste into Google Jules',
+              '3) Paste Jules output back into PR (description or comment)'
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body
+            });
