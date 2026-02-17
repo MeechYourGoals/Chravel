@@ -40,8 +40,9 @@ const TABS: TabConfig[] = [
   },
   {
     id: 'new',
-    label: '',
-    icon: <Plus size={28} strokeWidth={2.5} />,
+    label: 'New',
+    icon: <Plus size={24} strokeWidth={1.5} />,
+    activeIcon: <Plus size={24} strokeWidth={2} />,
   },
   {
     id: 'alerts',
@@ -133,7 +134,6 @@ export const NativeTabBar = ({
       <div className="flex items-center justify-around h-[49px]">
         {TABS.map(tab => {
           const isActive = activeTab === tab.id;
-          const isCenter = tab.id === 'new';
 
           return (
             <button
@@ -143,64 +143,45 @@ export const NativeTabBar = ({
                 'flex flex-col items-center justify-center',
                 'h-full min-w-[64px]',
                 'active:opacity-50 transition-opacity',
-                isCenter && 'relative -mt-3',
               )}
             >
-              {/* Center "New" button with special styling */}
-              {isCenter ? (
+              {/* Icon with badge */}
+              <div className="relative">
                 <div
                   className={cn(
-                    'w-14 h-14 rounded-full',
-                    'bg-gradient-to-br from-[hsl(45,95%,58%)] to-[hsl(45,90%,50%)]',
-                    'flex items-center justify-center',
-                    'shadow-lg shadow-[hsl(45,95%,50%)]/30',
-                    'active:scale-95 transition-transform',
+                    'transition-colors duration-150',
+                    isActive ? 'text-primary' : 'text-white/60',
                   )}
                 >
-                  <div className="text-black">{tab.icon}</div>
+                  {isActive && tab.activeIcon ? tab.activeIcon : tab.icon}
                 </div>
-              ) : (
-                <>
-                  {/* Icon with badge */}
-                  <div className="relative">
-                    <div
-                      className={cn(
-                        'transition-colors duration-150',
-                        isActive ? 'text-primary' : 'text-white/60',
-                      )}
-                    >
-                      {isActive && tab.activeIcon ? tab.activeIcon : tab.icon}
-                    </div>
 
-                    {/* Badge for alerts */}
-                    {tab.id === 'alerts' && alertsBadge > 0 && (
-                      <div
-                        className={cn(
-                          'absolute -top-1 -right-1',
-                          'min-w-[18px] h-[18px] px-1',
-                          'bg-red-500 text-white',
-                          'text-[11px] font-bold',
-                          'rounded-full',
-                          'flex items-center justify-center',
-                        )}
-                      >
-                        {alertsBadge > 99 ? '99+' : alertsBadge}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Label */}
-                  <span
+                {/* Badge for alerts */}
+                {tab.id === 'alerts' && alertsBadge > 0 && (
+                  <div
                     className={cn(
-                      'text-[10px] mt-0.5 font-medium',
-                      isActive ? 'text-primary' : 'text-white/60',
+                      'absolute -top-1 -right-1',
+                      'min-w-[18px] h-[18px] px-1',
+                      'bg-red-500 text-white',
+                      'text-[11px] font-bold',
+                      'rounded-full',
+                      'flex items-center justify-center',
                     )}
                   >
-                    {/* Show trip type label on trips tab if provided */}
-                    {tab.id === 'trips' && tripTypeLabel ? tripTypeLabel : tab.label}
-                  </span>
-                </>
-              )}
+                    {alertsBadge > 99 ? '99+' : alertsBadge}
+                  </div>
+                )}
+              </div>
+
+              {/* Label */}
+              <span
+                className={cn(
+                  'text-[10px] mt-0.5 font-medium',
+                  isActive ? 'text-primary' : 'text-white/60',
+                )}
+              >
+                {tab.id === 'trips' && tripTypeLabel ? tripTypeLabel : tab.label}
+              </span>
             </button>
           );
         })}
