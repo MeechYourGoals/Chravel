@@ -167,12 +167,91 @@ export function useEventAgenda({
     },
   });
 
+  // Bulk add sessions with throttle, progress callback, single toast/invalidation
+  const bulkAddSessions = async (
+    sessionsToAdd: Omit<EventAgendaItem, 'id'>[],
+    onProgress?: (current: number, total: number) => void,
+  ): Promise<{ imported: number; failed: number }> => {
+    const total = sessionsToAdd.length;
+    let imported = 0;
+    let failed = 0;
+
+    if (isDemoMode) {
+      for (let i = 0; i < total; i++) {
+        imported++;
+        onProgress?.(imported, total);
+        await new Promise(r => setTimeout(r, 50));
+      }
+      queryClient.invalidateQueries({ queryKey });
+      toast({ title: `${imported} sessions imported` });
+      return { imported, failed };
+    }
+
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+
+    for (let i = 0; i < total; i++) {
+      const session = sessionsToAdd[i];
+      try {
+        const { error } = await supabase
+          .from('event_agenda_items')
+          .insert({
+            event_id: eventId,
+            title: session.title,
+            description: session.description || null,
+            session_date: session.session_date || null,
+            start_time: session.start_time || null,
+            end_time: session.end_time || null,
+            location: session.location || null,
+            speakers: session.speakers || null,
+            created_by: userId || null,
+          });
+
+        if (error) {
+          console.error(`Failed to insert session ${i + 1}:`, error);
+          failed++;
+        } else {
+          imported++;
+        }
+      } catch (err) {
+        console.error(`Error inserting session ${i + 1}:`, err);
+        failed++;
+      }
+
+      onProgress?.(imported + failed, total);
+
+      // 100ms throttle between inserts to prevent DB overload
+      if (i < total - 1) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
+
+    // Single invalidation + toast at end
+    queryClient.invalidateQueries({ queryKey });
+
+    if (imported > 0) {
+      toast({
+        title: `${imported} session${imported !== 1 ? 's' : ''} imported`,
+        description: failed > 0 ? `${failed} failed` : undefined,
+      });
+    } else {
+      toast({
+        title: 'Import failed',
+        description: 'No sessions could be imported',
+        variant: 'destructive',
+      });
+    }
+
+    return { imported, failed };
+  };
+
   return {
     sessions,
     isLoading,
     addSession: addSession.mutateAsync,
     updateSession: updateSession.mutateAsync,
     deleteSession: deleteSession.mutateAsync,
+    bulkAddSessions,
     isAdding: addSession.isPending,
     isUpdating: updateSession.isPending,
     isDeleting: deleteSession.isPending,

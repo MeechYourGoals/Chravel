@@ -59,7 +59,7 @@ export const EnhancedAgendaTab = ({
 }: EnhancedAgendaTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-  const { sessions, addSession, updateSession, deleteSession, isAdding, isUpdating } =
+  const { sessions, addSession, updateSession, deleteSession, bulkAddSessions, isAdding, isUpdating } =
     useEventAgenda({ eventId });
 
   const {
@@ -788,6 +788,7 @@ export const EnhancedAgendaTab = ({
             await addSession(s);
           }
         }}
+        onBulkImportSessions={bulkAddSessions}
         pendingResult={pendingResult}
         onClearPendingResult={clearResult}
         onStartBackgroundImport={url => {

@@ -85,7 +85,7 @@ export const AgendaModal = ({
   onLineupUpdate,
 }: AgendaModalProps) => {
   const { isDemoMode } = useDemoMode();
-  const { sessions, addSession, updateSession, deleteSession, isAdding, isUpdating } =
+  const { sessions, addSession, updateSession, deleteSession, bulkAddSessions, isAdding, isUpdating } =
     useEventAgenda({
       eventId,
       initialSessions,
@@ -879,6 +879,7 @@ export const AgendaModal = ({
             await addSession(s);
           }
         }}
+        onBulkImportSessions={bulkAddSessions}
         pendingResult={pendingResult}
         onClearPendingResult={clearResult}
         onStartBackgroundImport={url => {
