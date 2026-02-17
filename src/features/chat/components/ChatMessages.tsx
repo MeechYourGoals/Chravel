@@ -30,20 +30,11 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: Cha
           <div key={message.id} className="space-y-2">
             <MessageRenderer message={message} showMapWidgets={showMapWidgets} />
             
-            {/* Render grounding widget: search entry point HTML or Maps context token */}
-            {showMapWidgets && messageWithGrounding.googleMapsWidget && (
+            {/* Render Maps widget for gmp-place-contextual context tokens */}
+            {showMapWidgets && messageWithGrounding.googleMapsWidget &&
+              !messageWithGrounding.googleMapsWidget.trimStart().startsWith('<') && (
               <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {messageWithGrounding.googleMapsWidget.trimStart().startsWith('<') ? (
-                  // searchEntryPoint.renderedContent from Gemini Search grounding is raw HTML
-                  // (a "Verified by Google Search" badge). Render it inline directly.
-                  <div
-                    className="max-w-xs text-xs text-gray-400 my-1 [&_a]:text-blue-400 [&_a]:no-underline [&_a:hover]:underline"
-                    dangerouslySetInnerHTML={{ __html: messageWithGrounding.googleMapsWidget }}
-                  />
-                ) : (
-                  // Actual Google Maps gmp-place-contextual context token
-                  <GoogleMapsWidget widgetToken={messageWithGrounding.googleMapsWidget} />
-                )}
+                <GoogleMapsWidget widgetToken={messageWithGrounding.googleMapsWidget} />
               </div>
             )}
             
@@ -53,11 +44,6 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: Cha
                 <div className="space-y-1 px-2 max-w-xs lg:max-w-md">
                   <div className="text-xs font-medium text-gray-400 flex items-center gap-2">
                     <span>Sources:</span>
-                    {messageWithGrounding.sources.some(s => s.source === 'google_search_grounding') && (
-                      <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px]">
-                        Verified by Google Search
-                      </span>
-                    )}
                     {messageWithGrounding.sources.some(s => s.source === 'google_maps_grounding') && (
                       <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px]">
                         Verified by Google Maps
