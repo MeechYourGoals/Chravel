@@ -567,6 +567,8 @@ serve(async req => {
         service: 'lovable-concierge',
         timestamp: new Date().toISOString(),
         message: 'AI Concierge service is online',
+        geminiConfigured: !!GEMINI_API_KEY,
+        provider: GEMINI_API_KEY && !FORCE_LOVABLE_PROVIDER ? 'gemini' : 'lovable',
       });
     }
     const validation = validateInput(LovableConciergeSchema, requestBody);

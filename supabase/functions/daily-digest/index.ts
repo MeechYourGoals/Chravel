@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -12,9 +12,10 @@ interface RequestBody {
   tour_id?: string;
 }
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -26,7 +27,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: { user } } = await supabase.auth.getUser(jwt);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser(jwt);
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -60,7 +63,8 @@ serve(async (req) => {
 
       const { data: digest, error } = await query.single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "not found"
         throw error;
       }
 
@@ -100,7 +104,7 @@ serve(async (req) => {
       if (tour_id) existingQuery = existingQuery.eq('tour_id', tour_id);
 
       const { data: existing } = await existingQuery.single();
-      
+
       if (existing) {
         return new Response(JSON.stringify({ error: 'Digest already exists for today' }), {
           status: 409,
@@ -135,12 +139,16 @@ serve(async (req) => {
       const reminderCount = messages.filter(m => m.priority === 'reminder').length;
       const totalCount = messages.length;
 
-      // Generate AI summary
+      // Generate AI summary — prefer GEMINI_API_KEY (your key) to avoid Lovable balance consumption
+      const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
       const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-      if (!lovableApiKey) throw new Error('LOVABLE_API_KEY not set');
+      if (!geminiApiKey && !lovableApiKey)
+        throw new Error('GEMINI_API_KEY or LOVABLE_API_KEY required');
 
-      const messageTexts = messages.map(m => `[${m.priority?.toUpperCase() || 'FYI'}] ${m.content}`).join('\n');
-      const summary = await generateSummary(messageTexts, lovableApiKey);
+      const messageTexts = messages
+        .map(m => `[${m.priority?.toUpperCase() || 'FYI'}] ${m.content}`)
+        .join('\n');
+      const summary = await generateSummary(messageTexts, geminiApiKey, lovableApiKey);
 
       // Store digest in database
       const { data: digest, error: insertError } = await supabase
@@ -169,7 +177,6 @@ serve(async (req) => {
       status: 405,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (err) {
     console.error('Daily Digest Error:', err);
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -180,20 +187,56 @@ serve(async (req) => {
   }
 });
 
-async function generateSummary(messageText: string, apiKey: string): Promise<string> {
+async function generateSummary(
+  messageText: string,
+  geminiApiKey: string | undefined,
+  lovableApiKey: string | undefined,
+): Promise<string> {
+  const systemPrompt =
+    'Create a concise daily digest summary of the following messages. Focus on key logistics, updates, and action items. Use bullet points. Prioritize urgent items at the top.';
+
+  // Prefer direct Gemini API (your key) — does not consume Lovable balance
+  if (geminiApiKey) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${messageText}` }] }],
+            generationConfig: {
+              maxOutputTokens: 300,
+              temperature: 0.3,
+            },
+          }),
+          signal: AbortSignal.timeout(30_000),
+        },
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) return text;
+      }
+    } catch (err) {
+      console.warn('[daily-digest] Gemini direct call failed, falling back to Lovable:', err);
+    }
+  }
+
+  // Fallback: Lovable gateway (consumes Lovable balance)
+  if (!lovableApiKey) throw new Error('LOVABLE_API_KEY not set (Gemini fallback failed)');
+
   const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${lovableApiKey}`,
     },
     body: JSON.stringify({
       model: 'google/gemini-2.5-flash',
       messages: [
-        { 
-          role: 'system', 
-          content: 'Create a concise daily digest summary of the following messages. Focus on key logistics, updates, and action items. Use bullet points. Prioritize urgent items at the top.' 
-        },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: messageText },
       ],
       max_tokens: 300,

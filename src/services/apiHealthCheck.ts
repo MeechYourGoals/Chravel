@@ -51,11 +51,17 @@ class ApiHealthCheckService {
 
       // Check for successful ping response
       if (data?.status === 'healthy') {
+        const provider = data?.provider as 'gemini' | 'lovable' | undefined;
+        const geminiConfigured = data?.geminiConfigured as boolean | undefined;
         const status: HealthStatus = {
           service: serviceName,
           status: 'healthy',
-          message: 'AI Concierge is online',
+          message:
+            provider === 'gemini'
+              ? 'AI Concierge is online (using your Gemini key)'
+              : 'AI Concierge is online',
           lastCheck: new Date(),
+          details: { provider, geminiConfigured, ...data },
         };
 
         this.healthStatus.set(serviceName, status);
