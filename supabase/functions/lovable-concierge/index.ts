@@ -106,13 +106,15 @@ const LovableConciergeSchema = z.object({
 });
 
 const TRIP_SCOPED_QUERY_PATTERN =
-  /\b(trip|itinerary|schedule|calendar|event|dinner|lunch|breakfast|reservation|basecamp|hotel|flight|task|todo|payment|owe|expense|poll|vote|chat|message|broadcast|address|meeting|check[- ]?in|check[- ]?out|plan|agenda|logistics)\b/i;
+  /\b(trip|itinerary|schedule|calendar|event|dinner|lunch|breakfast|reservation|basecamp|hotel|flight|task|todo|payment|owe|expense|poll|vote|chat|message|broadcast|address|meeting|check[- ]?in|check[- ]?out|plan|agenda|logistics|team|member|members|channel|channels|role|roles|who's on|who is on|group|organizer|admin)\b/i;
 
 const ARTIFACT_QUERY_PATTERN =
   /\b(upload|uploaded|document|documents|doc|docs|pdf|file|files|attachment|attachments|link|links|receipt|receipts|invoice|invoices|image|images|photo|photos|media|transcript|note|notes|summary|summarize|summarise)\b/i;
 
+// Expand with common sports, entertainment, and general knowledge terms to skip
+// context-building for obvious non-trip queries, speeding up response time.
 const CLEARLY_GENERAL_QUERY_PATTERN =
-  /\b(nba|nfl|mlb|nhl|premier league|fifa|stock market|bitcoin|ethereum|crypto price|leetcode|algorithm interview|capital of|define |what is photosynthesis|solve for x)\b/i;
+  /\b(nba|nfl|mlb|nhl|mls|nascar|premier league|la liga|serie a|bundesliga|ligue 1|champions league|fifa|super bowl|world cup|oscars|grammys|emmys|golden globes|box office|stock market|s&p|nasdaq|dow jones|bitcoin|ethereum|crypto price|exchange rate|leetcode|algorithm interview|capital of|define |what is photosynthesis|solve for x|who invented|when was .+ born|history of|population of|how to cook|recipe for|calories in|translate)\b/i;
 
 function shouldRunRAGRetrieval(query: string, tripId: string): boolean {
   if (!tripId || tripId === 'unknown') return false;
@@ -966,14 +968,6 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       .toLowerCase()
       .match(
         /\b(where|restaurant|hotel|cafe|bar|attraction|place|location|near|around|close|best|find|suggest|recommend|visit|directions|route|food|eat|drink|stay|sushi|pizza|beach|museum|park)\b/i,
-      );
-
-    // Smart grounding detection - real-time info queries and event/knowledge queries
-    // Includes tour/upcoming for artist/event queries (e.g. "Becky Robinson's tour dates")
-    const isRealtimeQuery = message
-      .toLowerCase()
-      .match(
-        /\b(weather|forecast|score|scores|game|match|flight|status|news|today|tonight|current|latest|live|stock|price|exchange rate|traffic|delay|cancel|festival|concert|music week|lineup|conference|expo|convention|marathon|parade|tournament|championship|season|tickets|sold out|tour|upcoming|tour dates|when is|what is .+ week|how many)\b/i,
       );
 
     const tripBasecamp = comprehensiveContext?.places?.tripBasecamp;

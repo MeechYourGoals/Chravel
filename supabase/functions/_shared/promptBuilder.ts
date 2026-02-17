@@ -388,6 +388,28 @@ Next: I can get you directions from your hotel if you'd like!"`;
       });
     }
 
+    // === TEAMS, ROLES & CHANNELS ===
+    const teams = tripContext.teamsAndChannels;
+    if (teams?.memberRoles?.length) {
+      basePrompt += `\n\n=== 👥 TEAM MEMBERS & ROLES ===`;
+      teams.memberRoles.forEach((m: any) => {
+        let roleLabel = m.basicRole;
+        if (m.enterpriseRole) roleLabel += ` — ${m.enterpriseRole}`;
+        basePrompt += `\n- ${m.memberName} (${roleLabel})`;
+        if (m.roleDescription) basePrompt += `: ${m.roleDescription}`;
+      });
+      basePrompt += `\nNote: Use this to answer "What role does X have?" or "Who is the organizer?"`;
+    }
+
+    if (teams?.channels?.length) {
+      basePrompt += `\n\n=== 💬 TRIP CHANNELS ===`;
+      teams.channels.forEach((c: any) => {
+        basePrompt += `\n- #${c.name} (${c.type})`;
+        if (c.description) basePrompt += `: ${c.description}`;
+      });
+      basePrompt += `\nNote: Use this to answer "What channels exist?" or "Where should I post X?"`;
+    }
+
     // ENTERPRISE MODE DETECTION
     const isEnterpriseTrip =
       tripContext.participants?.length > 10 || tripContext.category === 'enterprise';

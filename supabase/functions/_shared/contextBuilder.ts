@@ -30,6 +30,22 @@ export interface ComprehensiveTripContext {
     role: string;
     email?: string;
   }>;
+  // Enterprise/Pro teams: role assignments and channels
+  teamsAndChannels: {
+    memberRoles: Array<{
+      userId: string;
+      memberName: string;
+      basicRole: string;
+      enterpriseRole?: string;
+      roleDescription?: string;
+    }>;
+    channels: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      type: string;
+    }>;
+  };
   messages: Array<{
     id: string;
     content: string;
@@ -148,6 +164,7 @@ export class TripContextBuilder {
         files,
         links,
         userPreferences,
+        teamsAndChannels,
       ] = await Promise.all([
         this.fetchTripMetadata(supabase, tripId),
         this.fetchCollaborators(supabase, tripId),
@@ -156,11 +173,12 @@ export class TripContextBuilder {
         this.fetchTasks(supabase, tripId),
         this.fetchPayments(supabase, tripId),
         this.fetchPolls(supabase, tripId),
-        this.fetchBroadcasts(supabase, tripId), // 🆕 Fetch organizer broadcasts
+        this.fetchBroadcasts(supabase, tripId),
         this.fetchPlaces(supabase, tripId, userId),
         this.fetchFiles(supabase, tripId),
         this.fetchLinks(supabase, tripId),
         userId ? this.fetchUserPreferences(supabase, userId) : Promise.resolve(undefined),
+        this.fetchTeamsAndChannels(supabase, tripId),
       ]);
 
       return {
@@ -171,10 +189,11 @@ export class TripContextBuilder {
         tasks,
         payments,
         polls,
-        broadcasts, // 🆕 Include broadcasts
+        broadcasts,
         places,
         media: { files, links },
         userPreferences,
+        teamsAndChannels,
       };
     } catch (error) {
       console.error('Error building trip context:', error);
@@ -415,15 +434,32 @@ export class TripContextBuilder {
 
       if (error) throw error;
 
-      return (
-        data?.map((t: any) => ({
-          id: t.id,
-          content: t.content,
-          assignee: undefined,
-          dueDate: t.due_date,
-          isComplete: t.is_complete,
-        })) || []
-      );
+      const tasks = data || [];
+
+      // Resolve assignee display names from profiles_public
+      const assigneeIds = [
+        ...new Set(tasks.filter((t: any) => t.assignee_id).map((t: any) => t.assignee_id)),
+      ] as string[];
+      const profilesMap = new Map<string, string>();
+
+      if (assigneeIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles_public')
+          .select('user_id, resolved_display_name')
+          .in('user_id', assigneeIds);
+
+        (profiles || []).forEach((p: any) => {
+          profilesMap.set(p.user_id, p.resolved_display_name || 'Team Member');
+        });
+      }
+
+      return tasks.map((t: any) => ({
+        id: t.id,
+        content: t.content,
+        assignee: t.assignee_id ? (profilesMap.get(t.assignee_id) || 'Team Member') : undefined,
+        dueDate: t.due_date,
+        isComplete: t.is_complete,
+      }));
     } catch (error) {
       console.error('Error fetching tasks:', error);
       return [];
@@ -439,16 +475,33 @@ export class TripContextBuilder {
 
       if (error) throw error;
 
-      return (
-        data?.map((p: any) => ({
-          id: p.id,
-          description: p.description,
-          amount: p.amount,
-          paidBy: 'Unknown',
-          participants: p.split_participants as string[],
-          isSettled: p.is_settled,
-        })) || []
-      );
+      const payments = data || [];
+
+      // Resolve payer display names from profiles_public
+      const payerIds = [
+        ...new Set(payments.filter((p: any) => p.created_by).map((p: any) => p.created_by)),
+      ] as string[];
+      const profilesMap = new Map<string, string>();
+
+      if (payerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles_public')
+          .select('user_id, resolved_display_name')
+          .in('user_id', payerIds);
+
+        (profiles || []).forEach((p: any) => {
+          profilesMap.set(p.user_id, p.resolved_display_name || 'Trip Member');
+        });
+      }
+
+      return payments.map((p: any) => ({
+        id: p.id,
+        description: p.description,
+        amount: p.amount,
+        paidBy: p.created_by ? (profilesMap.get(p.created_by) || 'Trip Member') : 'Unknown',
+        participants: p.split_participants as string[],
+        isSettled: p.is_settled,
+      }));
     } catch (error) {
       console.error('Error fetching payments:', error);
       return [];
@@ -594,16 +647,33 @@ export class TripContextBuilder {
 
       if (error) throw error;
 
-      return (
-        data?.map((f: any) => ({
-          id: f.id,
-          name: f.file_name,
-          type: f.file_type,
-          url: f.file_url,
-          uploadedBy: 'Unknown',
-          uploadedAt: f.created_at,
-        })) || []
-      );
+      const files = data || [];
+
+      // Resolve uploader display names from profiles_public
+      const uploaderIds = [
+        ...new Set(files.filter((f: any) => f.uploaded_by).map((f: any) => f.uploaded_by)),
+      ] as string[];
+      const profilesMap = new Map<string, string>();
+
+      if (uploaderIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles_public')
+          .select('user_id, resolved_display_name')
+          .in('user_id', uploaderIds);
+
+        (profiles || []).forEach((p: any) => {
+          profilesMap.set(p.user_id, p.resolved_display_name || 'Trip Member');
+        });
+      }
+
+      return files.map((f: any) => ({
+        id: f.id,
+        name: f.file_name,
+        type: f.file_type,
+        url: f.file_url,
+        uploadedBy: f.uploaded_by ? (profilesMap.get(f.uploaded_by) || 'Trip Member') : 'Unknown',
+        uploadedAt: f.created_at,
+      }));
     } catch (error) {
       console.error('Error fetching files:', error);
       return [];
@@ -619,18 +689,114 @@ export class TripContextBuilder {
 
       if (error) throw error;
 
-      return (
-        data?.map((l: any) => ({
-          id: l.id,
-          url: l.url,
-          title: l.title,
-          category: l.category,
-          addedBy: 'Unknown',
-        })) || []
-      );
+      const links = data || [];
+
+      // Resolve link adder display names from profiles_public
+      const adderIds = [
+        ...new Set(links.filter((l: any) => l.added_by).map((l: any) => l.added_by)),
+      ] as string[];
+      const profilesMap = new Map<string, string>();
+
+      if (adderIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles_public')
+          .select('user_id, resolved_display_name')
+          .in('user_id', adderIds);
+
+        (profiles || []).forEach((p: any) => {
+          profilesMap.set(p.user_id, p.resolved_display_name || 'Trip Member');
+        });
+      }
+
+      return links.map((l: any) => ({
+        id: l.id,
+        url: l.url,
+        title: l.title,
+        category: l.category,
+        addedBy: l.added_by ? (profilesMap.get(l.added_by) || 'Trip Member') : 'Unknown',
+      }));
     } catch (error) {
       console.error('Error fetching links:', error);
       return [];
+    }
+  }
+
+  /** Fetch enterprise role assignments and trip channels (Pro/enterprise trips). */
+  private static async fetchTeamsAndChannels(supabase: any, tripId: string) {
+    try {
+      const [userRolesRes, channelsRes, membersRes] = await Promise.all([
+        // Enterprise role assignments (may not exist for consumer trips — that's fine)
+        supabase
+          .from('user_trip_roles')
+          .select('user_id, trip_roles(role_name, description, permission_level)')
+          .eq('trip_id', tripId),
+        // Chat channels for this trip
+        supabase
+          .from('trip_channels')
+          .select('id, name, description, type')
+          .eq('trip_id', tripId)
+          .eq('is_archived', false),
+        // Basic membership for name resolution
+        supabase
+          .from('trip_members')
+          .select('user_id, role')
+          .eq('trip_id', tripId)
+          .eq('status', 'active'),
+      ]);
+
+      const members = membersRes.data || [];
+      const userRoles = userRolesRes.data || [];
+      const channels = channelsRes.data || [];
+
+      // Resolve member display names
+      const memberIds = [...new Set(members.map((m: any) => m.user_id))] as string[];
+      const profilesMap = new Map<string, string>();
+
+      if (memberIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles_public')
+          .select('user_id, resolved_display_name')
+          .in('user_id', memberIds);
+
+        (profiles || []).forEach((p: any) => {
+          profilesMap.set(p.user_id, p.resolved_display_name || 'Team Member');
+        });
+      }
+
+      // Map enterprise roles by userId
+      const enterpriseRoleMap = new Map<
+        string,
+        { roleName: string; roleDescription: string }
+      >();
+      userRoles.forEach((ur: any) => {
+        if (ur.trip_roles) {
+          enterpriseRoleMap.set(ur.user_id, {
+            roleName: ur.trip_roles.role_name,
+            roleDescription: ur.trip_roles.description || '',
+          });
+        }
+      });
+
+      const memberRoles = members.map((m: any) => ({
+        userId: m.user_id,
+        memberName: profilesMap.get(m.user_id) || 'Team Member',
+        basicRole: m.role || 'member',
+        enterpriseRole: enterpriseRoleMap.get(m.user_id)?.roleName,
+        roleDescription: enterpriseRoleMap.get(m.user_id)?.roleDescription,
+      }));
+
+      return {
+        memberRoles,
+        channels: channels.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description || undefined,
+          type: c.type || 'general',
+        })),
+      };
+    } catch (error) {
+      console.error('Error fetching teams and channels:', error);
+      return { memberRoles: [], channels: [] };
     }
   }
 }
