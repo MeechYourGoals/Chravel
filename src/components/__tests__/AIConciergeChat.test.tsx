@@ -97,7 +97,7 @@ describe('AIConciergeChat', () => {
       render(<AIConciergeChat tripId="test-trip" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/this conversation is private to you/i)).toBeInTheDocument();
+        expect(screen.getByText(/private combo/i)).toBeInTheDocument();
       });
       expect(screen.getByText(/queries:\s*5\/10/i)).toBeInTheDocument();
     });

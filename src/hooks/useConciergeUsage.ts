@@ -347,7 +347,7 @@ export const useConciergeUsage = (tripId: string, userId?: string) => {
     if (usage.limit === null) {
       return {
         status: 'ok',
-        message: 'Unlimited queries',
+        message: 'unlimited asks',
         color: 'text-green-500',
       };
     }

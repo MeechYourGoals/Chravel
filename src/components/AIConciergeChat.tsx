@@ -465,7 +465,7 @@ export const AIConciergeChat = ({
     }
 
     if (usage.limit === null) {
-      return 'Unlimited queries';
+      return 'unlimited asks';
     }
 
     return `Queries: ${usage.remaining}/${usage.limit}`;
@@ -910,7 +910,7 @@ export const AIConciergeChat = ({
             </span>
             <h3 className="text-lg font-semibold text-white flex-1 text-center">AI Concierge</h3>
             <p className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
-              🔒 This conversation is private to you
+              🔒 Private combo
             </p>
           </div>
         </div>
