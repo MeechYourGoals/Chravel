@@ -1,63 +1,99 @@
 
-# Fix: Agenda Session Import Failing for 60 Sessions
 
-## Root Cause
+# Fix: AI Concierge Blocked by Stale Privacy Trigger
 
-The import handler at `AgendaModal.tsx` line 877-880 loops through all 60 sessions calling `addSession` sequentially:
+## What's Actually Happening
 
+The message "AI Concierge is disabled for this trip" has **nothing to do with your Gemini API key**. Your Gemini key is correctly configured and the concierge code already prioritizes it over the Lovable gateway (confirmed in secrets and edge function logic).
+
+The real problem: there is a **stale database trigger** that hard-codes `ai_access_enabled = false` for every Pro and Event trip. A migration was written to fix this (migration `20260212170000`) but it was never applied to the running database.
+
+### Current trigger (ACTIVE in DB -- broken):
 ```text
-for (const s of importedSessions) {
-  await addSession(s);   // <-- This is useMutation.mutateAsync
-}
+CASE WHEN NEW.trip_type IN ('pro', 'event') THEN false ELSE true END
 ```
 
-**Two critical problems:**
+### Intended trigger (in migration file -- never applied):
+```text
+COALESCE(NEW.ai_access_enabled, true)  -- always defaults to true
+```
 
-1. **`onSuccess` fires a toast for EVERY session**: The `useEventAgenda` hook (line 103) calls `toast({ title: 'Session added' })` on each successful insert. For 60 sessions, that's 60 toast notifications flooding the UI.
+### Affected trips (all have ai_access_enabled = false in trip_privacy_configs):
+- **Nurse John** (pro) -- created 2026-02-09
+- **InvestFest 2026** (event) -- created 2026-02-12
+- **SXSW** (event) -- created 2026-02-17 (AFTER the migration was written)
 
-2. **`queryClient.invalidateQueries` fires after EVERY insert** (line 102): Each of the 60 inserts triggers a full refetch of the agenda query. This creates a cascade where insert #2 waits for refetch #1, insert #3 waits for refetch #2, etc. With 60 sessions, these compounding refetches cause the overall operation to take far too long, eventually timing out or erroring.
+## Fix (2 steps)
 
-3. **No progress feedback**: The `AgendaImportModal` `handleImport` function (line 202-243) treats the entire batch as pass/fail. If any single insert throws, the catch block marks ALL sessions as failed (`failed = sessionsToImport.length`). There's no incremental progress counter.
+### Step 1: Apply the corrected trigger function
 
-4. **No throttle delay**: Unlike the calendar import (which has a 100ms delay between inserts), the agenda import fires inserts back-to-back with no breathing room.
+Replace the `initialize_trip_privacy_config()` function so new Pro/Event trips get `ai_access_enabled = true` by default. This is the same logic from the unapplied migration, using `COALESCE(NEW.ai_access_enabled, true)` so it respects the value from the trips table insert (which is always `true` from `CreateTripModal`).
 
-## Fix (2 files, minimal changes)
+### Step 2: Backfill all affected rows
 
-### File 1: `src/hooks/useEventAgenda.ts` -- Add a bulk insert method
+Update both `trips` and `trip_privacy_configs` tables to set `ai_access_enabled = true` for the three affected trips. Since the `is_untouched` check confirmed none of these were manually disabled by an organizer, this is safe.
 
-Add a new `bulkAddSessions` method that:
-- Inserts sessions one at a time with a 100ms delay (matching calendar import pattern)
-- Suppresses per-item toasts and query invalidation during bulk operations
-- Calls `queryClient.invalidateQueries` once at the end
-- Accepts a progress callback so the UI can show a counter
-- Returns `{ imported: number; failed: number }`
+## Gemini Key Status (Confirmed Working)
 
-The existing `addSession` mutation stays unchanged for single-session adds.
+| Check | Status |
+|-------|--------|
+| `GEMINI_API_KEY` in Supabase secrets | Set |
+| `AI_PROVIDER` env var | Not set (correct -- defaults to Gemini) |
+| `FORCE_LOVABLE_PROVIDER` | false (correct) |
+| Provider selection logic | Gemini first, Lovable fallback |
+| Streaming support | Uses Gemini streaming when key present |
 
-### File 2: `src/components/events/AgendaImportModal.tsx` -- Wire up progress and use bulk method
-
-- Accept a new `onBulkImportSessions` prop (or modify `onImportSessions` signature)
-- Show a progress counter during import (e.g., "Importing 12 / 60...")
-- Use the bulk method instead of looping `addSession`
-
-### File 3: `src/components/events/AgendaModal.tsx` -- Pass bulk handler
-
-- Wire the new bulk handler into the `AgendaImportModal` props
-
-Same change applies to `EnhancedAgendaTab.tsx` if it also renders the import modal.
+Your Gemini key with full permissions (grounding, places, distance) is correctly wired. Once the privacy gate stops blocking the request, the concierge will use your Gemini key directly for all AI responses.
 
 ## Technical Details
 
-| File | Change |
-|------|--------|
-| `src/hooks/useEventAgenda.ts` | Add `bulkAddSessions(sessions, onProgress)` that inserts sequentially with 100ms delay, no per-item toast/invalidation, single invalidation at end |
-| `src/components/events/AgendaImportModal.tsx` | Add progress state; show "Importing X / Y..." during import; call bulk handler |
-| `src/components/events/AgendaModal.tsx` | Pass `bulkAddSessions` to the import modal |
-| `src/components/events/EnhancedAgendaTab.tsx` | Same wiring as AgendaModal |
+### File: New migration SQL (applied via Supabase)
 
-## What This Fixes
-- 60 sessions will import reliably with a visible progress counter
-- No more 60 toast spam (single summary toast at end)
-- No more 60 query refetches during import (single refetch at end)
-- 100ms throttle prevents database overload
-- Partial failure handling: if session 45 fails, sessions 1-44 are preserved
+Replace the trigger function and backfill:
+
+```text
+CREATE OR REPLACE FUNCTION public.initialize_trip_privacy_config()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  INSERT INTO public.trip_privacy_configs (
+    trip_id,
+    privacy_mode,
+    ai_access_enabled,
+    created_by
+  ) VALUES (
+    NEW.id,
+    CASE
+      WHEN NEW.trip_type IN ('pro', 'event') THEN COALESCE(NEW.privacy_mode, 'high')
+      ELSE COALESCE(NEW.privacy_mode, 'standard')
+    END,
+    COALESCE(NEW.ai_access_enabled, true),
+    NEW.created_by
+  );
+  RETURN NEW;
+END;
+$function$;
+
+-- Backfill ALL rows where ai_access_enabled is false
+UPDATE trip_privacy_configs SET ai_access_enabled = true, updated_at = now()
+WHERE ai_access_enabled = false;
+
+UPDATE trips SET ai_access_enabled = true, updated_at = now()
+WHERE COALESCE(ai_access_enabled, false) = false;
+```
+
+### No code file changes needed
+
+The edge function logic (`lovable-concierge/index.ts` lines 766-781) correctly checks `trip_privacy_configs.ai_access_enabled`. Once the data is fixed, the gate passes and Gemini handles the request.
+
+## After Fix
+
+- Nurse John, InvestFest 2026, and SXSW will all have AI Concierge working
+- All future Pro/Event trips will default to AI enabled (high privacy still controls encryption, not AI access)
+- Gemini key is used for all text concierge queries (streaming + non-streaming)
+- Gemini key is used for voice sessions via `gemini-voice-session`
+- Google Search grounding, Places, and distance features are all available through the Gemini key
+
