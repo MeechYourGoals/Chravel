@@ -872,14 +872,23 @@ serve(async req => {
     // Determine if chain-of-thought is needed
     const useChainOfThought = requiresChainOfThought(message, complexity);
 
-    // Build context-aware system prompt. For general web queries, use minimal prompt for speed.
+    // Build context-aware system prompt. For general web queries, use a lean prompt for speed
+    // but still include full formatting instructions so responses are rich and link-heavy.
     let baseSystemPrompt: string;
     if (!tripRelated || !comprehensiveContext) {
-      baseSystemPrompt = `You are Chravel Concierge, a helpful AI travel assistant.
+      baseSystemPrompt = `You are **Chravel Concierge**, a helpful AI travel and general assistant.
 Current date: ${new Date().toISOString().split('T')[0]}
 
-Answer the user's question concisely. Use web search for real-time info (weather, scores, tour dates, etc.).
-Be conversational and helpful. Use markdown for formatting.`;
+Answer the user's question accurately. Use web search for real-time info (weather, scores, events, tour dates, news, etc.).
+
+**Formatting rules (always follow):**
+- Use markdown for all responses — headers, bullet points, bold, italics as appropriate
+- Format ALL links as clickable markdown: [Title](https://url.com)
+- For places, restaurants, events or attractions always include a link: [Place Name](https://www.google.com/maps/search/Place+Name)
+- Use **bold** for key names, dates, and important facts
+- Use bullet points (-) for lists; numbered lists for ranked items or steps
+- Keep responses concise but information-rich — quality over quantity
+- When citing sources from web search, reference them naturally in-text as hyperlinks`;
     } else {
       baseSystemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext;
     }
@@ -1060,20 +1069,18 @@ Be conversational and helpful. Use markdown for formatting.`;
     ];
 
     // ========== BUILD GEMINI TOOLS ==========
-    // General web queries: Google Search only (no function tools) for speed
-    // Trip-related queries: full tools + Google Search when real-time
+    // Google Search is enabled for ALL queries — Gemini decides when to use it.
+    // This mirrors the voice session setup which always includes both tools.
+    // Trip-related queries additionally get function declarations for trip actions
+    // (addToCalendar, createTask, createPoll, searchPlaces, getPaymentSummary).
     const geminiTools: any[] = tripRelated
-      ? isRealtimeQuery
-        ? [{ functionDeclarations }, { googleSearch: {} }]
-        : [{ functionDeclarations }]
+      ? [{ functionDeclarations }, { googleSearch: {} }]
       : [{ googleSearch: {} }];
 
-    if (!tripRelated || isRealtimeQuery) {
-      console.log(
-        '[Grounding] Enabling Google Search',
-        tripRelated ? 'for real-time query' : 'for general web query',
-      );
-    }
+    console.log(
+      '[Grounding] Google Search enabled',
+      tripRelated ? 'alongside trip function declarations' : 'for general web query',
+    );
 
     // ========== CALL GEMINI API DIRECTLY ==========
     // Convert OpenAI-format messages to Gemini format
