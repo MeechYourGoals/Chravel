@@ -910,7 +910,7 @@ export const AIConciergeChat = ({
             </span>
             <h3 className="text-lg font-semibold text-white flex-1 text-center">AI Concierge</h3>
             <p className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
-              🔒 Private combo
+              🔒 Private Convo
             </p>
           </div>
         </div>
