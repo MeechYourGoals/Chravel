@@ -28,6 +28,7 @@ import { useDemoModeStore } from '../store/demoModeStore';
 import { useTrips } from '../hooks/useTrips';
 import { useMyPendingTrips } from '../hooks/useMyPendingTrips';
 import { proTripMockData } from '../data/proTripMockData';
+import { Trip } from '../data/tripsData';
 import { eventsMockData } from '../data/eventsMockData';
 import { tripsData } from '../data/tripsData';
 import { demoModeService } from '../services/demoModeService';
@@ -150,15 +151,7 @@ const Index = () => {
     setIsCreateModalOpen(true);
   }, [completeOnboarding, clearPendingDestination]);
 
-  // Handler for selecting a trip from search results
-  const handleSearchTripSelect = useCallback(
-    (tripId: string | number) => {
-      setIsSearchOpen(false);
-      setSearchQuery('');
-      navigate(`/trip/${tripId}`);
-    },
-    [navigate],
-  );
+  // handleSearchTripSelect is defined after allSearchableTrips memo below
 
   // Clear stale demo mode for unauthenticated users visiting root (not from /demo redirect)
   useEffect(() => {
@@ -509,6 +502,60 @@ const Index = () => {
     };
   }, [trips, pendingTrips, isDemoMode, userTripsRaw, searchQuery, activeFilter]);
 
+  // Unified search results: combine consumer trips, pro trips, and events into Trip[]
+  const allSearchableTrips = useMemo(() => {
+    const result: Trip[] = [...filteredData.trips];
+
+    // Convert pro trips (Record<string, ProTripData>) to Trip[]
+    Object.entries(filteredData.proTrips).forEach(([id, pro]: [string, any]) => {
+      result.push({
+        id,
+        title: pro.title,
+        location: pro.location,
+        dateRange: pro.dateRange,
+        description: pro.description || '',
+        coverPhoto: pro.coverPhoto,
+        participants: pro.participants?.map((p: any) => ({
+          id: p.id, name: p.name, avatar: p.avatar,
+        })) || [],
+        trip_type: 'pro' as const,
+      });
+    });
+
+    // Convert events (Record<string, EventData>) to Trip[]
+    Object.entries(filteredData.events).forEach(([id, evt]: [string, any]) => {
+      result.push({
+        id,
+        title: evt.title,
+        location: evt.location,
+        dateRange: evt.dateRange,
+        description: evt.description || '',
+        coverPhoto: evt.coverPhoto,
+        participants: [],
+        trip_type: 'event' as const,
+      });
+    });
+
+    return result;
+  }, [filteredData]);
+
+  // Handler for selecting a trip from search results (routes by trip type)
+  const handleSearchTripSelect = useCallback(
+    (tripId: string | number) => {
+      setIsSearchOpen(false);
+      setSearchQuery('');
+      const match = allSearchableTrips.find(t => t.id === tripId);
+      if (match?.trip_type === 'pro') {
+        navigate(`/pro-trip/${tripId}`);
+      } else if (match?.trip_type === 'event') {
+        navigate(`/event/${tripId}`);
+      } else {
+        navigate(`/trip/${tripId}`);
+      }
+    },
+    [navigate, allSearchableTrips],
+  );
+
   // Handle view mode changes without artificial delays
   const handleViewModeChange = (newMode: string) => {
     if (newMode === 'upgrade') {
@@ -802,7 +849,7 @@ const Index = () => {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             resultCount={searchResultCount}
-            matchingTrips={trips}
+            matchingTrips={allSearchableTrips}
             onTripSelect={handleSearchTripSelect}
           />
 
@@ -967,6 +1014,8 @@ const Index = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           resultCount={searchResultCount}
+          matchingTrips={allSearchableTrips}
+          onTripSelect={handleSearchTripSelect}
         />
 
         {/* iOS-style bottom tab bar (mobile only) */}
@@ -1162,7 +1211,7 @@ const Index = () => {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         resultCount={searchResultCount}
-        matchingTrips={trips}
+        matchingTrips={allSearchableTrips}
         onTripSelect={handleSearchTripSelect}
       />
 
