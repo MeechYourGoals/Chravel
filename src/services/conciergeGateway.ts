@@ -143,8 +143,8 @@ export function invokeConciergeStream(
       });
 
       if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        callbacks.onError(`Request failed: ${response.status} - ${errorText.substring(0, 200)}`);
+        await response.text().catch(() => '');
+        callbacks.onError('AI service temporarily unavailable. Please try again.');
         callbacks.onDone();
         return;
       }

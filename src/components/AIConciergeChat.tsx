@@ -631,7 +631,7 @@ export const AIConciergeChat = ({
         config: {
           model: 'gemini-3-flash-preview',
           temperature: 0.55,
-          maxTokens: 1024,
+          maxTokens: 4096,
         },
       };
 
@@ -656,16 +656,8 @@ export const AIConciergeChat = ({
           });
         };
 
-        // Create an empty assistant message bubble immediately
-        setMessages(prev => [
-          ...prev,
-          {
-            id: streamingMessageId,
-            type: 'assistant' as const,
-            content: '',
-            timestamp: new Date().toISOString(),
-          },
-        ]);
+        // Don't create the assistant bubble yet — let the typing dots show alone
+        // until the first chunk arrives, preventing an empty dark bubble.
 
         const streamHandle = invokeConciergeStream(
           requestBody,
@@ -674,7 +666,18 @@ export const AIConciergeChat = ({
               if (!isMounted.current) return;
               if (!receivedAnyChunk) {
                 receivedAnyChunk = true;
-                setIsTyping(false); // Hide typing dots once first chunk arrives; streaming text is visible
+                setIsTyping(false);
+                // Create the assistant bubble on the first chunk so it appears with content
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: text,
+                    timestamp: new Date().toISOString(),
+                  },
+                ]);
+                return;
               }
               updateStreamMsg(msg => ({ content: msg.content + text }));
             },
@@ -694,15 +697,22 @@ export const AIConciergeChat = ({
               }
               if (!isMounted.current) return;
               if (!receivedAnyChunk) {
-                setIsTyping(false); // Hide typing indicator when showing fallback
+                setIsTyping(false);
                 setAiStatus('degraded');
-                updateStreamMsg(() => ({
-                  content: generateFallbackResponse(
-                    currentInput,
-                    fallbackContext,
-                    basecampLocation,
-                  ),
-                }));
+                // Bubble doesn't exist yet — create it with fallback content
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: generateFallbackResponse(
+                      currentInput,
+                      fallbackContext,
+                      basecampLocation,
+                    ),
+                    timestamp: new Date().toISOString(),
+                  },
+                ]);
               }
             },
             onDone: () => {
@@ -710,12 +720,25 @@ export const AIConciergeChat = ({
               streamAbortRef.current = null; // Clear so cleanup doesn't double-abort
               if (!isMounted.current) return;
               setIsTyping(false);
-              // If still empty after stream ended, show a generic error
-              updateStreamMsg(msg =>
-                msg.content.length > 0
-                  ? {}
-                  : { content: 'Sorry, I encountered an error processing your request.' },
-              );
+              if (!receivedAnyChunk) {
+                // Stream ended with zero chunks — create bubble with error
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: 'Sorry, I encountered an error processing your request.',
+                    timestamp: new Date().toISOString(),
+                  },
+                ]);
+              } else {
+                // If bubble exists but somehow empty, patch it
+                updateStreamMsg(msg =>
+                  msg.content.length > 0
+                    ? {}
+                    : { content: 'Sorry, I encountered an error processing your request.' },
+                );
+              }
             },
           },
           { demoMode: isDemoMode },
@@ -731,9 +754,14 @@ export const AIConciergeChat = ({
           if (!isMounted.current) return;
           setAiStatus('timeout');
           setIsTyping(false);
-          updateStreamMsg(() => ({
-            content: `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`,
-          }));
+          const timeoutContent = `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`;
+          setMessages(prev => {
+            const exists = prev.some(m => m.id === streamingMessageId);
+            if (exists) {
+              return prev.map(m => m.id === streamingMessageId ? { ...m, content: timeoutContent } : m);
+            }
+            return [...prev, { id: streamingMessageId, type: 'assistant' as const, content: timeoutContent, timestamp: new Date().toISOString() }];
+          });
         }, FAST_RESPONSE_TIMEOUT_MS);
 
         return; // Streaming manages its own lifecycle via onDone

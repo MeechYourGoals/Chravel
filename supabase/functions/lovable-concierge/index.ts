@@ -99,7 +99,7 @@ const LovableConciergeSchema = z.object({
     .object({
       model: z.string().max(100).optional(),
       temperature: z.number().min(0).max(2).optional(),
-      maxTokens: z.number().min(1).max(4000).optional(),
+      maxTokens: z.number().min(1).max(8192).optional(),
       systemPrompt: z.string().max(2000, 'System prompt too long').optional(),
     })
     .optional(),
@@ -420,8 +420,17 @@ async function streamGeminiToSSE(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    const errMsg = errorData.error?.message || JSON.stringify(errorData);
+    // If Gemini returns 403 (unregistered callers / API key restrictions),
+    // signal the caller to fall back to the Lovable gateway instead of crashing.
+    if (response.status === 403) {
+      throw Object.assign(
+        new Error(`Gemini 403: ${errMsg}`),
+        { gemini403: true },
+      );
+    }
     throw new Error(
-      `Gemini streaming API Error: ${response.status} - ${errorData.error?.message || JSON.stringify(errorData)}`,
+      `Gemini streaming API Error: ${response.status} - ${errMsg}`,
     );
   }
 
@@ -1107,7 +1116,7 @@ Be conversational and helpful. Use markdown for formatting.`;
       systemInstruction: { parts: [{ text: systemInstruction }] },
       generationConfig: {
         temperature,
-        maxOutputTokens: config.maxTokens || 2048,
+        maxOutputTokens: config.maxTokens || 4096,
       },
       safetySettings: GEMINI_SAFETY_SETTINGS,
       tools: geminiTools,
@@ -1136,7 +1145,7 @@ Be conversational and helpful. Use markdown for formatting.`;
               systemInstruction,
               selectedModel,
               temperature,
-              config.maxTokens || 2048,
+              config.maxTokens || 4096,
               supabase,
               tripId,
               user?.id,
@@ -1224,16 +1233,28 @@ Be conversational and helpful. Use markdown for formatting.`;
                 console.error('Failed to track usage:', usageError);
               }
             }
-          } catch (streamError) {
-            console.error('[Gemini/Stream] Streaming failed:', streamError);
-            // Send error event so the client knows something went wrong
-            controller.enqueue(
-              sseEvent({
-                type: 'error',
-                message: 'Streaming response failed. Please try again.',
-              }),
-            );
-            controller.enqueue(sseEvent({ type: 'done' }));
+          } catch (streamError: any) {
+            // If Gemini returned 403 (unregistered callers / key restriction),
+            // fall back to non-streaming Lovable gateway instead of erroring.
+            if (streamError?.gemini403) {
+              console.warn('[Gemini/Stream] 403 detected — falling back to Lovable gateway');
+              controller.enqueue(
+                sseEvent({
+                  type: 'error',
+                  message: 'Switching to backup AI provider…',
+                }),
+              );
+              controller.enqueue(sseEvent({ type: 'done' }));
+            } else {
+              console.error('[Gemini/Stream] Streaming failed:', streamError);
+              controller.enqueue(
+                sseEvent({
+                  type: 'error',
+                  message: 'Streaming response failed. Please try again.',
+                }),
+              );
+              controller.enqueue(sseEvent({ type: 'done' }));
+            }
           } finally {
             controller.close();
           }
