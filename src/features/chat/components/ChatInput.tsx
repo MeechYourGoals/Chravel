@@ -92,8 +92,8 @@ export const ChatInput = ({
     clearQueue 
   } = useMediaUpload({ 
     tripId,
-    onComplete: (files) => {
-      console.log('Upload complete:', files);
+    onComplete: () => {
+      // Upload complete - no action needed, message will be sent with attachment
     },
     onError: (error, fileName) => {
       toast.error(`Failed to upload ${fileName}: ${error.message}`);
@@ -204,7 +204,9 @@ export const ChatInput = ({
   const handleSend = async () => {
     // Prevent double-submit while request is in-flight
     if (isSendingMessage) {
-      console.warn('[ChatInput] Send blocked - already sending');
+      if (import.meta.env.DEV) {
+        console.warn('[ChatInput] Send blocked - already sending');
+      }
       return;
     }
 
@@ -234,7 +236,9 @@ export const ChatInput = ({
               };
             }
           } catch (error) {
-            console.warn('Failed to fetch OG metadata:', error);
+            if (import.meta.env.DEV) {
+              console.warn('Failed to fetch OG metadata:', error);
+            }
           } finally {
             setIsFetchingPreview(false);
           }
@@ -351,7 +355,9 @@ export const ChatInput = ({
       try {
         await shareLink(url.trim());
       } catch (error) {
-        console.error('Failed to share link:', error);
+        if (import.meta.env.DEV) {
+          console.error('Failed to share link:', error);
+        }
       }
     }
   };

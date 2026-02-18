@@ -104,13 +104,25 @@ class UnifiedMessagingService {
             event: 'INSERT',
             schema: 'public',
             table: 'trip_chat_messages',
-            filter: `trip_id=eq.${tripId}`
+            filter: `trip_id=eq.${tripId}`,
           },
           (payload) => {
             const message = this.transformMessage(payload.new);
-            // Notify all callbacks for this trip
-            this.messageCallbacks.get(tripId)?.forEach(cb => cb(message));
-          }
+            this.messageCallbacks.get(tripId)?.forEach((cb) => cb(message));
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'trip_chat_messages',
+            filter: `trip_id=eq.${tripId}`,
+          },
+          (payload) => {
+            const updated = this.transformMessage(payload.new);
+            this.messageCallbacks.get(tripId)?.forEach((cb) => cb(updated));
+          },
         )
         .subscribe();
 

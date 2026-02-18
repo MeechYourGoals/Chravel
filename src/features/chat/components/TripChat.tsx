@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useChatComposer } from '../hooks/useChatComposer';
@@ -106,7 +107,8 @@ export const TripChat = ({
     createdAt: string;
     tripId: string;
   } | null>(null);
-  
+  const [failedMessages, setFailedMessages] = useState<Array<{ id: string; text: string; authorName: string }>>([]);
+
   const { isOffline } = useOfflineStatus();
   const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
   const resolvedTripId = useMemo(() => {
@@ -115,6 +117,32 @@ export const TripChat = ({
   
   const demoMode = useDemoMode();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Optimistic cache updates for edit/delete (MessageActions does the API call)
+  const handleMessageEdit = useCallback(
+    (messageId: string, newContent: string) => {
+      if (demoMode.isDemoMode || !resolvedTripId) return;
+      queryClient.setQueryData(['tripChat', resolvedTripId], (old: TripChatMessage[] = []) =>
+        old.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, content: newContent, is_edited: true, edited_at: new Date().toISOString() }
+            : msg,
+        ),
+      );
+    },
+    [demoMode.isDemoMode, resolvedTripId, queryClient],
+  );
+
+  const handleMessageDelete = useCallback(
+    (messageId: string) => {
+      if (demoMode.isDemoMode || !resolvedTripId) return;
+      queryClient.setQueryData(['tripChat', resolvedTripId], (old: TripChatMessage[] = []) =>
+        old.filter((msg) => msg.id !== messageId),
+      );
+    },
+    [demoMode.isDemoMode, resolvedTripId, queryClient],
+  );
 
   // System message preferences - only for consumer trips
   const isConsumer = isConsumerTrip(resolvedTripId);
@@ -395,27 +423,47 @@ export const TripChat = ({
       const messageType = isBroadcast ? 'broadcast' : isPayment ? 'payment' : 'text';
       // Use actual privacy mode from trip config
       const effectivePrivacyMode = getEffectivePrivacyMode(privacyConfig);
-      
+
       await sendTripMessage(message.text, authorName, undefined, undefined, user?.id, effectivePrivacyMode, messageType);
-      
-      // 🆕 Auto-parse message for entities (dates, times, locations)
+
+      // Auto-parse message for entities (dates, times, locations)
       if (message.text && message.text.trim().length > 10) {
         try {
-          const parsed = await parseMessage(message.text, resolvedTripId);
-          // Parsed content available for future UI integration
+          await parseMessage(message.text, resolvedTripId);
         } catch (parseError) {
-          // Silently fail - don't interrupt message sending
           if (import.meta.env.DEV) {
             console.warn('[TripChat] Message parsing failed:', parseError);
           }
         }
       }
     } catch (error) {
+      setFailedMessages((prev) => [
+        ...prev,
+        { id: `failed-${Date.now()}`, text: message.text, authorName },
+      ]);
       if (import.meta.env.DEV) {
         console.error('Failed to send chat message:', error);
       }
     }
   };
+
+  const handleRetryFailedMessage = useCallback(
+    async (failedId: string) => {
+      const failed = failedMessages.find((m) => m.id === failedId);
+      if (!failed || !user?.id) return;
+
+      const authorName = user.displayName || user.email?.split('@')[0] || 'You';
+      const effectivePrivacyMode = getEffectivePrivacyMode(privacyConfig);
+
+      try {
+        await sendTripMessage(failed.text, authorName, undefined, undefined, user.id, effectivePrivacyMode, 'text');
+        setFailedMessages((prev) => prev.filter((m) => m.id !== failedId));
+      } catch {
+        // Keep in failed list; toast from useTripChat
+      }
+    },
+    [failedMessages, user, privacyConfig, sendTripMessage],
+  );
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -558,6 +606,18 @@ export const TripChat = ({
 
   const filteredMessages = filterMessages(messagesToShow);
 
+  const messagesWithFailed = useMemo(() => {
+    if (failedMessages.length === 0) return filteredMessages;
+    const failedFormatted = failedMessages.map((fm) => ({
+      id: fm.id,
+      text: fm.text,
+      sender: { id: user?.id || 'unknown', name: fm.authorName, avatar: user?.avatar },
+      createdAt: new Date().toISOString(),
+      status: 'failed' as const,
+    }));
+    return [...filteredMessages, ...failedFormatted];
+  }, [filteredMessages, failedMessages, user?.id, user?.avatar]);
+
   const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
   // Scroll to specific message with highlight animation
@@ -662,7 +722,7 @@ export const TripChat = ({
                 </div>
               ) : (
                 <VirtualizedMessageContainer
-                  messages={filteredMessages}
+                  messages={messagesWithFailed}
                   renderMessage={(message) => (
                     <div data-message-id={message.id}>
                       <MessageItem
@@ -670,6 +730,9 @@ export const TripChat = ({
                         reactions={reactions[message.id]}
                         onReaction={handleReaction}
                         onReply={handleOpenThread}
+                        onEdit={demoMode.isDemoMode ? undefined : handleMessageEdit}
+                        onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
+                        onRetry={handleRetryFailedMessage}
                         systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                       />
                     </div>
@@ -710,7 +773,7 @@ export const TripChat = ({
 
       {/* Persistent Chat Input - Fixed at Bottom (Hidden when in Channels mode) */}
       {messageFilter !== 'channels' && (
-        <div className="chat-input-persistent w-full">
+        <div className="chat-input-persistent w-full pb-[env(safe-area-inset-bottom)]">
           <div className="w-full">
             <ChatInput
               inputMessage={inputMessage}

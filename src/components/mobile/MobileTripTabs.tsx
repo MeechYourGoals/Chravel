@@ -51,9 +51,6 @@ const PlacesSection = lazy(() =>
 const AIConciergeChat = lazy(() =>
   import('../AIConciergeChat').then(m => ({ default: m.AIConciergeChat })),
 );
-const MobileTripChat = lazy(() =>
-  import('./MobileTripChat').then(m => ({ default: m.MobileTripChat })),
-);
 const MobileTripPayments = lazy(() =>
   import('./MobileTripPayments').then(m => ({ default: m.MobileTripPayments })),
 );
@@ -449,7 +446,14 @@ export const MobileTripTabs = ({
         case 'concierge':
           return <AIConciergeChat tripId={tripId} basecamp={basecamp} isDemoMode={isDemoMode} />;
         default:
-          return <MobileTripChat tripId={tripId} />;
+          return (
+            <TripChat
+              tripId={tripId}
+              isPro={variant === 'pro'}
+              isEvent={variant === 'event'}
+              participants={participants}
+            />
+          );
       }
     },
     [

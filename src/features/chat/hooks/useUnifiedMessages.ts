@@ -56,12 +56,17 @@ export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessage
         const unsubscribe = await unifiedMessagingService.subscribeToTrip(
           tripId,
           (message) => {
-            setMessages(prev => {
-              // Avoid duplicates
-              if (prev.some(m => m.id === message.id)) return prev;
+            setMessages((prev) => {
+              if (message.is_deleted) {
+                return prev.filter((m) => m.id !== message.id);
+              }
+              const existing = prev.find((m) => m.id === message.id);
+              if (existing) {
+                return prev.map((m) => (m.id === message.id ? message : m));
+              }
               return [...prev, message];
             });
-          }
+          },
         );
 
         unsubscribeRef.current = unsubscribe;

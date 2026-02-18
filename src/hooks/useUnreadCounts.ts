@@ -64,9 +64,10 @@ export function useUnreadCounts({
         // Count total unread
         const totalUnread = unreadMessages.length;
 
-        // Count unread broadcasts
+        // Count unread broadcasts (support both privacy_mode and message_type)
         const unreadBroadcasts = unreadMessages.filter(
-          msg => msg.privacy_mode === 'broadcast'
+          (msg: { privacy_mode?: string; message_type?: string }) =>
+            msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
         ).length;
 
         setUnreadCount(totalUnread);
