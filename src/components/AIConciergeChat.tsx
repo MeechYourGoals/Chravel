@@ -156,6 +156,9 @@ export const AIConciergeChat = ({
   );
   const hasShownLimitToastRef = useRef(false);
 
+  // Must be declared before useGeminiLive so callbacks can safely reference it
+  const isMounted = useRef(true);
+
   // ===== VOICE MODE (Gemini Live bidirectional audio) =====
   const mapGeminiToVoiceState = (s: GeminiLiveState): VoiceState => {
     switch (s) {
@@ -218,13 +221,10 @@ export const AIConciergeChat = ({
     }
   }, [geminiLive.state, geminiLive.error, voiceActive]);
 
-  // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
-  const isMounted = useRef(true);
-
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
   const streamAbortRef = useRef<(() => void) | null>(null);
 
-  // PHASE 1 BUG FIX #7: Set up cleanup to track component mount state + abort stream on unmount
+  // Track mount state + abort in-flight streams on unmount
   useEffect(() => {
     isMounted.current = true;
     return () => {

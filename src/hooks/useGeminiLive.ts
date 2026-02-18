@@ -283,13 +283,16 @@ export function useGeminiLive({
 
       if (sessionError || (!accessToken && !apiKey)) {
         const errMsg = sessionErrMsg || 'Failed to get voice session';
-        // 403 or "not enabled" = voice requires Pro subscription
+        // 403 / "not enabled" typically means the API key is missing or the
+        // Gemini Live API is not enabled for this project — not a paywall.
         if (
           errMsg.includes('403') ||
           errMsg.toLowerCase().includes('not enabled') ||
           errMsg.toLowerCase().includes('not enabled for this account')
         ) {
-          throw new Error('Voice requires a Pro subscription. Upgrade to use voice.');
+          throw new Error(
+            'Voice is unavailable right now (API configuration issue). Please try again later.',
+          );
         }
         throw new Error(errMsg);
       }

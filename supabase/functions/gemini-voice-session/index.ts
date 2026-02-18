@@ -121,40 +121,6 @@ You are now speaking via bidirectional voice audio. Adapt your responses:
 - For places, say the name and a brief description — don't try to give URLs
 - When executing actions (adding events, creating tasks), confirm what you did conversationally`;
 
-async function canUseVoiceConcierge(supabaseAdmin: any, userId: string): Promise<boolean> {
-  const [{ data: entitlements, error: entitlementsError }, { data: roles, error: rolesError }] =
-    await Promise.all([
-      supabaseAdmin
-        .from('user_entitlements')
-        .select('plan, status')
-        .eq('user_id', userId)
-        .maybeSingle(),
-      supabaseAdmin.from('user_roles').select('role').eq('user_id', userId),
-    ]);
-
-  if (rolesError) {
-    console.warn('[gemini-voice-session] Failed reading roles for entitlement check:', rolesError);
-  }
-  if (entitlementsError) {
-    console.warn(
-      '[gemini-voice-session] Failed reading user_entitlements for entitlement check:',
-      entitlementsError,
-    );
-  }
-
-  const isEnterpriseAdmin = (roles ?? []).some(
-    (row: any) => String(row?.role) === 'enterprise_admin',
-  );
-  if (isEnterpriseAdmin) {
-    return true;
-  }
-
-  const plan = String(entitlements?.plan ?? '').toLowerCase();
-  const status = String(entitlements?.status ?? '').toLowerCase();
-  const isActiveSubscription = status === 'active' || status === 'trialing';
-
-  return isActiveSubscription && plan.length > 0 && plan !== 'free';
-}
 
 async function createEphemeralToken(params: {
   model: string;
