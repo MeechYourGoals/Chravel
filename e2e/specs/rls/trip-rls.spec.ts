@@ -420,3 +420,139 @@ test.describe('Edge Function Permission Tests', () => {
     expect(membership).not.toBeNull();
   });
 });
+
+test.describe('Leave Trip Persistence', () => {
+  test('LEAVE-001: Creator leaves, remaining members retain access to trip and objects', async ({
+    createTestUser,
+    createTestTrip,
+    addTripMember,
+    addChatMessage,
+    addTripEvent,
+    getClientAsUser,
+    supabaseAdmin,
+  }) => {
+    const creator = await createTestUser({ displayName: 'Creator' });
+    const member = await createTestUser({ displayName: 'Member' });
+
+    const trip = await createTestTrip(creator, { name: 'Shared Trip' });
+    await addTripMember(trip.id, member.id);
+    await addChatMessage(trip.id, creator.id, 'Creator message');
+    await addTripEvent(trip.id, creator.id, { title: 'Creator event' });
+
+    // Creator leaves via leave_trip RPC
+    const clientCreator = await getClientAsUser(creator);
+    const { data: leaveResult, error: leaveError } = await clientCreator.rpc('leave_trip', {
+      _trip_id: trip.id,
+    });
+
+    expect(leaveError).toBeNull();
+    expect((leaveResult as { success?: boolean })?.success).toBe(true);
+
+    // Creator loses access
+    const { data: creatorTrip } = await clientCreator
+      .from('trips')
+      .select('id')
+      .eq('id', trip.id)
+      .single();
+    expect(creatorTrip).toBeNull();
+
+    // Remaining member retains access to trip
+    const clientMember = await getClientAsUser(member);
+    const { data: memberTrip } = await clientMember
+      .from('trips')
+      .select('id, name')
+      .eq('id', trip.id)
+      .single();
+    expect(memberTrip).not.toBeNull();
+    expect(memberTrip?.name).toBe('Shared Trip');
+
+    // Remaining member can read messages (creator's message persists)
+    const { data: messages } = await clientMember
+      .from('trip_chat_messages')
+      .select('content')
+      .eq('trip_id', trip.id);
+    expect(messages?.some(m => m.content === 'Creator message')).toBe(true);
+
+    // Remaining member can read events
+    const { data: events } = await clientMember
+      .from('trip_events')
+      .select('title')
+      .eq('trip_id', trip.id);
+    expect(events?.some(e => e.title === 'Creator event')).toBe(true);
+
+    // Creator's membership is soft-deleted (status=left)
+    const { data: creatorMembership } = await supabaseAdmin
+      .from('trip_members')
+      .select('status, left_at')
+      .eq('trip_id', trip.id)
+      .eq('user_id', creator.id)
+      .single();
+    expect(creatorMembership?.status).toBe('left');
+    expect(creatorMembership?.left_at).not.toBeNull();
+  });
+
+  test('LEAVE-002: Last member leaves, trip is archived not deleted', async ({
+    createTestUser,
+    createTestTrip,
+    getClientAsUser,
+    supabaseAdmin,
+  }) => {
+    const creator = await createTestUser({ displayName: 'Solo Creator' });
+    const trip = await createTestTrip(creator, { name: 'Solo Trip' });
+
+    const clientCreator = await getClientAsUser(creator);
+    const { data: leaveResult } = await clientCreator.rpc('leave_trip', {
+      _trip_id: trip.id,
+    });
+
+    expect((leaveResult as { success?: boolean; archived?: boolean })?.success).toBe(true);
+    expect((leaveResult as { archived?: boolean })?.archived).toBe(true);
+
+    // Trip exists but is archived
+    const { data: tripRow } = await supabaseAdmin
+      .from('trips')
+      .select('id, is_archived, archived_at')
+      .eq('id', trip.id)
+      .single();
+    expect(tripRow).not.toBeNull();
+    expect(tripRow?.is_archived).toBe(true);
+    expect(tripRow?.archived_at).not.toBeNull();
+  });
+
+  test('LEAVE-003: User who left can rejoin via invite', async ({
+    createTestUser,
+    createTestTrip,
+    addTripMember,
+    createInviteLink,
+    getClientAsUser,
+    supabaseAdmin,
+  }) => {
+    const creator = await createTestUser({ displayName: 'Creator' });
+    const member = await createTestUser({ displayName: 'Member' });
+
+    const trip = await createTestTrip(creator, { name: 'Rejoin Trip' });
+    await addTripMember(trip.id, member.id);
+    const invite = await createInviteLink(trip.id, { requireApproval: false });
+
+    // Member leaves
+    const clientMember = await getClientAsUser(member);
+    const { data: leaveResult } = await clientMember.rpc('leave_trip', { _trip_id: trip.id });
+    expect((leaveResult as { success?: boolean })?.success).toBe(true);
+
+    // Member rejoins via invite (direct join, no approval)
+    const { data: joinResult } = await clientMember.functions.invoke('join-trip', {
+      body: { inviteCode: invite.code },
+    });
+    expect(joinResult?.success).toBe(true);
+    expect((joinResult as { already_member?: boolean })?.already_member).not.toBe(true);
+
+    // Verify active membership restored
+    const { data: membership } = await supabaseAdmin
+      .from('trip_members')
+      .select('status')
+      .eq('trip_id', trip.id)
+      .eq('user_id', member.id)
+      .single();
+    expect(membership?.status).toBe('active');
+  });
+});

@@ -352,11 +352,12 @@ export const tripService = {
         ...pendingTrips,
       ];
 
-      // Also fetch trips where user is a member (not creator)
+      // Also fetch trips where user is an active member (not creator)
       const { data: memberTrips, error: memberError } = await supabase
         .from('trip_members')
         .select('trip_id')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .or('status.is.null,status.eq.active');
 
       if (!memberError && memberTrips && memberTrips.length > 0) {
         const memberTripIds = memberTrips
@@ -517,15 +518,9 @@ export const tripService = {
     try {
       const { data, error } = await supabase
         .from('trip_members')
-        .select(
-          `
-          id,
-          user_id,
-          role,
-          created_at
-        `,
-        )
-        .eq('trip_id', tripId);
+        .select('id, user_id, role, created_at')
+        .eq('trip_id', tripId)
+        .or('status.is.null,status.eq.active');
 
       if (error) throw error;
 
@@ -575,7 +570,11 @@ export const tripService = {
     // Parallel fetch: trip creator + members
     const [tripResult, membersResult] = await Promise.all([
       supabase.from('trips').select('created_by').eq('id', tripId).maybeSingle(),
-      supabase.from('trip_members').select('id, user_id, role, created_at').eq('trip_id', tripId),
+      supabase
+        .from('trip_members')
+        .select('id, user_id, role, created_at')
+        .eq('trip_id', tripId)
+        .or('status.is.null,status.eq.active'),
     ]);
 
     // CRITICAL: Check for auth/RLS/network errors and THROW (don't silently return empty)
@@ -659,26 +658,35 @@ export const tripService = {
       };
     });
 
-    // CRITICAL: Creator must always be in the list (collaborators, payments, tasks)
+    // Add creator to list only if they're still an active member (creator can leave)
     if (creatorId && !members.some(m => m.id === creatorId)) {
-      const { data: creatorProfile } = await supabase
-        .from('profiles_public')
-        .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
+      const { data: creatorMembership } = await supabase
+        .from('trip_members')
+        .select('status')
+        .eq('trip_id', tripId)
         .eq('user_id', creatorId)
         .maybeSingle();
-
-      members = [
-        {
-          id: creatorId,
-          name:
-            creatorProfile?.resolved_display_name ||
-            creatorProfile?.display_name ||
-            'Trip Creator',
-          avatar: creatorProfile?.avatar_url,
-          isCreator: true,
-        },
-        ...members,
-      ];
+      const creatorActive =
+        !creatorMembership || creatorMembership.status === 'active' || creatorMembership.status === null;
+      if (creatorActive) {
+        const { data: creatorProfile } = await supabase
+          .from('profiles_public')
+          .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
+          .eq('user_id', creatorId)
+          .maybeSingle();
+        members = [
+          {
+            id: creatorId,
+            name:
+              creatorProfile?.resolved_display_name ||
+              creatorProfile?.display_name ||
+              'Trip Creator',
+            avatar: creatorProfile?.avatar_url,
+            isCreator: true,
+          },
+          ...members,
+        ];
+      }
     }
 
     if (import.meta.env.DEV) {

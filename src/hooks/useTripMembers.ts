@@ -241,35 +241,34 @@ export const useTripMembers = (tripId?: string) => {
       }
 
       try {
-        // Get user's display name for the notification
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('display_name, first_name, last_name')
-          .eq('user_id', user.id)
-          .single();
+        const { data, error } = await supabase.rpc('leave_trip', { _trip_id: tripId });
 
-        const userName =
-          profileData?.display_name ||
-          `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() ||
-          'A member';
-
-        // Delete trip membership
-        const { error: deleteError } = await supabase
-          .from('trip_members')
-          .delete()
-          .eq('trip_id', tripId)
-          .eq('user_id', user.id);
-
-        if (deleteError) {
-          console.error('Error leaving trip:', deleteError);
-          toast.error('Failed to leave trip');
+        if (error) {
+          console.error('Error leaving trip:', error);
+          toast.error(error.message || 'Failed to leave trip');
           return false;
         }
 
-        // Create notification for trip organizer
-        if (tripCreatorId) {
+        const result = data as { success?: boolean; message?: string; notify_user_id?: string } | null;
+        if (!result?.success) {
+          toast.error(result?.message || 'Failed to leave trip');
+          return false;
+        }
+
+        // Notify primary admin (creator if active, else promoted admin) - RPC returns notify_user_id
+        const notifyUserId = result.notify_user_id ?? tripCreatorId;
+        if (notifyUserId && notifyUserId !== user.id) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('display_name, first_name, last_name')
+            .eq('user_id', user.id)
+            .single();
+          const userName =
+            profileData?.display_name ||
+            `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() ||
+            'A member';
           await supabase.from('notifications').insert({
-            user_id: tripCreatorId,
+            user_id: notifyUserId,
             title: `${userName} left ${tripName}`,
             message: `${userName} has left the trip "${tripName}"`,
             type: 'member_left',
@@ -282,7 +281,6 @@ export const useTripMembers = (tripId?: string) => {
           });
         }
 
-        // Update local state
         setTripMembers(prev => prev.filter(m => m.id !== user.id));
         return true;
       } catch (error) {

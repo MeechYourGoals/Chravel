@@ -187,48 +187,43 @@ export const useTripMembersQuery = (tripId?: string) => {
     }
   });
 
-  // Leave trip mutation
+  // Leave trip mutation (uses leave_trip RPC: soft-delete, admin transfer, archive)
   const leaveTripMutation = useMutation({
-    mutationFn: async (tripName: string) => {
+    mutationFn: async (_tripName: string) => {
       if (!tripId || !user?.id) throw new Error('Must be logged in');
       if (isDemoMode) return true;
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('display_name, first_name, last_name')
-        .eq('user_id', user.id)
-        .single();
-      
-      const userName = profileData?.display_name || 
-        `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() || 
-        'A member';
+      const { data, error } = await supabase.rpc('leave_trip', { _trip_id: tripId });
+      if (error) throw error;
 
-      const { error: deleteError } = await supabase
-        .from('trip_members')
-        .delete()
-        .eq('trip_id', tripId)
-        .eq('user_id', user.id);
+      const result = data as { success?: boolean; message?: string; notify_user_id?: string } | null;
+      if (!result?.success) throw new Error(result?.message || 'Failed to leave trip');
 
-      if (deleteError) throw deleteError;
-
-      // Notify creator
-      if (tripCreatorId) {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: tripCreatorId,
-            title: `${userName} left ${tripName}`,
-            message: `${userName} has left the trip "${tripName}"`,
-            type: 'member_left',
-            metadata: {
-              trip_id: tripId,
-              trip_name: tripName,
-              left_user_id: user.id,
-              left_user_name: userName
-            }
-          });
+      // Notify primary admin (creator if active, else promoted admin) - RPC returns notify_user_id
+      const notifyUserId = result.notify_user_id ?? tripCreatorId;
+      if (notifyUserId && notifyUserId !== user.id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('display_name, first_name, last_name')
+          .eq('user_id', user.id)
+          .single();
+        const userName =
+          profileData?.display_name ||
+          `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() ||
+          'A member';
+        await supabase.from('notifications').insert({
+          user_id: notifyUserId,
+          title: `${userName} left ${_tripName}`,
+          message: `${userName} has left the trip "${_tripName}"`,
+          type: 'member_left',
+          metadata: {
+            trip_id: tripId,
+            trip_name: _tripName,
+            left_user_id: user.id,
+            left_user_name: userName,
+          },
+        });
       }
-
       return true;
     },
     onSuccess: () => {

@@ -52,6 +52,7 @@ export const paymentBalanceService = {
           .select('id')
           .eq('trip_id', tripId)
           .eq('user_id', currentUser.id)
+          .or('status.is.null,status.eq.active')
           .maybeSingle(),
         supabase
           .from('trip_payment_messages')
