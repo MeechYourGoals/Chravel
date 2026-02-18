@@ -13,6 +13,8 @@ import {
 } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { useGeminiLive, type GeminiLiveState } from '@/hooks/useGeminiLive';
+import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -148,10 +150,73 @@ export const AIConciergeChat = ({
     'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
   >('connected');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const [voiceActive, setVoiceActive] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
   const hasShownLimitToastRef = useRef(false);
+
+  // ===== VOICE MODE (Gemini Live bidirectional audio) =====
+  const mapGeminiToVoiceState = (s: GeminiLiveState): VoiceState => {
+    switch (s) {
+      case 'listening': return 'listening';
+      case 'speaking': return 'speaking';
+      case 'connecting': return 'connecting';
+      case 'error': return 'error';
+      default: return 'idle';
+    }
+  };
+
+  const geminiLive = useGeminiLive({
+    tripId,
+    onTranscript: (text) => {
+      if (!isMounted.current) return;
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.type === 'assistant' && last.id === 'voice-streaming') {
+          return prev.map((m, i) =>
+            i === prev.length - 1 ? { ...m, content: m.content + text } : m
+          );
+        }
+        return [...prev, {
+          id: 'voice-streaming',
+          type: 'assistant' as const,
+          content: text,
+          timestamp: new Date().toISOString(),
+        }];
+      });
+    },
+    onTurnComplete: () => {
+      if (!isMounted.current) return;
+      setMessages(prev =>
+        prev.map(m => m.id === 'voice-streaming'
+          ? { ...m, id: crypto.randomUUID() }
+          : m
+        )
+      );
+    },
+    onToolCall: async (call) => {
+      return { result: `Action ${call.name} noted` };
+    },
+  });
+
+  const handleVoiceToggle = useCallback(() => {
+    if (geminiLive.state === 'idle' || geminiLive.state === 'error') {
+      geminiLive.startSession();
+      setVoiceActive(true);
+    } else {
+      geminiLive.endSession();
+      setVoiceActive(false);
+    }
+  }, [geminiLive]);
+
+  // Auto-revert to text mode on voice error
+  useEffect(() => {
+    if (geminiLive.state === 'error' && voiceActive) {
+      toast.error(geminiLive.error || 'Voice session ended. Returning to text mode.');
+      setVoiceActive(false);
+    }
+  }, [geminiLive.state, geminiLive.error, voiceActive]);
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
@@ -746,6 +811,26 @@ export const AIConciergeChat = ({
           )}
         </div>
 
+        {/* Voice Active Indicator */}
+        {voiceActive && geminiLive.state !== 'idle' && geminiLive.state !== 'error' && (
+          <div className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-sm text-emerald-300">
+                {geminiLive.state === 'connecting' ? 'Connecting...' :
+                 geminiLive.state === 'listening' ? 'Listening...' :
+                 geminiLive.state === 'speaking' ? 'AI Speaking...' : 'Voice Active'}
+              </span>
+            </div>
+            <button
+              onClick={() => { geminiLive.endSession(); setVoiceActive(false); }}
+              className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors"
+            >
+              End Voice
+            </button>
+          </div>
+        )}
+
         {/* Input */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
           <AiChatInput
@@ -759,6 +844,9 @@ export const AIConciergeChat = ({
             attachedImages={attachedImages}
             onImageAttach={files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
             onRemoveImage={idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))}
+            voiceState={mapGeminiToVoiceState(geminiLive.state)}
+            isVoiceEligible={true}
+            onVoiceToggle={handleVoiceToggle}
           />
         </div>
       </div>
