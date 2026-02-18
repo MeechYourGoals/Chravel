@@ -265,7 +265,10 @@ export function useGeminiLive({
         body: { tripId, voice },
       });
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Voice session timed out. Please try again.')), SESSION_TIMEOUT_MS),
+        setTimeout(
+          () => reject(new Error('Voice session timed out. Please try again.')),
+          SESSION_TIMEOUT_MS,
+        ),
       );
 
       const { data: sessionData, error: sessionError } = (await Promise.race([
@@ -309,13 +312,22 @@ export function useGeminiLive({
       audioContextRef.current = new AudioContext({ sampleRate: 24000 });
 
       // 4. Open WebSocket to Gemini Live
-      const websocketUrl =
+      // Ephemeral tokens require BidiGenerateContentConstrained (v1alpha).
+      // Raw API keys use BidiGenerateContent (v1beta).
+      // See: https://ai.google.dev/gemini-api/docs/ephemeral-tokens
+      const CONSTRAINED_WS_URL =
+        'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
+      const STANDARD_WS_URL =
+        'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+
+      const serverWsUrl =
         typeof sessionData?.websocketUrl === 'string' && sessionData.websocketUrl.length > 0
           ? sessionData.websocketUrl
-          : 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
+          : null;
+
       const wsUrl = accessToken
-        ? `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`
-        : `${websocketUrl}?key=${encodeURIComponent(apiKey as string)}`;
+        ? `${serverWsUrl || CONSTRAINED_WS_URL}?access_token=${encodeURIComponent(accessToken)}`
+        : `${serverWsUrl || STANDARD_WS_URL}?key=${encodeURIComponent(apiKey as string)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 

@@ -12,8 +12,12 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
+// Ephemeral tokens MUST use BidiGenerateContentConstrained (v1alpha).
+// The standard BidiGenerateContent endpoint rejects ephemeral tokens with
+// "Method doesn't allow unregistered callers".
+// See: https://ai.google.dev/gemini-api/docs/ephemeral-tokens
 const LIVE_WEBSOCKET_URL =
-  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
+  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
 
 const parseEnvInt = (
   value: string | undefined,
