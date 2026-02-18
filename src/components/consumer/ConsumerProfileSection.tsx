@@ -69,9 +69,14 @@ export const ConsumerProfileSection = () => {
       });
     } catch (error) {
       console.error('Error saving profile:', error);
+      const message = (error as { message?: string })?.message?.includes(
+        'Display name can only be changed twice',
+      )
+        ? 'Display name can only be changed twice every 30 days. Please try again later.'
+        : 'Failed to save profile changes. Please try again.';
       toast({
         title: 'Error',
-        description: 'Failed to save profile changes. Please try again.',
+        description: message,
         variant: 'destructive',
       });
     } finally {
