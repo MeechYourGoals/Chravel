@@ -365,6 +365,7 @@ export const MobileTripTabs = ({
             <EnhancedAgendaTab
               eventId={tripId}
               userRole={isEventAdmin ? 'organizer' : 'attendee'}
+              initialSessions={eventData?.agenda}
               onLineupUpdate={handleLineupUpdate}
             />
           );
