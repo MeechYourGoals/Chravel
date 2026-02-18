@@ -157,40 +157,35 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
     }
 
     // Load more logic: check local windowing first, then server
-    if (scrollTop < 200 && !isLoadingRef.current) {
+    if (scrollTop < 200 && !isLoadingRef.current && !isLoading) {
       if (localHasMore) {
-        // Load more from local messages
+        // Load more from local messages (windowing)
         isLoadingRef.current = true;
         const prevScrollHeight = containerRef.current.scrollHeight;
         previousScrollHeightRef.current = prevScrollHeight;
-        
-        setVisibleStartIndex(prev => {
-          const newStart = Math.max(0, prev - pageSize);
-          return newStart;
+
+        setVisibleStartIndex((prev) => Math.max(0, prev - pageSize));
+
+        // Preserve scroll position after DOM update (double rAF for layout)
+        const capturedScrollHeight = prevScrollHeight;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (containerRef.current) {
+              const newScrollHeight = containerRef.current.scrollHeight;
+              containerRef.current.scrollTop = scrollTop + (newScrollHeight - capturedScrollHeight);
+            }
+            isLoadingRef.current = false;
+          });
         });
-        
-        // Preserve scroll position after DOM update
-        setTimeout(() => {
-          if (containerRef.current) {
-            const newScrollHeight = containerRef.current.scrollHeight;
-            const scrollDiff = newScrollHeight - prevScrollHeight;
-            containerRef.current.scrollTop = scrollTop + scrollDiff;
-          }
-          isLoadingRef.current = false;
-        }, 50);
-        
+
         hapticService.light();
       } else if (hasMore) {
-        // Load more from server
-        isLoadingRef.current = true;
+        // Load more from server - use isLoading prop to prevent double-fetch
         hapticService.light();
         onLoadMore();
-        setTimeout(() => {
-          isLoadingRef.current = false;
-        }, 1000);
       }
     }
-  }, [hasMore, onLoadMore, localHasMore, pageSize]);
+  }, [hasMore, onLoadMore, localHasMore, pageSize, isLoading]);
 
   // Scroll to bottom handler
   const scrollToBottom = () => {
