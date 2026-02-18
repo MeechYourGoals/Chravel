@@ -171,15 +171,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         supabaseUser.email?.split('@')[0] ||
         'User';
 
-      await supabase.from('profiles').upsert(
-        {
-          user_id: supabaseUser.id,
-          display_name: displayName,
-          email: supabaseUser.email ?? null,
-          phone: supabaseUser.phone ?? null,
-        },
-        { onConflict: 'user_id' },
-      );
+      // Email/phone live in private_profiles; profiles only has display_name, etc.
+      await supabase
+        .from('profiles')
+        .upsert({ user_id: supabaseUser.id, display_name: displayName }, { onConflict: 'user_id' });
     } catch (error) {
       // Never block auth on profile creation failures.
       if (import.meta.env.DEV) {
@@ -906,13 +901,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return { error: 'No user logged in' };
 
     try {
+      // Phone lives in private_profiles (moved from profiles in secure_profiles migration).
+      // Sending phone to profiles causes "column does not exist" and save failure.
+      const { phone: phoneUpdate, ...profileUpdates } = updates;
+      const hasPhoneUpdate = phoneUpdate !== undefined;
+
       // Use UPSERT so profile updates persist even if the profiles row was never created.
       // This is critical for avatar uploads + identity propagation.
       const { data, error } = await supabase
         .from('profiles')
         .upsert(
           {
-            ...updates,
+            ...profileUpdates,
             user_id: user.id,
           },
           { onConflict: 'user_id' },
@@ -927,6 +927,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error };
       }
 
+      // Persist phone to private_profiles (uses profiles.id as FK)
+      if (hasPhoneUpdate && data) {
+        const { error: privateError } = await supabase
+          .from('private_profiles')
+          .upsert(
+            { id: data.id, phone: phoneUpdate ?? null, updated_at: new Date().toISOString() },
+            { onConflict: 'id' },
+          );
+        if (privateError) {
+          if (import.meta.env.DEV) {
+            console.error('Error updating private profile (phone):', privateError);
+          }
+          return { error: privateError };
+        }
+      }
+
       // Update local user state
       const updatedUser = { ...user };
       // Prefer returned row to avoid local/remote drift.
@@ -934,12 +950,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         updatedUser.displayName = data.display_name ?? updatedUser.displayName;
         updatedUser.realName = (data as any).real_name ?? updatedUser.realName;
         const namePref = (data as any).name_preference;
-        updatedUser.namePreference = namePref === 'real' ? 'real' : (namePref === 'display' ? 'display' : updatedUser.namePreference);
+        updatedUser.namePreference =
+          namePref === 'real'
+            ? 'real'
+            : namePref === 'display'
+              ? 'display'
+              : updatedUser.namePreference;
         updatedUser.firstName = data.first_name ?? updatedUser.firstName;
         updatedUser.lastName = data.last_name ?? updatedUser.lastName;
         updatedUser.avatar = data.avatar_url ?? updatedUser.avatar;
         updatedUser.bio = data.bio ?? updatedUser.bio;
-        updatedUser.phone = data.phone ?? updatedUser.phone;
+        // Phone lives in private_profiles; profiles row may not have it
+        updatedUser.phone = hasPhoneUpdate
+          ? (phoneUpdate ?? undefined)
+          : ((data as any).phone ?? updatedUser.phone);
         updatedUser.showEmail = data.show_email ?? updatedUser.showEmail;
         updatedUser.showPhone = data.show_phone ?? updatedUser.showPhone;
       } else {
