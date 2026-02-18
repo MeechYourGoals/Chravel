@@ -160,10 +160,18 @@ async function createEphemeralToken(params: {
   model: string;
   systemInstruction: string;
   voice: string;
+  voiceSessionId?: string;
 }): Promise<{ token: string; expireTime?: string; newSessionExpireTime?: string }> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
   }
+
+  const voiceSessionId = params.voiceSessionId ?? crypto.randomUUID();
+  console.log('[gemini-voice-session] Creating ephemeral token', {
+    voiceSessionId,
+    model: params.model,
+    toolsShape: 'functionDeclarations only',
+  });
 
   const now = Date.now();
   const expireTime = new Date(now + GEMINI_EPHEMERAL_EXPIRE_MINUTES * 60 * 1000).toISOString();
@@ -190,7 +198,8 @@ async function createEphemeralToken(params: {
       systemInstruction: {
         parts: [{ text: params.systemInstruction }],
       },
-      tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }, { googleSearch: {} }],
+      // MVP: Only functionDeclarations. Mixing googleSearch causes 400 from Gemini auth_tokens API.
+      tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
     },
   };
 
@@ -208,6 +217,11 @@ async function createEphemeralToken(params: {
 
   if (!tokenResponse.ok) {
     const body = await tokenResponse.text();
+    console.error('[gemini-voice-session] Token creation failed', {
+      voiceSessionId,
+      status: tokenResponse.status,
+      body: body.substring(0, 500),
+    });
     throw new Error(
       `Failed to create Gemini ephemeral token (${tokenResponse.status}): ${body.substring(0, 500)}`,
     );
@@ -307,7 +321,12 @@ serve(async req => {
     if (tripId) {
       try {
         // Voice is pro-only (checked above), so always include preferences
-        const tripContext = await TripContextBuilder.buildContext(tripId, user.id, authHeader, true);
+        const tripContext = await TripContextBuilder.buildContext(
+          tripId,
+          user.id,
+          authHeader,
+          true,
+        );
         systemInstruction = buildSystemPrompt(tripContext);
       } catch (contextError) {
         console.error(
@@ -323,10 +342,12 @@ serve(async req => {
     // Append voice-specific delivery guidelines
     systemInstruction += VOICE_ADDENDUM;
 
+    const voiceSessionId = crypto.randomUUID();
     const ephemeral = await createEphemeralToken({
       model: GEMINI_LIVE_MODEL,
       systemInstruction,
       voice,
+      voiceSessionId,
     });
 
     // The ephemeral token already embeds model, voice, system instruction, and
