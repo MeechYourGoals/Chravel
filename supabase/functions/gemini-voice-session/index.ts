@@ -190,7 +190,7 @@ async function createEphemeralToken(params: {
       systemInstruction: {
         parts: [{ text: params.systemInstruction }],
       },
-      tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }, { googleSearch: {} }],
+      tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
     },
   };
 
@@ -285,16 +285,8 @@ serve(async req => {
     const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
       ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
       : supabase;
-    const hasVoiceAccess = await canUseVoiceConcierge(supabaseAdmin, user.id);
-    if (!hasVoiceAccess) {
-      return new Response(
-        JSON.stringify({ error: 'Voice concierge is not enabled for this account' }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      );
-    }
+    // Voice is free for all authenticated users — no subscription gate
+    console.log('[gemini-voice-session] Authenticated user, proceeding', { userId: user.id });
 
     const body = await req.json();
     const requestedVoice = typeof body?.voice === 'string' ? body.voice : 'Puck';
@@ -323,11 +315,29 @@ serve(async req => {
     // Append voice-specific delivery guidelines
     systemInstruction += VOICE_ADDENDUM;
 
-    const ephemeral = await createEphemeralToken({
+    console.log('[gemini-voice-session] Creating ephemeral token', {
       model: GEMINI_LIVE_MODEL,
-      systemInstruction,
       voice,
+      toolCount: VOICE_FUNCTION_DECLARATIONS.length,
+      hasTripContext: !!tripId,
     });
+
+    let ephemeral: { token: string; expireTime?: string; newSessionExpireTime?: string };
+    try {
+      ephemeral = await createEphemeralToken({
+        model: GEMINI_LIVE_MODEL,
+        systemInstruction,
+        voice,
+      });
+      console.log('[gemini-voice-session] Token created successfully', {
+        expireTime: ephemeral.expireTime,
+      });
+    } catch (tokenErr) {
+      console.error('[gemini-voice-session] Token creation failed', {
+        error: tokenErr instanceof Error ? tokenErr.message : String(tokenErr),
+      });
+      throw tokenErr;
+    }
 
     // The ephemeral token already embeds model, voice, system instruction, and
     // tools. We intentionally omit systemInstruction from the response to avoid
