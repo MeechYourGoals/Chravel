@@ -1,197 +1,85 @@
 
 
-# Voice Mode for AI Concierge -- Final Implementation Plan
+# Fix Build Errors + Add Drag-to-Reorder Trip Cards
 
-## Why It Never Worked
+## Part 1: Fix 8 Build Errors (5 bugs)
 
-Two confirmed bugs, both visible in the code:
+### Bug 1: `MobileTripPayments.tsx` -- wrong variable name in `PaymentItem` (lines 615, 618)
 
-1. **Line 193 of `gemini-voice-session/index.ts`** sends `tools: [{ functionDeclarations: ... }, { googleSearch: {} }]` -- Gemini returns 400, killing the WebSocket before it opens. This is the primary failure.
-2. **`AIConciergeChat.tsx`** never imports `useGeminiLive` or passes voice props to `AiChatInput` -- so the mic button literally never renders.
+The `PaymentItem` sub-component receives `formatCurrency` as a prop, but lines 615 and 618 reference `formatCurrencyFn` (the parent component's local variable name). Fix: change `formatCurrencyFn` to `formatCurrency` on lines 615 and 618.
 
-Everything else (WebSocket hook, audio capture, PCM encoding, audio playback, VoiceButton UI) is already built and correct.
+### Bug 2: `MobileTripPayments.tsx` -- missing import for `formatCurrency` (line 396)
 
-## Key Design Decisions
+The parent component defines `formatCurrencyFn` which calls `formatCurrency`, but `formatCurrency` is never imported. Fix: add `import { formatCurrency } from '@/services/currencyService';` to the imports.
 
-- **Free for all users** -- no subscription gate. Remove the `canUseVoiceConcierge` entitlement check from the edge function and always pass `isVoiceEligible={true}` on the client.
-- **Real-time conversation** -- user speaks, AI hears live via Gemini Live bidirectional WebSocket, responds with voice AND text simultaneously (like Grok/ChatGPT voice mode).
-- **Text query = text-only response** -- voice is only used when the user activates voice mode. Regular text input continues to work as-is with text-only responses.
+### Bug 3: `PaymentMessage.tsx` -- `getPaymentMethodName` doesn't exist (line 152)
 
-## Changes (4 files)
+Line 152 calls `getPaymentMethodName(method)` but no such function exists. The correct function (already imported on line 8) is `getPaymentMethodDisplayName`. Fix: replace `getPaymentMethodName` with `getPaymentMethodDisplayName`.
 
-### 1. Fix Edge Function -- `supabase/functions/gemini-voice-session/index.ts`
+### Bug 4: `leave_trip` RPC not in generated types (2 files)
 
-**Bug fix (line 193):** Remove `{ googleSearch: {} }` from the tools array. Only include `functionDeclarations`:
+`useTripMembers.ts` line 244 and `useTripMembersQuery.ts` line 196 call `supabase.rpc('leave_trip', ...)` but the generated Supabase types don't include this function. Fix: cast the function name with `as any` -- same pattern used elsewhere in the codebase.
 
-```typescript
-// Line 193 -- FROM:
-tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }, { googleSearch: {} }],
+### Bug 5: `trip_members.status` column not in types
 
-// TO:
-tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
-```
+`tripService.ts` line 665 selects `'status'` from `trip_members` but the generated types don't have this column. Fix: change `.select('status')` to `.select('*')` and cast the result to access `status`.
 
-**Remove subscription gate:** Replace the `canUseVoiceConcierge` check (lines 288-297) so it always allows access. This makes voice free for all authenticated users.
+---
 
-**Add structured logging** around ephemeral token creation:
-```typescript
-console.log('[gemini-voice-session] Creating ephemeral token', {
-  model: params.model,
-  voice: params.voice,
-  toolCount: VOICE_FUNCTION_DECLARATIONS.length,
-  sessionId,
-});
-```
+## Part 2: Drag-to-Reorder Trip Cards
 
-And on error:
-```typescript
-console.error('[gemini-voice-session] Token creation failed', {
-  status: tokenResponse.status,
-  body: body.substring(0, 500),
-  sessionId,
-});
-```
+### Design Decision: Mobile Interaction
 
-### 2. Wire Voice into Chat -- `src/components/AIConciergeChat.tsx`
+Add a **"Rearrange" option in the existing 3-dot menu** on each card. When tapped, the dashboard enters a reorder mode where cards wiggle (iOS-style) and can be dragged. A "Done" button exits reorder mode. On desktop, cards are always draggable via a small grip handle.
 
-**Imports:** Add `useGeminiLive` and `VoiceState` type.
+New trips appear at the **beginning** of the list (not the end).
 
-**State and hook setup:**
-```typescript
-const [voiceActive, setVoiceActive] = useState(false);
+### New Files
 
-const mapGeminiToVoiceState = (s: GeminiLiveState): VoiceState => {
-  switch (s) {
-    case 'listening': return 'listening';
-    case 'speaking': return 'speaking';
-    case 'connecting': return 'connecting';
-    case 'error': return 'error';
-    default: return 'idle';
-  }
-};
+**`src/components/dashboard/SortableCardWrapper.tsx`**
+- Uses `useSortable` from dnd-kit
+- Wraps each card with transform/transition styles
+- Shows subtle elevation + shadow when dragging
+- On desktop: small grip icon (GripVertical) as drag handle, always visible
+- In reorder mode (mobile): entire card is draggable, cards wiggle with CSS animation
 
-const geminiLive = useGeminiLive({
-  tripId,
-  onTranscript: (text) => {
-    // Append text to chat as assistant message (streaming accumulation)
-    setMessages(prev => {
-      const last = prev[prev.length - 1];
-      if (last?.type === 'assistant' && last.id === 'voice-streaming') {
-        return prev.map((m, i) =>
-          i === prev.length - 1 ? { ...m, content: m.content + text } : m
-        );
-      }
-      return [...prev, {
-        id: 'voice-streaming',
-        type: 'assistant',
-        content: text,
-        timestamp: new Date().toISOString(),
-      }];
-    });
-  },
-  onTurnComplete: () => {
-    // Finalize the streaming message with a real ID
-    setMessages(prev =>
-      prev.map(m => m.id === 'voice-streaming'
-        ? { ...m, id: crypto.randomUUID() }
-        : m
-      )
-    );
-  },
-  onToolCall: async (call) => {
-    // Stub for MVP -- return acknowledgment
-    return { result: `Action ${call.name} noted` };
-  },
-});
-```
+**`src/components/dashboard/SortableTripGrid.tsx`**
+- Generic wrapper accepting `items`, `getId`, `renderCard`, `dashboardType`, `userId`
+- Sets up `DndContext` with `PointerSensor` (distance: 8) + `TouchSensor` (distance: 8)
+- Uses `rectSortingStrategy` for grid reordering
+- Accepts `reorderMode` boolean to toggle between normal and reorder states
+- On drag end, reorders items and persists
 
-**Voice toggle handler:**
-```typescript
-const handleVoiceToggle = () => {
-  if (geminiLive.state === 'idle' || geminiLive.state === 'error') {
-    geminiLive.startSession();
-    setVoiceActive(true);
-  } else {
-    geminiLive.endSession();
-    setVoiceActive(false);
-  }
-};
-```
+**`src/hooks/useDashboardCardOrder.ts`**
+- Loads/saves order to localStorage key `chravel:cardOrder:<userId>:<dashboardType>`
+- `applyOrder(items, getId)`: sorts items by saved order, **prepends** new IDs (not in saved order) to the front
+- `saveOrder(orderedIds)`: persists to localStorage
+- Filters out stale IDs that no longer exist in current items
 
-**Auto-revert on error (useEffect):**
-```typescript
-useEffect(() => {
-  if (geminiLive.state === 'error' && voiceActive) {
-    toast.error(geminiLive.error || 'Voice session ended. Returning to text mode.');
-    setVoiceActive(false);
-  }
-}, [geminiLive.state, geminiLive.error, voiceActive]);
-```
+### Modified Files
 
-**Voice active indicator (JSX, between header and messages):**
-```
-When voiceActive and state is not idle/error:
-- Green pulse dot + state label ("Connecting..." / "Listening..." / "AI Speaking...")
-- "End Voice" button that calls endSession and sets voiceActive=false
-```
+**Card 3-dot menus (TripCard, ProTripCard, EventCard)**
+- Add "Rearrange" option to the existing dropdown menu
+- When tapped, calls a callback `onEnterReorderMode()` passed down from the grid
 
-**Pass voice props to AiChatInput:**
-```typescript
-<AiChatInput
-  // ... existing props ...
-  voiceState={mapGeminiToVoiceState(geminiLive.state)}
-  isVoiceEligible={true}  // Free for all users
-  onVoiceToggle={handleVoiceToggle}
-/>
-```
+**`src/components/home/TripGrid.tsx`**
+- Add `reorderMode` state per tab
+- Wrap the three card `.map()` blocks (My Trips, Pro, Events) with `SortableTripGrid`
+- Pass `dashboardType` ("my_trips" / "pro" / "events") and current user ID
+- When in reorder mode, show a floating "Done" button to exit
+- Pending/invited trips remain below the sortable section (not draggable)
 
-### 3. VoiceButton Behavior Adjustment -- `src/features/chat/components/VoiceButton.tsx`
+### UX Details
 
-Since voice is now free for all, the "locked" state with the Lock icon will never appear (isEligible is always true). No code changes needed -- the existing component handles `isEligible={true}` correctly.
+- **Desktop:** Small grip icon in card header. Grab cursor on hover. Cards animate into place during drag. No reorder mode needed -- always draggable via handle.
+- **Mobile/Tablet:** Tap 3-dot menu, select "Rearrange". Cards start wiggling. Touch-drag to reorder. Tap "Done" to save and exit. Scrolling still works (distance threshold prevents accidental drags).
+- **New trips:** Appear at the beginning of the list.
+- **Deleted trips:** Silently removed from saved order.
+- **Tab independence:** My Trips, Pro, and Events each have their own saved order.
 
-### 4. Deploy Edge Function
+### What Does NOT Change
 
-Deploy `gemini-voice-session` after the bug fix.
-
-## State Machine (already enforced by useGeminiLive)
-
-```text
-idle --> connecting --> listening <--> speaking
-  ^                       |               |
-  |          error <------+---------------+
-  +------------|
-  (auto-revert via useEffect)
-```
-
-- **Start**: User taps mic --> `startSession()` --> connecting
-- **Connected**: WebSocket `setupComplete` --> listening (audio capture begins)
-- **AI responds**: Audio chunks arrive --> speaking (plays audio + streams text)
-- **Turn done**: `turnComplete` --> listening (ready for next user input)
-- **Stop**: User taps "End Voice" --> `endSession()` --> idle
-- **Any error**: --> error --> auto-revert to idle + toast
-
-## iOS Safari Compatibility
-
-Already handled in the existing `useGeminiLive` hook:
-- `AudioContext` created fresh per session on button tap (satisfies iOS user-gesture requirement)
-- `getUserMedia` with echo cancellation and noise suppression
-- PCM16 encoding at 16kHz input, 24kHz playback
-- Standard WebSocket API (universally supported)
-
-## What This Does NOT Change
-
-- Text chat continues to work exactly as before
-- No new API keys needed (uses existing `GEMINI_API_KEY`)
-- No new edge functions needed
-- No database changes needed
-
-## Manual Test Checklist
-
-1. Free user on desktop Chrome: Tap mic --> permission prompt --> speak --> AI responds with voice + text in chat
-2. iOS Safari: Permission prompt --> bidirectional conversation works
-3. Text input while voice active: Still works (hybrid mode)
-4. "End Voice" button: Immediately stops session, reverts to text
-5. Network error during voice: Toast shows error, auto-reverts to text mode
-6. Mic permission denied: Error toast, stays in text mode
-7. Send a text query while NOT in voice mode: Response is text-only (no audio)
-8. Multiple voice turns: Each AI response appears as a separate message in chat
+- No new database tables or migrations
+- No changes to existing card button functionality (View, Invite, Share, Recap, swipe-to-delete)
+- No changes to archived/hidden/pending trip handling
+- No new dependencies (dnd-kit packages are already installed)
