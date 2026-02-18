@@ -13,6 +13,8 @@ interface MessageItemProps {
   onReply?: (messageId: string) => void;
   showSenderInfo?: boolean;
   onRetry?: (messageId: string) => void;
+  onEdit?: (messageId: string, newContent: string) => void;
+  onDelete?: (messageId: string) => void;
   // System message visibility preferences
   systemMessagePrefs?: {
     showSystemMessages: boolean;
@@ -27,18 +29,26 @@ export const MessageItem = memo(({
   onReply,
   showSenderInfo,
   onRetry,
+  onEdit,
+  onDelete,
   systemMessagePrefs
 }: MessageItemProps) => {
   const { user } = useAuth();
   const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
 
-  const handleEdit = useCallback(async (messageId: string, newContent: string) => {
-    console.log('Message edited:', messageId, newContent);
-  }, []);
+  const handleEdit = useCallback(
+    (messageId: string, newContent: string) => {
+      onEdit?.(messageId, newContent);
+    },
+    [onEdit],
+  );
 
-  const handleDelete = useCallback(async (messageId: string) => {
-    console.log('Message deleted:', messageId);
-  }, []);
+  const handleDelete = useCallback(
+    (messageId: string) => {
+      onDelete?.(messageId);
+    },
+    [onDelete],
+  );
 
   // Check for system messages
   const isSystemMessage = message.tags?.includes('system') === true || 
