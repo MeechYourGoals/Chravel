@@ -6,11 +6,17 @@ import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
+import { useUnifiedEntitlements } from '@/hooks/useUnifiedEntitlements';
+import { useGeminiLive, type ToolCallRequest } from '@/hooks/useGeminiLive';
 import {
   invokeConcierge,
   invokeConciergeStream,
   type StreamMetadataEvent,
 } from '@/services/conciergeGateway';
+import { calendarService } from '@/services/calendarService';
+import { taskService } from '@/services/taskService';
+import { pollService } from '@/services/pollService';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 
@@ -141,6 +147,8 @@ export const AIConciergeChat = ({
   const { basecamp: globalBasecamp } = useBasecamp();
   const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
+  const { canUse } = useUnifiedEntitlements();
+  const isVoiceEligible = canUse('voice_concierge');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -152,6 +160,120 @@ export const AIConciergeChat = ({
     Promise.resolve(),
   );
   const hasShownLimitToastRef = useRef(false);
+
+  // Voice tool call handler — executes trip actions from Gemini Live
+  const handleVoiceToolCall = useCallback(
+    async (call: ToolCallRequest): Promise<Record<string, unknown>> => {
+      try {
+        switch (call.name) {
+          case 'addToCalendar': {
+            const { title, startTime, endTime, location, description } = (call.args || {}) as {
+              title?: string;
+              startTime?: string;
+              endTime?: string;
+              location?: string;
+              description?: string;
+            };
+            if (!title || !startTime) {
+              return { error: 'title and startTime are required' };
+            }
+            const { event } = await calendarService.createEvent({
+              trip_id: tripId,
+              title,
+              start_time: startTime,
+              end_time: endTime ?? undefined,
+              location: location ?? undefined,
+              description: description ?? undefined,
+            });
+            return { success: true, message: `Added "${title}" to calendar`, event };
+          }
+          case 'createTask': {
+            const { content, dueDate } = (call.args || {}) as {
+              content?: string;
+              dueDate?: string;
+            };
+            if (!content) return { error: 'content is required' };
+            const task = await taskService.createTask(
+              tripId,
+              { title: content, description: content, due_at: dueDate ?? undefined },
+              isDemoMode,
+            );
+            return { success: true, message: `Created task: "${content}"`, task };
+          }
+          case 'createPoll': {
+            const { question, options } = (call.args || {}) as {
+              question?: string;
+              options?: string[];
+            };
+            if (!question || !Array.isArray(options) || options.length < 2) {
+              return { error: 'question and options (min 2) are required' };
+            }
+            const poll = await pollService.createPoll(tripId, { question, options }, isDemoMode);
+            return { success: true, message: `Created poll: "${question}"`, poll };
+          }
+          case 'getPaymentSummary': {
+            const { data: payments, error: payError } = await supabase
+              .from('trip_payment_messages')
+              .select('id, amount, currency, description, created_by')
+              .eq('trip_id', tripId)
+              .order('created_at', { ascending: false })
+              .limit(20);
+            if (payError) return { error: payError.message };
+            const totalSpent = (payments ?? []).reduce(
+              (sum: number, p) => sum + (p.amount ?? 0),
+              0,
+            );
+            return {
+              success: true,
+              totalPayments: (payments ?? []).length,
+              totalSpent,
+              recentPayments: (payments ?? []).slice(0, 5).map(p => ({
+                description: p.description,
+                amount: p.amount,
+                currency: p.currency,
+              })),
+            };
+          }
+          case 'searchPlaces':
+            return {
+              message:
+                'Use the Places tab to search for restaurants, hotels, and attractions. Voice search coming soon.',
+            };
+          default:
+            return { error: `Unknown tool: ${call.name}` };
+        }
+      } catch (err) {
+        return {
+          error: err instanceof Error ? err.message : 'Tool execution failed',
+        };
+      }
+    },
+    [tripId, isDemoMode],
+  );
+
+  const {
+    state: voiceState,
+    error: voiceError,
+    startSession,
+    endSession,
+    isSupported: isVoiceSupported,
+  } = useGeminiLive({
+    tripId,
+    voice: 'Puck',
+    onTranscript: text => {
+      if (!text?.trim()) return;
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `voice-${Date.now()}`,
+          type: 'assistant',
+          content: text,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    },
+    onToolCall: handleVoiceToolCall,
+  });
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
@@ -242,6 +364,14 @@ export const AIConciergeChat = ({
       setAiStatus('connected');
     }
   }, [isOffline, aiStatus]);
+
+  // Voice error handling — toast and revert to text mode
+  useEffect(() => {
+    if (voiceError) {
+      toast.error(voiceError);
+      endSession();
+    }
+  }, [voiceError, endSession]);
 
   const handleSendMessage = async (messageOverride?: string) => {
     const typedMessage = (messageOverride ?? inputMessage).trim();
@@ -663,6 +793,21 @@ export const AIConciergeChat = ({
     }
   };
 
+  const handleVoiceToggle = useCallback(() => {
+    if (voiceState === 'idle' || voiceState === 'error') {
+      startSession();
+    } else {
+      endSession();
+    }
+  }, [voiceState, startSession, endSession]);
+
+  const handleVoiceUpgrade = useCallback(() => {
+    toast.error('Voice concierge requires a Pro subscription', {
+      description: 'Upgrade to Frequent Chraveler to use voice.',
+    });
+    if (upgradeUrl) window.location.href = upgradeUrl;
+  }, [upgradeUrl]);
+
   return (
     <div className="flex flex-col px-0 py-4 overflow-hidden flex-1 min-h-0 h-full max-h-[calc(100vh-240px)]">
       <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
@@ -746,6 +891,21 @@ export const AIConciergeChat = ({
           )}
         </div>
 
+        {/* Voice Active Banner */}
+        {(voiceState === 'listening' || voiceState === 'speaking') && (
+          <div className="flex-shrink-0 px-3 py-2 bg-emerald-500/10 border-y border-emerald-500/20 flex items-center justify-between">
+            <span className="text-sm text-emerald-400">
+              {voiceState === 'listening' ? 'Listening…' : 'Speaking…'}
+            </span>
+            <button
+              onClick={endSession}
+              className="text-xs text-emerald-400 hover:text-emerald-300 underline"
+            >
+              Stop
+            </button>
+          </div>
+        )}
+
         {/* Input */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
           <AiChatInput
@@ -759,6 +919,10 @@ export const AIConciergeChat = ({
             attachedImages={attachedImages}
             onImageAttach={files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
             onRemoveImage={idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))}
+            voiceState={voiceState}
+            isVoiceEligible={isVoiceEligible && isVoiceSupported}
+            onVoiceToggle={handleVoiceToggle}
+            onVoiceUpgrade={handleVoiceUpgrade}
           />
         </div>
       </div>
