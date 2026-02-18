@@ -25,7 +25,8 @@ export const tripKeys = {
   calendar: (tripId: string) => ['calendarEvents', tripId] as const,
   tasks: (tripId: string, isDemoMode?: boolean) => 
     isDemoMode !== undefined ? ['tripTasks', tripId, isDemoMode] as const : ['tripTasks', tripId] as const,
-  polls: (tripId: string) => ['tripPolls', tripId] as const,
+  polls: (tripId: string, isDemoMode?: boolean) =>
+    isDemoMode !== undefined ? ['tripPolls', tripId, isDemoMode] as const : ['tripPolls', tripId] as const,
   media: (tripId: string) => ['tripMedia', tripId] as const,
   places: (tripId: string) => ['tripPlaces', tripId] as const,
   payments: (tripId: string) => ['tripPayments', tripId] as const,

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TripTask } from '../../types/tasks';
 import { Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { TaskList } from './TaskList';
@@ -7,8 +8,6 @@ import { TaskCreateModal } from './TaskCreateModal';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { useRolePermissions } from '@/hooks/useRolePermissions';
-import { useToast } from '@/hooks/use-toast';
 import {
   PARITY_ACTION_BUTTON_CLASS,
   TRIP_PARITY_COL_START,
@@ -28,8 +27,8 @@ interface TripTasksTabProps {
 
 export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<TripTask | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
-  const { toast } = useToast();
   const { variant, accentColors } = useTripVariant();
   const {
     tasks,
@@ -37,17 +36,12 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
     applyFilters,
     status,
     setStatus,
-    assignee,
-    setAssignee,
-    dateRange,
-    setDateRange,
     sortBy,
     setSortBy,
     hasActiveFilters,
     clearFilters,
   } = useTripTasks(tripId);
   const { isDemoMode } = useDemoMode();
-  const { canPerformAction } = useRolePermissions(tripId);
 
   // Mock task items for demo
   const mockTasks = [
@@ -161,12 +155,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
         tripId={tripId}
         title="To Do"
         emptyMessage="All caught up! No pending tasks."
-        onEditTask={task =>
-          toast({
-            title: 'Edit Task',
-            description: `Editing "${task.title}" - Task editing will be available in a future update.`,
-          })
-        }
+        onEditTask={task => setEditingTask(task)}
       />
 
       {/* Completed Tasks */}
@@ -177,18 +166,21 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
           title="Completed"
           showCompleted={showCompleted}
           onToggleCompleted={() => setShowCompleted(!showCompleted)}
-          onEditTask={task =>
-            toast({
-              title: 'Edit Task',
-              description: `Editing "${task.title}" - Task editing will be available in a future update.`,
-            })
-          }
+          onEditTask={task => setEditingTask(task)}
         />
       )}
 
       {/* Create Task Modal */}
       {showCreateModal && (
         <TaskCreateModal tripId={tripId} onClose={() => setShowCreateModal(false)} />
+      )}
+
+      {editingTask && (
+        <TaskCreateModal
+          tripId={tripId}
+          initialTask={editingTask}
+          onClose={() => setEditingTask(null)}
+        />
       )}
     </div>
   );
