@@ -190,7 +190,7 @@ async function createEphemeralToken(params: {
       systemInstruction: {
         parts: [{ text: params.systemInstruction }],
       },
-      tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }, { googleSearch: {} }],
+      tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
     },
   };
 
@@ -301,13 +301,23 @@ serve(async req => {
     const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : 'Puck';
     const tripId = typeof body?.tripId === 'string' ? body.tripId : undefined;
 
+    const voiceSessionId = crypto.randomUUID();
+    console.log(
+      `[gemini-voice-session] ${voiceSessionId}: user=${user.id} trip=${tripId || 'none'} voice=${voice}`,
+    );
+
     // Build full system instruction using shared context builder + prompt builder
     let systemInstruction: string;
 
     if (tripId) {
       try {
         // Voice is pro-only (checked above), so always include preferences
-        const tripContext = await TripContextBuilder.buildContext(tripId, user.id, authHeader, true);
+        const tripContext = await TripContextBuilder.buildContext(
+          tripId,
+          user.id,
+          authHeader,
+          true,
+        );
         systemInstruction = buildSystemPrompt(tripContext);
       } catch (contextError) {
         console.error(
@@ -323,11 +333,17 @@ serve(async req => {
     // Append voice-specific delivery guidelines
     systemInstruction += VOICE_ADDENDUM;
 
+    console.log(
+      `[gemini-voice-session] ${voiceSessionId}: Requesting ephemeral token, model=${GEMINI_LIVE_MODEL}`,
+    );
     const ephemeral = await createEphemeralToken({
       model: GEMINI_LIVE_MODEL,
       systemInstruction,
       voice,
     });
+    console.log(
+      `[gemini-voice-session] ${voiceSessionId}: Token created, expires=${ephemeral.expireTime}`,
+    );
 
     // The ephemeral token already embeds model, voice, system instruction, and
     // tools. We intentionally omit systemInstruction from the response to avoid
@@ -341,6 +357,7 @@ serve(async req => {
         model: GEMINI_LIVE_MODEL,
         voice,
         websocketUrl: LIVE_WEBSOCKET_URL,
+        voiceSessionId,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

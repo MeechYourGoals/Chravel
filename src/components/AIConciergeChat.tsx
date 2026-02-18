@@ -13,6 +13,10 @@ import {
 } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { useGeminiLive } from '@/hooks/useGeminiLive';
+import { useUnifiedEntitlements } from '@/hooks/useUnifiedEntitlements';
+import { executeVoiceToolCall } from '@/utils/voiceToolExecutor';
+import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -242,6 +246,99 @@ export const AIConciergeChat = ({
       setAiStatus('connected');
     }
   }, [isOffline, aiStatus]);
+
+  // ========== VOICE CONCIERGE ==========
+  const { canUse: canUseFeature } = useUnifiedEntitlements();
+  const isVoiceEligible = canUseFeature('voice_concierge');
+
+  // Refs for accumulating voice transcript into chat messages
+  const voiceMessageIdRef = useRef<string | null>(null);
+  const voiceTranscriptRef = useRef<string>('');
+  const voiceSessionIdRef = useRef<string | null>(null);
+
+  const handleVoiceTranscript = useCallback((text: string) => {
+    if (!isMounted.current) return;
+    voiceTranscriptRef.current += text;
+    const currentTranscript = voiceTranscriptRef.current;
+
+    if (!voiceMessageIdRef.current) {
+      const msgId = `voice-${Date.now()}`;
+      voiceMessageIdRef.current = msgId;
+      setMessages(prev => [
+        ...prev,
+        {
+          id: msgId,
+          type: 'assistant' as const,
+          content: currentTranscript,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    } else {
+      const msgId = voiceMessageIdRef.current;
+      setMessages(prev =>
+        prev.map(m => (m.id === msgId ? { ...m, content: currentTranscript } : m)),
+      );
+    }
+  }, []);
+
+  const handleVoiceTurnComplete = useCallback(() => {
+    voiceMessageIdRef.current = null;
+    voiceTranscriptRef.current = '';
+  }, []);
+
+  const handleVoiceToolCall = useCallback(
+    async (call: { name: string; args: Record<string, unknown>; id: string }) => {
+      return executeVoiceToolCall(call.name, call.args, tripId);
+    },
+    [tripId],
+  );
+
+  const geminiLive = useGeminiLive({
+    tripId,
+    onTranscript: handleVoiceTranscript,
+    onToolCall: handleVoiceToolCall,
+    onTurnComplete: handleVoiceTurnComplete,
+  });
+
+  const isVoiceActive =
+    geminiLive.state === 'connecting' ||
+    geminiLive.state === 'listening' ||
+    geminiLive.state === 'speaking';
+
+  const handleVoiceToggle = useCallback(() => {
+    if (geminiLive.state === 'idle' || geminiLive.state === 'error') {
+      voiceSessionIdRef.current = crypto.randomUUID();
+      console.log('[Voice] Starting session:', voiceSessionIdRef.current);
+      geminiLive.startSession().catch(err => {
+        console.error('[Voice] Session start failed:', voiceSessionIdRef.current, err);
+        toast.error('Failed to start voice session', {
+          description: err instanceof Error ? err.message : 'Please try again',
+        });
+      });
+    } else {
+      console.log('[Voice] Ending session:', voiceSessionIdRef.current);
+      geminiLive.endSession();
+      voiceSessionIdRef.current = null;
+    }
+  }, [geminiLive.state, geminiLive.startSession, geminiLive.endSession]);
+
+  const handleEndVoice = useCallback(() => {
+    geminiLive.endSession();
+    voiceSessionIdRef.current = null;
+  }, [geminiLive.endSession]);
+
+  const handleVoiceUpgrade = useCallback(() => {
+    window.location.href = upgradeUrl;
+  }, [upgradeUrl]);
+
+  // Auto-show toast on voice error and revert to idle
+  useEffect(() => {
+    if (geminiLive.state === 'error' && geminiLive.error) {
+      toast.error('Voice session ended', {
+        description: geminiLive.error,
+      });
+    }
+  }, [geminiLive.state, geminiLive.error]);
 
   const handleSendMessage = async (messageOverride?: string) => {
     const typedMessage = (messageOverride ?? inputMessage).trim();
@@ -682,6 +779,31 @@ export const AIConciergeChat = ({
           </div>
         </div>
 
+        {/* Voice Active Banner */}
+        {isVoiceActive && (
+          <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border-b border-emerald-500/20 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span className="text-sm text-emerald-300 font-medium">
+                {geminiLive.state === 'connecting'
+                  ? 'Connecting...'
+                  : geminiLive.state === 'listening'
+                    ? 'Listening...'
+                    : 'AI Speaking...'}
+              </span>
+            </div>
+            <button
+              onClick={handleEndVoice}
+              className="text-xs text-red-400 hover:text-red-300 font-medium px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors"
+            >
+              End Voice
+            </button>
+          </div>
+        )}
+
         {/* Usage Limit Reached State */}
         {isQueryLimitReached && usage?.limit !== null && (
           <div className="text-center py-6 px-4 mb-4 flex-shrink-0">
@@ -759,6 +881,10 @@ export const AIConciergeChat = ({
             attachedImages={attachedImages}
             onImageAttach={files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
             onRemoveImage={idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))}
+            voiceState={geminiLive.state as VoiceState}
+            isVoiceEligible={isVoiceEligible}
+            onVoiceToggle={handleVoiceToggle}
+            onVoiceUpgrade={handleVoiceUpgrade}
           />
         </div>
       </div>
