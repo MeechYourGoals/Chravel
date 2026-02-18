@@ -1,116 +1,90 @@
 
-# Fix: Universal Trip Search Across All Trip Types
+# Fix: AI Concierge Error + Build Error (Root Cause Analysis)
 
-## Problem
+## Two Separate Issues Found
 
-The Search modal and the background list use **two different data pipelines**:
+### Issue 1: Build Error (Blocking Deployment)
+**Error:** `src/hooks/useAuth.tsx(933,17): error TS2769: No overload matches this call. Argument of type '"private_profiles"' is not assignable to parameter of type '"campaigns_public" | "profiles_public"'.`
 
-- **Background list**: correctly filters across consumer trips, pro trips, and events using `filteredProTrips` and `filteredEvents`
-- **Search modal**: only receives consumer `trips` array via `matchingTrips={trips}`. Pro trips and events are never passed to it.
+**Root Cause:** The code at line 933 calls `supabase.from('private_profiles')` but this table does not exist in the database. The auto-generated Supabase types only allow table names that actually exist. The database has `profiles` and `profiles_public` (a view) -- no `private_profiles` table.
 
-Additionally, the Pro Trips view (line 964-970) does not pass `matchingTrips` or `onTripSelect` at all, meaning search results are always empty there.
+**Fix:** Remove the `private_profiles` upsert block (lines 930-944) in `useAuth.tsx`. The phone field should be saved to the `profiles` table directly (or skipped if the column doesn't exist there either). This also means removing the comment on line 174 and the phone-splitting logic around lines 904-906 that separates phone into a non-existent table.
 
-## Solution
+### Issue 2: AI Concierge "Sorry, I encountered an error" (The Real Problem)
 
-### 1. Build a unified search results array in Index.tsx
-
-Create a new `useMemo` that combines filtered consumer trips, filtered pro trips, and filtered events into a single `Trip[]` array. Pro trips and events will be converted to the `Trip` interface shape (they share `id`, `title`, `location`, `dateRange`, `coverPhoto`, `participants`). Each converted item gets a `trip_type` tag ('pro' or 'event') so the select handler knows where to route.
-
-This uses the already-computed `filteredData` object (which has `.trips`, `.proTrips`, `.events`) so there is zero duplicated filtering logic.
-
-### 2. Pass the unified array to all three SearchOverlay instances
-
-All three SearchOverlay components (consumer view at ~line 799, pro view at ~line 964, events view at ~line 1159) will receive the same `matchingTrips={allSearchableTrips}` and `onTripSelect={handleSearchTripSelect}`.
-
-### 3. Update handleSearchTripSelect to route by trip type
-
-The current handler always navigates to `/trip/{id}`. It needs to check the trip type and route to:
-- `/trip/{id}` for consumer trips
-- `/pro-trip/{id}` for pro trips
-- `/event/{id}` for events
-
-The trip type can be determined by checking the unified array or by matching against known pro/event IDs.
-
-### 4. Sync background filtering with search modal
-
-When the search modal is open and the user types, the `searchQuery` state already drives background filtering (the `filteredData` memo uses `searchQuery`). The background filtering already works universally. The only missing piece is the modal not showing those same results -- which is fixed by step 2.
-
-## Technical Details
-
-### File: `src/pages/Index.tsx`
-
-**New useMemo (~after line 510):**
-```typescript
-const allSearchableTrips = useMemo(() => {
-  const result: Trip[] = [...filteredData.trips];
-
-  // Convert pro trips (Record<string, ProTripData>) to Trip[]
-  Object.entries(filteredData.proTrips).forEach(([id, pro]) => {
-    result.push({
-      id,
-      title: pro.title,
-      location: pro.location,
-      dateRange: pro.dateRange,
-      description: pro.description,
-      coverPhoto: pro.coverPhoto,
-      participants: pro.participants?.map(p => ({
-        id: p.id, name: p.name, avatar: p.avatar
-      })) || [],
-      trip_type: 'pro',
-    });
-  });
-
-  // Convert events (Record<string, EventData>) to Trip[]
-  Object.entries(filteredData.events).forEach(([id, evt]) => {
-    result.push({
-      id,
-      title: evt.title,
-      location: evt.location,
-      dateRange: evt.dateRange,
-      description: evt.description,
-      coverPhoto: evt.coverPhoto,
-      participants: [],
-      trip_type: 'event',
-    });
-  });
-
-  return result;
-}, [filteredData]);
+**Root Cause (from edge function logs):**
+```
+Gemini streaming API Error: 400 - Tool use with function calling is unsupported by the model.
 ```
 
-**Update handleSearchTripSelect (~line 154):**
+The model `gemini-3-flash-preview` does NOT support combining `functionDeclarations` (addToCalendar, createTask, etc.) with `googleSearch` in the same `tools` array. The code at line 1074-1076 sends both:
 ```typescript
-const handleSearchTripSelect = useCallback(
-  (tripId: string | number) => {
-    setIsSearchOpen(false);
-    setSearchQuery('');
-    // Find the trip to determine correct route
-    const match = allSearchableTrips.find(t => t.id === tripId);
-    if (match?.trip_type === 'pro') {
-      navigate(`/pro-trip/${tripId}`);
-    } else if (match?.trip_type === 'event') {
-      navigate(`/event/${tripId}`);
-    } else {
-      navigate(`/trip/${tripId}`);
-    }
-  },
-  [navigate, allSearchableTrips],
-);
+const geminiTools = tripRelated
+  ? [{ functionDeclarations }, { googleSearch: {} }]
+  : [{ googleSearch: {} }];
 ```
 
-**Update all three SearchOverlay instances:**
-- Line ~805: `matchingTrips={allSearchableTrips}` (already has onTripSelect)
-- Line ~964-970: Add `matchingTrips={allSearchableTrips}` and `onTripSelect={handleSearchTripSelect}`
-- Line ~1165: `matchingTrips={allSearchableTrips}` (already has onTripSelect)
+This causes a 400 error from Gemini. The 400 is NOT caught by the 403-specific fallback logic (line 1244), so instead of falling back to the Lovable gateway, it hits the generic error handler which sends "Streaming response failed" to the client.
 
-### No changes needed to SearchOverlay.tsx
+**Why the Lovable gateway fallback doesn't trigger:**
+- The fallback only triggers on `gemini403` errors (line 1244)
+- A 400 error goes to the generic catch block (line 1253) which just sends an error SSE event
+- There is NO fallback to the Lovable gateway for non-403 errors during streaming
 
-The `SearchOverlay` component already renders any `Trip[]` it receives. Since pro trips and events are converted to match the `Trip` interface (with `title`, `location`, `dateRange`, `coverPhoto`), it will display them correctly with no component changes.
+**Fix (3 changes in `lovable-concierge/index.ts`):**
 
-## What This Fixes
+1. **Separate function calling from Google Search** -- For `gemini-3-flash-preview`, only send one tool type at a time. Use Google Search for general/real-time queries, and function declarations for trip-action queries, but not both simultaneously:
+   ```typescript
+   const geminiTools: any[] = [];
+   if (tripRelated) {
+     geminiTools.push({ functionDeclarations });
+   }
+   // Only add googleSearch when NOT using function declarations
+   // (gemini-3-flash-preview doesn't support both simultaneously)
+   if (!tripRelated) {
+     geminiTools.push({ googleSearch: {} });
+   }
+   ```
 
-- Typing "nurse" in search will show **Nurse John** (pro trip) in the modal
-- Typing "SXSW" will show **SXSW** (event) in the modal
-- Typing "net" will show **Netflix is a Joke Festival** (event) regardless of which tab you are on
-- Clicking a result routes to the correct detail page (`/trip/`, `/pro-trip/`, or `/event/`)
-- Background filtering and modal results are always in sync (both derived from the same `filteredData` object)
+2. **Add Lovable gateway fallback for ALL streaming errors (not just 403)** -- In the catch block at line 1241, attempt the Lovable gateway fallback for any error, not just 403:
+   ```typescript
+   } catch (streamError: any) {
+     console.error('[Gemini/Stream] Streaming failed:', streamError);
+     // Try Lovable gateway fallback for ANY Gemini streaming error
+     const reason = streamError?.gemini403
+       ? 'Gemini 403 (unregistered callers)'
+       : `Gemini streaming error: ${streamError?.message || 'unknown'}`;
+     const fallbackResp = await runRuntimeLovableFallback(reason);
+     if (fallbackResp) {
+       // Can't return a new Response from inside ReadableStream start(),
+       // so stream the fallback response text as SSE
+       const fallbackData = await fallbackResp.json();
+       if (fallbackData?.response) {
+         controller.enqueue(sseEvent({ type: 'chunk', text: fallbackData.response }));
+         controller.enqueue(sseEvent({ type: 'metadata', model: 'lovable-gateway-fallback' }));
+       }
+       controller.enqueue(sseEvent({ type: 'done' }));
+     } else {
+       controller.enqueue(sseEvent({
+         type: 'error',
+         message: 'AI service temporarily unavailable. Please try again.',
+       }));
+       controller.enqueue(sseEvent({ type: 'done' }));
+     }
+   }
+   ```
+
+3. **Also fix the non-streaming path** -- The non-streaming Gemini call at line 1493-1510 has the same `geminiRequestBody` with both tool types. Add a similar try/catch with Lovable gateway fallback there too.
+
+### Summary of Files to Change
+
+| File | Change |
+|------|--------|
+| `src/hooks/useAuth.tsx` | Remove `private_profiles` references (lines 904, 930-944, 963-964). Save phone to `profiles` table or skip. |
+| `supabase/functions/lovable-concierge/index.ts` | (1) Don't combine `functionDeclarations` + `googleSearch` in tools array. (2) Add Lovable gateway fallback for all streaming errors, not just 403. |
+
+### Why This Will Fix It
+
+- The build error is fixed by removing references to a non-existent table
+- The AI Concierge will work because either: (a) Gemini succeeds with separated tools, or (b) if Gemini fails for any reason, the Lovable gateway catches it and still returns a response
+- The user will never see "Sorry, I encountered an error" again -- worst case they get a Lovable-gateway-powered response
