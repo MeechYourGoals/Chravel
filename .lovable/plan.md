@@ -1,112 +1,197 @@
 
 
-# Add Budget Unit to AI Concierge Preferences
+# Voice Mode for AI Concierge -- Final Implementation Plan
 
-## Overview
+## Why It Never Worked
 
-Add an "Applies to" dropdown alongside the existing Min/Max budget inputs, so the AI knows whether the user's budget means per experience, per day, per person, or per trip. Default: "Per experience".
+Two confirmed bugs, both visible in the code:
 
-## Changes
+1. **Line 193 of `gemini-voice-session/index.ts`** sends `tools: [{ functionDeclarations: ... }, { googleSearch: {} }]` -- Gemini returns 400, killing the WebSocket before it opens. This is the primary failure.
+2. **`AIConciergeChat.tsx`** never imports `useGeminiLive` or passes voice props to `AiChatInput` -- so the mic button literally never renders.
 
-### 1. Type Definition -- `src/types/consumer.ts`
+Everything else (WebSocket hook, audio capture, PCM encoding, audio playback, VoiceButton UI) is already built and correct.
 
-- Add `budgetUnit: 'experience' | 'day' | 'person' | 'trip'` to the `TripPreferences` interface
-- Add a new exported constant `BUDGET_UNIT_OPTIONS` mapping values to display labels
+## Key Design Decisions
 
-### 2. Default Preferences -- `src/services/userPreferencesService.ts`
+- **Free for all users** -- no subscription gate. Remove the `canUseVoiceConcierge` entitlement check from the edge function and always pass `isVoiceEligible={true}` on the client.
+- **Real-time conversation** -- user speaks, AI hears live via Gemini Live bidirectional WebSocket, responds with voice AND text simultaneously (like Grok/ChatGPT voice mode).
+- **Text query = text-only response** -- voice is only used when the user activates voice mode. Regular text input continues to work as-is with text-only responses.
 
-- Add `budgetUnit: 'experience'` to the `DEFAULT_PREFERENCES.ai_concierge_preferences` object
+## Changes (4 files)
 
-### 3. Preferences UI -- `src/components/TripPreferences.tsx`
+### 1. Fix Edge Function -- `supabase/functions/gemini-voice-session/index.ts`
 
-- Add `budgetUnit` to the component's local state initialization (default `'experience'`)
-- Add a `handleBudgetUnitChange` handler
-- Replace the `grid-cols-2` budget layout with `grid-cols-3` (responsive: stacks on mobile)
-- Add third column with label "Applies to" and a `<Select>` dropdown with options:
-  - Per experience
-  - Per day
-  - Per person
-  - Per trip
-- Add min <= max validation with an inline red error message when violated
-
-### 4. Active Filters Display -- `src/components/consumer/ConsumerAIConciergeSection.tsx`
-
-- Update the budget pill to read:
-  - Both values: `Budget: $50-$200 per experience`
-  - Only max: `Budget: up to $200 per day`
-  - Only min: `Budget: from $50 per person`
-  - Zero/unset: don't show the pill
-
-### 5. AI Prompt Integration -- 3 files in `supabase/functions/`
-
-**`supabase/functions/_shared/promptBuilder.ts`** (~line 291):
-- Change hardcoded "per person" to use `prefs.budgetUnit`:
-  ```
-  Budget Range: $50 - $200 per experience
-  ```
-
-**`supabase/functions/_shared/contextBuilder.ts`** (~line 662):
-- Include unit in the formatted budget string:
-  ```
-  $50-$200 per experience
-  ```
-
-**`supabase/functions/lovable-concierge/index.ts`** (~line 853):
-- Include unit in the formatted budget string passed to the system prompt
-
-### 6. Demo Mode -- `src/components/consumer/ConsumerAIConciergeSection.tsx`
-
-- Add `budgetUnit: 'experience'` to the demo mode mock preferences
-
-## Technical Details
-
-### Type change in `src/types/consumer.ts`
+**Bug fix (line 193):** Remove `{ googleSearch: {} }` from the tools array. Only include `functionDeclarations`:
 
 ```typescript
-export interface TripPreferences {
-  dietary: string[];
-  vibe: string[];
-  accessibility: string[];
-  business: string[];
-  entertainment: string[];
-  lifestyle: string[];
-  budgetMin: number;
-  budgetMax: number;
-  budgetUnit: 'experience' | 'day' | 'person' | 'trip';
-  timePreference: 'early-riser' | 'night-owl' | 'flexible';
-}
+// Line 193 -- FROM:
+tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }, { googleSearch: {} }],
 
-export const BUDGET_UNIT_OPTIONS = [
-  { value: 'experience', label: 'Per experience' },
-  { value: 'day', label: 'Per day' },
-  { value: 'person', label: 'Per person' },
-  { value: 'trip', label: 'Per trip' },
-] as const;
+// TO:
+tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
 ```
 
-### Budget UI layout (TripPreferences.tsx)
+**Remove subscription gate:** Replace the `canUseVoiceConcierge` check (lines 288-297) so it always allows access. This makes voice free for all authenticated users.
 
-Desktop/tablet: 3 equal columns in one row via `grid-cols-1 sm:grid-cols-3`.
-Mobile: stacks vertically.
+**Add structured logging** around ephemeral token creation:
+```typescript
+console.log('[gemini-voice-session] Creating ephemeral token', {
+  model: params.model,
+  voice: params.voice,
+  toolCount: VOICE_FUNCTION_DECLARATIONS.length,
+  sessionId,
+});
+```
 
-### Backward Compatibility
+And on error:
+```typescript
+console.error('[gemini-voice-session] Token creation failed', {
+  status: tokenResponse.status,
+  body: body.substring(0, 500),
+  sessionId,
+});
+```
 
-Existing users without `budgetUnit` saved will default to `'experience'` via:
-- The `|| 'experience'` fallback in component state initialization
-- The default preferences object in `userPreferencesService.ts`
-- The `|| 'experience'` fallback in prompt/context builders
+### 2. Wire Voice into Chat -- `src/components/AIConciergeChat.tsx`
 
-No database migration needed -- `budgetUnit` is stored inside the JSON `preferences` column of `user_preferences` table.
+**Imports:** Add `useGeminiLive` and `VoiceState` type.
+
+**State and hook setup:**
+```typescript
+const [voiceActive, setVoiceActive] = useState(false);
+
+const mapGeminiToVoiceState = (s: GeminiLiveState): VoiceState => {
+  switch (s) {
+    case 'listening': return 'listening';
+    case 'speaking': return 'speaking';
+    case 'connecting': return 'connecting';
+    case 'error': return 'error';
+    default: return 'idle';
+  }
+};
+
+const geminiLive = useGeminiLive({
+  tripId,
+  onTranscript: (text) => {
+    // Append text to chat as assistant message (streaming accumulation)
+    setMessages(prev => {
+      const last = prev[prev.length - 1];
+      if (last?.type === 'assistant' && last.id === 'voice-streaming') {
+        return prev.map((m, i) =>
+          i === prev.length - 1 ? { ...m, content: m.content + text } : m
+        );
+      }
+      return [...prev, {
+        id: 'voice-streaming',
+        type: 'assistant',
+        content: text,
+        timestamp: new Date().toISOString(),
+      }];
+    });
+  },
+  onTurnComplete: () => {
+    // Finalize the streaming message with a real ID
+    setMessages(prev =>
+      prev.map(m => m.id === 'voice-streaming'
+        ? { ...m, id: crypto.randomUUID() }
+        : m
+      )
+    );
+  },
+  onToolCall: async (call) => {
+    // Stub for MVP -- return acknowledgment
+    return { result: `Action ${call.name} noted` };
+  },
+});
+```
+
+**Voice toggle handler:**
+```typescript
+const handleVoiceToggle = () => {
+  if (geminiLive.state === 'idle' || geminiLive.state === 'error') {
+    geminiLive.startSession();
+    setVoiceActive(true);
+  } else {
+    geminiLive.endSession();
+    setVoiceActive(false);
+  }
+};
+```
+
+**Auto-revert on error (useEffect):**
+```typescript
+useEffect(() => {
+  if (geminiLive.state === 'error' && voiceActive) {
+    toast.error(geminiLive.error || 'Voice session ended. Returning to text mode.');
+    setVoiceActive(false);
+  }
+}, [geminiLive.state, geminiLive.error, voiceActive]);
+```
+
+**Voice active indicator (JSX, between header and messages):**
+```
+When voiceActive and state is not idle/error:
+- Green pulse dot + state label ("Connecting..." / "Listening..." / "AI Speaking...")
+- "End Voice" button that calls endSession and sets voiceActive=false
+```
+
+**Pass voice props to AiChatInput:**
+```typescript
+<AiChatInput
+  // ... existing props ...
+  voiceState={mapGeminiToVoiceState(geminiLive.state)}
+  isVoiceEligible={true}  // Free for all users
+  onVoiceToggle={handleVoiceToggle}
+/>
+```
+
+### 3. VoiceButton Behavior Adjustment -- `src/features/chat/components/VoiceButton.tsx`
+
+Since voice is now free for all, the "locked" state with the Lock icon will never appear (isEligible is always true). No code changes needed -- the existing component handles `isEligible={true}` correctly.
+
+### 4. Deploy Edge Function
+
+Deploy `gemini-voice-session` after the bug fix.
+
+## State Machine (already enforced by useGeminiLive)
+
+```text
+idle --> connecting --> listening <--> speaking
+  ^                       |               |
+  |          error <------+---------------+
+  +------------|
+  (auto-revert via useEffect)
+```
+
+- **Start**: User taps mic --> `startSession()` --> connecting
+- **Connected**: WebSocket `setupComplete` --> listening (audio capture begins)
+- **AI responds**: Audio chunks arrive --> speaking (plays audio + streams text)
+- **Turn done**: `turnComplete` --> listening (ready for next user input)
+- **Stop**: User taps "End Voice" --> `endSession()` --> idle
+- **Any error**: --> error --> auto-revert to idle + toast
+
+## iOS Safari Compatibility
+
+Already handled in the existing `useGeminiLive` hook:
+- `AudioContext` created fresh per session on button tap (satisfies iOS user-gesture requirement)
+- `getUserMedia` with echo cancellation and noise suppression
+- PCM16 encoding at 16kHz input, 24kHz playback
+- Standard WebSocket API (universally supported)
+
+## What This Does NOT Change
+
+- Text chat continues to work exactly as before
+- No new API keys needed (uses existing `GEMINI_API_KEY`)
+- No new edge functions needed
+- No database changes needed
 
 ## Manual Test Checklist
 
-1. New user: Open AI Concierge settings -- "Applies to" dropdown defaults to "Per experience"
-2. Existing user: Open settings -- dropdown shows "Per experience" (backfill default)
-3. Change unit to "Per day", save, reload -- persists correctly
-4. Set min=100, max=50 -- inline error "Minimum must be less than or equal to Maximum"
-5. Active Filters: Set budget $50-$200 per day -- pill reads "Budget: $50-$200 per day"
-6. Active Filters: Set only max $500 per trip -- pill reads "Budget: up to $500 per trip"
-7. Ask AI a question -- system prompt includes correct budget unit context
-8. Mobile: Budget row stacks to 3 rows with consistent spacing
-9. Desktop/tablet: Budget row shows 3 equal-width columns
-
+1. Free user on desktop Chrome: Tap mic --> permission prompt --> speak --> AI responds with voice + text in chat
+2. iOS Safari: Permission prompt --> bidirectional conversation works
+3. Text input while voice active: Still works (hybrid mode)
+4. "End Voice" button: Immediately stops session, reverts to text
+5. Network error during voice: Toast shows error, auto-reverts to text mode
+6. Mic permission denied: Error toast, stays in text mode
+7. Send a text query while NOT in voice mode: Response is text-only (no audio)
+8. Multiple voice turns: Each AI response appears as a separate message in chat
