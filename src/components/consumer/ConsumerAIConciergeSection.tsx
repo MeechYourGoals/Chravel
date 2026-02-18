@@ -27,6 +27,7 @@ export const ConsumerAIConciergeSection = () => {
         lifestyle: ['Eco-Friendly'],
         budgetMin: 50,
         budgetMax: 200,
+        budgetUnit: 'experience',
         timePreference: 'early-riser'
       });
       setIsLoading(false);
@@ -147,11 +148,32 @@ export const ConsumerAIConciergeSection = () => {
                 {item}
               </span>
             ))}
-            {preferences.budgetMin > 0 && (
-              <span className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm">
-                Budget: ${preferences.budgetMin}-${preferences.budgetMax}
-              </span>
-            )}
+            {(() => {
+              const unit = preferences.budgetUnit || 'experience';
+              const unitLabel = unit === 'experience' ? 'per experience' : unit === 'day' ? 'per day' : unit === 'person' ? 'per person' : 'per trip';
+              const hasMin = preferences.budgetMin > 0;
+              const hasMax = preferences.budgetMax > 0;
+              if (hasMin && hasMax) {
+                return (
+                  <span className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm">
+                    Budget: ${preferences.budgetMin}–${preferences.budgetMax} {unitLabel}
+                  </span>
+                );
+              } else if (hasMax) {
+                return (
+                  <span className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm">
+                    Budget: up to ${preferences.budgetMax} {unitLabel}
+                  </span>
+                );
+              } else if (hasMin) {
+                return (
+                  <span className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm">
+                    Budget: from ${preferences.budgetMin} {unitLabel}
+                  </span>
+                );
+              }
+              return null;
+            })()}
             {preferences.timePreference !== 'flexible' && (
               <span className="bg-pink-500/20 text-pink-400 px-3 py-1 rounded-full text-sm capitalize">
                 {preferences.timePreference.replace('-', ' ')}

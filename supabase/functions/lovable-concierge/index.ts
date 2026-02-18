@@ -851,7 +851,7 @@ serve(async req => {
           entertainment: clientPrefs.entertainment || [],
           budget:
             clientPrefs.budgetMin !== undefined && clientPrefs.budgetMax !== undefined
-              ? `$${clientPrefs.budgetMin}-$${clientPrefs.budgetMax}`
+              ? `$${clientPrefs.budgetMin}-$${clientPrefs.budgetMax} ${clientPrefs.budgetUnit === 'day' ? 'per day' : clientPrefs.budgetUnit === 'person' ? 'per person' : clientPrefs.budgetUnit === 'trip' ? 'per trip' : 'per experience'}`
               : undefined,
           timePreference: clientPrefs.timePreference || 'flexible',
           travelStyle: clientPrefs.lifestyle?.join(', ') || undefined,

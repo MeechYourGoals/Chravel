@@ -659,9 +659,9 @@ export class TripContextBuilder {
       return {
         dietary: prefs.dietary || [],
         vibe: prefs.vibe || [],
-        budget:
+      budget:
           prefs.budgetMin !== undefined && prefs.budgetMax !== undefined
-            ? `$${prefs.budgetMin}-$${prefs.budgetMax}`
+            ? `$${prefs.budgetMin}-$${prefs.budgetMax} ${prefs.budgetUnit === 'day' ? 'per day' : prefs.budgetUnit === 'person' ? 'per person' : prefs.budgetUnit === 'trip' ? 'per trip' : 'per experience'}`
             : undefined,
         accessibility: prefs.accessibility || [],
         timePreference: prefs.timePreference || 'flexible',

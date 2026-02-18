@@ -17,6 +17,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
     lifestyle: [],
     budgetMin: 0,
     budgetMax: 1000,
+    budgetUnit: 'experience',
     timePreference: 'flexible',
   },
 };
