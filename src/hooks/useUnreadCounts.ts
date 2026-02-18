@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Message } from '@/services/unifiedMessagingService';
+
+/** Minimal message shape for unread counting - compatible with useTripChat and useUnifiedMessages */
+interface UnreadMessage {
+  id: string;
+  user_id?: string;
+  privacy_mode?: string;
+  message_type?: string;
+}
 
 interface UseUnreadCountsOptions {
   tripId: string;
-  messages: Message[];
+  messages: UnreadMessage[];
   userId: string | null;
   enabled?: boolean;
 }
@@ -53,20 +60,15 @@ export function useUnreadCounts({
 
         // Create set of read message IDs for fast lookup
         const readMessageIds = new Set(
-          ((readStatuses as any[]) || []).map((status: any) => status.message_id)
+          (readStatuses ?? []).map((s: { message_id: string }) => s.message_id),
         );
 
-        // Calculate unread messages (exclude user's own messages)
-        const unreadMessages = messages.filter(msg => 
-          !readMessageIds.has(msg.id) && msg.user_id !== userId
+        const unreadMessages = messages.filter(
+          (msg) => !readMessageIds.has(msg.id) && msg.user_id !== userId,
         );
-
-        // Count total unread
         const totalUnread = unreadMessages.length;
-
-        // Count unread broadcasts (support both privacy_mode and message_type)
         const unreadBroadcasts = unreadMessages.filter(
-          (msg: { privacy_mode?: string; message_type?: string }) =>
+          (msg) =>
             msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
         ).length;
 

@@ -17,6 +17,7 @@ import { EventData } from '../../types/events';
 import { TripContext } from '@/types';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { DisabledTabDialog } from './DisabledTabDialog';
+import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { EventTabKey, EVENT_TABS_CONFIG, isEventTabEnabled } from '@/lib/eventTabs';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
 
@@ -162,7 +163,9 @@ export const EventDetailContent = ({
         return <GroupCalendar tripId={tripId} />;
       case 'chat':
         return (
-          <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />
+          <FeatureErrorBoundary featureName="Trip Chat">
+            <TripChat enableGroupChat={true} showBroadcasts={true} isEvent={true} tripId={tripId} />
+          </FeatureErrorBoundary>
         );
       case 'media':
         return <UnifiedMediaHub tripId={tripId} />;

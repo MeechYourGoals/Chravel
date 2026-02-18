@@ -225,7 +225,7 @@ export const TripChat = ({
   // Track unread counts with real-time updates
   const { unreadCount, broadcastCount } = useUnreadCounts({
     tripId: resolvedTripId,
-    messages: liveMessages as any,
+    messages: liveMessages,
     userId: user?.id || null,
     enabled: !demoMode.isDemoMode && !!user?.id
   });

@@ -126,13 +126,61 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
   });
 
   // ⚡ PERFORMANCE: Skip real-time subscription if not enabled (lazy loading)
+  // ⚡ Batching: Collect rapid INSERTs and apply in one update per frame
   useEffect(() => {
     if (!tripId || !isEnabled) return;
 
     let messageCount = 0;
     const maxMessagesPerMinute = 100;
-    const rateLimitWindow = 60000; // 1 minute
+    const rateLimitWindow = 60000;
     let windowStart = Date.now();
+    let pendingInserts: Array<Record<string, unknown>> = [];
+    let flushScheduled = false;
+
+    const flushPendingInserts = () => {
+      if (pendingInserts.length === 0) {
+        flushScheduled = false;
+        return;
+      }
+      const toInsert = [...pendingInserts];
+      pendingInserts = [];
+      flushScheduled = false;
+      queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => {
+        let result = old;
+        for (const payload of toInsert) {
+          const newMessage = payload as TripChatMessage & { client_message_id?: string };
+          const isDuplicate = result.some((msg) => {
+            if (msg.id === newMessage.id) return true;
+            const existingClientId = (msg as TripChatMessage & { client_message_id?: string }).client_message_id;
+            return existingClientId && newMessage.client_message_id && existingClientId === newMessage.client_message_id;
+          });
+          if (!isDuplicate) {
+            result = [...result, newMessage];
+            if (newMessage.privacy_encrypted && newMessage.content) {
+              privacyService.prepareMessageForDisplay(newMessage.content, tripId!, true)
+                .then((decrypted) => {
+                  queryClient.setQueryData(['tripChat', tripId], (current: TripChatMessage[] = []) =>
+                    current.map((m) => (m.id === newMessage.id ? { ...m, content: decrypted } : m)),
+                  );
+                })
+                .catch(() => {
+                  queryClient.setQueryData(['tripChat', tripId], (current: TripChatMessage[] = []) =>
+                    current.map((m) => (m.id === newMessage.id ? { ...m, content: '[Unable to decrypt message]' } : m)),
+                  );
+                });
+            }
+          }
+        }
+        return result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      });
+    };
+
+    const scheduleFlush = () => {
+      if (!flushScheduled) {
+        flushScheduled = true;
+        requestAnimationFrame(flushPendingInserts);
+      }
+    };
 
     if (import.meta.env.DEV) {
       console.log('[CHAT REALTIME] Subscribing to channel:', `trip_chat_${tripId}`);
@@ -146,90 +194,34 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           event: 'INSERT',
           schema: 'public',
           table: 'trip_chat_messages',
-          filter: `trip_id=eq.${tripId}`
+          filter: `trip_id=eq.${tripId}`,
         },
         (payload) => {
           if (import.meta.env.DEV) {
             console.log('[CHAT REALTIME] INSERT received:', {
               messageId: payload.new?.id,
-              author: (payload.new as any)?.author_name,
-              content: (payload.new as any)?.content?.substring(0, 50),
+              author: (payload.new as Record<string, unknown>)?.author_name,
+              content: String((payload.new as Record<string, unknown>)?.content ?? '').substring(0, 50),
               timestamp: new Date().toISOString(),
             });
           }
 
           const now = Date.now();
-          
-          // Reset rate limit window if needed
           if (now - windowStart > rateLimitWindow) {
             messageCount = 0;
             windowStart = now;
           }
-          
-          // Rate limit protection
           if (messageCount >= maxMessagesPerMinute) {
-            console.warn('[CHAT REALTIME] Rate limit exceeded, dropping message');
+            if (import.meta.env.DEV) {
+              console.warn('[CHAT REALTIME] Rate limit exceeded, dropping message');
+            }
             return;
           }
-          
           messageCount++;
-          
-          // Update query data with optimistic ordering
-          queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => {
-            const newMessage = payload.new as TripChatMessage & { client_message_id?: string };
 
-            // Prevent duplicate messages by id OR client_message_id
-            const isDuplicate = old.some(msg => {
-              if (msg.id === newMessage.id) return true;
-              // Also dedupe by client_message_id if present (handles optimistic updates)
-              const existingClientId = (msg as TripChatMessage & { client_message_id?: string }).client_message_id;
-              if (existingClientId && newMessage.client_message_id && existingClientId === newMessage.client_message_id) {
-                return true;
-              }
-              return false;
-            });
-
-            if (isDuplicate) {
-              if (import.meta.env.DEV) {
-                console.log('[CHAT REALTIME] Duplicate message ignored:', newMessage.id, newMessage.client_message_id);
-              }
-              return old;
-            }
-
-            // Decrypt if encrypted before adding to state
-            if (newMessage.privacy_encrypted && newMessage.content) {
-              privacyService.prepareMessageForDisplay(
-                newMessage.content,
-                tripId!,
-                true
-              ).then(decrypted => {
-                queryClient.setQueryData(['tripChat', tripId], (current: TripChatMessage[] = []) => {
-                  return current.map(msg => 
-                    msg.id === newMessage.id 
-                      ? { ...msg, content: decrypted }
-                      : msg
-                  );
-                });
-              }).catch(err => {
-                console.error('[CHAT REALTIME] Decryption failed:', err);
-                // Mark as unable to decrypt
-                queryClient.setQueryData(['tripChat', tripId], (current: TripChatMessage[] = []) => {
-                  return current.map(msg => 
-                    msg.id === newMessage.id 
-                      ? { ...msg, content: '[Unable to decrypt message]' }
-                      : msg
-                  );
-                });
-              });
-            }
-
-            // Insert message in correct chronological order
-            const newMessages = [...old, newMessage];
-            return newMessages.sort((a, b) =>
-              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            );
-          });
-        }
+          pendingInserts.push(payload.new as Record<string, unknown>);
+          scheduleFlush();
+        },
       )
       .on(
         'postgres_changes',
@@ -277,6 +269,13 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         if (import.meta.env.DEV) {
           console.log('[CHAT REALTIME] Subscription status:', status);
         }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          toast({
+            title: 'Connection interrupted',
+            description: 'Reconnecting to chat...',
+            variant: 'destructive',
+          });
+        }
       });
 
     return () => {
@@ -285,7 +284,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       }
       supabase.removeChannel(channel);
     };
-  }, [tripId, queryClient, isEnabled]);
+  }, [tripId, queryClient, isEnabled, toast]);
 
   // Process offline queue when connection is restored
   // Note: Global sync processor in App.tsx handles all entity types.

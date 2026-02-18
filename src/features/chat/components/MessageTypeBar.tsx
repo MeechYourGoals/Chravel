@@ -14,7 +14,7 @@ interface MessageTypeBarProps {
   // Channel-specific props
   availableChannels?: TripChannel[];
   activeChannel?: TripChannel | null;
-  onChannelSelect?: (channel: TripChannel) => void;
+  onChannelSelect?: (channel: TripChannel | null) => void;
   // Search props
   onSearchClick?: () => void;
 }
@@ -167,7 +167,7 @@ export const MessageTypeBar = ({
                     {/* All Messages option */}
                     <button
                       onClick={() => {
-                        onChannelSelect?.(null as any);
+                        onChannelSelect?.(null);
                         onFilterChange('all');
                         setChannelPopoverOpen(false);
                       }}
