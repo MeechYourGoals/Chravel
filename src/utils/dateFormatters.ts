@@ -1,6 +1,24 @@
 import { format, parse } from 'date-fns';
 
 /**
+ * Format date for display (e.g. "Mar 15, 2026")
+ */
+export const formatShortDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+/**
+ * Format date compact, no year (e.g. "Mar 15")
+ */
+export const formatCompactDate = (dateString: string): string => {
+  return format(new Date(dateString), 'MMM d');
+};
+
+/**
  * Parse date range string like "Mar 15 - Mar 22, 2026" into separate dates
  */
 export const parseDateRange = (dateRange: string): { start: string; end: string } => {

@@ -6,6 +6,7 @@ import { paymentService } from '@/services/paymentService';
 import { usePaymentSplits } from '@/hooks/usePaymentSplits';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
+import { PAYMENT_METHOD_OPTIONS } from '@/types/paymentMethods';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentErrorHandler } from '@/services/paymentErrors';
 
@@ -50,14 +51,6 @@ export const CreatePaymentModal = ({
     getPaymentData,
     resetForm
   } = usePaymentSplits(tripMembers);
-
-  const paymentMethodOptions = [
-    { id: 'venmo', label: 'Venmo' },
-    { id: 'cashapp', label: 'Cash App' },
-    { id: 'zelle', label: 'Zelle' },
-    { id: 'paypal', label: 'PayPal' },
-    { id: 'applecash', label: 'Apple Cash' }
-  ];
 
   if (!isOpen) return null;
 
@@ -276,7 +269,7 @@ export const CreatePaymentModal = ({
               Preferred Payment Methods
             </label>
             <div className="space-y-2">
-              {paymentMethodOptions.map((method) => {
+              {PAYMENT_METHOD_OPTIONS.map((method) => {
                 const isSelected = selectedPaymentMethods.includes(method.id);
                 return (
                   <button

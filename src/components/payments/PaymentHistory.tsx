@@ -11,9 +11,10 @@ import { useDemoMode } from '../../hooks/useDemoMode';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
 import { PaymentMessage } from '../../types/payments';
-import { format } from 'date-fns';
 import { Loader2, Pencil, Trash2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { isDemoTrip } from '@/utils/demoUtils';
+import { formatCurrency } from '@/services/currencyService';
+import { formatCompactDate } from '@/utils/dateFormatters';
 
 interface PaymentHistoryProps {
   tripId: string;
@@ -166,10 +167,6 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
     }
   };
 
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
-  };
-
   if (loading) {
     return (
       <Card>
@@ -227,7 +224,7 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
                     <span className="text-muted-foreground hidden sm:inline">•</span>
                     <span className="text-sm text-muted-foreground">Split {payment.splitCount} ways</span>
                     <span className="text-muted-foreground hidden sm:inline">•</span>
-                    <span className="text-sm text-muted-foreground">{format(new Date(payment.createdAt), 'MMM d')}</span>
+                    <span className="text-sm text-muted-foreground">{formatCompactDate(payment.createdAt)}</span>
                   </div>
 
                   {/* Amount and actions */}

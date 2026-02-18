@@ -7,6 +7,7 @@ import { PersonalBalance } from '../../services/paymentBalanceService';
 import { SettlePaymentDialog } from './SettlePaymentDialog';
 import { ConfirmPaymentDialog } from './ConfirmPaymentDialog';
 import { generatePaymentDeeplink, getPaymentMethodDisplayName } from '../../utils/paymentDeeplinks';
+import { formatCurrency } from '../../services/currencyService';
 import type { PaymentMethod as ReceiptPaymentMethod } from '../../types/receipts';
 
 interface PersonBalanceCardProps {
@@ -30,12 +31,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
   const isPendingConfirmation = balance.confirmationStatus === 'pending';
   const currency = balance.amountOwedCurrency || 'USD';
 
-  const formatCurrency = (amt: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(Math.abs(amt));
-  };
+  const formatAmount = (amt: number) => formatCurrency(Math.abs(amt), currency);
 
   const youOweThem = balance.amountOwed < 0;
   const amount = Math.abs(balance.amountOwed);
@@ -126,7 +122,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
               <p className={`text-sm font-semibold ${youOweThem ? 'text-orange-600' : 'text-green-600'}`}>
                 {youOweThem ? 'You owe' : 'Owes you'}
               </p>
-              <p className="text-lg font-bold">{formatCurrency(amount)}</p>
+              <p className="text-lg font-bold">{formatAmount(amount)}</p>
             </div>
             
             {/* Chevron toggle */}
@@ -151,7 +147,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                   <div key={idx} className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{payment.description}</span>
                     <span className={payment.amount < 0 ? 'text-orange-600' : 'text-green-600'}>
-                      {formatCurrency(Math.abs(payment.amount))}
+                      {formatAmount(Math.abs(payment.amount))}
                     </span>
                   </div>
                 ))

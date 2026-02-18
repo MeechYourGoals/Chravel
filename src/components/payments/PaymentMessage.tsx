@@ -4,6 +4,8 @@ import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { PaymentMessage as PaymentMessageType, PaymentMethod } from '../../types/payments';
+import { formatCurrency } from '../../services/currencyService';
+import { getPaymentMethodDisplayName } from '../../utils/paymentDeeplinks';
 
 interface PaymentMessageProps {
   payment: PaymentMessageType;
@@ -28,20 +30,6 @@ export const PaymentMessage = ({
   
   // Remove icon function - we'll just use text labels
 
-  const getPaymentMethodName = (method: string) => {
-    const names: Record<string, string> = {
-      venmo: 'Venmo',
-      zelle: 'Zelle',
-      cashapp: 'Cash App', 
-      applepay: 'Apple Pay',
-      paypal: 'PayPal',
-      applecash: 'Apple Cash',
-      cash: 'Cash',
-      other: 'Other'
-    };
-    return names[method] || method;
-  };
-
   const getPrimaryPaymentMethod = (methods: string[]): string => {
     // Order of preference: venmo, cashapp, zelle, paypal, applecash
     const priority = ['venmo', 'cashapp', 'zelle', 'paypal', 'applecash'];
@@ -60,13 +48,6 @@ export const PaymentMessage = ({
       other: payerName || 'Contact directly'
     };
     return identifiers[method] || payerName;
-  };
-
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
   };
 
   const formatTime = (timestamp: string) => {
@@ -94,7 +75,7 @@ export const PaymentMessage = ({
       {/* Main Payment Message - Green text for payment content */}
       <div className="text-payment-content">
         <span className="font-medium">
-          {payment.description} - {payment.currency} {payment.amount.toFixed(2)} (split {payment.splitCount} ways) • Pay me ${perPersonAmount} via {getPaymentMethodName(primaryPaymentMethod)}: {getPaymentIdentifier(primaryPaymentMethod, payer?.name || 'Unknown')}
+          {payment.description} - {payment.currency} {payment.amount.toFixed(2)} (split {payment.splitCount} ways) • Pay me ${perPersonAmount} via {getPaymentMethodDisplayName(primaryPaymentMethod)}: {getPaymentIdentifier(primaryPaymentMethod, payer?.name || 'Unknown')}
         </span>
       </div>
 

@@ -392,13 +392,8 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
+  const formatCurrencyFn = (amount: number, currency?: string) =>
+    formatCurrency(amount, currency || 'USD');
 
   // ⚡ PERFORMANCE: Show timeout UI instead of indefinite spinner
   if (hasTimedOut && isLoading) {
@@ -449,7 +444,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
                 <span className="text-xs text-muted-foreground">You Owe</span>
               </div>
               <p className="text-lg font-bold text-orange-500">
-                {formatCurrency(balanceSummary?.totalOwed || 0)}
+                {formatCurrencyFn(balanceSummary?.totalOwed || 0)}
               </p>
             </div>
             
@@ -460,7 +455,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
                 <span className="text-xs text-muted-foreground">You're Owed</span>
               </div>
               <p className="text-lg font-bold text-green-500">
-                {formatCurrency(balanceSummary?.totalOwedToYou || 0)}
+                {formatCurrencyFn(balanceSummary?.totalOwedToYou || 0)}
               </p>
             </div>
             
@@ -473,7 +468,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
               <p className={`text-lg font-bold ${
                 (balanceSummary?.netBalance || 0) >= 0 ? 'text-green-500' : 'text-orange-500'
               }`}>
-                {formatCurrency(balanceSummary?.netBalance || 0)}
+                {formatCurrencyFn(balanceSummary?.netBalance || 0)}
               </p>
             </div>
           </div>
@@ -510,7 +505,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
                       key={payment.id}
                       payment={payment}
                       onTap={handlePaymentTap}
-                      formatCurrency={formatCurrency}
+                      formatCurrency={formatCurrencyFn}
                       getStatusIcon={getStatusIcon}
                     />
                   ))}
@@ -536,7 +531,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
                       key={payment.id}
                       payment={payment}
                       onTap={handlePaymentTap}
-                      formatCurrency={formatCurrency}
+                      formatCurrency={formatCurrencyFn}
                       getStatusIcon={getStatusIcon}
                     />
                   ))}
@@ -617,10 +612,10 @@ const PaymentCard: React.FC<PaymentCardProps> = ({
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-sm font-semibold text-foreground">
-                {formatCurrency(payment.amount, payment.currency)}
+                {formatCurrencyFn(payment.amount, payment.currency)}
               </p>
               <p className="text-xs text-muted-foreground">
-                {formatCurrency(payment.amount / payment.splitCount, payment.currency)} each
+                {formatCurrencyFn(payment.amount / payment.splitCount, payment.currency)} each
               </p>
             </div>
           </div>

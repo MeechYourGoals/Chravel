@@ -13,6 +13,7 @@ import { PersonalBalance } from '../../services/paymentBalanceService';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../ui/use-toast';
 import { Loader2 } from 'lucide-react';
+import { formatCurrency } from '../../services/currencyService';
 
 interface SettlePaymentDialogProps {
   open: boolean;
@@ -30,13 +31,7 @@ export const SettlePaymentDialog = ({
   const { toast } = useToast();
   const [settling, setSettling] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(Math.abs(amount));
-  };
+  const currency = balance.amountOwedCurrency || 'USD';
 
   const handleSettle = async () => {
     setSettling(true);
@@ -125,7 +120,7 @@ export const SettlePaymentDialog = ({
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Amount:</span>
             <span className="text-lg font-semibold">
-              {formatCurrency(Math.abs(balance.amountOwed))}
+              {formatCurrency(Math.abs(balance.amountOwed), currency)}
             </span>
           </div>
 

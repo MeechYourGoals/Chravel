@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { usePaymentSplits } from '@/hooks/usePaymentSplits';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { PaymentMethodId } from '@/types/paymentMethods';
+import { PAYMENT_METHOD_OPTIONS } from '@/types/paymentMethods';
 import { getAutomaticParticipantSuggestions, detectPaymentParticipantsFromMessage } from '@/services/chatAnalysisService';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '../ui/badge';
@@ -51,14 +51,6 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
   
   const [autoSuggestions, setAutoSuggestions] = useState<Array<{ userId: string; reason: string; confidence: number }>>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  const paymentMethodOptions: Array<{ id: PaymentMethodId; label: string }> = [
-    { id: 'venmo', label: 'Venmo' },
-    { id: 'cashapp', label: 'Cash App' },
-    { id: 'zelle', label: 'Zelle' },
-    { id: 'paypal', label: 'PayPal' },
-    { id: 'applecash', label: 'Apple Cash' }
-  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -316,7 +308,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
             </div>
             
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
-              {paymentMethodOptions.map(method => {
+              {PAYMENT_METHOD_OPTIONS.map(method => {
                 const isSelected = selectedPaymentMethods.includes(method.id);
                 return (
                   <button
