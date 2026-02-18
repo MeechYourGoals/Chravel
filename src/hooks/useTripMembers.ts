@@ -6,7 +6,11 @@ import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
-import { resolveDisplayName, UNRESOLVED_NAME_SENTINEL, FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
+import {
+  resolveDisplayName,
+  UNRESOLVED_NAME_SENTINEL,
+  FORMER_MEMBER_LABEL,
+} from '@/lib/resolveDisplayName';
 
 interface TripMember {
   id: string;
@@ -104,45 +108,9 @@ export const useTripMembers = (tripId?: string) => {
       }
 
       // Always try database first for authenticated trips
-      let dbMembers = await tripService.getTripMembers(tripId);
+      const dbMembers = await tripService.getTripMembers(tripId);
 
-      // SAFETY CHECK: Ensure creator is always a member (collaborators, payments, tasks)
-      if (tripData?.created_by && !isDemoMode) {
-        const creatorInList = dbMembers?.some((m: any) => m.user_id === tripData.created_by);
-        if (!creatorInList) {
-          console.warn(
-            `[useTripMembers] Creator ${tripData.created_by} missing from trip ${tripId}. Auto-fixing...`,
-          );
-
-          // 1. Attempt to add to DB (background operation)
-          tripService.addTripMember(tripId, tripData.created_by, 'admin').catch(console.error);
-
-          // 2. Fetch profile for local display (use fallback if profile missing)
-          const { data: creatorProfile } = await supabase
-            .from('profiles_public')
-            .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
-            .eq('user_id', tripData.created_by)
-            .maybeSingle();
-
-          // 3. Always add creator to list (use "Trip Creator" fallback when profile missing)
-          const tempMember = {
-            user_id: tripData.created_by,
-            role: 'admin',
-            created_at: new Date().toISOString(),
-            profiles: creatorProfile || {
-              user_id: tripData.created_by,
-              display_name: 'Trip Creator',
-              first_name: null,
-              last_name: null,
-              resolved_display_name: 'Trip Creator',
-              avatar_url: null,
-            },
-            id: 'temp-fix-' + Date.now(),
-          };
-          dbMembers = [...(dbMembers || []), tempMember] as any;
-        }
-      }
-
+      // Creator may have left - do NOT auto-add. Trip persists; members are active only.
       if (dbMembers && dbMembers.length > 0) {
         // Database has members - use them
         const formattedMembers = formatTripMembers(dbMembers, tripData?.created_by);
@@ -241,33 +209,35 @@ export const useTripMembers = (tripId?: string) => {
       }
 
       try {
-        // Get user's display name for the notification
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('display_name, first_name, last_name')
-          .eq('user_id', user.id)
-          .single();
+        // Use leave_trip RPC: soft-deletes membership, auto-promotes admin if needed, archives if last member
+        const { data: result, error: rpcError } = await supabase.rpc('leave_trip', {
+          _trip_id: tripId,
+        });
 
-        const userName =
-          profileData?.display_name ||
-          `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() ||
-          'A member';
-
-        // Delete trip membership
-        const { error: deleteError } = await supabase
-          .from('trip_members')
-          .delete()
-          .eq('trip_id', tripId)
-          .eq('user_id', user.id);
-
-        if (deleteError) {
-          console.error('Error leaving trip:', deleteError);
-          toast.error('Failed to leave trip');
+        if (rpcError) {
+          console.error('Error leaving trip:', rpcError);
+          toast.error(rpcError.message || 'Failed to leave trip');
           return false;
         }
 
-        // Create notification for trip organizer
-        if (tripCreatorId) {
+        const success = (result as { success?: boolean })?.success ?? false;
+        if (!success) {
+          const msg = (result as { message?: string })?.message ?? 'Failed to leave trip';
+          toast.error(msg);
+          return false;
+        }
+
+        // Notify trip organizer (creator or promoted admin)
+        if (tripCreatorId && tripCreatorId !== user.id) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('display_name, first_name, last_name')
+            .eq('user_id', user.id)
+            .single();
+          const userName =
+            profileData?.display_name ||
+            `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() ||
+            'A member';
           await supabase.from('notifications').insert({
             user_id: tripCreatorId,
             title: `${userName} left ${tripName}`,

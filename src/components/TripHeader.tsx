@@ -110,7 +110,7 @@ export const TripHeader = ({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [descEditTick, setDescEditTick] = useState(0);
-  
+
   // Collapsible hero state (desktop only, persisted globally)
   const [isHeroCollapsed, setIsHeroCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -416,11 +416,7 @@ export const TripHeader = ({
             // Mobile/tablet: always full height
             drawerLayout ? 'h-full min-h-[320px] mb-0' : '',
             // Desktop: collapsed vs expanded
-            !drawerLayout && (
-              isHeroCollapsed 
-                ? 'min-h-[200px]'
-                : 'aspect-[3/1] min-h-[200px]'
-            ),
+            !drawerLayout && (isHeroCollapsed ? 'min-h-[200px]' : 'aspect-[3/1] min-h-[200px]'),
             'mb-0 md:mb-8',
           )}
           style={{
@@ -464,7 +460,7 @@ export const TripHeader = ({
                   )}
                 </div>
               </div>
-              
+
               {/* Right: Action buttons */}
               <div className="flex items-center gap-2">
                 {/* Expand button */}
@@ -806,7 +802,8 @@ export const TripHeader = ({
 
             <p className="text-gray-300 mb-6">
               Are you sure you want to leave "{trip.title}"? You'll lose access to all trip
-              information, chat history, and won't receive updates.
+              information, chat history, and won't receive updates. The trip will continue for
+              remaining members.
               {isProOrEvent && (
                 <span className="block mt-2 text-amber-400 text-sm">
                   Note: This is a {trip.trip_type === 'event' ? 'event' : 'Pro trip'}. You'll need

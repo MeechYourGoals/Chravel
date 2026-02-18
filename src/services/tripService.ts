@@ -352,11 +352,12 @@ export const tripService = {
         ...pendingTrips,
       ];
 
-      // Also fetch trips where user is a member (not creator)
+      // Also fetch trips where user is an active member (not creator)
       const { data: memberTrips, error: memberError } = await supabase
         .from('trip_members')
         .select('trip_id')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('status', 'active');
 
       if (!memberError && memberTrips && memberTrips.length > 0) {
         const memberTripIds = memberTrips
@@ -525,7 +526,8 @@ export const tripService = {
           created_at
         `,
         )
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId)
+        .eq('status', 'active');
 
       if (error) throw error;
 
@@ -575,7 +577,11 @@ export const tripService = {
     // Parallel fetch: trip creator + members
     const [tripResult, membersResult] = await Promise.all([
       supabase.from('trips').select('created_by').eq('id', tripId).maybeSingle(),
-      supabase.from('trip_members').select('id, user_id, role, created_at').eq('trip_id', tripId),
+      supabase
+        .from('trip_members')
+        .select('id, user_id, role, created_at')
+        .eq('trip_id', tripId)
+        .eq('status', 'active'),
     ]);
 
     // CRITICAL: Check for auth/RLS/network errors and THROW (don't silently return empty)
@@ -610,33 +616,12 @@ export const tripService = {
       });
     }
 
-    // If no members in table but we have creator, fetch creator as minimum member
+    // If no active members: creator may have left. Only show creator if they're an active member.
     if (!membersResult.data || membersResult.data.length === 0) {
       if (import.meta.env.DEV) {
-        console.warn('[tripService] No members found in trip_members table for trip:', tripId);
+        console.warn('[tripService] No active members in trip_members for trip:', tripId);
       }
-      if (creatorId) {
-        const { data: creatorProfile } = await supabase
-          .from('profiles_public')
-          .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
-          .eq('user_id', creatorId)
-          .maybeSingle();
-
-        return {
-          members: [
-            {
-              id: creatorId,
-              name:
-                creatorProfile?.resolved_display_name ||
-                creatorProfile?.display_name ||
-                'Trip Creator',
-              avatar: creatorProfile?.avatar_url,
-              isCreator: true,
-            },
-          ],
-          creatorId,
-        };
-      }
+      // Do NOT inject creator - they may have left. Return empty; trip persists for archival.
       return { members: [], creatorId };
     }
 
@@ -649,7 +634,7 @@ export const tripService = {
 
     const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
 
-    let members = membersResult.data.map(m => {
+    const members = membersResult.data.map(m => {
       const profile = profilesMap.get(m.user_id);
       return {
         id: m.user_id,
@@ -659,27 +644,8 @@ export const tripService = {
       };
     });
 
-    // CRITICAL: Creator must always be in the list (collaborators, payments, tasks)
-    if (creatorId && !members.some(m => m.id === creatorId)) {
-      const { data: creatorProfile } = await supabase
-        .from('profiles_public')
-        .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
-        .eq('user_id', creatorId)
-        .maybeSingle();
-
-      members = [
-        {
-          id: creatorId,
-          name:
-            creatorProfile?.resolved_display_name ||
-            creatorProfile?.display_name ||
-            'Trip Creator',
-          avatar: creatorProfile?.avatar_url,
-          isCreator: true,
-        },
-        ...members,
-      ];
-    }
+    // Creator is metadata only - if they left, don't inject. Only add if in active members.
+    // (creatorId from trips.created_by; isCreator set from member list above)
 
     if (import.meta.env.DEV) {
       console.log('[tripService.getTripMembersWithCreator] Returning', members.length, 'members');
