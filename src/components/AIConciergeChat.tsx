@@ -1,22 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, AlertCircle, Crown, Sparkles } from 'lucide-react';
-import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
+import { Search, Crown, Sparkles } from 'lucide-react';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
-import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
-import { useWebSpeechVoice as useGeminiVoice } from '../hooks/useWebSpeechVoice';
-import { useGeminiLive } from '../hooks/useGeminiLive';
-import type { ToolCallRequest } from '../hooks/useGeminiLive';
 import {
   invokeConcierge,
   invokeConciergeStream,
   type StreamMetadataEvent,
 } from '@/services/conciergeGateway';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 
@@ -144,20 +138,9 @@ export const AIConciergeChat = ({
   preferences,
   isDemoMode = false,
 }: AIConciergeChatProps) => {
-  const {
-    isPlus,
-    tier: consumerTier,
-    isLoading: isConsumerSubscriptionLoading,
-  } = useConsumerSubscription();
   const { basecamp: globalBasecamp } = useBasecamp();
   const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
-  const {
-    canUse,
-    isPro,
-    isSuperAdmin,
-    isLoading: isEntitlementsLoading,
-  } = useUnifiedEntitlements();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -169,260 +152,6 @@ export const AIConciergeChat = ({
     Promise.resolve(),
   );
   const hasShownLimitToastRef = useRef(false);
-
-  // Voice: eligibility and hook
-  const hasLegacySubscriptionVoiceAccess =
-    String(consumerTier) === 'frequent-chraveler' || String(consumerTier).startsWith('pro-');
-  const isVoiceEligible =
-    isEntitlementsLoading ||
-    isConsumerSubscriptionLoading ||
-    canUse('voice_concierge') ||
-    isPlus ||
-    isPro ||
-    isSuperAdmin ||
-    isDemoMode ||
-    hasLegacySubscriptionVoiceAccess;
-
-  const [voicePendingText, setVoicePendingText] = useState<string | null>(null);
-
-  // Tracks the message ID currently being streamed from Gemini Live so we can
-  // append chunks to the same message regardless of how long the response takes.
-  const streamingMessageIdRef = useRef<string | null>(null);
-
-  // Voice transcripts are queued and sent through handleSendMessage (same pipeline as typed text)
-  const handleVoiceUserMessage = useCallback((text: string) => {
-    const transcript = text.trim();
-    if (!transcript) return;
-    setVoicePendingText(transcript);
-  }, []);
-
-  // Handle Gemini Live AI transcript — display as assistant message directly.
-  // Uses a ref-based streaming ID instead of a time-based heuristic so that
-  // long responses (>5 s) still accumulate into a single message.
-  const handleGeminiLiveTranscript = useCallback((text: string) => {
-    if (!text.trim()) return;
-    setMessages(prev => {
-      const streamId = streamingMessageIdRef.current;
-      if (streamId) {
-        const idx = prev.findIndex(m => m.id === streamId);
-        if (idx !== -1) {
-          const updated = [...prev];
-          updated[idx] = { ...updated[idx], content: updated[idx].content + text };
-          return updated;
-        }
-      }
-      // Start a new streaming message
-      const newId = `gemini-live-${Date.now()}`;
-      streamingMessageIdRef.current = newId;
-      return [
-        ...prev,
-        {
-          id: newId,
-          type: 'assistant' as const,
-          content: text,
-          timestamp: new Date().toISOString(),
-        },
-      ];
-    });
-  }, []);
-
-  // Handle tool calls from Gemini Live
-  const handleGeminiLiveToolCall = useCallback(
-    async (call: ToolCallRequest): Promise<Record<string, unknown>> => {
-      try {
-        // Get current user for created_by fields
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        const userId = user?.id;
-        if (!userId) return { error: 'Not authenticated' };
-
-        switch (call.name) {
-          case 'addToCalendar': {
-            const { data, error } = await supabase
-              .from('trip_events')
-              .insert({
-                trip_id: tripId,
-                created_by: userId,
-                title: String(call.args.title || 'New Event'),
-                start_time: String(call.args.startTime),
-                end_time: call.args.endTime ? String(call.args.endTime) : null,
-                location: call.args.location ? String(call.args.location) : null,
-                description: call.args.description ? String(call.args.description) : null,
-              })
-              .select()
-              .single();
-            if (error) throw error;
-            return {
-              success: true,
-              eventId: data?.id,
-              message: `Added "${call.args.title}" to calendar`,
-            };
-          }
-          case 'createTask': {
-            const { data, error } = await supabase
-              .from('trip_tasks')
-              .insert({
-                trip_id: tripId,
-                creator_id: userId,
-                title: String(call.args.content),
-                due_at: call.args.dueDate ? String(call.args.dueDate) : null,
-              })
-              .select()
-              .single();
-            if (error) throw error;
-            return {
-              success: true,
-              taskId: data?.id,
-              message: `Created task: "${call.args.content}"`,
-            };
-          }
-          case 'createPoll': {
-            const options = ((call.args.options as string[]) || []).map((text: string) => ({
-              text,
-              votes: 0,
-            }));
-            const { data, error } = await supabase
-              .from('trip_polls')
-              .insert({
-                trip_id: tripId,
-                created_by: userId,
-                question: String(call.args.question),
-                options: JSON.stringify(options),
-              })
-              .select()
-              .single();
-            if (error) throw error;
-            return {
-              success: true,
-              pollId: data?.id,
-              message: `Created poll: "${call.args.question}"`,
-            };
-          }
-          case 'searchPlaces': {
-            // Search saved trip places by query match. Gemini's google_search
-            // grounding handles web results; this returns places already saved to
-            // the trip so the AI can reference them conversationally.
-            const query = String(call.args.query || '').toLowerCase();
-            const { data: places } = await (supabase as any)
-              .from('trip_places')
-              .select('name, address, category, lat, lng')
-              .eq('trip_id', tripId);
-            const matches = (places || []).filter(
-              (p: { name: string; category: string | null }) =>
-                p.name.toLowerCase().includes(query) ||
-                (p.category && p.category.toLowerCase().includes(query)),
-            );
-            return {
-              results: matches.slice(0, 10),
-              count: matches.length,
-              message:
-                matches.length > 0
-                  ? `Found ${matches.length} saved place(s) matching "${call.args.query}"`
-                  : `No saved places match "${call.args.query}". Try the Places tab to search nearby.`,
-            };
-          }
-          case 'getPaymentSummary': {
-            const { data } = await supabase
-              .from('trip_payment_messages')
-              .select('description, amount, is_settled')
-              .eq('trip_id', tripId);
-            const unsettled = (data || []).filter((p: any) => !p.is_settled);
-            const total = unsettled.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-            return {
-              totalUnsettled: total,
-              count: unsettled.length,
-              payments: unsettled.slice(0, 5),
-            };
-          }
-          default:
-            return { error: `Unknown tool: ${call.name}` };
-        }
-      } catch (err) {
-        return { error: err instanceof Error ? err.message : 'Tool execution failed' };
-      }
-    },
-    [tripId],
-  );
-
-  // Reset streaming message ref when the AI finishes a turn so the next
-  // response starts a fresh message bubble.
-  const handleGeminiLiveTurnComplete = useCallback(() => {
-    streamingMessageIdRef.current = null;
-  }, []);
-
-  // Gemini Live hook (bidirectional audio)
-  const geminiLive = useGeminiLive({
-    tripId,
-    onTranscript: handleGeminiLiveTranscript,
-    onToolCall: handleGeminiLiveToolCall,
-    onTurnComplete: handleGeminiLiveTurnComplete,
-  });
-
-  const {
-    voiceState: webSpeechVoiceState,
-    errorMessage: voiceError,
-    toggleVoice: toggleWebSpeechVoice,
-    stopVoice: stopWebSpeechVoice,
-  } = useGeminiVoice(handleVoiceUserMessage);
-
-  // Use Gemini Live when supported, fall back to Web Speech
-  const useGeminiLiveVoice = geminiLive.isSupported && isVoiceEligible;
-
-  const voiceState = useGeminiLiveVoice ? geminiLive.state : webSpeechVoiceState;
-  const currentVoiceError = useGeminiLiveVoice ? geminiLive.error : voiceError;
-
-  // Destructure stable references from geminiLive so callbacks and effects don't
-  // depend on the entire hook return object (which is a new object each render).
-  const {
-    state: geminiLiveState,
-    startSession: geminiStartSession,
-    endSession: geminiEndSession,
-  } = geminiLive;
-
-  const toggleVoice = useCallback(() => {
-    if (useGeminiLiveVoice) {
-      if (geminiLiveState === 'idle' || geminiLiveState === 'error') {
-        geminiStartSession();
-      } else {
-        geminiEndSession();
-      }
-    } else {
-      toggleWebSpeechVoice();
-    }
-  }, [
-    useGeminiLiveVoice,
-    geminiLiveState,
-    geminiStartSession,
-    geminiEndSession,
-    toggleWebSpeechVoice,
-  ]);
-
-  // Reset streaming message tracker when Gemini Live session ends
-  useEffect(() => {
-    if (geminiLiveState === 'idle' || geminiLiveState === 'error') {
-      streamingMessageIdRef.current = null;
-    }
-  }, [geminiLiveState]);
-
-  // Cleanup on unmount only — use refs for the latest endSession so we don't
-  // re-run this effect on every state change.
-  const geminiEndSessionRef = useRef(geminiEndSession);
-  geminiEndSessionRef.current = geminiEndSession;
-
-  useEffect(() => {
-    return () => {
-      stopWebSpeechVoice();
-      geminiEndSessionRef.current();
-    };
-  }, [stopWebSpeechVoice]);
-
-  // Auto-send voice transcripts through the same pipeline as typed messages
-  useEffect(() => {
-    if (!voicePendingText || isTyping) return;
-    void handleSendMessageRef.current(voicePendingText);
-    setVoicePendingText(null);
-  }, [voicePendingText, isTyping]);
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
@@ -758,9 +487,19 @@ export const AIConciergeChat = ({
           setMessages(prev => {
             const exists = prev.some(m => m.id === streamingMessageId);
             if (exists) {
-              return prev.map(m => m.id === streamingMessageId ? { ...m, content: timeoutContent } : m);
+              return prev.map(m =>
+                m.id === streamingMessageId ? { ...m, content: timeoutContent } : m,
+              );
             }
-            return [...prev, { id: streamingMessageId, type: 'assistant' as const, content: timeoutContent, timestamp: new Date().toISOString() }];
+            return [
+              ...prev,
+              {
+                id: streamingMessageId,
+                type: 'assistant' as const,
+                content: timeoutContent,
+                timestamp: new Date().toISOString(),
+              },
+            ];
           });
         }, FAST_RESPONSE_TIMEOUT_MS);
 
@@ -1000,18 +739,10 @@ export const AIConciergeChat = ({
           </div>
         )}
 
-        {/* Chat Messages + Streaming Voice Transcript - min-height ensures multiple messages visible */}
+        {/* Chat Messages - min-height ensures multiple messages visible */}
         <div className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-[280px]">
           {messages.length > 0 && (
             <ChatMessages messages={messages} isTyping={isTyping} showMapWidgets={true} />
-          )}
-
-          {/* Voice error inline display */}
-          {currentVoiceError && voiceState === 'error' && (
-            <div className="flex items-center gap-2 px-3 py-2 mt-2 rounded-lg bg-red-500/10 border border-red-500/20">
-              <AlertCircle size={14} className="text-red-400 shrink-0" />
-              <span className="text-xs text-red-300">{currentVoiceError}</span>
-            </div>
           )}
         </div>
 
@@ -1024,16 +755,6 @@ export const AIConciergeChat = ({
             onKeyPress={handleKeyPress}
             isTyping={isTyping}
             disabled={isQueryLimitReached}
-            voiceState={voiceState}
-            isVoiceEligible={isVoiceEligible}
-            onVoiceToggle={toggleVoice}
-            onVoiceUpgrade={() => {
-              toast.info('Voice concierge requires a subscription', {
-                description:
-                  'Upgrade to Frequent Chraveler or Pro to use hands-free voice conversations.',
-                action: { label: 'Upgrade', onClick: () => (window.location.href = upgradeUrl) },
-              });
-            }}
             showImageAttach={true}
             attachedImages={attachedImages}
             onImageAttach={files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
