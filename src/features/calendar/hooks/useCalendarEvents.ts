@@ -1,16 +1,15 @@
-import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { calendarService, TripEvent, CreateEventData } from '@/services/calendarService';
 import { CalendarEvent } from '@/types/calendar';
-import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useCalendarRealtime } from './useCalendarRealtime';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { withTimeout } from '@/utils/timeout';
 import { errorTracking } from '@/utils/errorTracking';
 
 /**
  * ⚡ PERFORMANCE: TanStack Query-based calendar events hook
- * 
+ *
  * Benefits over previous useState/useEffect approach:
  * - Automatic caching across tab switches (instant re-renders)
  * - Deduplication of identical requests
@@ -27,6 +26,7 @@ export const useCalendarEvents = (tripId?: string) => {
   const {
     data: events = [],
     isLoading: loading,
+    isError,
     error,
     refetch,
   } = useQuery({
@@ -39,13 +39,13 @@ export const useCalendarEvents = (tripId?: string) => {
         level: 'info',
         data: { tripId },
       });
-      
+
       const result = await withTimeout(
         calendarService.getTripEvents(tripId!),
         10000,
-        'Failed to load calendar events: Timeout'
+        'Failed to load calendar events: Timeout',
       );
-      
+
       const durationMs = Math.round(performance.now() - startTime);
       errorTracking.addBreadcrumb({
         category: 'api-call',
@@ -53,7 +53,7 @@ export const useCalendarEvents = (tripId?: string) => {
         level: durationMs > 3000 ? 'warning' : 'info',
         data: { tripId, count: result.length, durationMs },
       });
-      
+
       return result;
     },
     enabled: !!tripId,
@@ -62,45 +62,8 @@ export const useCalendarEvents = (tripId?: string) => {
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.calendar.refetchOnWindowFocus,
   });
 
-  // Real-time subscription for authenticated mode
-  useEffect(() => {
-    if (!tripId || isDemoMode) return;
-
-    const channel = supabase
-      .channel(`trip_events:${tripId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'trip_events',
-          filter: `trip_id=eq.${tripId}`,
-        },
-        (payload) => {
-          // Update cache directly for instant UI updates
-          queryClient.setQueryData<TripEvent[]>(
-            tripKeys.calendar(tripId),
-            (oldEvents = []) => {
-              if (payload.eventType === 'INSERT') {
-                return [...oldEvents, payload.new as TripEvent];
-              } else if (payload.eventType === 'UPDATE') {
-                return oldEvents.map(event =>
-                  event.id === payload.new.id ? (payload.new as TripEvent) : event
-                );
-              } else if (payload.eventType === 'DELETE') {
-                return oldEvents.filter(event => event.id !== payload.old.id);
-              }
-              return oldEvents;
-            }
-          );
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [tripId, isDemoMode, queryClient]);
+  // Real-time subscription for authenticated mode (shared hook)
+  useCalendarRealtime(tripId || undefined, !!tripId && !isDemoMode);
 
   // Create event with optimistic update
   const createEventMutation = useMutation({
@@ -108,7 +71,7 @@ export const useCalendarEvents = (tripId?: string) => {
       const result = await calendarService.createEvent(eventData);
       return result.event;
     },
-    onMutate: async (newEvent) => {
+    onMutate: async newEvent => {
       await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId || '') });
       const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId || ''));
 
@@ -129,10 +92,10 @@ export const useCalendarEvents = (tripId?: string) => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        queryClient.setQueryData<TripEvent[]>(
-          tripKeys.calendar(tripId),
-          [...previousEvents, optimisticEvent]
-        );
+        queryClient.setQueryData<TripEvent[]>(tripKeys.calendar(tripId), [
+          ...previousEvents,
+          optimisticEvent,
+        ]);
       }
       return { previousEvents };
     },
@@ -161,9 +124,7 @@ export const useCalendarEvents = (tripId?: string) => {
       if (previousEvents && tripId) {
         queryClient.setQueryData<TripEvent[]>(
           tripKeys.calendar(tripId),
-          previousEvents.map(event =>
-            event.id === eventId ? { ...event, ...updates } : event
-          )
+          previousEvents.map(event => (event.id === eventId ? { ...event, ...updates } : event)),
         );
       }
       return { previousEvents };
@@ -181,14 +142,14 @@ export const useCalendarEvents = (tripId?: string) => {
       await calendarService.deleteEvent(eventId, tripId);
       return eventId;
     },
-    onMutate: async (eventId) => {
+    onMutate: async eventId => {
       await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId || '') });
       const previousEvents = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId || ''));
 
       if (previousEvents && tripId) {
         queryClient.setQueryData<TripEvent[]>(
           tripKeys.calendar(tripId),
-          previousEvents.filter(event => event.id !== eventId)
+          previousEvents.filter(event => event.id !== eventId),
         );
       }
       return { previousEvents };
@@ -210,7 +171,9 @@ export const useCalendarEvents = (tripId?: string) => {
     }
   };
 
-  const createEventFromCalendar = async (calendarEvent: CalendarEvent): Promise<TripEvent | null> => {
+  const createEventFromCalendar = async (
+    calendarEvent: CalendarEvent,
+  ): Promise<TripEvent | null> => {
     if (!tripId) return null;
     const eventData = calendarService.convertFromCalendarEvent(calendarEvent, tripId);
     return createEvent(eventData);
@@ -245,6 +208,9 @@ export const useCalendarEvents = (tripId?: string) => {
   return {
     events,
     loading,
+    isError,
+    error,
+    refetch,
     createEvent,
     createEventFromCalendar,
     updateEvent,

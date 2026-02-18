@@ -17,6 +17,9 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBackgroundImport } from '@/features/calendar/hooks/useBackgroundImport';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
+import type { CalendarEvent } from '@/types/calendar';
+import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
+import { CalendarEmptyState } from '@/features/calendar/components/CalendarEmptyState';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -46,6 +49,8 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     resetForm,
     isLoading,
     isSaving,
+    isError,
+    error,
     refreshEvents,
   } = useCalendarManagement(tripId);
   const { toast } = useToast();
@@ -106,7 +111,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     await refreshEvents();
   }, [queryClient, refreshEvents, tripId]);
 
-  const handleEdit = (event: any) => {
+  const handleEdit = (event: CalendarEvent) => {
     // Check permissions (will return true in Demo Mode)
     if (!canPerformAction('calendar', 'can_edit_events')) {
       toast({
@@ -190,10 +195,17 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           onImport={handleImport}
         />
 
-        {isLoading ? (
+        {isError ? (
+          <CalendarErrorState
+            error={error instanceof Error ? error : error ? new Error(String(error)) : undefined}
+            onRetry={refreshEvents}
+          />
+        ) : isLoading ? (
           <div className="flex justify-center items-center py-16">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
+        ) : events.length === 0 ? (
+          <CalendarEmptyState onCreateEvent={() => setShowAddEvent(true)} />
         ) : (
           <CalendarGrid
             events={events}
@@ -249,7 +261,16 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           onExport={handleExport}
           onImport={handleImport}
         />
-        <ItineraryView events={events} tripName="Trip Itinerary" />
+        {isError ? (
+          <CalendarErrorState
+            error={error instanceof Error ? error : error ? new Error(String(error)) : undefined}
+            onRetry={refreshEvents}
+          />
+        ) : events.length === 0 ? (
+          <CalendarEmptyState onCreateEvent={() => setShowAddEvent(true)} />
+        ) : (
+          <ItineraryView events={events} tripName="Trip Itinerary" />
+        )}
 
         {/* ICS Import Modal */}
         <CalendarImportModal
@@ -276,10 +297,17 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         onImport={handleImport}
       />
 
-      {isLoading ? (
+      {isError ? (
+        <CalendarErrorState
+          error={error instanceof Error ? error : error ? new Error(String(error)) : undefined}
+          onRetry={refreshEvents}
+        />
+      ) : isLoading ? (
         <div className="flex justify-center items-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
+      ) : events.length === 0 ? (
+        <CalendarEmptyState onCreateEvent={() => setShowAddEvent(true)} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:h-[420px]">
           <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-2 flex items-center h-full">

@@ -1,6 +1,18 @@
 import React, { useMemo } from 'react';
 import { CalendarEvent } from '@/types/calendar';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameDay,
+  isToday,
+  isSameMonth,
+  startOfWeek,
+  endOfWeek,
+  addMonths,
+  subMonths,
+} from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,7 +32,7 @@ export const CalendarGrid = ({
   onSelectDate,
   onAddEvent,
   currentMonth,
-  onMonthChange
+  onMonthChange,
 }: CalendarGridProps) => {
   // Get all days to display (including padding days from prev/next month)
   const calendarDays = useMemo(() => {
@@ -60,6 +72,10 @@ export const CalendarGrid = ({
 
   const handleDayClick = (day: Date) => {
     onSelectDate(day);
+  };
+
+  const handleAddEventClick = (e: React.MouseEvent, day: Date) => {
+    e.stopPropagation();
     if (onAddEvent && isSameMonth(day, currentMonth)) {
       onAddEvent(day);
     }
@@ -71,25 +87,13 @@ export const CalendarGrid = ({
     <div className="bg-card border border-border rounded-lg">
       {/* Month Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handlePrevMonth}
-          className="hover:bg-accent"
-        >
+        <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="hover:bg-accent">
           <ChevronLeft className="h-5 w-5" />
         </Button>
 
-        <h2 className="text-lg font-semibold">
-          {format(currentMonth, 'MMMM yyyy')}
-        </h2>
+        <h2 className="text-lg font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleNextMonth}
-          className="hover:bg-accent"
-        >
+        <Button variant="ghost" size="icon" onClick={handleNextMonth} className="hover:bg-accent">
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
@@ -97,10 +101,7 @@ export const CalendarGrid = ({
       {/* Weekday Headers */}
       <div className="grid grid-cols-7 border-b border-border">
         {weekDays.map(day => (
-          <div
-            key={day}
-            className="p-2 text-center text-sm font-medium text-muted-foreground"
-          >
+          <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
             {day}
           </div>
         ))}
@@ -119,27 +120,35 @@ export const CalendarGrid = ({
               key={index}
               onClick={() => handleDayClick(day)}
               className={cn(
-                'min-h-[100px] md:min-h-[120px] p-2 border-b border-r border-border text-left transition-colors',
+                'group min-h-[100px] md:min-h-[120px] p-2 border-b border-r border-border text-left transition-colors',
                 'hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary/50',
                 !isCurrentMonth && 'bg-muted/20 text-muted-foreground',
                 isSelected && 'ring-2 ring-primary',
-                isTodayDate && 'bg-primary/5'
+                isTodayDate && 'bg-primary/5',
               )}
             >
-              {/* Day Number */}
-              <div className="flex items-center justify-between mb-1">
+              {/* Day Number + Add button */}
+              <div className="flex items-center justify-between mb-1 group/day">
                 <span
                   className={cn(
                     'text-sm font-medium',
-                    isTodayDate && 'bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center',
-                    !isCurrentMonth && 'opacity-50'
+                    isTodayDate &&
+                      'bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center',
+                    !isCurrentMonth && 'opacity-50',
                   )}
                 >
                   {format(day, 'd')}
                 </span>
 
-                {isCurrentMonth && dayEvents.length === 0 && (
-                  <Plus className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                {isCurrentMonth && onAddEvent && (
+                  <button
+                    type="button"
+                    onClick={e => handleAddEventClick(e, day)}
+                    className="p-0.5 rounded hover:bg-accent opacity-0 group-hover/day:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    aria-label={`Add event on ${format(day, 'MMMM d')}`}
+                  >
+                    <Plus className="h-3 w-3 text-muted-foreground" />
+                  </button>
                 )}
               </div>
 
@@ -151,16 +160,14 @@ export const CalendarGrid = ({
                     className={cn(
                       'text-xs px-1.5 py-0.5 rounded truncate',
                       'bg-primary/10 text-primary border border-primary/20',
-                      'hover:bg-primary/20 transition-colors'
+                      'hover:bg-primary/20 transition-colors',
                     )}
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       onSelectDate(day);
                     }}
                   >
-                    {event.time && (
-                      <span className="font-medium mr-1">{event.time}</span>
-                    )}
+                    {event.time && <span className="font-medium mr-1">{event.time}</span>}
                     <span className="truncate">{event.title}</span>
                   </div>
                 ))}

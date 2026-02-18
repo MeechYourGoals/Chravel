@@ -33,10 +33,13 @@ import { CalendarImportModal } from '@/features/calendar/components/CalendarImpo
 import { useCalendarEvents } from '@/features/calendar/hooks/useCalendarEvents';
 import { useBackgroundImport } from '@/features/calendar/hooks/useBackgroundImport';
 import { toast } from 'sonner';
-import { calendarExporter } from '../../utils/calendarExport';
-import { openOrDownloadBlob } from '../../utils/download';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
+import { useRolePermissions } from '@/hooks/useRolePermissions';
+import type { TripEvent } from '@/services/calendarService';
+import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
+import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
+import { CalendarEmptyState } from '@/features/calendar/components/CalendarEmptyState';
 
 interface CalendarEvent {
   id: string;
@@ -83,11 +86,12 @@ export const MobileGroupCalendar = ({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [editingEvent, setEditingEvent] = useState<TripEvent | null>(null);
   // Internal view mode state when no external handler provided
   const [internalViewMode, setInternalViewMode] = useState<CalendarViewMode>('list');
   const { tier, subscription, isSuperAdmin } = useConsumerSubscription();
   const canUseSmartImport = hasPaidAccess({ tier, status: subscription?.status, isSuperAdmin });
+  const { canPerformAction, isLoading: permissionsLoading } = useRolePermissions(tripId);
 
   // Background URL import
   const {
@@ -148,10 +152,14 @@ export const MobileGroupCalendar = ({
   const {
     events: tripEvents,
     loading,
+    isError,
+    error,
     refreshEvents,
     deleteEvent,
     updateEvent,
   } = useCalendarEvents(tripId);
+
+  const { exportTripEvents } = useCalendarExport(tripId);
 
   // Convert TripEvent[] to CalendarEvent[] format for UI
   const events = useMemo(() => {
@@ -184,6 +192,10 @@ export const MobileGroupCalendar = ({
 
   const handleAddEvent = async () => {
     await hapticService.medium();
+    if (!permissionsLoading && !canPerformAction('calendar', 'can_create_events')) {
+      toast.error('You do not have permission to add events');
+      return;
+    }
     setEditingEvent(null);
     setIsModalOpen(true);
   };
@@ -250,6 +262,10 @@ export const MobileGroupCalendar = ({
   const handleDeleteEvent = useCallback(
     async (eventId: string) => {
       if (!eventId) return;
+      if (!permissionsLoading && !canPerformAction('calendar', 'can_delete_events')) {
+        toast.error('You do not have permission to delete events');
+        return;
+      }
 
       setIsDeleting(true);
       try {
@@ -269,26 +285,37 @@ export const MobileGroupCalendar = ({
         setIsDeleting(false);
       }
     },
-    [deleteEvent, refreshEvents],
+    [deleteEvent, refreshEvents, canPerformAction, permissionsLoading],
   );
 
   // Handle event edit
   const handleEditEvent = useCallback(
-    async (event: CalendarEvent & { originalEvent?: any }) => {
+    async (event: CalendarEvent & { originalEvent?: TripEvent }) => {
       await hapticService.medium();
+      if (!permissionsLoading && !canPerformAction('calendar', 'can_edit_events')) {
+        toast.error('You do not have permission to edit events');
+        return;
+      }
       setSelectedEvent(null);
       // Use originalEvent if available, otherwise construct from CalendarEvent
-      const eventToEdit = event.originalEvent || {
+      const eventToEdit: TripEvent = event.originalEvent || {
         id: event.id,
+        trip_id: tripId,
         title: event.title,
         start_time: event.date.toISOString(),
         location: event.location,
-        trip_id: tripId,
+        event_category: 'other',
+        include_in_itinerary: true,
+        source_type: 'manual',
+        source_data: {},
+        created_by: '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
       setEditingEvent(eventToEdit);
       setIsModalOpen(true);
     },
-    [tripId],
+    [tripId, canPerformAction, permissionsLoading],
   );
 
   // Close event detail drawer
@@ -307,6 +334,15 @@ export const MobileGroupCalendar = ({
       {loading ? (
         <div className="px-4 py-4">
           <CalendarSkeleton />
+        </div>
+      ) : isError ? (
+        <CalendarErrorState
+          error={error instanceof Error ? error : new Error(String(error))}
+          onRetry={refreshEvents}
+        />
+      ) : events.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <CalendarEmptyState onCreateEvent={handleAddEvent} />
         </div>
       ) : (
         <>
@@ -403,26 +439,7 @@ export const MobileGroupCalendar = ({
                     if (onExport) {
                       onExport();
                     } else {
-                      const exportEvents = events.map(e => ({
-                        id: e.id,
-                        title: e.title,
-                        date: e.date instanceof Date ? e.date : new Date(e.date),
-                        location: e.location || '',
-                        description: e.originalEvent?.description || '',
-                      }));
-                      const icsContent = calendarExporter.exportToICS(
-                        exportEvents,
-                        `Trip_${tripId}`,
-                      );
-                      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-                      const filename = `Trip_${tripId}_calendar.ics`;
-                      try {
-                        await openOrDownloadBlob(blob, filename, { mimeType: 'text/calendar' });
-                        toast.success('Calendar exported');
-                      } catch (error) {
-                        console.error('Export failed:', error);
-                        toast.error('Failed to export calendar');
-                      }
+                      await exportTripEvents(tripEvents);
                     }
                   }}
                   className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs text-gray-300 transition-colors active:scale-95"
@@ -534,26 +551,7 @@ export const MobileGroupCalendar = ({
                     if (onExport) {
                       onExport();
                     } else {
-                      const exportEvents = events.map(e => ({
-                        id: e.id,
-                        title: e.title,
-                        date: e.date instanceof Date ? e.date : new Date(e.date),
-                        location: e.location || '',
-                        description: e.originalEvent?.description || '',
-                      }));
-                      const icsContent = calendarExporter.exportToICS(
-                        exportEvents,
-                        `Trip_${tripId}`,
-                      );
-                      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-                      const filename = `Trip_${tripId}_calendar.ics`;
-                      try {
-                        await openOrDownloadBlob(blob, filename, { mimeType: 'text/calendar' });
-                        toast.success('Calendar exported');
-                      } catch (error) {
-                        console.error('Export failed:', error);
-                        toast.error('Failed to export calendar');
-                      }
+                      await exportTripEvents(tripEvents);
                     }
                   }}
                   className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm text-gray-300 transition-colors active:scale-95"
@@ -740,26 +738,35 @@ export const MobileGroupCalendar = ({
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="px-6 pb-8 flex gap-3">
-              <button
-                onClick={() =>
-                  handleEditEvent(selectedEvent as CalendarEvent & { originalEvent?: any })
-                }
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-xl transition-colors"
-              >
-                <Pencil size={18} />
-                <span>Edit</span>
-              </button>
-              <button
-                onClick={() => handleDeleteEvent(selectedEvent.id)}
-                disabled={isDeleting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl transition-colors disabled:opacity-50"
-              >
-                <Trash2 size={18} />
-                <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
-              </button>
-            </div>
+            {/* Actions - only show when user has permission */}
+            {(canPerformAction('calendar', 'can_edit_events') ||
+              canPerformAction('calendar', 'can_delete_events')) && (
+              <div className="px-6 pb-8 flex gap-3">
+                {canPerformAction('calendar', 'can_edit_events') && (
+                  <button
+                    onClick={() =>
+                      handleEditEvent(
+                        selectedEvent as CalendarEvent & { originalEvent?: TripEvent },
+                      )
+                    }
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-xl transition-colors"
+                  >
+                    <Pencil size={18} />
+                    <span>Edit</span>
+                  </button>
+                )}
+                {canPerformAction('calendar', 'can_delete_events') && (
+                  <button
+                    onClick={() => handleDeleteEvent(selectedEvent.id)}
+                    disabled={isDeleting}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 size={18} />
+                    <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

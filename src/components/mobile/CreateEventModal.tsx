@@ -10,7 +10,7 @@ interface CreateEventModalProps {
   onClose: () => void;
   selectedDate: Date;
   tripId: string;
-  onEventCreated?: (event: any) => void;
+  onEventCreated?: (event: TripEvent) => void;
   // Edit mode props
   editEvent?: TripEvent | null;
   onEventUpdated?: (event: TripEvent) => void;
@@ -28,6 +28,7 @@ export const CreateEventModal = ({
   const [title, setTitle] = useState('');
   const [eventDate, setEventDate] = useState(selectedDate);
   const [time, setTime] = useState('12:00');
+  const [endTime, setEndTime] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +42,7 @@ export const CreateEventModal = ({
       const startDate = new Date(editEvent.start_time);
       setEventDate(startDate);
       setTime(format(startDate, 'HH:mm'));
+      setEndTime(editEvent.end_time ? format(new Date(editEvent.end_time), 'HH:mm') : '');
       setLocation(editEvent.location || '');
       setDescription(editEvent.description || '');
     } else {
@@ -48,6 +50,7 @@ export const CreateEventModal = ({
       setTitle('');
       setEventDate(selectedDate);
       setTime('12:00');
+      setEndTime('');
       setLocation('');
       setDescription('');
     }
@@ -83,7 +86,13 @@ export const CreateEventModal = ({
 
       // Validate time format
       if (!time || !/^\d{2}:\d{2}$/.test(time)) {
-        toast.error('Please select a valid time');
+        toast.error('Please select a valid start time');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (endTime && !/^\d{2}:\d{2}$/.test(endTime)) {
+        toast.error('Please select a valid end time');
         setIsSubmitting(false);
         return;
       }
@@ -100,6 +109,19 @@ export const CreateEventModal = ({
         return;
       }
 
+      let endTimeISO: string | undefined;
+      if (endTime) {
+        const [endHours, endMinutes] = endTime.split(':');
+        const endDate = new Date(eventDate);
+        endDate.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0);
+        if (endDate.getTime() <= startTime.getTime()) {
+          toast.error('End time must be after start time');
+          setIsSubmitting(false);
+          return;
+        }
+        endTimeISO = endDate.toISOString();
+      }
+
       // Validate tripId
       if (!tripId) {
         toast.error('Trip ID is missing. Please try again.');
@@ -113,6 +135,7 @@ export const CreateEventModal = ({
           title,
           description: description || undefined,
           start_time: startTime.toISOString(),
+          end_time: endTimeISO,
           location: location || undefined,
           trip_id: tripId,
         });
@@ -128,6 +151,7 @@ export const CreateEventModal = ({
             title,
             description: description || undefined,
             start_time: startTime.toISOString(),
+            end_time: endTimeISO,
             location: location || undefined,
           });
 
@@ -149,6 +173,7 @@ export const CreateEventModal = ({
             title,
             description: description || undefined,
             start_time: startTime.toISOString(),
+            end_time: endTimeISO,
             location: location || undefined,
             include_in_itinerary: true,
             source_type: 'manual',
@@ -175,6 +200,7 @@ export const CreateEventModal = ({
           // Reset form
           setTitle('');
           setTime('12:00');
+          setEndTime('');
           setLocation('');
           setDescription('');
           onClose();
@@ -262,15 +288,28 @@ export const CreateEventModal = ({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Time</label>
-            <input
-              type="time"
-              value={time}
-              onChange={e => setTime(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              required
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Start Time</label>
+              <input
+                type="time"
+                value={time}
+                onChange={e => setTime(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                End Time (Optional)
+              </label>
+              <input
+                type="time"
+                value={endTime}
+                onChange={e => setEndTime(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              />
+            </div>
           </div>
 
           <div>
