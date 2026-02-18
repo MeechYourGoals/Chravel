@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Users, AlertTriangle, UserPlus, Clock, Cog } from 'lucide-react';
-import { ProParticipant } from '../../../types/pro';
+import { Users, AlertTriangle, UserPlus, Clock, Cog, LayoutGrid, Network, UserCheck } from 'lucide-react';
+import { ProParticipant, TeamTripContext } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
 import { TeamOnboardingBanner } from '../TeamOnboardingBanner';
 import { BulkRoleAssignmentModal } from '../BulkRoleAssignmentModal';
@@ -8,7 +8,6 @@ import { QuickContactMenu } from '../QuickContactMenu';
 import { RoleContactSheet } from '../RoleContactSheet';
 import { extractUniqueRoles, getRoleColorClass } from '../../../utils/roleUtils';
 import { Button } from '../../ui/button';
-import { Input } from '../../ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '../../ui/avatar';
 import { getInitials } from '../../../utils/avatarUtils';
 import { useDemoMode } from '../../../hooks/useDemoMode';
@@ -16,6 +15,8 @@ import { useSuperAdmin } from '../../../hooks/useSuperAdmin';
 import { useIsMobile } from '../../../hooks/use-mobile';
 import { JoinRequestsDialog } from '../admin/JoinRequestsDialog';
 import { RoleManagerDialog } from '../admin/RoleManagerDialog';
+import { TeamOrgChart } from '../TeamOrgChart';
+import { VirtualizedRosterGrid } from './VirtualizedRosterGrid';
 import { TripRole } from '../../../types/roleChannels';
 import { useRoleAssignments } from '../../../hooks/useRoleAssignments';
 import { useTripAdmins } from '../../../hooks/useTripAdmins';
@@ -34,11 +35,13 @@ interface RolesViewProps {
   onUpdateMemberRole?: (memberId: string, roleId: string, roleName: string) => Promise<void>;
   canManageRoles?: boolean;
   onCreateRole?: () => void;
+  onAssignRole?: () => void;
   isLoadingRoles?: boolean;
   adminLoading?: boolean;
+  isLoadingRoster?: boolean;
   tripId?: string;
   tripCreatorId?: string;
-  trip?: any;
+  trip?: TeamTripContext;
   availableRoles?: TripRole[];
 }
 
@@ -50,8 +53,10 @@ export const RolesView = ({
   onUpdateMemberRole,
   canManageRoles = false,
   onCreateRole,
+  onAssignRole,
   isLoadingRoles = false,
   adminLoading = false,
+  isLoadingRoster = false,
   tripId,
   tripCreatorId,
   trip,
@@ -67,10 +72,9 @@ export const RolesView = ({
     role: string;
     members: ProParticipant[];
   } | null>(null);
-  const [newRoleName, setNewRoleName] = useState('');
-  const [showRoleCreation, setShowRoleCreation] = useState(false);
   const [showRequestsDialog, setShowRequestsDialog] = useState(false);
   const [showRoleManagerDialog, setShowRoleManagerDialog] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'orgchart'>('grid');
 
   // Fetch role assignments and admins to display role pills per member
   const { assignments } = useRoleAssignments({ tripId: tripId || '', enabled: !!tripId });
@@ -149,17 +153,6 @@ export const RolesView = ({
     setShowOnboarding(false);
   };
 
-  const handleCreateRole = () => {
-    if (!newRoleName.trim()) return;
-
-    // Reset form
-    setNewRoleName('');
-    setShowRoleCreation(false);
-
-    // Show success feedback
-    alert(`Role "${newRoleName}" created! You can now assign this role to team members.`);
-  };
-
   // Super admins are always treated as admins
   const isAdmin =
     isSuperAdmin || userRole === 'admin' || userRole === 'tour manager' || userRole === 'manager';
@@ -227,6 +220,22 @@ export const RolesView = ({
               <Cog className="w-4 h-4 shrink-0 mr-0.5" />
               Manage Roles
             </Button>
+            {onAssignRole && (
+              <Button
+                onClick={onAssignRole}
+                variant="outline"
+                size="sm"
+                className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
+                  isMobile
+                    ? 'min-h-[44px] justify-center text-xs'
+                    : `${PRO_PARITY_COL_START.places} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
+                }`}
+                title="Assign role to members"
+              >
+                <UserCheck className="w-4 h-4 mr-1" />
+                Assign Role
+              </Button>
+            )}
             <Button
               onClick={() => setShowRequestsDialog(true)}
               variant="outline"
@@ -244,49 +253,39 @@ export const RolesView = ({
           </div>
         )}
 
-        {/* Role Creation Form - Admin Only */}
-        {showRoleCreation && isAdmin && !effectiveIsReadOnly && (
-          <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
-            <h3 className="text-purple-300 font-medium mb-3 text-sm">Create New Role</h3>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="Enter role name (e.g., 'Stage Manager', 'Chef')"
-                value={newRoleName}
-                onChange={e => setNewRoleName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    handleCreateRole();
-                  }
-                }}
-                className="flex-1 bg-gray-800 border-gray-600 text-white placeholder:text-gray-500"
-              />
-              <Button
-                onClick={handleCreateRole}
-                disabled={!newRoleName.trim()}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+        {/* Row 3: View mode toggle (Grid vs Org Chart) + Role Filter Pills */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">View:</span>
+            <div className="flex rounded-lg bg-white/5 border border-gray-600 p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-gray-600 text-white'
+                    : 'text-gray-400 hover:text-white'
+                }`}
               >
-                Create
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowRoleCreation(false);
-                  setNewRoleName('');
-                }}
-                variant="outline"
-                className="border-gray-600 hover:bg-white/10"
+                <LayoutGrid size={14} />
+                Grid
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('orgchart')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  viewMode === 'orgchart'
+                    ? 'bg-gray-600 text-white'
+                    : 'text-gray-400 hover:text-white'
+                }`}
               >
-                Cancel
-              </Button>
+                <Network size={14} />
+                Org Chart
+              </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">
-              Once created, you can assign this role to team members using the edit button on their
-              profile.
-            </p>
           </div>
-        )}
+        </div>
 
-        {/* Row 3: Centered Role Filter Pills */}
         {(availableRoles.length > 0 || existingRoles.length > 0) && (
           <div
             className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide -mx-3 px-3' : 'justify-center'}`}
@@ -324,7 +323,7 @@ export const RolesView = ({
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
                       selectedRole === role
                         ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 scale-105'
-                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:scale-102 border border-gray-600'
+                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:scale-[1.02] border border-gray-600'
                     }`}
                   >
                     {role === 'all' ? 'All' : role}
@@ -349,7 +348,41 @@ export const RolesView = ({
         )}
       </div>
 
-      {/* Team Grid View - Optimized for mobile */}
+      {/* Team content: Grid or Org Chart */}
+      {isLoadingRoster ? (
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-white/5 border border-gray-700 rounded-lg p-3 animate-pulse"
+            >
+              <div className="flex gap-2.5">
+                <div className="w-10 h-10 rounded-full bg-white/10" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-white/10 rounded w-3/4" />
+                  <div className="h-3 bg-white/10 rounded w-1/2" />
+                  <div className="h-3 bg-white/10 rounded w-1/3" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : viewMode === 'orgchart' ? (
+        <TeamOrgChart
+          roster={filteredRoster}
+          category={category}
+          onMemberClick={() => {}}
+        />
+      ) : filteredRoster.length > 50 ? (
+        <VirtualizedRosterGrid
+          members={filteredRoster}
+          category={category}
+          memberRolesMap={memberRolesMap}
+          adminUserIds={adminUserIds}
+          isMobile={isMobile}
+        />
+      ) : (
+        <>
       <div
         className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'}`}
       >
@@ -462,6 +495,8 @@ export const RolesView = ({
           <Users size={48} className="text-gray-600 mx-auto mb-4" />
           <p className="text-gray-400">No team members found for the selected role.</p>
         </div>
+      )}
+        </>
       )}
 
       {/* Bulk Role Assignment Modal */}

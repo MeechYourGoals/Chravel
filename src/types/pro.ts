@@ -68,6 +68,14 @@ export interface TeamMember {
   seatId?: string;
 }
 
+/** Minimal trip context for Team/role management components */
+export interface TeamTripContext {
+  id: string;
+  name: string;
+  created_by: string;
+  basecamp?: { name: string; address: string };
+}
+
 // Enhanced Pro-specific types
 export interface ProParticipant {
   id: string;

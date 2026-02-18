@@ -61,43 +61,54 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
 
       if (error) throw error;
 
-      // Fetch profiles and roles separately
-      const assignmentsWithDetails = await Promise.all(
-        (data || []).map(async assignment => {
-          const [profileResult, roleResult] = await Promise.all([
-            supabase
+      const rawAssignments = data || [];
+      if (rawAssignments.length === 0) {
+        setAssignments([]);
+        return;
+      }
+
+      // Batch fetch: collect unique user_ids and role_ids
+      const userIds = [...new Set(rawAssignments.map(a => a.user_id).filter(Boolean))];
+      const roleIds = [...new Set(rawAssignments.map(a => a.role_id).filter(Boolean))];
+
+      const [profilesResult, rolesResult] = await Promise.all([
+        userIds.length > 0
+          ? supabase
               .from('profiles_public')
-              .select('display_name, resolved_display_name, avatar_url')
-              .eq('user_id', assignment.user_id)
-              .single(),
-            supabase
+              .select('user_id, display_name, resolved_display_name, avatar_url')
+              .in('user_id', userIds)
+          : Promise.resolve({ data: [] as unknown[], error: null }),
+        roleIds.length > 0
+          ? supabase
               .from('trip_roles')
               .select('id, role_name, permission_level')
-              .eq('id', assignment.role_id)
-              .single(),
-          ]);
+              .in('id', roleIds)
+          : Promise.resolve({ data: [] as unknown[], error: null }),
+      ]);
 
-          return {
-            ...assignment,
-            user_profile: profileResult.data
-              ? {
-                  ...profileResult.data,
-                  display_name:
-                    profileResult.data.resolved_display_name || profileResult.data.display_name,
-                }
-              : undefined,
-            role: roleResult.data
-              ? {
-                  id: roleResult.data.id,
-                  roleName: roleResult.data.role_name,
-                  permissionLevel: roleResult.data.permission_level,
-                }
-              : undefined,
-          };
-        }),
+      const profilesMap = new Map(
+        (profilesResult.data || []).map((p: { user_id: string; display_name?: string; resolved_display_name?: string; avatar_url?: string }) => [
+          p.user_id,
+          {
+            display_name: p.resolved_display_name || p.display_name,
+            avatar_url: p.avatar_url,
+          },
+        ]),
+      );
+      const rolesMap = new Map(
+        (rolesResult.data || []).map((r: { id: string; role_name: string; permission_level: string }) => [
+          r.id,
+          { id: r.id, roleName: r.role_name, permissionLevel: r.permission_level },
+        ]),
       );
 
-      setAssignments(assignmentsWithDetails as RoleAssignment[]);
+      const assignmentsWithDetails: RoleAssignment[] = rawAssignments.map(assignment => ({
+        ...assignment,
+        user_profile: profilesMap.get(assignment.user_id),
+        role: rolesMap.get(assignment.role_id),
+      }));
+
+      setAssignments(assignmentsWithDetails);
     } catch (error) {
       console.error('Error fetching role assignments:', error);
       toast.error('Failed to load role assignments');
