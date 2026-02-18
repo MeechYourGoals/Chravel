@@ -27,6 +27,8 @@ interface SwipeableTripCardWrapperProps {
   isDemoMode: boolean;
   onDelete: (trip: Trip) => Promise<void>;
   onTripStateChange?: () => void;
+  /** When true, loads cover photo eagerly (for above-the-fold cards) */
+  priority?: boolean;
 }
 
 /**
@@ -40,6 +42,7 @@ export const SwipeableTripCardWrapper: React.FC<SwipeableTripCardWrapperProps> =
   isDemoMode,
   onDelete,
   onTripStateChange,
+  priority = false,
 }) => {
   const { openRowId, setOpenRowId } = useSwipeableRowContext();
   const tripId = trip.id.toString();
@@ -51,6 +54,7 @@ export const SwipeableTripCardWrapper: React.FC<SwipeableTripCardWrapperProps> =
         onArchiveSuccess={onTripStateChange}
         onHideSuccess={onTripStateChange}
         onDeleteSuccess={onTripStateChange}
+        priority={priority}
       />
     );
   }
@@ -70,6 +74,7 @@ export const SwipeableTripCardWrapper: React.FC<SwipeableTripCardWrapperProps> =
         onArchiveSuccess={onTripStateChange}
         onHideSuccess={onTripStateChange}
         onDeleteSuccess={onTripStateChange}
+        priority={priority}
       />
     </SwipeableRow>
   );
