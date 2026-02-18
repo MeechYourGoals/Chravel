@@ -472,7 +472,7 @@ export const TripGrid = React.memo(
             ) : viewMode === 'myTrips' ? (
               <>
                 {/* Render active trips first */}
-                {activeTrips.map(trip => (
+                {activeTrips.map((trip, index) => (
                   <SwipeableTripCardWrapper
                     key={trip.id}
                     trip={trip}
@@ -480,6 +480,7 @@ export const TripGrid = React.memo(
                     isDemoMode={isDemoMode}
                     onDelete={handleSwipeDelete}
                     onTripStateChange={onTripStateChange}
+                    priority={index < (isMobile ? 3 : 6)}
                   />
                 ))}
                 {/* Render pending trips after active trips */}

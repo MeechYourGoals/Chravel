@@ -69,6 +69,8 @@ interface TripCardProps {
   onArchiveSuccess?: () => void;
   onHideSuccess?: () => void;
   onDeleteSuccess?: () => void;
+  /** When true, loads cover photo eagerly (for above-the-fold cards) */
+  priority?: boolean;
 }
 
 export const TripCard = ({
@@ -76,6 +78,7 @@ export const TripCard = ({
   onArchiveSuccess,
   onHideSuccess,
   onDeleteSuccess,
+  priority = false,
 }: TripCardProps) => {
   const navigate = useNavigate();
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -412,7 +415,8 @@ export const TripCard = ({
           <OptimizedImage
             src={trip.coverPhoto}
             alt={`${trip.title} cover`}
-            lazy={true}
+            lazy={!priority}
+            priority={priority}
             className="absolute inset-0 opacity-80"
           />
         )}
@@ -516,7 +520,9 @@ export const TripCard = ({
             <div className="text-xs md:text-sm text-gray-400">People</div>
           </div>
           <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">{calculateDaysCount(trip.dateRange)}</div>
+            <div className="text-xl md:text-2xl font-bold text-white">
+              {calculateDaysCount(trip.dateRange)}
+            </div>
             <div className="text-xs md:text-sm text-gray-400">Days</div>
           </div>
           <div className="text-center">

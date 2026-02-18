@@ -38,10 +38,10 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           observer.disconnect();
         }
       },
-      { 
-        rootMargin: '50px',
-        threshold: 0.1
-      }
+      {
+        rootMargin: '200px',
+        threshold: 0.01,
+      },
     );
 
     if (imgRef.current) {
@@ -63,27 +63,29 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   // Generate srcSet for responsive images
   const generateSrcSet = (baseSrc: string) => {
     if (!baseSrc.includes('http')) return undefined;
-    
+
     // For external images, we can't generate different sizes
     // In a real app, you'd integrate with an image optimization service
     return undefined;
   };
 
   return (
-    <div 
+    <div
       ref={imgRef}
       className={cn(
-        "relative overflow-hidden",
+        'relative overflow-hidden',
         aspectRatio && `aspect-[${aspectRatio}]`,
-        className
+        className,
       )}
     >
       {/* Placeholder */}
       {!isLoaded && !hasError && (
-        <div className={cn(
-          "absolute inset-0 bg-muted animate-pulse",
-          "flex items-center justify-center"
-        )}>
+        <div
+          className={cn(
+            'absolute inset-0 bg-muted animate-pulse',
+            'flex items-center justify-center',
+          )}
+        >
           {placeholder ? (
             <div className="text-muted-foreground text-sm">{placeholder}</div>
           ) : (
@@ -93,9 +95,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       )}
 
       {/* Error state - silently show empty background */}
-      {hasError && (
-        <div className="absolute inset-0 bg-transparent" />
-      )}
+      {hasError && <div className="absolute inset-0 bg-transparent" />}
 
       {/* Actual image */}
       {isInView && (
@@ -104,14 +104,15 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           alt={alt}
           srcSet={generateSrcSet(src)}
           sizes={sizes}
-          loading={lazy ? "lazy" : "eager"}
+          loading={lazy && !priority ? 'lazy' : 'eager'}
+          fetchPriority={priority ? 'high' : 'auto'}
           decoding="async"
           onLoad={handleLoad}
           onError={handleError}
           className={cn(
-            "transition-opacity duration-300",
-            isLoaded ? "opacity-100" : "opacity-0",
-            "w-full h-full object-cover"
+            'transition-opacity duration-300',
+            isLoaded ? 'opacity-100' : 'opacity-0',
+            'w-full h-full object-cover',
           )}
           {...props}
         />
