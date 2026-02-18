@@ -1,5 +1,5 @@
-
 import { PaymentMethod } from '../types/receipts';
+import { PAYMENT_METHOD_DISPLAY_NAMES } from '../types/paymentMethods';
 
 export const generatePaymentDeeplink = (
   method: PaymentMethod,
@@ -34,19 +34,7 @@ export const generatePaymentDeeplink = (
   }
 };
 
-export const getPaymentMethodDisplayName = (method: PaymentMethod): string => {
-  switch (method) {
-    case 'venmo':
-      return 'Venmo';
-    case 'cashapp':
-      return 'Cash App';
-    case 'zelle':
-      return 'Zelle';
-    case 'paypal':
-      return 'PayPal';
-    case 'applecash':
-      return 'Apple Cash';
-    default:
-      return method;
-  }
+export const getPaymentMethodDisplayName = (method: PaymentMethod | string): string => {
+  const key = typeof method === 'string' ? method.toLowerCase() : String(method);
+  return PAYMENT_METHOD_DISPLAY_NAMES[key] ?? method;
 };

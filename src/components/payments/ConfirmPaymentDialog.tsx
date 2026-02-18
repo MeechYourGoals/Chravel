@@ -14,6 +14,7 @@ import { supabase } from '../../integrations/supabase/client';
 import { toast } from '../ui/use-toast';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import * as haptics from '@/native/haptics';
+import { formatCurrency } from '../../services/currencyService';
 
 interface ConfirmPaymentDialogProps {
   open: boolean;
@@ -30,13 +31,7 @@ export const ConfirmPaymentDialog = ({
 }: ConfirmPaymentDialogProps) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(Math.abs(amount));
-  };
+  const currency = balance.amountOwedCurrency || 'USD';
 
   const handleConfirm = async () => {
     setIsConfirming(true);
@@ -63,7 +58,7 @@ export const ConfirmPaymentDialog = ({
 
       toast({
         title: "Payment Confirmed",
-        description: `You've confirmed receiving ${formatCurrency(Math.abs(balance.amountOwed))} from ${balance.userName}`,
+        description: `You've confirmed receiving ${formatCurrency(Math.abs(balance.amountOwed), currency)} from ${balance.userName}`,
       });
 
       // Payment marked paid: success haptic (native-only, hard-gated).
@@ -114,7 +109,7 @@ export const ConfirmPaymentDialog = ({
           <div className="bg-muted rounded-lg p-4 space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Amount:</span>
-              <span className="font-semibold">{formatCurrency(Math.abs(balance.amountOwed))}</span>
+              <span className="font-semibold">{formatCurrency(Math.abs(balance.amountOwed), currency)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">From:</span>

@@ -242,4 +242,26 @@ export class PaymentErrorHandler {
 
     return userMessages[paymentError.code as PaymentErrorCode] || paymentError.message;
   }
+
+  /**
+   * Get user-friendly title and description for payment service errors.
+   * Use when displaying createPaymentMessage / createPayment RPC errors.
+   */
+  static getServiceErrorDisplay(error: { code: string; message: string }): {
+    title: string;
+    description: string;
+  } {
+    const titleMap: Record<string, string> = {
+      SESSION_EXPIRED: 'Session Expired',
+      RLS_VIOLATION: 'Permission Denied',
+      VALIDATION_FAILED: 'Validation Error',
+      NETWORK_ERROR: 'Connection Error',
+      DEMO_ERROR: 'Demo Error',
+      UNKNOWN: 'Error',
+    };
+    return {
+      title: titleMap[error.code] ?? 'Error',
+      description: error.message,
+    };
+  }
 }

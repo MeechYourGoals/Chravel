@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PaymentMethod, PaymentMessage, PaymentSplit } from '../types/payments';
 import { mockPayments } from '@/mockData/payments';
 import { recordPaymentSplitPattern } from './chatAnalysisService';
+import { isDemoTrip } from '@/utils/demoUtils';
 
 interface MockPayment {
   id: string;
@@ -232,8 +233,6 @@ export const paymentService = {
       // Quick synchronous demo check — avoids the async secureStorageService round-trip.
       // All callers (usePayments, MobileTripPayments, prefetchTab) already gate on demo mode,
       // so this is a defense-in-depth fallback only.
-      const tripIdNum = parseInt(tripId);
-      const isDemoTrip = !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
       let isDemoMode = false;
       try {
         isDemoMode = localStorage.getItem('TRIPS_DEMO_VIEW') === 'app-preview';
@@ -241,7 +240,7 @@ export const paymentService = {
         // localStorage unavailable (SSR/test) — fall through to DB path
       }
 
-      if (isDemoMode && isDemoTrip) {
+      if (isDemoMode && isDemoTrip(tripId)) {
         return mockPayments
           .filter(p => p.trip_id === tripId)
           .map((payment: MockPayment) => ({

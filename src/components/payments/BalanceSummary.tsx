@@ -2,18 +2,15 @@ import React from 'react';
 import { Card, CardContent } from '../ui/card';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { BalanceSummary as BalanceSummaryType } from '../../services/paymentBalanceService';
+import { formatCurrency } from '../../services/currencyService';
 
 interface BalanceSummaryProps {
   summary: BalanceSummaryType;
 }
 
 export const BalanceSummary = ({ summary }: BalanceSummaryProps) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: summary.baseCurrency || 'USD'
-    }).format(amount);
-  };
+  const currency = summary.baseCurrency || 'USD';
+  const formatAmount = (amount: number) => formatCurrency(amount, currency);
 
   const getNetBalanceColor = () => {
     if (summary.netBalance > 0) return 'text-green-600';
@@ -35,7 +32,7 @@ export const BalanceSummary = ({ summary }: BalanceSummaryProps) => {
           <div className="text-center space-y-0.5">
             <p className="text-xs text-muted-foreground">You Owe</p>
             <p className="text-2xl font-bold text-orange-600">
-              {formatCurrency(summary.totalOwed)}
+              {formatAmount(summary.totalOwed)}
             </p>
           </div>
 
@@ -43,7 +40,7 @@ export const BalanceSummary = ({ summary }: BalanceSummaryProps) => {
           <div className="text-center space-y-0.5">
             <p className="text-xs text-muted-foreground">You Are Owed</p>
             <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(summary.totalOwedToYou)}
+              {formatAmount(summary.totalOwedToYou)}
             </p>
           </div>
 
@@ -52,7 +49,7 @@ export const BalanceSummary = ({ summary }: BalanceSummaryProps) => {
             <p className="text-xs text-muted-foreground">Net Balance</p>
             <div className={`flex items-center justify-center gap-2 text-2xl font-bold ${getNetBalanceColor()}`}>
               {getNetBalanceIcon()}
-              {formatCurrency(Math.abs(summary.netBalance))}
+              {formatAmount(Math.abs(summary.netBalance))}
             </div>
           </div>
         </div>

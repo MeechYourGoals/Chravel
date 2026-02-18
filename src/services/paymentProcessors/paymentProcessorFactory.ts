@@ -1,6 +1,10 @@
 /**
  * Payment Processor Factory
- * Creates and manages payment processor instances
+ * Creates and manages payment processor instances.
+ *
+ * NOTE: Currently used for future in-app payment processing (Stripe, Venmo SDK).
+ * The main payment flow uses Supabase RPC (create_payment_with_splits_v2) for
+ * request/response tracking; processors here are for direct payouts when enabled.
  */
 
 import { StripeProcessor } from './stripeProcessor';

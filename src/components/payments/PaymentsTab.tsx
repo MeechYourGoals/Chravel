@@ -9,11 +9,10 @@ import { usePayments } from '../../hooks/usePayments';
 import { useBalanceSummary } from '../../hooks/useBalanceSummary';
 import { useTripMembersQuery } from '../../hooks/useTripMembersQuery';
 import { useToast } from '../../hooks/use-toast';
+import { PaymentErrorHandler } from '../../services/paymentErrors';
 import { useDemoMode } from '../../hooks/useDemoMode';
-import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
-import { useSuperAdmin } from '../../hooks/useSuperAdmin';
 import { AuthModal } from '../AuthModal';
-import { Loader2, LogIn, Lock, CheckCircle } from 'lucide-react';
+import { Loader2, LogIn, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 
@@ -25,9 +24,6 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isLoading: demoLoading } = useDemoMode();
-  const { tier, isLoading: tierLoading, upgradeToTier } = useConsumerSubscription();
-  const { isSuperAdmin } = useSuperAdmin();
-
   // ⚡ TanStack Query: payment data (cached, prefetchable)
   const { tripPayments, paymentsLoading, demoActive, refreshPayments, createPaymentMessage } =
     usePayments(tripId);
@@ -50,16 +46,6 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     () => rawMembers.map(m => ({ id: m.id, name: m.name, avatar: m.avatar })),
     [rawMembers],
   );
-
-  // Count user's payment requests for freemium limits
-  const userPaymentCount = useMemo(() => {
-    return tripPayments.filter(p => p.createdBy === user?.id).length;
-  }, [tripPayments, user]);
-
-  const paymentLimit = isSuperAdmin ? -1 : tier === 'free' ? 5 : -1;
-  const remainingPayments = paymentLimit === -1 ? -1 : Math.max(0, paymentLimit - userPaymentCount);
-  const canCreateMorePayments =
-    isSuperAdmin || paymentLimit === -1 || userPaymentCount < paymentLimit;
 
   // Calculate payment summary from centralized data
   const paymentSummary = useMemo(() => {
@@ -123,21 +109,10 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         });
       }
     } else if (result.error) {
-      const errorCode = result.error.code;
-      const errorMessage = result.error.message;
-
+      const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
       toast({
-        title:
-          errorCode === 'SESSION_EXPIRED'
-            ? 'Session Expired'
-            : errorCode === 'RLS_VIOLATION'
-              ? 'Permission Denied'
-              : errorCode === 'VALIDATION_FAILED'
-                ? 'Validation Error'
-                : errorCode === 'NETWORK_ERROR'
-                  ? 'Connection Error'
-                  : 'Error',
-        description: errorMessage,
+        title,
+        description,
         variant: 'destructive',
       });
     }
@@ -168,7 +143,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       )}
 
       {/* Payment Creation */}
-      {demoLoading || tierLoading ? (
+      {demoLoading ? (
         <div className="flex items-center justify-center py-6 opacity-80">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
@@ -199,49 +174,13 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
             </Button>
           </CardContent>
         </Card>
-      ) : !canCreateMorePayments && tier === 'free' && !isSuperAdmin ? (
-        <Card className="bg-gradient-to-br from-amber-900/20 to-amber-950/20 border-amber-500/30">
-          <CardContent className="p-6 text-center">
-            <Lock className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-white mb-2">Payment Limit Reached</h3>
-            <p className="text-gray-400 text-sm mb-4">
-              You've created 5 payment requests for this trip (free tier limit).
-            </p>
-            <Button
-              onClick={() => upgradeToTier('explorer', 'monthly')}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-            >
-              Upgrade for Unlimited Payments - $9.99/mo
-            </Button>
-          </CardContent>
-        </Card>
       ) : (
-        <>
-          {tier === 'free' &&
-            !isSuperAdmin &&
-            remainingPayments > 0 &&
-            remainingPayments !== -1 && (
-              <div className="flex items-center justify-between bg-blue-900/20 border border-blue-500/30 rounded-lg px-4 py-2 mb-2">
-                <span className="text-sm text-blue-300">
-                  {remainingPayments} of 5 payment requests remaining
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => (window.location.href = '/settings?tab=subscription')}
-                  className="text-blue-400 hover:text-blue-300 h-auto py-1"
-                >
-                  Upgrade
-                </Button>
-              </div>
-            )}
-          <PaymentInput
+        <PaymentInput
             onSubmit={handlePaymentSubmit}
             tripMembers={tripMembers}
             isVisible={true}
             tripId={tripId}
           />
-        </>
       )}
 
       {/* ⚡ Balance Summary — loads independently with its own skeleton */}

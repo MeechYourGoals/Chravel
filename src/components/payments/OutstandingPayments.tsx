@@ -15,6 +15,10 @@ import { Loader2, Clock, Users, Pencil, Trash2, AlertTriangle } from 'lucide-rea
 import { EditPaymentDialog } from './EditPaymentDialog';
 import { PaymentMessage } from '../../types/payments';
 import * as haptics from '@/native/haptics';
+import { isDemoTrip } from '@/utils/demoUtils';
+import { formatCurrency } from '@/services/currencyService';
+import { formatShortDate } from '@/utils/dateFormatters';
+import { PAYMENT_METHOD_DISPLAY_NAMES } from '@/types/paymentMethods';
 
 interface PaymentSplit {
   id: string;
@@ -61,18 +65,6 @@ interface OutstandingPaymentsProps {
   payments: PaymentMessage[]; // Centralized payment data from parent
 }
 
-// Map method types to display names
-const METHOD_DISPLAY_NAMES: Record<string, string> = {
-  venmo: 'Venmo',
-  paypal: 'PayPal',
-  zelle: 'Zelle',
-  cashapp: 'Cash App',
-  applepay: 'Apple Pay',
-  applecash: 'Apple Cash',
-  cash: 'Cash',
-  other: 'Other',
-};
-
 export const OutstandingPayments = ({
   tripId,
   tripMembers = [],
@@ -88,9 +80,7 @@ export const OutstandingPayments = ({
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const tripIdNum = parseInt(tripId, 10);
-  const isValidDemoTripId = !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
-  const demoActive = isDemoMode && isValidDemoTripId;
+  const demoActive = isDemoMode && isDemoTrip(tripId);
 
   // Filter to unsettled payments from the centralized source
   const unsettledPayments = useMemo(() => {
@@ -178,7 +168,7 @@ export const OutstandingPayments = ({
             method: method.method_type?.toLowerCase() || 'other',
             displayName:
               method.display_name ||
-              METHOD_DISPLAY_NAMES[method.method_type?.toLowerCase() || 'other'] ||
+              PAYMENT_METHOD_DISPLAY_NAMES[method.method_type?.toLowerCase() || 'other'] ||
               method.method_type ||
               'Other',
             identifier: method.identifier || '',
@@ -338,22 +328,6 @@ export const OutstandingPayments = ({
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
   const getCreatorName = (creatorId: string): string => {
     const member = tripMembers.find(m => m.id === creatorId);
     return member?.name || 'Unknown';
@@ -415,7 +389,7 @@ export const OutstandingPayments = ({
                       <p className="font-medium text-sm">{payment.description}</p>
                       <p className="text-xs text-muted-foreground">
                         Paid by {getCreatorName(payment.createdBy)} •{' '}
-                        {formatDate(payment.createdAt)}
+                        {formatShortDate(payment.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -538,6 +512,7 @@ export const OutstandingPayments = ({
             splits: editingPayment.splits,
             splitParticipants: editingPayment.splitParticipants,
           }}
+          tripId={tripId}
           tripMembers={tripMembers}
           isOpen={!!editingPayment}
           onClose={() => setEditingPayment(null)}

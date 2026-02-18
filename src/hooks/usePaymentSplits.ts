@@ -17,7 +17,11 @@ export interface PaymentSplitData {
   paymentMethods: PaymentMethodType[];
 }
 
-export const SUPPORTED_PAYMENT_METHODS: PaymentMethodType[] = ['venmo', 'cashapp', 'zelle', 'paypal', 'applecash'];
+import { PAYMENT_METHOD_OPTIONS } from '@/types/paymentMethods';
+
+export const SUPPORTED_PAYMENT_METHODS: PaymentMethodType[] = PAYMENT_METHOD_OPTIONS.map(
+  (o) => o.id
+);
 
 export const usePaymentSplits = (tripMembers: TripMember[] = []) => {
   const [amount, setAmount] = useState<number>(0);

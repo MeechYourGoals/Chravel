@@ -6,11 +6,22 @@ import { ChevronDown, ChevronUp, ExternalLink, Clock } from 'lucide-react';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { SettlePaymentDialog } from './SettlePaymentDialog';
 import { ConfirmPaymentDialog } from './ConfirmPaymentDialog';
+import { generatePaymentDeeplink, getPaymentMethodDisplayName } from '../../utils/paymentDeeplinks';
+import { formatCurrency } from '../../services/currencyService';
+import type { PaymentMethod as ReceiptPaymentMethod } from '../../types/receipts';
 
 interface PersonBalanceCardProps {
   balance: PersonalBalance;
   tripId: string;
 }
+
+const SUPPORTED_DEEPLINK_TYPES: ReceiptPaymentMethod[] = [
+  'venmo',
+  'cashapp',
+  'zelle',
+  'paypal',
+  'applecash',
+];
 
 export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
@@ -18,55 +29,30 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const isPendingConfirmation = balance.confirmationStatus === 'pending';
+  const currency = balance.amountOwedCurrency || 'USD';
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(Math.abs(amount));
-  };
+  const formatAmount = (amt: number) => formatCurrency(Math.abs(amt), currency);
 
   const youOweThem = balance.amountOwed < 0;
   const amount = Math.abs(balance.amountOwed);
 
   const getPaymentMethodDisplay = () => {
     if (!balance.preferredPaymentMethod) return 'No payment method set';
-    
     const method = balance.preferredPaymentMethod;
-    const typeNames: Record<string, string> = {
-      venmo: 'Venmo',
-      cashapp: 'Cash App',
-      zelle: 'Zelle',
-      paypal: 'PayPal',
-      applecash: 'Apple Cash'
-    };
-
-    return `${typeNames[method.type] || method.type}: ${method.identifier}`;
+    const displayName = getPaymentMethodDisplayName(method.type as ReceiptPaymentMethod);
+    return `${displayName}: ${method.identifier}`;
   };
 
-  const getPaymentLink = () => {
+  const paymentLink = (() => {
     if (!balance.preferredPaymentMethod) return null;
-    
     const method = balance.preferredPaymentMethod;
-    const identifier = method.identifier;
-    
-    switch (method.type) {
-      case 'venmo':
-        return `venmo://paycharge?txn=pay&recipients=${encodeURIComponent(identifier)}&amount=${amount.toFixed(2)}`;
-      case 'cashapp':
-        return `https://cash.app/${encodeURIComponent(identifier)}/${amount.toFixed(2)}`;
-      case 'paypal':
-        return `https://paypal.me/${encodeURIComponent(identifier)}/${amount.toFixed(2)}`;
-      case 'zelle':
-        return null; // Zelle doesn't have direct deeplinks
-      case 'applecash':
-        return null; // Apple Cash handled through iMessage
-      default:
-        return null;
-    }
-  };
-
-  const paymentLink = getPaymentLink();
+    if (!SUPPORTED_DEEPLINK_TYPES.includes(method.type as ReceiptPaymentMethod)) return null;
+    return generatePaymentDeeplink(
+      method.type as ReceiptPaymentMethod,
+      amount,
+      method.identifier
+    );
+  })();
 
   return (
     <>
@@ -136,7 +122,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
               <p className={`text-sm font-semibold ${youOweThem ? 'text-orange-600' : 'text-green-600'}`}>
                 {youOweThem ? 'You owe' : 'Owes you'}
               </p>
-              <p className="text-lg font-bold">{formatCurrency(amount)}</p>
+              <p className="text-lg font-bold">{formatAmount(amount)}</p>
             </div>
             
             {/* Chevron toggle */}
@@ -161,7 +147,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                   <div key={idx} className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{payment.description}</span>
                     <span className={payment.amount < 0 ? 'text-orange-600' : 'text-green-600'}>
-                      {formatCurrency(Math.abs(payment.amount))}
+                      {formatAmount(Math.abs(payment.amount))}
                     </span>
                   </div>
                 ))
