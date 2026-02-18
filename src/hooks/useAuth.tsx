@@ -901,10 +901,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return { error: 'No user logged in' };
 
     try {
-      // Phone lives in private_profiles (moved from profiles in secure_profiles migration).
-      // Sending phone to profiles causes "column does not exist" and save failure.
-      const { phone: phoneUpdate, ...profileUpdates } = updates;
-      const hasPhoneUpdate = phoneUpdate !== undefined;
+      // Phone is stored directly in the profiles table.
+      const profileUpdates = { ...updates };
+      const hasPhoneUpdate = updates.phone !== undefined;
 
       // Use UPSERT so profile updates persist even if the profiles row was never created.
       // This is critical for avatar uploads + identity propagation.
@@ -927,21 +926,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error };
       }
 
-      // Persist phone to private_profiles (uses profiles.id as FK)
-      if (hasPhoneUpdate && data) {
-        const { error: privateError } = await supabase
-          .from('private_profiles')
-          .upsert(
-            { id: data.id, phone: phoneUpdate ?? null, updated_at: new Date().toISOString() },
-            { onConflict: 'id' },
-          );
-        if (privateError) {
-          if (import.meta.env.DEV) {
-            console.error('Error updating private profile (phone):', privateError);
-          }
-          return { error: privateError };
-        }
-      }
+      // Phone is now saved directly in the profiles upsert above.
 
       // Update local user state
       const updatedUser = { ...user };
@@ -960,10 +945,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         updatedUser.lastName = data.last_name ?? updatedUser.lastName;
         updatedUser.avatar = data.avatar_url ?? updatedUser.avatar;
         updatedUser.bio = data.bio ?? updatedUser.bio;
-        // Phone lives in private_profiles; profiles row may not have it
-        updatedUser.phone = hasPhoneUpdate
-          ? (phoneUpdate ?? undefined)
-          : ((data as any).phone ?? updatedUser.phone);
+        updatedUser.phone = (data as any).phone ?? updatedUser.phone;
         updatedUser.showEmail = data.show_email ?? updatedUser.showEmail;
         updatedUser.showPhone = data.show_phone ?? updatedUser.showPhone;
       } else {

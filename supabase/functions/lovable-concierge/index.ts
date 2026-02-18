@@ -1071,13 +1071,19 @@ Answer the user's question accurately. Use web search for real-time info (weathe
     // This mirrors the voice session setup which always includes both tools.
     // Trip-related queries additionally get function declarations for trip actions
     // (addToCalendar, createTask, createPoll, searchPlaces, getPaymentSummary).
-    const geminiTools: any[] = tripRelated
-      ? [{ functionDeclarations }, { googleSearch: {} }]
-      : [{ googleSearch: {} }];
+    // gemini-3-flash-preview does NOT support combining functionDeclarations
+    // with googleSearch in the same tools array (400: "Tool use with function
+    // calling is unsupported by the model"). Use one or the other.
+    const geminiTools: any[] = [];
+    if (tripRelated) {
+      geminiTools.push({ functionDeclarations });
+    } else {
+      geminiTools.push({ googleSearch: {} });
+    }
 
     console.log(
-      '[Grounding] Google Search enabled',
-      tripRelated ? 'alongside trip function declarations' : 'for general web query',
+      '[Grounding]',
+      tripRelated ? 'Function declarations enabled for trip actions' : 'Google Search enabled for general web query',
     );
 
     // ========== CALL GEMINI API DIRECTLY ==========
@@ -1239,23 +1245,51 @@ Answer the user's question accurately. Use web search for real-time info (weathe
               }
             }
           } catch (streamError: any) {
-            // If Gemini returned 403 (unregistered callers / key restriction),
-            // fall back to non-streaming Lovable gateway instead of erroring.
-            if (streamError?.gemini403) {
-              console.warn('[Gemini/Stream] 403 detected — falling back to Lovable gateway');
+            console.error('[Gemini/Stream] Streaming failed:', streamError);
+            // Try Lovable gateway fallback for ANY Gemini streaming error
+            // (not just 403). This ensures users always get a response.
+            const reason = streamError?.gemini403
+              ? 'Gemini 403 (unregistered callers)'
+              : `Gemini streaming error: ${streamError?.message || 'unknown'}`;
+            console.warn(`[Gemini/Stream] Attempting Lovable gateway fallback: ${reason}`);
+            try {
+              if (LOVABLE_API_KEY) {
+                const fallbackResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                  },
+                  body: JSON.stringify({
+                    model: `google/${selectedModel}`,
+                    messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
+                    temperature,
+                    max_tokens: config.maxTokens || 2048,
+                  }),
+                  signal: AbortSignal.timeout(45_000),
+                });
+                if (fallbackResp.ok) {
+                  const fallbackData = await fallbackResp.json();
+                  const fallbackText = fallbackData?.choices?.[0]?.message?.content;
+                  if (fallbackText) {
+                    controller.enqueue(sseEvent({ type: 'chunk', text: fallbackText }));
+                    controller.enqueue(sseEvent({ type: 'metadata', model: 'lovable-gateway-fallback' }));
+                    controller.enqueue(sseEvent({ type: 'done' }));
+                  } else {
+                    throw new Error('No content in fallback response');
+                  }
+                } else {
+                  throw new Error(`Lovable gateway returned ${fallbackResp.status}`);
+                }
+              } else {
+                throw new Error('No LOVABLE_API_KEY for fallback');
+              }
+            } catch (fallbackErr) {
+              console.error('[Gemini/Stream] Lovable fallback also failed:', fallbackErr);
               controller.enqueue(
                 sseEvent({
                   type: 'error',
-                  message: 'Switching to backup AI provider…',
-                }),
-              );
-              controller.enqueue(sseEvent({ type: 'done' }));
-            } else {
-              console.error('[Gemini/Stream] Streaming failed:', streamError);
-              controller.enqueue(
-                sseEvent({
-                  type: 'error',
-                  message: 'Streaming response failed. Please try again.',
+                  message: 'AI service temporarily unavailable. Please try again.',
                 }),
               );
               controller.enqueue(sseEvent({ type: 'done' }));
