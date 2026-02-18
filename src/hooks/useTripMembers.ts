@@ -249,25 +249,26 @@ export const useTripMembers = (tripId?: string) => {
           return false;
         }
 
-        const result = data as { success?: boolean; message?: string } | null;
+        const result = data as { success?: boolean; message?: string; notify_user_id?: string } | null;
         if (!result?.success) {
           toast.error(result?.message || 'Failed to leave trip');
           return false;
         }
 
-        // Notify organizer (creator or new admin) - RPC doesn't send notification
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('display_name, first_name, last_name')
-          .eq('user_id', user.id)
-          .single();
-        const userName =
-          profileData?.display_name ||
-          `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() ||
-          'A member';
-        if (tripCreatorId && tripCreatorId !== user.id) {
+        // Notify primary admin (creator if active, else promoted admin) - RPC returns notify_user_id
+        const notifyUserId = result.notify_user_id ?? tripCreatorId;
+        if (notifyUserId && notifyUserId !== user.id) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('display_name, first_name, last_name')
+            .eq('user_id', user.id)
+            .single();
+          const userName =
+            profileData?.display_name ||
+            `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() ||
+            'A member';
           await supabase.from('notifications').insert({
-            user_id: tripCreatorId,
+            user_id: notifyUserId,
             title: `${userName} left ${tripName}`,
             message: `${userName} has left the trip "${tripName}"`,
             type: 'member_left',

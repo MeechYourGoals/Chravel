@@ -196,11 +196,12 @@ export const useTripMembersQuery = (tripId?: string) => {
       const { data, error } = await supabase.rpc('leave_trip', { _trip_id: tripId });
       if (error) throw error;
 
-      const result = data as { success?: boolean; message?: string } | null;
+      const result = data as { success?: boolean; message?: string; notify_user_id?: string } | null;
       if (!result?.success) throw new Error(result?.message || 'Failed to leave trip');
 
-      // Notify creator (RPC doesn't send notification)
-      if (tripCreatorId && tripCreatorId !== user.id) {
+      // Notify primary admin (creator if active, else promoted admin) - RPC returns notify_user_id
+      const notifyUserId = result.notify_user_id ?? tripCreatorId;
+      if (notifyUserId && notifyUserId !== user.id) {
         const { data: profileData } = await supabase
           .from('profiles')
           .select('display_name, first_name, last_name')
@@ -211,7 +212,7 @@ export const useTripMembersQuery = (tripId?: string) => {
           `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() ||
           'A member';
         await supabase.from('notifications').insert({
-          user_id: tripCreatorId,
+          user_id: notifyUserId,
           title: `${userName} left ${_tripName}`,
           message: `${userName} has left the trip "${_tripName}"`,
           type: 'member_left',

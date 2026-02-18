@@ -430,6 +430,7 @@ serve(async req => {
           user_id: user.id,
           role: 'member',
           status: 'active',
+          left_at: null,
         },
         { onConflict: 'trip_id,user_id' },
       );

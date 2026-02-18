@@ -89,6 +89,8 @@ DECLARE
   v_active_count int;
   v_new_admin uuid;
   v_is_creator boolean;
+  v_remaining_admins int;
+  v_notify_user_id uuid;
 BEGIN
   IF v_user_id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'message', 'You must be logged in');
@@ -120,7 +122,11 @@ BEGIN
     RETURN jsonb_build_object('success', true, 'archived', true);
   END IF;
 
-  IF v_is_creator AND v_active_count > 0 THEN
+  -- Count remaining admins (after our DELETE)
+  SELECT COUNT(*) INTO v_remaining_admins FROM trip_admins WHERE trip_id = _trip_id;
+
+  -- Promote when: (a) creator left, or (b) last admin left (no admins remain)
+  IF v_remaining_admins = 0 AND v_active_count > 0 THEN
     SELECT user_id INTO v_new_admin
     FROM trip_members
     WHERE trip_id = _trip_id AND (status IS NULL OR status = 'active')
@@ -134,6 +140,13 @@ BEGIN
     END IF;
   END IF;
 
-  RETURN jsonb_build_object('success', true);
+  -- Who should receive member_left notification: creator if active, else first admin
+  IF public.is_active_trip_member(v_creator_id, _trip_id) THEN
+    v_notify_user_id := v_creator_id;
+  ELSE
+    SELECT user_id INTO v_notify_user_id FROM trip_admins WHERE trip_id = _trip_id LIMIT 1;
+  END IF;
+
+  RETURN jsonb_build_object('success', true, 'notify_user_id', v_notify_user_id);
 END;
 $$;
