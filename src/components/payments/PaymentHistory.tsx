@@ -7,13 +7,13 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { supabase } from '../../integrations/supabase/client';
 import { paymentService } from '../../services/paymentService';
-import { demoModeService } from '../../services/demoModeService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
 import { PaymentMessage } from '../../types/payments';
 import { format } from 'date-fns';
 import { Loader2, Pencil, Trash2, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { isDemoTrip } from '@/utils/demoUtils';
 
 interface PaymentHistoryProps {
   tripId: string;
@@ -44,9 +44,7 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const isNumericOnly = /^\d+$/.test(tripId);
-  const tripIdNum = parseInt(tripId, 10);
-  const demoActive = isDemoMode && isNumericOnly && tripIdNum >= 1 && tripIdNum <= 12;
+  const demoActive = isDemoMode && isDemoTrip(tripId);
 
   // Filter to settled payments from the centralized source
   const settledPayments = useMemo(() => {

@@ -810,6 +810,21 @@ class DemoModeService {
     return this.sessionPayments.get(tripId) || [];
   }
 
+  // Update session payment (amount, description only — matches backend capabilities)
+  updateSessionPayment(
+    tripId: string,
+    paymentId: string,
+    updates: { amount?: number; description?: string }
+  ): boolean {
+    const tripPayments = this.sessionPayments.get(tripId) || [];
+    const index = tripPayments.findIndex(p => p.id === paymentId);
+    if (index === -1) return false;
+    if (updates.amount !== undefined) tripPayments[index].amount = updates.amount;
+    if (updates.description !== undefined) tripPayments[index].description = updates.description;
+    this.sessionPayments.set(tripId, [...tripPayments]);
+    return true;
+  }
+
   // Clear session payments (called when demo mode is toggled off)
   clearSessionPayments(tripId?: string) {
     if (tripId) {

@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { X, DollarSign, Users, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { demoModeService } from '@/services/demoModeService';
+import { paymentService } from '@/services/paymentService';
 import { usePaymentSplits } from '@/hooks/usePaymentSplits';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
+import { useToast } from '@/hooks/use-toast';
+import { PaymentErrorHandler } from '@/services/paymentErrors';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -12,11 +15,24 @@ interface CreatePaymentModalProps {
   tripId: string;
   tripMembers: Array<{ id: string; name: string; avatar?: string }>;
   onPaymentCreated?: () => void;
+  /** When true, payments go to session storage (demo). When false, persist to DB. */
+  demoActive?: boolean;
+  /** Required when demoActive is false — used for DB persistence */
+  userId?: string;
 }
 
-export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPaymentCreated }: CreatePaymentModalProps) => {
+export const CreatePaymentModal = ({
+  isOpen,
+  onClose,
+  tripId,
+  tripMembers,
+  onPaymentCreated,
+  demoActive = true,
+  userId,
+}: CreatePaymentModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const { toast } = useToast();
+
   const {
     amount,
     currency,
@@ -56,17 +72,57 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
         return;
       }
 
-      // Create demo payment with proper format
-      demoModeService.addSessionPayment(tripId, paymentData);
+      if (demoActive) {
+        demoModeService.addSessionPayment(tripId, paymentData);
+        resetForm();
+        onPaymentCreated?.();
+        onClose();
+        return;
+      }
 
-      // Reset form
-      resetForm();
+      // Authenticated: persist to database
+      if (!userId) {
+        toast({
+          title: 'Sign in required',
+          description: 'Please sign in to create payment requests.',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
-      // Trigger callback and close
-      onPaymentCreated?.();
-      onClose();
+      const result = await paymentService.createPaymentMessage(tripId, userId, {
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        description: paymentData.description,
+        splitCount: paymentData.splitCount,
+        splitParticipants: paymentData.splitParticipants,
+        paymentMethods: paymentData.paymentMethods,
+      });
+
+      if (result.success) {
+        resetForm();
+        onPaymentCreated?.();
+        onClose();
+        toast({
+          title: 'Payment created',
+          description: `${paymentData.description} - $${paymentData.amount.toFixed(2)}`,
+        });
+      } else if (result.error) {
+        const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
+        toast({
+          title,
+          description,
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
       console.error('Failed to create payment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create payment. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -221,12 +277,12 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
             </label>
             <div className="space-y-2">
               {paymentMethodOptions.map((method) => {
-                const isSelected = selectedPaymentMethods.includes(method.id as any);
+                const isSelected = selectedPaymentMethods.includes(method.id);
                 return (
                   <button
                     key={method.id}
                     type="button"
-                    onClick={() => togglePaymentMethod(method.id as any)}
+                    onClick={() => togglePaymentMethod(method.id)}
                     className={`
                       flex items-center gap-3 w-full p-3 rounded-xl cursor-pointer transition-all
                       ${isSelected
@@ -266,7 +322,13 @@ export const CreatePaymentModal = ({ isOpen, onClose, tripId, tripMembers, onPay
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || selectedParticipants.length === 0 || !amount || !description}
+                disabled={
+                  isSubmitting ||
+                  selectedParticipants.length === 0 ||
+                  selectedPaymentMethods.length === 0 ||
+                  !amount ||
+                  !description
+                }
                 className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Creating...' : 'Create Payment'}

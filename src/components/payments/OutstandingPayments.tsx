@@ -15,6 +15,7 @@ import { Loader2, Clock, Users, Pencil, Trash2, AlertTriangle } from 'lucide-rea
 import { EditPaymentDialog } from './EditPaymentDialog';
 import { PaymentMessage } from '../../types/payments';
 import * as haptics from '@/native/haptics';
+import { isDemoTrip } from '@/utils/demoUtils';
 
 interface PaymentSplit {
   id: string;
@@ -88,9 +89,7 @@ export const OutstandingPayments = ({
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const tripIdNum = parseInt(tripId, 10);
-  const isValidDemoTripId = !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
-  const demoActive = isDemoMode && isValidDemoTripId;
+  const demoActive = isDemoMode && isDemoTrip(tripId);
 
   // Filter to unsettled payments from the centralized source
   const unsettledPayments = useMemo(() => {
@@ -538,6 +537,7 @@ export const OutstandingPayments = ({
             splits: editingPayment.splits,
             splitParticipants: editingPayment.splitParticipants,
           }}
+          tripId={tripId}
           tripMembers={tripMembers}
           isOpen={!!editingPayment}
           onClose={() => setEditingPayment(null)}

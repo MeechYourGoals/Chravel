@@ -3,8 +3,6 @@ import { DollarSign, Users, CheckSquare, Sparkles, Check } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Checkbox } from '../ui/checkbox';
 import { Card, CardContent } from '../ui/card';
 import { usePaymentSplits } from '@/hooks/usePaymentSplits';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -355,7 +353,12 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
           <Button
             type="submit"
             className="w-full mt-2 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl shadow-lg transition-all duration-200 hover:shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!amount || !description || selectedParticipants.length === 0}
+            disabled={
+              !amount ||
+              !description ||
+              selectedParticipants.length === 0 ||
+              selectedPaymentMethods.length === 0
+            }
           >
             Add Payment Request
           </Button>

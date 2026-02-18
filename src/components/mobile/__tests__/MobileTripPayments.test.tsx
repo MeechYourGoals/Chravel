@@ -16,10 +16,6 @@ vi.mock('@/hooks/useDemoMode', () => ({
   useDemoMode: () => ({ isDemoMode: false, isLoading: false }),
 }));
 
-vi.mock('@/hooks/useConsumerSubscription', () => ({
-  useConsumerSubscription: () => ({ tier: 'free', upgradeToTier: vi.fn() }),
-}));
-
 vi.mock('@/services/hapticService', () => ({
   hapticService: { medium: vi.fn(), light: vi.fn() },
 }));
@@ -57,6 +53,7 @@ vi.mock('@/services/paymentBalanceService', () => ({
 vi.mock('@/services/tripService', () => ({
   tripService: {
     getTripMembers: vi.fn().mockResolvedValue([]),
+    getTripMembersWithCreator: vi.fn().mockResolvedValue({ members: [] }),
   },
 }));
 

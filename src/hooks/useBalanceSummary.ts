@@ -9,6 +9,7 @@ import { useDemoMode } from './useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
 import { demoModeService } from '../services/demoModeService';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { isDemoTrip } from '@/utils/demoUtils';
 
 const EMPTY_BALANCE: BalanceSummary = {
   totalOwed: 0,
@@ -29,11 +30,7 @@ export const useBalanceSummary = (tripId?: string) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isDemoMode, isLoading: demoLoading } = useDemoMode();
-
-  const isNumericOnly = tripId ? /^\d+$/.test(tripId) : false;
-  const tripIdNum = tripId ? parseInt(tripId, 10) : NaN;
-  const isDemoTrip = isNumericOnly && !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
-  const demoActive = isDemoMode && isDemoTrip;
+  const demoActive = isDemoMode && isDemoTrip(tripId);
 
   const userId = user?.id;
 

@@ -7,6 +7,7 @@ import { useDemoMode } from './useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
 import { demoModeService } from '../services/demoModeService';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { isDemoTrip as checkDemoTrip } from '@/utils/demoUtils';
 
 export const usePayments = (tripId?: string) => {
   const queryClient = useQueryClient();
@@ -16,12 +17,7 @@ export const usePayments = (tripId?: string) => {
   const { isDemoMode } = useDemoMode();
 
   const userId = user?.id;
-
-  // Check if this is a demo trip
-  const isNumericOnly = tripId ? /^\d+$/.test(tripId) : false;
-  const tripIdNum = tripId ? parseInt(tripId, 10) : NaN;
-  const isDemoTrip = isNumericOnly && !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
-  const demoActive = isDemoMode && isDemoTrip;
+  const demoActive = isDemoMode && checkDemoTrip(tripId);
 
   // ⚡ Trip payments via TanStack Query — enables prefetch cache + stale-while-revalidate
   const { data: tripPayments = [], isLoading: paymentsLoading } = useQuery({

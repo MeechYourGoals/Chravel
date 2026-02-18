@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Plus, DollarSign, CheckCircle, Clock, AlertCircle, Lock, Loader2, ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
+import { Plus, DollarSign, CheckCircle, Clock, AlertCircle, Loader2, ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,12 +13,12 @@ import { tripService } from '@/services/tripService';
 import { supabase } from '@/integrations/supabase/client';
 import { getTripById } from '@/data/tripsData';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { getConsistentAvatar, getInitials } from '@/utils/avatarUtils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { isDemoTrip } from '@/utils/demoUtils';
 
 interface Payment {
   id: string;
@@ -46,21 +46,16 @@ interface MobileTripPaymentsProps {
  */
 export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { isDemoMode, isLoading: demoLoading } = useDemoMode();
-  const { tier, upgradeToTier } = useConsumerSubscription();
   
   // ⚡ PERFORMANCE: Timeout state to prevent indefinite spinners
   const [hasTimedOut, setHasTimedOut] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // CRITICAL: Match desktop logic exactly for demo mode detection
-  const isNumericOnly = /^\d+$/.test(tripId);
+  const demoActive = isDemoMode && isDemoTrip(tripId);
   const tripIdNum = parseInt(tripId, 10);
-  const isConsumerDemoTrip = isNumericOnly && !isNaN(tripIdNum) && tripIdNum >= 1 && tripIdNum <= 12;
-  const demoActive = isDemoMode && isConsumerDemoTrip;
 
   // ⚡ PERFORMANCE: TanStack Query for authenticated payment data
   // This enables prefetch cache warming + instant re-visits
@@ -238,21 +233,17 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     setDemoDataLoaded(true);
   }, [tripId, demoActive, demoLoading, tripIdNum]);
 
-  // ⚡ Unified data accessors — demo or auth
-  const tripMembers = demoActive ? demoMembers : (authPaymentData?.members ?? []);
-  const payments = demoActive ? demoPayments : (authPaymentData?.payments ?? []);
+  // ⚡ Unified data accessors — demo or auth (memoized for stable callback deps)
+  const tripMembers = useMemo(
+    () => (demoActive ? demoMembers : (authPaymentData?.members ?? [])),
+    [demoActive, demoMembers, authPaymentData?.members]
+  );
+  const payments = useMemo(
+    () => (demoActive ? demoPayments : (authPaymentData?.payments ?? [])),
+    [demoActive, demoPayments, authPaymentData?.payments]
+  );
   const balanceSummary = demoActive ? demoBalance : (authPaymentData?.balanceSummary ?? null);
   const isLoading = demoActive ? (!demoDataLoaded && !demoLoading) : authQueryLoading;
-  const membersLoading = isLoading;
-
-  // Count user's payment requests
-  const userPaymentCount = useMemo(() => {
-    return payments.filter(p => p.payerId === user?.id).length;
-  }, [payments, user]);
-
-  const paymentLimit = tier === 'free' ? 5 : -1;
-  const remainingPayments = paymentLimit === -1 ? -1 : Math.max(0, paymentLimit - userPaymentCount);
-  const canCreateMorePayments = paymentLimit === -1 || userPaymentCount < paymentLimit;
 
   // Split payments into outstanding and completed
   const outstandingPayments = useMemo(() => payments.filter(p => !p.isSettled), [payments]);
@@ -371,9 +362,9 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     }
   }, [tripId, demoActive, tripMembers, queryClient]);
 
-  const handlePaymentTap = async (paymentId: string) => {
+  const handlePaymentTap = async (_paymentId: string) => {
     await hapticService.light();
-    // TODO: Open payment detail modal
+    // TODO: Open payment detail modal for _paymentId
   };
 
   const handleRefresh = useCallback(async () => {
@@ -556,33 +547,15 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         )}
       </div>
 
-      {/* Add Payment FAB with Limit Check */}
+      {/* Add Payment FAB */}
       <div className="sticky bottom-0 px-4 py-2 pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-black via-black to-transparent border-t border-border">
-        {tier === 'free' && remainingPayments > 0 && remainingPayments !== -1 && (
-          <div className="text-center text-xs text-blue-400 mb-2">
-            {remainingPayments} of 5 payment requests remaining
-          </div>
-        )}
-        {!canCreateMorePayments && tier === 'free' ? (
-          <button
-            onClick={async () => {
-              await hapticService.light();
-              upgradeToTier('explorer', 'monthly');
-            }}
-            className="w-full bg-gradient-to-r from-amber-600 to-amber-500 text-white font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
-          >
-            <Lock size={20} />
-            Upgrade for Unlimited Payments
-          </button>
-        ) : (
-          <button
+        <button
             onClick={handleAddPayment}
             className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
           >
             <Plus size={20} />
             Add Payment Request
           </button>
-        )}
       </div>
 
       {/* Create Payment Modal */}
@@ -592,6 +565,8 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         tripId={tripId}
         tripMembers={tripMembers}
         onPaymentCreated={handlePaymentCreated}
+        demoActive={demoActive}
+        userId={user?.id}
       />
     </div>
   );

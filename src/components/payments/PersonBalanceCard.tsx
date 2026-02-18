@@ -6,11 +6,21 @@ import { ChevronDown, ChevronUp, ExternalLink, Clock } from 'lucide-react';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { SettlePaymentDialog } from './SettlePaymentDialog';
 import { ConfirmPaymentDialog } from './ConfirmPaymentDialog';
+import { generatePaymentDeeplink, getPaymentMethodDisplayName } from '../../utils/paymentDeeplinks';
+import type { PaymentMethod as ReceiptPaymentMethod } from '../../types/receipts';
 
 interface PersonBalanceCardProps {
   balance: PersonalBalance;
   tripId: string;
 }
+
+const SUPPORTED_DEEPLINK_TYPES: ReceiptPaymentMethod[] = [
+  'venmo',
+  'cashapp',
+  'zelle',
+  'paypal',
+  'applecash',
+];
 
 export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
@@ -18,12 +28,13 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const isPendingConfirmation = balance.confirmationStatus === 'pending';
+  const currency = balance.amountOwedCurrency || 'USD';
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amt: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
-    }).format(Math.abs(amount));
+      currency,
+    }).format(Math.abs(amt));
   };
 
   const youOweThem = balance.amountOwed < 0;
@@ -31,42 +42,21 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
 
   const getPaymentMethodDisplay = () => {
     if (!balance.preferredPaymentMethod) return 'No payment method set';
-    
     const method = balance.preferredPaymentMethod;
-    const typeNames: Record<string, string> = {
-      venmo: 'Venmo',
-      cashapp: 'Cash App',
-      zelle: 'Zelle',
-      paypal: 'PayPal',
-      applecash: 'Apple Cash'
-    };
-
-    return `${typeNames[method.type] || method.type}: ${method.identifier}`;
+    const displayName = getPaymentMethodDisplayName(method.type as ReceiptPaymentMethod);
+    return `${displayName}: ${method.identifier}`;
   };
 
-  const getPaymentLink = () => {
+  const paymentLink = (() => {
     if (!balance.preferredPaymentMethod) return null;
-    
     const method = balance.preferredPaymentMethod;
-    const identifier = method.identifier;
-    
-    switch (method.type) {
-      case 'venmo':
-        return `venmo://paycharge?txn=pay&recipients=${encodeURIComponent(identifier)}&amount=${amount.toFixed(2)}`;
-      case 'cashapp':
-        return `https://cash.app/${encodeURIComponent(identifier)}/${amount.toFixed(2)}`;
-      case 'paypal':
-        return `https://paypal.me/${encodeURIComponent(identifier)}/${amount.toFixed(2)}`;
-      case 'zelle':
-        return null; // Zelle doesn't have direct deeplinks
-      case 'applecash':
-        return null; // Apple Cash handled through iMessage
-      default:
-        return null;
-    }
-  };
-
-  const paymentLink = getPaymentLink();
+    if (!SUPPORTED_DEEPLINK_TYPES.includes(method.type as ReceiptPaymentMethod)) return null;
+    return generatePaymentDeeplink(
+      method.type as ReceiptPaymentMethod,
+      amount,
+      method.identifier
+    );
+  })();
 
   return (
     <>
