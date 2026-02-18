@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +22,31 @@ export function useEventAgenda({
   const { isDemoMode } = useDemoMode();
 
   const queryKey = ['event-agenda', eventId];
+
+  // Realtime: invalidate when agenda changes (collaborative editing)
+  useEffect(() => {
+    if (!enabled || !eventId || isDemoMode) return;
+
+    const channel = supabase
+      .channel(`event-agenda-${eventId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'event_agenda_items',
+          filter: `event_id=eq.${eventId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['event-agenda', eventId] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [enabled, eventId, isDemoMode, queryClient]);
 
   // Fetch agenda sessions from Supabase
   const { data: sessions = [], isLoading } = useQuery({
@@ -59,7 +85,7 @@ export function useEventAgenda({
     enabled,
   });
 
-  // Add session
+  // Add session (with optimistic update)
   const addSession = useMutation({
     mutationFn: async (session: Omit<EventAgendaItem, 'id'>) => {
       if (isDemoMode) {
@@ -98,17 +124,32 @@ export function useEventAgenda({
         speakers: data.speakers ?? undefined,
       } as EventAgendaItem;
     },
+    onMutate: async session => {
+      if (isDemoMode) return;
+      await queryClient.cancelQueries({ queryKey });
+      const prev = queryClient.getQueryData<EventAgendaItem[]>(queryKey) ?? [];
+      const optimistic: EventAgendaItem = {
+        ...session,
+        id: `opt-${Date.now()}`,
+      } as EventAgendaItem;
+      queryClient.setQueryData<EventAgendaItem[]>(queryKey, [...prev, optimistic]);
+      return { prev };
+    },
+    onError: (err: Error, _session, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
+      console.error('Failed to add session:', err);
+      toast({ title: 'Failed to add session', description: err.message, variant: 'destructive' });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast({ title: 'Session added' });
     },
-    onError: (err: Error) => {
-      console.error('Failed to add session:', err);
-      toast({ title: 'Failed to add session', description: err.message, variant: 'destructive' });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 
-  // Update session
+  // Update session (with optimistic update)
   const updateSession = useMutation({
     mutationFn: async (session: EventAgendaItem) => {
       if (isDemoMode) return session;
@@ -129,11 +170,16 @@ export function useEventAgenda({
       if (error) throw error;
       return session;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
-      toast({ title: 'Session updated' });
+    onMutate: async session => {
+      if (isDemoMode) return;
+      await queryClient.cancelQueries({ queryKey });
+      const prev = queryClient.getQueryData<EventAgendaItem[]>(queryKey) ?? [];
+      const next = prev.map(s => (s.id === session.id ? { ...s, ...session } : s));
+      queryClient.setQueryData(queryKey, next);
+      return { prev };
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _session, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
       console.error('Failed to update session:', err);
       toast({
         title: 'Failed to update session',
@@ -141,9 +187,16 @@ export function useEventAgenda({
         variant: 'destructive',
       });
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast({ title: 'Session updated' });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
   });
 
-  // Delete session
+  // Delete session (with optimistic update)
   const deleteSession = useMutation({
     mutationFn: async (sessionId: string) => {
       if (isDemoMode) return sessionId;
@@ -153,11 +206,16 @@ export function useEventAgenda({
       if (error) throw error;
       return sessionId;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
-      toast({ title: 'Session removed' });
+    onMutate: async sessionId => {
+      if (isDemoMode) return;
+      await queryClient.cancelQueries({ queryKey });
+      const prev = queryClient.getQueryData<EventAgendaItem[]>(queryKey) ?? [];
+      const next = prev.filter(s => s.id !== sessionId);
+      queryClient.setQueryData(queryKey, next);
+      return { prev };
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _sessionId, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
       console.error('Failed to delete session:', err);
       toast({
         title: 'Failed to delete session',
@@ -165,9 +223,17 @@ export function useEventAgenda({
         variant: 'destructive',
       });
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast({ title: 'Session removed' });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
   });
 
-  // Bulk add sessions with throttle, progress callback, single toast/invalidation
+  // Bulk add sessions: batch insert for 10+, single insert for smaller sets
+  const BATCH_SIZE = 50;
   const bulkAddSessions = async (
     sessionsToAdd: Omit<EventAgendaItem, 'id'>[],
     onProgress?: (current: number, total: number) => void,
@@ -190,43 +256,72 @@ export function useEventAgenda({
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
 
-    for (let i = 0; i < total; i++) {
-      const session = sessionsToAdd[i];
-      try {
-        const { error } = await supabase
-          .from('event_agenda_items')
-          .insert({
-            event_id: eventId,
-            title: session.title,
-            description: session.description || null,
-            session_date: session.session_date || null,
-            start_time: session.start_time || null,
-            end_time: session.end_time || null,
-            location: session.location || null,
-            speakers: session.speakers || null,
-            created_by: userId || null,
-          });
+    const toRow = (s: Omit<EventAgendaItem, 'id'>) => ({
+      event_id: eventId,
+      title: s.title,
+      description: s.description || null,
+      session_date: s.session_date || null,
+      start_time: s.start_time || null,
+      end_time: s.end_time || null,
+      location: s.location || null,
+      speakers: s.speakers || null,
+      created_by: userId || null,
+    });
+
+    if (total <= 10) {
+      // Small batch: insert one-by-one for granular progress
+      for (let i = 0; i < total; i++) {
+        try {
+          const { error } = await supabase
+            .from('event_agenda_items')
+            .insert(toRow(sessionsToAdd[i]));
+
+          if (error) {
+            console.error(`Failed to insert session ${i + 1}:`, error);
+            failed++;
+          } else {
+            imported++;
+          }
+        } catch (err) {
+          console.error(`Error inserting session ${i + 1}:`, err);
+          failed++;
+        }
+        onProgress?.(imported + failed, total);
+        if (i < total - 1) await new Promise(r => setTimeout(r, 50));
+      }
+    } else {
+      // Large batch: insert in chunks of BATCH_SIZE
+      for (let offset = 0; offset < total; offset += BATCH_SIZE) {
+        const chunk = sessionsToAdd.slice(offset, offset + BATCH_SIZE);
+        const rows = chunk.map(toRow);
+
+        const { data, error } = await supabase.from('event_agenda_items').insert(rows).select('id');
 
         if (error) {
-          console.error(`Failed to insert session ${i + 1}:`, error);
-          failed++;
+          // Fallback: try one-by-one for this chunk
+          for (let i = 0; i < chunk.length; i++) {
+            try {
+              const { error: err } = await supabase
+                .from('event_agenda_items')
+                .insert(toRow(chunk[i]));
+              if (err) failed++;
+              else imported++;
+            } catch {
+              failed++;
+            }
+            onProgress?.(imported + failed, total);
+            if (i < chunk.length - 1) await new Promise(r => setTimeout(r, 30));
+          }
         } else {
-          imported++;
+          imported += data?.length ?? chunk.length;
+          onProgress?.(Math.min(offset + chunk.length, total), total);
         }
-      } catch (err) {
-        console.error(`Error inserting session ${i + 1}:`, err);
-        failed++;
-      }
-
-      onProgress?.(imported + failed, total);
-
-      // 100ms throttle between inserts to prevent DB overload
-      if (i < total - 1) {
-        await new Promise(r => setTimeout(r, 100));
+        if (offset + BATCH_SIZE < total) {
+          await new Promise(r => setTimeout(r, 100));
+        }
       }
     }
 
-    // Single invalidation + toast at end
     queryClient.invalidateQueries({ queryKey });
 
     if (imported > 0) {

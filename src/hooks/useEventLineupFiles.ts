@@ -158,9 +158,11 @@ export function useEventLineupFiles({ eventId, enabled = true }: UseEventLineupF
   }, []);
 
   const clearError = useCallback(() => setUploadError(null), []);
+  const setError = useCallback((msg: string | null) => setUploadError(msg), []);
 
   const remainingSlots = MAX_LINEUP_FILES - files.length;
   const canUpload = remainingSlots > 0;
+  const canUploadMore = canUpload;
 
   return {
     files,
@@ -169,11 +171,13 @@ export function useEventLineupFiles({ eventId, enabled = true }: UseEventLineupF
     uploadError,
     loadError,
     clearError,
+    setError,
     uploadFiles,
     deleteFile,
     maxFiles: MAX_LINEUP_FILES,
     remainingSlots,
     canUpload,
+    canUploadMore,
     formatFileSize,
   };
 }
