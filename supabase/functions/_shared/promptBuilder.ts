@@ -289,7 +289,9 @@ Next: I can get you directions from your hotel if you'd like!"`;
       if (prefs.entertainment?.length)
         basePrompt += `\nEntertainment: ${prefs.entertainment.join(', ')}`;
       if (prefs.budgetMin && prefs.budgetMax) {
-        basePrompt += `\nBudget Range: $${prefs.budgetMin} - $${prefs.budgetMax} per person`;
+        const unit = prefs.budgetUnit || 'experience';
+        const unitLabel = unit === 'experience' ? 'per experience' : unit === 'day' ? 'per day' : unit === 'person' ? 'per person' : 'per trip';
+        basePrompt += `\nBudget Range: $${prefs.budgetMin} - $${prefs.budgetMax} ${unitLabel}`;
       }
     }
 

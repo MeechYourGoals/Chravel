@@ -27,8 +27,16 @@ export interface TripPreferences {
   lifestyle: string[];
   budgetMin: number;
   budgetMax: number;
+  budgetUnit: 'experience' | 'day' | 'person' | 'trip';
   timePreference: 'early-riser' | 'night-owl' | 'flexible';
 }
+
+export const BUDGET_UNIT_OPTIONS = [
+  { value: 'experience', label: 'Per experience' },
+  { value: 'day', label: 'Per day' },
+  { value: 'person', label: 'Per person' },
+  { value: 'trip', label: 'Per trip' },
+] as const;
 
 export interface TripCategory {
   id: string;

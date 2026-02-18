@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
-import { TripPreferences as TripPreferencesType, DIETARY_OPTIONS, VIBE_OPTIONS, ACCESSIBILITY_OPTIONS, BUSINESS_OPTIONS, ENTERTAINMENT_OPTIONS, LIFESTYLE_OPTIONS } from '../types/consumer';
+import { TripPreferences as TripPreferencesType, DIETARY_OPTIONS, VIBE_OPTIONS, ACCESSIBILITY_OPTIONS, BUSINESS_OPTIONS, ENTERTAINMENT_OPTIONS, LIFESTYLE_OPTIONS, BUDGET_UNIT_OPTIONS } from '../types/consumer';
 import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { useDemoMode } from '../hooks/useDemoMode';
 
@@ -24,8 +24,11 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
     lifestyle: initialPreferences?.lifestyle || [],
     budgetMin: initialPreferences?.budgetMin || 0,
     budgetMax: initialPreferences?.budgetMax || 1000,
+    budgetUnit: initialPreferences?.budgetUnit || 'experience',
     timePreference: initialPreferences?.timePreference || 'flexible'
   });
+
+  const [budgetError, setBudgetError] = useState<string | null>(null);
 
   // Update local state when initialPreferences change
   React.useEffect(() => {
@@ -39,6 +42,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
         lifestyle: initialPreferences.lifestyle || [],
         budgetMin: initialPreferences.budgetMin || 0,
         budgetMax: initialPreferences.budgetMax || 1000,
+        budgetUnit: initialPreferences.budgetUnit || 'experience',
         timePreference: initialPreferences.timePreference || 'flexible'
       });
     }
@@ -78,8 +82,26 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
   };
 
   const handleBudgetChange = (field: 'budgetMin' | 'budgetMax', value: string) => {
-    const numValue = parseInt(value) || 0;
+    const numValue = Math.max(0, parseInt(value) || 0);
     const newPreferences = { ...preferences, [field]: numValue };
+    
+    // Validate min <= max
+    const min = field === 'budgetMin' ? numValue : newPreferences.budgetMin;
+    const max = field === 'budgetMax' ? numValue : newPreferences.budgetMax;
+    if (min > 0 && max > 0 && min > max) {
+      setBudgetError('Minimum must be less than or equal to Maximum');
+    } else {
+      setBudgetError(null);
+    }
+    
+    setPreferences(newPreferences);
+    if (!(min > 0 && max > 0 && min > max)) {
+      onPreferencesChange(newPreferences);
+    }
+  };
+
+  const handleBudgetUnitChange = (value: string) => {
+    const newPreferences = { ...preferences, budgetUnit: value as TripPreferencesType['budgetUnit'] };
     setPreferences(newPreferences);
     onPreferencesChange(newPreferences);
   };
@@ -233,11 +255,12 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
         {/* Budget Range */}
         <div>
           <h4 className="text-white font-medium mb-3">Budget Range (USD)</h4>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-gray-400 text-sm mb-2">Minimum</label>
               <Input
                 type="number"
+                min={0}
                 placeholder="0"
                 value={preferences.budgetMin}
                 onChange={(e) => handleBudgetChange('budgetMin', e.target.value)}
@@ -248,13 +271,32 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
               <label className="block text-gray-400 text-sm mb-2">Maximum</label>
               <Input
                 type="number"
+                min={0}
                 placeholder="1000"
                 value={preferences.budgetMax}
                 onChange={(e) => handleBudgetChange('budgetMax', e.target.value)}
                 className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
               />
             </div>
+            <div>
+              <label className="block text-gray-400 text-sm mb-2">Applies to</label>
+              <Select value={preferences.budgetUnit} onValueChange={handleBudgetUnitChange}>
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                  <SelectValue placeholder="Per experience" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BUDGET_UNIT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          {budgetError && (
+            <p className="text-red-400 text-sm mt-2">{budgetError}</p>
+          )}
         </div>
 
         {/* Time Preference */}
