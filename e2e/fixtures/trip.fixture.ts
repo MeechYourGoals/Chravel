@@ -1,6 +1,6 @@
 /**
  * Trip Fixtures for E2E Testing
- * 
+ *
  * Provides utilities for creating, managing, and cleaning up test trips.
  */
 
@@ -39,18 +39,14 @@ interface TripFixtures {
       tripType?: 'consumer' | 'pro' | 'event';
       startDate?: string;
       endDate?: string;
-    }
+    },
   ) => Promise<TestTrip>;
-  
+
   /**
    * Add a member to a trip
    */
-  addTripMember: (
-    tripId: string,
-    userId: string,
-    role?: 'admin' | 'member'
-  ) => Promise<void>;
-  
+  addTripMember: (tripId: string, userId: string, role?: 'admin' | 'member') => Promise<void>;
+
   /**
    * Create an invite link for a trip
    */
@@ -60,18 +56,14 @@ interface TripFixtures {
       requireApproval?: boolean;
       maxUses?: number;
       expiresAt?: string;
-    }
+    },
   ) => Promise<TestInviteLink>;
-  
+
   /**
    * Add a chat message to a trip
    */
-  addChatMessage: (
-    tripId: string,
-    userId: string,
-    content: string
-  ) => Promise<string>;
-  
+  addChatMessage: (tripId: string, userId: string, content: string) => Promise<string>;
+
   /**
    * Add an event to a trip
    */
@@ -84,9 +76,9 @@ interface TripFixtures {
       time?: string;
       location?: string;
       category?: string;
-    }
+    },
   ) => Promise<string>;
-  
+
   /**
    * Add a task to a trip
    */
@@ -97,9 +89,9 @@ interface TripFixtures {
       title?: string;
       description?: string;
       dueAt?: string;
-    }
+    },
   ) => Promise<string>;
-  
+
   /**
    * Cleanup a trip and all associated data
    */
@@ -112,7 +104,7 @@ interface TripFixtures {
 export const test = authTest.extend<TripFixtures>({
   createTestTrip: async ({ supabaseAdmin }, use) => {
     const createdTrips: string[] = [];
-    
+
     const createTrip = async (
       user: TestUser,
       options?: {
@@ -121,46 +113,47 @@ export const test = authTest.extend<TripFixtures>({
         tripType?: 'consumer' | 'pro' | 'event';
         startDate?: string;
         endDate?: string;
-      }
+      },
     ): Promise<TestTrip> => {
       const name = options?.name || `QA Trip ${Date.now()}`;
       const destination = options?.destination || 'Test City, QA Country';
       const tripType = options?.tripType || 'consumer';
-      
+
       // Create trip
       const { data: trip, error: tripError } = await supabaseAdmin
         .from('trips')
         .insert({
+          id: `test-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
           name,
           destination,
-          creator_id: user.id,
+          created_by: user.id,
           trip_type: tripType,
           start_date: options?.startDate || new Date().toISOString().split('T')[0],
-          end_date: options?.endDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          end_date:
+            options?.endDate ||
+            new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         })
         .select()
         .single();
-      
+
       if (tripError) {
         throw new Error(`Failed to create test trip: ${tripError.message}`);
       }
-      
+
       createdTrips.push(trip.id);
-      
+
       // Add creator as admin member
-      const { error: memberError } = await supabaseAdmin
-        .from('trip_members')
-        .insert({
-          trip_id: trip.id,
-          user_id: user.id,
-          role: 'admin',
-          status: 'active',
-        });
-      
+      const { error: memberError } = await supabaseAdmin.from('trip_members').insert({
+        trip_id: trip.id,
+        user_id: user.id,
+        role: 'admin',
+        status: 'active',
+      });
+
       if (memberError) {
         console.warn(`Failed to add creator as member (non-fatal): ${memberError.message}`);
       }
-      
+
       return {
         id: trip.id,
         name,
@@ -169,9 +162,9 @@ export const test = authTest.extend<TripFixtures>({
         tripType,
       };
     };
-    
+
     await use(createTrip);
-    
+
     // Cleanup all created trips after test
     for (const tripId of createdTrips) {
       try {
@@ -188,30 +181,28 @@ export const test = authTest.extend<TripFixtures>({
       }
     }
   },
-  
+
   addTripMember: async ({ supabaseAdmin }, use) => {
     const addMember = async (
       tripId: string,
       userId: string,
-      role: 'admin' | 'member' = 'member'
+      role: 'admin' | 'member' = 'member',
     ): Promise<void> => {
-      const { error } = await supabaseAdmin
-        .from('trip_members')
-        .insert({
-          trip_id: tripId,
-          user_id: userId,
-          role,
-          status: 'active',
-        });
-      
+      const { error } = await supabaseAdmin.from('trip_members').insert({
+        trip_id: tripId,
+        user_id: userId,
+        role,
+        status: 'active',
+      });
+
       if (error) {
         throw new Error(`Failed to add trip member: ${error.message}`);
       }
     };
-    
+
     await use(addMember);
   },
-  
+
   createInviteLink: async ({ supabaseAdmin }, use) => {
     const createInvite = async (
       tripId: string,
@@ -219,11 +210,11 @@ export const test = authTest.extend<TripFixtures>({
         requireApproval?: boolean;
         maxUses?: number;
         expiresAt?: string;
-      }
+      },
     ): Promise<TestInviteLink> => {
       // Generate unique code
       const code = `qa-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      
+
       const { data: invite, error } = await supabaseAdmin
         .from('invite_links')
         .insert({
@@ -237,13 +228,13 @@ export const test = authTest.extend<TripFixtures>({
         })
         .select()
         .single();
-      
+
       if (error) {
         throw new Error(`Failed to create invite link: ${error.message}`);
       }
-      
+
       const baseUrl = process.env.BASE_URL || 'http://localhost:5173';
-      
+
       return {
         id: invite.id,
         code,
@@ -253,16 +244,12 @@ export const test = authTest.extend<TripFixtures>({
         requireApproval: options?.requireApproval ?? false,
       };
     };
-    
+
     await use(createInvite);
   },
-  
+
   addChatMessage: async ({ supabaseAdmin }, use) => {
-    const addMessage = async (
-      tripId: string,
-      userId: string,
-      content: string
-    ): Promise<string> => {
+    const addMessage = async (tripId: string, userId: string, content: string): Promise<string> => {
       const { data, error } = await supabaseAdmin
         .from('trip_chat_messages')
         .insert({
@@ -273,17 +260,17 @@ export const test = authTest.extend<TripFixtures>({
         })
         .select('id')
         .single();
-      
+
       if (error) {
         throw new Error(`Failed to add chat message: ${error.message}`);
       }
-      
+
       return data.id;
     };
-    
+
     await use(addMessage);
   },
-  
+
   addTripEvent: async ({ supabaseAdmin }, use) => {
     const addEvent = async (
       tripId: string,
@@ -294,10 +281,10 @@ export const test = authTest.extend<TripFixtures>({
         time?: string;
         location?: string;
         category?: string;
-      }
+      },
     ): Promise<string> => {
       const eventDate = options?.date || new Date();
-      
+
       const { data, error } = await supabaseAdmin
         .from('trip_events')
         .insert({
@@ -313,17 +300,17 @@ export const test = authTest.extend<TripFixtures>({
         })
         .select('id')
         .single();
-      
+
       if (error) {
         throw new Error(`Failed to add trip event: ${error.message}`);
       }
-      
+
       return data.id;
     };
-    
+
     await use(addEvent);
   },
-  
+
   addTripTask: async ({ supabaseAdmin }, use) => {
     const addTask = async (
       tripId: string,
@@ -332,7 +319,7 @@ export const test = authTest.extend<TripFixtures>({
         title?: string;
         description?: string;
         dueAt?: string;
-      }
+      },
     ): Promise<string> => {
       const { data, error } = await supabaseAdmin
         .from('trip_tasks')
@@ -346,17 +333,17 @@ export const test = authTest.extend<TripFixtures>({
         })
         .select('id')
         .single();
-      
+
       if (error) {
         throw new Error(`Failed to add trip task: ${error.message}`);
       }
-      
+
       return data.id;
     };
-    
+
     await use(addTask);
   },
-  
+
   cleanupTrip: async ({ supabaseAdmin }, use) => {
     const cleanup = async (tripId: string): Promise<void> => {
       try {
@@ -374,7 +361,7 @@ export const test = authTest.extend<TripFixtures>({
         console.warn(`Cleanup error for trip ${tripId}:`, error);
       }
     };
-    
+
     await use(cleanup);
   },
 });
