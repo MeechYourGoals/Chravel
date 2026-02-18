@@ -1,38 +1,60 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { MessageItem } from '@/features/chat/components/MessageItem';
 import { VirtualizedMessageContainer } from '@/features/chat/components/VirtualizedMessageContainer';
-import { useUnifiedMessages } from '@/features/chat/hooks/useUnifiedMessages';
+import { useTripChat } from '@/features/chat/hooks/useTripChat';
 import { ChatInput } from '@/features/chat/components/ChatInput';
 import { ChatMessage } from '@/features/chat/hooks/useChatComposer';
 import { useShareAsset } from '@/hooks/useShareAsset';
+import { useAuth } from '@/hooks/useAuth';
+import { toggleMessageReaction, getMessagesReactions, subscribeToReactions } from '@/services/chatService';
+import { supabase } from '@/integrations/supabase/client';
+import { useTripMembers } from '@/hooks/useTripMembers';
+import { defaultAvatar } from '@/utils/mockAvatars';
 
 interface DemoChatProps {
   tripId: string;
 }
 
-
 export const DemoChat = ({ tripId }: DemoChatProps) => {
-  const { 
-    messages, 
-    sendMessage,
+  const { user } = useAuth();
+  const { tripMembers } = useTripMembers(tripId);
+  const {
+    messages: liveMessages,
+    sendMessageAsync: sendTripMessage,
     loadMore,
     hasMore,
-    isLoadingMore 
-  } = useUnifiedMessages({ tripId, enabled: true });
+    isLoadingMore,
+    isCreating: isSendingMessage,
+  } = useTripChat(tripId);
   const [inputValue, setInputValue] = useState('');
-  const [reactions, setReactions] = useState<Record<string, Record<string, { count: number; userReacted: boolean }>>>({}); 
+  const [reactions, setReactions] = useState<
+    Record<string, Record<string, { count: number; userReacted: boolean }>>
+  >({});
   const [isTyping, setIsTyping] = useState(false);
-  
-  // Use share asset hook for file uploads in demo mode
+
   const { shareMultipleFiles } = useShareAsset(tripId);
 
-  const handleSendMessage = useCallback(async (_isBroadcast?: boolean, _isPayment?: boolean, _paymentData?: unknown) => {
-    if (!inputValue.trim()) return;
-    await sendMessage(inputValue);
-    setInputValue('');
-  }, [inputValue, sendMessage]);
+  const handleSendMessage = useCallback(
+    async (
+      isBroadcast?: boolean,
+      _isPayment?: boolean,
+      _paymentData?: unknown,
+      _linkPreview?: unknown,
+      _mentionedUserIds?: string[],
+    ) => {
+      if (!inputValue.trim()) return;
+      const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
+      const messageType = isBroadcast ? 'broadcast' : 'text';
+      try {
+        await sendTripMessage(inputValue, authorName, undefined, undefined, user?.id, 'standard', messageType);
+        setInputValue('');
+      } catch {
+        // Toast from useTripChat
+      }
+    },
+    [inputValue, sendTripMessage, user?.id, user?.displayName, user?.email],
+  );
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -41,60 +63,116 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
     }
   };
 
-  const handleFileUpload = useCallback(async (files: FileList, type: 'image' | 'video' | 'document') => {
-    try {
-      await shareMultipleFiles(files, type);
-    } catch (error) {
-      console.error('File upload failed:', error);
-    }
-  }, [shareMultipleFiles]);
+  const handleFileUpload = useCallback(
+    async (files: FileList, type: 'image' | 'video' | 'document') => {
+      try {
+        await shareMultipleFiles(files, type);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('File upload failed:', error);
+        }
+      }
+    },
+    [shareMultipleFiles],
+  );
 
-  const handleReaction = (messageId: string, reactionType: string) => {
-    setReactions(prev => {
-      const messageReactions = prev[messageId] || {};
-      const currentReaction = messageReactions[reactionType] || { count: 0, userReacted: false };
-      
-      const newReactions = {
-        ...prev,
-        [messageId]: {
-          ...messageReactions,
-          [reactionType]: {
-            count: currentReaction.userReacted ? currentReaction.count - 1 : currentReaction.count + 1,
-            userReacted: !currentReaction.userReacted
+  const handleReaction = useCallback(
+    async (messageId: string, reactionType: string) => {
+      if (!user?.id) return;
+      setReactions((prev) => {
+        const updated = { ...prev };
+        if (!updated[messageId]) updated[messageId] = {};
+        const current = updated[messageId][reactionType] || { count: 0, userReacted: false };
+        updated[messageId][reactionType] = {
+          count: current.userReacted ? Math.max(0, current.count - 1) : current.count + 1,
+          userReacted: !current.userReacted,
+        };
+        return updated;
+      });
+      const result = await toggleMessageReaction(messageId, user.id, reactionType as 'like' | 'love' | 'laugh');
+      if (result.error) {
+        const messageIds = liveMessages.map((m) => m.id);
+        const fresh = await getMessagesReactions(messageIds, user.id);
+        const formatted: Record<string, Record<string, { count: number; userReacted: boolean }>> = {};
+        for (const [msgId, typeMap] of Object.entries(fresh)) {
+          formatted[msgId] = {};
+          for (const [type, data] of Object.entries(typeMap)) {
+            formatted[msgId][type] = { count: data.count, userReacted: data.userReacted };
           }
         }
-      };
-      
-      return newReactions;
-    });
-  };
+        setReactions(formatted);
+      }
+    },
+    [user?.id, liveMessages],
+  );
 
-  // Transform messages from useUnifiedMessages format to ChatMessage format
-  // IMPORTANT: Preserve media data for rich content rendering
+  React.useEffect(() => {
+    if (!user?.id || liveMessages.length === 0) return;
+    const fetchReactions = async () => {
+      const messageIds = liveMessages.map((m) => m.id);
+      const data = await getMessagesReactions(messageIds, user.id);
+      const formatted: Record<string, Record<string, { count: number; userReacted: boolean }>> = {};
+      for (const [msgId, typeMap] of Object.entries(data)) {
+        formatted[msgId] = {};
+        for (const [type, rData] of Object.entries(typeMap)) {
+          formatted[msgId][type] = { count: rData.count, userReacted: rData.userReacted };
+        }
+      }
+      setReactions(formatted);
+    };
+    fetchReactions();
+  }, [liveMessages.length, user?.id]);
+
+  React.useEffect(() => {
+    if (!tripId || !user?.id) return;
+    const messageIdSet = new Set(liveMessages.map((m) => m.id));
+    const channel = subscribeToReactions(tripId, (payload) => {
+      if (!messageIdSet.has(payload.messageId)) return;
+      setReactions((prev) => {
+        const updated = { ...prev };
+        if (!updated[payload.messageId]) updated[payload.messageId] = {};
+        const current = updated[payload.messageId][payload.reactionType] || { count: 0, userReacted: false };
+        if (payload.eventType === 'INSERT') {
+          updated[payload.messageId][payload.reactionType] = {
+            count: current.count + 1,
+            userReacted: payload.userId === user.id ? true : current.userReacted,
+          };
+        } else if (payload.eventType === 'DELETE') {
+          updated[payload.messageId][payload.reactionType] = {
+            count: Math.max(0, current.count - 1),
+            userReacted: payload.userId === user.id ? false : current.userReacted,
+          };
+        }
+        return updated;
+      });
+    });
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, user?.id, liveMessages]);
+
   const transformedMessages = useMemo((): ChatMessage[] => {
-    return messages.map(msg => ({
-      id: msg.id,
-      text: msg.content,
-      sender: {
-        id: msg.user_id || 'unknown',
-        name: msg.author_name,
-        avatar: undefined
-      },
-      createdAt: msg.created_at,
-      isBroadcast: msg.message_type === 'broadcast',
-      isPayment: msg.message_type === 'payment',
-      reactions: {},
-      // Preserve rich media data
-      mediaType: msg.media_type as 'image' | 'video' | 'document' | null | undefined,
-      mediaUrl: msg.media_url,
-      linkPreview: msg.link_preview,
-      attachments: msg.attachments as any,
-    }));
-  }, [messages]);
+    return liveMessages.map((msg) => {
+      const member = tripMembers.find((m) => m.id === msg.user_id);
+      return {
+        id: msg.id,
+        text: msg.content,
+        sender: {
+          id: msg.user_id || msg.author_name || 'system',
+          name: member?.name ?? msg.author_name ?? 'System',
+          avatar: member?.avatar ?? defaultAvatar,
+        },
+        createdAt: msg.created_at,
+        isBroadcast: msg.message_type === 'broadcast',
+        isPayment: msg.message_type === 'payment',
+        isEdited: msg.is_edited,
+        tags: msg.message_type === 'system' ? ['system'] : [],
+      };
+    });
+  }, [liveMessages, tripMembers]);
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <MessageCircle size={24} className="text-blue-400" />
@@ -108,12 +186,7 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
         </div>
       </div>
 
-      {/* Message Filters */}
-      {/* Message list */}
-
-      {/* Chat Interface */}
       <div className="bg-gray-900/50 rounded-xl overflow-hidden flex flex-col" style={{ height: '500px' }}>
-        {/* Messages Container */}
         {transformedMessages.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center py-8">
@@ -139,7 +212,6 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
           />
         )}
 
-        {/* Message Input - Full ChatInput with media support */}
         <div className="border-t border-gray-700">
           <ChatInput
             inputMessage={inputValue}
@@ -148,7 +220,7 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
             onKeyPress={handleKeyPress}
             onFileUpload={handleFileUpload}
             apiKey=""
-            isTyping={isTyping}
+            isTyping={isSendingMessage}
             tripId={tripId}
             onTypingChange={setIsTyping}
             hidePayments={true}
