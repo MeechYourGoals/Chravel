@@ -241,7 +241,7 @@ export const useTripMembers = (tripId?: string) => {
       }
 
       try {
-        const { data, error } = await supabase.rpc('leave_trip', { _trip_id: tripId });
+        const { data, error } = await supabase.rpc('leave_trip' as any, { _trip_id: tripId });
 
         if (error) {
           console.error('Error leaving trip:', error);

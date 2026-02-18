@@ -270,6 +270,11 @@ export default {
 				'parallax': {
 					'0%, 100%': { transform: 'translateY(0)' },
 					'50%': { transform: 'translateY(-10px)' }
+				},
+				// iOS-style wiggle for reorder mode
+				'wiggle': {
+					'0%, 100%': { transform: 'rotate(-0.5deg)' },
+					'50%': { transform: 'rotate(0.5deg)' }
 				}
 			},
 			animation: {
@@ -286,7 +291,8 @@ export default {
 				// Cinematic parallax animations
 				'parallax-slow': 'parallax 20s ease-in-out infinite',
 				'parallax-medium': 'parallax 15s ease-in-out infinite',
-				'parallax-fast': 'parallax 10s ease-in-out infinite'
+				'parallax-fast': 'parallax 10s ease-in-out infinite',
+				'wiggle': 'wiggle 0.3s ease-in-out infinite'
 			},
 			backdropBlur: {
 				xs: '2px',

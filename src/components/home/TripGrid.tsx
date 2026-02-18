@@ -32,6 +32,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PendingTripRequest } from '@/hooks/useMyPendingTrips';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
+import { SortableTripGrid } from '../dashboard/SortableTripGrid';
+import { Button } from '../ui/button';
 
 interface Trip {
   id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
@@ -83,6 +85,7 @@ export const TripGrid = React.memo(
     const [archivedTrips, setArchivedTrips] = useState<any[]>([]);
     const { isDemoMode } = useDemoMode();
     const { tier } = useConsumerSubscription();
+    const [reorderMode, setReorderMode] = useState<'my_trips' | 'pro' | 'events' | null>(null);
 
     // State for optimistically deleted trips (pending undo timeout)
     const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(new Set());
@@ -471,54 +474,91 @@ export const TripGrid = React.memo(
               ))
             ) : viewMode === 'myTrips' ? (
               <>
-                {/* Render active trips first */}
-                {activeTrips.map((trip, index) => (
-                  <SwipeableTripCardWrapper
-                    key={trip.id}
-                    trip={trip}
-                    isMobile={isMobile}
-                    isDemoMode={isDemoMode}
-                    onDelete={handleSwipeDelete}
-                    onTripStateChange={onTripStateChange}
-                    priority={index < (isMobile ? 3 : 6)}
-                  />
-                ))}
-                {/* Render pending trips after active trips */}
+                {/* Sortable active trips */}
+                <SortableTripGrid
+                  items={activeTrips}
+                  getId={(trip) => trip.id.toString()}
+                  renderCard={(trip) => (
+                    <SwipeableTripCardWrapper
+                      trip={trip}
+                      isMobile={isMobile}
+                      isDemoMode={isDemoMode}
+                      onDelete={handleSwipeDelete}
+                      onTripStateChange={onTripStateChange}
+                      priority={false}
+                    />
+                  )}
+                  dashboardType="my_trips"
+                  userId={user?.id}
+                  reorderMode={reorderMode === 'my_trips'}
+                />
+                {/* Pending trips after (not draggable) */}
                 {activePendingTrips.map(trip => (
                   <PendingTripCard key={trip.id} trip={trip} />
                 ))}
+                {/* Reorder mode Done button */}
+                {reorderMode === 'my_trips' && (
+                  <div className="col-span-full flex justify-center py-2">
+                    <Button size="sm" onClick={() => setReorderMode(null)}>Done</Button>
+                  </div>
+                )}
               </>
             ) : viewMode === 'tripsPro' ? (
-              Object.values(activeProTrips).map(trip => (
-                <SwipeableProTripCardWrapper
-                  key={trip.id}
-                  trip={trip}
-                  isMobile={isMobile}
-                  isDemoMode={isDemoMode}
-                  onDelete={handleProTripSwipeDelete}
-                  onTripStateChange={onTripStateChange}
+              <>
+                <SortableTripGrid
+                  items={Object.values(activeProTrips)}
+                  getId={(trip) => trip.id}
+                  renderCard={(trip) => (
+                    <SwipeableProTripCardWrapper
+                      trip={trip}
+                      isMobile={isMobile}
+                      isDemoMode={isDemoMode}
+                      onDelete={handleProTripSwipeDelete}
+                      onTripStateChange={onTripStateChange}
+                    />
+                  )}
+                  dashboardType="pro"
+                  userId={user?.id}
+                  reorderMode={reorderMode === 'pro'}
                 />
-              ))
+                {reorderMode === 'pro' && (
+                  <div className="col-span-full flex justify-center py-2">
+                    <Button size="sm" onClick={() => setReorderMode(null)}>Done</Button>
+                  </div>
+                )}
+              </>
             ) : viewMode === 'events' ? (
-              Object.values(activeEvents).map(event =>
-                isMobile ? (
-                  <MobileEventCard
-                    key={event.id}
-                    event={event}
-                    onArchiveSuccess={onTripStateChange}
-                    onHideSuccess={onTripStateChange}
-                    onDeleteSuccess={onTripStateChange}
-                  />
-                ) : (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onArchiveSuccess={onTripStateChange}
-                    onHideSuccess={onTripStateChange}
-                    onDeleteSuccess={onTripStateChange}
-                  />
-                ),
-              )
+              <>
+                <SortableTripGrid
+                  items={Object.values(activeEvents)}
+                  getId={(event) => event.id}
+                  renderCard={(event) =>
+                    isMobile ? (
+                      <MobileEventCard
+                        event={event}
+                        onArchiveSuccess={onTripStateChange}
+                        onHideSuccess={onTripStateChange}
+                        onDeleteSuccess={onTripStateChange}
+                      />
+                    ) : (
+                      <EventCard
+                        event={event}
+                        onArchiveSuccess={onTripStateChange}
+                        onHideSuccess={onTripStateChange}
+                        onDeleteSuccess={onTripStateChange}
+                      />
+                    )
+                  }
+                  dashboardType="events"
+                  userId={user?.id}
+                  reorderMode={reorderMode === 'events'}
+                />
+                {reorderMode === 'events' && (
+                  <div className="col-span-full flex justify-center py-2">
+                    <Button size="sm" onClick={() => setReorderMode(null)}>Done</Button>
+                  </div>
+                )}
+              </>
             ) : viewMode === 'travelRecs' ? (
               filteredRecommendations.map(recommendation => (
                 <RecommendationCard
