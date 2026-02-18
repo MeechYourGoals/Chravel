@@ -518,4 +518,41 @@ test.describe('Leave Trip Persistence', () => {
     expect(tripRow?.is_archived).toBe(true);
     expect(tripRow?.archived_at).not.toBeNull();
   });
+
+  test('LEAVE-003: User who left can rejoin via invite', async ({
+    createTestUser,
+    createTestTrip,
+    addTripMember,
+    createInviteLink,
+    getClientAsUser,
+    supabaseAdmin,
+  }) => {
+    const creator = await createTestUser({ displayName: 'Creator' });
+    const member = await createTestUser({ displayName: 'Member' });
+
+    const trip = await createTestTrip(creator, { name: 'Rejoin Trip' });
+    await addTripMember(trip.id, member.id);
+    const invite = await createInviteLink(trip.id, { requireApproval: false });
+
+    // Member leaves
+    const clientMember = await getClientAsUser(member);
+    const { data: leaveResult } = await clientMember.rpc('leave_trip', { _trip_id: trip.id });
+    expect((leaveResult as { success?: boolean })?.success).toBe(true);
+
+    // Member rejoins via invite (direct join, no approval)
+    const { data: joinResult } = await clientMember.functions.invoke('join-trip', {
+      body: { inviteCode: invite.code },
+    });
+    expect(joinResult?.success).toBe(true);
+    expect((joinResult as { already_member?: boolean })?.already_member).not.toBe(true);
+
+    // Verify active membership restored
+    const { data: membership } = await supabaseAdmin
+      .from('trip_members')
+      .select('status')
+      .eq('trip_id', trip.id)
+      .eq('user_id', member.id)
+      .single();
+    expect(membership?.status).toBe('active');
+  });
 });

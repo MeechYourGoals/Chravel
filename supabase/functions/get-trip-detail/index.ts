@@ -99,33 +99,34 @@ serve(async (req): Promise<Response> => {
     const tripRow = trip as TripRow;
     const isCreator = tripRow.created_by === authData.user.id;
 
+    // Access based on active membership only (creator who left loses access)
     const { data: membership } = await supabaseAdmin
       .from('trip_members')
       .select('id')
       .eq('trip_id', tripId)
       .eq('user_id', authData.user.id)
+      .or('status.is.null,status.eq.active')
       .maybeSingle();
 
+    let hasAccess = !!membership;
     if (isCreator && !membership) {
-      const { error: upsertError } = await supabaseAdmin.from('trip_members').upsert(
-        {
-          trip_id: tripId,
-          user_id: authData.user.id,
-          role: 'admin',
-          status: 'active',
-        },
-        { onConflict: 'trip_id,user_id' },
-      );
-
-      if (upsertError) {
-        logError('GET_TRIP_DETAIL_MEMBERSHIP_UPSERT', upsertError, {
-          tripId,
-          userId: authData.user.id,
-        });
+      const { data: anyRow } = await supabaseAdmin
+        .from('trip_members')
+        .select('id')
+        .eq('trip_id', tripId)
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
+      if (!anyRow) {
+        const { error: upsertError } = await supabaseAdmin.from('trip_members').upsert(
+          { trip_id: tripId, user_id: authData.user.id, role: 'admin', status: 'active' },
+          { onConflict: 'trip_id,user_id' },
+        );
+        if (!upsertError) hasAccess = true;
+        else logError('GET_TRIP_DETAIL_MEMBERSHIP_UPSERT', upsertError, { tripId, userId: authData.user.id });
       }
     }
 
-    if (isSuperAdmin || isCreator || membership) {
+    if (isSuperAdmin || hasAccess) {
       return buildResponse({ success: true, trip: tripRow }, 200, corsHeaders);
     }
 

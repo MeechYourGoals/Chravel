@@ -160,13 +160,14 @@ serve(async req => {
       );
     }
 
-    // Check if user is already a member
+    // Check if user is already an active member (exclude status=left for re-join)
     const { data: existingMember } = await supabaseClient
       .from('trip_members')
       .select('id')
       .eq('trip_id', invite.trip_id)
       .eq('user_id', user.id)
-      .single();
+      .or('status.is.null,status.eq.active')
+      .maybeSingle();
 
     if (existingMember) {
       logStep('User already a member', { tripId: invite.trip_id });
@@ -420,12 +421,18 @@ serve(async req => {
       );
     }
 
-    // No approval required - add user directly to trip_members
-    const { error: memberError } = await supabaseClient.from('trip_members').insert({
-      trip_id: invite.trip_id,
-      user_id: user.id,
-      role: 'member',
-    });
+    // No approval required - upsert to support re-join (user may have status=left)
+    const { error: memberError } = await supabaseClient
+      .from('trip_members')
+      .upsert(
+        {
+          trip_id: invite.trip_id,
+          user_id: user.id,
+          role: 'member',
+          status: 'active',
+        },
+        { onConflict: 'trip_id,user_id' },
+      );
 
     if (memberError) {
       logStep('ERROR: Failed to add member', { error: memberError.message });
