@@ -1,12 +1,19 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { isSameDay } from 'date-fns';
 import { LoadMoreIndicator } from './LoadMoreIndicator';
 import { DateSeparator } from './DateSeparator';
 import { hapticService } from '@/services/hapticService';
 
+interface ChatMessageLike {
+  id: string;
+  created_at?: string;
+  createdAt?: string;
+}
+
 interface VirtualizedMessageContainerProps {
-  messages: any[];
-  renderMessage: (message: any, index: number) => React.ReactNode;
+  messages: ChatMessageLike[];
+  renderMessage: (message: ChatMessageLike, index: number) => React.ReactNode;
   onLoadMore: () => void;
   hasMore: boolean;
   isLoading: boolean;
@@ -19,6 +26,13 @@ interface VirtualizedMessageContainerProps {
   scrollKey?: string;
 }
 
+type RowItem =
+  | { type: 'date'; date: Date }
+  | { type: 'message'; message: ChatMessageLike; index: number };
+
+const ROW_HEIGHT_ESTIMATE = 72;
+const DATE_ROW_HEIGHT = 40;
+
 export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerProps> = ({
   messages,
   renderMessage,
@@ -26,12 +40,11 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   hasMore,
   isLoading,
   initialVisibleCount = 10,
-  loadMoreThreshold = 3,
   className = '',
   style,
   autoScroll = true,
   restoreScroll = true,
-  scrollKey = 'chat-scroll'
+  scrollKey = 'chat-scroll',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,77 +52,85 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   const [showNewMessagesBadge, setShowNewMessagesBadge] = useState(false);
   const previousMessageCountRef = useRef(messages.length);
   const isLoadingRef = useRef(false);
-  const previousScrollHeightRef = useRef(0);
-  
-  // Internal windowing state - show last N messages initially
-  const [visibleStartIndex, setVisibleStartIndex] = useState(
-    Math.max(0, messages.length - initialVisibleCount)
-  );
   const pageSize = 20;
-  
-  // Calculate visible messages
-  const visibleMessages = messages.slice(visibleStartIndex);
+  const [visibleStartIndex, setVisibleStartIndex] = useState(
+    Math.max(0, messages.length - initialVisibleCount),
+  );
   const localHasMore = visibleStartIndex > 0;
+  const visibleMessages = messages.slice(visibleStartIndex);
 
-  // Auto-scroll to bottom on new messages
+  const rows = useMemo((): RowItem[] => {
+    const result: RowItem[] = [];
+    visibleMessages.forEach((message, idx) => {
+      const currentDate = new Date(message.created_at || message.createdAt || 0);
+      const prevMessage = visibleMessages[idx - 1];
+      const prevDate = prevMessage
+        ? new Date(prevMessage.created_at || prevMessage.createdAt || 0)
+        : null;
+      const showDateSeparator = !prevDate || !isSameDay(currentDate, prevDate);
+      if (showDateSeparator) {
+        result.push({ type: 'date', date: currentDate });
+      }
+      result.push({ type: 'message', message, index: visibleStartIndex + idx });
+    });
+    return result;
+  }, [visibleMessages, visibleStartIndex]);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: (index) => (rows[index]?.type === 'date' ? DATE_ROW_HEIGHT : ROW_HEIGHT_ESTIMATE),
+    overscan: 5,
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setShowNewMessagesBadge(false);
+    setUserIsScrolledUp(false);
+  }, []);
+
   useEffect(() => {
     if (!autoScroll) return;
-    
-    const container = containerRef.current;
-    if (!container) return;
-
     const newMessageCount = messages.length;
     const oldMessageCount = previousMessageCountRef.current;
-    
-    if (newMessageCount > oldMessageCount) {
-      // Check if user was at bottom before new messages arrived
-      const wasAtBottom = !userIsScrolledUp;
-      
-      if (wasAtBottom) {
-        setTimeout(() => {
+    if (newMessageCount > oldMessageCount && !userIsScrolledUp) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      }
+        });
+      });
     }
   }, [messages.length, autoScroll, userIsScrolledUp]);
 
-  // Restore scroll position on mount
   useEffect(() => {
-    if (!restoreScroll) return;
-    
-    const container = containerRef.current;
-    if (!container) return;
-
+    if (!restoreScroll || !containerRef.current) return;
     const savedScroll = localStorage.getItem(scrollKey);
     if (savedScroll) {
-      container.scrollTop = parseInt(savedScroll, 10);
+      containerRef.current.scrollTop = parseInt(savedScroll, 10);
     } else {
-      // If no saved position, scroll to bottom
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-      }, 100);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        });
+      });
     }
   }, [scrollKey, restoreScroll]);
 
-  // Save scroll position periodically
   useEffect(() => {
-    if (!restoreScroll) return;
-
+    if (!restoreScroll || !containerRef.current) return;
     const container = containerRef.current;
-    if (!container) return;
-
     const saveScrollPosition = () => {
       if (container) {
         localStorage.setItem(scrollKey, container.scrollTop.toString());
       }
     };
-
-    let scrollTimer: NodeJS.Timeout;
+    let scrollTimer: ReturnType<typeof setTimeout>;
     const handleScrollSave = () => {
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(saveScrollPosition, 500);
     };
-
     container.addEventListener('scroll', handleScrollSave, { passive: true });
     return () => {
       clearTimeout(scrollTimer);
@@ -118,92 +139,60 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
     };
   }, [scrollKey, restoreScroll]);
 
-  // Update visible start index when messages change
   useEffect(() => {
     const newMessageCount = messages.length;
     const oldMessageCount = previousMessageCountRef.current;
-    
     if (newMessageCount > oldMessageCount) {
-      // New messages arrived
       if (!userIsScrolledUp) {
-        // User at bottom - keep showing last N messages
         setVisibleStartIndex(Math.max(0, newMessageCount - initialVisibleCount));
         setShowNewMessagesBadge(false);
       } else {
-        // User scrolled up - maintain current view, show badge
         setShowNewMessagesBadge(true);
       }
     } else if (newMessageCount < oldMessageCount) {
-      // Messages removed (shouldn't happen often)
       setVisibleStartIndex(Math.max(0, newMessageCount - initialVisibleCount));
     }
-    
     previousMessageCountRef.current = newMessageCount;
   }, [messages.length, userIsScrolledUp, initialVisibleCount]);
 
-  // Handle scroll events
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
-
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-
-    // User is scrolled up if they're more than 100px from bottom
     const isScrolledUp = distanceFromBottom > 100;
     setUserIsScrolledUp(isScrolledUp);
+    if (!isScrolledUp) setShowNewMessagesBadge(false);
 
-    if (!isScrolledUp) {
-      setShowNewMessagesBadge(false);
-    }
-
-    // Load more logic: check local windowing first, then server
     if (scrollTop < 200 && !isLoadingRef.current && !isLoading) {
       if (localHasMore) {
-        // Load more from local messages (windowing)
         isLoadingRef.current = true;
         const prevScrollHeight = containerRef.current.scrollHeight;
-        previousScrollHeightRef.current = prevScrollHeight;
-
         setVisibleStartIndex((prev) => Math.max(0, prev - pageSize));
-
-        // Preserve scroll position after DOM update (double rAF for layout)
-        const capturedScrollHeight = prevScrollHeight;
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             if (containerRef.current) {
               const newScrollHeight = containerRef.current.scrollHeight;
-              containerRef.current.scrollTop = scrollTop + (newScrollHeight - capturedScrollHeight);
+              containerRef.current.scrollTop = scrollTop + (newScrollHeight - prevScrollHeight);
             }
             isLoadingRef.current = false;
           });
         });
-
         hapticService.light();
       } else if (hasMore) {
-        // Load more from server - use isLoading prop to prevent double-fetch
         hapticService.light();
         onLoadMore();
       }
     }
   }, [hasMore, onLoadMore, localHasMore, pageSize, isLoading]);
 
-  // Scroll to bottom handler
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    setShowNewMessagesBadge(false);
-    setUserIsScrolledUp(false);
-  };
-
   return (
     <div className="relative flex-1 flex flex-col min-h-0">
-      {/* Messages Container */}
       <div
         ref={containerRef}
         onScroll={handleScroll}
         className={`flex-1 overflow-y-auto scroll-smooth ${className}`}
         style={{ WebkitOverflowScrolling: 'touch', ...style }}
       >
-        {/* Load More Indicator at Top */}
         <LoadMoreIndicator
           isLoading={isLoading}
           hasMore={hasMore}
@@ -211,28 +200,54 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
           messageCount={messages.length}
         />
 
-        {/* Messages */}
-        <div className="space-y-2 p-3">
-          {visibleMessages.map((message, index) => {
-            const currentDate = new Date(message.created_at || message.createdAt);
-            const prevMessage = visibleMessages[index - 1];
-            const prevDate = prevMessage ? new Date(prevMessage.created_at || prevMessage.createdAt) : null;
-            
-            // Show date separator when day changes
-            const showDateSeparator = !prevDate || !isSameDay(currentDate, prevDate);
-            
+        <div
+          className="p-3"
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {virtualItems.map((virtualRow) => {
+            const row = rows[virtualRow.index];
+            if (!row) return null;
+            if (row.type === 'date') {
+              return (
+                <div
+                  key={`date-${row.date.getTime()}`}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <DateSeparator date={row.date} />
+                </div>
+              );
+            }
             return (
-              <React.Fragment key={message.id}>
-                {showDateSeparator && <DateSeparator date={currentDate} />}
-                {renderMessage(message, index)}
-              </React.Fragment>
+              <div
+                key={row.message.id}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div className="space-y-2">
+                  {renderMessage(row.message, row.index)}
+                </div>
+              </div>
             );
           })}
-          <div ref={messagesEndRef} />
         </div>
+        <div ref={messagesEndRef} className="h-px" aria-hidden="true" />
       </div>
 
-      {/* New Messages Badge */}
       {showNewMessagesBadge && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
           <button
