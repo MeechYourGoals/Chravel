@@ -193,7 +193,7 @@ export const useTripMembersQuery = (tripId?: string) => {
       if (!tripId || !user?.id) throw new Error('Must be logged in');
       if (isDemoMode) return true;
 
-      const { data, error } = await supabase.rpc('leave_trip', { _trip_id: tripId });
+      const { data, error } = await supabase.rpc('leave_trip' as any, { _trip_id: tripId });
       if (error) throw error;
 
       const result = data as { success?: boolean; message?: string; notify_user_id?: string } | null;

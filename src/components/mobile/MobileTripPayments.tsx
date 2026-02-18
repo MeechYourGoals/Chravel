@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { formatCurrency } from '@/services/currencyService';
 import { Plus, DollarSign, CheckCircle, Clock, AlertCircle, Loader2, ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
@@ -612,10 +613,10 @@ const PaymentCard: React.FC<PaymentCardProps> = ({
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-sm font-semibold text-foreground">
-                {formatCurrencyFn(payment.amount, payment.currency)}
+                {formatCurrency(payment.amount, payment.currency)}
               </p>
               <p className="text-xs text-muted-foreground">
-                {formatCurrencyFn(payment.amount / payment.splitCount, payment.currency)} each
+                {formatCurrency(payment.amount / payment.splitCount, payment.currency)} each
               </p>
             </div>
           </div>

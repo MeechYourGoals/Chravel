@@ -662,12 +662,13 @@ export const tripService = {
     if (creatorId && !members.some(m => m.id === creatorId)) {
       const { data: creatorMembership } = await supabase
         .from('trip_members')
-        .select('status')
+        .select('*')
         .eq('trip_id', tripId)
         .eq('user_id', creatorId)
         .maybeSingle();
+      const membershipData = creatorMembership as any;
       const creatorActive =
-        !creatorMembership || creatorMembership.status === 'active' || creatorMembership.status === null;
+        !membershipData || membershipData.status === 'active' || membershipData.status === null;
       if (creatorActive) {
         const { data: creatorProfile } = await supabase
           .from('profiles_public')

@@ -149,7 +149,7 @@ export const PaymentMessage = ({
               <div className="space-y-1">
                 {payment.paymentMethods.slice(1).map(method => (
                   <div key={method} className="text-sm text-muted-foreground">
-                    {getPaymentMethodName(method)}: {getPaymentIdentifier(method, payer?.name || 'Unknown')}
+                    {getPaymentMethodDisplayName(method)}: {getPaymentIdentifier(method, payer?.name || 'Unknown')}
                   </div>
                 ))}
               </div>
