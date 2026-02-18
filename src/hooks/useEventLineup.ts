@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +45,31 @@ export function useEventLineup({
 
   const queryKey = ['event-lineup', eventId];
 
+  // Realtime: invalidate when lineup changes (collaborative editing)
+  useEffect(() => {
+    if (!enabled || !eventId || isDemoMode) return;
+
+    const channel = supabase
+      .channel(`event-lineup-${eventId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'event_lineup_members',
+          filter: `event_id=eq.${eventId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['event-lineup', eventId] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [enabled, eventId, isDemoMode, queryClient]);
+
   // Fetch lineup from Supabase
   const { data: members = [], isLoading } = useQuery({
     queryKey,
@@ -67,7 +93,7 @@ export function useEventLineup({
     enabled,
   });
 
-  // Add member
+  // Add member (with optimistic update)
   const addMember = useMutation({
     mutationFn: async (member: {
       name: string;
@@ -100,11 +126,24 @@ export function useEventLineup({
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
-      toast({ title: 'Added to line-up' });
+    onMutate: async member => {
+      if (isDemoMode) return;
+      await queryClient.cancelQueries({ queryKey });
+      const prev = queryClient.getQueryData<Speaker[]>(queryKey) ?? [];
+      const optimistic: Speaker = {
+        id: `opt-${Date.now()}`,
+        name: member.name,
+        title: member.title ?? '',
+        company: member.company ?? '',
+        bio: member.bio ?? '',
+        avatar: '',
+        sessions: [],
+      };
+      queryClient.setQueryData<Speaker[]>(queryKey, [...prev, optimistic]);
+      return { prev };
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _member, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
       console.error('Failed to add lineup member:', err);
       toast({
         title: 'Failed to add to line-up',
@@ -112,9 +151,16 @@ export function useEventLineup({
         variant: 'destructive',
       });
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast({ title: 'Added to line-up' });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
   });
 
-  // Update member
+  // Update member (with optimistic update)
   const updateMember = useMutation({
     mutationFn: async (member: {
       id: string;
@@ -138,17 +184,39 @@ export function useEventLineup({
       if (error) throw error;
       return member;
     },
+    onMutate: async member => {
+      if (isDemoMode) return;
+      await queryClient.cancelQueries({ queryKey });
+      const prev = queryClient.getQueryData<Speaker[]>(queryKey) ?? [];
+      const next = prev.map(m =>
+        m.id === member.id
+          ? {
+              ...m,
+              name: member.name,
+              title: member.title ?? m.title,
+              company: member.company ?? m.company,
+              bio: member.bio ?? m.bio,
+            }
+          : m,
+      );
+      queryClient.setQueryData(queryKey, next);
+      return { prev };
+    },
+    onError: (err: Error, _member, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
+      console.error('Failed to update lineup member:', err);
+      toast({ title: 'Failed to update', description: err.message, variant: 'destructive' });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast({ title: 'Line-up member updated' });
     },
-    onError: (err: Error) => {
-      console.error('Failed to update lineup member:', err);
-      toast({ title: 'Failed to update', description: err.message, variant: 'destructive' });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 
-  // Delete member
+  // Delete member (with optimistic update)
   const deleteMember = useMutation({
     mutationFn: async (memberId: string) => {
       if (isDemoMode) return memberId;
@@ -158,23 +226,37 @@ export function useEventLineup({
       if (error) throw error;
       return memberId;
     },
+    onMutate: async memberId => {
+      if (isDemoMode) return;
+      await queryClient.cancelQueries({ queryKey });
+      const prev = queryClient.getQueryData<Speaker[]>(queryKey) ?? [];
+      const next = prev.filter(m => m.id !== memberId);
+      queryClient.setQueryData(queryKey, next);
+      return { prev };
+    },
+    onError: (err: Error, _memberId, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(queryKey, ctx.prev);
+      console.error('Failed to delete lineup member:', err);
+      toast({ title: 'Failed to remove', description: err.message, variant: 'destructive' });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast({ title: 'Removed from line-up' });
     },
-    onError: (err: Error) => {
-      console.error('Failed to delete lineup member:', err);
-      toast({ title: 'Failed to remove', description: err.message, variant: 'destructive' });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 
   // Batch add members from agenda speakers (with deduplication)
+  // Uses fresh data from cache to avoid stale closure; handles unique violations
   const addMembersFromAgenda = useMutation({
     mutationFn: async (speakerNames: string[]) => {
       if (isDemoMode || speakerNames.length === 0) return;
 
-      // Deduplicate against existing members
-      const existingNames = new Set(members.map(m => m.name.toLowerCase()));
+      // Fetch fresh members from cache to avoid stale closure under concurrency
+      const cached = queryClient.getQueryData<Speaker[]>(queryKey) ?? members;
+      const existingNames = new Set(cached.map(m => m.name.toLowerCase()));
       const newNames = speakerNames.filter(n => !existingNames.has(n.toLowerCase()));
       if (newNames.length === 0) return;
 
@@ -184,13 +266,17 @@ export function useEventLineup({
       const rows = newNames.map(name => ({
         event_id: eventId,
         name,
-        performer_type: 'speaker',
+        performer_type: 'speaker' as const,
         created_by: userId || null,
       }));
 
       const { error } = await supabase.from('event_lineup_members').insert(rows);
 
-      if (error) throw error;
+      if (error) {
+        // 23505 = unique_violation; ignore if concurrent insert created duplicate
+        if (error.code === '23505') return;
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -239,20 +325,23 @@ export function useEventLineup({
 
         if (existingError) throw existingError;
 
-        const existing = new Set((existingRows || []).map((row: any) => (row.name as string).toLocaleLowerCase()));
-        namesToInsert = normalized.filter((name: string) => !existing.has(name.toLocaleLowerCase()));
+        type Row = { name: string };
+        const existing = new Set(
+          (existingRows || []).map((row: Row) => (row.name || '').toLocaleLowerCase()),
+        );
+        namesToInsert = normalized.filter(name => !existing.has(name.toLocaleLowerCase()));
       }
 
       if (namesToInsert.length === 0) return 0;
 
-      const rows = namesToInsert.map((name: string) => ({
+      const rows = namesToInsert.map(name => ({
         event_id: eventId,
-        name: name as string,
+        name,
         performer_type: 'speaker' as const,
         created_by: userId || null,
       }));
 
-      const { error: insertError } = await supabase.from('event_lineup_members').insert(rows as any);
+      const { error: insertError } = await supabase.from('event_lineup_members').insert(rows);
       if (insertError) throw insertError;
 
       return namesToInsert.length;

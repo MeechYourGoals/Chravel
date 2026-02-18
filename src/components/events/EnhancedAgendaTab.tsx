@@ -33,7 +33,7 @@ import { Card, CardContent } from '../ui/card';
 import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { useEventAgendaFiles } from '@/hooks/useEventAgendaFiles';
 import { EventAgendaItem, AgendaFile } from '@/types/events';
-import { format, parseISO } from 'date-fns';
+import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -41,6 +41,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 interface EnhancedAgendaTabProps {
   eventId: string;
   userRole: 'organizer' | 'attendee' | 'exhibitor';
+  initialSessions?: EventAgendaItem[];
   onLineupUpdate?: (speakerNames: string[]) => void;
 }
 
@@ -55,12 +56,20 @@ function isImageMime(mimeType: string): boolean {
 export const EnhancedAgendaTab = ({
   eventId,
   userRole,
+  initialSessions = [],
   onLineupUpdate,
 }: EnhancedAgendaTabProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-  const { sessions, addSession, updateSession, deleteSession, bulkAddSessions, isAdding, isUpdating } =
-    useEventAgenda({ eventId });
+  const {
+    sessions,
+    addSession,
+    updateSession,
+    deleteSession,
+    bulkAddSessions,
+    isAdding,
+    isUpdating,
+  } = useEventAgenda({ eventId, initialSessions });
 
   const {
     files: agendaFiles,
@@ -134,7 +143,7 @@ export const EnhancedAgendaTab = ({
   const handleRemoveSpeaker = (index: number) => {
     setNewSession(prev => ({
       ...prev,
-      speakers: prev.speakers?.filter((_, i) => i !== index),
+      speakers: (prev.speakers ?? []).filter((_, i) => i !== index),
     }));
   };
 
@@ -678,7 +687,7 @@ export const EnhancedAgendaTab = ({
 
       {/* Sessions List */}
       {sessions.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-3" role="list" aria-label="Event schedule">
           <h3 className="text-lg font-medium text-foreground">Schedule</h3>
           {sessions.map(session => (
             <Card
@@ -693,16 +702,11 @@ export const EnhancedAgendaTab = ({
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock size={14} className="flex-shrink-0" />
                         <span>
-                          {session.session_date &&
-                            (() => {
-                              try {
-                                return format(parseISO(session.session_date), 'MMM d') + ' \u2014 ';
-                              } catch {
-                                return '';
-                              }
-                            })()}
-                          {session.start_time}
-                          {session.end_time && ` - ${session.end_time}`}
+                          {formatSessionDateTime(
+                            session.session_date,
+                            session.start_time,
+                            session.end_time,
+                          )}
                         </span>
                       </div>
                       {session.location && (

@@ -36,7 +36,7 @@ import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import type { Speaker, EventAgendaItem } from '../../types/events';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { format, parseISO } from 'date-fns';
+import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
 import {
   EVENT_PARITY_COL_START,
   EVENT_PARITY_HEADER_SPAN_CLASS,
@@ -322,7 +322,7 @@ export const LineupTab = ({
       )}
 
       {/* Line-up Files (uploaded PDFs/images for viewing) */}
-      {(lineupFiles.length > 0 || isLoadingFiles) && (
+      {(lineupFiles.length > 0 || isLoadingFiles || (canUploadMore && canCreate)) && (
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-gray-400">
             Line-up Files ({lineupFiles.length}/{maxFiles})
@@ -331,7 +331,7 @@ export const LineupTab = ({
             <div className="flex justify-center py-4">
               <span className="text-gray-500 text-sm">Loading...</span>
             </div>
-          ) : (
+          ) : lineupFiles.length > 0 ? (
             <div className="space-y-2">
               {lineupFiles.map(file => (
                 <Card key={file.id} className="bg-gray-800/50 border-gray-700">
@@ -461,7 +461,7 @@ export const LineupTab = ({
                   </CardContent>
                 </Card>
               ))}
-              {canUploadMore && lineupFiles.length > 0 && (
+              {canUploadMore && (
                 <Button
                   type="button"
                   variant="outline"
@@ -475,6 +475,28 @@ export const LineupTab = ({
                 </Button>
               )}
             </div>
+          ) : (
+            /* Empty state: show upload CTA when organizer can add first file */
+            canCreate &&
+            canUploadMore &&
+            !isUploading && (
+              <div className="flex flex-col items-center justify-center gap-3 p-6 rounded-lg border-2 border-dashed border-gray-600 text-gray-400 hover:border-yellow-500/40 hover:text-yellow-400/90 transition-colors">
+                <Upload size={32} className="text-gray-500" />
+                <p className="text-sm font-medium">Upload lineup files</p>
+                <p className="text-xs text-gray-500">
+                  PDFs or images of your speaker/artist lineup (up to {maxFiles} files)
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-yellow-500/40 text-yellow-300"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Choose files
+                </Button>
+              </div>
+            )
           )}
         </div>
       )}
@@ -545,19 +567,28 @@ export const LineupTab = ({
       )}
 
       {/* Search */}
-      <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      <div className="relative" role="search">
+        <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          aria-hidden
+        />
         <Input
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder="Search by name, title, or company..."
           className="pl-10 bg-gray-800/50 border-gray-700 text-white"
+          aria-label="Search lineup by name, title, or company"
         />
       </div>
 
       {/* Speakers Grid */}
       {filteredMembers.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          role="list"
+          aria-label="Event lineup"
+        >
           {filteredMembers.map(speaker => (
             <Card
               key={speaker.id}
@@ -775,16 +806,11 @@ export const LineupTab = ({
                           <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-400">
                             <span className="flex items-center gap-1">
                               <Clock size={12} />
-                              {session.session_date &&
-                                (() => {
-                                  try {
-                                    return format(parseISO(session.session_date), 'MMM d') + ' — ';
-                                  } catch {
-                                    return '';
-                                  }
-                                })()}
-                              {session.start_time}
-                              {session.end_time && ` - ${session.end_time}`}
+                              {formatSessionDateTime(
+                                session.session_date,
+                                session.start_time,
+                                session.end_time,
+                              )}
                             </span>
                             {session.location && (
                               <span className="flex items-center gap-1">

@@ -162,9 +162,11 @@ export function useEventAgendaFiles({ eventId, enabled = true }: UseEventAgendaF
   }, []);
 
   const clearError = useCallback(() => setUploadError(null), []);
+  const setError = useCallback((msg: string | null) => setUploadError(msg), []);
 
   const remainingSlots = MAX_AGENDA_FILES - files.length;
   const canUpload = remainingSlots > 0;
+  const canUploadMore = canUpload;
 
   return {
     files,
@@ -173,11 +175,13 @@ export function useEventAgendaFiles({ eventId, enabled = true }: UseEventAgendaF
     uploadError,
     loadError,
     clearError,
+    setError,
     uploadFiles,
     deleteFile,
     maxFiles: MAX_AGENDA_FILES,
     remainingSlots,
     canUpload,
+    canUploadMore,
     formatFileSize,
   };
 }

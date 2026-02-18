@@ -30,7 +30,7 @@ import { useDemoMode } from '@/hooks/useDemoMode';
 import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { useEventAgendaFiles } from '@/hooks/useEventAgendaFiles';
 import { EventAgendaItem, AgendaFile } from '@/types/events';
-import { format, parseISO } from 'date-fns';
+import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
 import {
   EVENT_PARITY_COL_START,
   EVENT_PARITY_ROW_CLASS,
@@ -85,11 +85,18 @@ export const AgendaModal = ({
   onLineupUpdate,
 }: AgendaModalProps) => {
   const { isDemoMode } = useDemoMode();
-  const { sessions, addSession, updateSession, deleteSession, bulkAddSessions, isAdding, isUpdating } =
-    useEventAgenda({
-      eventId,
-      initialSessions,
-    });
+  const {
+    sessions,
+    addSession,
+    updateSession,
+    deleteSession,
+    bulkAddSessions,
+    isAdding,
+    isUpdating,
+  } = useEventAgenda({
+    eventId,
+    initialSessions,
+  });
 
   const {
     files: storageFiles,
@@ -98,6 +105,7 @@ export const AgendaModal = ({
     uploadError,
     loadError,
     clearError,
+    setError: setUploadError,
     uploadFiles,
     deleteFile,
     maxFiles,
@@ -143,10 +151,13 @@ export const AgendaModal = ({
 
     const fileArray = Array.from(selected);
 
-    // Enforce max files limit at selection time
+    // Early validation: enforce max files limit before calling upload
     if (fileArray.length > remainingSlots) {
       clearError();
-      // Let the hook handle the error message
+      setUploadError(
+        `Maximum ${maxFiles} files allowed. You have ${agendaFiles.length} file(s). Select at most ${remainingSlots} more.`,
+      );
+      return;
     }
 
     await uploadFiles(fileArray);
@@ -176,7 +187,7 @@ export const AgendaModal = ({
   const handleRemoveSpeaker = (index: number) => {
     setNewSession(prev => ({
       ...prev,
-      speakers: prev.speakers?.filter((_, i) => i !== index),
+      speakers: (prev.speakers ?? []).filter((_, i) => i !== index),
     }));
   };
 
@@ -532,7 +543,7 @@ export const AgendaModal = ({
 
           {/* Sessions List */}
           {sessions.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-3" role="list" aria-label="Event schedule">
               {sessions.map(session => (
                 <Card
                   key={session.id}
@@ -545,16 +556,11 @@ export const AgendaModal = ({
                         <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-400">
                           <span className="flex items-center gap-1">
                             <Clock size={14} />
-                            {session.session_date &&
-                              (() => {
-                                try {
-                                  return format(parseISO(session.session_date), 'MMM d') + ' — ';
-                                } catch {
-                                  return '';
-                                }
-                              })()}
-                            {session.start_time}
-                            {session.end_time && ` - ${session.end_time}`}
+                            {formatSessionDateTime(
+                              session.session_date,
+                              session.start_time,
+                              session.end_time,
+                            )}
                           </span>
                           {session.location && (
                             <span className="flex items-center gap-1">
