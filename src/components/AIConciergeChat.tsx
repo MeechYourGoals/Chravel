@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, AlertCircle, Crown, Sparkles } from 'lucide-react';
-import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
+import { Search, Crown, Sparkles } from 'lucide-react';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
-import { useUnifiedEntitlements } from '../hooks/useUnifiedEntitlements';
-import { useWebSpeechVoice } from '../hooks/useWebSpeechVoice';
 import {
   invokeConcierge,
   invokeConciergeStream,
@@ -141,20 +138,9 @@ export const AIConciergeChat = ({
   preferences,
   isDemoMode = false,
 }: AIConciergeChatProps) => {
-  const {
-    isPlus,
-    tier: consumerTier,
-    isLoading: isConsumerSubscriptionLoading,
-  } = useConsumerSubscription();
   const { basecamp: globalBasecamp } = useBasecamp();
   const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
-  const {
-    canUse,
-    isPro,
-    isSuperAdmin,
-    isLoading: isEntitlementsLoading,
-  } = useUnifiedEntitlements();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -166,41 +152,6 @@ export const AIConciergeChat = ({
     Promise.resolve(),
   );
   const hasShownLimitToastRef = useRef(false);
-
-  // Voice: eligibility and hook
-  const hasLegacySubscriptionVoiceAccess =
-    String(consumerTier) === 'frequent-chraveler' || String(consumerTier).startsWith('pro-');
-  const isVoiceEligible =
-    isEntitlementsLoading ||
-    isConsumerSubscriptionLoading ||
-    canUse('voice_concierge') ||
-    isPlus ||
-    isPro ||
-    isSuperAdmin ||
-    isDemoMode ||
-    hasLegacySubscriptionVoiceAccess;
-
-  // Voice: Web Speech API transcribes to text and puts it in the input box for user to edit before send.
-  const handleVoiceTranscript = useCallback((text: string) => {
-    const transcript = text.trim();
-    if (!transcript) return;
-    setInputMessage(prev => (prev ? `${prev} ${transcript}` : transcript));
-  }, []);
-
-  const {
-    voiceState,
-    errorMessage: voiceError,
-    toggleVoice,
-    stopVoice: stopWebSpeechVoice,
-  } = useWebSpeechVoice(handleVoiceTranscript);
-
-  const currentVoiceError = voiceError;
-
-  useEffect(() => {
-    return () => {
-      stopWebSpeechVoice();
-    };
-  }, [stopWebSpeechVoice]);
 
   // PHASE 1 BUG FIX #7: Add mounted ref to prevent state updates after unmount
   const isMounted = useRef(true);
@@ -793,14 +744,6 @@ export const AIConciergeChat = ({
           {messages.length > 0 && (
             <ChatMessages messages={messages} isTyping={isTyping} showMapWidgets={true} />
           )}
-
-          {/* Voice error inline display */}
-          {currentVoiceError && voiceState === 'error' && (
-            <div className="flex items-center gap-2 px-3 py-2 mt-2 rounded-lg bg-red-500/10 border border-red-500/20">
-              <AlertCircle size={14} className="text-red-400 shrink-0" />
-              <span className="text-xs text-red-300">{currentVoiceError}</span>
-            </div>
-          )}
         </div>
 
         {/* Input */}
@@ -812,16 +755,6 @@ export const AIConciergeChat = ({
             onKeyPress={handleKeyPress}
             isTyping={isTyping}
             disabled={isQueryLimitReached}
-            voiceState={voiceState}
-            isVoiceEligible={isVoiceEligible}
-            onVoiceToggle={toggleVoice}
-            onVoiceUpgrade={() => {
-              toast.info('Voice concierge requires a subscription', {
-                description:
-                  'Upgrade to Frequent Chraveler or Pro to use hands-free voice conversations.',
-                action: { label: 'Upgrade', onClick: () => (window.location.href = upgradeUrl) },
-              });
-            }}
             showImageAttach={true}
             attachedImages={attachedImages}
             onImageAttach={files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
