@@ -55,9 +55,73 @@ const downsampleTo16k = (input: Float32Array, inputSampleRate: number): Float32A
 };
 
 /**
+ * Maps a raw server-side error message to a user-friendly string.
+ * Keeps technical details out of the UI while preserving actionability.
+ */
+function mapSessionError(raw: string): string {
+  const lower = raw.toLowerCase();
+
+  if (raw.includes('403') || lower.includes('not enabled') || lower.includes('not enabled for this account')) {
+    return 'Voice is unavailable right now (API configuration issue). Please try again later.';
+  }
+  if (lower.includes('gemini_api_key') || lower.includes('api key') || lower.includes('not configured')) {
+    return 'Voice AI is not configured. Please contact support.';
+  }
+  if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('authentication')) {
+    return 'Voice session authentication failed. Please refresh the page and try again.';
+  }
+  if (lower.includes('429') || lower.includes('rate limit') || lower.includes('quota')) {
+    return 'Voice service is busy right now. Please wait a moment and try again.';
+  }
+  if (lower.includes('503') || lower.includes('service unavailable')) {
+    return 'Voice service is temporarily unavailable. Please try again shortly.';
+  }
+  if (lower.includes('timed out') || lower.includes('timeout')) {
+    return 'Voice service is responding slowly. Check your connection and try again.';
+  }
+  return raw;
+}
+
+/**
+ * Maps a WebSocket close code to a user-friendly message.
+ * Returns null for clean closes (1000, 1005) so callers know not to show an error.
+ */
+function mapWsCloseError(code: number, reason: string): string | null {
+  // Clean close — no error to show
+  if (code === 1000 || code === 1005) return null;
+
+  if (reason) return reason;
+
+  const MESSAGES: Record<number, string> = {
+    1001: 'Voice session ended (browser navigated away).',
+    1002: 'Voice connection protocol error — please try again.',
+    1003: 'Voice connection received invalid data — please try again.',
+    1006: 'Voice connection dropped — check your internet and try again.',
+    1011: 'Voice server error — please try again.',
+    1012: 'Voice server is restarting — please try again in a moment.',
+    1013: 'Voice service temporarily unavailable — please try again.',
+    4000: 'Voice session expired — please start a new session.',
+    4001: 'Voice session not authorized — please refresh and try again.',
+    4429: 'Voice rate limit reached — please wait a moment and try again.',
+  };
+
+  return MESSAGES[code] ?? `Voice disconnected unexpectedly (code ${code}).`;
+}
+
+/**
  * Hook for Gemini Live bidirectional audio via WebSocket.
  * Opens a direct client-to-Gemini WebSocket authenticated via a short-lived token
  * from the gemini-voice-session edge function.
+ *
+ * Error coverage:
+ * - Concurrent startSession calls (isStartingRef guard)
+ * - Microphone permission denied / not found / in use
+ * - AudioContext creation failure or iOS suspension
+ * - Edge function errors (API key missing, rate limit, auth, timeout)
+ * - WebSocket setup timeout
+ * - WebSocket close with non-clean code (mapped to human messages)
+ * - Gemini protocol-level error messages (data.error)
+ * - Audio playback on closed AudioContext
  */
 export function useGeminiLive({
   tripId,
@@ -74,6 +138,8 @@ export function useGeminiLive({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const processorNodeRef = useRef<ScriptProcessorNode | null>(null);
+  /** Prevents a double-tap on the mic from spawning two concurrent sessions. */
+  const isStartingRef = useRef(false);
 
   // Check browser support
   const isSupported =
@@ -83,6 +149,9 @@ export function useGeminiLive({
     typeof navigator?.mediaDevices?.getUserMedia === 'function';
 
   const cleanup = useCallback(() => {
+    // Always reset the starting guard so the next tap works
+    isStartingRef.current = false;
+
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
@@ -111,7 +180,8 @@ export function useGeminiLive({
   }, [cleanup]);
 
   const playAudioChunk = useCallback((base64Audio: string) => {
-    if (!audioContextRef.current) return;
+    // Don't attempt playback if the context was closed (e.g. during cleanup)
+    if (!audioContextRef.current || audioContextRef.current.state === 'closed') return;
 
     try {
       const binaryString = atob(base64Audio);
@@ -141,7 +211,8 @@ export function useGeminiLive({
 
   const startAudioCapture = useCallback(
     (ws: WebSocket, stream: MediaStream) => {
-      if (!audioContextRef.current) return;
+      // Don't start capture if the context was closed or is in a bad state
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') return;
 
       try {
         const sourceNode = audioContextRef.current.createMediaStreamSource(stream);
@@ -184,10 +255,12 @@ export function useGeminiLive({
         };
 
         sourceNode.connect(processorNode);
+        // ScriptProcessorNode must be connected to the destination to receive
+        // audio data. The outputBuffer is not written to, so speakers are silent.
         processorNode.connect(audioContextRef.current.destination);
       } catch (err) {
         console.error('[GeminiLive] Audio capture setup failed:', err);
-        setError('Failed to capture audio');
+        setError('Failed to set up audio capture. Please try again.');
         setState('error');
         cleanup();
       }
@@ -251,21 +324,31 @@ export function useGeminiLive({
 
   const startSession = useCallback(async () => {
     if (!isSupported) {
-      setError('Browser does not support Gemini Live voice');
+      setError('Voice is not supported in this browser. Try Chrome, Edge, or Safari.');
       setState('error');
       return;
     }
+
+    // Guard against double-tap or re-entry while already starting / active
+    if (isStartingRef.current || wsRef.current?.readyState === WebSocket.OPEN) {
+      console.warn('[GeminiLive] startSession called while already active — ignoring');
+      return;
+    }
+    isStartingRef.current = true;
 
     try {
       setState('connecting');
       setError(null);
 
-      // 1. Get session config from edge function (with timeout to prevent infinite spinner)
+      // ── 1. Fetch ephemeral session token from edge function ───────────────
       const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
         body: { tripId, voice },
       });
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Voice session timed out. Please try again.')), SESSION_TIMEOUT_MS),
+        setTimeout(
+          () => reject(new Error('Voice session timed out. Please try again.')),
+          SESSION_TIMEOUT_MS,
+        ),
       );
 
       const { data: sessionData, error: sessionError } = (await Promise.race([
@@ -282,33 +365,54 @@ export function useGeminiLive({
           : sessionError?.message;
 
       if (sessionError || (!accessToken && !apiKey)) {
-        const errMsg = sessionErrMsg || 'Failed to get voice session';
-        // 403 or "not enabled" = voice requires Pro subscription
-        if (
-          errMsg.includes('403') ||
-          errMsg.toLowerCase().includes('not enabled') ||
-          errMsg.toLowerCase().includes('not enabled for this account')
-        ) {
-          throw new Error('Voice requires a Pro subscription. Upgrade to use voice.');
-        }
-        throw new Error(errMsg);
+        throw new Error(mapSessionError(sessionErrMsg || 'Failed to get voice session'));
       }
 
-      // 2. Request microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-      });
+      // ── 2. Request microphone with device-specific error messages ─────────
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+          },
+        });
+      } catch (mediaErr) {
+        const name = mediaErr instanceof Error ? mediaErr.name : '';
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          throw new Error(
+            'Microphone permission denied. Allow microphone access in your browser settings and try again.',
+          );
+        }
+        if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          throw new Error('No microphone detected. Connect a microphone and try again.');
+        }
+        if (name === 'NotReadableError' || name === 'TrackStartError') {
+          throw new Error(
+            'Microphone is already in use by another app. Close other apps and try again.',
+          );
+        }
+        throw new Error('Could not access microphone. Check your audio settings and try again.');
+      }
       mediaStreamRef.current = stream;
 
-      // 3. Create audio context for playback
-      audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+      // ── 3. Create audio context for playback (24 kHz matches Gemini output) ─
+      try {
+        audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+      } catch {
+        throw new Error('Failed to initialize audio. Check your audio settings and try again.');
+      }
+      // iOS Safari suspends AudioContext until resumed inside a user-gesture handler.
+      // startSession is always called from a tap, so resuming here is safe.
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume().catch(() => {
+          console.warn('[GeminiLive] AudioContext.resume() failed — audio playback may be silent');
+        });
+      }
 
-      // 4. Open WebSocket to Gemini Live
+      // ── 4. Open WebSocket to Gemini Live ──────────────────────────────────
       const websocketUrl =
         typeof sessionData?.websocketUrl === 'string' && sessionData.websocketUrl.length > 0
           ? sessionData.websocketUrl
@@ -333,7 +437,7 @@ export function useGeminiLive({
 
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
-            console.warn('[GeminiLive] Setup timeout - no setupComplete received');
+            console.warn('[GeminiLive] Setup timeout — no setupComplete received');
             setError('Voice connection timed out. Please try again.');
             setState('error');
             cleanup();
@@ -381,23 +485,44 @@ export function useGeminiLive({
         try {
           const data = JSON.parse(event.data);
 
-          // Setup complete
+          // ── Server-side protocol error ──────────────────────────────────
+          if (data.error) {
+            clearSetupTimeout();
+            const code: number | undefined = data.error?.code;
+            const serverMsg = String(data.error?.message || 'Voice session error from server');
+            // Map known Gemini error codes to friendly messages
+            const userMsg =
+              code === 429
+                ? 'Voice rate limit reached — please wait a moment and try again.'
+                : code === 503
+                  ? 'Voice service temporarily unavailable — please try again.'
+                  : mapSessionError(serverMsg);
+            console.error('[GeminiLive] Server protocol error:', data.error);
+            setError(userMsg);
+            setState('error');
+            cleanup();
+            return;
+          }
+
+          // ── Setup complete — session is live ────────────────────────────
           if (data.setupComplete) {
             clearSetupTimeout();
+            // Reset the guard now that the session is fully established
+            isStartingRef.current = false;
             console.log('[GeminiLive] Setup complete, starting audio capture');
             setState('listening');
             startAudioCapture(ws, stream);
             return;
           }
 
-          // Tool call from Gemini
+          // ── Tool call from Gemini ───────────────────────────────────────
           if (data.toolCall) {
             console.log('[GeminiLive] Tool call received:', data.toolCall);
             handleToolCall(ws, data.toolCall);
             return;
           }
 
-          // Server content (audio response)
+          // ── Audio / text response from model ────────────────────────────
           if (data.serverContent) {
             const parts = data.serverContent.modelTurn?.parts || [];
 
@@ -418,38 +543,40 @@ export function useGeminiLive({
             }
           }
 
-          // Interruption
+          // ── User interrupted AI mid-response ───────────────────────────
           if (data.serverContent?.interrupted) {
             console.log('[GeminiLive] AI interrupted by user');
             setState('listening');
           }
         } catch (err) {
-          console.error('[GeminiLive] Message parse error:', err);
+          console.error('[GeminiLive] Message handling error:', err);
         }
       };
 
       ws.onerror = event => {
         clearSetupTimeout();
-        console.error('[GeminiLive] WebSocket error:', event);
-        setError('Voice connection error');
-        setState('error');
-        cleanup();
+        console.error('[GeminiLive] WebSocket error event:', event);
+        // onclose always fires after onerror, so we let onclose set the final
+        // error message rather than setting it here with incomplete information.
       };
 
       ws.onclose = event => {
         clearSetupTimeout();
         console.log('[GeminiLive] WebSocket closed:', event.code, event.reason);
-        if (event.code !== 1000 && event.code !== 1005) {
-          setError(event.reason || 'Voice session disconnected');
+        const msg = mapWsCloseError(event.code, event.reason);
+        if (msg) {
+          setError(msg);
           setState('error');
         } else {
+          // Clean close (1000 / 1005) — don't clobber an error state if we're
+          // already in one (e.g. onerror fired just before this)
           setState(prev => (prev === 'error' ? prev : 'idle'));
         }
         cleanup();
       };
     } catch (err) {
       console.error('[GeminiLive] Start session error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start voice session');
+      setError(err instanceof Error ? err.message : 'Failed to start voice session.');
       setState('error');
       cleanup();
     }
