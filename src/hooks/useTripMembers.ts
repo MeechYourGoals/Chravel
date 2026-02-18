@@ -8,11 +8,12 @@ import { toast } from 'sonner';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
 import { resolveDisplayName, UNRESOLVED_NAME_SENTINEL, FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 
-interface TripMember {
+export interface TripMember {
   id: string;
   name: string;
   avatar?: string;
   isCreator?: boolean;
+  role?: string;
 }
 
 export const useTripMembers = (tripId?: string) => {
@@ -22,15 +23,16 @@ export const useTripMembers = (tripId?: string) => {
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
 
-  const formatTripMembers = (dbMembers: any[], creatorId?: string): TripMember[] => {
+  const formatTripMembers = (dbMembers: Array<{ user_id: string; role?: string; profiles?: unknown }>, creatorId?: string): TripMember[] => {
     return dbMembers.map(member => ({
       id: member.user_id,
       name: (() => {
         const resolved = resolveDisplayName(member.profiles);
         return resolved === UNRESOLVED_NAME_SENTINEL ? FORMER_MEMBER_LABEL : resolved;
       })(),
-      avatar: member.profiles?.avatar_url,
+      avatar: (member.profiles as { avatar_url?: string } | null)?.avatar_url,
       isCreator: member.user_id === creatorId,
+      role: member.role || 'member',
     }));
   };
 
@@ -304,20 +306,18 @@ export const useTripMembers = (tripId?: string) => {
   }, [tripId, isDemoMode, demoAddedMembersCount]);
 
   // ⚡ PERFORMANCE: Defer real-time subscriptions to not block initial render
-  // Subscriptions are set up 1 second after mount to allow progressive loading
+  // Only subscribe to trip_members (scoped by trip_id). Profile updates are handled
+  // on next load/refresh to avoid unscoped profiles table subscription at scale.
   useEffect(() => {
     if (!tripId) return;
 
-    let channel: any;
-    let profilesChannel: any;
-
-    // Defer subscription setup to not block initial render
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     const subscriptionTimer = setTimeout(() => {
-      const createSubscription = async () => {
-        try {
-          // Test if we can connect to the database first
-          const { data } = await supabase.from('trip_members').select('id').limit(1);
-
+      supabase
+        .from('trip_members')
+        .select('id')
+        .limit(1)
+        .then(({ data }) => {
           if (data !== null) {
             channel = supabase
               .channel(`trip-members-${tripId}`)
@@ -329,62 +329,19 @@ export const useTripMembers = (tripId?: string) => {
                   table: 'trip_members',
                   filter: `trip_id=eq.${tripId}`,
                 },
-                () => {
-                  // Reload members when changes occur
-                  loadTripMembers(tripId);
-                },
+                () => loadTripMembers(tripId),
               )
               .subscribe();
           }
-        } catch {
+        })
+        .catch(() => {
           // Subscription setup failed - members will be loaded without real-time updates
-        }
-      };
-
-      createSubscription();
-
-      // Also subscribe to profile updates so avatar/name changes propagate across the app
-      profilesChannel = supabase
-        .channel(`profiles-updates-${tripId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'profiles',
-          },
-          payload => {
-            const next = payload.new as {
-              user_id?: string;
-              display_name?: string | null;
-              avatar_url?: string | null;
-            } | null;
-            const userId = next?.user_id;
-            if (!userId) return;
-
-            setTripMembers(prev =>
-              prev.map(member => {
-                if (member.id !== userId) return member;
-                return {
-                  ...member,
-                  name: next?.display_name ?? member.name,
-                  avatar: next?.avatar_url ?? member.avatar,
-                };
-              }),
-            );
-          },
-        )
-        .subscribe();
-    }, 1000); // Defer by 1 second to not block initial render
+        });
+    }, 1000);
 
     return () => {
       clearTimeout(subscriptionTimer);
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-      if (profilesChannel) {
-        supabase.removeChannel(profilesChannel);
-      }
+      if (channel) supabase.removeChannel(channel);
     };
   }, [tripId]);
 

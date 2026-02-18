@@ -7,7 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useRoleAssignments } from '../../hooks/useRoleAssignments';
 import { useTripRoles } from '../../hooks/useTripRoles';
 
-import { ProTripData } from '../../types/pro';
+import { ProTripData, TeamTripContext } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 
 interface ProTripDetailContentProps {
@@ -19,8 +19,9 @@ interface ProTripDetailContentProps {
   tripData: ProTripData;
   selectedCategory: ProTripCategory;
   onUpdateTripData?: (updates: Partial<ProTripData>) => void;
-  trip?: any;
+  trip?: TeamTripContext;
   tripCreatorId?: string;
+  isLoadingRoster?: boolean;
 }
 
 export const ProTripDetailContent = ({
@@ -34,6 +35,7 @@ export const ProTripDetailContent = ({
   onUpdateTripData,
   trip,
   tripCreatorId,
+  isLoadingRoster = false,
 }: ProTripDetailContentProps) => {
   const [showRoomModal, setShowRoomModal] = useState(false);
   const { user } = useAuth();
@@ -82,7 +84,7 @@ export const ProTripDetailContent = ({
         }
 
         // Get the actual user_id - roster may have it stored as 'id' or 'userId'
-        const userId = (member as any).userId || member.id;
+        const userId = member.userId ?? member.id;
 
         // Persist the role assignment to the database using the role ID directly
         await assignRole(userId, roleId);
@@ -126,6 +128,7 @@ export const ProTripDetailContent = ({
         onUpdateMemberRole={handleUpdateMemberRole}
         trip={trip}
         tripCreatorId={tripCreatorId}
+        isLoadingRoster={isLoadingRoster}
       />
 
       {/* Room Assignments Modal */}

@@ -3,7 +3,7 @@ import { CalendarIcon, DollarSign, Shield, FileCheck, Award } from 'lucide-react
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
 
-import { ProTripData } from '../../types/pro';
+import { ProTripData, TeamTripContext } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { isReadOnlyTab, hasTabAccess } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
@@ -46,8 +46,9 @@ interface ProTabContentProps {
   onUpdateRoomAssignments: (assignments: any[]) => void;
   /** Callback receives memberId, roleId (for DB), and roleName (for display/local state) */
   onUpdateMemberRole?: (memberId: string, roleId: string, roleName: string) => Promise<void>;
-  trip?: any;
+  trip?: TeamTripContext;
   tripCreatorId?: string;
+  isLoadingRoster?: boolean;
 }
 
 // ⚡ PERFORMANCE: Default skeleton loader for lazy-loaded tabs
@@ -84,6 +85,7 @@ export const ProTabContent = ({
   onUpdateMemberRole,
   trip,
   tripCreatorId,
+  isLoadingRoster = false,
 }: ProTabContentProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
@@ -178,6 +180,7 @@ export const ProTabContent = ({
               onUpdateMemberRole={onUpdateMemberRole}
               trip={trip}
               tripCreatorId={tripCreatorId}
+              isLoadingRoster={isLoadingRoster}
             />
           </FeatureErrorBoundary>
         );

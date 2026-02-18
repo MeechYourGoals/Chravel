@@ -104,7 +104,7 @@
 - `RoomAssignmentsModal.tsx` - Accommodation assignments
 - `OrgChartNode.tsx` & `TeamOrgChart.tsx` - Organizational hierarchy
 - `ExportTeamDirectoryModal.tsx` - Team export
-- `EditMemberRoleModal.tsx` & `BulkRoleAssignmentModal.tsx` - Role management
+- `BulkRoleAssignmentModal.tsx` - Role management
 - `QuickContactMenu.tsx` - Contact shortcuts
 - `ProTripQuickActions.tsx` - Action shortcuts
 - `TeamOnboardingBanner.tsx` - Onboarding flow

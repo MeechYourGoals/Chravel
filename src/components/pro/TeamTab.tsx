@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ProParticipant } from '../../types/pro';
+import { ProParticipant, TeamTripContext } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { RolesView } from './team/RolesView';
 import { Button } from '@/components/ui/button';
@@ -22,8 +22,10 @@ interface TeamTabProps {
   tripId?: string;
   /** Callback receives memberId, roleId (for DB), and roleName (for display/local state) */
   onUpdateMemberRole?: (memberId: string, roleId: string, roleName: string) => Promise<void>;
-  trip?: any;
+  trip?: TeamTripContext;
   tripCreatorId?: string;
+  /** Show loading skeleton when roster is being fetched */
+  isLoadingRoster?: boolean;
 }
 
 export const TeamTab = ({
@@ -35,6 +37,7 @@ export const TeamTab = ({
   onUpdateMemberRole,
   trip,
   tripCreatorId,
+  isLoadingRoster = false,
 }: TeamTabProps) => {
   const { isAdmin, hasPermission, isLoading: adminLoading } = useProTripAdmin(tripId || '');
   const { isDemoMode } = useDemoMode();
@@ -43,6 +46,8 @@ export const TeamTab = ({
   const [isLoadingRoles, setIsLoadingRoles] = useState(true);
   const [createRoleOpen, setCreateRoleOpen] = useState(false);
   const [assignRoleOpen, setAssignRoleOpen] = useState(false);
+
+  const handleAssignRoleClick = useCallback(() => setAssignRoleOpen(true), []);
 
   // Super admins never have read-only restrictions
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
@@ -120,12 +125,14 @@ export const TeamTab = ({
       {/* Roles View */}
       <RolesView
         roster={roster}
+        isLoadingRoster={isLoadingRoster}
         userRole={isSuperAdmin ? 'admin' : userRole}
         isReadOnly={effectiveIsReadOnly}
         category={category}
         onUpdateMemberRole={onUpdateMemberRole}
         canManageRoles={canManageRoles}
         onCreateRole={() => setCreateRoleOpen(true)}
+        onAssignRole={handleAssignRoleClick}
         isLoadingRoles={isLoadingRoles}
         adminLoading={adminLoading}
         tripId={tripId}

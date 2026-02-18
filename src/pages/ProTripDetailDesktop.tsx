@@ -21,7 +21,7 @@ import { supabase, SUPABASE_PROJECT_URL } from '../integrations/supabase/client'
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useProTripAdmin } from '../hooks/useProTripAdmin';
 import { MockRolesService } from '../services/mockRolesService';
-import { tripService } from '../services/tripService';
+import { useTripMembers } from '../hooks/useTripMembers';
 import { demoModeService } from '../services/demoModeService';
 import { ProTripData, ProParticipant } from '../types/pro';
 
@@ -59,10 +59,12 @@ export const ProTripDetailDesktop = () => {
   const [showTripSettings, setShowTripSettings] = useState(false);
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [fetchedParticipants, setFetchedParticipants] = useState<ProParticipant[]>([]);
 
   // Check admin status for Pro trips
   const { isAdmin: _isAdmin } = useProTripAdmin(proTripId || '');
+
+  // Unified data: useTripMembers for both real-time updates and consistent behavior with mobile
+  const { tripMembers, loading: membersLoading } = useTripMembers(proTripId);
 
   // ✅ Calculate tripData with useMemo - MUST be before any conditional returns
   const tripData = useMemo(() => {
@@ -79,11 +81,22 @@ export const ProTripDetailDesktop = () => {
     // Convert to ProTripData format
     const convertedTrip = convertSupabaseTripToProTrip(supabaseTrip);
 
+    const proParticipants: ProParticipant[] = tripMembers.map(m => ({
+      id: m.id,
+      userId: m.id,
+      name: m.name,
+      avatar: m.avatar,
+      role: m.role || 'member',
+      email: '',
+      credentialLevel: 'Guest' as const,
+      permissions: [],
+    }));
+
     return {
       ...convertedTrip,
-      participants: fetchedParticipants.length > 0 ? fetchedParticipants : [],
-      roster: fetchedParticipants.length > 0 ? fetchedParticipants : [],
-      
+      participants: proParticipants,
+      roster: proParticipants,
+
       enabled_features: supabaseTrip.enabled_features || [
         'chat',
         'calendar',
@@ -95,7 +108,7 @@ export const ProTripDetailDesktop = () => {
         'tasks',
       ],
     } as ProTripData;
-  }, [isDemoMode, proTripId, userTrips, fetchedParticipants]);
+  }, [isDemoMode, proTripId, userTrips, tripMembers]);
 
   // Initialize mock roles and channels ONLY in demo mode
   React.useEffect(() => {
@@ -113,34 +126,6 @@ export const ProTripDetailDesktop = () => {
       }
     }
   }, [isDemoMode, proTripId, user?.id]);
-
-  // Fetch participants for authenticated users
-  React.useEffect(() => {
-    if (!isDemoMode && proTripId) {
-      const fetchMembers = async () => {
-        try {
-          const members = await tripService.getTripMembers(proTripId);
-          setFetchedParticipants(
-            members.map(
-              m =>
-                ({
-                  id: m.user_id,
-                  name: m.profiles?.display_name || 'Unknown',
-                  avatar: m.profiles?.avatar_url,
-                  role: m.role || 'member',
-                  email: '', // Email not available in member profiles view
-                  credentialLevel: 'Guest',
-                  permissions: [],
-                }) as ProParticipant,
-            ),
-          );
-        } catch (error) {
-          console.error('Failed to fetch trip members:', error);
-        }
-      };
-      fetchMembers();
-    }
-  }, [isDemoMode, proTripId]);
 
   // ⚡ Memoize derived data - MUST be before any conditional returns
   const tripContext = React.useMemo(() => {
@@ -532,6 +517,7 @@ export const ProTripDetailDesktop = () => {
               selectedCategory={tripData.proTripCategory as ProTripCategory}
               trip={trip}
               tripCreatorId={trip.created_by}
+              isLoadingRoster={!isDemoMode && membersLoading}
             />
           </Suspense>
         </div>

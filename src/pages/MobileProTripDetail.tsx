@@ -495,6 +495,7 @@ export const MobileProTripDetail = () => {
           tripId={proTripId}
           basecamp={basecamp}
           variant="pro"
+          isLoadingRoster={!isDemoMode && membersLoading}
           participants={(tripData.participants || []).map(p => ({
             id: String(p.id),
             name: p.name,

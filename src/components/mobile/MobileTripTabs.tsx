@@ -85,6 +85,7 @@ interface MobileTripTabsProps {
   eventData?: EventData | null;
   category?: string;
   tripCreatorId?: string;
+  isLoadingRoster?: boolean;
 }
 
 export const MobileTripTabs = ({
@@ -98,6 +99,7 @@ export const MobileTripTabs = ({
   eventData,
   category,
   tripCreatorId,
+  isLoadingRoster = false,
 }: MobileTripTabsProps) => {
   const { accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
@@ -422,6 +424,7 @@ export const MobileTripTabs = ({
                 tripId={tripId}
                 tripCreatorId={tripCreatorId || tripData?.createdBy}
                 onUpdateMemberRole={handleUpdateMemberRole}
+                isLoadingRoster={isLoadingRoster}
               />
             </div>
           );
