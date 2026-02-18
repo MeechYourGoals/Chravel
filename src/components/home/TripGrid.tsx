@@ -485,6 +485,7 @@ export const TripGrid = React.memo(
                       isDemoMode={isDemoMode}
                       onDelete={handleSwipeDelete}
                       onTripStateChange={onTripStateChange}
+                      onEnterReorderMode={() => setReorderMode('my_trips')}
                       priority={false}
                     />
                   )}
@@ -515,6 +516,7 @@ export const TripGrid = React.memo(
                       isDemoMode={isDemoMode}
                       onDelete={handleProTripSwipeDelete}
                       onTripStateChange={onTripStateChange}
+                      onEnterReorderMode={() => setReorderMode('pro')}
                     />
                   )}
                   dashboardType="pro"
@@ -539,6 +541,7 @@ export const TripGrid = React.memo(
                         onArchiveSuccess={onTripStateChange}
                         onHideSuccess={onTripStateChange}
                         onDeleteSuccess={onTripStateChange}
+                        onEnterReorderMode={() => setReorderMode('events')}
                       />
                     ) : (
                       <EventCard
@@ -546,6 +549,7 @@ export const TripGrid = React.memo(
                         onArchiveSuccess={onTripStateChange}
                         onHideSuccess={onTripStateChange}
                         onDeleteSuccess={onTripStateChange}
+                        onEnterReorderMode={() => setReorderMode('events')}
                       />
                     )
                   }

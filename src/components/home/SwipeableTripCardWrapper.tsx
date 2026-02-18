@@ -27,6 +27,7 @@ interface SwipeableTripCardWrapperProps {
   isDemoMode: boolean;
   onDelete: (trip: Trip) => Promise<void>;
   onTripStateChange?: () => void;
+  onEnterReorderMode?: () => void;
   /** When true, loads cover photo eagerly (for above-the-fold cards) */
   priority?: boolean;
 }
@@ -42,6 +43,7 @@ export const SwipeableTripCardWrapper: React.FC<SwipeableTripCardWrapperProps> =
   isDemoMode,
   onDelete,
   onTripStateChange,
+  onEnterReorderMode,
   priority = false,
 }) => {
   const { openRowId, setOpenRowId } = useSwipeableRowContext();
@@ -54,6 +56,7 @@ export const SwipeableTripCardWrapper: React.FC<SwipeableTripCardWrapperProps> =
         onArchiveSuccess={onTripStateChange}
         onHideSuccess={onTripStateChange}
         onDeleteSuccess={onTripStateChange}
+        onEnterReorderMode={onEnterReorderMode}
         priority={priority}
       />
     );
@@ -74,6 +77,7 @@ export const SwipeableTripCardWrapper: React.FC<SwipeableTripCardWrapperProps> =
         onArchiveSuccess={onTripStateChange}
         onHideSuccess={onTripStateChange}
         onDeleteSuccess={onTripStateChange}
+        onEnterReorderMode={onEnterReorderMode}
         priority={priority}
       />
     </SwipeableRow>
@@ -86,6 +90,7 @@ interface SwipeableProTripCardWrapperProps {
   isDemoMode: boolean;
   onDelete: (trip: ProTripData) => Promise<void>;
   onTripStateChange?: () => void;
+  onEnterReorderMode?: () => void;
 }
 
 /**
@@ -99,6 +104,7 @@ export const SwipeableProTripCardWrapper: React.FC<SwipeableProTripCardWrapperPr
   isDemoMode,
   onDelete,
   onTripStateChange,
+  onEnterReorderMode,
 }) => {
   const { openRowId, setOpenRowId } = useSwipeableRowContext();
   const tripId = trip.id.toString();
@@ -110,6 +116,7 @@ export const SwipeableProTripCardWrapper: React.FC<SwipeableProTripCardWrapperPr
         onArchiveSuccess={onTripStateChange}
         onHideSuccess={onTripStateChange}
         onDeleteSuccess={onTripStateChange}
+        onEnterReorderMode={onEnterReorderMode}
       />
     );
   }
@@ -129,6 +136,7 @@ export const SwipeableProTripCardWrapper: React.FC<SwipeableProTripCardWrapperPr
         onArchiveSuccess={onTripStateChange}
         onHideSuccess={onTripStateChange}
         onDeleteSuccess={onTripStateChange}
+        onEnterReorderMode={onEnterReorderMode}
       />
     </SwipeableRow>
   );
