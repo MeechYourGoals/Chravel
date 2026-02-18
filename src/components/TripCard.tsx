@@ -11,6 +11,7 @@ import {
   EyeOff,
   FileDown,
   Trash2,
+  ArrowUpDown,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
@@ -69,6 +70,7 @@ interface TripCardProps {
   onArchiveSuccess?: () => void;
   onHideSuccess?: () => void;
   onDeleteSuccess?: () => void;
+  onEnterReorderMode?: () => void;
   /** When true, loads cover photo eagerly (for above-the-fold cards) */
   priority?: boolean;
 }
@@ -78,6 +80,7 @@ export const TripCard = ({
   onArchiveSuccess,
   onHideSuccess,
   onDeleteSuccess,
+  onEnterReorderMode,
   priority = false,
 }: TripCardProps) => {
   const navigate = useNavigate();
@@ -481,6 +484,18 @@ export const TripCard = ({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border">
+              {onEnterReorderMode && (
+                <>
+                  <DropdownMenuItem
+                    onClick={onEnterReorderMode}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <ArrowUpDown className="mr-2 h-4 w-4" />
+                    Rearrange
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem
                 onClick={() => setShowArchiveDialog(true)}
                 className="text-muted-foreground hover:text-foreground"
