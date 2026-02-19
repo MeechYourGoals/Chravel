@@ -81,6 +81,7 @@ const LovableConciergeSchema = z.object({
       lifestyle: z.array(z.string()).optional(),
       budgetMin: z.number().optional(),
       budgetMax: z.number().optional(),
+      budgetUnit: z.enum(['experience', 'day', 'person', 'trip']).optional(),
       timePreference: z.string().optional(),
     })
     .optional(),

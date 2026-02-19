@@ -10,7 +10,7 @@ import { useIsMobile } from '../../hooks/use-mobile';
 export interface SettingsSection {
   id: string;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: React.ComponentType<{ size?: number | string }>;
 }
 
 interface SettingsLayoutProps {

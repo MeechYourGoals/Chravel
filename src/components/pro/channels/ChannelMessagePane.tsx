@@ -136,8 +136,8 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
           </div>
         ) : (
           <VirtualizedMessageContainer
-            messages={messages}
-            renderMessage={(message) => (
+            messages={messages as any}
+            renderMessage={(message: any) => (
               <div key={message.id} className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                   {message.author_name?.charAt(0).toUpperCase() || '?'}
