@@ -1,6 +1,24 @@
 const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 const GOOGLE_CUSTOM_SEARCH_CX = Deno.env.get('GOOGLE_CUSTOM_SEARCH_CX');
 
+// Resolve the Supabase functions base URL for building proxy URLs.
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+const SUPABASE_FUNCTIONS_BASE_URL = SUPABASE_URL
+  ? `${SUPABASE_URL}/functions/v1`
+  : '/functions/v1';
+
+function buildPlacePhotoProxyUrl(
+  placePhotoName: string,
+  maxWidthPx: number,
+  maxHeightPx: number,
+): string {
+  const params = new URLSearchParams();
+  params.set('placePhotoName', placePhotoName);
+  params.set('maxWidthPx', String(maxWidthPx));
+  params.set('maxHeightPx', String(maxHeightPx));
+  return `${SUPABASE_FUNCTIONS_BASE_URL}/image-proxy?${params.toString()}`;
+}
+
 export interface LocationContext {
   lat?: number;
   lng?: number;
@@ -192,6 +210,8 @@ async function _executeImpl(
           priceLevel: p.priceLevel || null,
           mapsUrl: p.googleMapsUri || null,
           photoCount: p.photos?.length || 0,
+          previewPhotoUrl:
+            p.photos?.[0]?.name ? buildPlacePhotoProxyUrl(p.photos[0].name, 600, 400) : null,
         })),
       };
     }
@@ -303,10 +323,10 @@ async function _executeImpl(
       const pd = await detailsResponse.json();
 
       // Build photo URLs (first 5)
-      const photoUrls = (pd.photos || []).slice(0, 5).map((photo: any) => {
-        const photoRef = photo.name; // e.g. "places/ChIJ.../photos/AUc..."
-        return `https://places.googleapis.com/v1/${photoRef}/media?maxHeightPx=400&maxWidthPx=600&key=${GOOGLE_MAPS_API_KEY}`;
-      });
+      const photoUrls = (pd.photos || [])
+        .slice(0, 5)
+        .map((photo: any) => (photo.name ? buildPlacePhotoProxyUrl(photo.name, 600, 400) : null))
+        .filter(Boolean);
 
       return {
         success: true,
