@@ -11,6 +11,8 @@ import {
   invokeConciergeStream,
   type StreamMetadataEvent,
 } from '@/services/conciergeGateway';
+import { fetchConciergeImages, type ConciergeImage } from '@/services/imageSearchService';
+import { ConciergeImageGrid } from '@/components/ai/ConciergeImageGrid';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
@@ -20,7 +22,16 @@ import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 // Set to true once transport layer is verified stable.
 const VOICE_ENABLED = false;
 const UPLOAD_ENABLED = false;
+// Inline images: server returns [] when AI_IMAGES_ENABLED=false. Client always
+// calls when intent detected; no client flag needed.
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** Lightweight intent detector: user wants photos/images */
+const IMAGE_INTENT_PATTERN =
+  /\b(photo|photos|picture|pictures|image|images|show me (what|pictures?|photos?)|what does .+ look like|how does .+ look|looks like|visual of|see (pictures?|photos?|images?))\b/i;
+function shouldFetchImages(userMessage: string): boolean {
+  return IMAGE_INTENT_PATTERN.test((userMessage || '').trim());
+}
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -47,6 +58,8 @@ interface ChatMessage {
     source?: string; // 🆕 Track if from Google Maps grounding
   }>;
   googleMapsWidget?: string; // 🆕 Widget context token
+  assistantImages?: ConciergeImage[]; // Optional inline images (from image search)
+  imagesLoading?: boolean; // True while fetching images
 }
 
 interface ConciergeInvokePayload {
@@ -498,6 +511,21 @@ export const AIConciergeChat = ({
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' },
                 );
+                // Optional: fetch inline images when user asked for photos (non-blocking)
+                if (shouldFetchImages(currentInput) && isMounted.current) {
+                  const imageQuery = [currentInput, basecampLocation?.address]
+                    .filter(Boolean)
+                    .join(' ')
+                    .trim();
+                  updateStreamMsg(() => ({ imagesLoading: true }));
+                  fetchConciergeImages(imageQuery).then(imgs => {
+                    if (!isMounted.current) return;
+                    updateStreamMsg(() => ({
+                      assistantImages: imgs,
+                      imagesLoading: false,
+                    }));
+                  });
+                }
               }
             },
           },
@@ -585,6 +613,27 @@ export const AIConciergeChat = ({
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Optional: fetch inline images when user asked for photos (non-blocking)
+      if (shouldFetchImages(currentInput)) {
+        const imageQuery = [currentInput, basecampLocation?.address]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        setMessages(prev =>
+          prev.map(m => (m.id === assistantMessage.id ? { ...m, imagesLoading: true } : m)),
+        );
+        fetchConciergeImages(imageQuery).then(imgs => {
+          if (!isMounted.current) return;
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === assistantMessage.id
+                ? { ...m, assistantImages: imgs, imagesLoading: false }
+                : m,
+            ),
+          );
+        });
+      }
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('AI Concierge error:', error);
@@ -807,8 +856,16 @@ export const AIConciergeChat = ({
             disabled={isQueryLimitReached}
             showImageAttach={UPLOAD_ENABLED}
             attachedImages={UPLOAD_ENABLED ? attachedImages : []}
-            onImageAttach={UPLOAD_ENABLED ? files => setAttachedImages(prev => [...prev, ...files].slice(0, 4)) : undefined}
-            onRemoveImage={UPLOAD_ENABLED ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx)) : undefined}
+            onImageAttach={
+              UPLOAD_ENABLED
+                ? files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))
+                : undefined
+            }
+            onRemoveImage={
+              UPLOAD_ENABLED
+                ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
+                : undefined
+            }
             voiceState={VOICE_ENABLED ? effectiveVoiceState : 'idle'}
             isVoiceEligible={false}
             onVoiceToggle={VOICE_ENABLED ? handleVoiceToggle : undefined}

@@ -27,6 +27,15 @@ export interface GroundingCitation {
   thumbnailUrl?: string;
 }
 
+/** Inline image from image search (e.g. Concierge) */
+export interface ConciergeImageItem {
+  thumbnailUrl: string;
+  imageUrl: string;
+  title: string;
+  sourceUrl: string;
+  sourceDomain: string;
+}
+
 export interface ChatMessageWithGrounding {
   id: string;
   type: 'user' | 'assistant';
@@ -39,6 +48,8 @@ export interface ChatMessageWithGrounding {
   };
   sources?: GroundingCitation[];
   googleMapsWidget?: string;
+  assistantImages?: ConciergeImageItem[];
+  imagesLoading?: boolean;
 }
 
 export interface PlaceGroundingData {
