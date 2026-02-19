@@ -26,6 +26,7 @@ import { useNativePush } from '@/hooks/useNativePush';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { Button } from '../ui/button';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationCategory {
   key: string;
@@ -110,6 +111,12 @@ export const ConsumerNotificationsSection = () => {
   const [isSavingPhone, setIsSavingPhone] = useState(false);
   const [isSendingTestSms, setIsSendingTestSms] = useState(false);
   const [phoneError, setPhoneError] = useState('');
+  const [lastSmsStatus, setLastSmsStatus] = useState<{
+    status: string;
+    externalId?: string;
+    errorMessage?: string;
+    createdAt?: string;
+  } | null>(null);
 
   // State for notification settings - matching database columns
   const [notificationSettings, setNotificationSettings] = useState<Record<string, boolean>>({
@@ -135,6 +142,28 @@ export const ConsumerNotificationsSection = () => {
   const smsDeliveryEligible =
     isSuperAdmin || tier === 'frequent-chraveler' || tier.startsWith('pro-');
 
+  const fetchLastSmsStatus = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from('notification_logs')
+      .select('status, external_id, error_message, created_at')
+      .eq('user_id', user.id)
+      .eq('type', 'sms')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      setLastSmsStatus({
+        status: data.status ?? 'unknown',
+        externalId: data.external_id ?? undefined,
+        errorMessage: data.error_message ?? undefined,
+        createdAt: data.created_at ?? undefined,
+      });
+    } else {
+      setLastSmsStatus(null);
+    }
+  }, [user?.id]);
+
   // Phone number validation helper
   const validatePhoneNumber = useCallback((phone: string): boolean => {
     // Remove all non-numeric characters except +
@@ -154,6 +183,14 @@ export const ConsumerNotificationsSection = () => {
     }
     return phone;
   }, []);
+
+  useEffect(() => {
+    if (user?.id && smsPhoneNumber && smsDeliveryEligible) {
+      void fetchLastSmsStatus();
+    } else {
+      setLastSmsStatus(null);
+    }
+  }, [user?.id, smsPhoneNumber, smsDeliveryEligible, fetchLastSmsStatus]);
 
   // Load notification preferences from database
   useEffect(() => {
@@ -319,7 +356,7 @@ export const ConsumerNotificationsSection = () => {
     }
   };
 
-  // Send test SMS
+  // Send test SMS — truth-based: only show success when we have a valid Message SID
   const handleSendTestSms = useCallback(async () => {
     if (!user?.id || !smsPhoneNumber) return;
     if (!smsDeliveryEligible) {
@@ -336,15 +373,21 @@ export const ConsumerNotificationsSection = () => {
         user.id,
         'ChravelApp: Test message — SMS notifications are working!',
       );
-      if (result.success) {
+      if (result.success && result.sid) {
         toast({
           title: 'Test SMS sent',
-          description: `Check ${formatPhoneNumber(smsPhoneNumber)} for the message.`,
+          description: `Queued (SID: ${result.sid}). Check ${formatPhoneNumber(smsPhoneNumber)} for the message.`,
         });
+        void fetchLastSmsStatus();
       } else {
+        const desc = result.errorMessage || 'Check your settings and try again.';
+        const hint =
+          result.errorCode === 21610
+            ? ' Verify your phone number in the Twilio console (trial accounts).'
+            : '';
         toast({
           title: 'Failed to send',
-          description: result.errorMessage || 'Check your settings and try again.',
+          description: desc + hint,
           variant: 'destructive',
         });
       }
@@ -354,7 +397,7 @@ export const ConsumerNotificationsSection = () => {
     } finally {
       setIsSendingTestSms(false);
     }
-  }, [user?.id, smsPhoneNumber, smsDeliveryEligible]);
+  }, [user?.id, smsPhoneNumber, smsDeliveryEligible, toast, formatPhoneNumber, fetchLastSmsStatus]);
 
   // Handle SMS phone number submission
   const handleSmsPhoneSubmit = async () => {
@@ -524,25 +567,49 @@ export const ConsumerNotificationsSection = () => {
                       : 'Get text messages for urgent updates'}
                 </p>
                 {smsPhoneNumber && notificationSettings.sms && smsDeliveryEligible && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <button
-                      onClick={() => {
-                        setSmsPhoneInput(smsPhoneNumber);
-                        setPhoneError('');
-                        setShowSmsPhoneModal(true);
-                      }}
-                      className="text-xs text-glass-orange hover:text-glass-yellow"
-                    >
-                      Change number
-                    </button>
-                    <span className="text-gray-500">•</span>
-                    <button
-                      onClick={handleSendTestSms}
-                      disabled={isSendingTestSms}
-                      className="text-xs text-green-400 hover:text-green-300 disabled:opacity-50"
-                    >
-                      {isSendingTestSms ? 'Sending...' : 'Send test SMS'}
-                    </button>
+                  <div className="mt-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSmsPhoneInput(smsPhoneNumber);
+                          setPhoneError('');
+                          setShowSmsPhoneModal(true);
+                        }}
+                        className="text-xs text-glass-orange hover:text-glass-yellow"
+                      >
+                        Change number
+                      </button>
+                      <span className="text-gray-500">•</span>
+                      <button
+                        onClick={handleSendTestSms}
+                        disabled={isSendingTestSms}
+                        className="text-xs text-green-400 hover:text-green-300 disabled:opacity-50"
+                      >
+                        {isSendingTestSms ? 'Sending...' : 'Send test SMS'}
+                      </button>
+                    </div>
+                    {lastSmsStatus && (
+                      <p className="text-xs text-gray-500">
+                        Last test:{' '}
+                        {lastSmsStatus.status === 'sent' || lastSmsStatus.status === 'queued' ? (
+                          <>
+                            <span className="text-green-400">
+                              {lastSmsStatus.status}
+                              {lastSmsStatus.externalId
+                                ? ` (SID: ${lastSmsStatus.externalId})`
+                                : ''}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-amber-400">
+                            {lastSmsStatus.status}
+                            {lastSmsStatus.errorMessage
+                              ? ` — ${lastSmsStatus.errorMessage.substring(0, 80)}${lastSmsStatus.errorMessage.length > 80 ? '…' : ''}`
+                              : ''}
+                          </span>
+                        )}
+                      </p>
+                    )}
                   </div>
                 )}
                 {!smsDeliveryEligible && (

@@ -419,7 +419,18 @@ async function sendSMSNotification(
   const responseText = await response.text();
 
   if (!response.ok) {
-    console.error(`[SMS] Twilio error (${response.status}):`, responseText);
+    let errorCode: number | null = null;
+    let errorMessage = responseText;
+    try {
+      const errBody = JSON.parse(responseText);
+      errorCode = errBody.code ?? errBody.error_code ?? null;
+      errorMessage = errBody.message ?? errBody.error_message ?? responseText;
+    } catch {
+      // Keep raw responseText
+    }
+
+    const fullError = `Twilio error (${response.status}): ${errorMessage}`;
+    console.error(`[SMS] ${fullError}`, errorCode ? `[code: ${errorCode}]` : '');
 
     await supabase.from('notification_logs').insert({
       user_id: userId,
@@ -428,15 +439,68 @@ async function sendSMSNotification(
       body: finalMessage,
       recipient: targetPhone,
       status: 'failed',
-      error_message: `Twilio error (${response.status}): ${responseText.substring(0, 200)}`,
+      error_message: fullError,
+      data: errorCode != null ? { twilio_error_code: errorCode } : {},
       created_at: new Date().toISOString(),
     });
 
-    throw new Error(`Twilio error: ${responseText}`);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'twilio_error',
+        message: errorMessage,
+        errorCode: errorCode ?? undefined,
+        errorMessage,
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
   }
 
-  const result = JSON.parse(responseText);
-  console.log(`[SMS] Sent successfully. SID: ${result.sid}`);
+  let result: { sid?: string; status?: string; error_code?: number; error_message?: string };
+  try {
+    result = JSON.parse(responseText);
+  } catch {
+    console.error('[SMS] Invalid Twilio response:', responseText.substring(0, 200));
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'invalid_response',
+        message: 'Twilio returned invalid response',
+      }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Truth-based: only success if we have a valid Message SID (SM...)
+  const messageSid = result.sid;
+  const twilioStatus = result.status || 'unknown';
+
+  if (!messageSid || typeof messageSid !== 'string' || !messageSid.startsWith('SM')) {
+    console.error('[SMS] No valid Message SID in Twilio response:', result);
+
+    await supabase.from('notification_logs').insert({
+      user_id: userId,
+      type: 'sms',
+      title: 'SMS Failed',
+      body: finalMessage,
+      recipient: targetPhone,
+      status: 'failed',
+      error_message: 'No valid Message SID from Twilio',
+      data: { raw: result },
+      created_at: new Date().toISOString(),
+    });
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'no_message_sid',
+        message: 'Twilio did not return a valid message SID',
+      }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  console.log(`[SMS] Sent successfully. SID: ${messageSid} status: ${twilioStatus}`);
 
   await supabase.rpc('increment_sms_counter', { p_user_id: userId });
 
@@ -446,9 +510,9 @@ async function sendSMSNotification(
     title: 'SMS Notification',
     body: finalMessage,
     recipient: targetPhone,
-    external_id: result.sid,
+    external_id: messageSid,
     status: 'sent',
-    data: { category, twilioStatus: result.status },
+    data: { category, twilioStatus, twilioErrorCode: result.error_code },
     sent_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
   });
@@ -456,8 +520,10 @@ async function sendSMSNotification(
   return new Response(
     JSON.stringify({
       success: true,
-      sid: result.sid,
-      status: result.status,
+      sid: messageSid,
+      status: twilioStatus,
+      errorCode: result.error_code ?? undefined,
+      errorMessage: result.error_message ?? undefined,
       remaining: rateLimit?.remaining ?? SMS_DAILY_LIMIT - 1,
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
