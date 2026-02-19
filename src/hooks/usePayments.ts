@@ -72,40 +72,30 @@ export const usePayments = (tripId?: string) => {
     loadPaymentMethods();
   }, [userId]);
 
-  // Real-time subscription — invalidates TanStack Query cache instead of manual refetch
+  // Real-time subscription via hub — invalidates TanStack Query cache
   useEffect(() => {
     if (!tripId || demoActive) return;
 
-    const channel = supabase
-      .channel(`trip_payments:${tripId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'trip_payment_messages',
-          filter: `trip_id=eq.${tripId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'payment_splits',
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
-        }
-      )
-      .subscribe();
+    const hub = (window as any).__tripRealtimeHubs?.get(tripId);
+    if (!hub) {
+      // Fallback: direct channel if hub not yet mounted
+      const channel = supabase
+        .channel(`trip_payments:${tripId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_payment_messages', filter: `trip_id=eq.${tripId}` },
+          () => queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) }))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_splits' },
+          () => queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) }))
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
+    }
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const unsub1 = hub.subscribe('trip_payment_messages', '*', () => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+    });
+    const unsub2 = hub.subscribe('payment_splits', '*', () => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+    });
+    return () => { unsub1(); unsub2(); };
   }, [tripId, demoActive, queryClient]);
 
   // Refresh via cache invalidation (instant if data is already cached)

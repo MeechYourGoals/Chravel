@@ -666,9 +666,8 @@ export const tripService = {
         .eq('trip_id', tripId)
         .eq('user_id', creatorId)
         .maybeSingle();
-      const membershipData = creatorMembership as any;
-      const creatorActive =
-        !membershipData || membershipData.status === 'active' || membershipData.status === null;
+      // status column does not exist on trip_members - if membership row exists, creator is active
+      const creatorActive = !creatorMembership || true;
       if (creatorActive) {
         const { data: creatorProfile } = await supabase
           .from('profiles_public')

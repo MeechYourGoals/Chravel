@@ -348,58 +348,31 @@ export const useTripTasks = (
   const TASKS_PER_PAGE = 100; // Load first 100 tasks initially
   const [showAllTasks, setShowAllTasks] = useState(false);
 
-  // Real-time subscription for tasks (authenticated mode only)
+  // Real-time subscription for tasks via consolidated hub
   useEffect(() => {
     if (!tripId || isDemoMode) return;
 
-    const channel = supabase
-      .channel(`trip_tasks:${tripId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'trip_tasks',
-          filter: `trip_id=eq.${tripId}`,
-        },
-        payload => {
-          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+    const hub = (window as any).__tripRealtimeHubs?.get(tripId);
+    if (!hub) {
+      // Fallback: hub not mounted yet, use minimal channel
+      const channel = supabase
+        .channel(`trip_tasks:${tripId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_tasks', filter: `trip_id=eq.${tripId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] }))
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
+    }
 
-          toast({
-            title: 'New Task Added',
-            description: `${(payload.new as any).title} was added.`,
-            duration: 3000,
-          });
-        },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'trip_tasks',
-          filter: `trip_id=eq.${tripId}`,
-        },
-        _payload => {
-          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-        },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'task_status',
-        },
-        _payload => {
-          queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const unsub1 = hub.subscribe('trip_tasks', '*', (payload: any) => {
+      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      if (payload.eventType === 'INSERT') {
+        toast({ title: 'New Task Added', description: `${payload.new?.title} was added.`, duration: 3000 });
+      }
+    });
+    const unsub2 = hub.subscribe('task_status', '*', () => {
+      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+    });
+    return () => { unsub1(); unsub2(); };
   }, [tripId, isDemoMode, queryClient, toast]);
 
   const tasksQuery = useQuery({

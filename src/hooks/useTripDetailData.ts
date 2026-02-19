@@ -203,10 +203,23 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   // Show loading while auth is resolving or data is fetching
   const isLoading = isAuthLoading || tripQuery.isLoading;
 
+  // Guarantee at least creator as a member (never show "0 Chravelers")
+  let tripMembers = membersQuery.data?.members || [];
+  const tripCreatorId = membersQuery.data?.creatorId || tripQuery.data?.created_by || null;
+
+  if (tripMembers.length === 0 && tripCreatorId && !membersQuery.isLoading) {
+    tripMembers = [{
+      id: tripCreatorId,
+      name: user?.displayName || 'Trip Creator',
+      avatar: user?.avatar,
+      isCreator: true,
+    }];
+  }
+
   return {
     trip,
-    tripMembers: membersQuery.data?.members || [],
-    tripCreatorId: membersQuery.data?.creatorId || null,
+    tripMembers,
+    tripCreatorId,
     isLoading: tripQuery.isLoading,
     isMembersLoading: membersQuery.isLoading,
     isAuthLoading: false,

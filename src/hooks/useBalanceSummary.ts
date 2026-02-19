@@ -76,44 +76,29 @@ export const useBalanceSummary = (tripId?: string) => {
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.paymentBalances.refetchOnWindowFocus,
   });
 
-  // Invalidate balance cache when payment data changes (real-time)
+  // Invalidate balance cache when payment data changes via hub
   useEffect(() => {
     if (!tripId || demoActive || !userId) return;
 
-    const channel = supabase
-      .channel(`balance_payments:${tripId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'trip_payment_messages',
-          filter: `trip_id=eq.${tripId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({
-            queryKey: tripKeys.paymentBalances(tripId, userId),
-          });
-        },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'payment_splits',
-        },
-        () => {
-          queryClient.invalidateQueries({
-            queryKey: tripKeys.paymentBalances(tripId, userId),
-          });
-        },
-      )
-      .subscribe();
+    const hub = (window as any).__tripRealtimeHubs?.get(tripId);
+    if (!hub) {
+      const channel = supabase
+        .channel(`balance_payments:${tripId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_payment_messages', filter: `trip_id=eq.${tripId}` },
+          () => queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) }))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_splits' },
+          () => queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) }))
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
+    }
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const unsub1 = hub.subscribe('trip_payment_messages', '*', () => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) });
+    });
+    const unsub2 = hub.subscribe('payment_splits', '*', () => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) });
+    });
+    return () => { unsub1(); unsub2(); };
   }, [tripId, demoActive, userId, queryClient]);
 
   const refreshBalanceSummary = async () => {

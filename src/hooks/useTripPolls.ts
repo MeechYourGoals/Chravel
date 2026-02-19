@@ -636,27 +636,24 @@ export const useTripPolls = (tripId: string) => {
   });
 
   useEffect(() => {
-    if (!tripId || isDemoMode || typeof (supabase as any).channel !== 'function') return;
+    if (!tripId || isDemoMode) return;
 
-    const channel = supabase
-      .channel(`trip_polls:${tripId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'trip_polls',
-          filter: `trip_id=eq.${tripId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
-        },
-      )
-      .subscribe();
+    // Use hub if available, else fallback to direct channel
+    const hub = (window as any).__tripRealtimeHubs?.get(tripId);
+    if (!hub) {
+      if (typeof (supabase as any).channel !== 'function') return;
+      const channel = supabase
+        .channel(`trip_polls:${tripId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_polls', filter: `trip_id=eq.${tripId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] }))
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
+    }
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const unsub = hub.subscribe('trip_polls', '*', () => {
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
+    });
+    return unsub;
   }, [tripId, isDemoMode, queryClient]);
 
   return {
