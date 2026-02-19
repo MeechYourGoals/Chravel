@@ -305,43 +305,22 @@ export const useTripMembers = (tripId?: string) => {
     }
   }, [tripId, isDemoMode, demoAddedMembersCount]);
 
-  // ⚡ PERFORMANCE: Defer real-time subscriptions to not block initial render
-  // Only subscribe to trip_members (scoped by trip_id). Profile updates are handled
-  // on next load/refresh to avoid unscoped profiles table subscription at scale.
+  // Real-time via hub (deferred to not block initial render)
   useEffect(() => {
     if (!tripId) return;
 
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    const subscriptionTimer = setTimeout(() => {
-      supabase
-        .from('trip_members')
-        .select('id')
-        .limit(1)
-        .then(({ data }) => {
-          if (data !== null) {
-            channel = supabase
-              .channel(`trip-members-${tripId}`)
-              .on(
-                'postgres_changes',
-                {
-                  event: '*',
-                  schema: 'public',
-                  table: 'trip_members',
-                  filter: `trip_id=eq.${tripId}`,
-                },
-                () => loadTripMembers(tripId),
-              )
-              .subscribe();
-          }
-        })
-        .then(() => {}, () => {
-          // Subscription setup failed - members will be loaded without real-time updates
-        });
+    const timer = setTimeout(() => {
+      const hub = (window as any).__tripRealtimeHubs?.get(tripId);
+      if (hub) {
+        const unsub = hub.subscribe('trip_members', '*', () => loadTripMembers(tripId));
+        // Store unsub for cleanup
+        (timer as any).__unsub = unsub;
+      }
     }, 1000);
 
     return () => {
-      clearTimeout(subscriptionTimer);
-      if (channel) supabase.removeChannel(channel);
+      clearTimeout(timer);
+      if ((timer as any).__unsub) (timer as any).__unsub();
     };
   }, [tripId]);
 

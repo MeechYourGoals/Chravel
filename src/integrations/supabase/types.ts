@@ -1624,8 +1624,10 @@ export type Database = {
           free_pro_trips_used: number | null
           id: string
           last_name: string | null
+          name_preference: string | null
           notification_settings: Json | null
           phone: string | null
+          real_name: string | null
           role: string | null
           show_email: boolean | null
           show_phone: boolean | null
@@ -1652,8 +1654,10 @@ export type Database = {
           free_pro_trips_used?: number | null
           id?: string
           last_name?: string | null
+          name_preference?: string | null
           notification_settings?: Json | null
           phone?: string | null
+          real_name?: string | null
           role?: string | null
           show_email?: boolean | null
           show_phone?: boolean | null
@@ -1680,8 +1684,10 @@ export type Database = {
           free_pro_trips_used?: number | null
           id?: string
           last_name?: string | null
+          name_preference?: string | null
           notification_settings?: Json | null
           phone?: string | null
+          real_name?: string | null
           role?: string | null
           show_email?: boolean | null
           show_phone?: boolean | null
@@ -3441,7 +3447,9 @@ export type Database = {
           email: string | null
           first_name: string | null
           last_name: string | null
+          name_preference: string | null
           phone: string | null
+          real_name: string | null
           resolved_display_name: string | null
           user_id: string | null
         }
@@ -3451,7 +3459,9 @@ export type Database = {
           email?: never
           first_name?: string | null
           last_name?: string | null
+          name_preference?: string | null
           phone?: never
+          real_name?: string | null
           resolved_display_name?: never
           user_id?: string | null
         }
@@ -3461,7 +3471,9 @@ export type Database = {
           email?: never
           first_name?: string | null
           last_name?: string | null
+          name_preference?: string | null
           phone?: never
+          real_name?: string | null
           resolved_display_name?: never
           user_id?: string | null
         }

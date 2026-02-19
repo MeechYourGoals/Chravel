@@ -523,7 +523,7 @@ export const MobileTripDetail = () => {
                 <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
                   <span className="truncate">
                     {tripWithUpdatedDescription.location} •{' '}
-                    {tripWithUpdatedDescription.participants.length} Chravelers
+                    {Math.max(tripWithUpdatedDescription.participants.length, 1)} Chravelers
                   </span>
                   <button
                     onClick={() => {

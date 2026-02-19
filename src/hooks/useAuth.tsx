@@ -183,9 +183,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-  // Helper function to fetch user profile
+  // Helper function to fetch user profile with defensive fallback for schema drift
   const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
+      // Full select including real_name and name_preference
       const { data, error } = await supabase
         .from('profiles')
         .select(
@@ -198,10 +199,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (error && error.code !== 'PGRST116') {
+        // Schema drift fallback: retry with minimal columns to keep auth working
         if (import.meta.env.DEV) {
-          console.error('Error fetching profile:', error);
+          console.warn('[Auth] Full profile select failed, retrying minimal:', error.message);
         }
-        return null;
+        const { data: minData, error: minError } = await supabase
+          .from('profiles')
+          .select('id, user_id, display_name, email, avatar_url, first_name, last_name, show_email, show_phone')
+          .eq('user_id', userId)
+          .single();
+
+        if (minError || !minData) return null;
+        return {
+          ...(minData as any),
+          real_name: null,
+          name_preference: 'display',
+          bio: null,
+          phone: null,
+        } as UserProfile;
       }
 
       if (!data) {
