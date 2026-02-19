@@ -516,13 +516,28 @@ export const tripService = {
 
   async getTripMembers(tripId: string) {
     try {
-      const { data, error } = await supabase
+      const { data: initialData, error } = await supabase
         .from('trip_members')
         .select('id, user_id, role, created_at')
         .eq('trip_id', tripId)
         .or('status.is.null,status.eq.active');
 
-      if (error) throw error;
+      let data = initialData;
+      if (error) {
+        const statusColumnError =
+          error.message?.toLowerCase().includes('status') ||
+          error.message?.toLowerCase().includes('does not exist');
+        if (statusColumnError) {
+          const fallback = await supabase
+            .from('trip_members')
+            .select('id, user_id, role, created_at')
+            .eq('trip_id', tripId);
+          if (fallback.error) throw fallback.error;
+          data = fallback.data ?? [];
+        } else {
+          throw error;
+        }
+      }
 
       // Fetch profiles separately since there's no foreign key
       if (!data || data.length === 0) return [];
@@ -568,14 +583,29 @@ export const tripService = {
     }
 
     // Parallel fetch: trip creator + members
-    const [tripResult, membersResult] = await Promise.all([
-      supabase.from('trips').select('created_by').eq('id', tripId).maybeSingle(),
-      supabase
+    const tripResult = await supabase
+      .from('trips')
+      .select('created_by')
+      .eq('id', tripId)
+      .maybeSingle();
+
+    // Fetch members: try with status filter first (if column exists), fallback without
+    let membersResult = await supabase
+      .from('trip_members')
+      .select('id, user_id, role, created_at')
+      .eq('trip_id', tripId)
+      .or('status.is.null,status.eq.active');
+
+    const statusColumnError =
+      membersResult.error?.message?.toLowerCase().includes('status') ||
+      membersResult.error?.message?.toLowerCase().includes('does not exist');
+    if (statusColumnError) {
+      // status column may not exist (pre-migration schema) — fetch all rows
+      membersResult = await supabase
         .from('trip_members')
         .select('id, user_id, role, created_at')
-        .eq('trip_id', tripId)
-        .or('status.is.null,status.eq.active'),
-    ]);
+        .eq('trip_id', tripId);
+    }
 
     // CRITICAL: Check for auth/RLS/network errors and THROW (don't silently return empty)
     if (tripResult.error) {

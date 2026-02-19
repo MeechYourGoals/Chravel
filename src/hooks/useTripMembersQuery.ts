@@ -1,12 +1,12 @@
 /**
  * Optimized TripMembers hook with TanStack Query
- * 
+ *
  * Uses parallel data fetching and proper caching for instant UI rendering.
  * Falls back to demo mode data when appropriate.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { tripService } from '@/services/tripService';
 import { supabase } from '@/integrations/supabase/client';
 import { getTripById } from '@/data/tripsData';
@@ -31,49 +31,46 @@ interface TripMembersData {
 const getMockFallbackMembers = (tripId: string): TripMember[] => {
   const isNumericOnly = /^\d+$/.test(tripId);
   if (!isNumericOnly) return [];
-  
+
   const numericTripId = parseInt(tripId, 10);
   const trip = getTripById(numericTripId);
-  
+
   const baseMembers: TripMember[] = trip?.participants
     ? trip.participants.map((participant, index) => ({
         id: participant.id.toString(),
         name: participant.name,
         avatar: participant.avatar,
-        isCreator: index === 0
+        isCreator: index === 0,
       }))
     : [
         { id: 'user1', name: 'You', isCreator: true },
-        { id: 'user2', name: 'Trip Organizer' }
+        { id: 'user2', name: 'Trip Organizer' },
       ];
-  
+
   const addedMembers = useDemoTripMembersStore.getState().getAddedMembers(tripId);
   const addedAsTripMembers: TripMember[] = addedMembers.map(m => ({
     id: m.id.toString(),
     name: m.name,
     avatar: m.avatar,
-    isCreator: false
+    isCreator: false,
   }));
-  
+
   const allMembers = [...baseMembers];
   for (const added of addedAsTripMembers) {
     if (!allMembers.some(m => m.id === added.id)) {
       allMembers.push(added);
     }
   }
-  
+
   return allMembers;
 };
 
 /**
  * Fetch trip data and members in PARALLEL for faster loading
  */
-async function fetchTripMembersData(
-  tripId: string, 
-  isDemoMode: boolean
-): Promise<TripMembersData> {
+async function fetchTripMembersData(tripId: string, isDemoMode: boolean): Promise<TripMembersData> {
   const isNumericOnly = /^\d+$/.test(tripId);
-  
+
   // Fast path for demo mode with numeric IDs
   if (isDemoMode && isNumericOnly) {
     const mockMembers = getMockFallbackMembers(tripId);
@@ -114,8 +111,8 @@ export const useTripMembersQuery = (tripId?: string) => {
   const { user } = useAuth();
 
   // Track demo store changes
-  const demoAddedMembersCount = useDemoTripMembersStore(state => 
-    tripId ? (state.addedMembers[tripId]?.length || 0) : 0
+  const demoAddedMembersCount = useDemoTripMembersStore(state =>
+    tripId ? state.addedMembers[tripId]?.length || 0 : 0,
   );
 
   // Main query with caching
@@ -132,18 +129,38 @@ export const useTripMembersQuery = (tripId?: string) => {
   const tripCreatorId = data?.creatorId || null;
   const hadMembersError = data?.hadError ?? false;
 
+  // Realtime: invalidate members when trip_members changes (add/remove/leave)
+  useEffect(() => {
+    if (!tripId || isDemoMode) return;
+
+    const channel = supabase
+      .channel(`trip-members:${tripId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'trip_members', filter: `trip_id=eq.${tripId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel).catch(() => {});
+    };
+  }, [tripId, isDemoMode, queryClient]);
+
   // Check if current user can remove members
   const canRemoveMembers = useCallback(async (): Promise<boolean> => {
     if (!tripId || !user?.id) return false;
     if (tripCreatorId === user.id) return true;
-    
+
     const { data: adminData } = await supabase
       .from('trip_admins')
       .select('id')
       .eq('trip_id', tripId)
       .eq('user_id', user.id)
       .maybeSingle();
-    
+
     return !!adminData;
   }, [tripId, user?.id, tripCreatorId]);
 
@@ -162,15 +179,15 @@ export const useTripMembersQuery = (tripId?: string) => {
       if (error) throw error;
       return userId;
     },
-    onMutate: async (userId) => {
+    onMutate: async userId => {
       await queryClient.cancelQueries({ queryKey: tripKeys.members(tripId!) });
       const previous = queryClient.getQueryData<TripMembersData>(tripKeys.members(tripId!));
-      
+
       queryClient.setQueryData<TripMembersData>(tripKeys.members(tripId!), old => ({
         ...old!,
-        members: old?.members.filter(m => m.id !== userId) || []
+        members: old?.members.filter(m => m.id !== userId) || [],
       }));
-      
+
       return { previous };
     },
     onSuccess: () => {
@@ -184,7 +201,7 @@ export const useTripMembersQuery = (tripId?: string) => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId!) });
-    }
+    },
   });
 
   // Leave trip mutation (uses leave_trip RPC: soft-delete, admin transfer, archive)
@@ -193,10 +210,17 @@ export const useTripMembersQuery = (tripId?: string) => {
       if (!tripId || !user?.id) throw new Error('Must be logged in');
       if (isDemoMode) return true;
 
-      const { data, error } = await supabase.rpc('leave_trip' as any, { _trip_id: tripId });
+      // leave_trip RPC exists in DB but may not be in generated Supabase types
+      const { data, error } = await supabase.rpc('leave_trip' as const, {
+        _trip_id: tripId,
+      });
       if (error) throw error;
 
-      const result = data as { success?: boolean; message?: string; notify_user_id?: string } | null;
+      const result = data as {
+        success?: boolean;
+        message?: string;
+        notify_user_id?: string;
+      } | null;
       if (!result?.success) throw new Error(result?.message || 'Failed to leave trip');
 
       // Notify primary admin (creator if active, else promoted admin) - RPC returns notify_user_id
@@ -231,7 +255,7 @@ export const useTripMembersQuery = (tripId?: string) => {
     },
     onError: () => {
       toast.error('Failed to leave trip');
-    }
+    },
   });
 
   return {
@@ -242,6 +266,6 @@ export const useTripMembersQuery = (tripId?: string) => {
     canRemoveMembers,
     removeMember: (userId: string) => removeMemberMutation.mutateAsync(userId),
     leaveTrip: (tripName: string) => leaveTripMutation.mutateAsync(tripName),
-    refreshMembers: refetch
+    refreshMembers: refetch,
   };
 };

@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { formatCurrency } from '@/services/currencyService';
-import { Plus, DollarSign, CheckCircle, Clock, AlertCircle, Loader2, ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
+import {
+  Plus,
+  DollarSign,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Loader2,
+  ArrowUpRight,
+  ArrowDownLeft,
+  RefreshCw,
+} from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,15 +19,17 @@ import { safeReload } from '@/utils/safeReload';
 import { CreatePaymentModal } from './CreatePaymentModal';
 import { demoModeService } from '@/services/demoModeService';
 import { paymentService } from '@/services/paymentService';
-import { paymentBalanceService, BalanceSummary as BalanceSummaryType } from '@/services/paymentBalanceService';
-import { tripService } from '@/services/tripService';
+import {
+  paymentBalanceService,
+  BalanceSummary as BalanceSummaryType,
+} from '@/services/paymentBalanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { getTripById } from '@/data/tripsData';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
+import { useTripMembersQuery } from '@/hooks/useTripMembersQuery';
 import { getConsistentAvatar, getInitials } from '@/utils/avatarUtils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { useToast } from '@/hooks/use-toast';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { isDemoTrip } from '@/utils/demoUtils';
 
@@ -50,7 +62,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { isDemoMode, isLoading: demoLoading } = useDemoMode();
-  
+
   // ⚡ PERFORMANCE: Timeout state to prevent indefinite spinners
   const [hasTimedOut, setHasTimedOut] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -58,81 +70,56 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   const demoActive = isDemoMode && isDemoTrip(tripId);
   const tripIdNum = parseInt(tripId, 10);
 
-  // ⚡ PERFORMANCE: TanStack Query for authenticated payment data
-  // This enables prefetch cache warming + instant re-visits
-  const { data: authPaymentData, isLoading: authQueryLoading, refetch: refetchPayments } = useQuery({
+  // ⚡ CANONICAL: Use same membership source as Trip Members UI and desktop Payments
+  const {
+    tripMembers: canonicalMembers,
+    loading: membersLoading,
+    hadMembersError,
+    refreshMembers,
+  } = useTripMembersQuery(demoActive ? undefined : tripId);
+
+  // Ensure current user in members when viewing (e.g. shared trip)
+  const tripMembers = useMemo(() => {
+    if (demoActive) return [];
+    const base = canonicalMembers.map(m => ({ id: m.id, name: m.name, avatar: m.avatar }));
+    if (user && !base.find(m => m.id === user.id)) {
+      return [
+        {
+          id: user.id,
+          name: user.displayName || user.email?.split('@')[0] || 'Unknown',
+          avatar: user.avatar,
+        },
+        ...base,
+      ];
+    }
+    return base;
+  }, [demoActive, canonicalMembers, user]);
+
+  // ⚡ PERFORMANCE: TanStack Query for payments + balance (members from canonical useTripMembersQuery)
+  const {
+    data: authPaymentData,
+    isLoading: authQueryLoading,
+    refetch: refetchPayments,
+  } = useQuery({
     queryKey: tripKeys.payments(tripId),
     queryFn: async () => {
-      // ⚡ Parallel fetch: members (creator-guaranteed) + payments + user profile + balance
-      const [membersData, paymentsData, userProfileResult] = await Promise.all([
-        tripService.getTripMembersWithCreator(tripId),
+      const [paymentsData, balanceResult] = await Promise.all([
         paymentService.getTripPaymentMessages(tripId),
-        // Pre-fetch user profile in parallel (in case user isn't in members list)
-        user ? supabase
-          .from('profiles')
-          .select('display_name, avatar_url')
-          .eq('user_id', user.id)
-          .single() : Promise.resolve({ data: null }),
+        user?.id
+          ? paymentBalanceService.getBalanceSummary(tripId, user.id).catch(() => ({
+              totalOwed: 0,
+              totalOwedToYou: 0,
+              netBalance: 0,
+              baseCurrency: 'USD' as const,
+              balances: [],
+            }))
+          : Promise.resolve(null),
       ]);
 
-      // getTripMembersWithCreator guarantees creator is always in the list
-      const formattedMembers = membersData.members.map(m => ({
-        id: m.id,
-        name: m.name,
-        avatar: m.avatar,
-      }));
-
-      // Ensure current user is in members list when viewing (e.g. shared trip)
-      let finalMembers = formattedMembers;
-      if (user && !formattedMembers.find(m => m.id === user.id)) {
-        const profile = userProfileResult?.data;
-        finalMembers = [
-          {
-            id: user.id,
-            name: profile?.display_name || user.email?.split('@')[0] || 'Unknown',
-            avatar: profile?.avatar_url || undefined,
-          },
-          ...formattedMembers,
-        ];
-      }
-
-      // Convert Supabase payments to Payment format
-      const convertedPayments: Payment[] = paymentsData.map(p => {
-        const payerProfile = finalMembers.find(m => m.id === p.createdBy);
-        return {
-          id: p.id,
-          payer: payerProfile?.name || 'Unknown',
-          payerId: p.createdBy,
-          payerAvatar: payerProfile?.avatar || getConsistentAvatar(payerProfile?.name || 'Unknown'),
-          amount: p.amount,
-          currency: p.currency,
-          description: p.description,
-          status: p.isSettled ? ('settled' as const) : ('pending' as const),
-          splitWith: p.splitParticipants,
-          splitCount: p.splitCount,
-          date: p.createdAt,
-          isSettled: p.isSettled,
-        };
-      });
-
-      // ⚡ Fetch balance summary in parallel with the rest
-      let balanceSummary: BalanceSummaryType | null = null;
-      if (user?.id) {
-        try {
-          balanceSummary = await paymentBalanceService.getBalanceSummary(tripId, user.id);
-        } catch (error) {
-          console.error('Error loading balance summary:', error);
-          balanceSummary = {
-            totalOwed: 0,
-            totalOwedToYou: 0,
-            netBalance: 0,
-            baseCurrency: 'USD',
-            balances: [],
-          };
-        }
-      }
-
-      return { members: finalMembers, payments: convertedPayments, balanceSummary };
+      return {
+        payments: paymentsData,
+        balanceSummary: balanceResult ?? null,
+      };
     },
     enabled: !demoActive && !demoLoading && !!user,
     staleTime: QUERY_CACHE_CONFIG.payments.staleTime,
@@ -140,8 +127,33 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.payments.refetchOnWindowFocus,
   });
 
+  // Convert raw payments to Payment format using canonical members (payer names)
+  const payments = useMemo(() => {
+    const raw = authPaymentData?.payments ?? [];
+    if (raw.length === 0) return [];
+    return raw.map(p => {
+      const payer = tripMembers.find(m => m.id === p.createdBy);
+      return {
+        id: p.id,
+        payer: payer?.name || 'Unknown',
+        payerId: p.createdBy,
+        payerAvatar: payer?.avatar || getConsistentAvatar(payer?.name || 'Unknown'),
+        amount: p.amount,
+        currency: p.currency,
+        description: p.description,
+        status: (p.isSettled ? 'settled' : 'pending') as Payment['status'],
+        splitWith: p.splitParticipants,
+        splitCount: p.splitCount,
+        date: p.createdAt,
+        isSettled: p.isSettled,
+      };
+    });
+  }, [authPaymentData?.payments, tripMembers]);
+
   // Demo mode state (unchanged logic, just separated from auth flow)
-  const [demoMembers, setDemoMembers] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [demoMembers, setDemoMembers] = useState<
+    Array<{ id: string; name: string; avatar?: string }>
+  >([]);
   const [demoPayments, setDemoPayments] = useState<Payment[]>([]);
   const [demoBalance, setDemoBalance] = useState<BalanceSummaryType | null>(null);
   const [demoDataLoaded, setDemoDataLoaded] = useState(false);
@@ -235,20 +247,22 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
   }, [tripId, demoActive, demoLoading, tripIdNum]);
 
   // ⚡ Unified data accessors — demo or auth (memoized for stable callback deps)
-  const tripMembers = useMemo(
-    () => (demoActive ? demoMembers : (authPaymentData?.members ?? [])),
-    [demoActive, demoMembers, authPaymentData?.members]
-  );
-  const payments = useMemo(
-    () => (demoActive ? demoPayments : (authPaymentData?.payments ?? [])),
-    [demoActive, demoPayments, authPaymentData?.payments]
-  );
+  const effectiveTripMembers = demoActive ? demoMembers : tripMembers;
+  const effectivePayments = demoActive ? demoPayments : payments;
   const balanceSummary = demoActive ? demoBalance : (authPaymentData?.balanceSummary ?? null);
-  const isLoading = demoActive ? (!demoDataLoaded && !demoLoading) : authQueryLoading;
+  const isLoading = demoActive
+    ? !demoDataLoaded && !demoLoading
+    : authQueryLoading || (membersLoading && !hadMembersError);
 
   // Split payments into outstanding and completed
-  const outstandingPayments = useMemo(() => payments.filter(p => !p.isSettled), [payments]);
-  const completedPayments = useMemo(() => payments.filter(p => p.isSettled), [payments]);
+  const outstandingPayments = useMemo(
+    () => effectivePayments.filter(p => !p.isSettled),
+    [effectivePayments],
+  );
+  const completedPayments = useMemo(
+    () => effectivePayments.filter(p => p.isSettled),
+    [effectivePayments],
+  );
 
   // ⚡ PERFORMANCE: 10-second timeout to prevent indefinite spinners
   useEffect(() => {
@@ -258,14 +272,14 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         setHasTimedOut(true);
       }, 10000);
     }
-    
+
     // Clear timeout when loading completes
     if (!isLoading && loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
       loadingTimeoutRef.current = null;
       setHasTimedOut(false);
     }
-    
+
     return () => {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
@@ -289,14 +303,10 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
 
     const channel = supabase
       .channel(`mobile-payments-profiles-${tripId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'profiles' },
-        () => {
-          // Invalidate the payments query so it refetches with updated profile data
-          queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
-        },
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        // Invalidate the payments query so it refetches with updated profile data
+        queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+      })
       .subscribe();
 
     return () => {
@@ -320,7 +330,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
 
       const getPayerName = (createdBy: string, createdByName?: string): string => {
         if (createdByName) return createdByName;
-        const member = tripMembers.find(m => m.id === createdBy);
+        const member = effectiveTripMembers.find(m => m.id === createdBy);
         if (member) return member.name;
         const mockMember = mockMembers.find(m => m.user_id === createdBy);
         return mockMember?.display_name || 'Unknown';
@@ -358,10 +368,13 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
 
       setDemoPayments([...convertedSessionPayments, ...convertedMockPayments]);
     } else {
-      // ⚡ Invalidate TanStack Query cache — refetches members + payments + balance in one call
-      await queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+      // ⚡ Invalidate TanStack Query cache — refetches members + payments
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) }),
+        queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) }),
+      ]);
     }
-  }, [tripId, demoActive, tripMembers, queryClient]);
+  }, [tripId, demoActive, effectiveTripMembers, queryClient]);
 
   const handlePaymentTap = async (_paymentId: string) => {
     await hapticService.light();
@@ -425,6 +438,26 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     );
   }
 
+  // Members failed to load (same error as desktop PaymentsTab)
+  if (!demoActive && hadMembersError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-black py-12 px-4">
+        <AlertCircle className="w-10 h-10 text-amber-500 mb-3" />
+        <h3 className="text-lg font-semibold text-white mb-2">Couldn&apos;t load trip members</h3>
+        <p className="text-sm text-muted-foreground text-center mb-4">
+          This might be a connection issue. Payments need the member list to split expenses.
+        </p>
+        <button
+          onClick={() => refreshMembers()}
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+        >
+          <RefreshCw size={16} />
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex flex-col h-full bg-black">
       {(isRefreshing || pullDistance > 0) && (
@@ -448,7 +481,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
                 {formatCurrencyFn(balanceSummary?.totalOwed || 0)}
               </p>
             </div>
-            
+
             {/* You Are Owed */}
             <div className="text-center border-x border-border">
               <div className="flex items-center justify-center gap-1 mb-1">
@@ -459,16 +492,18 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
                 {formatCurrencyFn(balanceSummary?.totalOwedToYou || 0)}
               </p>
             </div>
-            
+
             {/* Net Balance */}
             <div className="text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
                 <DollarSign size={14} className="text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Net</span>
               </div>
-              <p className={`text-lg font-bold ${
-                (balanceSummary?.netBalance || 0) >= 0 ? 'text-green-500' : 'text-orange-500'
-              }`}>
+              <p
+                className={`text-lg font-bold ${
+                  (balanceSummary?.netBalance || 0) >= 0 ? 'text-green-500' : 'text-orange-500'
+                }`}
+              >
                 {formatCurrencyFn(balanceSummary?.netBalance || 0)}
               </p>
             </div>
@@ -478,13 +513,11 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
 
       {/* Payments List */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 native-scroll mobile-safe-scroll">
-        {payments.length === 0 ? (
+        {effectivePayments.length === 0 ? (
           <div className="text-center py-12">
             <DollarSign size={48} className="text-muted-foreground mx-auto mb-4" />
             <h4 className="text-lg font-medium text-muted-foreground mb-2">No payments yet</h4>
-            <p className="text-muted-foreground text-sm">
-              Split expenses and track who owes what
-            </p>
+            <p className="text-muted-foreground text-sm">Split expenses and track who owes what</p>
           </div>
         ) : (
           <>
@@ -493,15 +526,13 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Clock size={16} className="text-yellow-500" />
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Outstanding Payments
-                  </h3>
+                  <h3 className="text-sm font-semibold text-foreground">Outstanding Payments</h3>
                   <span className="text-xs text-muted-foreground">
                     ({outstandingPayments.length})
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {outstandingPayments.map((payment) => (
+                  {outstandingPayments.map(payment => (
                     <PaymentCard
                       key={payment.id}
                       payment={payment}
@@ -519,15 +550,13 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle size={16} className="text-green-500" />
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Completed Payments
-                  </h3>
+                  <h3 className="text-sm font-semibold text-foreground">Completed Payments</h3>
                   <span className="text-xs text-muted-foreground">
                     ({completedPayments.length})
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {completedPayments.map((payment) => (
+                  {completedPayments.map(payment => (
                     <PaymentCard
                       key={payment.id}
                       payment={payment}
@@ -546,12 +575,12 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
       {/* Add Payment FAB */}
       <div className="sticky bottom-0 px-4 py-2 pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-black via-black to-transparent border-t border-border">
         <button
-            onClick={handleAddPayment}
-            className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
-          >
-            <Plus size={20} />
-            Add Payment Request
-          </button>
+          onClick={handleAddPayment}
+          className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium py-4 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
+        >
+          <Plus size={20} />
+          Add Payment Request
+        </button>
       </div>
 
       {/* Create Payment Modal */}
@@ -559,7 +588,7 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         tripId={tripId}
-        tripMembers={tripMembers}
+        tripMembers={effectiveTripMembers}
         onPaymentCreated={handlePaymentCreated}
         demoActive={demoActive}
         userId={user?.id}
@@ -580,14 +609,14 @@ const PaymentCard: React.FC<PaymentCardProps> = ({
   payment,
   onTap,
   formatCurrency,
-  getStatusIcon
+  getStatusIcon,
 }) => {
   return (
     <button
       onClick={() => onTap(payment.id)}
       className={`w-full border rounded-xl p-3 transition-all active:scale-[0.98] text-left ${
-        payment.isSettled 
-          ? 'bg-green-500/5 border-green-500/20 hover:bg-green-500/10' 
+        payment.isSettled
+          ? 'bg-green-500/5 border-green-500/20 hover:bg-green-500/10'
           : 'bg-card/50 border-border hover:bg-card/80'
       }`}
     >
@@ -604,12 +633,8 @@ const PaymentCard: React.FC<PaymentCardProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {payment.description}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Paid by {payment.payer}
-              </p>
+              <p className="text-sm font-medium text-foreground truncate">{payment.description}</p>
+              <p className="text-xs text-muted-foreground">Paid by {payment.payer}</p>
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-sm font-semibold text-foreground">
@@ -625,15 +650,13 @@ const PaymentCard: React.FC<PaymentCardProps> = ({
           <div className="flex items-center justify-between mt-1.5">
             <div className="flex items-center gap-1.5">
               {getStatusIcon(payment.status)}
-              <span className={`text-xs ${
-                payment.isSettled ? 'text-green-500' : 'text-yellow-500'
-              }`}>
+              <span
+                className={`text-xs ${payment.isSettled ? 'text-green-500' : 'text-yellow-500'}`}
+              >
                 {payment.isSettled ? 'Settled' : 'Pending'}
               </span>
             </div>
-            <span className="text-xs text-muted-foreground">
-              Split {payment.splitCount} ways
-            </span>
+            <span className="text-xs text-muted-foreground">Split {payment.splitCount} ways</span>
           </div>
         </div>
       </div>
