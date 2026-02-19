@@ -1,9 +1,9 @@
 /**
  * Trip Links Service
- * 
+ *
  * Provides comprehensive CRUD operations for trip links
  * Handles both authenticated mode (Supabase) and demo mode (localStorage)
- * 
+ *
  * Features:
  * - Create, read, update, delete trip links
  * - Vote on links
@@ -15,10 +15,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import TripSpecificMockDataService from './tripSpecificMockDataService';
+import { InputValidator } from '@/utils/securityUtils';
 
 type TripLink = Database['public']['Tables']['trip_links']['Row'];
 type TripLinkInsert = Database['public']['Tables']['trip_links']['Insert'];
 type TripLinkUpdate = Database['public']['Tables']['trip_links']['Update'];
+
+export function normalizeAndValidateUrl(rawUrl: string): string | null {
+  const candidate = rawUrl.trim();
+  const withScheme = /^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`;
+
+  if (!InputValidator.isValidUrl(withScheme)) {
+    return null;
+  }
+
+  const parsed = new URL(withScheme);
+  return parsed.toString();
+}
 
 export interface CreateTripLinkParams {
   tripId: string;
@@ -48,9 +61,9 @@ function getDemoLinksKey(tripId: string): string {
  */
 function mapSourceToCategory(source: string): string {
   const categoryMap: Record<string, string> = {
-    'places': 'attraction',
-    'manual': 'other',
-    'chat': 'other'
+    places: 'attraction',
+    manual: 'other',
+    chat: 'other',
   };
   return categoryMap[source] || 'other';
 }
@@ -62,13 +75,21 @@ function mapSourceToCategory(source: string): string {
 function getDemoLinks(tripId: string): TripLink[] {
   try {
     const tripIdNum = parseInt(tripId, 10);
-    console.debug('[TripLinksService] getDemoLinks called', { tripId, tripIdNum, isNaN: Number.isNaN(tripIdNum) });
-    
+    console.debug('[TripLinksService] getDemoLinks called', {
+      tripId,
+      tripIdNum,
+      isNaN: Number.isNaN(tripIdNum),
+    });
+
     // For trips 1-12, ALWAYS load mock data first (ignoring stale localStorage cache)
     if (tripIdNum >= 1 && tripIdNum <= 12) {
       const tripLinks = TripSpecificMockDataService.getTripLinkItems(tripIdNum);
-      console.debug('[TripLinksService] Mock links from TripSpecificMockDataService', { tripIdNum, count: tripLinks.length, links: tripLinks });
-      
+      console.debug('[TripLinksService] Mock links from TripSpecificMockDataService', {
+        tripIdNum,
+        count: tripLinks.length,
+        links: tripLinks,
+      });
+
       if (tripLinks.length > 0) {
         // Transform trip-specific mock data to TripLink format
         const mockLinks = tripLinks.map((link, index) => ({
@@ -82,21 +103,22 @@ function getDemoLinks(tripId: string): TripLink[] {
           added_by: 'demo-user',
           created_at: link.created_at,
           updated_at: link.created_at,
+          sort_order: index,
         }));
-        
+
         // Merge with any user-added links (links not starting with tripId-link-)
         const stored = localStorage.getItem(getDemoLinksKey(tripId));
         if (stored) {
           const userLinks = JSON.parse(stored).filter(
-            (link: TripLink) => !link.id.startsWith(`${tripId}-link-`)
+            (link: TripLink) => !link.id.startsWith(`${tripId}-link-`),
           );
           return [...mockLinks, ...userLinks];
         }
-        
+
         return mockLinks;
       }
     }
-    
+
     // For non-demo trips or trips without mock data, use localStorage only
     const stored = localStorage.getItem(getDemoLinksKey(tripId));
     return stored ? JSON.parse(stored) : [];
@@ -122,7 +144,7 @@ function saveDemoLinks(tripId: string, links: TripLink[]): void {
  */
 export async function createTripLink(
   params: CreateTripLinkParams,
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<TripLink | null> {
   console.info('[TripLinksService] Creating trip link', {
     tripId: params.tripId,
@@ -130,12 +152,19 @@ export async function createTripLink(
     hasUrl: Boolean(params.url),
   });
 
+  const normalizedUrl = normalizeAndValidateUrl(params.url);
+  if (!normalizedUrl) {
+    toast.error('Please enter a valid URL');
+    return null;
+  }
+
   if (isDemoMode) {
     // Demo mode: Store in localStorage
+    const demoLinks = getDemoLinks(params.tripId);
     const demoLink: TripLink = {
       id: `demo-link-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       trip_id: params.tripId,
-      url: params.url,
+      url: normalizedUrl,
       title: params.title,
       description: params.description || null,
       category: params.category || null,
@@ -143,9 +172,9 @@ export async function createTripLink(
       added_by: params.addedBy,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      sort_order: demoLinks.length,
     };
 
-    const demoLinks = getDemoLinks(params.tripId);
     demoLinks.push(demoLink);
     saveDemoLinks(params.tripId, demoLinks);
 
@@ -156,20 +185,25 @@ export async function createTripLink(
 
   // Authenticated mode: Store in Supabase
   try {
+    const { data: maxOrderData } = await supabase
+      .from('trip_links')
+      .select('sort_order')
+      .eq('trip_id', params.tripId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     const linkData: TripLinkInsert = {
       trip_id: params.tripId,
-      url: params.url,
+      url: normalizedUrl,
       title: params.title,
       description: params.description,
       category: params.category,
       added_by: params.addedBy,
+      sort_order: (maxOrderData?.sort_order ?? -1) + 1,
     };
 
-    const { data, error } = await supabase
-      .from('trip_links')
-      .insert(linkData)
-      .select()
-      .single();
+    const { data, error } = await supabase.from('trip_links').insert(linkData).select().single();
 
     if (error) {
       console.error('[TripLinksService] ❌ Create error', error);
@@ -190,16 +224,17 @@ export async function createTripLink(
 /**
  * Get all trip links for a trip
  */
-export async function getTripLinks(
-  tripId: string,
-  isDemoMode: boolean
-): Promise<TripLink[]> {
+export async function getTripLinks(tripId: string, isDemoMode: boolean): Promise<TripLink[]> {
   console.debug('[TripLinksService] Fetching trip links', { tripId, isDemoMode });
 
   if (isDemoMode) {
     // Demo mode: Load from localStorage merged with mock data
     const demoLinks = getDemoLinks(tripId);
-    console.info('[TripLinksService] ✅ Loaded demo links', { tripId, count: demoLinks.length, firstTitle: demoLinks[0]?.title });
+    console.info('[TripLinksService] ✅ Loaded demo links', {
+      tripId,
+      count: demoLinks.length,
+      firstTitle: demoLinks[0]?.title,
+    });
     return demoLinks;
   }
 
@@ -209,6 +244,7 @@ export async function getTripLinks(
       .from('trip_links')
       .select('*')
       .eq('trip_id', tripId)
+      .order('sort_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -232,7 +268,7 @@ export async function getTripLinks(
 export async function getTripLinkById(
   linkId: string,
   tripId: string,
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<TripLink | null> {
   if (isDemoMode) {
     const demoLinks = getDemoLinks(tripId);
@@ -240,11 +276,7 @@ export async function getTripLinkById(
   }
 
   try {
-    const { data, error } = await supabase
-      .from('trip_links')
-      .select('*')
-      .eq('id', linkId)
-      .single();
+    const { data, error } = await supabase.from('trip_links').select('*').eq('id', linkId).single();
 
     if (error) {
       console.error('[TripLinksService] ❌ Fetch single error', error);
@@ -264,7 +296,7 @@ export async function getTripLinkById(
 export async function updateTripLink(
   params: UpdateTripLinkParams,
   tripId: string,
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<boolean> {
   console.info('[TripLinksService] Updating trip link', {
     linkId: params.linkId,
@@ -302,10 +334,7 @@ export async function updateTripLink(
     if (params.category !== undefined) updateData.category = params.category;
     updateData.updated_at = new Date().toISOString();
 
-    const { error } = await supabase
-      .from('trip_links')
-      .update(updateData)
-      .eq('id', params.linkId);
+    const { error } = await supabase.from('trip_links').update(updateData).eq('id', params.linkId);
 
     if (error) {
       console.error('[TripLinksService] ❌ Update error', error);
@@ -329,7 +358,7 @@ export async function updateTripLink(
 export async function deleteTripLink(
   linkId: string,
   tripId: string,
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<boolean> {
   console.info('[TripLinksService] Deleting trip link', { linkId, isDemoMode });
 
@@ -352,10 +381,7 @@ export async function deleteTripLink(
 
   // Authenticated mode: Delete from Supabase
   try {
-    const { error } = await supabase
-      .from('trip_links')
-      .delete()
-      .eq('id', linkId);
+    const { error } = await supabase.from('trip_links').delete().eq('id', linkId);
 
     if (error) {
       console.error('[TripLinksService] ❌ Delete error', error);
@@ -379,7 +405,7 @@ export async function deleteTripLink(
 export async function voteTripLink(
   linkId: string,
   tripId: string,
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<boolean> {
   console.info('[TripLinksService] Voting on trip link', { linkId, isDemoMode });
 
@@ -404,26 +430,18 @@ export async function voteTripLink(
 
   // Authenticated mode: Increment vote in Supabase
   try {
-    const { data: currentLink } = await supabase
-      .from('trip_links')
-      .select('votes')
-      .eq('id', linkId)
-      .single();
-
-    if (!currentLink) {
-      console.error('[TripLinksService] ❌ Link not found');
-      toast.error('Link not found');
-      return false;
-    }
-
-    const { error } = await supabase
-      .from('trip_links')
-      .update({ votes: (currentLink.votes || 0) + 1 })
-      .eq('id', linkId);
+    const { data: voteRecorded, error } = await supabase.rpc('increment_trip_link_votes', {
+      p_link_id: linkId,
+    });
 
     if (error) {
       console.error('[TripLinksService] ❌ Vote error', error);
       toast.error('Failed to vote');
+      return false;
+    }
+
+    if (!voteRecorded) {
+      toast.error('Link not found');
       return false;
     }
 
@@ -443,7 +461,7 @@ export async function voteTripLink(
 export async function getTripLinksByCategory(
   tripId: string,
   category: string,
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<TripLink[]> {
   const allLinks = await getTripLinks(tripId, isDemoMode);
   return allLinks.filter(link => link.category === category);
@@ -455,17 +473,18 @@ export async function getTripLinksByCategory(
 export async function searchTripLinks(
   tripId: string,
   searchQuery: string,
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<TripLink[]> {
   const allLinks = await getTripLinks(tripId, isDemoMode);
   const query = searchQuery.toLowerCase().trim();
 
   if (!query) return allLinks;
 
-  return allLinks.filter(link => 
-    link.title.toLowerCase().includes(query) ||
-    link.description?.toLowerCase().includes(query) ||
-    link.url.toLowerCase().includes(query)
+  return allLinks.filter(
+    link =>
+      link.title.toLowerCase().includes(query) ||
+      link.description?.toLowerCase().includes(query) ||
+      link.url.toLowerCase().includes(query),
   );
 }
 
@@ -475,44 +494,49 @@ export async function searchTripLinks(
 export async function updateTripLinksOrder(
   tripId: string,
   orderedIds: string[],
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<boolean> {
-  console.info('[TripLinksService] Updating links order', { tripId, isDemoMode, count: orderedIds.length });
+  console.info('[TripLinksService] Updating links order', {
+    tripId,
+    isDemoMode,
+    count: orderedIds.length,
+  });
 
   if (isDemoMode) {
     // Demo mode: Reorder in localStorage
     const demoLinks = getDemoLinks(tripId);
     const orderedLinks: TripLink[] = [];
-    
+
     for (const id of orderedIds) {
       const link = demoLinks.find(l => l.id === id);
-      if (link) orderedLinks.push(link);
+      if (link) orderedLinks.push({ ...link, sort_order: orderedLinks.length });
     }
-    
+
     // Add any links not in orderedIds at the end
-    const remainingLinks = demoLinks.filter(l => !orderedIds.includes(l.id));
+    const remainingLinks = demoLinks
+      .filter(l => !orderedIds.includes(l.id))
+      .map((link, index) => ({ ...link, sort_order: orderedLinks.length + index }));
     orderedLinks.push(...remainingLinks);
-    
+
     saveDemoLinks(tripId, orderedLinks);
     console.info('[TripLinksService] ✅ Demo links reordered');
     return true;
   }
 
   // Authenticated mode: Update order in Supabase
-  // Note: trip_links table doesn't have an order column, so we'll use updated_at as proxy
   try {
     for (let i = 0; i < orderedIds.length; i++) {
       const { error } = await supabase
         .from('trip_links')
-        .update({ updated_at: new Date(Date.now() - i * 1000).toISOString() })
+        .update({ sort_order: i, updated_at: new Date().toISOString() })
         .eq('id', orderedIds[i]);
-      
+
       if (error) {
         console.error('[TripLinksService] ❌ Order update error', error);
         return false;
       }
     }
-    
+
     console.info('[TripLinksService] ✅ Links reordered');
     return true;
   } catch (error) {
