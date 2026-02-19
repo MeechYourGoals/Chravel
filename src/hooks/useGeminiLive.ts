@@ -373,13 +373,14 @@ export function useGeminiLive({
 
       const accessToken =
         typeof sessionData?.accessToken === 'string' ? sessionData.accessToken : null;
-      const apiKey = typeof sessionData?.apiKey === 'string' ? sessionData.apiKey : null;
+      // SECURITY: apiKey fallback REMOVED — never send raw API keys to browser WebSocket.
+      // Only ephemeral access tokens (created server-side) are allowed.
       const sessionErrMsg =
         typeof (sessionData as { error?: string })?.error === 'string'
           ? (sessionData as { error: string }).error
           : sessionError?.message;
 
-      if (sessionError || (!accessToken && !apiKey)) {
+      if (sessionError || !accessToken) {
         throw new Error(mapSessionError(sessionErrMsg || 'Failed to get voice session'));
       }
 
@@ -432,9 +433,8 @@ export function useGeminiLive({
         typeof sessionData?.websocketUrl === 'string' && sessionData.websocketUrl.length > 0
           ? sessionData.websocketUrl
           : 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
-      const wsUrl = accessToken
-        ? `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`
-        : `${websocketUrl}?key=${encodeURIComponent(apiKey as string)}`;
+      // SECURITY: Only ephemeral access tokens are used — no raw key= fallback
+      const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -463,37 +463,9 @@ export function useGeminiLive({
         // system instruction, AND tools) is already baked into the token by the
         // edge function. Sending a duplicate setup message risks overriding the
         // token config and stripping tool declarations.
-        // Only send a client-side setup when using an API key directly (fallback).
-        if (!accessToken) {
-          const rawModel = String(
-            sessionData.model || 'models/gemini-2.5-flash-native-audio-preview-12-2025',
-          );
-          const normalizedModel = rawModel.startsWith('models/')
-            ? rawModel
-            : `models/${rawModel.replace(/^models\//, '')}`;
-
-          const setupMessage = {
-            setup: {
-              model: normalizedModel,
-              generationConfig: {
-                responseModalities: ['AUDIO', 'TEXT'],
-                speechConfig: {
-                  voiceConfig: {
-                    prebuiltVoiceConfig: {
-                      voiceName: sessionData.voice,
-                    },
-                  },
-                },
-              },
-              systemInstruction: {
-                parts: [{ text: sessionData.systemInstruction }],
-              },
-              tools: sessionData.tools ?? [],
-            },
-          };
-
-          ws.send(JSON.stringify(setupMessage));
-        }
+        // Ephemeral access tokens embed all session config (model, voice,
+        // system instruction, tools). No client-side setup message needed.
+        // The legacy apiKey fallback path has been removed for security.
       };
 
       ws.onmessage = event => {

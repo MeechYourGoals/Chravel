@@ -324,10 +324,10 @@ serve(async req => {
       throw tokenErr;
     }
 
-    // The ephemeral token already embeds model, voice, system instruction, and
-    // tools. We intentionally omit systemInstruction from the response to avoid
-    // leaking the full prompt to the client and to prevent the client from
-    // sending a duplicate setup message that could strip tool declarations.
+    // SECURITY: The response MUST only contain the ephemeral accessToken, NEVER
+    // the raw GEMINI_API_KEY. The client connects to the WebSocket using
+    // ?access_token=<ephemeral> which expires after GEMINI_EPHEMERAL_EXPIRE_MINUTES.
+    // DO NOT add an apiKey field here — it would expose the secret to every user.
     return new Response(
       JSON.stringify({
         accessToken: ephemeral.token,

@@ -7,10 +7,9 @@
  * 1. Add VITE_GOOGLE_MAPS_API_KEY secret in Lovable settings
  * 2. Or set VITE_GOOGLE_MAPS_API_KEY in .env file for local dev
  * 
- * The fallback key is for backwards compatibility but may have domain restrictions.
+ * SECURITY: No fallback key is provided. If the env var is missing, Maps features
+ * will be disabled. This prevents accidental key exposure in the client bundle.
  */
-
-const FALLBACK_PUBLIC_KEY = 'AIzaSyAz3raJADWR86fJEV5Hx1_6V_Pgyj3ozw4';
 
 // Track initialization for debugging
 let hasLoggedKeyStatus = false;
@@ -26,19 +25,28 @@ export function getGoogleMapsApiKey(): string {
     !envKey.includes('your_') &&
     !envKey.includes('YOUR_');
   
-  const key = isValidKey ? envKey : FALLBACK_PUBLIC_KEY;
+  if (!isValidKey) {
+    if (!hasLoggedKeyStatus) {
+      hasLoggedKeyStatus = true;
+      console.warn(
+        '[GoogleMaps Config] VITE_GOOGLE_MAPS_API_KEY is not set or invalid. ' +
+        'Maps features will be disabled. Add the key in Lovable settings or .env file.'
+      );
+    }
+    return '';
+  }
   
   // Log key status once for debugging (only in development)
   if (!hasLoggedKeyStatus && import.meta.env.DEV) {
     hasLoggedKeyStatus = true;
     console.info('[GoogleMaps Config]', {
-      source: isValidKey ? 'VITE_GOOGLE_MAPS_API_KEY' : 'FALLBACK_KEY',
-      keyLength: key.length,
-      keyPrefix: key.substring(0, 8) + '...',
+      source: 'VITE_GOOGLE_MAPS_API_KEY',
+      keyLength: envKey.length,
+      keyPrefix: envKey.substring(0, 8) + '...',
     });
   }
   
-  return key;
+  return envKey;
 }
 
 // Export singleton key for consistent usage
