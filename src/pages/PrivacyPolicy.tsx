@@ -187,7 +187,8 @@ export default function PrivacyPolicy() {
                 <strong>Email:</strong> privacy@chravel.com
               </li>
               <li>
-                <strong>Mail:</strong> Chravel Privacy Team, [Company Address]
+                <strong>Mail:</strong> Chravel Privacy Team, 130 N Broadway STE 32415, Los Angeles,
+                CA 90012
               </li>
             </ul>
           </section>
