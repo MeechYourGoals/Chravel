@@ -369,8 +369,8 @@ export const ChannelChatView = ({
           </div>
         ) : (
           <VirtualizedMessageContainer
-            messages={formattedMessages}
-            renderMessage={message => (
+            messages={formattedMessages as any}
+            renderMessage={(message: any) => (
               <MessageItem
                 message={message}
                 reactions={reactions[message.id]}

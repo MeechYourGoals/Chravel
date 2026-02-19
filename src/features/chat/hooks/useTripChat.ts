@@ -148,7 +148,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => {
         let result = old;
         for (const payload of toInsert) {
-          const newMessage = payload as TripChatMessage & { client_message_id?: string };
+          const newMessage = payload as unknown as TripChatMessage & { client_message_id?: string };
           const isDuplicate = result.some((msg) => {
             if (msg.id === newMessage.id) return true;
             const existingClientId = (msg as TripChatMessage & { client_message_id?: string }).client_message_id;
@@ -395,7 +395,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       if (import.meta.env.DEV) {
         console.error('[useTripChat] Message creation error:', error);
       }
-      const errorMessage = error.message || 'Failed to send message. Please try again.';
+      const errorMessage = (error as any)?.message || 'Failed to send message. Please try again.';
       toast({
         title: 'Error',
         description: errorMessage,

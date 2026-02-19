@@ -722,8 +722,8 @@ export const TripChat = ({
                 </div>
               ) : (
                 <VirtualizedMessageContainer
-                  messages={messagesWithFailed}
-                  renderMessage={(message) => (
+                  messages={messagesWithFailed as any}
+                  renderMessage={(message: any) => (
                     <div data-message-id={message.id}>
                       <MessageItem
                         message={message}

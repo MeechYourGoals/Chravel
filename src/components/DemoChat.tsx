@@ -89,7 +89,7 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
         };
         return updated;
       });
-      const result = await toggleMessageReaction(messageId, user.id, reactionType as 'like' | 'love' | 'laugh');
+      const result = await toggleMessageReaction(messageId, user.id, reactionType as any);
       if (result.error) {
         const messageIds = liveMessages.map((m) => m.id);
         const fresh = await getMessagesReactions(messageIds, user.id);
@@ -196,8 +196,8 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
           </div>
         ) : (
           <VirtualizedMessageContainer
-            messages={transformedMessages}
-            renderMessage={(message) => (
+            messages={transformedMessages as any}
+            renderMessage={(message: any) => (
               <MessageItem
                 key={message.id}
                 message={message}

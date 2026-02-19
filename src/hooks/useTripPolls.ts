@@ -320,7 +320,7 @@ export const useTripPolls = (tripId: string) => {
         throw new Error('This poll only allows one option per voter.');
       }
 
-      const { error: batchError } = await supabase.rpc('vote_on_poll_batch', {
+      const { error: batchError } = await (supabase.rpc as any)('vote_on_poll_batch', {
         p_poll_id: pollId,
         p_option_ids: optionIdsArray,
         p_user_id: user.id,
