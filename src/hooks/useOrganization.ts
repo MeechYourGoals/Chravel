@@ -33,27 +33,14 @@ export const useOrganization = () => {
   const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    // 🎯 CRITICAL: Demo mode NEVER queries Supabase for organizations
-    // Organizations are enterprise-only feature not available in demo mode
-    if (isDemoMode) {
-      setOrganizations([]);
-      setCurrentOrg(null);
-      setLoading(false);
-      return;
-    }
-
-    if (user) {
-      fetchUserOrganizations();
-    }
-  }, [user, isDemoMode]);
-
-  const fetchUserOrganizations = async () => {
+  const fetchUserOrganizations = useCallback(async () => {
     try {
       setLoading(true);
 
       // 🎯 CRITICAL: Demo mode NEVER queries Supabase
+      setError(null);
       if (isDemoMode) {
         setOrganizations([]);
         setCurrentOrg(null);
@@ -61,7 +48,6 @@ export const useOrganization = () => {
         return;
       }
 
-      // CRITICAL: Validate user ID exists before querying
       if (!user || !user.id) {
         console.warn('[useOrganization] No user ID available, skipping org fetch');
         setOrganizations([]);
@@ -94,12 +80,28 @@ export const useOrganization = () => {
           setCurrentOrg(orgs[0] as Organization);
         }
       }
-    } catch (error) {
-      console.error('Error fetching organizations:', error);
+    } catch (err) {
+      console.error('Error fetching organizations:', err);
+      setError(err instanceof Error ? err : new Error('Failed to load organizations'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isDemoMode]);
+
+  useEffect(() => {
+    if (isDemoMode) {
+      setOrganizations([]);
+      setCurrentOrg(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+    if (user) {
+      fetchUserOrganizations();
+    } else {
+      setLoading(false);
+    }
+  }, [user, isDemoMode, fetchUserOrganizations]);
 
   const fetchOrgMembers = useCallback(async (orgId: string) => {
     try {
@@ -206,6 +208,7 @@ export const useOrganization = () => {
     setCurrentOrg,
     members,
     loading,
+    error,
     fetchUserOrganizations,
     fetchOrgMembers,
     createOrganization,

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, User, LogOut, LogIn } from 'lucide-react';
+import { X, User, LogIn, WifiOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { useIsMobile } from '../hooks/use-mobile';
+import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { Button } from './ui/button';
 
 import { ProUpgradeModal } from './ProUpgradeModal';
@@ -11,7 +12,6 @@ import { ConsumerSettings } from './ConsumerSettings';
 import { EventsSettings } from './EventsSettings';
 import { AdvertiserSettingsPanel } from './advertiser/AdvertiserSettingsPanel';
 import { ErrorBoundary } from './ErrorBoundary';
-import { useTripVariant } from '../contexts/TripVariantContext';
 import { AuthModal } from './AuthModal';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { createMockDemoUser } from '../utils/authGate';
@@ -32,14 +32,14 @@ export const SettingsMenu = ({
   initialSettingsType,
   onTripStateChange,
 }: SettingsMenuProps) => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
+  const { isOffline } = useOfflineStatus();
   const [showProModal, setShowProModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [settingsType, setSettingsType] = useState<
     'consumer' | 'enterprise' | 'events' | 'advertiser'
   >(initialSettingsType || 'consumer');
-  const _tripVariant = useTripVariant();
   const { demoView } = useDemoMode();
 
   // In app-preview mode, use mock user if not logged in (full demo access)
@@ -141,7 +141,7 @@ export const SettingsMenu = ({
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  Group
+                  Consumer
                 </button>
                 <button
                   onClick={() => setSettingsType('enterprise')}
@@ -186,6 +186,14 @@ export const SettingsMenu = ({
               <X size={20} />
             </button>
           </div>
+
+          {/* Offline banner */}
+          {isOffline && (
+            <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-amber-500/20 border-b border-amber-500/30 text-amber-200 text-sm">
+              <WifiOff size={16} />
+              <span>You&apos;re offline. Some settings may not be available.</span>
+            </div>
+          )}
 
           {/* Auth Section - Show user info at top (Sign Out moved to Profile section) */}
           <div className="flex-shrink-0 p-4 border-b border-white/10 bg-gradient-to-r from-primary/10 to-primary/5">

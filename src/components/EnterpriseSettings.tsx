@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building, CreditCard, Settings, Bell, Wallet, ChevronDown, Loader2 } from 'lucide-react';
+import { Building, CreditCard, Settings, Bell, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
 import { TravelWallet } from './TravelWallet';
 import { OrganizationSection } from './enterprise/OrganizationSection';
 import { BillingSection } from './enterprise/BillingSection';
@@ -7,8 +7,9 @@ import { EnterpriseNotificationsSection } from './enterprise/EnterpriseNotificat
 import { EnterprisePrivacySection } from './enterprise/EnterprisePrivacySection';
 import { CreateOrganizationModal } from './enterprise/CreateOrganizationModal';
 import { useOrganization } from '../hooks/useOrganization';
-import { useIsMobile } from '../hooks/use-mobile';
 import { SUBSCRIPTION_TIERS } from '../types/pro';
+import { SettingsLayout, type SettingsSection } from './settings/SettingsLayout';
+import { Skeleton } from './ui/skeleton';
 
 interface EnterpriseSettingsProps {
   organizationId: string;
@@ -16,28 +17,31 @@ interface EnterpriseSettingsProps {
   defaultSection?: string;
 }
 
+const SECTIONS: SettingsSection[] = [
+  { id: 'organization', label: 'Organization Profile', icon: Building },
+  { id: 'billing', label: 'Subscriptions', icon: CreditCard },
+  { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'privacy', label: 'General & Privacy', icon: Settings },
+];
+
 export const EnterpriseSettings = ({
-  organizationId,
+  organizationId: _organizationId,
   currentUserId,
   defaultSection = 'organization',
 }: EnterpriseSettingsProps) => {
   const [activeSection, setActiveSection] = useState(defaultSection);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
-  const isMobile = useIsMobile();
 
-  // Fetch real organization data
-  const { currentOrg, members, loading, fetchUserOrganizations, fetchOrgMembers } =
+  const { currentOrg, members, loading, error, fetchUserOrganizations, fetchOrgMembers } =
     useOrganization();
 
-  // Fetch organization members when org changes
   useEffect(() => {
     if (currentOrg?.id) {
       fetchOrgMembers(currentOrg.id);
     }
   }, [currentOrg?.id, fetchOrgMembers]);
 
-  // Build organization object from real data (can be null)
   const organization = currentOrg
     ? {
         id: currentOrg.id,
@@ -68,37 +72,41 @@ export const EnterpriseSettings = ({
       }
     : null;
 
-  // Simplified sidebar - same for all categories
-  const sections = [
-    { id: 'organization', label: 'Organization Profile', icon: Building },
-    { id: 'billing', label: 'Subscriptions', icon: CreditCard },
-    { id: 'travel-wallet', label: 'Travel Wallet', icon: Wallet },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'privacy', label: 'General & Privacy', icon: Settings },
-  ];
-
-  // Handler to open create organization modal
-  const handleOpenCreateOrgModal = () => {
-    setShowCreateOrgModal(true);
-  };
-
-  // Handler for when organization is created
+  const handleOpenCreateOrgModal = () => setShowCreateOrgModal(true);
+  const handleCloseCreateOrgModal = () => setShowCreateOrgModal(false);
   const handleOrgCreated = () => {
     setShowCreateOrgModal(false);
     fetchUserOrganizations();
   };
 
-  // Render section content - ALL sections always render, even without organization
   const renderSection = () => {
     if (loading) {
       return (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-glass-orange" />
+        <div className="space-y-4 py-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-24 w-3/4" />
         </div>
       );
     }
 
-    // Each section handles null organization gracefully with CTAs
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <AlertCircle className="h-12 w-12 text-amber-400 mb-4" />
+          <h3 className="text-lg font-semibold text-white mb-2">Could not load organizations</h3>
+          <p className="text-sm text-gray-400 text-center mb-4 max-w-sm">{error.message}</p>
+          <button
+            onClick={() => fetchUserOrganizations()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-glass-orange hover:bg-glass-orange/80 text-white font-medium transition-colors"
+          >
+            <RefreshCw size={16} />
+            Try again
+          </button>
+        </div>
+      );
+    }
+
     switch (activeSection) {
       case 'organization':
         return (
@@ -115,17 +123,14 @@ export const EnterpriseSettings = ({
           />
         );
       case 'travel-wallet':
-        // Travel Wallet is user-specific, not org-specific - always renders
         return (
           <div>
             <TravelWallet userId={currentUserId} />
           </div>
         );
       case 'notifications':
-        // Notifications always render with defaults
         return <EnterpriseNotificationsSection />;
       case 'privacy':
-        // Privacy settings always render with defaults
         return <EnterprisePrivacySection />;
       default:
         return (
@@ -137,109 +142,34 @@ export const EnterpriseSettings = ({
     }
   };
 
-  const currentSection = sections.find(s => s.id === activeSection);
-
-  // When integrated into dashboard, render without the full layout
   if (defaultSection !== 'organization') {
     return (
       <>
         <div className="w-full">{renderSection()}</div>
-        <CreateOrganizationModal open={showCreateOrgModal} onClose={handleOrgCreated} />
+        <CreateOrganizationModal
+          open={showCreateOrgModal}
+          onClose={handleCloseCreateOrgModal}
+          onSuccess={handleOrgCreated}
+        />
       </>
     );
   }
 
-  if (isMobile) {
-    return (
-      <div className="flex flex-col h-full w-full min-w-0">
-        {/* Mobile Section Selector */}
-        <div className="flex-shrink-0 p-4 border-b border-white/20">
-          <button
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="w-full flex items-center justify-between p-3 bg-white/10 rounded-xl text-white"
-          >
-            <div className="flex items-center gap-3">
-              {currentSection && <currentSection.icon size={20} />}
-              <span className="text-sm">{currentSection?.label}</span>
-            </div>
-            <ChevronDown
-              size={20}
-              className={`transform transition-transform ${showMobileMenu ? 'rotate-180' : ''}`}
-            />
-          </button>
-
-          {showMobileMenu && (
-            <div className="mt-2 bg-white/10 rounded-xl overflow-hidden">
-              {sections.map(section => {
-                const Icon = section.icon;
-                return (
-                  <button
-                    key={section.id}
-                    onClick={() => {
-                      setActiveSection(section.id);
-                      setShowMobileMenu(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                      activeSection === section.id
-                        ? 'bg-glass-orange/20 text-glass-orange'
-                        : 'text-gray-300 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <Icon size={20} />
-                    <span className="text-sm">{section.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Mobile Content */}
-        <div className="flex-1 min-w-0 overflow-y-auto">
-          <div className="p-4">{renderSection()}</div>
-        </div>
-
-        <CreateOrganizationModal open={showCreateOrgModal} onClose={handleOrgCreated} />
-      </div>
-    );
-  }
-
-  // Desktop layout
   return (
     <>
-      <div className="flex h-full w-full min-w-0">
-        {/* Desktop Sidebar */}
-        <div className="w-64 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-4 overflow-y-auto">
-          <h2 className="text-xl font-bold text-white mb-4">Enterprise Settings</h2>
-
-          <div className="space-y-2">
-            {sections.map(section => {
-              const Icon = section.icon;
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
-                    activeSection === section.id
-                      ? 'bg-glass-orange/20 text-glass-orange border border-glass-orange/30'
-                      : 'text-gray-300 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <span className="text-sm">{section.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Desktop Main Content */}
-        <div className="flex-1 min-w-0 overflow-y-auto">
-          <div className="p-4 pb-16">{renderSection()}</div>
-        </div>
-      </div>
-
-      <CreateOrganizationModal open={showCreateOrgModal} onClose={handleOrgCreated} />
+      <SettingsLayout
+        title="Enterprise Settings"
+        sections={SECTIONS}
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      >
+        {renderSection()}
+      </SettingsLayout>
+      <CreateOrganizationModal
+        open={showCreateOrgModal}
+        onClose={handleCloseCreateOrgModal}
+        onSuccess={handleOrgCreated}
+      />
     </>
   );
 };

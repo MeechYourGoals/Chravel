@@ -126,6 +126,10 @@ vi.mock('../../hooks/use-mobile', () => ({
   useIsMobile: () => mockIsMobile,
 }));
 
+vi.mock('../../hooks/useOfflineStatus', () => ({
+  useOfflineStatus: () => ({ isOffline: false }),
+}));
+
 vi.mock('../../hooks/useDemoMode', () => ({
   useDemoMode: () => ({
     demoView: mockDemoView,
@@ -171,8 +175,8 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     renderMenu();
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
-    // Tab labels: Group (consumer), Enterprise, Events
-    expect(screen.getByRole('button', { name: 'Group' })).toBeInTheDocument();
+    // Tab labels: Consumer, Enterprise, Events
+    expect(screen.getByRole('button', { name: 'Consumer' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enterprise' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Events' })).toBeInTheDocument();
     expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
@@ -236,7 +240,7 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     expect(screen.getByTestId('events-settings')).toBeInTheDocument();
   });
 
-  it('can switch between Group / Enterprise / Events tabs without crashing', async () => {
+  it('can switch between Consumer / Enterprise / Events tabs without crashing', async () => {
     const user = userEvent.setup();
     renderMenu();
 
@@ -252,7 +256,7 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
       expect(screen.getByTestId('events-settings')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: 'Group' }));
+    await user.click(screen.getByRole('button', { name: 'Consumer' }));
     await waitFor(() => {
       expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
     });
