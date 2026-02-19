@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { useDemoMode } from './useDemoMode';
+import { useAuth } from './useAuth';
 import { mockPolls } from '@/mockData/polls';
 import { pollStorageService } from '@/services/pollStorageService';
 import { getStorageItem, setStorageItem } from '@/platform/storage';
@@ -76,6 +77,7 @@ export const useTripPolls = (tripId: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
 
   // Fetch polls from database or localStorage
   const { data: polls = [], isLoading } = useQuery({
@@ -302,6 +304,22 @@ export const useTripPolls = (tripId: string) => {
         throw new Error('Poll not found');
       }
 
+      const pollSnapshot = queryClient
+        .getQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode])
+        ?.find(p => p.id === pollId);
+
+      if (pollSnapshot?.status === 'closed') {
+        throw new Error('This poll is closed.');
+      }
+
+      if (pollSnapshot?.deadline_at && new Date(pollSnapshot.deadline_at).getTime() <= Date.now()) {
+        throw new Error('Voting deadline has passed.');
+      }
+
+      if (!poll.allow_multiple && optionIdsArray.length > 1) {
+        throw new Error('This poll only allows one option per voter.');
+      }
+
       const { error: batchError } = await supabase.rpc('vote_on_poll_batch', {
         p_poll_id: pollId,
         p_option_ids: optionIdsArray,
@@ -345,28 +363,62 @@ export const useTripPolls = (tripId: string) => {
       await queryClient.cancelQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
       const previous = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode]);
 
-      // Minimal optimistic update: increment selected option vote counts + total.
       queryClient.setQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode], old => {
         if (!old) return old;
+
         return old.map(p => {
           if (p.id !== pollId) return p;
+
+          const currentUserId = user?.id ?? 'demo-user';
+          const hasPriorVote = p.options.some(opt => (opt.voters || []).includes(currentUserId));
+
+          if (!p.allow_multiple && optionIdsArray.length > 1) {
+            return p;
+          }
+
           const nextOptions = p.options.map(opt => {
-            if (!optionIdsArray.includes(opt.id)) return opt;
+            const shouldSelect = optionIdsArray.includes(opt.id);
+            const hadUser = (opt.voters || []).includes(currentUserId);
+
+            let nextVotes = opt.votes ?? 0;
+            let nextVoters = [...(opt.voters || [])];
+
+            if (!p.allow_multiple && hasPriorVote && p.allow_vote_change !== false && hadUser && !shouldSelect) {
+              nextVotes = Math.max(0, nextVotes - 1);
+              nextVoters = nextVoters.filter(v => v !== currentUserId);
+            }
+
+            if (shouldSelect && !hadUser) {
+              nextVotes += 1;
+              if (!p.is_anonymous) {
+                nextVoters.push(currentUserId);
+              }
+            }
+
             return {
               ...opt,
-              votes: (opt.votes ?? 0) + 1,
+              votes: nextVotes,
+              voters: nextVoters,
             };
           });
+
+          const priorVotes = p.options.reduce(
+            (sum, opt) => sum + ((opt.voters || []).includes(currentUserId) ? 1 : 0),
+            0,
+          );
+          const nextVotes = nextOptions.reduce(
+            (sum, opt) => sum + ((opt.voters || []).includes(currentUserId) ? 1 : 0),
+            0,
+          );
+
           return {
             ...p,
             options: nextOptions,
-            total_votes: (p.total_votes ?? 0) + optionIdsArray.length,
+            total_votes: Math.max(0, (p.total_votes ?? 0) + (nextVotes - priorVotes)),
           };
         });
       });
 
-      // Persist the optimistic update into the offline snapshot so refetches while offline
-      // cannot overwrite the optimistic state with stale IndexedDB data.
       try {
         const next = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode]);
         const updatedPoll = next?.find(p => p.id === pollId);
@@ -415,6 +467,24 @@ export const useTripPolls = (tripId: string) => {
         toast({
           title: 'Vote queued',
           description: "We'll sync your vote when you're back online.",
+        });
+        return;
+      }
+
+      if (error?.message?.includes('deadline')) {
+        toast({
+          title: 'Voting Closed',
+          description: 'Voting deadline has passed.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (error?.message?.includes('only allows one option')) {
+        toast({
+          title: 'Single Choice Poll',
+          description: 'This poll allows only one option per voter.',
+          variant: 'destructive',
         });
         return;
       }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, Users, User } from 'lucide-react';
+import { Calendar, Users, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -57,7 +57,7 @@ export const TaskCreateModal = ({ tripId, onClose, initialTask }: TaskCreateModa
           onSuccess: () => {
             onClose();
           },
-          onError: (error: any) => {
+          onError: (error: unknown) => {
             console.error('Task update failed:', error);
           },
         },
@@ -74,7 +74,7 @@ export const TaskCreateModal = ({ tripId, onClose, initialTask }: TaskCreateModa
         setAssignedMembers([]);
         onClose();
       },
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         console.error('Task creation failed:', error);
       },
     });

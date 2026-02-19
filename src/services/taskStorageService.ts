@@ -29,8 +29,9 @@ class TaskStorageService {
   async createTask(tripId: string, taskData: CreateTaskRequest & { assignedTo: string[] }): Promise<TripTask> {
     const tasks = await this.getTasks(tripId);
     
+    const newTaskId = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     const newTask: TripTask = {
-      id: `demo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: newTaskId,
       trip_id: tripId,
       creator_id: 'demo-user',
       title: taskData.title,
@@ -43,7 +44,7 @@ class TaskStorageService {
         id: 'demo-user',
         name: 'You'
       },
-      task_status: this.createInitialTaskStatus(taskData, 'demo-user')
+      task_status: this.createInitialTaskStatus(taskData, 'demo-user', newTaskId)
     };
 
     tasks.unshift(newTask);
@@ -52,11 +53,11 @@ class TaskStorageService {
   }
 
   // Create initial task status based on assignment
-  private createInitialTaskStatus(taskData: CreateTaskRequest & { assignedTo: string[] }, creatorId: string): TaskStatus[] {
+  private createInitialTaskStatus(taskData: CreateTaskRequest & { assignedTo: string[] }, creatorId: string, taskId: string): TaskStatus[] {
     if (taskData.is_poll) {
       // Group task - assign to everyone
       return taskData.assignedTo.map(userId => ({
-        task_id: '', // Will be set after task creation
+        task_id: taskId,
         user_id: userId,
         completed: false
       }));
@@ -64,11 +65,58 @@ class TaskStorageService {
       // Single task - assign to specified users or creator
       const assignees = taskData.assignedTo.length > 0 ? taskData.assignedTo : [creatorId];
       return assignees.map(userId => ({
-        task_id: '', // Will be set after task creation
+        task_id: taskId,
         user_id: userId,
         completed: false
       }));
     }
+  }
+
+
+  // Update task fields and assignments
+  async updateTask(
+    tripId: string,
+    taskId: string,
+    updates: {
+      title: string;
+      description?: string;
+      due_at?: string;
+      is_poll: boolean;
+      assignedTo?: string[];
+    },
+  ): Promise<TripTask | null> {
+    const tasks = await this.getTasks(tripId);
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+
+    if (taskIndex === -1) return null;
+
+    const existing = tasks[taskIndex];
+    const assignedUsers = updates.assignedTo && updates.assignedTo.length > 0
+      ? Array.from(new Set(updates.assignedTo))
+      : ['demo-user'];
+
+    const nextStatus: TaskStatus[] = assignedUsers.map(userId => {
+      const prior = existing.task_status?.find(status => status.user_id === userId);
+      return {
+        task_id: taskId,
+        user_id: userId,
+        completed: prior?.completed ?? false,
+        completed_at: prior?.completed_at,
+      };
+    });
+
+    tasks[taskIndex] = {
+      ...existing,
+      title: updates.title,
+      description: updates.description,
+      due_at: updates.due_at,
+      is_poll: updates.is_poll,
+      task_status: nextStatus,
+      updated_at: new Date().toISOString(),
+    };
+
+    await this.saveTasks(tripId, tasks);
+    return tasks[taskIndex];
   }
 
   // Toggle task completion for a user

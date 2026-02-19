@@ -33,6 +33,10 @@ vi.mock('@/hooks/useDemoMode', () => ({
   useDemoMode: () => ({ isDemoMode: false }),
 }));
 
+vi.mock('../useAuth', () => ({
+  useAuth: () => ({ user: { id: 'user-1' } }),
+}));
+
 vi.mock('../use-toast', () => ({
   useToast: () => ({
     toast: vi.fn(),

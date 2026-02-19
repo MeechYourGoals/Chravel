@@ -705,7 +705,19 @@ export const useTripTasks = (
   const updateTaskMutation = useMutation({
     mutationFn: async ({ taskId, title, description, due_at, is_poll, assignedTo }: UpdateTaskRequest) => {
       if (isDemoMode || !user) {
-        throw new Error('Task editing is not available in demo mode yet.');
+        const updated = await taskStorageService.updateTask(tripId, taskId, {
+          title: title.trim(),
+          description: description?.trim() || undefined,
+          due_at,
+          is_poll,
+          assignedTo,
+        });
+
+        if (!updated) {
+          throw new Error('Task not found.');
+        }
+
+        return updated;
       }
 
       const { data: updatedTask, error } = await supabase
