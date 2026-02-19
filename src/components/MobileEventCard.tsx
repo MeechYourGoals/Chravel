@@ -12,7 +12,6 @@ import {
   Trash2,
   FileDown,
   Share2,
-  ArrowUpDown,
 } from 'lucide-react';
 import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
@@ -48,7 +47,6 @@ interface MobileEventCardProps {
   onArchiveSuccess?: () => void;
   onHideSuccess?: () => void;
   onDeleteSuccess?: () => void;
-  onEnterReorderMode?: () => void;
 }
 
 export const MobileEventCard = ({
@@ -56,7 +54,6 @@ export const MobileEventCard = ({
   onArchiveSuccess,
   onHideSuccess,
   onDeleteSuccess,
-  onEnterReorderMode,
 }: MobileEventCardProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -233,12 +230,6 @@ export const MobileEventCard = ({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border">
-              {onEnterReorderMode && (
-                <DropdownMenuItem onClick={onEnterReorderMode}>
-                  <ArrowUpDown className="mr-2 h-4 w-4" />
-                  Rearrange
-                </DropdownMenuItem>
-              )}
               <DropdownMenuItem onClick={() => setShowArchiveDialog(true)}>
                 <Archive className="mr-2 h-4 w-4" />
                 Archive

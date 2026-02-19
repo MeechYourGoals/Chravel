@@ -1,19 +1,32 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
+import { useLongPress } from '@/hooks/useLongPress';
 
 interface SortableCardWrapperProps {
   id: string;
   children: React.ReactNode;
   reorderMode?: boolean;
+  /** Called when user long-presses the card (mobile). Enters reorder mode. */
+  onLongPressEnterReorder?: () => void;
 }
 
 export const SortableCardWrapper: React.FC<SortableCardWrapperProps> = ({
   id,
   children,
   reorderMode = false,
+  onLongPressEnterReorder,
 }) => {
+  const handleLongPress = useCallback(() => {
+    onLongPressEnterReorder?.();
+  }, [onLongPressEnterReorder]);
+
+  const longPressHandlers = useLongPress({
+    onLongPress: handleLongPress,
+    threshold: 500,
+  });
+
   const {
     attributes,
     listeners,
@@ -32,12 +45,16 @@ export const SortableCardWrapper: React.FC<SortableCardWrapperProps> = ({
     position: 'relative' as const,
   };
 
+  // When in reorder mode: subtle highlight (ring), no wiggle
+  const reorderModeClasses = reorderMode ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background' : '';
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`${isDragging ? 'shadow-xl scale-[1.02]' : ''} ${reorderMode ? 'animate-wiggle' : ''}`}
+      className={`${isDragging ? 'shadow-xl scale-[1.02]' : ''} ${reorderModeClasses}`}
       {...(reorderMode ? { ...attributes, ...listeners } : {})}
+      {...(!reorderMode && onLongPressEnterReorder ? longPressHandlers : {})}
     >
       {/* Desktop grip handle — hidden in reorder mode since entire card is draggable */}
       {!reorderMode && (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -11,6 +11,7 @@ import {
 import {
   SortableContext,
   rectSortingStrategy,
+  verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
 import { SortableCardWrapper } from './SortableCardWrapper';
@@ -25,6 +26,9 @@ interface SortableTripGridProps<T> {
   dashboardType: DashboardType;
   userId: string | undefined;
   reorderMode?: boolean;
+  isMobile?: boolean;
+  /** Called when user long-presses a card to enter reorder mode (mobile) */
+  onLongPressEnterReorder?: () => void;
 }
 
 export function SortableTripGrid<T>({
@@ -34,6 +38,8 @@ export function SortableTripGrid<T>({
   dashboardType,
   userId,
   reorderMode = false,
+  isMobile = false,
+  onLongPressEnterReorder,
 }: SortableTripGridProps<T>) {
   const { applyOrder, saveOrder } = useDashboardCardOrder(userId, dashboardType);
   const [orderedItems, setOrderedItems] = useState<T[]>([]);
@@ -43,9 +49,14 @@ export function SortableTripGrid<T>({
     setOrderedItems(applyOrder(items, getId));
   }, [items, applyOrder, getId]);
 
+  // Mobile: use delay + tolerance to distinguish scroll from drag. Desktop: distance only.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: isMobile
+        ? { delay: 100, tolerance: 10 }
+        : { distance: 8 },
+    }),
   );
 
   const handleDragEnd = useCallback(
@@ -67,12 +78,21 @@ export function SortableTripGrid<T>({
   );
 
   const ids = orderedItems.map(getId);
+  const strategy = useMemo(
+    () => (isMobile ? verticalListSortingStrategy : rectSortingStrategy),
+    [isMobile],
+  );
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={ids} strategy={rectSortingStrategy}>
+      <SortableContext items={ids} strategy={strategy}>
         {orderedItems.map(item => (
-          <SortableCardWrapper key={getId(item)} id={getId(item)} reorderMode={reorderMode}>
+          <SortableCardWrapper
+            key={getId(item)}
+            id={getId(item)}
+            reorderMode={reorderMode}
+            onLongPressEnterReorder={onLongPressEnterReorder}
+          >
             {renderCard(item)}
           </SortableCardWrapper>
         ))}
