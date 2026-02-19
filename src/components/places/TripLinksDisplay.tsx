@@ -1,13 +1,22 @@
 /**
  * TripLinksDisplay Component
- * 
+ *
  * Displays trip links from database with CRUD operations and drag-and-drop reordering
  * ⚡ Uses TanStack Query for cached data loading — instant on revisit
  */
 
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link2, ExternalLink, Edit, Trash2, Plus, Globe, Calendar, GripVertical } from 'lucide-react';
+import {
+  Link2,
+  ExternalLink,
+  Edit,
+  Trash2,
+  Plus,
+  Globe,
+  Calendar,
+  GripVertical,
+} from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -16,71 +25,79 @@ import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { AddToCalendarButton } from '../AddToCalendarButton';
-import { 
-  DndContext, 
-  closestCenter, 
-  KeyboardSensor, 
-  PointerSensor, 
-  useSensor, 
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
   useSensors,
-  DragEndEvent
+  DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { 
-  getTripLinks, 
-  createTripLink, 
-  updateTripLink, 
+import {
+  getTripLinks,
+  createTripLink,
+  updateTripLink,
   deleteTripLink,
-  updateTripLinksOrder
+  updateTripLinksOrder,
 } from '@/services/tripLinksService';
 import { calendarService } from '@/services/calendarService';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { toast } from 'sonner';
+import { InputValidator } from '@/utils/securityUtils';
 import type { Database } from '@/integrations/supabase/types';
 import type { AddToCalendarData } from '@/types/calendar';
 
 type TripLink = Database['public']['Tables']['trip_links']['Row'];
+
+const getSafeExternalHref = (url: string): string | null => {
+  if (!InputValidator.isValidUrl(url)) return null;
+  try {
+    const parsed = new URL(url);
+    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+};
 
 interface TripLinksDisplayProps {
   tripId: string;
 }
 
 // Sortable link item component
-const SortableLinkItem = ({ 
+const SortableLinkItem = ({
   tripId,
-  link, 
-  onEdit, 
-  onDelete, 
-  onAddToCalendar 
-}: { 
+  link,
+  onEdit,
+  onDelete,
+  onAddToCalendar,
+}: {
   tripId: string;
   link: TripLink;
   onEdit: (link: TripLink) => void;
   onDelete: (linkId: string) => void;
   onAddToCalendar: (eventData: AddToCalendarData, link: TripLink) => void;
 }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: link.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: link.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const safeHref = getSafeExternalHref(link.url);
 
   return (
     <div
@@ -100,27 +117,25 @@ const SortableLinkItem = ({
           >
             <GripVertical className="w-4 h-4" />
           </button>
-          
-          <h4 className="text-white font-semibold text-sm md:text-base truncate">
-            {link.title}
-          </h4>
+
+          <h4 className="text-white font-semibold text-sm md:text-base truncate">{link.title}</h4>
           {link.category && (
             <Badge variant="secondary" className="text-xs capitalize flex-shrink-0">
               {link.category}
             </Badge>
           )}
         </div>
-        
+
         <div className="flex gap-1.5 flex-shrink-0">
           <AddToCalendarButton
             tripId={tripId}
             placeName={link.title}
             placeAddress={link.url}
             category="other"
-            onEventAdded={(eventData) => onAddToCalendar(eventData, link)}
+            onEventAdded={eventData => onAddToCalendar(eventData, link)}
             variant="icon"
           />
-          
+
           <button
             onClick={() => onEdit(link)}
             className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 transition-colors flex items-center gap-1"
@@ -145,21 +160,28 @@ const SortableLinkItem = ({
       <div className="flex items-start gap-2 pl-6">
         <Globe className="w-3 h-3 md:w-3.5 md:h-3.5 text-sky-400 flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-sky-400 hover:text-sky-300 underline truncate max-w-[200px] md:max-w-xs"
-            title={link.url}
-          >
-            {link.url.replace(/^https?:\/\/(www\.)?/, '')}
-          </a>
+          {safeHref ? (
+            <a
+              href={safeHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-sky-400 hover:text-sky-300 underline truncate max-w-[200px] md:max-w-xs"
+              title={safeHref}
+            >
+              {safeHref.replace(/^https?:\/\/(www\.)?/, '')}
+            </a>
+          ) : (
+            <span
+              className="text-xs text-gray-500 truncate max-w-[200px] md:max-w-xs"
+              title={link.url}
+            >
+              Invalid URL
+            </span>
+          )}
           {link.description && (
             <>
               <span className="text-gray-600 hidden md:inline">•</span>
-              <p className="text-xs text-gray-400 truncate flex-1 min-w-0">
-                {link.description}
-              </p>
+              <p className="text-xs text-gray-400 truncate flex-1 min-w-0">{link.description}</p>
             </>
           )}
         </div>
@@ -200,7 +222,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   // Generate demo user ID
@@ -217,17 +239,22 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
+      const previousLinks = links;
       const oldIndex = links.findIndex(link => link.id === active.id);
       const newIndex = links.findIndex(link => link.id === over.id);
-      
+
       const newLinks = arrayMove(links, oldIndex, newIndex);
       // Optimistic update via query cache
       queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], newLinks);
-      
+
       const orderedIds = newLinks.map(l => l.id);
-      await updateTripLinksOrder(tripId, orderedIds, isDemoMode);
+      const updated = await updateTripLinksOrder(tripId, orderedIds, isDemoMode);
+      if (!updated) {
+        queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], previousLinks);
+        toast.error('Failed to reorder links');
+      }
     }
   };
 
@@ -246,7 +273,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
         category: formCategory,
         addedBy: effectiveUserId,
       },
-      isDemoMode
+      isDemoMode,
     );
 
     if (result) {
@@ -268,7 +295,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
         category: formCategory,
       },
       tripId,
-      isDemoMode
+      isDemoMode,
     );
 
     if (success) {
@@ -277,8 +304,8 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
         (old || []).map(link =>
           link.id === editingLink.id
             ? { ...link, title: formTitle, description: formDescription, category: formCategory }
-            : link
-        )
+            : link,
+        ),
       );
       setEditingLink(null);
       resetForm();
@@ -290,7 +317,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     if (success) {
       // Optimistic update via query cache
       queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], old =>
-        (old || []).filter(link => link.id !== linkId)
+        (old || []).filter(link => link.id !== linkId),
       );
     }
   };
@@ -336,7 +363,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
         event_category: eventData.category || 'other',
         include_in_itinerary: eventData.include_in_itinerary ?? true,
         source_type: 'places_tab',
-        source_data: { link_id: link.id, link_url: link.url }
+        source_data: { link_id: link.id, link_url: link.url },
       });
 
       if (created) {
@@ -370,11 +397,13 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
             <div>
               <h3 className="text-lg md:text-xl font-bold text-white">Trip Links</h3>
               <p className="text-gray-400 text-xs md:text-sm">
-                {links.length > 0 ? `${links.length} saved links • Drag to reorder` : 'Save your trip links'}
+                {links.length > 0
+                  ? `${links.length} saved links • Drag to reorder`
+                  : 'Save your trip links'}
               </p>
             </div>
           </div>
-          
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -397,7 +426,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                         <label className="text-sm text-gray-300 mb-1 block">URL *</label>
                         <Input
                           value={formUrl}
-                          onChange={(e) => setFormUrl(e.target.value)}
+                          onChange={e => setFormUrl(e.target.value)}
                           placeholder="https://..."
                           className="bg-gray-800 border-white/10 text-white"
                         />
@@ -406,7 +435,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                         <label className="text-sm text-gray-300 mb-1 block">Title *</label>
                         <Input
                           value={formTitle}
-                          onChange={(e) => setFormTitle(e.target.value)}
+                          onChange={e => setFormTitle(e.target.value)}
                           placeholder="Link title"
                           className="bg-gray-800 border-white/10 text-white"
                         />
@@ -415,7 +444,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                         <label className="text-sm text-gray-300 mb-1 block">Description</label>
                         <Textarea
                           value={formDescription}
-                          onChange={(e) => setFormDescription(e.target.value)}
+                          onChange={e => setFormDescription(e.target.value)}
                           placeholder="Optional description"
                           className="bg-gray-800 border-white/10 text-white"
                           rows={3}
@@ -440,16 +469,17 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                         <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
                           Cancel
                         </Button>
-                        <Button onClick={handleCreateLink}>
-                          Add Link
-                        </Button>
+                        <Button onClick={handleCreateLink}>Add Link</Button>
                       </div>
                     </div>
                   </DialogContent>
                 </Dialog>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-xs">💡 Add important links for your trip here. You can also promote links from the Media tab.</p>
+                <p className="text-xs">
+                  💡 Add important links for your trip here. You can also promote links from the
+                  Media tab.
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -457,7 +487,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
       </div>
 
       {/* Edit Link Modal */}
-      <Dialog open={!!editingLink} onOpenChange={(open) => !open && setEditingLink(null)}>
+      <Dialog open={!!editingLink} onOpenChange={open => !open && setEditingLink(null)}>
         <DialogContent className="bg-gray-900 border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white">Edit Trip Link</DialogTitle>
@@ -475,7 +505,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
               <label className="text-sm text-gray-300 mb-1 block">Title *</label>
               <Input
                 value={formTitle}
-                onChange={(e) => setFormTitle(e.target.value)}
+                onChange={e => setFormTitle(e.target.value)}
                 placeholder="Link title"
                 className="bg-gray-800 border-white/10 text-white"
               />
@@ -484,7 +514,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
               <label className="text-sm text-gray-300 mb-1 block">Description</label>
               <Textarea
                 value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
+                onChange={e => setFormDescription(e.target.value)}
                 placeholder="Optional description"
                 className="bg-gray-800 border-white/10 text-white"
                 rows={3}
@@ -509,23 +539,17 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
               <Button variant="ghost" onClick={() => setEditingLink(null)}>
                 Cancel
               </Button>
-              <Button onClick={handleUpdateLink}>
-                Save Changes
-              </Button>
+              <Button onClick={handleUpdateLink}>Save Changes</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Links List - With Drag and Drop */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={links.map(l => l.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-3">
-            {links.map((link) => (
+            {links.map(link => (
               <SortableLinkItem
                 key={link.id}
                 tripId={tripId}
