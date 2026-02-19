@@ -485,13 +485,15 @@ export const TripGrid = React.memo(
                       isDemoMode={isDemoMode}
                       onDelete={handleSwipeDelete}
                       onTripStateChange={onTripStateChange}
-                      onEnterReorderMode={() => setReorderMode('my_trips')}
+                      reorderMode={reorderMode === 'my_trips'}
                       priority={false}
                     />
                   )}
                   dashboardType="my_trips"
                   userId={user?.id}
                   reorderMode={reorderMode === 'my_trips'}
+                  isMobile={isMobile}
+                  onLongPressEnterReorder={() => setReorderMode('my_trips')}
                 />
                 {/* Pending trips after (not draggable) */}
                 {activePendingTrips.map(trip => (
@@ -516,12 +518,14 @@ export const TripGrid = React.memo(
                       isDemoMode={isDemoMode}
                       onDelete={handleProTripSwipeDelete}
                       onTripStateChange={onTripStateChange}
-                      onEnterReorderMode={() => setReorderMode('pro')}
+                      reorderMode={reorderMode === 'pro'}
                     />
                   )}
                   dashboardType="pro"
                   userId={user?.id}
                   reorderMode={reorderMode === 'pro'}
+                  isMobile={isMobile}
+                  onLongPressEnterReorder={() => setReorderMode('pro')}
                 />
                 {reorderMode === 'pro' && (
                   <div className="col-span-full flex justify-center py-2">
@@ -541,7 +545,6 @@ export const TripGrid = React.memo(
                         onArchiveSuccess={onTripStateChange}
                         onHideSuccess={onTripStateChange}
                         onDeleteSuccess={onTripStateChange}
-                        onEnterReorderMode={() => setReorderMode('events')}
                       />
                     ) : (
                       <EventCard
@@ -549,13 +552,14 @@ export const TripGrid = React.memo(
                         onArchiveSuccess={onTripStateChange}
                         onHideSuccess={onTripStateChange}
                         onDeleteSuccess={onTripStateChange}
-                        onEnterReorderMode={() => setReorderMode('events')}
                       />
                     )
                   }
                   dashboardType="events"
                   userId={user?.id}
                   reorderMode={reorderMode === 'events'}
+                  isMobile={isMobile}
+                  onLongPressEnterReorder={() => setReorderMode('events')}
                 />
                 {reorderMode === 'events' && (
                   <div className="col-span-full flex justify-center py-2">

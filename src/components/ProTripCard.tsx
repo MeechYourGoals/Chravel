@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, MoreHorizontal, Archive, EyeOff, UserPlus, Trash2, FileDown, Share2, ArrowUpDown } from 'lucide-react';
+import { Calendar, MapPin, Users, MoreHorizontal, Archive, EyeOff, UserPlus, Trash2, FileDown, Share2 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from './ui/button';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
@@ -35,10 +35,9 @@ interface ProTripCardProps {
   onArchiveSuccess?: () => void;
   onHideSuccess?: () => void;
   onDeleteSuccess?: () => void;
-  onEnterReorderMode?: () => void;
 }
 
-export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuccess, onEnterReorderMode }: ProTripCardProps) => {
+export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuccess }: ProTripCardProps) => {
   const navigate = useNavigate();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -293,15 +292,6 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-background border-border">
-              {onEnterReorderMode && (
-                <DropdownMenuItem
-                  onClick={onEnterReorderMode}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <ArrowUpDown className="mr-2 h-4 w-4" />
-                  Rearrange
-                </DropdownMenuItem>
-              )}
               <DropdownMenuItem
                 onClick={() => setShowArchiveDialog(true)}
                 className="text-muted-foreground hover:text-foreground"

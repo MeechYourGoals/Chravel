@@ -27,7 +27,8 @@ interface SwipeableTripCardWrapperProps {
   isDemoMode: boolean;
   onDelete: (trip: Trip) => Promise<void>;
   onTripStateChange?: () => void;
-  onEnterReorderMode?: () => void;
+  /** When true, disables swipe-to-delete so drag-to-reorder works on mobile */
+  reorderMode?: boolean;
   /** When true, loads cover photo eagerly (for above-the-fold cards) */
   priority?: boolean;
 }
@@ -43,43 +44,38 @@ export const SwipeableTripCardWrapper: React.FC<SwipeableTripCardWrapperProps> =
   isDemoMode,
   onDelete,
   onTripStateChange,
-  onEnterReorderMode,
+  reorderMode = false,
   priority = false,
 }) => {
   const { openRowId, setOpenRowId } = useSwipeableRowContext();
   const tripId = trip.id.toString();
 
+  const tripCard = (
+    <TripCard
+      trip={trip}
+      onArchiveSuccess={onTripStateChange}
+      onHideSuccess={onTripStateChange}
+      onDeleteSuccess={onTripStateChange}
+      priority={priority}
+    />
+  );
+
   if (!isMobile) {
-    return (
-      <TripCard
-        trip={trip}
-        onArchiveSuccess={onTripStateChange}
-        onHideSuccess={onTripStateChange}
-        onDeleteSuccess={onTripStateChange}
-        onEnterReorderMode={onEnterReorderMode}
-        priority={priority}
-      />
-    );
+    return tripCard;
   }
 
+  // When in reorder mode, disable swipe so touch events reach dnd-kit for drag
   return (
     <SwipeableRow
       rowId={tripId}
       openRowId={openRowId}
       onOpenRow={setOpenRowId}
       onDelete={() => onDelete(trip)}
-      disabled={isDemoMode}
+      disabled={isDemoMode || reorderMode}
       deleteLabel="Delete"
       requireConfirmation={false}
     >
-      <TripCard
-        trip={trip}
-        onArchiveSuccess={onTripStateChange}
-        onHideSuccess={onTripStateChange}
-        onDeleteSuccess={onTripStateChange}
-        onEnterReorderMode={onEnterReorderMode}
-        priority={priority}
-      />
+      {tripCard}
     </SwipeableRow>
   );
 };
@@ -90,7 +86,8 @@ interface SwipeableProTripCardWrapperProps {
   isDemoMode: boolean;
   onDelete: (trip: ProTripData) => Promise<void>;
   onTripStateChange?: () => void;
-  onEnterReorderMode?: () => void;
+  /** When true, disables swipe-to-delete so drag-to-reorder works on mobile */
+  reorderMode?: boolean;
 }
 
 /**
@@ -104,40 +101,36 @@ export const SwipeableProTripCardWrapper: React.FC<SwipeableProTripCardWrapperPr
   isDemoMode,
   onDelete,
   onTripStateChange,
-  onEnterReorderMode,
+  reorderMode = false,
 }) => {
   const { openRowId, setOpenRowId } = useSwipeableRowContext();
   const tripId = trip.id.toString();
 
+  const proTripCard = (
+    <ProTripCard
+      trip={trip}
+      onArchiveSuccess={onTripStateChange}
+      onHideSuccess={onTripStateChange}
+      onDeleteSuccess={onTripStateChange}
+    />
+  );
+
   if (!isMobile) {
-    return (
-      <ProTripCard
-        trip={trip}
-        onArchiveSuccess={onTripStateChange}
-        onHideSuccess={onTripStateChange}
-        onDeleteSuccess={onTripStateChange}
-        onEnterReorderMode={onEnterReorderMode}
-      />
-    );
+    return proTripCard;
   }
 
+  // When in reorder mode, disable swipe so touch events reach dnd-kit for drag
   return (
     <SwipeableRow
       rowId={tripId}
       openRowId={openRowId}
       onOpenRow={setOpenRowId}
       onDelete={() => onDelete(trip)}
-      disabled={isDemoMode}
+      disabled={isDemoMode || reorderMode}
       deleteLabel="Delete"
       requireConfirmation={false}
     >
-      <ProTripCard
-        trip={trip}
-        onArchiveSuccess={onTripStateChange}
-        onHideSuccess={onTripStateChange}
-        onDeleteSuccess={onTripStateChange}
-        onEnterReorderMode={onEnterReorderMode}
-      />
+      {proTripCard}
     </SwipeableRow>
   );
 };
