@@ -1,21 +1,26 @@
-
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SettingsMenu } from '../components/SettingsMenu';
 import { useIsMobile } from '../hooks/use-mobile';
 
 const SettingsPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
-  // On mobile, we want to show the full SettingsMenu component
-  // which includes all the consumer/enterprise/events functionality
+  const handleClose = useCallback(() => {
+    setIsMenuOpen(false);
+    // Navigate away to prevent blank screen when user closes settings
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
+
+  // On mobile, show full SettingsMenu; on close, navigate back
   if (isMobile) {
-    return (
-      <SettingsMenu 
-        isOpen={isMenuOpen} 
-        onClose={() => setIsMenuOpen(false)} 
-      />
-    );
+    return <SettingsMenu isOpen={isMenuOpen} onClose={handleClose} />;
   }
 
   // On desktop, redirect to home since settings are handled via the SettingsMenu overlay

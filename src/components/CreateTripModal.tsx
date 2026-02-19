@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   Calendar,
@@ -29,6 +30,7 @@ interface CreateTripModalProps {
 }
 
 export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const [tripType, setTripType] = useState<'consumer' | 'pro' | 'event'>('consumer');
@@ -281,9 +283,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             duration: 6000,
             action: {
               label: 'View Plans',
-              onClick: () => {
-                window.location.href = '/settings';
-              },
+              onClick: () => navigate('/settings'),
             },
           },
         );
@@ -292,9 +292,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           duration: 6000,
           action: {
             label: 'View Plans',
-            onClick: () => {
-              window.location.href = '/settings';
-            },
+            onClick: () => navigate('/settings'),
           },
         });
       } else if (error instanceof Error && error.message === 'UPGRADE_REQUIRED_EVENT') {
@@ -302,9 +300,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           duration: 6000,
           action: {
             label: 'View Plans',
-            onClick: () => {
-              window.location.href = '/settings';
-            },
+            onClick: () => navigate('/settings'),
           },
         });
       } else {

@@ -1,14 +1,30 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ToastAction } from './ui/toast';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
-import { getArchivedTrips, restoreTrip, getHiddenTrips, unhideTrip } from '../services/archiveService';
+import {
+  getArchivedTrips,
+  restoreTrip,
+  getHiddenTrips,
+  unhideTrip,
+} from '../services/archiveService';
 import { useToast } from '../hooks/use-toast';
 import { supabase } from '../integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArchiveRestore, Calendar, MapPin, Users, Archive, Eye, EyeOff, Crown, Lock } from 'lucide-react';
+import {
+  ArchiveRestore,
+  Calendar,
+  MapPin,
+  Users,
+  Archive,
+  Eye,
+  EyeOff,
+  Crown,
+  Lock,
+} from 'lucide-react';
 import { EnhancedEmptyState } from './ui/enhanced-empty-state';
 import { format } from 'date-fns';
 import { useDemoMode } from '../hooks/useDemoMode';
@@ -19,14 +35,14 @@ import { tripsData } from '../data/tripsData';
 type TabType = 'archived' | 'hidden';
 
 // Helper to convert tripsData format to archived/hidden display format
-const convertTripToDisplayFormat = (trip: typeof tripsData[0]) => ({
+const convertTripToDisplayFormat = (trip: (typeof tripsData)[0]) => ({
   id: trip.id.toString(),
   name: trip.title,
   destination: trip.location,
   start_date: trip.dateRange.split(' - ')[0],
   end_date: trip.dateRange.split(' - ')[1] || trip.dateRange.split(' - ')[0],
   description: trip.description,
-  participants: trip.participants.map(p => ({ id: p.id.toString() }))
+  participants: trip.participants.map(p => ({ id: p.id.toString() })),
 });
 
 interface ArchivedTripsSectionProps {
@@ -45,14 +61,20 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
     isOpen: false,
     tripId: '',
     tripTitle: '',
-    tripType: 'consumer'
+    tripType: 'consumer',
   });
 
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
   const { tier, upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
-  const [archivedTrips, setArchivedTrips] = useState<{ consumer: any[]; pro: any[]; events: any[]; total: number }>({ consumer: [], pro: [], events: [], total: 0 });
+  const [archivedTrips, setArchivedTrips] = useState<{
+    consumer: any[];
+    pro: any[];
+    events: any[];
+    total: number;
+  }>({ consumer: [], pro: [], events: [], total: 0 });
   const [hiddenTrips, setHiddenTrips] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -86,14 +108,14 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
         .filter(trip => hiddenIds.includes(trip.id.toString()))
         .map(trip => ({
           ...convertTripToDisplayFormat(trip),
-          is_hidden: true
+          is_hidden: true,
         }));
 
       setArchivedTrips({
         consumer: archivedConsumerTrips,
         pro: [],
         events: [],
-        total: archivedConsumerTrips.length
+        total: archivedConsumerTrips.length,
       });
       setHiddenTrips(hiddenTripsList);
       setIsLoading(false);
@@ -101,7 +123,9 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         setIsLoading(false);
         return;
@@ -125,12 +149,16 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
     loadTrips();
   }, [loadTrips, confirmDialog.isOpen, refreshCounter]);
 
-  const handleRestoreClick = async (tripId: string, tripTitle: string, tripType: 'consumer' | 'pro' | 'event') => {
+  const handleRestoreClick = async (
+    tripId: string,
+    tripTitle: string,
+    tripType: 'consumer' | 'pro' | 'event',
+  ) => {
     // Demo mode: session-scoped restore
     if (isDemoMode) {
       demoModeService.unarchiveTripSession(tripId);
       toast({
-        title: "Trip restored",
+        title: 'Trip restored',
         description: `"${tripTitle}" has been restored to your trips list.`,
       });
       refreshTrips();
@@ -142,19 +170,22 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
     // Free users cannot restore - show upgrade prompt
     if (isFreeUser) {
       toast({
-        title: "Upgrade to Restore",
-        description: "Upgrade to Explorer or Frequent Chraveler to restore archived trips and unlock unlimited trips.",
+        title: 'Upgrade to Restore',
+        description:
+          'Upgrade to Explorer or Frequent Chraveler to restore archived trips and unlock unlimited trips.',
         action: (
-          <ToastAction altText="View Plans" onClick={() => { window.location.href = '/settings'; }}>
+          <ToastAction altText="View Plans" onClick={() => navigate('/settings')}>
             View Plans
           </ToastAction>
-        )
+        ),
       });
       return;
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       await restoreTrip(tripId, tripType, user.id);
@@ -163,7 +194,7 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
       queryClient.invalidateQueries({ queryKey: ['trips'] });
 
       toast({
-        title: "Trip restored",
+        title: 'Trip restored',
         description: `"${tripTitle}" has been restored to your trips list.`,
       });
 
@@ -171,16 +202,17 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
     } catch (error) {
       if (error instanceof Error && error.message === 'TRIP_LIMIT_REACHED') {
         toast({
-          title: "Trip Limit Reached",
-          description: "You have 3 active trips (free tier limit). Archive a trip or upgrade to Explorer for unlimited trips.",
-          variant: "destructive",
+          title: 'Trip Limit Reached',
+          description:
+            'You have 3 active trips (free tier limit). Archive a trip or upgrade to Explorer for unlimited trips.',
+          variant: 'destructive',
           duration: 6000,
         });
       } else {
         toast({
-          title: "Error",
-          description: "Failed to restore trip",
-          variant: "destructive"
+          title: 'Error',
+          description: 'Failed to restore trip',
+          variant: 'destructive',
         });
       }
     }
@@ -191,7 +223,7 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
     if (isDemoMode) {
       demoModeService.unhideTripSession(tripId);
       toast({
-        title: "Trip unhidden",
+        title: 'Trip unhidden',
         description: `"${tripName}" is now visible in your trips list.`,
       });
       refreshTrips();
@@ -207,15 +239,15 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
       queryClient.invalidateQueries({ queryKey: ['trips'] });
 
       toast({
-        title: "Trip unhidden",
+        title: 'Trip unhidden',
         description: `"${tripName}" is now visible in your trips list.`,
       });
       loadTrips();
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to unhide trip",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to unhide trip',
+        variant: 'destructive',
       });
     }
   };
@@ -236,7 +268,10 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
   };
 
   const renderArchivedTripCard = (trip: any, type: 'consumer' | 'pro' | 'event') => (
-    <Card key={`${type}-${trip.id}`} className={`bg-card border-border ${isFreeUser ? 'opacity-80' : ''}`}>
+    <Card
+      key={`${type}-${trip.id}`}
+      className={`bg-card border-border ${isFreeUser ? 'opacity-80' : ''}`}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -265,7 +300,10 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
               {type === 'consumer' ? 'Personal' : type === 'pro' ? 'Professional' : 'Event'}
             </Badge>
             {isFreeUser && (
-              <Badge variant="secondary" className="text-xs bg-amber-500/20 text-amber-300 border-amber-500/30">
+              <Badge
+                variant="secondary"
+                className="text-xs bg-amber-500/20 text-amber-300 border-amber-500/30"
+              >
                 <Lock className="h-3 w-3 mr-1" />
                 Locked
               </Badge>
@@ -291,12 +329,14 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
           ) : (
             <Button
               variant="outline"
-              onClick={() => setConfirmDialog({
-                isOpen: true,
-                tripId: trip.id.toString(),
-                tripTitle: trip.name || trip.title || 'Untitled Trip',
-                tripType: type
-              })}
+              onClick={() =>
+                setConfirmDialog({
+                  isOpen: true,
+                  tripId: trip.id.toString(),
+                  tripTitle: trip.name || trip.title || 'Untitled Trip',
+                  tripType: type,
+                })
+              }
               className="ml-4 flex items-center gap-2 min-h-[44px]"
             >
               <ArchiveRestore className="h-4 w-4" />
@@ -407,7 +447,8 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
                     <div>
                       <h4 className="font-medium text-amber-100">Your trips are safe!</h4>
                       <p className="text-sm text-amber-200/70">
-                        Upgrade to unlock {archivedTrips.total} archived trip{archivedTrips.total !== 1 ? 's' : ''} and get unlimited active trips.
+                        Upgrade to unlock {archivedTrips.total} archived trip
+                        {archivedTrips.total !== 1 ? 's' : ''} and get unlimited active trips.
                       </p>
                     </div>
                   </div>
@@ -440,9 +481,7 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
       ) : (
         <div className="space-y-4">
           {hasHiddenTrips ? (
-            <div className="grid gap-4">
-              {hiddenTrips.map(trip => renderHiddenTripCard(trip))}
-            </div>
+            <div className="grid gap-4">{hiddenTrips.map(trip => renderHiddenTripCard(trip))}</div>
           ) : (
             <EnhancedEmptyState
               icon={EyeOff}

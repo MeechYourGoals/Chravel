@@ -126,6 +126,10 @@ vi.mock('../../hooks/use-mobile', () => ({
   useIsMobile: () => mockIsMobile,
 }));
 
+vi.mock('../../hooks/useOfflineStatus', () => ({
+  useOfflineStatus: () => ({ isOffline: false }),
+}));
+
 vi.mock('../../hooks/useDemoMode', () => ({
   useDemoMode: () => ({
     demoView: mockDemoView,
@@ -171,7 +175,7 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     renderMenu();
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
-    // Tab labels: Group (consumer), Enterprise, Events
+    // Tab labels: Group (user-facing; "Consumer" is internal/cold), Enterprise, Events
     expect(screen.getByRole('button', { name: 'Group' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enterprise' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Events' })).toBeInTheDocument();

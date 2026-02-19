@@ -209,12 +209,7 @@ export const TripCard = ({
           title: 'Trip archived',
           description: `"${trip.title}" has been archived. Upgrade to restore it anytime!`,
           action: (
-            <ToastAction
-              altText="View Plans"
-              onClick={() => {
-                window.location.href = '/settings';
-              }}
-            >
+            <ToastAction altText="View Plans" onClick={() => navigate('/settings')}>
               View Plans
             </ToastAction>
           ),

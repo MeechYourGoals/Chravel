@@ -29,7 +29,7 @@ test.describe('Settings hardening', () => {
     await page.getByLabel('Settings').click();
 
     // Shell should render (tabs present) – this is what regressed previously.
-    await expect(page.getByRole('button', { name: 'Consumer' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Group' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Enterprise' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Events' })).toBeVisible();
 
@@ -49,7 +49,7 @@ test.describe('Settings hardening', () => {
     await page.getByLabel('Settings').click();
 
     // Should go directly to full settings (no Quick Settings intermediate step)
-    await expect(page.getByRole('button', { name: 'Consumer' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Group' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Enterprise' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Events' })).toBeVisible();
 
