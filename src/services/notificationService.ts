@@ -582,12 +582,19 @@ export class NotificationService {
 
   /**
    * Send SMS notification via Edge Function
-   * @returns { success, errorMessage? } for UI to surface specific failure reasons
+   * Truth-based: success only when Twilio returns a valid Message SID
+   * @returns { success, sid?, status?, errorMessage?, errorCode? } for UI
    */
   async sendSMSNotification(
     userId: string,
     message: string,
-  ): Promise<{ success: boolean; errorMessage?: string }> {
+  ): Promise<{
+    success: boolean;
+    sid?: string;
+    status?: string;
+    errorMessage?: string;
+    errorCode?: number;
+  }> {
     try {
       const { data, error } = await supabase.functions.invoke('push-notifications', {
         body: {
@@ -597,14 +604,21 @@ export class NotificationService {
         },
       });
 
-      const result = (data ?? {}) as { success?: boolean; error?: string; message?: string };
+      const result = (data ?? {}) as {
+        success?: boolean;
+        sid?: string;
+        status?: string;
+        error?: string;
+        message?: string;
+        errorCode?: number;
+        errorMessage?: string;
+      };
 
       if (error) {
         if (import.meta.env.DEV) {
           console.error('[NotificationService] SMS error:', error);
         }
         let errorMessage = (error as { message?: string }).message || 'Request failed';
-        // Prefer message from response body (data sometimes populated on 4xx)
         if (result?.message) errorMessage = result.message;
         else if (result?.error) errorMessage = result.error;
         else {
@@ -621,21 +635,42 @@ export class NotificationService {
             // ignore
           }
         }
-        return { success: false, errorMessage };
+        return {
+          success: false,
+          errorMessage,
+          errorCode: result?.errorCode,
+        };
       }
 
       if (result.success === false) {
         return {
           success: false,
           errorMessage: result.message || result.error || 'SMS delivery failed',
+          errorCode: result.errorCode,
         };
       }
-      return { success: true };
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('[NotificationService] Error sending SMS notification:', error);
+
+      // Truth-based: only success if we have a valid Message SID from Twilio
+      const hasValidSid =
+        result.sid && typeof result.sid === 'string' && result.sid.startsWith('SM');
+      if (!hasValidSid) {
+        return {
+          success: false,
+          errorMessage: result.message || result.error || 'Twilio did not return a message SID',
+          errorCode: result.errorCode,
+        };
       }
-      const msg = error instanceof Error ? error.message : 'Unknown error';
+
+      return {
+        success: true,
+        sid: result.sid,
+        status: result.status,
+      };
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('[NotificationService] Error sending SMS notification:', err);
+      }
+      const msg = err instanceof Error ? err.message : 'Unknown error';
       return { success: false, errorMessage: msg };
     }
   }

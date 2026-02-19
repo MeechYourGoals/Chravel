@@ -278,15 +278,20 @@ export const EventNotificationsSection = () => {
         user.id,
         'Chravel Events: Test message — SMS notifications are working!',
       );
-      if (result.success) {
+      if (result.success && result.sid) {
         toast({
           title: 'Test SMS sent',
-          description: `Check ${formatPhoneNumber(smsPhoneNumber)} for the message.`,
+          description: `Queued (SID: ${result.sid}). Check ${formatPhoneNumber(smsPhoneNumber)} for the message.`,
         });
       } else {
+        const desc = result.errorMessage || 'Check your settings and try again.';
+        const hint =
+          result.errorCode === 21610
+            ? ' Verify your phone number in the Twilio console (trial accounts).'
+            : '';
         toast({
           title: 'Failed to send',
-          description: result.errorMessage || 'Check your settings and try again.',
+          description: desc + hint,
           variant: 'destructive',
         });
       }

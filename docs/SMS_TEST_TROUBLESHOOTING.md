@@ -12,6 +12,8 @@ When "Send test SMS" fails, the toast now shows the **exact error message** from
 | **Twilio credentials not configured** | Edge function secrets missing | Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` in Supabase |
 | **Daily SMS limit reached** | Rate limit (10/day) exceeded | Wait until midnight or run reset SQL below |
 | **Request failed** / **Unauthorized** | Auth/session issue | Ensure you're logged in; try refreshing the page |
+| **The 'To' number is not verified** (21610) | Twilio trial account | Verify destination number in Twilio Console → Phone Numbers → Verified Caller IDs |
+| **Twilio did not return a message SID** | Twilio API returned unexpected response | Check Twilio status page; verify credentials and from number |
 
 ## Verify Your Setup (SQL)
 
@@ -80,7 +82,15 @@ WHERE user_id = 'YOUR_USER_ID';
 ## Checklist Before Testing
 
 1. [ ] Twilio secrets set in Supabase (Edge Functions → Secrets)
-2. [ ] User has `super_admin` role OR active `user_entitlements` with `frequent-chraveler` / `pro-*`
-3. [ ] `notification_preferences` has `sms_enabled = true` and `sms_phone_number` in E.164 (e.g. +15551234567)
-4. [ ] You're logged in and on Settings → Notifications (Consumer settings)
-5. [ ] "Send test SMS" button is visible (means you're eligible)
+2. [ ] **Trial accounts:** Verify destination phone in Twilio Console → Phone Numbers → Verified Caller IDs
+3. [ ] User has `super_admin` role OR active `user_entitlements` with `frequent-chraveler` / `pro-*`
+4. [ ] `notification_preferences` has `sms_enabled = true` and `sms_phone_number` in E.164 (e.g. +15551234567)
+5. [ ] You're logged in and on Settings → Notifications (Consumer settings)
+6. [ ] "Send test SMS" button is visible (means you're eligible)
+
+## Twilio Console Settings to Verify
+
+- **From number:** Twilio Console → Phone Numbers → your number must be SMS-capable
+- **Geo permissions:** Twilio Console → Messaging → Geo Permissions — ensure destination country is allowed
+- **Trial accounts:** Phone Numbers → Verified Caller IDs — add and verify your test number
+- **A2P/10DLC (US):** For production US SMS, complete 10DLC registration
