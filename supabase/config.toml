@@ -107,3 +107,6 @@ verify_jwt = false
 
 [functions.dispatch-notification-deliveries]
 verify_jwt = false
+
+[functions.image-proxy]
+verify_jwt = false
