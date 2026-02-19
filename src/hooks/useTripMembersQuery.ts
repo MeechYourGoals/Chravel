@@ -211,7 +211,7 @@ export const useTripMembersQuery = (tripId?: string) => {
       if (isDemoMode) return true;
 
       // leave_trip RPC exists in DB but may not be in generated Supabase types
-      const { data, error } = await supabase.rpc('leave_trip' as const, {
+      const { data, error } = await (supabase.rpc as any)('leave_trip', {
         _trip_id: tripId,
       });
       if (error) throw error;
