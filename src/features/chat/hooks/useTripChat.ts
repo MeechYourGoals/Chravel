@@ -136,6 +136,8 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     let windowStart = Date.now();
     let pendingInserts: Array<Record<string, unknown>> = [];
     let flushScheduled = false;
+    // Throttle "Connection interrupted" toast — at most once per 60 s to avoid spam
+    let lastConnectionErrorToast = 0;
 
     const flushPendingInserts = () => {
       if (pendingInserts.length === 0) {
@@ -270,11 +272,16 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           console.log('[CHAT REALTIME] Subscription status:', status);
         }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          toast({
-            title: 'Connection interrupted',
-            description: 'Reconnecting to chat...',
-            variant: 'destructive',
-          });
+          const now = Date.now();
+          // Throttle: show at most once per 60 s so rapid reconnect cycles don't spam
+          if (now - lastConnectionErrorToast > 60_000) {
+            lastConnectionErrorToast = now;
+            toast({
+              title: 'Connection interrupted',
+              description: 'Reconnecting to chat...',
+              variant: 'destructive',
+            });
+          }
         }
       });
 
