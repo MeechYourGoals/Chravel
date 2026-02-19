@@ -14,7 +14,7 @@ import {
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { useGeminiLive, type GeminiLiveState } from '@/hooks/useGeminiLive';
-import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+import { useWebSpeechVoice, type VoiceState } from '@/hooks/useWebSpeechVoice';
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -151,6 +151,7 @@ export const AIConciergeChat = ({
   >('connected');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [voiceActive, setVoiceActive] = useState(false);
+  const [useWebSpeechFallback, setUseWebSpeechFallback] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
@@ -159,7 +160,7 @@ export const AIConciergeChat = ({
   // Must be declared before useGeminiLive so callbacks can safely reference it
   const isMounted = useRef(true);
 
-  // ===== VOICE MODE (Gemini Live bidirectional audio) =====
+  // ===== VOICE MODE: Gemini Live (primary) + Web Speech API (fallback when Gemini fails) =====
   const mapGeminiToVoiceState = (s: GeminiLiveState): VoiceState => {
     switch (s) {
       case 'listening':
@@ -208,7 +209,17 @@ export const AIConciergeChat = ({
     },
   });
 
+  const webSpeechVoice = useWebSpeechVoice(
+    useCallback((text: string) => {
+      handleSendMessageRef.current?.(text);
+    }, []),
+  );
+
   const handleVoiceToggle = useCallback(() => {
+    if (useWebSpeechFallback) {
+      webSpeechVoice.toggleVoice();
+      return;
+    }
     if (geminiLive.state === 'idle' || geminiLive.state === 'error') {
       geminiLive.startSession();
       setVoiceActive(true);
@@ -216,13 +227,20 @@ export const AIConciergeChat = ({
       geminiLive.endSession();
       setVoiceActive(false);
     }
-  }, [geminiLive]);
+  }, [geminiLive, useWebSpeechFallback, webSpeechVoice]);
 
-  // Auto-revert to text mode on voice error
+  const effectiveVoiceState: VoiceState = useWebSpeechFallback
+    ? webSpeechVoice.voiceState
+    : mapGeminiToVoiceState(geminiLive.state);
+
+  // Auto-revert to text mode on Gemini voice error; offer Web Speech fallback
   useEffect(() => {
     if (geminiLive.state === 'error' && voiceActive) {
-      toast.error(geminiLive.error || 'Voice session ended. Returning to text mode.');
+      toast.error(geminiLive.error || 'Voice session ended. Returning to text mode.', {
+        description: 'Tap mic again to use browser voice (speech-to-text) instead.',
+      });
       setVoiceActive(false);
+      setUseWebSpeechFallback(true);
     }
   }, [geminiLive.state, geminiLive.error, voiceActive]);
 
@@ -832,25 +850,36 @@ export const AIConciergeChat = ({
           )}
         </div>
 
-        {/* Voice Active Indicator */}
-        {voiceActive && geminiLive.state !== 'idle' && geminiLive.state !== 'error' && (
+        {/* Voice Active Indicator (Gemini Live or Web Speech fallback) */}
+        {((voiceActive && geminiLive.state !== 'idle' && geminiLive.state !== 'error') ||
+          (useWebSpeechFallback &&
+            (webSpeechVoice.voiceState === 'listening' ||
+              webSpeechVoice.voiceState === 'connecting'))) && (
           <div className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-sm text-emerald-300">
-                {geminiLive.state === 'connecting'
-                  ? 'Connecting...'
-                  : geminiLive.state === 'listening'
-                    ? 'Listening...'
-                    : geminiLive.state === 'speaking'
-                      ? 'AI Speaking...'
-                      : 'Voice Active'}
+                {useWebSpeechFallback
+                  ? webSpeechVoice.voiceState === 'connecting'
+                    ? 'Connecting...'
+                    : 'Listening...'
+                  : geminiLive.state === 'connecting'
+                    ? 'Connecting...'
+                    : geminiLive.state === 'listening'
+                      ? 'Listening...'
+                      : geminiLive.state === 'speaking'
+                        ? 'AI Speaking...'
+                        : 'Voice Active'}
               </span>
             </div>
             <button
               onClick={() => {
-                geminiLive.endSession();
-                setVoiceActive(false);
+                if (useWebSpeechFallback) {
+                  webSpeechVoice.stopVoice();
+                } else {
+                  geminiLive.endSession();
+                  setVoiceActive(false);
+                }
               }}
               className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors"
             >
@@ -872,7 +901,7 @@ export const AIConciergeChat = ({
             attachedImages={attachedImages}
             onImageAttach={files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
             onRemoveImage={idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))}
-            voiceState={mapGeminiToVoiceState(geminiLive.state)}
+            voiceState={effectiveVoiceState}
             isVoiceEligible={true}
             onVoiceToggle={handleVoiceToggle}
           />
