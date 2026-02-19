@@ -1637,6 +1637,7 @@ export type Database = {
           subscription_product_id: string | null
           subscription_status: string | null
           timezone: string | null
+          title: string | null
           updated_at: string
           user_id: string
         }
@@ -1667,6 +1668,7 @@ export type Database = {
           subscription_product_id?: string | null
           subscription_status?: string | null
           timezone?: string | null
+          title?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1697,6 +1699,7 @@ export type Database = {
           subscription_product_id?: string | null
           subscription_status?: string | null
           timezone?: string | null
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -3451,6 +3454,7 @@ export type Database = {
           phone: string | null
           real_name: string | null
           resolved_display_name: string | null
+          title: string | null
           user_id: string | null
         }
         Insert: {
@@ -3463,6 +3467,7 @@ export type Database = {
           phone?: never
           real_name?: string | null
           resolved_display_name?: never
+          title?: string | null
           user_id?: string | null
         }
         Update: {
@@ -3475,6 +3480,7 @@ export type Database = {
           phone?: never
           real_name?: string | null
           resolved_display_name?: never
+          title?: string | null
           user_id?: string | null
         }
         Relationships: []

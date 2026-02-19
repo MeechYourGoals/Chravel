@@ -35,6 +35,7 @@ interface UserProfile {
   phone: string | null;
   show_email: boolean;
   show_phone: boolean;
+  title: string | null;
 }
 
 interface User {
@@ -52,6 +53,8 @@ interface User {
   isPro: boolean;
   showEmail: boolean;
   showPhone: boolean;
+  /** Pro-only title shown as a second line under real name in Pro trip contexts. */
+  title?: string;
   // Enhanced pro role system
   proRole?:
     | 'admin'
@@ -190,7 +193,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from('profiles')
         .select(
-          'id, user_id, display_name, real_name, name_preference, first_name, last_name, avatar_url, bio, phone, show_email, show_phone, ' +
+          'id, user_id, display_name, real_name, name_preference, first_name, last_name, avatar_url, bio, phone, show_email, show_phone, title, ' +
             'notification_settings, timezone, app_role, role, subscription_status, subscription_product_id, ' +
             'subscription_end, free_pro_trips_used, free_pro_trip_limit, free_events_used, free_event_limit, ' +
             'created_at, updated_at',
@@ -388,6 +391,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isPro,
         showEmail: userProfile?.show_email || false,
         showPhone: userProfile?.show_phone || false,
+        title: (userProfile as any)?.title ?? undefined,
         proRole,
         organizationId: orgMemberResult.data?.organization_id || undefined,
         permissions,
@@ -963,6 +967,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         updatedUser.phone = (data as any).phone ?? updatedUser.phone;
         updatedUser.showEmail = data.show_email ?? updatedUser.showEmail;
         updatedUser.showPhone = data.show_phone ?? updatedUser.showPhone;
+        updatedUser.title = (data as any).title ?? updatedUser.title;
       } else {
         if (updates.display_name) updatedUser.displayName = updates.display_name;
         if (updates.real_name !== undefined) updatedUser.realName = updates.real_name ?? undefined;
@@ -975,6 +980,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (updates.phone !== undefined) updatedUser.phone = updates.phone ?? undefined;
         if (updates.show_email !== undefined) updatedUser.showEmail = updates.show_email;
         if (updates.show_phone !== undefined) updatedUser.showPhone = updates.show_phone;
+        if ((updates as any).title !== undefined) updatedUser.title = (updates as any).title ?? undefined;
       }
 
       setUser(updatedUser);

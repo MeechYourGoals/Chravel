@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Camera, Upload, Loader2, Phone, LogOut } from 'lucide-react';
+import { User, Camera, Upload, Loader2, Phone, LogOut, Lock } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { supabase } from '../../integrations/supabase/client';
@@ -14,16 +14,18 @@ export const ConsumerProfileSection = () => {
 
   // Local state for form fields
   const [realName, setRealName] = useState(user?.realName || '');
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [title, setTitle] = useState(user?.title || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  const isPro = user?.isPro ?? false;
 
   // Initialize state when user loads
   useEffect(() => {
     if (user) {
       setRealName(user.realName || '');
-      setDisplayName(user.displayName || '');
+      setTitle(user.title || '');
       setPhone(user.phone || '');
     }
   }, [user]);
@@ -32,9 +34,8 @@ export const ConsumerProfileSection = () => {
   const mockUser = {
     id: 'demo-user-123',
     email: 'demo@example.com',
-    displayName: 'Demo User',
-    realName: undefined as string | undefined,
-    namePreference: 'display' as const,
+    realName: 'Demo User',
+    title: undefined as string | undefined,
     avatar: getConsistentAvatar('Demo User'),
   };
 
@@ -57,7 +58,8 @@ export const ConsumerProfileSection = () => {
       // Canonical identity lives in `profiles` (via useAuth.updateProfile upsert).
       const { error } = await updateProfile({
         real_name: realName.trim() || null,
-        display_name: displayName.trim() || null,
+        // Only save title for Pro users; silently ignore for non-Pro
+        ...(isPro ? { title: title.trim() || null } : {}),
         phone: phone || null,
       });
 
@@ -69,11 +71,7 @@ export const ConsumerProfileSection = () => {
       });
     } catch (error) {
       console.error('Error saving profile:', error);
-      const message = (error as { message?: string })?.message?.includes(
-        'Display name can only be changed twice',
-      )
-        ? 'Display name can only be changed twice every 30 days. Please try again later.'
-        : 'Failed to save profile changes. Please try again.';
+      const message = 'Failed to save profile changes. Please try again.';
       toast({
         title: 'Error',
         description: message,
@@ -256,7 +254,7 @@ export const ConsumerProfileSection = () => {
               placeholder="Enter your real name"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Used when you choose to show your real name.
+              Your real name is always shown to trip members.
             </p>
           </div>
           <div>
@@ -269,16 +267,31 @@ export const ConsumerProfileSection = () => {
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-1.5">Display Name</label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={e => setDisplayName(e.target.value)}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
-              placeholder="Nickname or role (e.g., Tour Manager, Security)"
-            />
+            <label className="block text-sm text-gray-300 mb-1.5 flex items-center gap-1.5">
+              Title
+              {!isPro && <Lock size={12} className="text-gray-500" />}
+            </label>
+            {isPro ? (
+              <input
+                type="text"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+                placeholder="e.g., Tour Manager, Security, Photographer"
+              />
+            ) : (
+              <input
+                type="text"
+                value=""
+                disabled
+                className="w-full bg-gray-700/30 border border-gray-700 text-gray-600 rounded-lg px-4 py-2 cursor-not-allowed"
+                placeholder="Upgrade to Pro to add a Title"
+              />
+            )}
             <p className="text-xs text-gray-500 mt-1">
-              Can be a nickname or role (e.g., Tour Manager, Security, Photographer).
+              {isPro
+                ? 'Pro feature. Your real name is always shown. Title appears under your name on Pro trips.'
+                : 'Pro feature. Your real name is always shown. Title appears under your name on Pro trips. Upgrade to Pro to add a Title.'}
             </p>
           </div>
           <div>

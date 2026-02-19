@@ -9,10 +9,13 @@ import { ConfirmPaymentDialog } from './ConfirmPaymentDialog';
 import { generatePaymentDeeplink, getPaymentMethodDisplayName } from '../../utils/paymentDeeplinks';
 import { formatCurrency } from '../../services/currencyService';
 import type { PaymentMethod as ReceiptPaymentMethod } from '../../types/receipts';
+import { PersonLabel } from '../PersonLabel';
 
 interface PersonBalanceCardProps {
   balance: PersonalBalance;
   tripId: string;
+  /** Whether the trip context allows Pro titles to be shown. */
+  showTitle?: boolean;
 }
 
 const SUPPORTED_DEEPLINK_TYPES: ReceiptPaymentMethod[] = [
@@ -23,7 +26,7 @@ const SUPPORTED_DEEPLINK_TYPES: ReceiptPaymentMethod[] = [
   'applecash',
 ];
 
-export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) => {
+export const PersonBalanceCard = ({ balance, tripId, showTitle = false }: PersonBalanceCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
   const [showSettleDialog, setShowSettleDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -68,7 +71,12 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
               </Avatar>
               
               <div className="min-w-0">
-                <h4 className="font-semibold text-foreground truncate">{balance.userName}</h4>
+                <PersonLabel
+                  name={balance.userName}
+                  title={balance.userTitle}
+                  showTitle={showTitle}
+                  nameClassName="font-semibold text-foreground"
+                />
                 <p className="text-xs text-muted-foreground truncate">
                   {getPaymentMethodDisplay()}
                 </p>

@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { demoModeService } from './demoModeService';
 import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
-import { FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
+import { FORMER_MEMBER_LABEL, getPrimaryName } from '@/lib/resolveDisplayName';
 
 /**
  * Normalizes date input to YYYY-MM-DD format for database date columns
@@ -545,7 +545,7 @@ export const tripService = {
       const userIds = data.map(m => m.user_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
+        .select('user_id, real_name, display_name, first_name, last_name, resolved_display_name, avatar_url, title')
         .in('user_id', userIds);
 
       if (profilesError) {
@@ -647,7 +647,7 @@ export const tripService = {
       if (creatorId) {
         const { data: creatorProfile } = await supabase
           .from('profiles_public')
-          .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
+          .select('user_id, real_name, display_name, first_name, last_name, resolved_display_name, avatar_url, title')
           .eq('user_id', creatorId)
           .maybeSingle();
 
@@ -655,10 +655,7 @@ export const tripService = {
           members: [
             {
               id: creatorId,
-              name:
-                creatorProfile?.resolved_display_name ||
-                creatorProfile?.display_name ||
-                'Trip Creator',
+              name: getPrimaryName(creatorProfile, 'Trip Creator'),
               avatar: creatorProfile?.avatar_url,
               isCreator: true,
             },
@@ -673,16 +670,17 @@ export const tripService = {
     const userIds = membersResult.data.map(m => m.user_id);
     const { data: profilesData } = await supabase
       .from('profiles_public')
-      .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
+      .select('user_id, real_name, display_name, first_name, last_name, resolved_display_name, avatar_url, title')
       .in('user_id', userIds);
 
     const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
 
     let members = membersResult.data.map(m => {
       const profile = profilesMap.get(m.user_id);
+      const resolvedName = getPrimaryName(profile, FORMER_MEMBER_LABEL);
       return {
         id: m.user_id,
-        name: profile?.resolved_display_name || profile?.display_name || FORMER_MEMBER_LABEL,
+        name: resolvedName,
         avatar: profile?.avatar_url,
         isCreator: m.user_id === creatorId,
       };
@@ -701,16 +699,13 @@ export const tripService = {
       if (creatorActive) {
         const { data: creatorProfile } = await supabase
           .from('profiles_public')
-          .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
+          .select('user_id, real_name, display_name, first_name, last_name, resolved_display_name, avatar_url, title')
           .eq('user_id', creatorId)
           .maybeSingle();
         members = [
           {
             id: creatorId,
-            name:
-              creatorProfile?.resolved_display_name ||
-              creatorProfile?.display_name ||
-              'Trip Creator',
+            name: getPrimaryName(creatorProfile, 'Trip Creator'),
             avatar: creatorProfile?.avatar_url,
             isCreator: true,
           },

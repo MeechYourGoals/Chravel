@@ -1,10 +1,13 @@
 import { supabase } from '../integrations/supabase/client';
 import { PaymentMethod } from '../types/payments';
 import { normalizeToBaseCurrency, convertCurrency } from './currencyService';
+import { getPrimaryName } from '../lib/resolveDisplayName';
 
 export interface PersonalBalance {
   userId: string;
   userName: string;
+  /** Pro-only title. Rendering logic in PersonLabel decides whether to show it. */
+  userTitle?: string | null;
   avatar?: string;
   amountOwed: number; // negative = you owe them, positive = they owe you
   amountOwedCurrency: string; // Base currency (normalized)
@@ -99,7 +102,7 @@ export const paymentBalanceService = {
       const [profilesResult, methodsResult] = await Promise.all([
         supabase
           .from('profiles_public')
-          .select('user_id, display_name, resolved_display_name, avatar_url')
+          .select('user_id, real_name, display_name, first_name, last_name, resolved_display_name, avatar_url, title')
           .in('user_id', userIdArray),
         supabase
           .from('user_payment_methods')
@@ -267,7 +270,8 @@ export const paymentBalanceService = {
 
         balances.push({
           userId: personUserId,
-          userName: profile?.resolved_display_name || profile?.display_name || 'Former Member',
+          userName: getPrimaryName(profile, 'Former Member'),
+          userTitle: (profile as any)?.title ?? null,
           avatar: profile?.avatar_url,
           amountOwed: entry.netAmount,
           amountOwedCurrency: baseCurrency,

@@ -6,7 +6,7 @@ import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
-import { resolveDisplayName, UNRESOLVED_NAME_SENTINEL, FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
+import { getPrimaryName, UNRESOLVED_NAME_SENTINEL, FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
 
 export interface TripMember {
   id: string;
@@ -14,6 +14,8 @@ export interface TripMember {
   avatar?: string;
   isCreator?: boolean;
   role?: string;
+  /** Pro-only title for display in Pro trip contexts. */
+  title?: string | null;
 }
 
 export const useTripMembers = (tripId?: string) => {
@@ -24,16 +26,18 @@ export const useTripMembers = (tripId?: string) => {
   const { user } = useAuth();
 
   const formatTripMembers = (dbMembers: Array<{ user_id: string; role?: string; profiles?: unknown }>, creatorId?: string): TripMember[] => {
-    return dbMembers.map(member => ({
-      id: member.user_id,
-      name: (() => {
-        const resolved = resolveDisplayName(member.profiles);
-        return resolved === UNRESOLVED_NAME_SENTINEL ? FORMER_MEMBER_LABEL : resolved;
-      })(),
-      avatar: (member.profiles as { avatar_url?: string } | null)?.avatar_url,
-      isCreator: member.user_id === creatorId,
-      role: member.role || 'member',
-    }));
+    return dbMembers.map(member => {
+      const profile = member.profiles as { avatar_url?: string; title?: string | null; real_name?: string | null; first_name?: string | null; last_name?: string | null; email?: string | null } | null;
+      const resolved = getPrimaryName(profile);
+      return {
+        id: member.user_id,
+        name: resolved === UNRESOLVED_NAME_SENTINEL ? FORMER_MEMBER_LABEL : resolved,
+        avatar: profile?.avatar_url,
+        isCreator: member.user_id === creatorId,
+        role: member.role || 'member',
+        title: profile?.title ?? null,
+      };
+    });
   };
 
   const getMockFallbackMembers = (tripId: string): TripMember[] => {
@@ -262,13 +266,10 @@ export const useTripMembers = (tripId?: string) => {
         if (notifyUserId && notifyUserId !== user.id) {
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('display_name, first_name, last_name')
+            .select('real_name, first_name, last_name')
             .eq('user_id', user.id)
             .single();
-          const userName =
-            profileData?.display_name ||
-            `${profileData?.first_name || ''} ${profileData?.last_name || ''}`.trim() ||
-            'A member';
+          const userName = getPrimaryName(profileData, 'A member');
           await supabase.from('notifications').insert({
             user_id: notifyUserId,
             title: `${userName} left ${tripName}`,

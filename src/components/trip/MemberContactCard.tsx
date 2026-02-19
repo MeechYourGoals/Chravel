@@ -6,6 +6,7 @@ import { Phone, MessageCircle, X, Loader2, PhoneOff } from 'lucide-react';
 import { getInitials, isValidAvatarUrl } from '@/utils/avatarUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { PersonLabel } from '@/components/PersonLabel';
 
 export interface MemberContactCardMember {
   id: string;
@@ -13,6 +14,10 @@ export interface MemberContactCardMember {
   avatar?: string;
   role?: string;
   isCreator?: boolean;
+  /** Pro-only title for display in Pro trip contexts. */
+  title?: string | null;
+  /** Whether the trip context allows titles to be shown. */
+  showTitle?: boolean;
 }
 
 interface MemberContactCardProps {
@@ -132,7 +137,12 @@ export const MemberContactCard: React.FC<MemberContactCardProps> = ({
             </AvatarFallback>
           </Avatar>
 
-          <h3 className="text-lg font-semibold text-white">{member.name}</h3>
+          <PersonLabel
+            name={member.name}
+            title={member.title}
+            showTitle={member.showTitle}
+            nameClassName="text-lg font-semibold text-white"
+          />
 
           {member.role && <p className="text-sm text-gray-400 mt-0.5">{member.role}</p>}
 

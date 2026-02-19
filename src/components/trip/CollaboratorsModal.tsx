@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
-import { formatCollaboratorName } from '../../utils/nameFormatUtils';
 import { UserMinus, Crown, Check, X, Clock, Users, UserPlus, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JoinRequest } from '@/hooks/useJoinRequests';
 import { formatDistanceToNow } from 'date-fns';
 import { MemberContactCard, MemberContactCardMember } from './MemberContactCard';
 import { SwipeableRow } from '../mobile/SwipeableRow';
+import { PersonLabel } from '../PersonLabel';
+import { isProTitleContext } from '@/utils/proContextUtils';
+import { getPrimaryName, UNRESOLVED_NAME_SENTINEL } from '@/lib/resolveDisplayName';
 
 export interface CollaboratorItem {
   id: number | string;
@@ -15,6 +17,8 @@ export interface CollaboratorItem {
   avatar?: string;
   role?: string;
   isCreator?: boolean;
+  /** Pro-only title for rendering in Pro trip contexts. */
+  title?: string | null;
 }
 
 interface CollaboratorsModalProps {
@@ -44,7 +48,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
   open,
   onOpenChange,
   participants,
-  tripType = 'consumer',
+  tripType = 'consumer' as 'consumer' | 'pro' | 'event',
   tripId,
   currentUserId,
   tripCreatorId,
@@ -77,6 +81,8 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
       avatar: member.avatar,
       role: member.role,
       isCreator: member.isCreator || idStr === tripCreatorId,
+      title: member.title,
+      showTitle: isProTitleContext(tripType),
     });
     setContactCardOpen(true);
   };
@@ -219,17 +225,20 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium text-white">
-                          {formatCollaboratorName(c.name, tripType)}
-                        </span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <PersonLabel
+                          name={c.name}
+                          title={c.title}
+                          showTitle={isProTitleContext(tripType)}
+                          nameClassName="text-sm font-medium text-white"
+                        />
                         {isCreator && (
-                          <span title="Trip Creator">
-                            <Crown size={14} className="text-yellow-500 flex-shrink-0" />
+                          <span title="Trip Creator" className="flex-shrink-0">
+                            <Crown size={14} className="text-yellow-500" />
                           </span>
                         )}
                         {isCurrentUser && !isCreator && (
-                          <span className="text-xs text-gray-400">(you)</span>
+                          <span className="text-xs text-gray-400 flex-shrink-0">(you)</span>
                         )}
                       </div>
                       {c.role && <div className="truncate text-xs text-gray-400">{c.role}</div>}
@@ -270,9 +279,10 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                     </div>
                     {pendingRequests.map(request => {
                       const isProcessing = processingRequestId === request.id;
-                      // Use profile display_name which already has fallback logic applied
+                      // Use real name from profile; fall back to requester_name snapshot or email prefix
+                      const resolvedName = getPrimaryName(request.profile);
                       const displayName =
-                        request.profile?.display_name ||
+                        (resolvedName !== UNRESOLVED_NAME_SENTINEL ? resolvedName : null) ||
                         request.requester_name ||
                         request.requester_email?.split('@')[0] ||
                         'New member';
@@ -283,7 +293,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
 
                       // Check if this might be an orphaned request (no profile data)
                       const mightBeOrphaned =
-                        !request.profile?.display_name &&
+                        !request.profile?.real_name &&
                         !request.profile?.avatar_url &&
                         request.requester_name;
 
