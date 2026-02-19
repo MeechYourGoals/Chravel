@@ -61,10 +61,25 @@ const downsampleTo16k = (input: Float32Array, inputSampleRate: number): Float32A
 function mapSessionError(raw: string): string {
   const lower = raw.toLowerCase();
 
-  if (raw.includes('403') || lower.includes('not enabled') || lower.includes('not enabled for this account')) {
+  // "Method doesn't allow unregistered callers" = API key missing, wrong, or restricted
+  if (
+    lower.includes('unregistered callers') ||
+    lower.includes('callers without established identity')
+  ) {
+    return 'Voice failed: API key missing or restricted. Ensure GEMINI_API_KEY is set in Supabase Edge Function secrets and has no HTTP referrer/IP restrictions blocking server requests.';
+  }
+  if (
+    raw.includes('403') ||
+    lower.includes('not enabled') ||
+    lower.includes('not enabled for this account')
+  ) {
     return 'Voice is unavailable right now (API configuration issue). Please try again later.';
   }
-  if (lower.includes('gemini_api_key') || lower.includes('api key') || lower.includes('not configured')) {
+  if (
+    lower.includes('gemini_api_key') ||
+    lower.includes('api key') ||
+    lower.includes('not configured')
+  ) {
     return 'Voice AI is not configured. Please contact support.';
   }
   if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('authentication')) {

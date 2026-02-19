@@ -121,7 +121,6 @@ You are now speaking via bidirectional voice audio. Adapt your responses:
 - For places, say the name and a brief description — don't try to give URLs
 - When executing actions (adding events, creating tasks), confirm what you did conversationally`;
 
-
 async function createEphemeralToken(params: {
   model: string;
   systemInstruction: string;
@@ -174,8 +173,23 @@ async function createEphemeralToken(params: {
 
   if (!tokenResponse.ok) {
     const body = await tokenResponse.text();
+    let parsed: { error?: { message?: string } } = {};
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      /* use raw body */
+    }
+    const errMsg = parsed?.error?.message || body;
+    // Map "unregistered callers" to actionable message for operators
+    if (tokenResponse.status === 403 && errMsg.toLowerCase().includes('unregistered callers')) {
+      throw new Error(
+        'GEMINI_API_KEY is missing, invalid, or has API restrictions (e.g. HTTP referrer) that block server-side requests. ' +
+          'Set GEMINI_API_KEY in Supabase Dashboard → Project Settings → Edge Functions → Secrets. ' +
+          'If using key restrictions, ensure server IPs are allowed.',
+      );
+    }
     throw new Error(
-      `Failed to create Gemini ephemeral token (${tokenResponse.status}): ${body.substring(0, 500)}`,
+      `Failed to create Gemini ephemeral token (${tokenResponse.status}): ${errMsg.substring(0, 400)}`,
     );
   }
 
@@ -265,7 +279,12 @@ serve(async req => {
     if (tripId) {
       try {
         // Voice is pro-only (checked above), so always include preferences
-        const tripContext = await TripContextBuilder.buildContext(tripId, user.id, authHeader, true);
+        const tripContext = await TripContextBuilder.buildContext(
+          tripId,
+          user.id,
+          authHeader,
+          true,
+        );
         systemInstruction = buildSystemPrompt(tripContext);
       } catch (contextError) {
         console.error(

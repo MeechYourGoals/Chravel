@@ -162,43 +162,48 @@ export const AIConciergeChat = ({
   // ===== VOICE MODE (Gemini Live bidirectional audio) =====
   const mapGeminiToVoiceState = (s: GeminiLiveState): VoiceState => {
     switch (s) {
-      case 'listening': return 'listening';
-      case 'speaking': return 'speaking';
-      case 'connecting': return 'connecting';
-      case 'error': return 'error';
-      default: return 'idle';
+      case 'listening':
+        return 'listening';
+      case 'speaking':
+        return 'speaking';
+      case 'connecting':
+        return 'connecting';
+      case 'error':
+        return 'error';
+      default:
+        return 'idle';
     }
   };
 
   const geminiLive = useGeminiLive({
     tripId,
-    onTranscript: (text) => {
+    onTranscript: text => {
       if (!isMounted.current) return;
       setMessages(prev => {
         const last = prev[prev.length - 1];
         if (last?.type === 'assistant' && last.id === 'voice-streaming') {
           return prev.map((m, i) =>
-            i === prev.length - 1 ? { ...m, content: m.content + text } : m
+            i === prev.length - 1 ? { ...m, content: m.content + text } : m,
           );
         }
-        return [...prev, {
-          id: 'voice-streaming',
-          type: 'assistant' as const,
-          content: text,
-          timestamp: new Date().toISOString(),
-        }];
+        return [
+          ...prev,
+          {
+            id: 'voice-streaming',
+            type: 'assistant' as const,
+            content: text,
+            timestamp: new Date().toISOString(),
+          },
+        ];
       });
     },
     onTurnComplete: () => {
       if (!isMounted.current) return;
       setMessages(prev =>
-        prev.map(m => m.id === 'voice-streaming'
-          ? { ...m, id: crypto.randomUUID() }
-          : m
-        )
+        prev.map(m => (m.id === 'voice-streaming' ? { ...m, id: crypto.randomUUID() } : m)),
       );
     },
-    onToolCall: async (call) => {
+    onToolCall: async call => {
       return { result: `Action ${call.name} noted` };
     },
   });
@@ -223,6 +228,7 @@ export const AIConciergeChat = ({
 
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
   const streamAbortRef = useRef<(() => void) | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Track mount state + abort in-flight streams on unmount
   useEffect(() => {
@@ -233,6 +239,13 @@ export const AIConciergeChat = ({
       streamAbortRef.current = null;
     };
   }, []);
+
+  // Auto-scroll to bottom when new messages or typing indicator appear
+  useEffect(() => {
+    if (chatScrollRef.current && (messages.length > 0 || isTyping)) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [messages.length, isTyping, messages]);
 
   // ⚡ PERFORMANCE: 8-second initialization timeout to prevent indefinite loading
   useEffect(() => {
@@ -344,20 +357,6 @@ export const AIConciergeChat = ({
       return;
     }
 
-    if (isLimitedPlan) {
-      const latestUsage = await refreshUsage();
-
-      if (!latestUsage) {
-        toast.error('Unable to verify Concierge query allowance right now. Please try again.');
-        return;
-      }
-
-      if (latestUsage.isLimitReached && latestUsage.limit !== null) {
-        showLimitReachedToast(latestUsage.plan === 'explorer' ? 'explorer' : 'free');
-        return;
-      }
-    }
-
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       type: 'user',
@@ -365,6 +364,7 @@ export const AIConciergeChat = ({
       timestamp: new Date().toISOString(),
     };
 
+    // Show user message + typing indicator immediately so UI never feels frozen
     setMessages(prev => [...prev, userMessage]);
     const currentInput = messageToSend;
     if (!messageOverride) {
@@ -375,6 +375,24 @@ export const AIConciergeChat = ({
     }
     setIsTyping(true);
     setAiStatus('thinking');
+
+    if (isLimitedPlan) {
+      const latestUsage = await refreshUsage();
+
+      if (!latestUsage) {
+        toast.error('Unable to verify Concierge query allowance right now. Please try again.');
+        setMessages(prev => prev.filter(m => m.id !== userMessage.id));
+        setIsTyping(false);
+        return;
+      }
+
+      if (latestUsage.isLimitReached && latestUsage.limit !== null) {
+        showLimitReachedToast(latestUsage.plan === 'explorer' ? 'explorer' : 'free');
+        setMessages(prev => prev.filter(m => m.id !== userMessage.id));
+        setIsTyping(false);
+        return;
+      }
+    }
 
     // Lightweight fallback context is used only for graceful degradation messages.
     const fallbackContext = {
@@ -805,7 +823,10 @@ export const AIConciergeChat = ({
         )}
 
         {/* Chat Messages - min-height ensures multiple messages visible */}
-        <div className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0">
+        <div
+          ref={chatScrollRef}
+          className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0"
+        >
           {messages.length > 0 && (
             <ChatMessages messages={messages} isTyping={isTyping} showMapWidgets={true} />
           )}
@@ -817,13 +838,20 @@ export const AIConciergeChat = ({
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-sm text-emerald-300">
-                {geminiLive.state === 'connecting' ? 'Connecting...' :
-                 geminiLive.state === 'listening' ? 'Listening...' :
-                 geminiLive.state === 'speaking' ? 'AI Speaking...' : 'Voice Active'}
+                {geminiLive.state === 'connecting'
+                  ? 'Connecting...'
+                  : geminiLive.state === 'listening'
+                    ? 'Listening...'
+                    : geminiLive.state === 'speaking'
+                      ? 'AI Speaking...'
+                      : 'Voice Active'}
               </span>
             </div>
             <button
-              onClick={() => { geminiLive.endSession(); setVoiceActive(false); }}
+              onClick={() => {
+                geminiLive.endSession();
+                setVoiceActive(false);
+              }}
               className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors"
             >
               End Voice

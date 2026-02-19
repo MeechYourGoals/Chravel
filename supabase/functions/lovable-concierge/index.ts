@@ -426,14 +426,9 @@ async function streamGeminiToSSE(
     // If Gemini returns 403 (unregistered callers / API key restrictions),
     // signal the caller to fall back to the Lovable gateway instead of crashing.
     if (response.status === 403) {
-      throw Object.assign(
-        new Error(`Gemini 403: ${errMsg}`),
-        { gemini403: true },
-      );
+      throw Object.assign(new Error(`Gemini 403: ${errMsg}`), { gemini403: true });
     }
-    throw new Error(
-      `Gemini streaming API Error: ${response.status} - ${errMsg}`,
-    );
+    throw new Error(`Gemini streaming API Error: ${response.status} - ${errMsg}`);
   }
 
   const state: GeminiStreamState = {
@@ -674,99 +669,94 @@ serve(async req => {
 
     // Resolve usage plan first so we can gate preferences in buildContext.
     // Plan resolution is fast (~20-50 ms) and keeps all subsequent fetches clean.
-    const planResolution = await (
-      !serverDemoMode && user
-        ? resolveUsagePlanForUser(supabase, user.id)
-        : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 5 })
-    );
+    const planResolution = await (!serverDemoMode && user
+      ? resolveUsagePlanForUser(supabase, user.id)
+      : Promise.resolve({ usagePlan: 'free' as const, tripQueryLimit: 5 }));
     const isPaidUser = planResolution.usagePlan !== 'free';
 
     // Fire remaining independent queries at once
-    const [membershipResult, contextResult, ragResult, privacyResult] =
-      await Promise.all([
-        // 1. Trip membership check
-        hasTripId && !serverDemoMode && user
-          ? supabase
-              .from('trip_members')
-              .select('user_id')
-              .eq('trip_id', tripId)
-              .eq('user_id', user.id)
-              .maybeSingle()
-          : Promise.resolve({ data: { user_id: 'skip' }, error: null }),
+    const [membershipResult, contextResult, ragResult, privacyResult] = await Promise.all([
+      // 1. Trip membership check
+      hasTripId && !serverDemoMode && user
+        ? supabase
+            .from('trip_members')
+            .select('user_id')
+            .eq('trip_id', tripId)
+            .eq('user_id', user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: { user_id: 'skip' }, error: null }),
 
-        // 2. Trip context building (heaviest — ~100-300 ms). Skip for general web queries.
-        hasTripId && !tripContext && tripRelated
-          ? TripContextBuilder.buildContext(tripId, user?.id, authHeader, isPaidUser).catch(error => {
-              console.error('Failed to build comprehensive context:', error);
-              return null;
-            })
-          : Promise.resolve(tripContext || null),
+      // 2. Trip context building (heaviest — ~100-300 ms). Skip for general web queries.
+      hasTripId && !tripContext && tripRelated
+        ? TripContextBuilder.buildContext(tripId, user?.id, authHeader, isPaidUser).catch(error => {
+            console.error('Failed to build comprehensive context:', error);
+            return null;
+          })
+        : Promise.resolve(tripContext || null),
 
-        // 4. RAG keyword retrieval (skip for general web queries)
-        runRAGRetrieval
-          ? (async () => {
-              try {
-                console.log('Using keyword-only search for RAG retrieval');
-                const { data: keywordResults, error: keywordError } = await supabase
-                  .from('kb_chunks')
-                  .select('id, content, doc_id, modality')
-                  .textSearch('content_tsv', message.split(' ').slice(0, 5).join(' & '), {
-                    type: 'plain',
-                  })
-                  .limit(10);
+      // 4. RAG keyword retrieval (skip for general web queries)
+      runRAGRetrieval
+        ? (async () => {
+            try {
+              console.log('Using keyword-only search for RAG retrieval');
+              const { data: keywordResults, error: keywordError } = await supabase
+                .from('kb_chunks')
+                .select('id, content, doc_id, modality')
+                .textSearch('content_tsv', message.split(' ').slice(0, 5).join(' & '), {
+                  type: 'plain',
+                })
+                .limit(10);
 
-                if (keywordError || !keywordResults?.length) return '';
+              if (keywordError || !keywordResults?.length) return '';
 
-                const docIds = [
-                  ...new Set(keywordResults.map((r: any) => r.doc_id).filter(Boolean)),
-                ];
-                const docMap = new Map();
+              const docIds = [...new Set(keywordResults.map((r: any) => r.doc_id).filter(Boolean))];
+              const docMap = new Map();
 
-                if (docIds.length > 0) {
-                  const { data: docs } = await supabase
-                    .from('kb_documents')
-                    .select('id, source, trip_id')
-                    .in('id', docIds)
-                    .eq('trip_id', tripId);
-                  docs?.forEach((d: any) => docMap.set(d.id, d));
-                }
-
-                const tripChunks = keywordResults.filter((r: any) => {
-                  const doc = docMap.get(r.doc_id);
-                  return doc?.trip_id === tripId;
-                });
-
-                if (!tripChunks.length) return '';
-
-                console.log(`Found ${tripChunks.length} relevant context items via keyword search`);
-                let ctx = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n';
-                ctx += 'Retrieved using keyword matching:\n';
-                tripChunks.forEach((result: any, idx: number) => {
-                  const doc = docMap.get(result.doc_id);
-                  const sourceType = doc?.source || result.modality || 'unknown';
-                  ctx += `\n[${idx + 1}] [${sourceType}] ${(result.content || '').substring(0, 300)}`;
-                });
-                ctx +=
-                  '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
-                return ctx;
-              } catch (ragError) {
-                console.error('RAG retrieval failed:', ragError);
-                return '';
+              if (docIds.length > 0) {
+                const { data: docs } = await supabase
+                  .from('kb_documents')
+                  .select('id, source, trip_id')
+                  .in('id', docIds)
+                  .eq('trip_id', tripId);
+                docs?.forEach((d: any) => docMap.set(d.id, d));
               }
-            })()
-          : Promise.resolve(''),
 
-        // 5. Privacy config check
-        hasTripId && !serverDemoMode
-          ? Promise.resolve(
-              supabase
-                .from('trip_privacy_configs')
-                .select('ai_access_enabled')
-                .eq('trip_id', tripId)
-                .maybeSingle(),
-            ).catch(() => ({ data: null }))
-          : Promise.resolve({ data: null }),
-      ]);
+              const tripChunks = keywordResults.filter((r: any) => {
+                const doc = docMap.get(r.doc_id);
+                return doc?.trip_id === tripId;
+              });
+
+              if (!tripChunks.length) return '';
+
+              console.log(`Found ${tripChunks.length} relevant context items via keyword search`);
+              let ctx = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n';
+              ctx += 'Retrieved using keyword matching:\n';
+              tripChunks.forEach((result: any, idx: number) => {
+                const doc = docMap.get(result.doc_id);
+                const sourceType = doc?.source || result.modality || 'unknown';
+                ctx += `\n[${idx + 1}] [${sourceType}] ${(result.content || '').substring(0, 300)}`;
+              });
+              ctx +=
+                '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
+              return ctx;
+            } catch (ragError) {
+              console.error('RAG retrieval failed:', ragError);
+              return '';
+            }
+          })()
+        : Promise.resolve(''),
+
+      // 5. Privacy config check
+      hasTripId && !serverDemoMode
+        ? Promise.resolve(
+            supabase
+              .from('trip_privacy_configs')
+              .select('ai_access_enabled')
+              .eq('trip_id', tripId)
+              .maybeSingle(),
+          ).catch(() => ({ data: null }))
+        : Promise.resolve({ data: null }),
+    ]);
 
     // --- EVALUATE PARALLEL RESULTS ---
 
@@ -878,6 +868,22 @@ serve(async req => {
     // Determine if chain-of-thought is needed
     const useChainOfThought = requiresChainOfThought(message, complexity);
 
+    // Detect image/visual intent — user wants to see pictures (Gemini-like inline image experience)
+    const IMAGE_INTENT_PATTERN =
+      /\b(picture|pictures|photo|photos|image|images|show me (what|pictures?|photos?)|what does .+ look like|how does .+ look|visual of|see (pictures?|photos?|images?))\b/i;
+    const hasImageIntent = IMAGE_INTENT_PATTERN.test(message);
+
+    const imageIntentAddendum = hasImageIntent
+      ? `
+
+**IMPORTANT — User wants visual content:** Include 2-4 inline markdown images in your response.
+- Format each image as: ![Brief description](https://direct-image-url.com/image.jpg)
+- Use high-quality image URLs from your web search (Wikipedia, official sites, tourism boards, etc.)
+- Place images in a grid-like layout with brief captions or source attribution
+- Example: ![Hollywood Bowl aerial view](https://example.com/image.jpg) *Source: example.com*
+- Do NOT use placeholder or broken URLs — only include real, working image URLs from search results.`
+      : '';
+
     // Build context-aware system prompt. For general web queries, use a lean prompt for speed
     // but still include full formatting instructions so responses are rich and link-heavy.
     let baseSystemPrompt: string;
@@ -894,9 +900,12 @@ Answer the user's question accurately. Use web search for real-time info (weathe
 - Use **bold** for key names, dates, and important facts
 - Use bullet points (-) for lists; numbered lists for ranked items or steps
 - Keep responses concise but information-rich — quality over quantity
-- When citing sources from web search, reference them naturally in-text as hyperlinks`;
+- When citing sources from web search, reference them naturally in-text as hyperlinks${imageIntentAddendum}`;
     } else {
-      baseSystemPrompt = buildSystemPrompt(comprehensiveContext, config.systemPrompt) + ragContext;
+      baseSystemPrompt =
+        buildSystemPrompt(comprehensiveContext, config.systemPrompt) +
+        ragContext +
+        imageIntentAddendum;
     }
 
     // 🆕 ENHANCED PROMPTS: Add few-shot examples and chain-of-thought (skip for general web queries)
@@ -1083,7 +1092,9 @@ Answer the user's question accurately. Use web search for real-time info (weathe
 
     console.log(
       '[Grounding]',
-      tripRelated ? 'Function declarations enabled for trip actions' : 'Google Search enabled for general web query',
+      tripRelated
+        ? 'Function declarations enabled for trip actions'
+        : 'Google Search enabled for general web query',
     );
 
     // ========== CALL GEMINI API DIRECTLY ==========
@@ -1254,26 +1265,31 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             console.warn(`[Gemini/Stream] Attempting Lovable gateway fallback: ${reason}`);
             try {
               if (LOVABLE_API_KEY) {
-                const fallbackResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                const fallbackResp = await fetch(
+                  'https://ai.gateway.lovable.dev/v1/chat/completions',
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                    },
+                    body: JSON.stringify({
+                      model: `google/${selectedModel}`,
+                      messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
+                      temperature,
+                      max_tokens: config.maxTokens || 2048,
+                    }),
+                    signal: AbortSignal.timeout(45_000),
                   },
-                  body: JSON.stringify({
-                    model: `google/${selectedModel}`,
-                    messages: messages.map(msg => ({ role: msg.role, content: msg.content })),
-                    temperature,
-                    max_tokens: config.maxTokens || 2048,
-                  }),
-                  signal: AbortSignal.timeout(45_000),
-                });
+                );
                 if (fallbackResp.ok) {
                   const fallbackData = await fallbackResp.json();
                   const fallbackText = fallbackData?.choices?.[0]?.message?.content;
                   if (fallbackText) {
                     controller.enqueue(sseEvent({ type: 'chunk', text: fallbackText }));
-                    controller.enqueue(sseEvent({ type: 'metadata', model: 'lovable-gateway-fallback' }));
+                    controller.enqueue(
+                      sseEvent({ type: 'metadata', model: 'lovable-gateway-fallback' }),
+                    );
                     controller.enqueue(sseEvent({ type: 'done' }));
                   } else {
                     throw new Error('No content in fallback response');

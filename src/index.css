@@ -454,6 +454,14 @@
   }
 }
 
+/* AI Concierge: inline image grid (Gemini-like) when multiple images in markdown */
+.ai-markdown-content > a:has(img) {
+  display: inline-block;
+  width: calc(50% - 0.375rem);
+  margin: 0.25rem 0.25rem 0.25rem 0;
+  vertical-align: top;
+}
+
 /* Gemini-style voice pulse — concentric rings expand outward from the button */
 @keyframes voice-pulse {
   0% {
