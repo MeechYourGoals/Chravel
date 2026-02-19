@@ -200,8 +200,8 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">14. Governing Law</h2>
             <p className="text-foreground/90 mb-4">
-              These Terms are governed by the laws of [Jurisdiction] without regard to conflict of
-              law principles. Any disputes shall be resolved in the courts of [Jurisdiction].
+              These Terms are governed by the laws of Delaware without regard to conflict of law
+              principles. Any disputes shall be resolved in the courts of Delaware.
             </p>
           </section>
 
@@ -212,10 +212,11 @@ export default function TermsOfService() {
             </p>
             <ul className="list-none space-y-2 text-foreground/90">
               <li>
-                <strong>Email:</strong> legal@chravel.com
+                <strong>Email:</strong> support@chravelapp.com
               </li>
               <li>
-                <strong>Mail:</strong> Chravel Legal Department, [Company Address]
+                <strong>Mail:</strong> Chravel Legal Department, 130 N Broadway STE 32415, Los
+                Angeles, CA 90012
               </li>
             </ul>
           </section>
