@@ -15,10 +15,14 @@ interface MessageRendererProps {
   showMapWidgets?: boolean;
 }
 
-export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showMapWidgets = false }) => {
+export const MessageRenderer: React.FC<MessageRendererProps> = ({
+  message,
+  showMapWidgets = false,
+}) => {
   const hasMedia = message.media_type && message.media_url;
   const hasLinkPreview = message.link_preview;
-  const hasAttachments = message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0;
+  const hasAttachments =
+    message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0;
   const resolvedMediaUrl = useResolvedTripMediaUrl({ url: message.media_url ?? null });
 
   // Render media content based on type
@@ -34,10 +38,14 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
               alt="Shared image"
               className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-95 transition-opacity"
               style={{ maxHeight: '400px' }}
-              onClick={() => window.open((resolvedMediaUrl ?? message.media_url) as string, '_blank')}
+              onClick={() =>
+                window.open((resolvedMediaUrl ?? message.media_url) as string, '_blank')
+              }
             />
             <button
-              onClick={() => window.open((resolvedMediaUrl ?? message.media_url) as string, '_blank')}
+              onClick={() =>
+                window.open((resolvedMediaUrl ?? message.media_url) as string, '_blank')
+              }
               className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
               aria-label="View full size"
             >
@@ -83,7 +91,9 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
                 className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
               >
                 <FileText size={16} className="text-gray-400" />
-                <span className="text-sm truncate flex-1">{message.content || 'File attachment'}</span>
+                <span className="text-sm truncate flex-1">
+                  {message.content || 'File attachment'}
+                </span>
                 <Download size={14} className="text-gray-400" />
               </a>
             );
@@ -121,9 +131,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
                 {preview.title || preview.domain || 'Link'}
               </h4>
               {preview.description && (
-                <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                  {preview.description}
-                </p>
+                <p className="text-xs text-gray-400 mt-1 line-clamp-2">{preview.description}</p>
               )}
               <p className="text-xs text-gray-500 mt-1">{preview.domain}</p>
             </div>
@@ -137,10 +145,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
   const isAssistant = message.type === 'assistant';
 
   return (
-    <div className={cn(
-      "flex w-full gap-2",
-      isOwnMessage ? 'justify-end' : 'justify-start'
-    )}>
+    <div className={cn('flex w-full gap-2', isOwnMessage ? 'justify-end' : 'justify-start')}>
       {/* AI Avatar for assistant messages - bluish-green gradient to match Chravel branding */}
       {!isOwnMessage && (
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
@@ -148,17 +153,17 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
         </div>
       )}
 
-      <div className={cn(
-        "flex flex-col",
-        isOwnMessage ? 'items-end' : 'items-start',
-        "max-w-[78%]"
-      )}>
-        <div className={cn(
-          "px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border transition-all",
-          isOwnMessage
-            ? 'bg-blue-600 text-white border-blue-600/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
-            : 'bg-muted/80 text-white border-border shadow-sm rounded-bl-sm'
-        )}>
+      <div
+        className={cn('flex flex-col', isOwnMessage ? 'items-end' : 'items-start', 'max-w-[78%]')}
+      >
+        <div
+          className={cn(
+            'px-3.5 py-2.5 rounded-2xl backdrop-blur-sm border transition-all',
+            isOwnMessage
+              ? 'bg-blue-600 text-white border-blue-600/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
+              : 'bg-muted/80 text-white border-border shadow-sm rounded-bl-sm',
+          )}
+        >
           {/* Message content */}
           {message.content && isAssistant ? (
             <div className="text-sm leading-relaxed ai-markdown-content">
@@ -177,21 +182,17 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
                   strong: ({ children }) => (
                     <strong className="font-semibold text-white">{children}</strong>
                   ),
-                  em: ({ children }) => (
-                    <em className="italic text-gray-300">{children}</em>
-                  ),
-                  p: ({ children }) => (
-                    <p className="mb-2 last:mb-0">{children}</p>
-                  ),
+                  em: ({ children }) => <em className="italic text-gray-300">{children}</em>,
+                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                   ul: ({ children }) => (
                     <ul className="list-disc list-inside mb-2 space-y-1 last:mb-0">{children}</ul>
                   ),
                   ol: ({ children }) => (
-                    <ol className="list-decimal list-inside mb-2 space-y-1 last:mb-0">{children}</ol>
+                    <ol className="list-decimal list-inside mb-2 space-y-1 last:mb-0">
+                      {children}
+                    </ol>
                   ),
-                  li: ({ children }) => (
-                    <li className="text-gray-200">{children}</li>
-                  ),
+                  li: ({ children }) => <li className="text-gray-200">{children}</li>,
                   h1: ({ children }) => (
                     <h3 className="text-base font-bold text-white mb-1">{children}</h3>
                   ),
@@ -212,22 +213,28 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
                     </code>
                   ),
                   img: ({ src, alt }) => (
-                    <div className="my-2 rounded-lg overflow-hidden">
+                    <a
+                      href={src}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="my-2 block rounded-xl overflow-hidden border border-white/10 bg-black/20 hover:border-white/20 transition-colors"
+                    >
                       <img
                         src={src}
                         alt={alt || 'Preview'}
-                        className="rounded-lg max-w-full h-auto object-cover"
-                        style={{ maxHeight: '200px' }}
-                        onError={(e) => {
-                          // Hide broken images gracefully
-                          (e.target as HTMLImageElement).style.display = 'none';
+                        className="rounded-xl w-full h-auto object-cover"
+                        style={{ maxHeight: '280px' }}
+                        loading="lazy"
+                        onError={e => {
+                          const el = e.target as HTMLImageElement;
+                          el.style.display = 'none';
+                          const parent = el.closest('a');
+                          if (parent) parent.style.display = 'none';
                         }}
                       />
-                    </div>
+                    </a>
                   ),
-                  hr: () => (
-                    <hr className="border-white/10 my-2" />
-                  ),
+                  hr: () => <hr className="border-white/10 my-2" />,
                 }}
               >
                 {message.content}
@@ -249,13 +256,15 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, showM
 
         {/* Message metadata */}
         {message.timestamp && (
-          <span className={cn(
-            "text-[10px] text-muted-foreground/70 mt-1 px-1",
-            isOwnMessage ? 'text-right' : 'text-left'
-          )}>
+          <span
+            className={cn(
+              'text-[10px] text-muted-foreground/70 mt-1 px-1',
+              isOwnMessage ? 'text-right' : 'text-left',
+            )}
+          >
             {new Date(message.timestamp).toLocaleTimeString([], {
               hour: '2-digit',
-              minute: '2-digit'
+              minute: '2-digit',
             })}
           </span>
         )}
