@@ -196,6 +196,49 @@ describe('useTripTasks', () => {
       });
     });
 
+
+    it('should update a task successfully', async () => {
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: { id: 'test-user-id' } },
+        error: null,
+      } as any);
+
+      tableMocks.trip_tasks = makeSupabaseChain({
+        single: {
+          data: {
+            id: 'task-1',
+            title: 'Updated Task',
+            description: 'Updated Description',
+            due_at: null,
+            is_poll: false,
+          },
+          error: null,
+        },
+        limitResponse: { data: [], error: null },
+      });
+      tableMocks.task_assignments = makeSupabaseChain();
+      tableMocks.task_status = makeSupabaseChain();
+
+      const { result } = renderHook(() => useTripTasks('trip-1'), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.updateTaskMutation).toBeDefined();
+      });
+
+      await result.current.updateTaskMutation.mutateAsync({
+        taskId: 'task-1',
+        title: 'Updated Task',
+        description: 'Updated Description',
+        is_poll: false,
+      });
+
+      await waitFor(() => {
+        expect(result.current.updateTaskMutation.isSuccess).toBe(true);
+      });
+    });
+
     it('should toggle task status successfully', async () => {
       const mockTask = {
         id: 'task-1',

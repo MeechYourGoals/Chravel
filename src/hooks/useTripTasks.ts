@@ -36,6 +36,15 @@ export interface AssignmentOptions {
   autoAssignByRole?: boolean;
 }
 
+export interface UpdateTaskRequest {
+  taskId: string;
+  title: string;
+  description?: string;
+  due_at?: string;
+  is_poll: boolean;
+  assignedTo?: string[];
+}
+
 const generateSeedTasks = (tripId: string): TripTask[] => {
   const consumerTripIds = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
@@ -186,8 +195,47 @@ export const useTripTasks = (
 
   // Task assignment functions
   const assignTask = useCallback(
-    async (_taskId: string, _userId: string): Promise<boolean> => {
+    async (taskId: string, userId: string): Promise<boolean> => {
       try {
+        if (!taskId || !userId) return false;
+
+        if (isDemoMode || !user) {
+          toast({ title: 'Assignment saved in demo mode' });
+          return true;
+        }
+
+        const assignmentsTable = supabase.from('task_assignments') as any;
+        const assignmentWrite =
+          typeof assignmentsTable.upsert === 'function'
+            ? assignmentsTable.upsert(
+                {
+                  task_id: taskId,
+                  user_id: userId,
+                  assigned_by: user.id,
+                },
+                { onConflict: 'task_id,user_id' },
+              )
+            : assignmentsTable.insert({
+                task_id: taskId,
+                user_id: userId,
+                assigned_by: user.id,
+              });
+
+        const { error } = await assignmentWrite;
+        if (error) throw error;
+
+        const statusTable = supabase.from('task_status') as any;
+        const statusWrite =
+          typeof statusTable.upsert === 'function'
+            ? statusTable.upsert(
+                { task_id: taskId, user_id: userId, completed: false },
+                { onConflict: 'task_id,user_id' },
+              )
+            : statusTable.insert({ task_id: taskId, user_id: userId, completed: false });
+
+        await statusWrite;
+
+        queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
         return true;
       } catch (error) {
         console.error('Failed to assign task:', error);
@@ -195,22 +243,36 @@ export const useTripTasks = (
         return false;
       }
     },
-    [toast],
+    [isDemoMode, queryClient, toast, tripId, user],
   );
 
   const bulkAssign = useCallback(
     async (assignmentOptions: AssignmentOptions): Promise<boolean> => {
       try {
-        const { taskId: _taskId, userIds } = assignmentOptions;
-        toast({ title: `Assigned to ${userIds.length} members` });
-        return true;
+        const { taskId, userIds } = assignmentOptions;
+        if (userIds.length === 0) return true;
+
+        const results = await Promise.all(userIds.map(userId => assignTask(taskId, userId)));
+        const allAssigned = results.every(Boolean);
+
+        if (allAssigned) {
+          toast({ title: `Assigned to ${userIds.length} members` });
+          return true;
+        }
+
+        toast({
+          title: 'Partial assignment',
+          description: 'Some members could not be assigned. Please retry.',
+          variant: 'destructive',
+        });
+        return false;
       } catch (error) {
         console.error('Failed to bulk assign:', error);
         toast({ title: 'Failed to assign task to members', variant: 'destructive' });
         return false;
       }
     },
-    [toast],
+    [assignTask, toast],
   );
 
   // Task filtering functions
@@ -540,12 +602,43 @@ export const useTripTasks = (
         throw error;
       }
 
-      // Create initial task status for creator
-      await supabase.from('task_status').insert({
+      const assignedUserIds = Array.from(
+        new Set([...(task.assignedTo ?? []), ...(task.is_poll ? [] : [authUser.id])]),
+      );
+
+      const taskStatusRows = (assignedUserIds.length > 0 ? assignedUserIds : [authUser.id]).map(assigneeId => ({
         task_id: newTask.id,
-        user_id: authUser.id,
+        user_id: assigneeId,
         completed: false,
-      });
+      }));
+
+      const { error: taskStatusError } = await supabase.from('task_status').insert(taskStatusRows);
+      if (taskStatusError) {
+        throw new Error(taskStatusError.message || 'Failed to initialize task assignments');
+      }
+
+      if (assignedUserIds.length > 0) {
+        const assignmentsTable = supabase.from('task_assignments') as any;
+        const assignmentWrite =
+          typeof assignmentsTable.upsert === 'function'
+            ? assignmentsTable.upsert(
+                assignedUserIds.map(assigneeId => ({
+                  task_id: newTask.id,
+                  user_id: assigneeId,
+                  assigned_by: authUser.id,
+                })),
+                { onConflict: 'task_id,user_id' },
+              )
+            : assignmentsTable.insert(
+                assignedUserIds.map(assigneeId => ({
+                  task_id: newTask.id,
+                  user_id: assigneeId,
+                  assigned_by: authUser.id,
+                })),
+              );
+
+        await assignmentWrite;
+      }
 
       // Transform to TripTask format
       return {
@@ -563,13 +656,7 @@ export const useTripTasks = (
           name: userProfile?.display_name || 'Former Member',
           avatar: userProfile?.avatar_url,
         },
-        task_status: [
-          {
-            task_id: newTask.id,
-            user_id: authUser.id,
-            completed: false,
-          },
-        ],
+        task_status: taskStatusRows,
       } as TripTask;
     },
     onSuccess: () => {
@@ -611,6 +698,92 @@ export const useTripTasks = (
         title: errorTitle,
         description: errorDescription,
         variant,
+      });
+    },
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ taskId, title, description, due_at, is_poll, assignedTo }: UpdateTaskRequest) => {
+      if (isDemoMode || !user) {
+        const updated = await taskStorageService.updateTask(tripId, taskId, {
+          title: title.trim(),
+          description: description?.trim() || undefined,
+          due_at,
+          is_poll,
+          assignedTo,
+        });
+
+        if (!updated) {
+          throw new Error('Task not found.');
+        }
+
+        return updated;
+      }
+
+      const { data: updatedTask, error } = await supabase
+        .from('trip_tasks')
+        .update({
+          title: title.trim(),
+          description: description?.trim() || null,
+          due_at: due_at || null,
+          is_poll,
+        })
+        .eq('id', taskId)
+        .eq('creator_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (Array.isArray(assignedTo) && assignedTo.length > 0) {
+        const uniqueAssignees = Array.from(new Set(assignedTo));
+
+        await supabase.from('task_assignments').delete().eq('task_id', taskId);
+
+        const { error: assignmentError } = await supabase.from('task_assignments').insert(
+          uniqueAssignees.map(assigneeId => ({
+            task_id: taskId,
+            user_id: assigneeId,
+            assigned_by: user.id,
+          })),
+        );
+
+        if (assignmentError) throw assignmentError;
+
+        const statusTable = supabase.from('task_status') as any;
+        const statusWrite =
+          typeof statusTable.upsert === 'function'
+            ? statusTable.upsert(
+                uniqueAssignees.map(assigneeId => ({
+                  task_id: taskId,
+                  user_id: assigneeId,
+                  completed: false,
+                })),
+                { onConflict: 'task_id,user_id' },
+              )
+            : statusTable.insert(
+                uniqueAssignees.map(assigneeId => ({
+                  task_id: taskId,
+                  user_id: assigneeId,
+                  completed: false,
+                })),
+              );
+
+        const { error: statusError } = await statusWrite;
+        if (statusError) throw statusError;
+      }
+
+      return updatedTask;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      toast({ title: 'Task updated', description: 'Your changes have been saved.' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error Updating Task',
+        description: error.message || 'Failed to update task.',
+        variant: 'destructive',
       });
     },
   });
@@ -729,16 +902,27 @@ export const useTripTasks = (
           if (task.id === taskId) {
             // Must match the logic in TaskRow.tsx - check isDemoMode first
             const currentUserId = isDemoMode || !user ? 'demo-user' : user.id;
-            const updatedStatus = task.task_status?.map(status => {
-              if (status.user_id === currentUserId) {
-                return {
-                  ...status,
-                  completed,
-                  completed_at: completed ? new Date().toISOString() : undefined,
-                };
-              }
-              return status;
-            });
+            const hasCurrentUserStatus = task.task_status?.some(status => status.user_id === currentUserId);
+            const updatedStatus = hasCurrentUserStatus
+              ? task.task_status?.map(status => {
+                  if (status.user_id === currentUserId) {
+                    return {
+                      ...status,
+                      completed,
+                      completed_at: completed ? new Date().toISOString() : undefined,
+                    };
+                  }
+                  return status;
+                })
+              : [
+                  ...(task.task_status || []),
+                  {
+                    task_id: task.id,
+                    user_id: currentUserId,
+                    completed,
+                    completed_at: completed ? new Date().toISOString() : undefined,
+                  },
+                ];
 
             return {
               ...task,
@@ -794,7 +978,7 @@ export const useTripTasks = (
 
   // Offline sync is handled globally in `App.tsx` via `setupGlobalSyncProcessor()`.
 
-  // Delete task mutation - any trip member can delete
+  // Delete task mutation - creator-only client guard (RLS enforced on backend)
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
       if (isDemoMode || !user) {
@@ -803,8 +987,13 @@ export const useTripTasks = (
         return taskId;
       }
 
-      const { error } = await supabase.from('trip_tasks').delete().eq('id', taskId);
+      const deleteQuery = supabase.from('trip_tasks').delete().eq('id', taskId);
 
+      if (user?.id) {
+        deleteQuery.eq('creator_id', user.id);
+      }
+
+      const { error } = await deleteQuery;
       if (error) throw error;
       return taskId;
     },
@@ -892,6 +1081,7 @@ export const useTripTasks = (
 
     // Mutations
     createTaskMutation,
+    updateTaskMutation,
     toggleTaskMutation,
     deleteTaskMutation,
   };

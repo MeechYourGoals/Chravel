@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { useDemoMode } from './useDemoMode';
+import { useAuth } from './useAuth';
 import { mockPolls } from '@/mockData/polls';
 import { pollStorageService } from '@/services/pollStorageService';
 import { getStorageItem, setStorageItem } from '@/platform/storage';
@@ -75,10 +77,11 @@ export const useTripPolls = (tripId: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
 
   // Fetch polls from database or localStorage
   const { data: polls = [], isLoading } = useQuery({
-    queryKey: ['tripPolls', tripId],
+    queryKey: ['tripPolls', tripId, isDemoMode],
     staleTime: 60 * 1000, // 1 minute - polls are stable
     gcTime: 5 * 60 * 1000, // Keep in cache 5 min for instant tab switching
     queryFn: async (): Promise<TripPoll[]> => {
@@ -194,8 +197,17 @@ export const useTripPolls = (tripId: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const pollOptions = poll.options.map((text, index) => ({
-        id: `option_${index}`,
+      const { error: membershipError } = await supabase.rpc('ensure_trip_membership', {
+        p_trip_id: tripId,
+        p_user_id: user.id,
+      });
+      if (membershipError) throw membershipError;
+
+      const pollOptions = poll.options.map(text => ({
+        id:
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `option_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         text,
         votes: 0,
         voters: []
@@ -222,7 +234,7 @@ export const useTripPolls = (tripId: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
       toast({
         title: 'Poll created',
         description: 'Your poll has been added to the trip.'
@@ -292,26 +304,54 @@ export const useTripPolls = (tripId: string) => {
         throw new Error('Poll not found');
       }
 
-      for (const optionId of optionIdsArray) {
-        const { error } = await supabase
-          .rpc('vote_on_poll', {
-            p_poll_id: pollId,
-            p_option_id: optionId,
-            p_user_id: user.id,
-            p_current_version: poll.version ?? null
-          });
+      const pollSnapshot = queryClient
+        .getQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode])
+        ?.find(p => p.id === pollId);
 
-        if (error) {
-          console.error('Vote RPC error:', error);
-          if (error.message?.includes('modified by another user')) {
+      if (pollSnapshot?.status === 'closed') {
+        throw new Error('This poll is closed.');
+      }
+
+      if (pollSnapshot?.deadline_at && new Date(pollSnapshot.deadline_at).getTime() <= Date.now()) {
+        throw new Error('Voting deadline has passed.');
+      }
+
+      if (!poll.allow_multiple && optionIdsArray.length > 1) {
+        throw new Error('This poll only allows one option per voter.');
+      }
+
+      const { error: batchError } = await supabase.rpc('vote_on_poll_batch', {
+        p_poll_id: pollId,
+        p_option_ids: optionIdsArray,
+        p_user_id: user.id,
+        p_current_version: poll.version ?? null,
+      } as any);
+
+      if (batchError) {
+        const missingFn =
+          batchError.message?.toLowerCase().includes('does not exist') || batchError.code === '42883';
+
+        if (missingFn) {
+          for (const optionId of optionIdsArray) {
+            const { error } = await supabase.rpc('vote_on_poll', {
+              p_poll_id: pollId,
+              p_option_id: optionId,
+              p_user_id: user.id,
+              p_current_version: poll.version ?? null,
+            });
+
+            if (error) throw error;
+          }
+        } else {
+          console.error('Vote RPC error:', batchError);
+          if (batchError.message?.includes('modified by another user')) {
             toast({
               title: 'Poll Updated',
               description: 'This poll was updated by someone else. Refreshing...',
             });
-            await queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
-            throw error;
+            await queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
           }
-          throw error;
+          throw batchError;
         }
       }
 
@@ -320,33 +360,67 @@ export const useTripPolls = (tripId: string) => {
     onMutate: async ({ pollId, optionIds }) => {
       const optionIdsArray = Array.isArray(optionIds) ? optionIds : [optionIds];
 
-      await queryClient.cancelQueries({ queryKey: ['tripPolls', tripId] });
-      const previous = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId]);
+      await queryClient.cancelQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
+      const previous = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode]);
 
-      // Minimal optimistic update: increment selected option vote counts + total.
-      queryClient.setQueryData<TripPoll[]>(['tripPolls', tripId], old => {
+      queryClient.setQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode], old => {
         if (!old) return old;
+
         return old.map(p => {
           if (p.id !== pollId) return p;
+
+          const currentUserId = user?.id ?? 'demo-user';
+          const hasPriorVote = p.options.some(opt => (opt.voters || []).includes(currentUserId));
+
+          if (!p.allow_multiple && optionIdsArray.length > 1) {
+            return p;
+          }
+
           const nextOptions = p.options.map(opt => {
-            if (!optionIdsArray.includes(opt.id)) return opt;
+            const shouldSelect = optionIdsArray.includes(opt.id);
+            const hadUser = (opt.voters || []).includes(currentUserId);
+
+            let nextVotes = opt.votes ?? 0;
+            let nextVoters = [...(opt.voters || [])];
+
+            if (!p.allow_multiple && hasPriorVote && p.allow_vote_change !== false && hadUser && !shouldSelect) {
+              nextVotes = Math.max(0, nextVotes - 1);
+              nextVoters = nextVoters.filter(v => v !== currentUserId);
+            }
+
+            if (shouldSelect && !hadUser) {
+              nextVotes += 1;
+              if (!p.is_anonymous) {
+                nextVoters.push(currentUserId);
+              }
+            }
+
             return {
               ...opt,
-              votes: (opt.votes ?? 0) + 1,
+              votes: nextVotes,
+              voters: nextVoters,
             };
           });
+
+          const priorVotes = p.options.reduce(
+            (sum, opt) => sum + ((opt.voters || []).includes(currentUserId) ? 1 : 0),
+            0,
+          );
+          const nextVotes = nextOptions.reduce(
+            (sum, opt) => sum + ((opt.voters || []).includes(currentUserId) ? 1 : 0),
+            0,
+          );
+
           return {
             ...p,
             options: nextOptions,
-            total_votes: (p.total_votes ?? 0) + optionIdsArray.length,
+            total_votes: Math.max(0, (p.total_votes ?? 0) + (nextVotes - priorVotes)),
           };
         });
       });
 
-      // Persist the optimistic update into the offline snapshot so refetches while offline
-      // cannot overwrite the optimistic state with stale IndexedDB data.
       try {
-        const next = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId]);
+        const next = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode]);
         const updatedPoll = next?.find(p => p.id === pollId);
         if (updatedPoll) {
           void cacheEntity({
@@ -364,7 +438,7 @@ export const useTripPolls = (tripId: string) => {
       return { previous };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
       void haptics.medium();
       toast({
         title: 'Vote recorded',
@@ -374,7 +448,7 @@ export const useTripPolls = (tripId: string) => {
     onError: (error: any, vars, context) => {
       // Keep optimistic update when offline (queued).
       if (!error?.message?.includes('OFFLINE:') && context?.previous) {
-        queryClient.setQueryData(['tripPolls', tripId], context.previous);
+        queryClient.setQueryData(['tripPolls', tripId, isDemoMode], context.previous);
 
         // Also rollback the offline snapshot if we applied an optimistic write.
         const previousPoll = context.previous.find(p => p.id === vars.pollId);
@@ -397,6 +471,24 @@ export const useTripPolls = (tripId: string) => {
         return;
       }
 
+      if (error?.message?.includes('deadline')) {
+        toast({
+          title: 'Voting Closed',
+          description: 'Voting deadline has passed.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (error?.message?.includes('only allows one option')) {
+        toast({
+          title: 'Single Choice Poll',
+          description: 'This poll allows only one option per voter.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       if (!error.message?.includes('modified by another user')) {
         toast({
           title: 'Error',
@@ -406,7 +498,7 @@ export const useTripPolls = (tripId: string) => {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
     },
   });
 
@@ -449,7 +541,7 @@ export const useTripPolls = (tripId: string) => {
       return { pollId };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
       toast({
         title: 'Vote removed',
         description: 'Your vote has been removed.'
@@ -490,7 +582,7 @@ export const useTripPolls = (tripId: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
       void haptics.success();
       toast({
         title: 'Poll closed',
@@ -528,7 +620,7 @@ export const useTripPolls = (tripId: string) => {
       return pollId;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
       toast({
         title: 'Poll deleted',
         description: 'The poll has been removed.'
@@ -542,6 +634,30 @@ export const useTripPolls = (tripId: string) => {
       });
     }
   });
+
+  useEffect(() => {
+    if (!tripId || isDemoMode || typeof (supabase as any).channel !== 'function') return;
+
+    const channel = supabase
+      .channel(`trip_polls:${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'trip_polls',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, isDemoMode, queryClient]);
 
   return {
     polls,

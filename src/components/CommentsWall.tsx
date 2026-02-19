@@ -6,6 +6,7 @@ import { useTripVariant } from '@/contexts/TripVariantContext';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
 import { useQueryClient } from '@tanstack/react-query';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import {
   PARITY_ACTION_BUTTON_CLASS,
   TRIP_PARITY_COL_START,
@@ -36,10 +37,11 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
   const [showCreatePoll, setShowCreatePoll] = useState(false);
   const { variant, accentColors } = useTripVariant();
   const queryClient = useQueryClient();
+  const { isDemoMode } = useDemoMode();
 
   const handleRefresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
-  }, [queryClient, tripId]);
+    await queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
+  }, [isDemoMode, queryClient, tripId]);
 
   const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: handleRefresh,

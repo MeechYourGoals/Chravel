@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, Users, User } from 'lucide-react';
+import { Calendar, Users, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar as CalendarComponent } from '../ui/calendar';
 import { useTripTasks } from '../../hooks/useTripTasks';
+import { TripTask } from '../../types/tasks';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { CollaboratorSelector } from './CollaboratorSelector';
 import { format } from 'date-fns';
@@ -16,17 +17,21 @@ import { format } from 'date-fns';
 interface TaskCreateModalProps {
   tripId: string;
   onClose: () => void;
+  initialTask?: TripTask;
 }
 
-export const TaskCreateModal = ({ tripId, onClose }: TaskCreateModalProps) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState<Date | undefined>();
-  const [taskMode, setTaskMode] = useState<'solo' | 'poll'>('solo');
+export const TaskCreateModal = ({ tripId, onClose, initialTask }: TaskCreateModalProps) => {
+  const isEditMode = !!initialTask;
+  const [title, setTitle] = useState(initialTask?.title ?? '');
+  const [description, setDescription] = useState(initialTask?.description ?? '');
+  const [dueDate, setDueDate] = useState<Date | undefined>(initialTask?.due_at ? new Date(initialTask.due_at) : undefined);
+  const [taskMode, setTaskMode] = useState<'solo' | 'poll'>(initialTask?.is_poll ? 'poll' : 'solo');
   const [showCalendar, setShowCalendar] = useState(false);
-  const [assignedMembers, setAssignedMembers] = useState<string[]>([]);
+  const [assignedMembers, setAssignedMembers] = useState<string[]>(
+    initialTask?.task_status?.map(status => status.user_id) ?? [],
+  );
   
-  const { createTaskMutation } = useTripTasks(tripId);
+  const { createTaskMutation, updateTaskMutation } = useTripTasks(tripId);
   const { accentColors } = useTripVariant();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,13 +39,33 @@ export const TaskCreateModal = ({ tripId, onClose }: TaskCreateModalProps) => {
     
     if (!title.trim()) return;
 
-    createTaskMutation.mutate({
+    const payload = {
       title: title.trim(),
       description: description.trim() || undefined,
       due_at: dueDate?.toISOString(),
       is_poll: taskMode === 'poll',
-      assignedTo: assignedMembers
-    }, {
+      assignedTo: assignedMembers,
+    };
+
+    if (initialTask) {
+      updateTaskMutation.mutate(
+        {
+          taskId: initialTask.id,
+          ...payload,
+        },
+        {
+          onSuccess: () => {
+            onClose();
+          },
+          onError: (error: unknown) => {
+            console.error('Task update failed:', error);
+          },
+        },
+      );
+      return;
+    }
+
+    createTaskMutation.mutate(payload, {
       onSuccess: () => {
         setTitle('');
         setDescription('');
@@ -49,11 +74,9 @@ export const TaskCreateModal = ({ tripId, onClose }: TaskCreateModalProps) => {
         setAssignedMembers([]);
         onClose();
       },
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         console.error('Task creation failed:', error);
-        // Error handling is done in the mutation's onError callback
-        // This is just for logging
-      }
+      },
     });
   };
 
@@ -61,7 +84,7 @@ export const TaskCreateModal = ({ tripId, onClose }: TaskCreateModalProps) => {
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-gray-900 border-gray-700">
         <DialogHeader>
-          <DialogTitle className="text-white">Create New Task</DialogTitle>
+          <DialogTitle className="text-white">{isEditMode ? 'Edit Task' : 'Create New Task'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -163,10 +186,10 @@ export const TaskCreateModal = ({ tripId, onClose }: TaskCreateModalProps) => {
             </Button>
             <Button
               type="submit"
-              disabled={!title.trim() || createTaskMutation.isPending}
+              disabled={!title.trim() || createTaskMutation.isPending || updateTaskMutation.isPending}
               className={`flex-1 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
             >
-              {createTaskMutation.isPending ? 'Creating...' : 'Create Task'}
+              {isEditMode ? (updateTaskMutation.isPending ? 'Saving...' : 'Save Changes') : createTaskMutation.isPending ? 'Creating...' : 'Create Task'}
             </Button>
           </div>
         </form>

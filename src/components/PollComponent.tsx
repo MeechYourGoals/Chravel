@@ -98,6 +98,14 @@ export const PollComponent = ({
   }, [polls, userId]);
 
   const handleVote = async (pollId: string, optionIds: string | string[]) => {
+    const poll = formattedPolls.find(p => p.id === pollId);
+    if (!poll) return;
+
+    if (isPollClosedForVoting(poll)) {
+      toast.error('Voting is closed for this poll');
+      return;
+    }
+
     if (!effectivePermissions.canVote) {
       toast.error('You don\'t have permission to vote');
       return;
@@ -148,6 +156,13 @@ export const PollComponent = ({
     } catch (error) {
       console.error('Failed to delete poll:', error);
     }
+  };
+
+
+  const isPollClosedForVoting = (poll: PollType) => {
+    if (poll.status === 'closed') return true;
+    if (!poll.deadline_at) return false;
+    return new Date(poll.deadline_at).getTime() <= Date.now();
   };
 
   const handleExportPoll = (pollId: string) => {
@@ -225,7 +240,7 @@ export const PollComponent = ({
             onClose={effectivePermissions.canClose ? handleClosePoll : undefined}
             onDelete={effectivePermissions.canDelete ? handleDeletePoll : undefined}
             onExport={handleExportPoll}
-            disabled={poll.status === 'closed' || !userId || !effectivePermissions.canVote}
+            disabled={isPollClosedForVoting(poll) || !userId || !effectivePermissions.canVote}
             isVoting={isVoting}
             isRemovingVote={isRemovingVote}
             isClosing={isClosing}
