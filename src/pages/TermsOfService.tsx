@@ -200,8 +200,8 @@ export default function TermsOfService() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">14. Governing Law</h2>
             <p className="text-foreground/90 mb-4">
-              These Terms are governed by the laws of [Jurisdiction] without regard to conflict of
-              law principles. Any disputes shall be resolved in the courts of [Jurisdiction].
+              These Terms are governed by the laws of Delaware without regard to conflict of law
+              principles. Any disputes shall be resolved in the courts of Delaware.
             </p>
           </section>
 
