@@ -13,8 +13,14 @@ import {
 } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
-import { useGeminiLive, type GeminiLiveState } from '@/hooks/useGeminiLive';
-import { useWebSpeechVoice, type VoiceState } from '@/hooks/useWebSpeechVoice';
+import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+
+// ─── MVP Feature Flags ────────────────────────────────────────────────────────
+// Voice and multimodal upload are disabled for MVP stability.
+// Set to true once transport layer is verified stable.
+const VOICE_ENABLED = false;
+const UPLOAD_ENABLED = false;
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -150,99 +156,18 @@ export const AIConciergeChat = ({
     'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
   >('connected');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
-  const [voiceActive, setVoiceActive] = useState(false);
-  const [useWebSpeechFallback, setUseWebSpeechFallback] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
   const hasShownLimitToastRef = useRef(false);
 
-  // Must be declared before useGeminiLive so callbacks can safely reference it
   const isMounted = useRef(true);
 
-  // ===== VOICE MODE: Gemini Live (primary) + Web Speech API (fallback when Gemini fails) =====
-  const mapGeminiToVoiceState = (s: GeminiLiveState): VoiceState => {
-    switch (s) {
-      case 'listening':
-        return 'listening';
-      case 'speaking':
-        return 'speaking';
-      case 'connecting':
-        return 'connecting';
-      case 'error':
-        return 'error';
-      default:
-        return 'idle';
-    }
-  };
-
-  const geminiLive = useGeminiLive({
-    tripId,
-    onTranscript: text => {
-      if (!isMounted.current) return;
-      setMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.type === 'assistant' && last.id === 'voice-streaming') {
-          return prev.map((m, i) =>
-            i === prev.length - 1 ? { ...m, content: m.content + text } : m,
-          );
-        }
-        return [
-          ...prev,
-          {
-            id: 'voice-streaming',
-            type: 'assistant' as const,
-            content: text,
-            timestamp: new Date().toISOString(),
-          },
-        ];
-      });
-    },
-    onTurnComplete: () => {
-      if (!isMounted.current) return;
-      setMessages(prev =>
-        prev.map(m => (m.id === 'voice-streaming' ? { ...m, id: crypto.randomUUID() } : m)),
-      );
-    },
-    onToolCall: async call => {
-      return { result: `Action ${call.name} noted` };
-    },
-  });
-
-  const webSpeechVoice = useWebSpeechVoice(
-    useCallback((text: string) => {
-      handleSendMessageRef.current?.(text);
-    }, []),
-  );
-
+  // Voice is disabled for MVP — stub out state so JSX doesn't need conditional branches
+  const effectiveVoiceState: VoiceState = 'idle';
   const handleVoiceToggle = useCallback(() => {
-    if (useWebSpeechFallback) {
-      webSpeechVoice.toggleVoice();
-      return;
-    }
-    if (geminiLive.state === 'idle' || geminiLive.state === 'error') {
-      geminiLive.startSession();
-      setVoiceActive(true);
-    } else {
-      geminiLive.endSession();
-      setVoiceActive(false);
-    }
-  }, [geminiLive, useWebSpeechFallback, webSpeechVoice]);
-
-  const effectiveVoiceState: VoiceState = useWebSpeechFallback
-    ? webSpeechVoice.voiceState
-    : mapGeminiToVoiceState(geminiLive.state);
-
-  // Auto-revert to text mode on Gemini voice error; offer Web Speech fallback
-  useEffect(() => {
-    if (geminiLive.state === 'error' && voiceActive) {
-      toast.error(geminiLive.error || 'Voice session ended. Returning to text mode.', {
-        description: 'Tap mic again to use browser voice (speech-to-text) instead.',
-      });
-      setVoiceActive(false);
-      setUseWebSpeechFallback(true);
-    }
-  }, [geminiLive.state, geminiLive.error, voiceActive]);
+    // Voice disabled for MVP
+  }, []);
 
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
   const streamAbortRef = useRef<(() => void) | null>(null);
@@ -341,7 +266,8 @@ export const AIConciergeChat = ({
 
   const handleSendMessage = async (messageOverride?: string) => {
     const typedMessage = (messageOverride ?? inputMessage).trim();
-    const selectedImages = [...attachedImages];
+    // When upload is disabled, ignore any attached images so they never gate send
+    const selectedImages = UPLOAD_ENABLED ? [...attachedImages] : [];
     const hasImageAttachments = selectedImages.length > 0;
     if ((!typedMessage && !hasImageAttachments) || isTyping) return;
 
@@ -434,6 +360,10 @@ export const AIConciergeChat = ({
             address: basecamp.address,
           }
         : undefined;
+
+    // Guard: true once the streaming path is entered so the finally block
+    // does not prematurely reset isTyping (callbacks manage it instead).
+    let streamingStarted = false;
 
     try {
       let attachments: ConciergeAttachment[] = [];
@@ -575,6 +505,7 @@ export const AIConciergeChat = ({
         );
 
         streamAbortRef.current = streamHandle.abort;
+        streamingStarted = true; // Streaming callbacks now own isTyping lifecycle
 
         // Abort if no chunks arrive within the timeout window
         streamTimer.id = setTimeout(() => {
@@ -685,7 +616,12 @@ export const AIConciergeChat = ({
         setMessages(prev => [...prev, errorMessage]);
       }
     } finally {
-      setIsTyping(false);
+      // Only reset isTyping here for the non-streaming path (demo mode / errors before streaming).
+      // The streaming path sets streamingStarted=true and its callbacks (onChunk / onError / onDone)
+      // manage isTyping independently so we must not clobber them here.
+      if (!streamingStarted) {
+        setIsTyping(false);
+      }
     }
   };
 
@@ -850,41 +786,13 @@ export const AIConciergeChat = ({
           )}
         </div>
 
-        {/* Voice Active Indicator (Gemini Live or Web Speech fallback) */}
-        {((voiceActive && geminiLive.state !== 'idle' && geminiLive.state !== 'error') ||
-          (useWebSpeechFallback &&
-            (webSpeechVoice.voiceState === 'listening' ||
-              webSpeechVoice.voiceState === 'connecting'))) && (
+        {/* Voice Active Indicator — only shown when VOICE_ENABLED=true */}
+        {VOICE_ENABLED && effectiveVoiceState !== 'idle' && effectiveVoiceState !== 'error' && (
           <div className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm text-emerald-300">
-                {useWebSpeechFallback
-                  ? webSpeechVoice.voiceState === 'connecting'
-                    ? 'Connecting...'
-                    : 'Listening...'
-                  : geminiLive.state === 'connecting'
-                    ? 'Connecting...'
-                    : geminiLive.state === 'listening'
-                      ? 'Listening...'
-                      : geminiLive.state === 'speaking'
-                        ? 'AI Speaking...'
-                        : 'Voice Active'}
-              </span>
+              <span className="text-sm text-emerald-300">Voice Active</span>
             </div>
-            <button
-              onClick={() => {
-                if (useWebSpeechFallback) {
-                  webSpeechVoice.stopVoice();
-                } else {
-                  geminiLive.endSession();
-                  setVoiceActive(false);
-                }
-              }}
-              className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors"
-            >
-              End Voice
-            </button>
           </div>
         )}
 
@@ -897,13 +805,13 @@ export const AIConciergeChat = ({
             onKeyPress={handleKeyPress}
             isTyping={isTyping}
             disabled={isQueryLimitReached}
-            showImageAttach={true}
-            attachedImages={attachedImages}
-            onImageAttach={files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))}
-            onRemoveImage={idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))}
-            voiceState={effectiveVoiceState}
-            isVoiceEligible={true}
-            onVoiceToggle={handleVoiceToggle}
+            showImageAttach={UPLOAD_ENABLED}
+            attachedImages={UPLOAD_ENABLED ? attachedImages : []}
+            onImageAttach={UPLOAD_ENABLED ? files => setAttachedImages(prev => [...prev, ...files].slice(0, 4)) : undefined}
+            onRemoveImage={UPLOAD_ENABLED ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx)) : undefined}
+            voiceState={VOICE_ENABLED ? effectiveVoiceState : 'idle'}
+            isVoiceEligible={false}
+            onVoiceToggle={VOICE_ENABLED ? handleVoiceToggle : undefined}
           />
         </div>
       </div>
