@@ -110,7 +110,7 @@ export const TripHeader = ({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [descEditTick, setDescEditTick] = useState(0);
-  
+
   // Collapsible hero state (desktop only, persisted globally)
   const [isHeroCollapsed, setIsHeroCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -416,11 +416,7 @@ export const TripHeader = ({
             // Mobile/tablet: always full height
             drawerLayout ? 'h-full min-h-[320px] mb-0' : '',
             // Desktop: collapsed vs expanded
-            !drawerLayout && (
-              isHeroCollapsed 
-                ? 'min-h-[200px]'
-                : 'aspect-[3/1] min-h-[200px]'
-            ),
+            !drawerLayout && (isHeroCollapsed ? 'min-h-[200px]' : 'aspect-[3/1] min-h-[200px]'),
             'mb-0 md:mb-8',
           )}
           style={{
@@ -464,7 +460,7 @@ export const TripHeader = ({
                   )}
                 </div>
               </div>
-              
+
               {/* Right: Action buttons */}
               <div className="flex items-center gap-2">
                 {/* Expand button */}
@@ -615,11 +611,13 @@ export const TripHeader = ({
                 </h3>
               </div>
               <div className="flex items-center gap-3">
-                {/* Show loading indicator or count */}
+                {/* Show loading indicator or count (never show 0 when creator exists) */}
                 {isMembersLoading ? (
                   <span className="w-6 h-4 bg-white/10 rounded animate-pulse" />
                 ) : (
-                  <span className="text-gray-400 text-sm">{mergedParticipants.length}</span>
+                  <span className="text-gray-400 text-sm">
+                    {Math.max(mergedParticipants.length, trip.created_by ? 1 : 0)}
+                  </span>
                 )}
                 <button
                   className="text-xs font-medium underline text-gray-200 hover:text-white"

@@ -93,9 +93,9 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
         level: 'info',
         data: { tripId },
       });
-      
+
       const data = await tripService.getTripById(tripId!);
-      
+
       const durationMs = Math.round(performance.now() - startTime);
       errorTracking.addBreadcrumb({
         category: 'api-call',
@@ -103,7 +103,7 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
         level: durationMs > 2000 ? 'warning' : 'info',
         data: { tripId, durationMs, hasData: !!data },
       });
-      
+
       return data;
     },
     enabled: isQueryEnabled,
@@ -120,10 +120,9 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   });
 
   // ⚡ PRIORITY 2: Members data - can render progressively
-  // 🔑 Include authUserId in query key to prevent anon cache poisoning auth cache
-  // 🔒 FIX: Use authUserId (from session) for consistent cache keys
+  // 🔑 CANONICAL: Same key as useTripMembersQuery so Trip Members + Payments share cache
   const membersQuery = useQuery({
-    queryKey: [...tripKeys.members(tripId!), authUserId ?? 'anon', demoAddedMembersCount],
+    queryKey: [...tripKeys.members(tripId!), demoAddedMembersCount],
     queryFn: async () => {
       return await tripService.getTripMembersWithCreator(tripId!);
     },
@@ -179,11 +178,14 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   // The query won't run (isQueryEnabled=false) so we must return the error here
   if (!authUserId && !shouldUseDemoPath && tripId) {
     if (import.meta.env.DEV) {
-      console.warn('[useTripDetailData] No authUserId after auth loaded - returning AUTH_REQUIRED', {
-        tripId,
-        isAuthLoading,
-        hasSession: !!session,
-      });
+      console.warn(
+        '[useTripDetailData] No authUserId after auth loaded - returning AUTH_REQUIRED',
+        {
+          tripId,
+          isAuthLoading,
+          hasSession: !!session,
+        },
+      );
     }
     return {
       trip: null,
@@ -208,12 +210,14 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   const tripCreatorId = membersQuery.data?.creatorId || tripQuery.data?.created_by || null;
 
   if (tripMembers.length === 0 && tripCreatorId && !membersQuery.isLoading) {
-    tripMembers = [{
-      id: tripCreatorId,
-      name: user?.displayName || 'Trip Creator',
-      avatar: user?.avatar,
-      isCreator: true,
-    }];
+    tripMembers = [
+      {
+        id: tripCreatorId,
+        name: user?.displayName || 'Trip Creator',
+        avatar: user?.avatar,
+        isCreator: true,
+      },
+    ];
   }
 
   return {

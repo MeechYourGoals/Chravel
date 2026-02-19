@@ -16,6 +16,15 @@ vi.mock('@/hooks/useDemoMode', () => ({
   useDemoMode: () => ({ isDemoMode: false, isLoading: false }),
 }));
 
+vi.mock('@/hooks/useTripMembersQuery', () => ({
+  useTripMembersQuery: () => ({
+    tripMembers: [{ id: 'user-1', name: 'Test User', avatar: undefined }],
+    loading: false,
+    hadMembersError: false,
+    refreshMembers: vi.fn(),
+  }),
+}));
+
 vi.mock('@/services/hapticService', () => ({
   hapticService: { medium: vi.fn(), light: vi.fn() },
 }));
@@ -106,7 +115,7 @@ describe('MobileTripPayments', () => {
     const { container } = render(
       <QueryClientProvider client={queryClient}>
         <MobileTripPayments tripId="test-trip-id" />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(container).toBeTruthy();
     // Use findByText to handle potential async loading
@@ -117,7 +126,7 @@ describe('MobileTripPayments', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MobileTripPayments tripId="test-trip-id" />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
     // It will either be "Loading payments..." or "No payments yet" depending on how fast mocks resolve
