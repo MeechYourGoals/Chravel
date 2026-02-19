@@ -1063,13 +1063,61 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       },
       {
         name: 'searchPlaces',
-        description: 'Search for places like restaurants, hotels, attractions near a location',
+        description: 'Search for places like restaurants, hotels, attractions near a location. Returns placeId for follow-up details.',
         parameters: {
           type: 'object',
           properties: {
             query: { type: 'string', description: 'Search query (e.g. "sushi restaurant")' },
             nearLat: { type: 'number', description: 'Latitude to search near' },
             nearLng: { type: 'number', description: 'Longitude to search near' },
+          },
+          required: ['query'],
+        },
+      },
+      {
+        name: 'getDirectionsETA',
+        description: 'Get driving directions, ETA, and distance between two locations. Use for "how long to get there" or "directions from X to Y" questions.',
+        parameters: {
+          type: 'object',
+          properties: {
+            origin: { type: 'string', description: 'Starting address or place name' },
+            destination: { type: 'string', description: 'Destination address or place name' },
+            departureTime: { type: 'string', description: 'Optional ISO 8601 departure time for traffic-aware ETA' },
+          },
+          required: ['origin', 'destination'],
+        },
+      },
+      {
+        name: 'getTimezone',
+        description: 'Get the time zone for a geographic location. Use when user asks about time zones or to normalize itinerary times.',
+        parameters: {
+          type: 'object',
+          properties: {
+            lat: { type: 'number', description: 'Latitude of the location' },
+            lng: { type: 'number', description: 'Longitude of the location' },
+          },
+          required: ['lat', 'lng'],
+        },
+      },
+      {
+        name: 'getPlaceDetails',
+        description: 'Get detailed info about a specific place: hours, phone, website, photos, editorial summary. Use after searchPlaces to show more details, or when user asks "tell me more about [place]" or "show me photos of [venue]".',
+        parameters: {
+          type: 'object',
+          properties: {
+            placeId: { type: 'string', description: 'Google Places ID (from searchPlaces results)' },
+          },
+          required: ['placeId'],
+        },
+      },
+      {
+        name: 'searchImages',
+        description: 'Search for images on the web. Use when user asks to "show me pictures/photos of [something]" that is NOT a specific place/venue. For venue photos, use getPlaceDetails instead.',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Image search query' },
+            count: { type: 'number', description: 'Number of images to return (max 10, default 5)' },
           },
           required: ['query'],
         },
