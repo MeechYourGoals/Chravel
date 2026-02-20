@@ -53,6 +53,7 @@ export type NotificationCategory =
   | 'chat_messages'
   | 'broadcasts'
   | 'calendar_events'
+  | 'calendar_bulk_import'
   | 'payments'
   | 'tasks'
   | 'polls'
@@ -60,11 +61,17 @@ export type NotificationCategory =
   | 'join_requests'
   | 'basecamp_updates';
 
-// Categories eligible for email delivery (high-signal only)
+// Categories eligible for email delivery
 export const EMAIL_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
   'broadcasts',
   'payments',
   'basecamp_updates',
+  'calendar_events',
+  'calendar_bulk_import',
+  'join_requests',
+  'tasks',
+  'polls',
+  'trip_invites',
 ];
 
 // Categories eligible for SMS delivery (high-urgency only)
