@@ -119,18 +119,18 @@ const JoinTrip = () => {
       meta.content = content;
     };
 
-    updateMetaTag('og:title', `Join ${tripName}!`);
+    updateMetaTag('og:title', `Join ${tripName} \u2022 ${destination}!`);
     updateMetaTag(
       'og:description',
-      `You've been invited to join a trip to ${destination}. Click to see details and join the adventure!`,
+      `\uD83D\uDCCD ${destination} \u2022 You've been invited to join a trip! Click to see details and join the adventure.`,
     );
     updateMetaTag('og:type', 'website');
     updateMetaTag('og:image', imageUrl);
     updateMetaName('twitter:card', 'summary_large_image');
-    updateMetaName('twitter:title', `Join ${tripName}!`);
+    updateMetaName('twitter:title', `Join ${tripName} \u2022 ${destination}!`);
     updateMetaName(
       'twitter:description',
-      `You've been invited to join a trip to ${destination}. Click to see details!`,
+      `\uD83D\uDCCD ${destination} \u2022 You've been invited to join a trip! Click to see details.`,
     );
     updateMetaName('twitter:image', imageUrl);
   }, [inviteData]);
