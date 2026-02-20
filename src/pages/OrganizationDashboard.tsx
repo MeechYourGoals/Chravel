@@ -22,7 +22,7 @@ export const OrganizationDashboard = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { organizations, currentOrg, members, loading, fetchOrgMembers, updateMemberRole, removeMember, setCurrentOrg, fetchUserOrganizations } = useOrganization();
+  const { organizations, currentOrg, members, loading, fetchOrgMembers, updateMemberRole, removeMember, setCurrentOrg, fetchUserOrganizations, updateOrganization } = useOrganization();
   
   const [activeTab, setActiveTab] = useState('overview');
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -333,12 +333,30 @@ export const OrganizationDashboard = () => {
 
           <TabsContent value="overview" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <OrganizationSection organization={{
-                id: currentOrg.id,
-                name: currentOrg.name,
-                displayName: currentOrg.display_name,
-                billingEmail: currentOrg.billing_email,
-              }} />
+              <OrganizationSection
+                organizations={[{
+                  id: currentOrg.id,
+                  name: currentOrg.name,
+                  displayName: currentOrg.display_name,
+                  billingEmail: currentOrg.billing_email || '',
+                  contactName: (currentOrg as { contact_name?: string })?.contact_name || '',
+                  contactEmail: (currentOrg as { contact_email?: string })?.contact_email || '',
+                  contactPhone: (currentOrg as { contact_phone?: string })?.contact_phone || '',
+                  contactJobTitle: (currentOrg as { contact_job_title?: string })?.contact_job_title || '',
+                }]}
+                onSave={updateOrganization ? async (orgId, data) => {
+                  const { error: err } = await updateOrganization(orgId, {
+                    name: data.name,
+                    display_name: data.displayName,
+                    billing_email: data.billingEmail,
+                    contact_name: data.contactName || null,
+                    contact_email: data.contactEmail || null,
+                    contact_phone: data.contactPhone || null,
+                    contact_job_title: data.contactJobTitle || null,
+                  });
+                  if (!err) toast({ title: 'Saved', description: 'Organization settings updated.' });
+                } : undefined}
+              />
               <BillingSection organization={{
                 subscriptionTier: currentOrg.subscription_tier,
                 subscriptionEndsAt: currentOrg.subscription_ends_at || 'N/A',
@@ -405,12 +423,30 @@ export const OrganizationDashboard = () => {
           {isAdmin && (
             <TabsContent value="settings" className="mt-6">
               <div className="space-y-6">
-                <OrganizationSection organization={{
-                  id: currentOrg.id,
-                  name: currentOrg.name,
-                  displayName: currentOrg.display_name,
-                  billingEmail: currentOrg.billing_email,
-                }} />
+                <OrganizationSection
+                  organizations={[{
+                    id: currentOrg.id,
+                    name: currentOrg.name,
+                    displayName: currentOrg.display_name,
+                    billingEmail: currentOrg.billing_email || '',
+                    contactName: (currentOrg as { contact_name?: string })?.contact_name || '',
+                    contactEmail: (currentOrg as { contact_email?: string })?.contact_email || '',
+                    contactPhone: (currentOrg as { contact_phone?: string })?.contact_phone || '',
+                    contactJobTitle: (currentOrg as { contact_job_title?: string })?.contact_job_title || '',
+                  }]}
+                  onSave={updateOrganization ? async (orgId, data) => {
+                    const { error: err } = await updateOrganization(orgId, {
+                      name: data.name,
+                      display_name: data.displayName,
+                      billing_email: data.billingEmail,
+                      contact_name: data.contactName || null,
+                      contact_email: data.contactEmail || null,
+                      contact_phone: data.contactPhone || null,
+                      contact_job_title: data.contactJobTitle || null,
+                    });
+                    if (!err) toast({ title: 'Saved', description: 'Organization settings updated.' });
+                  } : undefined}
+                />
                 <BillingSection organization={{
                   subscriptionTier: currentOrg.subscription_tier,
                   subscriptionEndsAt: currentOrg.subscription_ends_at || 'N/A',

@@ -35,7 +35,7 @@ export const EnterpriseSettings = ({
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
   const { toast } = useToast();
 
-  const { currentOrg, members, loading, error, fetchUserOrganizations, fetchOrgMembers, updateOrganization } =
+  const { organizations: orgs, currentOrg, members, loading, error, fetchUserOrganizations, fetchOrgMembers, updateOrganization } =
     useOrganization();
 
   useEffect(() => {
@@ -43,6 +43,26 @@ export const EnterpriseSettings = ({
       fetchOrgMembers(currentOrg.id);
     }
   }, [currentOrg?.id, fetchOrgMembers]);
+
+  const organizationList: Array<{
+    id: string;
+    name: string;
+    displayName: string;
+    billingEmail: string;
+    contactName?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    contactJobTitle?: string;
+  }> = (orgs || []).map(org => ({
+    id: org.id,
+    name: org.name,
+    displayName: org.display_name,
+    billingEmail: org.billing_email || '',
+    contactName: (org as { contact_name?: string })?.contact_name || '',
+    contactEmail: (org as { contact_email?: string })?.contact_email || '',
+    contactPhone: (org as { contact_phone?: string })?.contact_phone || '',
+    contactJobTitle: (org as { contact_job_title?: string })?.contact_job_title || '',
+  }));
 
   const organization = currentOrg
     ? {
@@ -114,12 +134,12 @@ export const EnterpriseSettings = ({
       case 'organization':
         return (
           <OrganizationSection
-            organization={organization}
+            organizations={organizationList}
             onCreateOrganization={handleOpenCreateOrgModal}
             onSave={
-              organization?.id && updateOrganization
-                ? async data => {
-                    const { error: err } = await updateOrganization(organization.id, {
+              updateOrganization
+                ? async (orgId, data) => {
+                    const { error: err } = await updateOrganization(orgId, {
                       name: data.name,
                       display_name: data.displayName,
                       billing_email: data.billingEmail,
@@ -158,12 +178,12 @@ export const EnterpriseSettings = ({
       default:
         return (
           <OrganizationSection
-            organization={organization}
+            organizations={organizationList}
             onCreateOrganization={handleOpenCreateOrgModal}
             onSave={
-              organization?.id && updateOrganization
-                ? async data => {
-                    const { error: err } = await updateOrganization(organization.id, {
+              updateOrganization
+                ? async (orgId, data) => {
+                    const { error: err } = await updateOrganization(orgId, {
                       name: data.name,
                       display_name: data.displayName,
                       billing_email: data.billingEmail,

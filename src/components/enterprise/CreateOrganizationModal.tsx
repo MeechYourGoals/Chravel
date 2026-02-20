@@ -125,7 +125,7 @@ export const CreateOrganizationModal = ({
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-glass-orange hover:bg-glass-orange/80"
+              className="flex-1 bg-glass-orange hover:bg-glass-orange/80 text-white focus-visible:ring-0 focus-visible:ring-offset-0"
               disabled={loading}
             >
               {loading ? (

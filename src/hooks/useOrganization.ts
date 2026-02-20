@@ -79,6 +79,9 @@ export const useOrganization = () => {
         if (orgs && orgs.length > 0) {
           setCurrentOrg(orgs[0] as Organization);
         }
+      } else {
+        setOrganizations([]);
+        setCurrentOrg(null);
       }
     } catch (err) {
       console.error('Error fetching organizations:', err);
