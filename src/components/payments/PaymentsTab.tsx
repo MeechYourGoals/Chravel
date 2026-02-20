@@ -87,7 +87,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     await Promise.all([refreshPayments(), refreshBalanceSummary()]);
   }, [refreshPayments, refreshBalanceSummary]);
 
-  // Handle payment submission
+  // Handle payment submission — throws on error so PaymentInput does not reset form
   const handlePaymentSubmit = async (paymentData: {
     amount: number;
     currency: string;
@@ -115,6 +115,9 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         description,
         variant: 'destructive',
       });
+      throw new Error(description);
+    } else {
+      throw new Error('Failed to create payment. Please try again.');
     }
   };
 
@@ -176,11 +179,11 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         </Card>
       ) : (
         <PaymentInput
-            onSubmit={handlePaymentSubmit}
-            tripMembers={tripMembers}
-            isVisible={true}
-            tripId={tripId}
-          />
+          onSubmit={handlePaymentSubmit}
+          tripMembers={tripMembers}
+          isVisible={true}
+          tripId={tripId}
+        />
       )}
 
       {/* ⚡ Balance Summary — loads independently with its own skeleton */}
