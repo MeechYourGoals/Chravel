@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, User, Lock, Plus } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { BasecampLocation } from '@/types/basecamp';
 import { BasecampSelector } from '../BasecampSelector';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
@@ -35,6 +36,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { clearBasecamp } = useBasecamp();
+  const queryClient = useQueryClient();
 
   // ─── Trip basecamp mutations (self-contained, like personal basecamp) ───
   const updateTripBasecampMutation = useUpdateTripBasecamp(tripId);
@@ -241,6 +243,9 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           latitude: undefined,
           longitude: undefined,
         });
+        if (savedBasecamp) {
+          queryClient.setQueryData(['personalBasecamp', tripId, effectiveUserId], savedBasecamp);
+        }
       } else if (user) {
         savedBasecamp = await basecampService.upsertPersonalBasecamp({
           trip_id: tripId,
@@ -259,6 +264,8 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           '[BasecampsPanel] Personal basecamp saved successfully:',
           savedBasecamp.address,
         );
+        // Update TanStack Query cache immediately so changes appear across tabs/remounts
+        queryClient.setQueryData(['personalBasecamp', tripId, effectiveUserId], savedBasecamp);
       } else {
         console.error(
           '[BasecampsPanel] Personal basecamp save returned null - database operation may have failed',
@@ -278,10 +285,12 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
       if (isDemoMode) {
         demoModeService.deleteSessionPersonalBasecamp(tripId, effectiveUserId);
         setPersonalBasecamp(null);
+        queryClient.setQueryData(['personalBasecamp', tripId, effectiveUserId], null);
       } else if (user) {
         const success = await basecampService.deletePersonalBasecamp(personalBasecamp.id);
         if (success) {
           setPersonalBasecamp(null);
+          queryClient.setQueryData(['personalBasecamp', tripId, effectiveUserId], null);
         }
       }
     } catch (error) {
