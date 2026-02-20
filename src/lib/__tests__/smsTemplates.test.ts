@@ -18,15 +18,16 @@ describe('sms templates', () => {
     expect(message).toContain('from Alex');
   });
 
-  it('keeps message notifications privacy-safe', () => {
-    const message = generateSmsMessage('chat_messages', {
-      tripName: 'Napa Trip',
-      senderName: 'Sam',
-      preview: 'private contents should not appear',
+  it('formats bulk import aggregation message', () => {
+    const message = generateSmsMessage('calendar_bulk_import', {
+      tripName: 'Cat Williams Tour',
+      amount: 22,
     });
 
-    expect(message).toContain('New message in Napa Trip from Sam.');
-    expect(message).not.toContain('private contents should not appear');
+    expect(message.startsWith('ChravelApp:')).toBe(true);
+    expect(message).toContain('22 calendar events added');
+    expect(message).toContain('Cat Williams Tour');
+    expect(message).toContain('Smart Import');
   });
 
   it('formats calendar reminder with event and time', () => {
