@@ -26,6 +26,7 @@ import { useDemoMode } from '../../hooks/useDemoMode';
 import { Button } from '../ui/button';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { supabase } from '@/integrations/supabase/client';
+import { NotificationPreviewPanel } from '@/components/dev/NotificationPreviewPanel';
 
 interface NotificationCategory {
   key: string;
@@ -360,7 +361,7 @@ export const ConsumerNotificationsSection = () => {
     try {
       const result = await notificationService.sendSMSNotification(
         user.id,
-        'ChravelApp: Test message — SMS notifications are working!',
+        'Chravel: Test message — SMS notifications are working!',
       );
       if (result.success && result.sid) {
         toast({
@@ -648,6 +649,9 @@ export const ConsumerNotificationsSection = () => {
           </div>
         </div>
       </div>
+
+      {/* Dev-only Notification Preview */}
+      {import.meta.env.DEV && <NotificationPreviewPanel />}
 
       {/* SMS Phone Number Modal */}
       {showSmsPhoneModal && (
