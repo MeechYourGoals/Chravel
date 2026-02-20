@@ -5,7 +5,7 @@
  * Drag-and-drop, file picker, URL, paste text. Supports ICS, CSV, Excel, PDF, Image.
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,6 +38,7 @@ import {
   findDuplicateAgendaSessions,
 } from '@/utils/agendaImportParsers';
 import { toast } from 'sonner';
+import { useSmartImportDropzone } from '@/hooks/useSmartImportDropzone';
 
 interface AgendaImportModalProps {
   isOpen: boolean;
@@ -61,9 +62,6 @@ interface AgendaImportModalProps {
 }
 
 type ImportState = 'idle' | 'parsing' | 'preview' | 'importing' | 'complete';
-
-const ACCEPTED_FILE_TYPES =
-  '.ics,.csv,.xlsx,.xls,.pdf,image/jpeg,image/png,image/webp,text/calendar,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
 
 const FORMAT_BADGES = [
   { label: 'ICS', icon: Calendar },
@@ -116,7 +114,21 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
   const [pasteText, setPasteText] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const processFile = useCallback(
+    async (file: File) => {
+      setParsingSource('file');
+      setState('parsing');
+      const result = await parseAgendaFile(file);
+      processParseResult(result);
+    },
+    [processParseResult],
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useSmartImportDropzone({
+    onFileSelected: processFile,
+    disabled: state === 'parsing' || state === 'importing',
+  });
 
   const resetState = useCallback(() => {
     setState('idle');
@@ -128,7 +140,6 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
     setPasteText('');
     setUrlInput('');
     setParsingSource('file');
-    if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
 
   const handleClose = useCallback(() => {
@@ -160,18 +171,6 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
       processParseResult(externalPendingResult);
     }
   }, [isOpen, externalPendingResult, processParseResult]);
-
-  const handleFileSelect = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      setParsingSource('file');
-      setState('parsing');
-      const result = await parseAgendaFile(file);
-      processParseResult(result);
-    },
-    [processParseResult],
-  );
 
   const handlePasteSubmit = useCallback(async () => {
     if (!pasteText.trim()) return;
@@ -265,26 +264,6 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
     }
   }, [parseResult, duplicateIndices, onImportSessions, onBulkImportSessions, onLineupUpdate]);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const file = e.dataTransfer.files?.[0];
-      if (file && fileInputRef.current) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        fileInputRef.current.files = dt.files;
-        handleFileSelect({ target: fileInputRef.current } as React.ChangeEvent<HTMLInputElement>);
-      }
-    },
-    [handleFileSelect],
-  );
-
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
@@ -300,17 +279,20 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
           {state === 'idle' && (
             <div className="space-y-4">
               <div
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
+                {...getRootProps()}
                 className={cn(
-                  'border-2 border-dashed rounded-xl p-8 text-center transition-colors',
+                  'border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer',
                   'hover:border-primary/50 hover:bg-primary/5',
                   'border-border bg-muted/30',
+                  isDragActive && 'border-primary ring-2 ring-primary/30 bg-primary/10',
                 )}
               >
+                <input {...getInputProps()} />
                 <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground mb-2">
-                  Drag and drop a file here, or click to browse
+                  {isDragActive
+                    ? 'Drop your file here...'
+                    : 'Drag and drop a file here, or click to browse'}
                 </p>
 
                 <div className="flex flex-wrap justify-center gap-1.5 mb-4">
@@ -325,23 +307,16 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
                   ))}
                 </div>
 
-                <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="min-h-[44px]"
-                >
+                <Button variant="outline" className="min-h-[44px]" type="button">
                   Choose File
                 </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={ACCEPTED_FILE_TYPES}
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
 
-                {/* URL import */}
-                <div className="mt-4 pt-4 border-t border-border/50 w-full">
+                {/* URL import - stop propagation so clicking doesn't open file picker */}
+                <div
+                  className="mt-4 pt-4 border-t border-border/50 w-full"
+                  onClick={e => e.stopPropagation()}
+                  onKeyDown={e => e.stopPropagation()}
+                >
                   <p className="text-xs text-muted-foreground mb-2 flex items-center justify-center gap-1.5">
                     <Link className="w-3.5 h-3.5" />
                     or import from a URL
