@@ -51,6 +51,12 @@ Use `src/lib/tabParity.ts` for all new parity-aligned tab/subtab layouts.
 - 8 Tasks
 - 9 Team
 
+## Trip card action buttons (Recap, Invite, View, Share)
+- Use `TRIP_CARD_ACTION_BUTTON_CONSUMER` for consumer TripCard
+- Use `TRIP_CARD_ACTION_BUTTON_PRO_EVENT` for ProTripCard, EventCard, MobileEventCard
+- **Demo mode parity**: Same components/styles for demo and authenticated modes—no gold/yellow/gradient on View or Recap
+- All four buttons must match within each card type
+
 ## Implementation checklist for new tabs/subtabs
 - [ ] Action row uses parity token from `tabParity.ts`
 - [ ] Buttons use mapped `col-start` token (no hardcoded index strings)

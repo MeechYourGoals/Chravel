@@ -43,6 +43,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { TRIP_CARD_ACTION_BUTTON_PRO_EVENT } from '../lib/tabParity';
 
 // Stable empty array reference - prevents infinite re-renders from Zustand selector
 const EMPTY_PARTICIPANTS: Array<{ id: number | string; name: string; avatar?: string }> = [];
@@ -319,31 +320,31 @@ export const EventCard = ({
           </div>
         </div>
 
-        {/* Action Buttons - 2x2 Grid matching TripCard/ProTripCard */}
+        {/* Action Buttons - 2x2 Grid. All four match for demo + auth parity. */}
         <div className="grid grid-cols-2 gap-2 md:gap-3">
           <button
             onClick={() => setShowExportModal(true)}
-            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm flex items-center justify-center gap-2"
+            className={TRIP_CARD_ACTION_BUTTON_PRO_EVENT}
           >
             <FileDown size={16} />
             Recap
           </button>
           <button
             onClick={() => setShowInviteModal(true)}
-            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm flex items-center justify-center gap-2"
+            className={TRIP_CARD_ACTION_BUTTON_PRO_EVENT}
           >
             <UserPlus size={16} />
             Invite
           </button>
           <button
             onClick={handleViewEvent}
-            className="bg-black/30 hover:bg-black/40 text-white font-medium py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 text-xs md:text-sm border border-white/20 hover:border-white/30 flex items-center justify-center gap-2"
+            className={TRIP_CARD_ACTION_BUTTON_PRO_EVENT}
           >
             View Event
           </button>
           <button
             onClick={() => setShowShareModal(true)}
-            className="bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm flex items-center justify-center gap-2"
+            className={TRIP_CARD_ACTION_BUTTON_PRO_EVENT}
           >
             <Share2 size={16} />
             Share
