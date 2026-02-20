@@ -126,10 +126,21 @@ export const EnterprisePrivacySection = () => {
               onChange={e => setJobTitle(e.target.value)}
               onBlur={async () => {
                 if (!user?.id || jobTitle === (user.jobTitle ?? '')) return;
+                const previousValue = user.jobTitle ?? '';
                 try {
                   const { error } = await updateProfile({ job_title: jobTitle || null } as Parameters<typeof updateProfile>[0]);
-                  if (!error) toast({ title: 'Saved', description: 'Job title updated.' });
+                  if (error) {
+                    setJobTitle(previousValue);
+                    toast({
+                      title: 'Error',
+                      description: typeof error === 'string' ? error : (error?.message ?? 'Failed to save job title. Please try again.'),
+                      variant: 'destructive',
+                    });
+                  } else {
+                    toast({ title: 'Saved', description: 'Job title updated.' });
+                  }
                 } catch {
+                  setJobTitle(previousValue);
                   toast({ title: 'Error', description: 'Failed to save job title.', variant: 'destructive' });
                 }
               }}
