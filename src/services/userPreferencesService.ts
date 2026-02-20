@@ -76,7 +76,6 @@ export const SMS_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
   'join_requests',    // New member join requests (for organizers)
   'tasks',            // Assigned task notifications
   'polls',            // New poll notifications
-  'chat_messages',    // Privacy-safe new message alerts
 ];
 
 const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {

@@ -77,7 +77,6 @@ export const SMS_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
   'join_requests',    // New member join requests (for organizers)
   'tasks',            // Assigned tasks with actionable urgency
   'polls',            // New polls needing input
-  'chat_messages',    // Privacy-safe new message ping
 ];
 
 /**
@@ -272,10 +271,27 @@ export function isSmsEligible(category: NotificationCategory): boolean {
  * 4. SMS: category enabled + sms_enabled + category is sms-eligible + phone number exists + not in quiet hours
  * 5. In-app: always created if category is enabled (even during quiet hours)
  */
+/**
+ * Categories that are permanently suppressed from all external delivery channels.
+ * chat_messages removed: too high-volume for push/email/SMS.
+ * Chat still works in-app; only outbound notifications are blocked.
+ */
+export const SUPPRESSED_CATEGORIES: NotificationCategory[] = ['chat_messages'];
+
 export function getDeliveryDecision(
   category: NotificationCategory,
   prefs: NotificationPreferences
 ): DeliveryDecision {
+  if (SUPPRESSED_CATEGORIES.includes(category)) {
+    return {
+      createInApp: false,
+      sendPush: false,
+      sendEmail: false,
+      sendSms: false,
+      reason: `Category '${category}' is permanently suppressed from notifications`,
+    };
+  }
+
   // Check if category is enabled first
   const categoryEnabled = isCategoryEnabled(category, prefs);
 
@@ -324,7 +340,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: Omit<NotificationPreferences, 'us
   email_enabled: false, // Default off to avoid spam for new users
   sms_enabled: false,
   sms_phone_number: null,
-  chat_messages: false, // High frequency, default off
+  chat_messages: false, // Permanently disabled: too high-volume for external notifications
   broadcasts: true,
   calendar_events: true,
   payments: true,

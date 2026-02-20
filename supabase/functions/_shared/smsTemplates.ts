@@ -31,7 +31,7 @@ export type SmsCategory =
   | 'calendar_events'
   | 'tasks'
   | 'polls'
-  | 'chat_messages';
+  | 'calendar_bulk_import';
 
 export function truncate(text: string, maxLength: number): string {
   if (!text) return '';
@@ -105,12 +105,13 @@ export function generateSmsMessage(category: SmsCategory, data: SmsTemplateData)
       return `${SMS_BRAND_PREFIX} Basecamp updated for ${tripName}: ${location}.`;
     }
 
-    case 'chat_messages': {
-      return `${SMS_BRAND_PREFIX} New message in ${tripName} from ${senderName}.`;
+    case 'calendar_bulk_import': {
+      const count = data.amount ?? '0';
+      return `${SMS_BRAND_PREFIX} ${count} calendar events added to ${tripName} via Smart Import. Open the app to review.`;
     }
 
     default:
-      return `${SMS_BRAND_PREFIX} New update in ${tripName}. Tap to open.`;
+      return `${SMS_BRAND_PREFIX} New update in ${tripName}. Open the app for details.`;
   }
 }
 
@@ -123,6 +124,6 @@ export function isSmsEligibleCategory(category: string): category is SmsCategory
     'calendar_events',
     'tasks',
     'polls',
-    'chat_messages',
+    'calendar_bulk_import',
   ].includes(category);
 }

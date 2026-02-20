@@ -3,7 +3,6 @@ import {
   Bell,
   Mail,
   Smartphone,
-  MessageCircle,
   Radio,
   Calendar,
   DollarSign,
@@ -37,13 +36,6 @@ interface NotificationCategory {
 }
 
 const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
-  {
-    key: 'messages',
-    dbKey: 'chat_messages',
-    label: 'Messages',
-    description: 'Get notified when someone sends you a message',
-    icon: <MessageCircle size={16} className="text-blue-400" />,
-  },
   {
     key: 'broadcasts',
     dbKey: 'broadcasts',
@@ -120,7 +112,6 @@ export const ConsumerNotificationsSection = () => {
 
   // State for notification settings - matching database columns
   const [notificationSettings, setNotificationSettings] = useState<Record<string, boolean>>({
-    messages: true,
     broadcasts: true,
     calendar: true,
     payments: true,
@@ -203,7 +194,6 @@ export const ConsumerNotificationsSection = () => {
       try {
         const prefs = await userPreferencesService.getNotificationPreferences(user.id);
         setNotificationSettings({
-          messages: prefs.chat_messages ?? false,
           broadcasts: prefs.broadcasts ?? true,
           calendar: prefs.calendar_events ?? true,
           payments: prefs.payments ?? true,
@@ -271,7 +261,6 @@ export const ConsumerNotificationsSection = () => {
 
     // Map local state keys to database column names
     const keyMap: Record<string, keyof NotificationPreferences> = {
-      messages: 'chat_messages',
       broadcasts: 'broadcasts',
       calendar: 'calendar_events',
       payments: 'payments',
