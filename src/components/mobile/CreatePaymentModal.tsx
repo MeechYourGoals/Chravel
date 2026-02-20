@@ -17,7 +17,19 @@ interface CreatePaymentModalProps {
   onClose: () => void;
   tripId: string;
   tripMembers: Array<{ id: string; name: string; avatar?: string }>;
-  onPaymentCreated?: () => void;
+  /** Called when payment is created. Passes new payment for optimistic cache update. */
+  onPaymentCreated?: (payment?: {
+    id: string;
+    amount: number;
+    currency: string;
+    description: string;
+    splitCount: number;
+    splitParticipants: string[];
+    paymentMethods: string[];
+    createdBy: string;
+    createdAt: string;
+    isSettled: boolean;
+  }) => void;
   /** When true, payments go to session storage (demo). When false, persist to DB. */
   demoActive?: boolean;
   /** Required when demoActive is false — used for DB persistence */
@@ -95,9 +107,21 @@ export const CreatePaymentModal = ({
         paymentMethods: paymentData.paymentMethods,
       });
 
-      if (result.success) {
+      if (result.success && result.paymentId && userId) {
+        const newPayment = {
+          id: result.paymentId,
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          description: paymentData.description,
+          splitCount: paymentData.splitCount,
+          splitParticipants: paymentData.splitParticipants,
+          paymentMethods: paymentData.paymentMethods,
+          createdBy: userId,
+          createdAt: new Date().toISOString(),
+          isSettled: false,
+        };
         resetForm();
-        onPaymentCreated?.();
+        onPaymentCreated?.(newPayment);
         onClose();
         toast({
           title: 'Payment created',
