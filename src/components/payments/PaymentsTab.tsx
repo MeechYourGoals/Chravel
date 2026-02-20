@@ -10,6 +10,7 @@ import { useBalanceSummary } from '../../hooks/useBalanceSummary';
 import { useTripMembersQuery } from '../../hooks/useTripMembersQuery';
 import { useToast } from '../../hooks/use-toast';
 import { PaymentErrorHandler } from '../../services/paymentErrors';
+import { formatCurrency } from '@/services/currencyService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { AuthModal } from '../AuthModal';
 import { Loader2, LogIn, CheckCircle } from 'lucide-react';
@@ -87,7 +88,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     await Promise.all([refreshPayments(), refreshBalanceSummary()]);
   }, [refreshPayments, refreshBalanceSummary]);
 
-  // Handle payment submission
+  // Handle payment submission. Returns true on success so PaymentInput only resets form when payment persists.
   const handlePaymentSubmit = async (paymentData: {
     amount: number;
     currency: string;
@@ -95,7 +96,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
     splitCount: number;
     splitParticipants: string[];
     paymentMethods: string[];
-  }) => {
+  }): Promise<boolean> => {
     const result = await createPaymentMessage(paymentData);
 
     if (result.success && result.paymentId) {
@@ -105,10 +106,13 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       if (!demoActive) {
         toast({
           title: 'Payment created',
-          description: `${paymentData.description} - $${paymentData.amount.toFixed(2)}`,
+          description: `${paymentData.description} - ${formatCurrency(paymentData.amount, paymentData.currency)}`,
         });
       }
-    } else if (result.error) {
+      return true;
+    }
+
+    if (result.error) {
       const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
       toast({
         title,
@@ -116,6 +120,7 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         variant: 'destructive',
       });
     }
+    return false;
   };
 
   // ⚡ PROGRESSIVE LOADING: Only block on payment data (fast from cache).
@@ -176,11 +181,11 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         </Card>
       ) : (
         <PaymentInput
-            onSubmit={handlePaymentSubmit}
-            tripMembers={tripMembers}
-            isVisible={true}
-            tripId={tripId}
-          />
+          onSubmit={handlePaymentSubmit}
+          tripMembers={tripMembers}
+          isVisible={true}
+          tripId={tripId}
+        />
       )}
 
       {/* ⚡ Balance Summary — loads independently with its own skeleton */}

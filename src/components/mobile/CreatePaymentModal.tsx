@@ -9,6 +9,8 @@ import { getInitials } from '@/utils/avatarUtils';
 import { PAYMENT_METHOD_OPTIONS } from '@/types/paymentMethods';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentErrorHandler } from '@/services/paymentErrors';
+import { formatCurrency } from '@/services/currencyService';
+import { CURRENCIES } from '@/constants/currencies';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -49,7 +51,7 @@ export const CreatePaymentModal = ({
     togglePaymentMethod,
     selectAllParticipants,
     getPaymentData,
-    resetForm
+    resetForm,
   } = usePaymentSplits(tripMembers);
 
   if (!isOpen) return null;
@@ -99,7 +101,7 @@ export const CreatePaymentModal = ({
         onClose();
         toast({
           title: 'Payment created',
-          description: `${paymentData.description} - $${paymentData.amount.toFixed(2)}`,
+          description: `${paymentData.description} - ${formatCurrency(paymentData.amount, paymentData.currency)}`,
         });
       } else if (result.error) {
         const { title, description } = PaymentErrorHandler.getServiceErrorDisplay(result.error);
@@ -124,11 +126,8 @@ export const CreatePaymentModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
       {/* Modal */}
       <div className="relative w-full max-w-md bg-glass-slate-card border border-glass-slate-border rounded-t-3xl sm:rounded-3xl shadow-enterprise-2xl flex flex-col max-h-[calc(100vh-80px)] animate-slide-up">
         {/* Fixed Header */}
@@ -150,158 +149,166 @@ export const CreatePaymentModal = ({
         {/* Scrollable Form */}
         <div className="flex-1 overflow-y-auto p-6 pb-24 native-scroll">
           <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description
-            </label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g., Dinner at restaurant"
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Amount
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
               <input
-                type="number"
-                step="0.01"
-                value={amount || ''}
-                onChange={(e) => setAmount(Number(e.target.value))}
-                placeholder="0.00"
-                className="w-full pl-8 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                type="text"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="e.g., Dinner at restaurant"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
                 required
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Currency
-            </label>
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50"
-            >
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="JPY">JPY (¥)</option>
-              <option value="CAD">CAD ($)</option>
-              <option value="AUD">AUD ($)</option>
-            </select>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                <Users size={16} />
-                Split between {selectedParticipants.length} people
-              </label>
-              <button
-                type="button"
-                onClick={selectAllParticipants}
-                className="text-xs text-green-400 hover:text-green-300 font-medium px-2 py-1 rounded bg-white/5 hover:bg-white/10 transition-colors"
-              >
-                {allParticipantsSelected ? 'Deselect All' : 'Select All'}
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Amount</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={amount || ''}
+                  onChange={e => setAmount(Number(e.target.value))}
+                  placeholder="0.00"
+                  className="w-full pl-8 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                  required
+                />
+              </div>
             </div>
-            <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2 p-3 bg-white/5 border border-white/10 rounded-xl native-scroll">
-              {tripMembers.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-2 w-full">No trip members found</p>
-              ) : (
-                tripMembers.map(member => {
-                  const isSelected = selectedParticipants.includes(member.id);
-                  return (
-                    <button
-                      key={member.id}
-                      type="button"
-                      onClick={() => toggleParticipant(member.id)}
-                      className={`
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Currency</label>
+              <select
+                value={currency}
+                onChange={e => setCurrency(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                aria-label="Select currency"
+              >
+                {CURRENCIES.map(c => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} ({c.symbol}) - {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                  <Users size={16} />
+                  Split between {selectedParticipants.length} people
+                </label>
+                <button
+                  type="button"
+                  onClick={selectAllParticipants}
+                  className="text-xs text-green-400 hover:text-green-300 font-medium px-2 py-1 rounded bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  {allParticipantsSelected ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+              <div className="max-h-32 overflow-y-auto flex flex-wrap gap-2 p-3 bg-white/5 border border-white/10 rounded-xl native-scroll">
+                {tripMembers.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-2 w-full">
+                    No trip members found
+                  </p>
+                ) : (
+                  tripMembers.map(member => {
+                    const isSelected = selectedParticipants.includes(member.id);
+                    return (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onClick={() => toggleParticipant(member.id)}
+                        className={`
                         inline-flex items-center gap-2 rounded-lg px-2 py-1.5 cursor-pointer transition-all w-auto shrink-0
-                        ${isSelected
-                          ? 'bg-green-500/20 border-2 border-green-500 ring-1 ring-green-500/30'
-                          : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
+                        ${
+                          isSelected
+                            ? 'bg-green-500/20 border-2 border-green-500 ring-1 ring-green-500/30'
+                            : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
                         }
                       `}
+                      >
+                        {/* Checkmark indicator */}
+                        <div
+                          className={`
+                        w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
+                        ${
+                          isSelected
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gray-700 border border-gray-600'
+                        }
+                      `}
+                        >
+                          {isSelected && <Check size={12} strokeWidth={3} />}
+                        </div>
+                        <Avatar className="w-6 h-6 shrink-0">
+                          <AvatarImage src={member.avatar} alt={member.name} />
+                          <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
+                            {getInitials(member.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span
+                          className={`text-sm whitespace-nowrap ${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}
+                        >
+                          {member.name}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+              {perPersonAmount > 0 && selectedParticipants.length > 0 && (
+                <p className="text-xs text-gray-400 mt-2">
+                  ${perPersonAmount.toFixed(2)} per person
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Preferred Payment Methods
+              </label>
+              <div className="space-y-2">
+                {PAYMENT_METHOD_OPTIONS.map(method => {
+                  const isSelected = selectedPaymentMethods.includes(method.id);
+                  return (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => togglePaymentMethod(method.id)}
+                      className={`
+                      flex items-center gap-3 w-full p-3 rounded-xl cursor-pointer transition-all
+                      ${
+                        isSelected
+                          ? 'bg-green-500/20 border-2 border-green-500 ring-1 ring-green-500/30'
+                          : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
+                      }
+                    `}
                     >
                       {/* Checkmark indicator */}
-                      <div className={`
-                        w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
-                        ${isSelected
+                      <div
+                        className={`
+                      w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition-all
+                      ${
+                        isSelected
                           ? 'bg-green-500 text-white'
                           : 'bg-gray-700 border border-gray-600'
-                        }
-                      `}>
+                      }
+                    `}
+                      >
                         {isSelected && <Check size={12} strokeWidth={3} />}
                       </div>
-                      <Avatar className="w-6 h-6 shrink-0">
-                        <AvatarImage src={member.avatar} alt={member.name} />
-                        <AvatarFallback className="bg-primary/20 text-primary font-semibold text-xs">
-                          {getInitials(member.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className={`text-sm whitespace-nowrap ${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}>
-                        {member.name}
+                      <span
+                        className={`${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}
+                      >
+                        {method.label}
                       </span>
                     </button>
                   );
-                })
-              )}
+                })}
+              </div>
             </div>
-            {perPersonAmount > 0 && selectedParticipants.length > 0 && (
-              <p className="text-xs text-gray-400 mt-2">
-                ${perPersonAmount.toFixed(2)} per person
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Preferred Payment Methods
-            </label>
-            <div className="space-y-2">
-              {PAYMENT_METHOD_OPTIONS.map((method) => {
-                const isSelected = selectedPaymentMethods.includes(method.id);
-                return (
-                  <button
-                    key={method.id}
-                    type="button"
-                    onClick={() => togglePaymentMethod(method.id)}
-                    className={`
-                      flex items-center gap-3 w-full p-3 rounded-xl cursor-pointer transition-all
-                      ${isSelected
-                        ? 'bg-green-500/20 border-2 border-green-500 ring-1 ring-green-500/30'
-                        : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
-                      }
-                    `}
-                  >
-                    {/* Checkmark indicator */}
-                    <div className={`
-                      w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition-all
-                      ${isSelected
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-700 border border-gray-600'
-                      }
-                    `}>
-                      {isSelected && <Check size={12} strokeWidth={3} />}
-                    </div>
-                    <span className={`${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}>
-                      {method.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
