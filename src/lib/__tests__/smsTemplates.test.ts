@@ -13,7 +13,7 @@ describe('sms templates', () => {
       preview: 'Bus leaves in 30 minutes from the hotel lobby',
     });
 
-    expect(message.startsWith('Chravel:')).toBe(true);
+    expect(message.startsWith('ChravelApp:')).toBe(true);
     expect(message).toContain('Broadcast in Ski Weekend');
     expect(message).toContain('from Alex');
   });
@@ -24,7 +24,7 @@ describe('sms templates', () => {
       amount: 22,
     });
 
-    expect(message.startsWith('Chravel:')).toBe(true);
+    expect(message.startsWith('ChravelApp:')).toBe(true);
     expect(message).toContain('22 calendar events added');
     expect(message).toContain('Cat Williams Tour');
     expect(message).toContain('Smart Import');

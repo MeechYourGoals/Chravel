@@ -265,7 +265,7 @@ export const EventNotificationsSection = () => {
     try {
       const result = await notificationService.sendSMSNotification(
         user.id,
-        'Chravel: Test message — SMS notifications are working!',
+        'ChravelApp: Test message — SMS notifications are working!',
       );
       if (result.success && result.sid) {
         toast({

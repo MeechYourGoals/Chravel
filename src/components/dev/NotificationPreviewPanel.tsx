@@ -170,9 +170,7 @@ export const NotificationPreviewPanel = () => {
               EMAIL
             </span>
           </div>
-          <p className="text-gray-400 text-xs">
-            From: Chravel Support &lt;support@chravelapp.com&gt;
-          </p>
+          <p className="text-gray-400 text-xs">From: ChravelApp &lt;support@chravelapp.com&gt;</p>
           <p className="text-white font-semibold text-sm mt-1">
             Subject: {allContent.email.subject}
           </p>

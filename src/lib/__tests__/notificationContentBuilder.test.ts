@@ -30,7 +30,7 @@ describe('buildNotificationContent', () => {
         expect(content.title).toContain('Broadcast');
         expect(content.title).toContain('Japan Trip');
         expect(content.body).toContain('Tour Manager');
-        expect(content.body).toContain('Open Chravel');
+        expect(content.body).toContain('Open ChravelApp');
       }
     });
 
@@ -118,7 +118,7 @@ describe('buildNotificationContent', () => {
       expect(isEmailContent(content)).toBe(true);
       if (isEmailContent(content)) {
         expect(content.subject).toContain('Poll');
-        expect(content.ctaLabel).toBe('Open in Chravel');
+        expect(content.ctaLabel).toBe('Open in ChravelApp');
         expect(content.ctaUrl).toContain('trip-123');
         expect(content.footerText).toContain('notifications enabled');
       }
@@ -136,7 +136,7 @@ describe('buildNotificationContent', () => {
 
       expect(isSmsContent(content)).toBe(true);
       if (isSmsContent(content)) {
-        expect(content.message).toMatch(/^Chravel:/);
+        expect(content.message).toMatch(/^ChravelApp:/);
         expect(content.message.length).toBeLessThanOrEqual(160);
       }
     });
@@ -166,7 +166,7 @@ describe('buildNotificationContent', () => {
 
       expect(result.push.title).toContain('Task');
       expect(result.email.subject).toContain('Task');
-      expect(result.sms.message).toMatch(/^Chravel:/);
+      expect(result.sms.message).toMatch(/^ChravelApp:/);
     });
   });
 

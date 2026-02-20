@@ -94,7 +94,7 @@ export const ConsumerNotificationsSection = () => {
   const { isNative: isNativePush, registerForPush, unregisterFromPush } = useNativePush();
   const { showDemoContent } = useDemoMode();
   const { tier, isSuperAdmin } = useConsumerSubscription();
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
   const [isUpdatingPush, setIsUpdatingPush] = useState(false);
 
   // SMS phone number modal state
@@ -361,7 +361,7 @@ export const ConsumerNotificationsSection = () => {
     try {
       const result = await notificationService.sendSMSNotification(
         user.id,
-        'Chravel: Test message — SMS notifications are working!',
+        'ChravelApp: Test message — SMS notifications are working!',
       );
       if (result.success && result.sid) {
         toast({

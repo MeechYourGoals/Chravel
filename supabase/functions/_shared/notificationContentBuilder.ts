@@ -67,9 +67,9 @@ export interface SmsContent {
 
 export type NotificationContent = PushContent | EmailContent | SmsContent;
 
-const BRAND_PREFIX = 'Chravel:';
+const BRAND_PREFIX = 'ChravelApp:';
 export const FROM_EMAIL = 'support@chravelapp.com';
-export const FROM_NAME = 'Chravel Support';
+export const FROM_NAME = 'ChravelApp';
 const APP_URL = 'https://app.chravelapp.com';
 const SETTINGS_URL = `${APP_URL}/settings`;
 
@@ -82,7 +82,20 @@ function formatDateRange(start?: string | Date, end?: string | Date): string {
   const s = start instanceof Date ? start : new Date(start);
   if (isNaN(s.getTime())) return '';
 
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   const fmtDay = (d: Date) => `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   const fmtShort = (d: Date) => `${months[d.getMonth()]} ${d.getDate()}`;
 
@@ -90,11 +103,14 @@ function formatDateRange(start?: string | Date, end?: string | Date): string {
   const e = end instanceof Date ? end : new Date(end);
   if (isNaN(e.getTime())) return fmtDay(s);
 
-  if (s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth() && s.getDate() === e.getDate())
+  if (
+    s.getFullYear() === e.getFullYear() &&
+    s.getMonth() === e.getMonth() &&
+    s.getDate() === e.getDate()
+  )
     return fmtDay(s);
 
-  if (s.getFullYear() === e.getFullYear())
-    return `${fmtShort(s)}\u2013${fmtDay(e)}`;
+  if (s.getFullYear() === e.getFullYear()) return `${fmtShort(s)}\u2013${fmtDay(e)}`;
 
   return `${fmtDay(s)}\u2013${fmtDay(e)}`;
 }
@@ -128,7 +144,11 @@ function truncate(text: string, max: number): string {
 }
 
 function escapeHtml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 // ---------------------------------------------------------------------------
@@ -142,37 +162,85 @@ function buildPush(input: NotificationContentInput): PushContent {
 
   switch (input.type) {
     case 'broadcast_posted':
-      return { title: `New Broadcast in ${trip}`, body: `${actor} posted an announcement${ctx}. Open Chravel to review.` };
+      return {
+        title: `New Broadcast in ${trip}`,
+        body: `${actor} posted an announcement${ctx}. Open ChravelApp to review.`,
+      };
     case 'calendar_event_added':
-      return { title: `Calendar Updated in ${trip}`, body: `A calendar event was added${ctx}. Open Chravel for details.` };
+      return {
+        title: `Calendar Updated in ${trip}`,
+        body: `A calendar event was added${ctx}. Open ChravelApp for details.`,
+      };
     case 'calendar_event_updated':
-      return { title: `Calendar Updated in ${trip}`, body: `A calendar event was updated${ctx}. Open Chravel for details.` };
+      return {
+        title: `Calendar Updated in ${trip}`,
+        body: `A calendar event was updated${ctx}. Open ChravelApp for details.`,
+      };
     case 'calendar_bulk_import':
-      return { title: `${input.count ?? 0} New Calendar Events Added`, body: `${trip}${ctx}. Added via Smart Import.` };
+      return {
+        title: `${input.count ?? 0} New Calendar Events Added`,
+        body: `${trip}${ctx}. Added via Smart Import.`,
+      };
     case 'payment_request':
-      return { title: `Payment Request in ${trip}`, body: `${actor} sent a payment request${ctx}. Open Chravel to review.` };
+      return {
+        title: `Payment Request in ${trip}`,
+        body: `${actor} sent a payment request${ctx}. Open ChravelApp to review.`,
+      };
     case 'payment_settled':
-      return { title: `Payment Settled in ${trip}`, body: `A payment has been settled${ctx}. Open Chravel for details.` };
+      return {
+        title: `Payment Settled in ${trip}`,
+        body: `A payment has been settled${ctx}. Open ChravelApp for details.`,
+      };
     case 'task_assigned':
-      return { title: `New Task in ${trip}`, body: `${actor} assigned you a task${ctx}. Open Chravel to review.` };
+      return {
+        title: `New Task in ${trip}`,
+        body: `${actor} assigned you a task${ctx}. Open ChravelApp to review.`,
+      };
     case 'task_completed':
-      return { title: `Task Completed in ${trip}`, body: `A task has been completed${ctx}. Open Chravel for details.` };
+      return {
+        title: `Task Completed in ${trip}`,
+        body: `A task has been completed${ctx}. Open ChravelApp for details.`,
+      };
     case 'poll_created':
-      return { title: `New Poll in ${trip}`, body: `${actor} created a poll${ctx}. Open Chravel to vote.` };
+      return {
+        title: `New Poll in ${trip}`,
+        body: `${actor} created a poll${ctx}. Open ChravelApp to vote.`,
+      };
     case 'join_request':
-      return { title: `Join Request in ${trip}`, body: `${actor} wants to join${ctx}. Open Chravel to review.` };
+      return {
+        title: `Join Request in ${trip}`,
+        body: `${actor} wants to join${ctx}. Open ChravelApp to review.`,
+      };
     case 'join_request_approved':
-      return { title: `You've Been Approved!`, body: `You've been approved to join ${trip}${ctx}. Open Chravel to get started.` };
+      return {
+        title: `You've Been Approved!`,
+        body: `You've been approved to join ${trip}${ctx}. Open ChravelApp to get started.`,
+      };
     case 'basecamp_updated':
-      return { title: `Basecamp Updated in ${trip}`, body: `The basecamp location has been updated${ctx}. Open Chravel for details.` };
+      return {
+        title: `Basecamp Updated in ${trip}`,
+        body: `The basecamp location has been updated${ctx}. Open ChravelApp for details.`,
+      };
     case 'trip_invite':
-      return { title: `Trip Invitation`, body: `${actor} invited you to ${trip}${ctx}. Open Chravel to respond.` };
+      return {
+        title: `Trip Invitation`,
+        body: `${actor} invited you to ${trip}${ctx}. Open ChravelApp to respond.`,
+      };
     case 'trip_reminder':
-      return { title: `${trip} Starts Soon!`, body: `Your trip${ctx} begins soon. Open Chravel to prepare.` };
+      return {
+        title: `${trip} Starts Soon!`,
+        body: `Your trip${ctx} begins soon. Open ChravelApp to prepare.`,
+      };
     case 'rsvp_update':
-      return { title: `RSVP Update in ${trip}`, body: `${actor} updated their RSVP${ctx}. Open Chravel for details.` };
+      return {
+        title: `RSVP Update in ${trip}`,
+        body: `${actor} updated their RSVP${ctx}. Open ChravelApp for details.`,
+      };
     default:
-      return { title: `Update in ${trip}`, body: `You have an update${ctx}. Open Chravel for details.` };
+      return {
+        title: `Update in ${trip}`,
+        body: `You have an update${ctx}. Open ChravelApp for details.`,
+      };
   }
 }
 
@@ -186,8 +254,12 @@ function buildEmail(input: NotificationContentInput): EmailContent {
   const cta = tripId ? `${APP_URL}/trip/${tripId}` : APP_URL;
 
   const timestamp = new Date().toLocaleDateString('en-US', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-    hour: 'numeric', minute: '2-digit',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   });
 
   const bodyHtml = `<!DOCTYPE html>
@@ -196,15 +268,15 @@ function buildEmail(input: NotificationContentInput): EmailContent {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#111;">
 <tr><td align="center" style="padding:24px 16px;">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#1a1a1a;border-radius:12px;border:1px solid #333;">
-<tr><td style="padding:24px 32px;border-bottom:1px solid #333;"><span style="font-size:20px;font-weight:700;color:#f59e0b;">Chravel</span><span style="float:right;font-size:12px;color:#888;">${escapeHtml(timestamp)}</span></td></tr>
+<tr><td style="padding:24px 32px;border-bottom:1px solid #333;"><span style="font-size:20px;font-weight:700;color:#f59e0b;">ChravelApp</span><span style="float:right;font-size:12px;color:#888;">${escapeHtml(timestamp)}</span></td></tr>
 <tr><td style="padding:32px;">
 <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#fff;">${escapeHtml(push.title)}</h1>
 <p style="margin:0 0 24px;font-size:16px;color:#ccc;line-height:1.6;">${escapeHtml(push.body)}</p>
 <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background-color:#f59e0b;border-radius:8px;">
-<a href="${escapeHtml(cta)}" target="_blank" style="display:inline-block;padding:14px 28px;color:#000;font-size:16px;font-weight:600;text-decoration:none;">Open in Chravel</a>
+<a href="${escapeHtml(cta)}" target="_blank" style="display:inline-block;padding:14px 28px;color:#000;font-size:16px;font-weight:600;text-decoration:none;">Open in ChravelApp</a>
 </td></tr></table></td></tr>
 <tr><td style="padding:20px 32px;border-top:1px solid #333;">
-<p style="margin:0;font-size:12px;color:#666;line-height:1.5;">You received this because you have notifications enabled on Chravel.<br/><a href="${escapeHtml(SETTINGS_URL)}" style="color:#f59e0b;text-decoration:underline;">Manage notification settings</a></p>
+<p style="margin:0;font-size:12px;color:#666;line-height:1.5;">You received this because you have notifications enabled on ChravelApp.<br/><a href="${escapeHtml(SETTINGS_URL)}" style="color:#f59e0b;text-decoration:underline;">Manage notification settings</a></p>
 </td></tr></table></td></tr></table></body></html>`;
 
   return {
@@ -212,10 +284,10 @@ function buildEmail(input: NotificationContentInput): EmailContent {
     previewText: push.body,
     heading: push.title,
     bodyHtml,
-    bodyText: `${push.title}\n\n${push.body}\n\nOpen in Chravel: ${cta}\n\n---\nYou received this because you have notifications enabled. Manage settings: ${SETTINGS_URL}`,
-    ctaLabel: 'Open in Chravel',
+    bodyText: `${push.title}\n\n${push.body}\n\nOpen in ChravelApp: ${cta}\n\n---\nYou received this because you have notifications enabled. Manage settings: ${SETTINGS_URL}`,
+    ctaLabel: 'Open in ChravelApp',
     ctaUrl: cta,
-    footerText: 'You received this because you have notifications enabled on Chravel.',
+    footerText: 'You received this because you have notifications enabled on ChravelApp.',
   };
 }
 
@@ -234,10 +306,14 @@ function buildSms(input: NotificationContentInput): SmsContent {
 
 export function buildNotificationContent(input: NotificationContentInput): NotificationContent {
   switch (input.channel) {
-    case 'push': return buildPush(input);
-    case 'email': return buildEmail(input);
-    case 'sms': return buildSms(input);
-    default: return buildPush(input);
+    case 'push':
+      return buildPush(input);
+    case 'email':
+      return buildEmail(input);
+    case 'sms':
+      return buildSms(input);
+    default:
+      return buildPush(input);
   }
 }
 

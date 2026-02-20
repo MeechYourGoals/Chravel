@@ -163,9 +163,7 @@ function buildTripContextFromRow(
   tripById: Map<string, TripRow>,
   metadata: Record<string, unknown>,
 ): TripContext {
-  const tripName = notification.trip_id
-    ? tripById.get(notification.trip_id)?.name
-    : undefined;
+  const tripName = notification.trip_id ? tripById.get(notification.trip_id)?.name : undefined;
 
   const location =
     typeof metadata.location === 'string'
@@ -333,7 +331,7 @@ async function sendEmail(
     personalizations: [{ to: [{ email: to }], subject }],
     from: {
       email: sendGridFromEmail,
-      name: 'Chravel Support',
+      name: 'ChravelApp',
     },
     content: [
       { type: 'text/html', value: content },

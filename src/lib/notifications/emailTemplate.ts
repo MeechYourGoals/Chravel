@@ -1,11 +1,11 @@
 /**
- * HTML email template for Chravel notifications.
+ * HTML email template for ChravelApp notifications.
  *
  * Requirements:
- * - From: Chravel Support <support@chravelapp.com>
+ * - From: ChravelApp <support@chravelapp.com>
  * - Clear subject lines
  * - Simple branded HTML + plaintext fallback
- * - Strong CTA button/link: "Open in Chravel"
+ * - Strong CTA button/link: "Open in ChravelApp"
  * - Trip/event context and notification type
  * - Timestamp
  * - Footer with why-received and settings link
@@ -44,7 +44,7 @@ export function buildEmailHtml(content: EmailContent): string {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <span style="font-size:20px;font-weight:700;color:#f59e0b;">Chravel</span>
+                    <span style="font-size:20px;font-weight:700;color:#f59e0b;">ChravelApp</span>
                   </td>
                   <td align="right">
                     <span style="font-size:12px;color:#888;">${escapeHtml(timestamp)}</span>
