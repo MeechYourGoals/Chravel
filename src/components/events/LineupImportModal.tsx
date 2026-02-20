@@ -5,7 +5,7 @@
  * Supports ICS, CSV, Excel, PDF, Image, URL.
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,7 @@ import {
   LineupParseResult,
 } from '@/utils/lineupImportParsers';
 import { toast } from 'sonner';
+import { useSmartImportDropzone } from '@/hooks/useSmartImportDropzone';
 
 export type LineupImportMode = 'merge' | 'replace';
 
@@ -55,9 +56,6 @@ interface LineupImportModalProps {
 }
 
 type ImportState = 'idle' | 'parsing' | 'preview';
-
-const ACCEPTED_FILE_TYPES =
-  '.ics,.csv,.xlsx,.xls,.pdf,image/jpeg,image/png,image/webp,text/calendar,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
 
 const FORMAT_BADGES = [
   { label: 'ICS', icon: Calendar },
@@ -83,7 +81,21 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
   const [pasteText, setPasteText] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const processFile = useCallback(
+    async (file: File) => {
+      setParsingSource('file');
+      setState('parsing');
+      const result = await parseLineupFile(file);
+      processParseResult(result);
+    },
+    [processParseResult],
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useSmartImportDropzone({
+    onFileSelected: processFile,
+    disabled: state === 'parsing' || isImporting,
+  });
 
   const resetState = useCallback(() => {
     setState('idle');
@@ -95,7 +107,6 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
     setPasteText('');
     setUrlInput('');
     setParsingSource('file');
-    if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
 
   const handleClose = useCallback(() => {
@@ -115,18 +126,6 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
     setParsedNames(result.names);
     setState('preview');
   }, []);
-
-  const handleFileSelect = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      setParsingSource('file');
-      setState('parsing');
-      const result = await parseLineupFile(file);
-      processParseResult(result);
-    },
-    [processParseResult],
-  );
 
   const handlePasteSubmit = useCallback(async () => {
     if (!pasteText.trim()) return;
@@ -158,26 +157,6 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
     }
     processParseResult(result);
   }, [urlInput, processParseResult]);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const file = e.dataTransfer.files?.[0];
-      if (file && fileInputRef.current) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        fileInputRef.current.files = dt.files;
-        handleFileSelect({ target: fileInputRef.current } as React.ChangeEvent<HTMLInputElement>);
-      }
-    },
-    [handleFileSelect],
-  );
 
   const handleRemoveName = useCallback((name: string) => {
     setParsedNames(prev => prev.filter(current => current !== name));
@@ -214,17 +193,20 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
           {state === 'idle' && (
             <div className="space-y-4">
               <div
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
+                {...getRootProps()}
                 className={cn(
-                  'border-2 border-dashed rounded-xl p-8 text-center transition-colors',
+                  'border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer',
                   'hover:border-primary/50 hover:bg-primary/5',
                   'border-border bg-muted/30',
+                  isDragActive && 'border-primary ring-2 ring-primary/30 bg-primary/10',
                 )}
               >
+                <input {...getInputProps()} />
                 <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground mb-2">
-                  Drag and drop a file here, or click to browse
+                  {isDragActive
+                    ? 'Drop your file here...'
+                    : 'Drag and drop a file here, or click to browse'}
                 </p>
                 <div className="flex flex-wrap justify-center gap-1.5 mb-4">
                   {FORMAT_BADGES.map(({ label, icon: Icon }) => (
@@ -237,22 +219,16 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
                     </span>
                   ))}
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="min-h-[44px]"
-                >
+                <Button variant="outline" className="min-h-[44px]" type="button">
                   Choose File
                 </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={ACCEPTED_FILE_TYPES}
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
 
-                <div className="mt-4 pt-4 border-t border-border/50 w-full">
+                {/* URL import - stop propagation so clicking doesn't open file picker */}
+                <div
+                  className="mt-4 pt-4 border-t border-border/50 w-full"
+                  onClick={e => e.stopPropagation()}
+                  onKeyDown={e => e.stopPropagation()}
+                >
                   <p className="text-xs text-muted-foreground mb-2 flex items-center justify-center gap-1.5">
                     <Link className="w-3.5 h-3.5" />
                     or import from a URL
