@@ -165,7 +165,7 @@ export const ProTabContent = ({
       case 'places':
         return (
           <FeatureErrorBoundary featureName="Places & Map">
-            <PlacesSection />
+            <PlacesSection tripId={tripId} />
           </FeatureErrorBoundary>
         );
       case 'team':
@@ -197,9 +197,7 @@ export const ProTabContent = ({
               <div className="text-center py-12">
                 <DollarSign size={48} className="text-red-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Per-diem & Settlement</h3>
-                <p className="text-gray-500 text-sm">
-                  Per-diem automation and settlement tracking
-                </p>
+                <p className="text-gray-500 text-sm">Per-diem automation and settlement tracking</p>
               </div>
             </div>
           </div>
@@ -237,9 +235,7 @@ export const ProTabContent = ({
               <div className="text-center py-12">
                 <FileCheck size={48} className="text-red-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-400 mb-2">Regulatory Compliance</h3>
-                <p className="text-gray-500 text-sm">
-                  Visa, union, and safety compliance tracking
-                </p>
+                <p className="text-gray-500 text-sm">Visa, union, and safety compliance tracking</p>
               </div>
             </div>
           </div>
