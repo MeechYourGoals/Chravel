@@ -127,7 +127,31 @@ export interface ComprehensiveTripContext {
   userPreferences?: UserPreferences;
 }
 
+const CONTEXT_CACHE_TTL_MS = 30_000; // 30 seconds — balances speed vs freshness
+const contextCache = new Map<string, { ctx: ComprehensiveTripContext; expiresAt: number }>();
+
 export class TripContextBuilder {
+  /**
+   * Build or return cached trip context. Cache TTL 30s to speed up rapid successive messages.
+   */
+  static async buildContextWithCache(
+    tripId: string,
+    userId?: string,
+    authHeader?: string | null,
+    isPaidUser = false,
+    clientPreferences?: Parameters<typeof TripContextBuilder.buildContext>[4],
+  ): Promise<ComprehensiveTripContext> {
+    const key = `${tripId}:${userId ?? 'anon'}`;
+    const now = Date.now();
+    const cached = contextCache.get(key);
+    if (cached && cached.expiresAt > now) {
+      return cached.ctx;
+    }
+    const ctx = await this.buildContext(tripId, userId, authHeader, isPaidUser, clientPreferences);
+    contextCache.set(key, { ctx, expiresAt: now + CONTEXT_CACHE_TTL_MS });
+    return ctx;
+  }
+
   /**
    * Build full trip context for the AI concierge.
    *
@@ -142,17 +166,30 @@ export class TripContextBuilder {
    *
    * @param isPaidUser  When true, user preferences are fetched and included.
    *                    Pass false (default) for free-tier users.
+   * @param clientPreferences  When provided and has content, skips DB fetch for
+   *                           preferences (saves ~20-50ms). Client loads once and
+   *                           passes on every request.
    */
   static async buildContext(
     tripId: string,
     userId?: string,
     authHeader?: string | null,
     isPaidUser = false,
+    clientPreferences?: {
+      dietary?: string[];
+      vibe?: string[];
+      accessibility?: string[];
+      business?: string[];
+      entertainment?: string[];
+      lifestyle?: string[];
+      budgetMin?: number;
+      budgetMax?: number;
+      budgetUnit?: string;
+      timePreference?: string;
+    },
   ): Promise<ComprehensiveTripContext> {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      ...(authHeader
-        ? { global: { headers: { Authorization: authHeader } } }
-        : {}),
+      ...(authHeader ? { global: { headers: { Authorization: authHeader } } } : {}),
     });
 
     try {
@@ -184,10 +221,9 @@ export class TripContextBuilder {
         this.fetchRawFiles(supabase, tripId),
         this.fetchRawLinks(supabase, tripId),
         this.fetchRawTeamsAndChannels(supabase, tripId),
-        // Preferences only fetched for paid users — free tier gets undefined
-        isPaidUser && userId
-          ? this.fetchUserPreferences(supabase, userId)
-          : Promise.resolve(undefined),
+        // Preferences: use client-provided when available (saves DB round-trip),
+        // else fetch for paid users
+        this.resolveUserPreferences(supabase, userId, isPaidUser, clientPreferences),
       ]);
 
       // ── Phase 2: Collect ALL user IDs needing display names ───────────────
@@ -213,7 +249,7 @@ export class TripContextBuilder {
       const tasks = rawTasks.map((t: any) => ({
         id: t.id,
         content: t.content,
-        assignee: t.assignee_id ? (names.get(t.assignee_id) || 'Team Member') : undefined,
+        assignee: t.assignee_id ? names.get(t.assignee_id) || 'Team Member' : undefined,
         dueDate: t.due_date,
         isComplete: t.is_complete,
       }));
@@ -222,7 +258,7 @@ export class TripContextBuilder {
         id: p.id,
         description: p.description,
         amount: p.amount,
-        paidBy: p.created_by ? (names.get(p.created_by) || 'Trip Member') : 'Unknown',
+        paidBy: p.created_by ? names.get(p.created_by) || 'Trip Member' : 'Unknown',
         participants: p.split_participants as string[],
         isSettled: p.is_settled,
       }));
@@ -240,7 +276,7 @@ export class TripContextBuilder {
         name: f.file_name,
         type: f.file_type,
         url: f.file_url,
-        uploadedBy: f.uploaded_by ? (names.get(f.uploaded_by) || 'Trip Member') : 'Unknown',
+        uploadedBy: f.uploaded_by ? names.get(f.uploaded_by) || 'Trip Member' : 'Unknown',
         uploadedAt: f.created_at,
       }));
 
@@ -249,7 +285,7 @@ export class TripContextBuilder {
         url: l.url,
         title: l.title,
         category: l.category,
-        addedBy: l.added_by ? (names.get(l.added_by) || 'Trip Member') : 'Unknown',
+        addedBy: l.added_by ? names.get(l.added_by) || 'Trip Member' : 'Unknown',
       }));
 
       const teamsAndChannels = {
@@ -286,6 +322,63 @@ export class TripContextBuilder {
       console.error('Error building trip context:', error);
       throw new Error('Failed to build comprehensive trip context');
     }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Resolve user preferences: client-provided (fast) or DB fetch
+  // ────────────────────────────────────────────────────────────────────────────
+
+  private static async resolveUserPreferences(
+    supabase: any,
+    userId: string | undefined,
+    isPaidUser: boolean,
+    clientPreferences?: {
+      dietary?: string[];
+      vibe?: string[];
+      accessibility?: string[];
+      business?: string[];
+      entertainment?: string[];
+      lifestyle?: string[];
+      budgetMin?: number;
+      budgetMax?: number;
+      budgetUnit?: string;
+      timePreference?: string;
+    },
+  ): Promise<UserPreferences | undefined> {
+    const hasClientPrefs =
+      (clientPreferences?.dietary?.length ?? 0) > 0 ||
+      (clientPreferences?.vibe?.length ?? 0) > 0 ||
+      (clientPreferences?.accessibility?.length ?? 0) > 0 ||
+      (clientPreferences?.business?.length ?? 0) > 0 ||
+      (clientPreferences?.entertainment?.length ?? 0) > 0 ||
+      (clientPreferences?.lifestyle?.length ?? 0) > 0 ||
+      clientPreferences?.budgetMin !== undefined ||
+      clientPreferences?.budgetMax !== undefined;
+
+    if (hasClientPrefs && clientPreferences) {
+      const unit = clientPreferences.budgetUnit || 'experience';
+      const budget =
+        clientPreferences.budgetMin !== undefined && clientPreferences.budgetMax !== undefined
+          ? `$${clientPreferences.budgetMin}-$${clientPreferences.budgetMax} ${unit === 'day' ? 'per day' : unit === 'person' ? 'per person' : unit === 'trip' ? 'per trip' : 'per experience'}`
+          : undefined;
+
+      return {
+        dietary: clientPreferences.dietary || [],
+        vibe: clientPreferences.vibe || [],
+        budget,
+        accessibility: clientPreferences.accessibility || [],
+        timePreference: clientPreferences.timePreference || 'flexible',
+        travelStyle: clientPreferences.lifestyle?.join(', '),
+        business: clientPreferences.business || [],
+        entertainment: clientPreferences.entertainment || [],
+      };
+    }
+
+    if (isPaidUser && userId) {
+      return this.fetchUserPreferences(supabase, userId);
+    }
+
+    return undefined;
   }
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -366,6 +459,7 @@ export class TripContextBuilder {
   }
 
   // Messages use the stored author_name column — no profile lookup needed
+  // Tighter limits (30/50) for faster fetches and smaller prompts
   private static async fetchMessages(supabase: any, tripId: string) {
     try {
       const threeDaysAgo = new Date();
@@ -373,26 +467,30 @@ export class TripContextBuilder {
 
       const { data, error } = await supabase
         .from('trip_chat_messages')
-        .select('id, content, author_name, created_at, message_type, privacy_mode, privacy_encrypted')
+        .select(
+          'id, content, author_name, created_at, message_type, privacy_mode, privacy_encrypted',
+        )
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(30);
 
       if (error) throw error;
 
       let messages = data || [];
 
-      // Extend to 72-hour window if all 50 fit within it
-      if (messages.length === 50) {
+      // Extend to 72-hour window if all 30 fit within it
+      if (messages.length === 30) {
         const oldestTimestamp = new Date(messages[messages.length - 1]?.created_at);
         if (oldestTimestamp > threeDaysAgo) {
           const { data: timeData } = await supabase
             .from('trip_chat_messages')
-            .select('id, content, author_name, created_at, message_type, privacy_mode, privacy_encrypted')
+            .select(
+              'id, content, author_name, created_at, message_type, privacy_mode, privacy_encrypted',
+            )
             .eq('trip_id', tripId)
             .gte('created_at', threeDaysAgo.toISOString())
             .order('created_at', { ascending: false })
-            .limit(100);
+            .limit(50);
 
           if (timeData && timeData.length > messages.length) {
             messages = timeData;
@@ -411,7 +509,9 @@ export class TripContextBuilder {
           content: m.content,
           authorName: m.author_name,
           timestamp: m.created_at,
-          type: (m.message_type === 'broadcast' ? 'broadcast' : 'message') as 'message' | 'broadcast',
+          type: (m.message_type === 'broadcast' ? 'broadcast' : 'message') as
+            | 'message'
+            | 'broadcast',
         }))
         .reverse();
     } catch (error) {
@@ -659,7 +759,7 @@ export class TripContextBuilder {
       return {
         dietary: prefs.dietary || [],
         vibe: prefs.vibe || [],
-      budget:
+        budget:
           prefs.budgetMin !== undefined && prefs.budgetMax !== undefined
             ? `$${prefs.budgetMin}-$${prefs.budgetMax} ${prefs.budgetUnit === 'day' ? 'per day' : prefs.budgetUnit === 'person' ? 'per person' : prefs.budgetUnit === 'trip' ? 'per trip' : 'per experience'}`
             : undefined,

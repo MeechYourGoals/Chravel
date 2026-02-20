@@ -6,6 +6,7 @@ import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
+import { useAIConciergePreferences } from '../hooks/useAIConciergePreferences';
 import {
   invokeConcierge,
   invokeConciergeStream,
@@ -149,6 +150,8 @@ export const AIConciergeChat = ({
   const { basecamp: globalBasecamp } = useBasecamp();
   const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
+  const loadedPreferences = useAIConciergePreferences();
+  const effectivePreferences = preferences ?? loadedPreferences;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -384,7 +387,7 @@ export const AIConciergeChat = ({
       const requestBody = {
         message: currentInput,
         tripId,
-        preferences,
+        preferences: effectivePreferences,
         chatHistory,
         attachments,
         isDemoMode,
@@ -807,8 +810,16 @@ export const AIConciergeChat = ({
             disabled={isQueryLimitReached}
             showImageAttach={UPLOAD_ENABLED}
             attachedImages={UPLOAD_ENABLED ? attachedImages : []}
-            onImageAttach={UPLOAD_ENABLED ? files => setAttachedImages(prev => [...prev, ...files].slice(0, 4)) : undefined}
-            onRemoveImage={UPLOAD_ENABLED ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx)) : undefined}
+            onImageAttach={
+              UPLOAD_ENABLED
+                ? files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))
+                : undefined
+            }
+            onRemoveImage={
+              UPLOAD_ENABLED
+                ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
+                : undefined
+            }
             voiceState={VOICE_ENABLED ? effectiveVoiceState : 'idle'}
             isVoiceEligible={false}
             onVoiceToggle={VOICE_ENABLED ? handleVoiceToggle : undefined}
