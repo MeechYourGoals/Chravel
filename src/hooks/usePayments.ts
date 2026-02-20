@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '../services/paymentService';
 import { PaymentMethod, PaymentMessage } from '../types/payments';
 import { useAuth } from './useAuth';
@@ -8,7 +8,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { demoModeService } from '../services/demoModeService';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { isDemoTrip as checkDemoTrip } from '@/utils/demoUtils';
-import { optimisticallyAddPayment, buildPaymentMessage } from '@/lib/paymentCacheUtils';
+import {
+  optimisticallyAddPayment,
+  optimisticallyRemovePayment,
+  optimisticallyUpdatePayment,
+  replaceOptimisticPaymentId,
+  buildPaymentMessage,
+} from '@/lib/paymentCacheUtils';
 
 export const usePayments = (tripId?: string) => {
   const queryClient = useQueryClient();
@@ -110,6 +116,80 @@ export const usePayments = (tripId?: string) => {
     }
   }, [tripId, queryClient]);
 
+  const makeOptimisticPaymentId = useCallback((): string => {
+    try {
+      return `optimistic-payment-${crypto.randomUUID()}`;
+    } catch {
+      return `optimistic-payment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+  }, []);
+
+  const createPaymentMutation = useMutation({
+    mutationFn: async (paymentData: {
+      amount: number;
+      currency: string;
+      description: string;
+      splitCount: number;
+      splitParticipants: string[];
+      paymentMethods: string[];
+    }): Promise<{ paymentId: string }> => {
+      if (!tripId) {
+        throw new Error('Trip ID is missing.');
+      }
+
+      if (demoActive) {
+        const paymentId = demoModeService.addSessionPayment(tripId, paymentData);
+        return { paymentId };
+      }
+
+      if (!userId) {
+        throw new Error('User ID is missing. Please sign in.');
+      }
+
+      const result = await paymentService.createPaymentMessage(tripId, userId, paymentData);
+      if (!result.success || !result.paymentId) {
+        throw new Error(result.error?.message || 'Failed to create payment.');
+      }
+
+      return { paymentId: result.paymentId };
+    },
+    onMutate: async paymentData => {
+      if (!tripId) return undefined;
+
+      await queryClient.cancelQueries({ queryKey: tripKeys.payments(tripId) });
+
+      const previousPayments = queryClient.getQueryData(tripKeys.payments(tripId));
+      const optimisticId = makeOptimisticPaymentId();
+      const optimisticUserId = userId || 'demo-user';
+      const optimisticPayment = buildPaymentMessage(
+        optimisticId,
+        tripId,
+        optimisticUserId,
+        paymentData,
+      );
+
+      optimisticallyAddPayment(queryClient, tripId, optimisticPayment);
+
+      return { previousPayments, optimisticId };
+    },
+    onError: (_err, _vars, context) => {
+      if (!tripId || !context) return;
+      queryClient.setQueryData(tripKeys.payments(tripId), context.previousPayments);
+    },
+    onSuccess: (data, _vars, context) => {
+      if (!tripId || !context) return;
+      replaceOptimisticPaymentId(queryClient, tripId, context.optimisticId, data.paymentId);
+    },
+    onSettled: () => {
+      if (!tripId) return;
+      // Always reconcile server truth in the background (balances, settle state, etc.)
+      queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) });
+      }
+    },
+  });
+
   const addPaymentMethod = async (method: Omit<PaymentMethod, 'id'>) => {
     if (!userId) return false;
 
@@ -151,50 +231,97 @@ export const usePayments = (tripId?: string) => {
     paymentId?: string;
     error?: { code: string; message: string };
   }> => {
-    if (!tripId) {
+    try {
+      const { paymentId } = await createPaymentMutation.mutateAsync(paymentData);
+      return { success: true, paymentId };
+    } catch (error) {
       return {
         success: false,
         error: {
-          code: 'VALIDATION_FAILED',
-          message: 'Trip ID is missing.',
+          code: 'UNKNOWN',
+          message: error instanceof Error ? error.message : 'Failed to create payment.',
         },
       };
     }
-
-    // Demo mode: use session storage
-    if (demoActive) {
-      const paymentId = demoModeService.addSessionPayment(tripId, paymentData);
-      if (paymentId) {
-        await refreshPayments();
-        return { success: true, paymentId };
-      }
-      return {
-        success: false,
-        error: { code: 'DEMO_ERROR', message: 'Failed to create demo payment.' },
-      };
-    }
-
-    // Authenticated mode: use database
-    if (!userId) {
-      return {
-        success: false,
-        error: {
-          code: 'VALIDATION_FAILED',
-          message: 'User ID is missing. Please sign in.',
-        },
-      };
-    }
-
-    const result = await paymentService.createPaymentMessage(tripId, userId, paymentData);
-    if (result.success && result.paymentId && userId) {
-      // Optimistic update: show payment immediately without waiting for refetch
-      const newPayment = buildPaymentMessage(result.paymentId, tripId, userId, paymentData);
-      optimisticallyAddPayment(queryClient, tripId, newPayment);
-      // Refetch to ensure server truth (balance, etc.) — runs in background
-      await refreshPayments();
-    }
-    return result;
   };
+
+  const updatePaymentMessage = useCallback(
+    async (
+      paymentId: string,
+      updates: { amount?: number; description?: string },
+    ): Promise<boolean> => {
+      if (!tripId) return false;
+
+      const previousPayments = queryClient.getQueryData(tripKeys.payments(tripId));
+
+      // Optimistically update cache for instant UI response
+      optimisticallyUpdatePayment(queryClient, tripId, paymentId, {
+        ...(updates.amount !== undefined ? { amount: updates.amount } : {}),
+        ...(updates.description !== undefined ? { description: updates.description } : {}),
+      });
+
+      try {
+        if (demoActive) {
+          const ok = demoModeService.updateSessionPayment(tripId, paymentId, updates);
+          if (!ok) {
+            queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+          }
+          return ok;
+        }
+
+        const ok = await paymentService.updatePaymentMessage(paymentId, updates);
+        if (!ok) {
+          queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+          return false;
+        }
+
+        queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+        if (userId) {
+          queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) });
+        }
+        return true;
+      } catch (e) {
+        queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+        return false;
+      }
+    },
+    [tripId, queryClient, demoActive, userId],
+  );
+
+  const deletePaymentMessage = useCallback(
+    async (paymentId: string): Promise<boolean> => {
+      if (!tripId) return false;
+
+      const previousPayments = queryClient.getQueryData(tripKeys.payments(tripId));
+      optimisticallyRemovePayment(queryClient, tripId, paymentId);
+
+      try {
+        if (demoActive) {
+          const ok = demoModeService.deleteSessionPayment(tripId, paymentId);
+          if (!ok) {
+            queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+          }
+          return ok;
+        }
+
+        const ok = await paymentService.deletePaymentMessage(paymentId);
+        if (!ok) {
+          queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+          return false;
+        }
+
+        queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+        if (userId) {
+          queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) });
+        }
+        return true;
+      } catch (e) {
+        queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
+        return false;
+      }
+    },
+    [tripId, queryClient, demoActive, userId],
+  );
 
   const settlePayment = async (splitId: string, settlementMethod: string) => {
     const success = await paymentService.settlePayment(splitId, settlementMethod);
@@ -239,6 +366,8 @@ export const usePayments = (tripId?: string) => {
     updatePaymentMethod,
     deletePaymentMethod,
     createPaymentMessage,
+    updatePaymentMessage,
+    deletePaymentMessage,
     settlePayment,
     unsettlePayment,
     getTripPaymentSummary,

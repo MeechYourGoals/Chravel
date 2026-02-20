@@ -1,4 +1,3 @@
-
 import { secureStorageService } from './secureStorageService';
 import { mockPolls } from '@/mockData/polls';
 import TripSpecificMockDataService from './tripSpecificMockDataService';
@@ -160,7 +159,11 @@ class DemoModeService {
     await secureStorageService.setDemoMode(false, userId);
   }
 
-  getMockMessages(tripType: string, excludePayments: boolean = false, currentUserId?: string): MockMessage[] {
+  getMockMessages(
+    tripType: string,
+    excludePayments: boolean = false,
+    currentUserId?: string,
+  ): MockMessage[] {
     // Enhanced mock messages with diverse, realistic names and proper message types
     const baseMessages: MockMessage[] = [
       // Regular conversation messages
@@ -170,7 +173,7 @@ class DemoModeService {
         sender_name: 'Sarah Chen',
         message_content: 'Super excited for this trip! Has everyone seen the weather forecast?',
         timestamp_offset_days: 2,
-        tags: ['conversation']
+        tags: ['conversation'],
       },
       {
         id: 'msg_2',
@@ -178,7 +181,7 @@ class DemoModeService {
         sender_name: 'Marcus Johnson',
         message_content: 'Just booked my flight! Landing at 3:30 PM on Friday 🛬',
         timestamp_offset_days: 2,
-        tags: ['travel', 'logistics']
+        tags: ['travel', 'logistics'],
       },
       {
         id: 'msg_3',
@@ -186,9 +189,9 @@ class DemoModeService {
         sender_name: 'Priya Patel',
         message_content: 'Found an amazing restaurant for dinner - sending the link now!',
         timestamp_offset_days: 1,
-        tags: ['restaurants', 'planning']
+        tags: ['restaurants', 'planning'],
       },
-      
+
       // Broadcast messages
       {
         id: 'msg_4',
@@ -196,7 +199,7 @@ class DemoModeService {
         sender_name: 'Emma Rodriguez',
         message_content: 'Meeting at hotel lobby at 9 AM sharp tomorrow for our group activity!',
         timestamp_offset_days: 1,
-        tags: ['broadcast', 'logistics', 'coordination']
+        tags: ['broadcast', 'logistics', 'coordination'],
       },
       {
         id: 'msg_5',
@@ -204,19 +207,20 @@ class DemoModeService {
         sender_name: 'Alex Kim',
         message_content: 'Weather alert: Rain expected this afternoon. Bring umbrellas or jackets!',
         timestamp_offset_days: 1,
-        tags: ['broadcast', 'urgent', 'weather']
+        tags: ['broadcast', 'urgent', 'weather'],
       },
-      
+
       // Emergency broadcast
       {
         id: 'msg_6',
         trip_type: tripType,
         sender_name: 'David Thompson',
-        message_content: 'URGENT: Flight departure gate changed to B12. All passengers report immediately!',
+        message_content:
+          'URGENT: Flight departure gate changed to B12. All passengers report immediately!',
         timestamp_offset_days: 0,
-        tags: ['broadcast', 'emergency', 'urgent', 'travel']
+        tags: ['broadcast', 'emergency', 'urgent', 'travel'],
       },
-      
+
       // More regular messages
       {
         id: 'msg_7',
@@ -224,7 +228,7 @@ class DemoModeService {
         sender_name: 'Maya Williams',
         message_content: 'The sunset views from our hotel room are incredible! 📸',
         timestamp_offset_days: 0,
-        tags: ['conversation', 'photos']
+        tags: ['conversation', 'photos'],
       },
       {
         id: 'msg_8',
@@ -232,53 +236,57 @@ class DemoModeService {
         sender_name: 'Jordan Lee',
         message_content: 'Does anyone want to split an Uber to the downtown area?',
         timestamp_offset_days: 0,
-        tags: ['conversation', 'transportation']
+        tags: ['conversation', 'transportation'],
       },
-      
+
       // Additional broadcast
       {
         id: 'msg_9',
         trip_type: tripType,
         sender_name: 'Sofia Garcia',
-        message_content: 'Reminder: Group dinner reservation is at 7:30 PM at Bella Vista. Please confirm attendance!',
+        message_content:
+          'Reminder: Group dinner reservation is at 7:30 PM at Bella Vista. Please confirm attendance!',
         timestamp_offset_days: 0,
-        tags: ['broadcast', 'logistics', 'dinner']
+        tags: ['broadcast', 'logistics', 'dinner'],
       },
-      
+
       {
         id: 'msg_10',
         trip_type: tripType,
         sender_name: 'Chris Anderson',
         message_content: 'Just checked in! Room 502 if anyone needs anything 👍',
         timestamp_offset_days: 0,
-        tags: ['conversation', 'checkin']
+        tags: ['conversation', 'checkin'],
       },
-      
+
       // Payment Messages
       {
         id: 'payment_1',
         trip_type: tripType,
         sender_name: 'Sarah Chen',
-        message_content: 'Dinner at Sakura Restaurant - USD 240.00 (split 4 ways) • Pay me $60.00 via Venmo: @sarahc94',
+        message_content:
+          'Dinner at Sakura Restaurant - USD 240.00 (split 4 ways) • Pay me $60.00 via Venmo: @sarahc94',
         timestamp_offset_days: 1,
-        tags: ['payment', 'expense']
+        tags: ['payment', 'expense'],
       },
       {
         id: 'payment_2',
         trip_type: tripType,
         sender_name: 'Marcus Johnson',
-        message_content: 'Taxi to airport - USD 65.00 (split 6 ways) • Pay me $10.83 via Zelle: (555) 123-4567',
+        message_content:
+          'Taxi to airport - USD 65.00 (split 6 ways) • Pay me $10.83 via Zelle: (555) 123-4567',
         timestamp_offset_days: 0,
-        tags: ['payment', 'transportation']
+        tags: ['payment', 'transportation'],
       },
       {
         id: 'payment_3',
         trip_type: tripType,
         sender_name: 'Alex Kim',
-        message_content: 'Concert tickets - USD 180.00 (split 3 ways) • Pay me $60.00 via PayPal: @alex.kim.music',
+        message_content:
+          'Concert tickets - USD 180.00 (split 3 ways) • Pay me $60.00 via PayPal: @alex.kim.music',
         timestamp_offset_days: 0,
-        tags: ['payment', 'entertainment']
-      }
+        tags: ['payment', 'entertainment'],
+      },
     ];
 
     // Add messages from "You" (current user) if currentUserId is provided
@@ -289,9 +297,9 @@ class DemoModeService {
           trip_type: tripType,
           sender_name: 'You',
           sender_id: currentUserId,
-          message_content: 'This looks amazing! Can\'t wait to get there 🎉',
+          message_content: "This looks amazing! Can't wait to get there 🎉",
           timestamp_offset_days: 1,
-          tags: ['conversation']
+          tags: ['conversation'],
         },
         {
           id: currentUserId + '-msg-2',
@@ -300,26 +308,26 @@ class DemoModeService {
           sender_id: currentUserId,
           message_content: 'Count me in for dinner tonight!',
           timestamp_offset_days: 0,
-          tags: ['conversation']
-        }
+          tags: ['conversation'],
+        },
       );
     }
 
     // Add trip-specific messages based on type
     const tripSpecificMessages = this.getTripSpecificMessages(tripType, currentUserId);
-    
+
     // Add system messages for consumer trips (demo timeline events)
     const systemMessages = this.getDemoSystemMessages();
-    
+
     let allMessages = [...baseMessages, ...tripSpecificMessages, ...systemMessages];
-    
+
     // Filter out payment messages if excludePayments is true (for events)
     if (excludePayments) {
       allMessages = allMessages.filter(msg => !msg.tags?.includes('payment'));
     }
-    
-    return allMessages.sort((a, b) => 
-      (b.timestamp_offset_days || 0) - (a.timestamp_offset_days || 0)
+
+    return allMessages.sort(
+      (a, b) => (b.timestamp_offset_days || 0) - (a.timestamp_offset_days || 0),
     );
   }
 
@@ -337,7 +345,7 @@ class DemoModeService {
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'member_joined',
-        payload: { memberName: 'Marcus Johnson' }
+        payload: { memberName: 'Marcus Johnson' },
       },
       {
         id: 'sys_2',
@@ -347,7 +355,7 @@ class DemoModeService {
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'member_joined',
-        payload: { memberName: 'Sarah Chen' }
+        payload: { memberName: 'Sarah Chen' },
       },
       {
         id: 'sys_3',
@@ -357,7 +365,7 @@ class DemoModeService {
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'trip_base_camp_updated',
-        payload: { newAddress: 'Hyatt Ziva Cancun, Zona Hotelera' }
+        payload: { newAddress: 'Hyatt Ziva Cancun, Zona Hotelera' },
       },
       {
         id: 'sys_4',
@@ -367,7 +375,10 @@ class DemoModeService {
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'poll_created',
-        payload: { pollQuestion: 'What time should we meet for dinner?', actorName: 'Emma Rodriguez' }
+        payload: {
+          pollQuestion: 'What time should we meet for dinner?',
+          actorName: 'Emma Rodriguez',
+        },
       },
       {
         id: 'sys_5',
@@ -377,7 +388,7 @@ class DemoModeService {
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'task_created',
-        payload: { taskTitle: 'Book airport transfers', actorName: 'Alex Kim' }
+        payload: { taskTitle: 'Book airport transfers', actorName: 'Alex Kim' },
       },
       {
         id: 'sys_6',
@@ -387,7 +398,7 @@ class DemoModeService {
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'photos_uploaded',
-        payload: { mediaCount: 4, actorName: 'Priya Patel' }
+        payload: { mediaCount: 4, actorName: 'Priya Patel' },
       },
       {
         id: 'sys_7',
@@ -397,7 +408,7 @@ class DemoModeService {
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'poll_closed',
-        payload: { winningOption: '7:30 PM' }
+        payload: { winningOption: '7:30 PM' },
       },
       {
         id: 'sys_8',
@@ -407,7 +418,12 @@ class DemoModeService {
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'payment_recorded',
-        payload: { amount: 240, currency: 'USD', description: 'Dinner at Sakura', actorName: 'Sarah Chen' }
+        payload: {
+          amount: 240,
+          currency: 'USD',
+          description: 'Dinner at Sakura',
+          actorName: 'Sarah Chen',
+        },
       },
       {
         id: 'sys_9',
@@ -417,18 +433,22 @@ class DemoModeService {
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'task_completed',
-        payload: { taskTitle: 'Book airport transfers', actorName: 'Alex Kim' }
+        payload: { taskTitle: 'Book airport transfers', actorName: 'Alex Kim' },
       },
       {
         id: 'sys_10',
         sender_name: 'System',
-        message_content: 'Base camp changed from Hyatt Ziva Cancun → Hilton Cancun Mar Caribe All-Inclusive Resort',
+        message_content:
+          'Base camp changed from Hyatt Ziva Cancun → Hilton Cancun Mar Caribe All-Inclusive Resort',
         timestamp_offset_days: 0,
         tags: ['system'],
         message_type: 'system',
         system_event_type: 'trip_base_camp_updated',
-        payload: { previousAddress: 'Hyatt Ziva Cancun', newAddress: 'Hilton Cancun Mar Caribe All-Inclusive Resort' }
-      }
+        payload: {
+          previousAddress: 'Hyatt Ziva Cancun',
+          newAddress: 'Hilton Cancun Mar Caribe All-Inclusive Resort',
+        },
+      },
     ];
   }
 
@@ -440,7 +460,7 @@ class DemoModeService {
         sender_name: 'Tour Manager',
         message_content: 'Meeting at hotel lobby at 9 AM sharp tomorrow for our group activity!',
         timestamp_offset_days: 2,
-        tags: ['broadcast', 'logistics']
+        tags: ['broadcast', 'logistics'],
       },
       {
         id: 'pro-msg-2',
@@ -448,15 +468,16 @@ class DemoModeService {
         sender_name: 'Alex Kim',
         message_content: 'Weather alert: Rain expected this afternoon. Bring umbrellas or jackets!',
         timestamp_offset_days: 2,
-        tags: ['broadcast']
+        tags: ['broadcast'],
       },
       {
         id: 'pro-msg-3',
         trip_type: tripType,
         sender_name: 'David Thompson',
-        message_content: 'URGENT: Flight departure gate changed to B12. All passengers report immediately!',
+        message_content:
+          'URGENT: Flight departure gate changed to B12. All passengers report immediately!',
         timestamp_offset_days: 2,
-        tags: ['broadcast', 'urgent']
+        tags: ['broadcast', 'urgent'],
       },
       {
         id: 'pro-msg-4',
@@ -464,7 +485,7 @@ class DemoModeService {
         sender_name: 'Maya Williams',
         message_content: 'The sunset views from our hotel room are incredible! 🌅',
         timestamp_offset_days: 1,
-        tags: []
+        tags: [],
       },
       {
         id: 'pro-msg-5',
@@ -472,7 +493,7 @@ class DemoModeService {
         sender_name: 'Jordan Lee',
         message_content: 'Does anyone want to split an Uber to the downtown area?',
         timestamp_offset_days: 1,
-        tags: []
+        tags: [],
       },
       {
         id: currentUserId + '-msg-1',
@@ -481,7 +502,7 @@ class DemoModeService {
         sender_id: currentUserId,
         message_content: 'Just checked in! Room 502 if anyone needs anything 👍',
         timestamp_offset_days: 0,
-        tags: []
+        tags: [],
       },
       {
         id: currentUserId + '-msg-2',
@@ -490,8 +511,8 @@ class DemoModeService {
         sender_id: currentUserId,
         message_content: 'See you all at dinner!',
         timestamp_offset_days: 0,
-        tags: []
-      }
+        tags: [],
+      },
     ];
 
     return proMessages;
@@ -507,7 +528,7 @@ class DemoModeService {
             sender_name: 'Taylor Brooks',
             message_content: 'Pool party at 2 PM! Bring your swimsuits 🏊‍♂️🎉',
             timestamp_offset_days: 0,
-            tags: ['broadcast', 'chill', 'activities']
+            tags: ['broadcast', 'chill', 'activities'],
           },
           {
             id: 'friends_2',
@@ -515,10 +536,10 @@ class DemoModeService {
             sender_name: 'Jamie Chen',
             message_content: 'Who wants to hit up that karaoke place tonight?',
             timestamp_offset_days: 0,
-            tags: ['conversation', 'nightlife']
-          }
+            tags: ['conversation', 'nightlife'],
+          },
         ];
-      
+
       case 'family-vacation':
         return [
           {
@@ -527,7 +548,7 @@ class DemoModeService {
             sender_name: 'Mom (Linda)',
             message_content: 'Kids need to be back at the hotel by 8 PM for bedtime routine!',
             timestamp_offset_days: 0,
-            tags: ['broadcast', 'logistics', 'family']
+            tags: ['broadcast', 'logistics', 'family'],
           },
           {
             id: 'family_2',
@@ -535,10 +556,10 @@ class DemoModeService {
             sender_name: 'Dad (Robert)',
             message_content: 'Found a great ice cream shop - meet us at the boardwalk!',
             timestamp_offset_days: 0,
-            tags: ['conversation', 'activities']
-          }
+            tags: ['conversation', 'activities'],
+          },
         ];
-      
+
       default:
         return [];
     }
@@ -552,7 +573,7 @@ class DemoModeService {
         sender_name: 'Trip Coordinator',
         content: 'All luggage must be outside rooms by 8 AM for pickup tomorrow!',
         tag: 'logistics',
-        timestamp_offset_hours: 12
+        timestamp_offset_hours: 12,
       },
       {
         id: 'broadcast_2',
@@ -560,7 +581,7 @@ class DemoModeService {
         sender_name: 'Safety Team',
         content: 'EMERGENCY: Severe weather warning in effect. Stay indoors until further notice!',
         tag: 'emergency',
-        timestamp_offset_hours: 6
+        timestamp_offset_hours: 6,
       },
       {
         id: 'broadcast_3',
@@ -568,13 +589,12 @@ class DemoModeService {
         sender_name: 'Activity Leader',
         content: 'Beach volleyball tournament starts in 30 minutes at the south beach! 🏐',
         tag: 'chill',
-        timestamp_offset_hours: 2
-      }
+        timestamp_offset_hours: 2,
+      },
     ];
 
     return baseBroadcasts;
   }
-
 
   getMockTrips(): MockTrip[] {
     return [
@@ -590,7 +610,7 @@ class DemoModeService {
         created_by: 'demo-user',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        is_archived: false
+        is_archived: false,
       },
       {
         id: 'demo-trip-2',
@@ -604,7 +624,7 @@ class DemoModeService {
         created_by: 'demo-user',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        is_archived: false
+        is_archived: false,
       },
       {
         id: 'demo-trip-3',
@@ -618,8 +638,8 @@ class DemoModeService {
         created_by: 'demo-user',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        is_archived: false
-      }
+        is_archived: false,
+      },
     ];
   }
 
@@ -628,12 +648,12 @@ class DemoModeService {
     if (isEvent) {
       return [];
     }
-    
+
     return [
       {
         id: 'demo-payment-1',
         trip_id: tripId,
-        amount: 240.00,
+        amount: 240.0,
         currency: 'USD',
         description: 'Dinner at Sakura Restaurant',
         split_count: 4,
@@ -641,12 +661,12 @@ class DemoModeService {
         payment_methods: ['Venmo', 'Zelle'],
         created_by: 'user1',
         created_at: new Date(Date.now() - 86400000).toISOString(),
-        is_settled: false
+        is_settled: false,
       },
       {
         id: 'demo-payment-2',
         trip_id: tripId,
-        amount: 65.00,
+        amount: 65.0,
         currency: 'USD',
         description: 'Taxi to airport',
         split_count: 6,
@@ -654,12 +674,12 @@ class DemoModeService {
         payment_methods: ['Zelle'],
         created_by: 'user2',
         created_at: new Date(Date.now() - 43200000).toISOString(),
-        is_settled: true
+        is_settled: true,
       },
       {
         id: 'demo-payment-3',
         trip_id: tripId,
-        amount: 180.00,
+        amount: 180.0,
         currency: 'USD',
         description: 'Concert tickets',
         split_count: 3,
@@ -667,15 +687,15 @@ class DemoModeService {
         payment_methods: ['PayPal'],
         created_by: 'user3',
         created_at: new Date().toISOString(),
-        is_settled: false
-      }
+        is_settled: false,
+      },
     ];
   }
 
   getMockPolls(tripId: string): MockPoll[] {
     // Filter polls specific to this trip from mockPolls.ts
     const tripPolls = mockPolls.filter(poll => poll.trip_id === tripId);
-    
+
     // Transform to MockPoll format
     return tripPolls.map(poll => ({
       id: poll.id,
@@ -684,12 +704,12 @@ class DemoModeService {
       options: poll.options.map(opt => ({
         id: opt.id,
         text: opt.text,
-        votes: opt.voteCount
+        votes: opt.voteCount,
       })),
       total_votes: poll.total_votes,
       created_by: poll.created_by,
       created_at: poll.created_at,
-      status: poll.status
+      status: poll.status,
     }));
   }
 
@@ -702,7 +722,7 @@ class DemoModeService {
         role: 'admin',
         display_name: 'Sarah Chen',
         avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: 'demo-member-2',
@@ -711,7 +731,7 @@ class DemoModeService {
         role: 'member',
         display_name: 'Marcus Johnson',
         avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: 'demo-member-3',
@@ -720,7 +740,7 @@ class DemoModeService {
         role: 'member',
         display_name: 'Priya Patel',
         avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: 'demo-member-4',
@@ -729,7 +749,7 @@ class DemoModeService {
         role: 'member',
         display_name: 'Alex Kim',
         avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: 'demo-member-5',
@@ -738,12 +758,21 @@ class DemoModeService {
         role: 'member',
         display_name: 'Emma Rodriguez',
         avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb',
-        created_at: new Date().toISOString()
-      }
+        created_at: new Date().toISOString(),
+      },
     ];
   }
 
-  getMockTasks(tripId: string): Array<{ id: string; trip_id: string; title: string; description?: string; completed: boolean; due_at?: string }> {
+  getMockTasks(
+    tripId: string,
+  ): Array<{
+    id: string;
+    trip_id: string;
+    title: string;
+    description?: string;
+    completed: boolean;
+    due_at?: string;
+  }> {
     return [
       {
         id: 'demo-task-1',
@@ -751,7 +780,7 @@ class DemoModeService {
         title: 'Make sure your visa and passport documents are handled at least one month prior',
         description: 'Verify all travel documents are valid and up to date',
         completed: false,
-        due_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        due_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       },
       {
         id: 'demo-task-2',
@@ -759,7 +788,7 @@ class DemoModeService {
         title: 'Making sure all clothes are packed before next destination',
         description: 'Pack weather-appropriate clothing for all activities',
         completed: false,
-        due_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+        due_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
       },
       {
         id: 'demo-task-3',
@@ -767,22 +796,25 @@ class DemoModeService {
         title: 'Jimmy to purchase alcohol for the house while Sam gets food',
         description: 'Coordinate house supplies for the trip',
         completed: true,
-        due_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-      }
+        due_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      },
     ];
   }
 
   // Add payment to session store
-  addSessionPayment(tripId: string, paymentData: {
-    amount: number;
-    currency: string;
-    description: string;
-    splitCount: number;
-    splitParticipants: string[];
-    paymentMethods: string[];
-  }): string {
+  addSessionPayment(
+    tripId: string,
+    paymentData: {
+      amount: number;
+      currency: string;
+      description: string;
+      splitCount: number;
+      splitParticipants: string[];
+      paymentMethods: string[];
+    },
+  ): string {
     const paymentId = `session-payment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const payment: SessionPayment = {
       id: paymentId,
       trip_id: tripId,
@@ -795,7 +827,7 @@ class DemoModeService {
       created_by: 'demo-user',
       createdByName: 'Demo User',
       created_at: new Date().toISOString(),
-      is_settled: false
+      is_settled: false,
     };
 
     const tripPayments = this.sessionPayments.get(tripId) || [];
@@ -814,7 +846,7 @@ class DemoModeService {
   updateSessionPayment(
     tripId: string,
     paymentId: string,
-    updates: { amount?: number; description?: string }
+    updates: { amount?: number; description?: string },
   ): boolean {
     const tripPayments = this.sessionPayments.get(tripId) || [];
     const index = tripPayments.findIndex(p => p.id === paymentId);
@@ -822,6 +854,14 @@ class DemoModeService {
     if (updates.amount !== undefined) tripPayments[index].amount = updates.amount;
     if (updates.description !== undefined) tripPayments[index].description = updates.description;
     this.sessionPayments.set(tripId, [...tripPayments]);
+    return true;
+  }
+
+  deleteSessionPayment(tripId: string, paymentId: string): boolean {
+    const tripPayments = this.sessionPayments.get(tripId) || [];
+    const next = tripPayments.filter(p => p.id !== paymentId);
+    if (next.length === tripPayments.length) return false;
+    this.sessionPayments.set(tripId, next);
     return true;
   }
 
@@ -841,7 +881,10 @@ class DemoModeService {
   /**
    * Get personal basecamp for a trip in demo mode
    */
-  getSessionPersonalBasecamp(tripId: string, sessionUserId: string): SessionPersonalBasecamp | null {
+  getSessionPersonalBasecamp(
+    tripId: string,
+    sessionUserId: string,
+  ): SessionPersonalBasecamp | null {
     const key = `${tripId}:${sessionUserId}`;
     return this.sessionPersonalBasecamps.get(key) || null;
   }
@@ -867,7 +910,7 @@ class DemoModeService {
       latitude: payload.latitude,
       longitude: payload.longitude,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     this.sessionPersonalBasecamps.set(key, basecamp);
@@ -948,8 +991,8 @@ class DemoModeService {
   private readonly DEMO_TRIP_BASECAMPS: Record<string, { name: string; address: string }> = {
     '1': {
       name: 'Hyatt Ziva Cancun',
-      address: 'Blvd. Kukulcan Manzana 51, Lote 7, Zona Hotelera, 77500 Cancún, Q.R., Mexico'
-    }
+      address: 'Blvd. Kukulcan Manzana 51, Lote 7, Zona Hotelera, 77500 Cancún, Q.R., Mexico',
+    },
   };
 
   /**
@@ -960,7 +1003,7 @@ class DemoModeService {
     // 1. Check session storage first (user may have changed it)
     const sessionValue = this.sessionTripBasecamps.get(tripId);
     if (sessionValue) return sessionValue;
-    
+
     // 2. Fall back to seeded demo data
     return this.DEMO_TRIP_BASECAMPS[tripId] || null;
   }
@@ -990,7 +1033,9 @@ class DemoModeService {
   /**
    * Get trip-specific places/links from tripSpecificMockDataService
    */
-  getMockPlaces(tripId: string): Array<{ name: string; url: string; description?: string; votes: number }> {
+  getMockPlaces(
+    tripId: string,
+  ): Array<{ name: string; url: string; description?: string; votes: number }> {
     const numericTripId = parseInt(tripId);
     const tripData = TripSpecificMockDataService.getTripMockData(numericTripId);
 
@@ -1002,7 +1047,7 @@ class DemoModeService {
       name: link.title,
       url: link.url,
       description: link.description,
-      votes: 0
+      votes: 0,
     }));
   }
 
@@ -1047,7 +1092,7 @@ class DemoModeService {
         source_data: {},
         created_by: 'demo-user',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       },
       {
         id: `demo-dynamic-2-${year}-${month}-${day}`,
@@ -1063,7 +1108,7 @@ class DemoModeService {
         source_data: {},
         created_by: 'demo-user',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       },
       {
         id: `demo-dynamic-3-${year}-${month}-${day}`,
@@ -1079,8 +1124,8 @@ class DemoModeService {
         source_data: {},
         created_by: 'demo-user',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
+        updated_at: new Date().toISOString(),
+      },
     ];
   }
 
@@ -1088,12 +1133,14 @@ class DemoModeService {
     return demoTripFilesByTripId[tripId] || [];
   }
 
-  getMockAttachments(tripId: string): Array<{ name: string; type: string; uploaded_at: string; uploaded_by?: string }> {
+  getMockAttachments(
+    tripId: string,
+  ): Array<{ name: string; type: string; uploaded_at: string; uploaded_by?: string }> {
     return this.getMockFiles(tripId).map(file => ({
       name: file.name,
       type: file.file_type,
       uploaded_at: file.created_at,
-      uploaded_by: file.uploaded_by
+      uploaded_by: file.uploaded_by,
     }));
   }
 
