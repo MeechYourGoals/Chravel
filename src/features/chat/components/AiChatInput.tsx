@@ -31,11 +31,11 @@ interface AiChatInputProps {
   showImageAttach?: boolean;
 }
 
-export const AiChatInput = ({ 
-  inputMessage, 
-  onInputChange, 
-  onSendMessage, 
-  onKeyPress, 
+export const AiChatInput = ({
+  inputMessage,
+  onInputChange,
+  onSendMessage,
+  onKeyPress,
   isTyping,
   disabled = false,
   usageStatus,
@@ -86,8 +86,14 @@ export const AiChatInput = ({
       {/* Usage Status Badge */}
       {usageStatus && (
         <div className="flex items-center justify-between px-1">
-          <Badge 
-            variant={isLimitReached ? 'destructive' : usageStatus.status === 'warning' ? 'secondary' : 'outline'}
+          <Badge
+            variant={
+              isLimitReached
+                ? 'destructive'
+                : usageStatus.status === 'warning'
+                  ? 'secondary'
+                  : 'outline'
+            }
             className="text-xs"
           >
             {usageStatus.message}
@@ -108,7 +114,10 @@ export const AiChatInput = ({
       {attachedImages.length > 0 && (
         <div className="flex gap-2 px-1 overflow-x-auto">
           {attachedImages.map((file, idx) => (
-            <div key={idx} className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/10">
+            <div
+              key={idx}
+              className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/10"
+            >
               <img
                 src={previewUrls[idx] ?? ''}
                 alt={file.name}
@@ -138,7 +147,8 @@ export const AiChatInput = ({
         />
       )}
 
-    <div className="chat-composer flex items-center gap-3">
+      <div className="chat-composer flex flex-nowrap items-center gap-3">
+        {/* Microphone (left) — tap to start Gemini Live or Web Speech voice */}
         {onVoiceToggle && (
           <VoiceButton
             voiceState={voiceState}
@@ -162,16 +172,21 @@ export const AiChatInput = ({
 
         <textarea
           value={inputMessage}
-          onChange={(e) => onInputChange(e.target.value)}
+          onChange={e => onInputChange(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={isLimitReached ? "Upgrade to continue chatting..." : "Ask me anything..."}
+          placeholder={isLimitReached ? 'Upgrade to continue chatting...' : 'Ask me anything...'}
           rows={2}
           disabled={disabled || isLimitReached}
           className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
           onClick={onSendMessage}
-          disabled={!inputMessage.trim() && attachedImages.length === 0 || isTyping || disabled || isLimitReached}
+          disabled={
+            (!inputMessage.trim() && attachedImages.length === 0) ||
+            isTyping ||
+            disabled ||
+            isLimitReached
+          }
           className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:opacity-90 text-white size-11 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shrink-0"
         >
           <Send size={18} />
