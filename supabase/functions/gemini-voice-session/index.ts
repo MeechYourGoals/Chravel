@@ -159,12 +159,14 @@ async function createEphemeralToken(params: {
     },
   };
 
+  // Use x-goog-api-key header (preferred for server-side) — some proxies/logging strip ?key=
   const tokenResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1alpha/auth_tokens?key=${GEMINI_API_KEY}`,
+    'https://generativelanguage.googleapis.com/v1alpha/auth_tokens',
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY,
       },
       body: JSON.stringify(tokenRequestBody),
       signal: AbortSignal.timeout(15_000),
