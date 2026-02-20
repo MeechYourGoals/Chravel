@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { supabase } from '../../integrations/supabase/client';
-import { paymentService } from '../../services/paymentService';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
@@ -19,7 +18,12 @@ import { formatCompactDate } from '@/utils/dateFormatters';
 interface PaymentHistoryProps {
   tripId: string;
   onPaymentUpdated?: () => void;
-  payments: PaymentMessage[];  // Centralized payment data from parent
+  payments: PaymentMessage[]; // Centralized payment data from parent
+  onUpdatePayment: (
+    paymentId: string,
+    updates: { amount?: number; description?: string },
+  ) => Promise<boolean>;
+  onDeletePayment: (paymentId: string) => Promise<boolean>;
 }
 
 interface PaymentRecord {
@@ -34,7 +38,13 @@ interface PaymentRecord {
   isSettled: boolean;
 }
 
-export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHistoryProps) => {
+export const PaymentHistory = ({
+  tripId,
+  onPaymentUpdated,
+  payments,
+  onUpdatePayment,
+  onDeletePayment,
+}: PaymentHistoryProps) => {
   const [enrichedPayments, setEnrichedPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null);
@@ -66,9 +76,11 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
       setLoading(true);
       try {
         // Get unique creator IDs (excluding demo users)
-        const authorIds = [...new Set(settledPayments
-          .filter(p => p.createdBy !== 'demo-user')
-          .map(p => p.createdBy))];
+        const authorIds = [
+          ...new Set(
+            settledPayments.filter(p => p.createdBy !== 'demo-user').map(p => p.createdBy),
+          ),
+        ];
 
         const profileMap = new Map<string, string>();
 
@@ -91,20 +103,23 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
           splitCount: payment.splitCount,
           createdBy: payment.createdBy,
           createdAt: payment.createdAt,
-          createdByName: payment.createdBy === 'demo-user'
-            ? 'Demo User'
-            : profileMap.get(payment.createdBy) || 'Trip member',
-          isSettled: payment.isSettled
+          createdByName:
+            payment.createdBy === 'demo-user'
+              ? 'Demo User'
+              : profileMap.get(payment.createdBy) || 'Trip member',
+          isSettled: payment.isSettled,
         }));
 
         setEnrichedPayments(formattedPayments);
       } catch (error) {
         console.error('Error enriching payment history:', error);
         // Fall back to basic data without names
-        setEnrichedPayments(settledPayments.map(p => ({
-          ...p,
-          createdByName: p.createdBy === 'demo-user' ? 'Demo User' : 'Trip member'
-        })));
+        setEnrichedPayments(
+          settledPayments.map(p => ({
+            ...p,
+            createdByName: p.createdBy === 'demo-user' ? 'Demo User' : 'Trip member',
+          })),
+        );
       } finally {
         setLoading(false);
       }
@@ -122,48 +137,31 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
   const handleSaveEdit = async () => {
     if (!editingPayment) return;
 
-    if (demoActive) {
-      // Demo mode: update local state
-      setEnrichedPayments(prev => prev.map(p =>
-        p.id === editingPayment.id
-          ? { ...p, amount: parseFloat(editAmount), description: editDescription }
-          : p
-      ));
-      toast({ title: "Payment updated (Demo)", description: "Changes saved" });
-      setEditingPayment(null);
-      return;
-    }
-
-    // Authenticated mode
-    const success = await paymentService.updatePaymentMessage(editingPayment.id, {
+    const success = await onUpdatePayment(editingPayment.id, {
       amount: parseFloat(editAmount),
-      description: editDescription
+      description: editDescription,
     });
 
     if (success) {
-      toast({ title: "Payment updated", description: "Changes saved" });
+      toast({
+        title: demoActive ? 'Payment updated (Demo)' : 'Payment updated',
+        description: 'Changes saved',
+      });
       setEditingPayment(null);
       onPaymentUpdated?.();
     } else {
-      toast({ title: "Error", description: "Failed to update payment", variant: "destructive" });
+      toast({ title: 'Error', description: 'Failed to update payment', variant: 'destructive' });
     }
   };
 
   const handleDelete = async (paymentId: string) => {
-    if (demoActive) {
-      setEnrichedPayments(prev => prev.filter(p => p.id !== paymentId));
-      toast({ title: "Payment deleted (Demo)" });
-      setDeleteConfirmId(null);
-      return;
-    }
-
-    const success = await paymentService.deletePaymentMessage(paymentId);
+    const success = await onDeletePayment(paymentId);
     if (success) {
-      toast({ title: "Payment deleted" });
+      toast({ title: demoActive ? 'Payment deleted (Demo)' : 'Payment deleted' });
       setDeleteConfirmId(null);
       onPaymentUpdated?.();
     } else {
-      toast({ title: "Error", description: "Failed to delete payment", variant: "destructive" });
+      toast({ title: 'Error', description: 'Failed to delete payment', variant: 'destructive' });
     }
   };
 
@@ -193,9 +191,7 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
               {enrichedPayments.length}
             </Badge>
           </CardTitle>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Fully settled payment requests
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">Fully settled payment requests</p>
         </CardHeader>
         <CardContent className="py-3 px-4">
           <div className="space-y-1">
@@ -203,28 +199,43 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
               const isCreator = user?.id === payment.createdBy;
 
               return (
-                <div key={payment.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2 flex-wrap">
+                <div
+                  key={payment.id}
+                  className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2 flex-wrap"
+                >
                   {/* Single row: all info inline with bullet separators */}
                   <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                     <span className="font-semibold text-foreground">{payment.description}</span>
                     <span className="text-muted-foreground hidden sm:inline">•</span>
                     {payment.isSettled ? (
-                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-300 border-emerald-500/30">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                      >
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Settled
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-amber-500/10 text-amber-300 border-amber-500/30"
+                      >
                         <Clock className="w-3 h-3 mr-1" />
                         Pending
                       </Badge>
                     )}
                     <span className="text-muted-foreground hidden sm:inline">•</span>
-                    <span className="text-sm text-muted-foreground">{payment.createdByName || 'Trip member'}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {payment.createdByName || 'Trip member'}
+                    </span>
                     <span className="text-muted-foreground hidden sm:inline">•</span>
-                    <span className="text-sm text-muted-foreground">Split {payment.splitCount} ways</span>
+                    <span className="text-sm text-muted-foreground">
+                      Split {payment.splitCount} ways
+                    </span>
                     <span className="text-muted-foreground hidden sm:inline">•</span>
-                    <span className="text-sm text-muted-foreground">{formatCompactDate(payment.createdAt)}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {formatCompactDate(payment.createdAt)}
+                    </span>
                   </div>
 
                   {/* Amount and actions */}
@@ -280,7 +291,7 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
                 type="number"
                 step="0.01"
                 value={editAmount}
-                onChange={(e) => setEditAmount(e.target.value)}
+                onChange={e => setEditAmount(e.target.value)}
               />
             </div>
             {/* Description second */}
@@ -289,12 +300,14 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
               <Input
                 id="description"
                 value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
+                onChange={e => setEditDescription(e.target.value)}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingPayment(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEditingPayment(null)}>
+              Cancel
+            </Button>
             <Button onClick={handleSaveEdit}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
@@ -313,8 +326,13 @@ export const PaymentHistory = ({ tripId, onPaymentUpdated, payments }: PaymentHi
             Are you sure you want to delete this payment request? This action cannot be undone.
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}>
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+            >
               Delete
             </Button>
           </DialogFooter>

@@ -63,6 +63,11 @@ interface OutstandingPaymentsProps {
   tripMembers?: TripMember[];
   onPaymentUpdated?: () => void;
   payments: PaymentMessage[]; // Centralized payment data from parent
+  onUpdatePayment: (
+    paymentId: string,
+    updates: { amount?: number; description?: string },
+  ) => Promise<boolean>;
+  onDeletePayment: (paymentId: string) => Promise<boolean>;
 }
 
 export const OutstandingPayments = ({
@@ -70,6 +75,8 @@ export const OutstandingPayments = ({
   tripMembers = [],
   onPaymentUpdated,
   payments,
+  onUpdatePayment,
+  onDeletePayment,
 }: OutstandingPaymentsProps) => {
   const [enrichedPayments, setEnrichedPayments] = useState<EnrichedPayment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -304,7 +311,7 @@ export const OutstandingPayments = ({
 
     setDeleting(true);
     try {
-      const success = await paymentService.deletePaymentMessage(paymentId);
+      const success = await onDeletePayment(paymentId);
       if (success) {
         toast({ title: 'Payment deleted', description: 'Payment has been removed.' });
         onPaymentUpdated?.();
@@ -518,6 +525,7 @@ export const OutstandingPayments = ({
           onClose={() => setEditingPayment(null)}
           onSave={handleEditComplete}
           isDemoMode={demoActive}
+          onUpdatePayment={onUpdatePayment}
         />
       )}
 

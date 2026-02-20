@@ -35,6 +35,8 @@ interface UserProfile {
   phone: string | null;
   show_email: boolean;
   show_phone: boolean;
+  job_title?: string | null;
+  show_job_title?: boolean;
 }
 
 interface User {
@@ -52,6 +54,8 @@ interface User {
   isPro: boolean;
   showEmail: boolean;
   showPhone: boolean;
+  jobTitle?: string;
+  showJobTitle?: boolean;
   // Enhanced pro role system
   proRole?:
     | 'admin'
@@ -190,7 +194,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from('profiles')
         .select(
-          'id, user_id, display_name, real_name, name_preference, first_name, last_name, avatar_url, bio, phone, show_email, show_phone, ' +
+          'id, user_id, display_name, real_name, name_preference, first_name, last_name, avatar_url, bio, phone, show_email, show_phone, job_title, show_job_title, ' +
             'notification_settings, timezone, app_role, role, subscription_status, subscription_product_id, ' +
             'subscription_end, free_pro_trips_used, free_pro_trip_limit, free_events_used, free_event_limit, ' +
             'created_at, updated_at',
@@ -388,6 +392,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isPro,
         showEmail: userProfile?.show_email || false,
         showPhone: userProfile?.show_phone || false,
+        jobTitle: userProfile?.job_title ?? undefined,
+        showJobTitle: userProfile?.show_job_title ?? false,
         proRole,
         organizationId: orgMemberResult.data?.organization_id || undefined,
         permissions,
@@ -963,6 +969,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         updatedUser.phone = (data as any).phone ?? updatedUser.phone;
         updatedUser.showEmail = data.show_email ?? updatedUser.showEmail;
         updatedUser.showPhone = data.show_phone ?? updatedUser.showPhone;
+        const dataJobTitle = (data as UserProfile & { job_title?: string | null; show_job_title?: boolean }).job_title;
+        updatedUser.jobTitle = dataJobTitle !== undefined ? (dataJobTitle ?? undefined) : updatedUser.jobTitle;
+        const dataShowJobTitle = (data as UserProfile & { job_title?: string | null; show_job_title?: boolean }).show_job_title;
+        updatedUser.showJobTitle = dataShowJobTitle !== undefined ? (dataShowJobTitle ?? false) : updatedUser.showJobTitle;
       } else {
         if (updates.display_name) updatedUser.displayName = updates.display_name;
         if (updates.real_name !== undefined) updatedUser.realName = updates.real_name ?? undefined;
@@ -975,6 +985,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (updates.phone !== undefined) updatedUser.phone = updates.phone ?? undefined;
         if (updates.show_email !== undefined) updatedUser.showEmail = updates.show_email;
         if (updates.show_phone !== undefined) updatedUser.showPhone = updates.show_phone;
+        const u = updates as Partial<UserProfile>;
+        if (u.job_title !== undefined) updatedUser.jobTitle = u.job_title ?? undefined;
+        if (u.show_job_title !== undefined) updatedUser.showJobTitle = u.show_job_title;
       }
 
       setUser(updatedUser);

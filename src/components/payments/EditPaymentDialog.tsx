@@ -4,8 +4,6 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Loader2 } from 'lucide-react';
-import { paymentService } from '../../services/paymentService';
-import { demoModeService } from '../../services/demoModeService';
 import { useToast } from '../../hooks/use-toast';
 
 interface PaymentSplit {
@@ -42,6 +40,10 @@ interface EditPaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
+  onUpdatePayment: (
+    paymentId: string,
+    updates: { amount?: number; description?: string },
+  ) => Promise<boolean>;
   isDemoMode?: boolean;
 }
 
@@ -49,11 +51,12 @@ interface EditPaymentDialogProps {
 export const EditPaymentDialog = ({
   payment,
   tripMembers: _tripMembers,
-  tripId,
+  tripId: _tripId,
   isOpen,
   onClose,
   onSave,
-  isDemoMode = false
+  onUpdatePayment,
+  isDemoMode = false,
 }: EditPaymentDialogProps) => {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -91,32 +94,16 @@ export const EditPaymentDialog = ({
     setSaving(true);
 
     try {
-      if (isDemoMode) {
-        const updated = demoModeService.updateSessionPayment(tripId, payment.id, {
-          amount,
-          description,
-        });
-        if (updated) {
-          toast({ title: 'Payment updated (Demo)', description: 'Changes saved' });
-          onSave();
-          onClose();
-        } else {
-          toast({
-            title: 'Error',
-            description: 'Failed to update demo payment.',
-            variant: 'destructive',
-          });
-        }
-        return;
-      }
-
-      const success = await paymentService.updatePaymentMessage(payment.id, {
+      const success = await onUpdatePayment(payment.id, {
         amount,
         description,
       });
 
       if (success) {
-        toast({ title: 'Payment updated', description: 'Changes saved successfully' });
+        toast({
+          title: isDemoMode ? 'Payment updated (Demo)' : 'Payment updated',
+          description: 'Changes saved successfully',
+        });
         onSave();
         onClose();
       } else {
@@ -155,7 +142,7 @@ export const EditPaymentDialog = ({
               type="number"
               step="0.01"
               value={amount || ''}
-              onChange={(e) => setAmount(Number(e.target.value))}
+              onChange={e => setAmount(Number(e.target.value))}
               placeholder="0.00"
             />
           </div>
@@ -165,7 +152,7 @@ export const EditPaymentDialog = ({
             <Input
               id="edit-description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={e => setDescription(e.target.value)}
               placeholder="Dinner, taxi, tickets, etc."
             />
           </div>

@@ -40,6 +40,11 @@ export interface NotificationPreferences {
   trip_invites: boolean;
   join_requests: boolean;
   basecamp_updates: boolean;
+  // Enterprise-specific
+  org_announcements?: boolean;
+  team_updates?: boolean;
+  billing_alerts?: boolean;
+  email_digest?: boolean;
   quiet_hours_enabled: boolean;
   quiet_start: string;
   quiet_end: string;
@@ -76,13 +81,14 @@ export const EMAIL_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
 
 // Categories eligible for SMS delivery (high-urgency only)
 export const SMS_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
-  'broadcasts',       // Critical announcements from organizers
-  'payments',         // Payment requests and deadlines
+  'broadcasts', // Critical announcements from organizers
+  'payments', // Payment requests and deadlines
   'basecamp_updates', // Location/basecamp changes
-  'calendar_events',  // Event updates and reminders
-  'join_requests',    // New member join requests (for organizers)
-  'tasks',            // Assigned task notifications
-  'polls',            // New poll notifications
+  'calendar_events', // Event updates and reminders
+  'join_requests', // New member join requests (for organizers)
+  'tasks', // Assigned task notifications
+  'polls', // New poll notifications
+  'chat_messages', // Privacy-safe new message alerts
 ];
 
 const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
@@ -100,6 +106,10 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   trip_invites: true,
   join_requests: true,
   basecamp_updates: true,
+  org_announcements: true,
+  team_updates: true,
+  billing_alerts: true,
+  email_digest: true,
   quiet_hours_enabled: false,
   quiet_start: '22:00',
   quiet_end: '08:00',
