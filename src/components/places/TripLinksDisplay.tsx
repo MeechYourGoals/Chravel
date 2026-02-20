@@ -174,12 +174,30 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
   const queryClient = useQueryClient();
 
   // ⚡ TanStack Query — cached across remounts, prefetchable, stale-while-revalidate
-  const { data: links = [], isLoading: loading } = useQuery({
-    queryKey: ['tripLinks', tripId],
-    queryFn: () => getTripLinks(tripId, isDemoMode),
+  // Guard: finite loading — retry: 1 prevents infinite retry loops; 15s timeout prevents indefinite hangs
+  const FETCH_TIMEOUT_MS = 15000;
+  const {
+    data: links = [],
+    isLoading: loading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['tripLinks', tripId, isDemoMode],
+    queryFn: async () => {
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Request timed out. Check your connection and try again.')),
+          FETCH_TIMEOUT_MS,
+        ),
+      );
+      return Promise.race([getTripLinks(tripId, isDemoMode), timeoutPromise]);
+    },
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     enabled: !!tripId,
+    retry: 1,
+    retryDelay: 2000,
   });
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -350,10 +368,36 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     }
   };
 
+  // Finite loading: spinner only while actively fetching; error/empty surface instead of infinite spinner
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <div
+          className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"
+          aria-label="Loading links"
+          data-testid="trip-links-loading"
+        />
+      </div>
+    );
+  }
+
+  if (isError) {
+    if (import.meta.env.DEV) {
+      console.error('[TripLinksDisplay] Failed to load links:', error);
+    }
+    return (
+      <div className="bg-gray-900/80 border border-red-500/20 rounded-2xl p-6 text-center">
+        <p className="text-red-400 font-medium mb-2">Couldn&apos;t load links</p>
+        <p className="text-gray-400 text-sm mb-4">
+          {error instanceof Error ? error.message : 'Something went wrong. Please try again.'}
+        </p>
+        <Button
+          variant="outline"
+          onClick={() => refetch()}
+          className="border-white/20 text-white hover:bg-white/10"
+        >
+          Retry
+        </Button>
       </div>
     );
   }
@@ -368,10 +412,10 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
               <Link2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-lg md:text-xl font-bold text-white">Ideas</h3>
+              <h3 className="text-lg md:text-xl font-bold text-white">Explore</h3>
               <p className="text-gray-400 text-xs md:text-sm">
                 {links.length > 0
-                  ? `${links.length} saved ideas • Drag to reorder`
+                  ? `${links.length} saved links • Drag to reorder`
                   : 'Share links for registries, activities, places & more'}
               </p>
             </div>
@@ -387,12 +431,12 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                       className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all font-medium text-sm md:text-base flex items-center shadow-lg shadow-yellow-500/25"
                     >
                       <Plus className="w-4 h-4 md:w-5 md:h-5 mr-1" />
-                      Add Idea
+                      Add Link
                     </button>
                   </DialogTrigger>
                   <DialogContent className="bg-gray-900 border-white/10">
                     <DialogHeader>
-                      <DialogTitle className="text-white">Add Idea</DialogTitle>
+                      <DialogTitle className="text-white">Add Link</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div>
@@ -446,7 +490,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                         <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
                           Cancel
                         </Button>
-                        <Button onClick={handleCreateLink}>Add Idea</Button>
+                        <Button onClick={handleCreateLink}>Add Link</Button>
                       </div>
                     </div>
                   </DialogContent>
@@ -467,7 +511,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
       <Dialog open={!!editingLink} onOpenChange={open => !open && setEditingLink(null)}>
         <DialogContent className="bg-gray-900 border-white/10">
           <DialogHeader>
-            <DialogTitle className="text-white">Edit Idea</DialogTitle>
+            <DialogTitle className="text-white">Edit Link</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
