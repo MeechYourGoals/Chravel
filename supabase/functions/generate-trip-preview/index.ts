@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,52 +23,60 @@ function escapeHtml(value: string): string {
 }
 
 // Demo covers base URL - Supabase Storage
-const DEMO_COVERS_BASE = 'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers';
+const DEMO_COVERS_BASE =
+  'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers';
 
 // Demo trip data with Supabase Storage images for OG tags
 // IMPORTANT: Keep in sync with src/data/tripsData.ts - this is the source of truth for OG previews
-const demoTrips: Record<string, {
-  title: string;
-  location: string;
-  dateRange: string;
-  description: string;
-  coverPhoto: string;
-  participantCount: number;
-  tripType?: 'consumer' | 'pro' | 'event';
-  themeColor?: string; // For events only
-}> = {
+const demoTrips: Record<
+  string,
+  {
+    title: string;
+    location: string;
+    dateRange: string;
+    description: string;
+    coverPhoto: string;
+    participantCount: number;
+    tripType?: 'consumer' | 'pro' | 'event';
+    themeColor?: string; // For events only
+  }
+> = {
   // Consumer Trips (1-12) - Using Supabase Storage images
   '1': {
     title: 'Spring Break Cancun 2026 – Fraternity Trip',
     location: 'Cancun, Mexico',
     dateRange: 'Mar 15 - Mar 22, 2026',
-    description: 'Brotherhood spring break getaway with beach activities, nightlife, and bonding experiences',
+    description:
+      'Brotherhood spring break getaway with beach activities, nightlife, and bonding experiences',
     coverPhoto: `${DEMO_COVERS_BASE}/cancun-spring-break.jpg`,
-    participantCount: 14
+    participantCount: 14,
   },
   '2': {
     title: 'Tokyo Adventure',
     location: 'Tokyo, Japan',
     dateRange: 'Oct 5 - Oct 15, 2026',
-    description: "Cultural exploration of Japan's capital with temples, modern tech districts, and amazing cuisine",
+    description:
+      "Cultural exploration of Japan's capital with temples, modern tech districts, and amazing cuisine",
     coverPhoto: `${DEMO_COVERS_BASE}/tokyo-adventure.jpg`,
-    participantCount: 12
+    participantCount: 12,
   },
   '3': {
     title: "The Tyler's Tie The Knot",
     location: 'Bali, Indonesia',
     dateRange: 'Dec 10 - Dec 12, 2026',
-    description: 'Romantic destination wedding celebration with family and friends in paradise, featuring welcome dinner, ceremony, and reception',
+    description:
+      'Romantic destination wedding celebration with family and friends in paradise, featuring welcome dinner, ceremony, and reception',
     coverPhoto: `${DEMO_COVERS_BASE}/bali-destination-wedding.jpg`,
-    participantCount: 63
+    participantCount: 63,
   },
   '4': {
     title: "Kristen Goldberg's Bachelorette Party",
     location: 'Nashville, TN',
     dateRange: 'Nov 8 - Nov 10, 2026',
-    description: 'Epic bachelorette celebration with honky-tonk bars, live music, spa day, karaoke, and unforgettable memories across multiple Nashville venues',
+    description:
+      'Epic bachelorette celebration with honky-tonk bars, live music, spa day, karaoke, and unforgettable memories across multiple Nashville venues',
     coverPhoto: `${DEMO_COVERS_BASE}/nashville-bachelorette.jpg`,
-    participantCount: 22
+    participantCount: 22,
   },
   '5': {
     title: 'Coachella Squad 2026',
@@ -76,47 +84,52 @@ const demoTrips: Record<string, {
     dateRange: 'Apr 10 - Apr 13, 2026',
     description: 'Music festival adventure with top artists, desert vibes, and group camping',
     coverPhoto: `${DEMO_COVERS_BASE}/coachella-festival.jpg`,
-    participantCount: 22
+    participantCount: 22,
   },
   '6': {
     title: "Cameron Knight's Dubai Birthday",
     location: 'Dubai, UAE',
     dateRange: 'Jul 5 - Jul 9, 2026',
-    description: 'Luxury birthday celebration in Dubai featuring Burj Khalifa, desert safari, yacht party, and fine dining',
+    description:
+      'Luxury birthday celebration in Dubai featuring Burj Khalifa, desert safari, yacht party, and fine dining',
     coverPhoto: `${DEMO_COVERS_BASE}/dubai-birthday.jpg`,
-    participantCount: 8
+    participantCount: 8,
   },
   '7': {
     title: "Fantasy Football Chat's Annual Golf Outing",
     location: 'Phoenix, Arizona',
     dateRange: 'Feb 20 - Feb 23, 2026',
-    description: "Annual guys' golf trip with tournaments, poker nights, and fantasy football draft",
+    description:
+      "Annual guys' golf trip with tournaments, poker nights, and fantasy football draft",
     coverPhoto: `${DEMO_COVERS_BASE}/phoenix-golf-outing.jpg`,
-    participantCount: 6
+    participantCount: 6,
   },
   '8': {
     title: 'Tulum Wellness Retreat',
     location: 'Tulum, Mexico',
     dateRange: 'Nov 10 - Nov 23, 2026',
-    description: 'Yoga and wellness focused retreat with breathwork, meditation, and spa treatments',
+    description:
+      'Yoga and wellness focused retreat with breathwork, meditation, and spa treatments',
     coverPhoto: `${DEMO_COVERS_BASE}/tulum-yoga-wellness.jpg`,
-    participantCount: 34
+    participantCount: 34,
   },
   '9': {
     title: "Sarah Gardelin's Promotion Celebration",
     location: 'Napa Valley, CA',
     dateRange: 'May 2 - May 5, 2026',
-    description: 'Celebratory wine country escape with close friends to mark a major career milestone, featuring tastings, spa treatments, and new adventures',
+    description:
+      'Celebratory wine country escape with close friends to mark a major career milestone, featuring tastings, spa treatments, and new adventures',
     coverPhoto: `${DEMO_COVERS_BASE}/napa-wine-getaway.jpg`,
-    participantCount: 6
+    participantCount: 6,
   },
   '10': {
     title: 'Corporate Holiday Ski Trip – Aspen',
     location: 'Aspen, CO',
     dateRange: 'Dec 12 - Dec 15, 2026',
-    description: 'Company holiday celebration with skiing, team building, and winter activities featuring corporate lodging, group ski lessons, and team dinners',
+    description:
+      'Company holiday celebration with skiing, team building, and winter activities featuring corporate lodging, group ski lessons, and team dinners',
     coverPhoto: `${DEMO_COVERS_BASE}/aspen-corporate-ski.jpg`,
-    participantCount: 44
+    participantCount: 44,
   },
   '11': {
     title: 'Disney Cruise Family Vacation',
@@ -124,7 +137,7 @@ const demoTrips: Record<string, {
     dateRange: 'Jun 15 - Jun 22, 2026',
     description: 'Magical family cruise with Disney characters, activities, and island adventures',
     coverPhoto: `${DEMO_COVERS_BASE}/disney-family-cruise.jpg`,
-    participantCount: 7
+    participantCount: 7,
   },
   '12': {
     title: 'Yellowstone National-Park Hiking Adventure',
@@ -132,7 +145,7 @@ const demoTrips: Record<string, {
     dateRange: 'Jul 10 - Jul 17, 2026',
     description: 'Outdoor adventure exploring geysers, wildlife, and backcountry hiking trails',
     coverPhoto: `${DEMO_COVERS_BASE}/yellowstone-hiking-group.jpg`,
-    participantCount: 5
+    participantCount: 5,
   },
   // Pro Trips (12) - grayscale backgrounds
   'lakers-road-trip': {
@@ -142,52 +155,57 @@ const demoTrips: Record<string, {
     description: 'Lakers vs Nuggets playoff game with VIP tailgate and team hotel',
     coverPhoto: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&h=630&fit=crop',
     participantCount: 24,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'beyonce-cowboy-carter-tour': {
     title: 'Beyoncé Cowboy Carter World Tour',
     location: 'Houston, TX → Atlanta, GA → Chicago, IL',
     dateRange: 'Jun 15 - Jun 28, 2026',
     description: 'Multi-city tour following Queen Bey with VIP packages and meet & greets',
-    coverPhoto: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&h=630&fit=crop',
     participantCount: 18,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'eli-lilly-c-suite-retreat-2026': {
     title: 'Eli Lilly C-Suite Retreat 2026',
     location: 'Scottsdale, AZ',
     dateRange: 'Sep 12 - Sep 15, 2026',
     description: 'Executive leadership offsite with strategy sessions and team building',
-    coverPhoto: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&h=630&fit=crop',
     participantCount: 45,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'paul-george-elite-aau-nationals-2025': {
     title: 'Paul George Elite AAU Nationals 2025',
     location: 'Las Vegas, NV',
     dateRange: 'Jul 20 - Jul 27, 2025',
     description: 'Elite AAU basketball nationals with 17U team competing for championship',
-    coverPhoto: 'https://images.unsplash.com/photo-1574623452334-1e0ac2b3ccb4?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1574623452334-1e0ac2b3ccb4?w=1200&h=630&fit=crop',
     participantCount: 32,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'osu-notredame-2025': {
     title: 'Ohio State vs Notre Dame 2025',
     location: 'South Bend, IN',
     dateRange: 'Sep 6 - Sep 7, 2025',
     description: 'Historic rivalry game with tailgate, alumni gathering, and game day experience',
-    coverPhoto: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&h=630&fit=crop',
     participantCount: 28,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'unc-lax-2025': {
-    title: 'UNC Women\'s Lacrosse ACC Tournament',
+    title: "UNC Women's Lacrosse ACC Tournament",
     location: 'Durham, NC',
     dateRange: 'May 1 - May 4, 2025',
     description: 'ACC Championship tournament with team travel and family spectator coordination',
-    coverPhoto: 'https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=1200&h=630&fit=crop',
     participantCount: 38,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'a16z-speedrun-2026': {
     title: 'a16z Speedrun Demo Day 2026',
@@ -196,43 +214,47 @@ const demoTrips: Record<string, {
     description: 'Accelerator demo day with pitch prep, investor meetings, and networking',
     coverPhoto: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1200&h=630&fit=crop',
     participantCount: 12,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'kai-druski-jake-adin-24hr-atl': {
     title: 'Druski x Adin Ross 24HR Stream ATL',
     location: 'Atlanta, GA',
     dateRange: 'Apr 5 - Apr 6, 2026',
     description: '24-hour livestream collab with production crew, guest appearances, and content',
-    coverPhoto: 'https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=1200&h=630&fit=crop',
     participantCount: 15,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'tesla-cybertruck-roadshow-2025': {
     title: 'Tesla Cybertruck Roadshow 2025',
     location: 'Austin, TX → Phoenix, AZ → LA, CA',
     dateRange: 'Oct 1 - Oct 15, 2025',
     description: 'Multi-city product showcase with demo drives, media events, and launches',
-    coverPhoto: 'https://images.unsplash.com/photo-1620891549027-942fdc95d3f5?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1620891549027-942fdc95d3f5?w=1200&h=630&fit=crop',
     participantCount: 22,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'postmalone-jellyroll-tour-2026': {
     title: 'Post Malone x Jelly Roll Tour 2026',
     location: 'Nashville, TN → Memphis, TN → New Orleans, LA',
     dateRange: 'Aug 10 - Aug 20, 2026',
     description: 'Southern leg of the tour with crew travel, venue coordination, and afterparties',
-    coverPhoto: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&h=630&fit=crop',
     participantCount: 35,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'gs-campus-gt-2025': {
     title: 'Goldman Sachs Georgia Tech Recruiting',
     location: 'Atlanta, GA',
     dateRange: 'Oct 15 - Oct 17, 2025',
     description: 'Campus recruiting visit with info sessions, interviews, and networking dinners',
-    coverPhoto: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&h=630&fit=crop',
     participantCount: 8,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   'nvidia-bowling-2025': {
     title: 'NVIDIA Employee Bowling Night',
@@ -241,7 +263,7 @@ const demoTrips: Record<string, {
     description: 'Team building event with bowling tournament, prizes, and company celebration',
     coverPhoto: 'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=1200&h=630&fit=crop',
     participantCount: 120,
-    tripType: 'pro'
+    tripType: 'pro',
   },
   // Demo Events (7) - themed color backgrounds
   'sxsw-2025': {
@@ -249,71 +271,78 @@ const demoTrips: Record<string, {
     location: 'Austin, TX',
     dateRange: 'Mar 7 - Mar 16, 2025',
     description: 'Annual tech, film, and music festival with panels, showcases, and networking',
-    coverPhoto: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&h=630&fit=crop',
     participantCount: 500,
     tripType: 'event',
-    themeColor: '#8B5CF6' // Purple
+    themeColor: '#8B5CF6', // Purple
   },
   'wef-2025': {
     title: 'World Economic Forum 2025',
     location: 'Davos, Switzerland',
     dateRange: 'Jan 20 - Jan 24, 2025',
     description: 'Global leaders summit discussing economic policy, climate, and innovation',
-    coverPhoto: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200&h=630&fit=crop',
     participantCount: 250,
     tripType: 'event',
-    themeColor: '#10B981' // Green
+    themeColor: '#10B981', // Green
   },
   'money-2020-2025': {
     title: 'Money 20/20 Las Vegas 2025',
     location: 'Las Vegas, NV',
     dateRange: 'Oct 26 - Oct 29, 2025',
-    description: 'The world\'s largest fintech event with payments innovation and financial services networking',
+    description:
+      "The world's largest fintech event with payments innovation and financial services networking",
     coverPhoto: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1200&h=630&fit=crop',
     participantCount: 10000,
     tripType: 'event',
-    themeColor: '#92400E' // Brown/amber
+    themeColor: '#92400E', // Brown/amber
   },
   'grammys-2025': {
     title: 'Grammy Awards 2025',
     location: 'Los Angeles, CA',
     dateRange: 'Feb 2, 2025',
-    description: 'Music\'s biggest night with red carpet, performances, and afterparties',
-    coverPhoto: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=1200&h=630&fit=crop',
+    description: "Music's biggest night with red carpet, performances, and afterparties",
+    coverPhoto:
+      'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=1200&h=630&fit=crop',
     participantCount: 180,
     tripType: 'event',
-    themeColor: '#D97706' // Gold/amber
+    themeColor: '#D97706', // Gold/amber
   },
   'google-io-2026-event': {
     title: 'Google I/O 2026',
     location: 'Mountain View, CA',
     dateRange: 'May 12 - May 14, 2026',
     description: 'Annual developer conference with keynotes, workshops, and product launches',
-    coverPhoto: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=1200&h=630&fit=crop',
     participantCount: 400,
     tripType: 'event',
-    themeColor: '#4285F4' // Google Blue
+    themeColor: '#4285F4', // Google Blue
   },
   'essence-festival-2026': {
     title: 'Essence Festival 2026',
     location: 'New Orleans, LA',
     dateRange: 'Jul 3 - Jul 6, 2026',
     description: 'Celebration of Black culture with concerts, empowerment seminars, and cuisine',
-    coverPhoto: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&h=630&fit=crop',
     participantCount: 350,
     tripType: 'event',
-    themeColor: '#DC2626' // Red
+    themeColor: '#DC2626', // Red
   },
   'coachella-2026-event': {
     title: 'Coachella 2026',
     location: 'Indio, CA',
     dateRange: 'Apr 10 - Apr 19, 2026',
     description: 'Premier music and arts festival with headliners, art installations, and camping',
-    coverPhoto: 'https://images.unsplash.com/photo-1478147427282-58a87a120781?w=1200&h=630&fit=crop',
+    coverPhoto:
+      'https://images.unsplash.com/photo-1478147427282-58a87a120781?w=1200&h=630&fit=crop',
     participantCount: 600,
     tripType: 'event',
-    themeColor: '#F59E0B' // Orange
-  }
+    themeColor: '#F59E0B', // Orange
+  },
 };
 
 // Helper to darken a hex color for gradients
@@ -325,16 +354,21 @@ function darkenColor(hex: string): string {
   return `#${darken(r).toString(16).padStart(2, '0')}${darken(g).toString(16).padStart(2, '0')}${darken(b).toString(16).padStart(2, '0')}`;
 }
 
-function generateHTML(trip: {
-  title: string;
-  location: string;
-  dateRange: string;
-  description: string;
-  coverPhoto: string;
-  participantCount: number;
-  tripType?: 'consumer' | 'pro' | 'event';
-  themeColor?: string;
-}, tripId: string, canonicalUrl: string, appBaseUrl: string): string {
+function generateHTML(
+  trip: {
+    title: string;
+    location: string;
+    dateRange: string;
+    description: string;
+    coverPhoto: string;
+    participantCount: number;
+    tripType?: 'consumer' | 'pro' | 'event';
+    themeColor?: string;
+  },
+  tripId: string,
+  canonicalUrl: string,
+  appBaseUrl: string,
+): string {
   const safeTitle = escapeHtml(trip.title);
   const safeLocation = escapeHtml(trip.location);
   const safeDateRange = escapeHtml(trip.dateRange);
@@ -343,7 +377,7 @@ function generateHTML(trip: {
 
   // Where humans should land after unfurling (public preview page with auth handling).
   const appTripUrl = `${appBaseUrl}/trip/${encodeURIComponent(tripId)}/preview`;
-  
+
   // Determine trip type for badge display
   const isEvent = trip.tripType === 'event' && trip.themeColor;
   const isPro = trip.tripType === 'pro';
@@ -353,12 +387,12 @@ function generateHTML(trip: {
   const headerContent = `<img src="${safeCoverPhoto}" alt="${safeTitle}" class="cover">`;
 
   // Type badge for non-consumer trips
-  const typeBadge = isEvent 
+  const typeBadge = isEvent
     ? `<div class="type-badge event" style="background: ${trip.themeColor}; color: white; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Event</div>`
     : isPro
-    ? `<div class="type-badge pro" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Pro</div>`
-    : '';
-  
+      ? `<div class="type-badge pro" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Pro</div>`
+      : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -370,8 +404,8 @@ function generateHTML(trip: {
   <meta property="og:type" content="website">
   <!-- IMPORTANT: og:url should match the URL being scraped -->
   <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
-  <meta property="og:title" content="${safeTitle} • ${safeDateRange}">
-  <meta property="og:description" content="${safeLocation} • ${trip.participantCount} Chravelers">
+  <meta property="og:title" content="${safeTitle} • ${safeLocation} • ${safeDateRange}">
+  <meta property="og:description" content="📍 ${safeLocation} • 📅 ${safeDateRange} • ${trip.participantCount} Chravelers">
   <meta property="og:image" content="${safeCoverPhoto}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -379,8 +413,8 @@ function generateHTML(trip: {
   
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${safeTitle} • ${safeDateRange}">
-  <meta name="twitter:description" content="${safeLocation} • ${trip.participantCount} Chravelers">
+  <meta name="twitter:title" content="${safeTitle} • ${safeLocation} • ${safeDateRange}">
+  <meta name="twitter:description" content="📍 ${safeLocation} • 📅 ${safeDateRange} • ${trip.participantCount} Chravelers">
   <meta name="twitter:image" content="${safeCoverPhoto}">
   
   <!-- Additional Meta Tags -->
@@ -499,13 +533,13 @@ serve(async (req: Request): Promise<Response> => {
     const tripId = url.searchParams.get('tripId');
     const canonicalUrlParam = url.searchParams.get('canonicalUrl');
     const appBaseUrlParam = url.searchParams.get('appBaseUrl');
-    
+
     console.log('[generate-trip-preview] Request for tripId:', tripId);
 
     if (!tripId) {
-      return new Response('Missing tripId parameter', { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' } 
+      return new Response('Missing tripId parameter', {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
       });
     }
 
@@ -514,26 +548,28 @@ serve(async (req: Request): Promise<Response> => {
      * If you're proxying through a branded domain (e.g., a Worker at `p.chravel.app`),
      * pass `canonicalUrl` so OG tags match the branded URL (not the supabase.co URL).
      */
-    const canonicalUrl = canonicalUrlParam && canonicalUrlParam.startsWith('http')
-      ? canonicalUrlParam
-      : new URL(req.url).toString();
+    const canonicalUrl =
+      canonicalUrlParam && canonicalUrlParam.startsWith('http')
+        ? canonicalUrlParam
+        : new URL(req.url).toString();
 
     // Determine app base URL for human redirect / CTAs.
-    const appBaseUrl = appBaseUrlParam && appBaseUrlParam.startsWith('http')
-      ? appBaseUrlParam
-      : (Deno.env.get('SITE_URL') || 'https://chravel.app');
-    
+    const appBaseUrl =
+      appBaseUrlParam && appBaseUrlParam.startsWith('http')
+        ? appBaseUrlParam
+        : Deno.env.get('SITE_URL') || 'https://chravel.app';
+
     // Check if it's a demo trip (numeric ID 1-12)
     if (demoTrips[tripId]) {
       console.log('[generate-trip-preview] Serving demo trip:', tripId);
       const html = generateHTML(demoTrips[tripId], tripId, canonicalUrl, appBaseUrl);
       return new Response(html, {
         status: 200,
-        headers: { 
-          ...corsHeaders, 
+        headers: {
+          ...corsHeaders,
           'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
-        }
+          'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        },
       });
     }
 
@@ -550,17 +586,17 @@ serve(async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error('[generate-trip-preview] Database error:', error);
-      return new Response('Error fetching trip', { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' } 
+      return new Response('Error fetching trip', {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
       });
     }
 
     if (!trip) {
       console.log('[generate-trip-preview] Trip not found:', tripId);
-      return new Response('Trip not found', { 
-        status: 404, 
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' } 
+      return new Response('Trip not found', {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
       });
     }
 
@@ -571,8 +607,16 @@ serve(async (req: Request): Promise<Response> => {
       .eq('trip_id', tripId);
 
     // Format dates
-    const startDate = trip.start_date ? new Date(trip.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-    const endDate = trip.end_date ? new Date(trip.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const startDate = trip.start_date
+      ? new Date(trip.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : '';
+    const endDate = trip.end_date
+      ? new Date(trip.end_date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : '';
     const dateRange = startDate && endDate ? `${startDate} - ${endDate}` : 'Dates TBD';
 
     const tripData = {
@@ -582,26 +626,25 @@ serve(async (req: Request): Promise<Response> => {
       description: trip.description || 'An amazing adventure awaits!',
       coverPhoto: trip.cover_image_url || 'https://chravel.app/chravelapp-og-20251219.png',
       participantCount: participantCount || 1,
-      tripType: trip.trip_type as 'consumer' | 'pro' | 'event' | undefined
+      tripType: trip.trip_type as 'consumer' | 'pro' | 'event' | undefined,
     };
 
     console.log('[generate-trip-preview] Serving real trip:', tripId, tripData.title);
     const html = generateHTML(tripData, tripId, canonicalUrl, appBaseUrl);
-    
+
     return new Response(html, {
       status: 200,
-      headers: { 
-        ...corsHeaders, 
+      headers: {
+        ...corsHeaders,
         'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
-      }
+        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+      },
     });
-
   } catch (error) {
     console.error('[generate-trip-preview] Error:', error);
-    return new Response('Internal server error', { 
-      status: 500, 
-      headers: { ...corsHeaders, 'Content-Type': 'text/plain' } 
+    return new Response('Internal server error', {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
     });
   }
 });

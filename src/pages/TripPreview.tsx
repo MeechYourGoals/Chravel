@@ -77,19 +77,19 @@ const TripPreview = () => {
       meta.content = content;
     };
 
-    updateMetaTag('og:title', `Check out ${tripName} on ChravelApp!`);
+    updateMetaTag('og:title', `${tripName} \u2022 ${destination}`);
     updateMetaTag(
       'og:description',
-      `A trip to ${destination}. Plan your group travel adventures with ChravelApp!`,
+      `\uD83D\uDCCD ${destination} \u2022 Plan your group travel adventures with ChravelApp!`,
     );
     updateMetaTag('og:type', 'website');
     updateMetaTag('og:image', imageUrl);
     updateMetaTag('og:url', window.location.href);
     updateMetaName('twitter:card', 'summary_large_image');
-    updateMetaName('twitter:title', `Check out ${tripName} on ChravelApp!`);
+    updateMetaName('twitter:title', `${tripName} \u2022 ${destination}`);
     updateMetaName(
       'twitter:description',
-      `A trip to ${destination}. Plan your group travel adventures with ChravelApp!`,
+      `\uD83D\uDCCD ${destination} \u2022 Plan your group travel adventures with ChravelApp!`,
     );
     updateMetaName('twitter:image', imageUrl);
   }, [tripData]);
