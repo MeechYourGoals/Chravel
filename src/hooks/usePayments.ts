@@ -16,6 +16,16 @@ import {
   buildPaymentMessage,
 } from '@/lib/paymentCacheUtils';
 
+class CreatePaymentMutationError extends Error {
+  public readonly code: string;
+
+  public constructor(code: string, message: string) {
+    super(message);
+    this.name = 'CreatePaymentMutationError';
+    this.code = code;
+  }
+}
+
 export const usePayments = (tripId?: string) => {
   const queryClient = useQueryClient();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -134,21 +144,30 @@ export const usePayments = (tripId?: string) => {
       paymentMethods: string[];
     }): Promise<{ paymentId: string }> => {
       if (!tripId) {
-        throw new Error('Trip ID is missing.');
+        throw new CreatePaymentMutationError('VALIDATION_FAILED', 'Trip ID is missing.');
       }
 
       if (demoActive) {
         const paymentId = demoModeService.addSessionPayment(tripId, paymentData);
+        if (!paymentId) {
+          throw new CreatePaymentMutationError('DEMO_ERROR', 'Failed to create demo payment.');
+        }
         return { paymentId };
       }
 
       if (!userId) {
-        throw new Error('User ID is missing. Please sign in.');
+        throw new CreatePaymentMutationError(
+          'VALIDATION_FAILED',
+          'User ID is missing. Please sign in.',
+        );
       }
 
       const result = await paymentService.createPaymentMessage(tripId, userId, paymentData);
       if (!result.success || !result.paymentId) {
-        throw new Error(result.error?.message || 'Failed to create payment.');
+        throw new CreatePaymentMutationError(
+          result.error?.code || 'UNKNOWN',
+          result.error?.message || 'Failed to create payment.',
+        );
       }
 
       return { paymentId: result.paymentId };
@@ -235,6 +254,15 @@ export const usePayments = (tripId?: string) => {
       const { paymentId } = await createPaymentMutation.mutateAsync(paymentData);
       return { success: true, paymentId };
     } catch (error) {
+      if (error instanceof CreatePaymentMutationError) {
+        return {
+          success: false,
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        };
+      }
       return {
         success: false,
         error: {
@@ -280,7 +308,7 @@ export const usePayments = (tripId?: string) => {
           queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) });
         }
         return true;
-      } catch (e) {
+      } catch {
         queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
         return false;
       }
@@ -315,7 +343,7 @@ export const usePayments = (tripId?: string) => {
           queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) });
         }
         return true;
-      } catch (e) {
+      } catch {
         queryClient.setQueryData(tripKeys.payments(tripId), previousPayments);
         return false;
       }
