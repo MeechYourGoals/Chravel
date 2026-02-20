@@ -43,17 +43,19 @@ export const SeatManagement = () => {
       const userIds = members.map(m => m.user_id);
       const { data: profiles } = await supabase
         .from('profiles_public')
-        .select('user_id, display_name, resolved_display_name, avatar_url')
+        .select('user_id, display_name, resolved_display_name, avatar_url, job_title, show_job_title')
         .in('user_id', userIds);
 
       const enriched = members.map(member => {
         const profile = profiles?.find(p => p.user_id === member.user_id);
+        const baseName = profile?.resolved_display_name || profile?.display_name;
+        const displayName =
+          profile?.show_job_title && profile?.job_title?.trim()
+            ? `${baseName || 'Unknown'} (${profile.job_title.trim()})`
+            : baseName || 'Unknown';
         return {
           ...member,
-          profile: profile ? {
-            ...profile,
-            display_name: profile.resolved_display_name || profile.display_name,
-          } : undefined,
+          profile: profile ? { ...profile, display_name: displayName } : undefined,
         };
       });
 

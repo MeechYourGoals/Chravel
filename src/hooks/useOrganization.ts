@@ -79,6 +79,9 @@ export const useOrganization = () => {
         if (orgs && orgs.length > 0) {
           setCurrentOrg(orgs[0] as Organization);
         }
+      } else {
+        setOrganizations([]);
+        setCurrentOrg(null);
       }
     } catch (err) {
       console.error('Error fetching organizations:', err);
@@ -134,6 +137,30 @@ export const useOrganization = () => {
 
       await fetchUserOrganizations();
       return { data: newOrg, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  };
+
+  const updateOrganization = async (
+    orgId: string,
+    updates: {
+      name?: string;
+      display_name?: string;
+      billing_email?: string;
+      contact_name?: string;
+      contact_email?: string;
+      contact_phone?: string;
+      contact_job_title?: string;
+    },
+  ) => {
+    try {
+      const { error } = await supabase.from('organizations').update(updates).eq('id', orgId);
+
+      if (error) throw error;
+
+      await fetchUserOrganizations();
+      return { error: null };
     } catch (error) {
       return { data: null, error };
     }
@@ -212,6 +239,7 @@ export const useOrganization = () => {
     fetchUserOrganizations,
     fetchOrgMembers,
     createOrganization,
+    updateOrganization,
     inviteMember,
     removeMember,
     updateMemberRole,
