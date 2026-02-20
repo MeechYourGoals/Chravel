@@ -8,8 +8,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useBasecamp } from '@/contexts/BasecampContext';
 import { useUpdateTripBasecamp, useClearTripBasecamp } from '@/hooks/useTripBasecamp';
+import { personalBasecampKeys } from '@/hooks/usePersonalBasecamp';
 import { toast } from 'sonner';
 import { DirectionsEmbed } from './DirectionsEmbed';
+import { useQueryClient } from '@tanstack/react-query';
 
 const LOG_PREFIX = '[BasecampsPanel]';
 
@@ -32,6 +34,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   personalBasecamp: externalPersonalBasecamp,
   onPersonalBasecampUpdate,
 }) => {
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { clearBasecamp } = useBasecamp();
@@ -253,6 +256,10 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
 
       if (savedBasecamp) {
         setPersonalBasecamp(savedBasecamp);
+        queryClient.setQueryData(
+          personalBasecampKeys.tripUser(tripId, effectiveUserId),
+          savedBasecamp,
+        );
         setShowPersonalSelector(false);
         toast.success('Personal basecamp saved');
         console.log(
@@ -278,10 +285,12 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
       if (isDemoMode) {
         demoModeService.deleteSessionPersonalBasecamp(tripId, effectiveUserId);
         setPersonalBasecamp(null);
+        queryClient.setQueryData(personalBasecampKeys.tripUser(tripId, effectiveUserId), null);
       } else if (user) {
         const success = await basecampService.deletePersonalBasecamp(personalBasecamp.id);
         if (success) {
           setPersonalBasecamp(null);
+          queryClient.setQueryData(personalBasecampKeys.tripUser(tripId, effectiveUserId), null);
         }
       }
     } catch (error) {

@@ -26,8 +26,15 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   const { toast } = useToast();
   const { isLoading: demoLoading } = useDemoMode();
   // ⚡ TanStack Query: payment data (cached, prefetchable)
-  const { tripPayments, paymentsLoading, demoActive, refreshPayments, createPaymentMessage } =
-    usePayments(tripId);
+  const {
+    tripPayments,
+    paymentsLoading,
+    demoActive,
+    refreshPayments,
+    createPaymentMessage,
+    updatePaymentMessage,
+    deletePaymentMessage,
+  } = usePayments(tripId);
 
   // ⚡ TanStack Query: balance summary (previously useState/useEffect with 4 DB round-trips)
   const { balanceSummary, balanceLoading, refreshBalanceSummary } = useBalanceSummary(tripId);
@@ -223,6 +230,8 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         tripMembers={tripMembers}
         onPaymentUpdated={handlePaymentUpdated}
         payments={tripPayments}
+        onUpdatePayment={updatePaymentMessage}
+        onDeletePayment={deletePaymentMessage}
       />
 
       {/* Payment History - pass data as props */}
@@ -230,6 +239,8 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
         tripId={tripId}
         onPaymentUpdated={handlePaymentUpdated}
         payments={tripPayments}
+        onUpdatePayment={updatePaymentMessage}
+        onDeletePayment={deletePaymentMessage}
       />
 
       {/* Auth Modal */}

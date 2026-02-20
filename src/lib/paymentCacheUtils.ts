@@ -34,6 +34,78 @@ export function optimisticallyAddPayment(
   });
 }
 
+export function optimisticallyUpdatePayment(
+  queryClient: QueryClient,
+  tripId: string,
+  paymentId: string,
+  updates: Partial<Pick<PaymentMessage, 'amount' | 'description' | 'isSettled'>>,
+): void {
+  queryClient.setQueryData(tripKeys.payments(tripId), (old: unknown) => {
+    const updateOne = (p: PaymentMessage): PaymentMessage =>
+      p.id === paymentId ? { ...p, ...updates } : p;
+
+    if (Array.isArray(old)) {
+      return old.map(updateOne);
+    }
+    if (old && typeof old === 'object' && 'payments' in old) {
+      const o = old as { payments: PaymentMessage[]; balanceSummary?: unknown };
+      return { ...o, payments: (o.payments || []).map(updateOne) };
+    }
+    return old;
+  });
+}
+
+export function optimisticallyRemovePayment(
+  queryClient: QueryClient,
+  tripId: string,
+  paymentId: string,
+): void {
+  queryClient.setQueryData(tripKeys.payments(tripId), (old: unknown) => {
+    const without = (arr: PaymentMessage[]): PaymentMessage[] =>
+      arr.filter(p => p.id !== paymentId);
+
+    if (Array.isArray(old)) {
+      return without(old);
+    }
+    if (old && typeof old === 'object' && 'payments' in old) {
+      const o = old as { payments: PaymentMessage[]; balanceSummary?: unknown };
+      return { ...o, payments: without(o.payments || []) };
+    }
+    return old;
+  });
+}
+
+export function replaceOptimisticPaymentId(
+  queryClient: QueryClient,
+  tripId: string,
+  optimisticId: string,
+  realId: string,
+): void {
+  queryClient.setQueryData(tripKeys.payments(tripId), (old: unknown) => {
+    const replaceIn = (arr: PaymentMessage[]): PaymentMessage[] => {
+      let didReplace = false;
+      const next = arr
+        .filter(p => p.id !== realId) // de-dupe if realtime/refetch already inserted it
+        .map(p => {
+          if (p.id !== optimisticId) return p;
+          didReplace = true;
+          return { ...p, id: realId };
+        });
+
+      return didReplace ? next : arr;
+    };
+
+    if (Array.isArray(old)) {
+      return replaceIn(old);
+    }
+    if (old && typeof old === 'object' && 'payments' in old) {
+      const o = old as { payments: PaymentMessage[]; balanceSummary?: unknown };
+      return { ...o, payments: replaceIn(o.payments || []) };
+    }
+    return old;
+  });
+}
+
 /**
  * Build a PaymentMessage from createPaymentMessage result + form data
  */
