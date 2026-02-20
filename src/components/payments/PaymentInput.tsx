@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { DollarSign, Users, CheckSquare, Sparkles, Check } from 'lucide-react';
+import { DollarSign, Users, CheckSquare, Sparkles, Check, Loader2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
@@ -7,7 +7,10 @@ import { Card, CardContent } from '../ui/card';
 import { usePaymentSplits } from '@/hooks/usePaymentSplits';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { PAYMENT_METHOD_OPTIONS } from '@/types/paymentMethods';
-import { getAutomaticParticipantSuggestions, detectPaymentParticipantsFromMessage } from '@/services/chatAnalysisService';
+import {
+  getAutomaticParticipantSuggestions,
+  detectPaymentParticipantsFromMessage,
+} from '@/services/chatAnalysisService';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '../ui/badge';
 import { CurrencySelector } from './CurrencySelector';
@@ -20,7 +23,7 @@ interface PaymentInputProps {
     splitCount: number;
     splitParticipants: string[];
     paymentMethods: string[];
-  }) => void;
+  }) => void | Promise<void>;
   tripMembers: Array<{ id: string; name: string; avatar?: string }>;
   isVisible: boolean;
   tripId: string;
@@ -46,18 +49,28 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
     selectAllPaymentMethods,
     getPaymentData,
     resetForm,
-    setSelectedParticipants
+    setSelectedParticipants,
   } = usePaymentSplits(tripMembers);
-  
-  const [autoSuggestions, setAutoSuggestions] = useState<Array<{ userId: string; reason: string; confidence: number }>>([]);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [autoSuggestions, setAutoSuggestions] = useState<
+    Array<{ userId: string; reason: string; confidence: number }>
+  >([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const paymentData = getPaymentData();
-    if (paymentData) {
-      onSubmit(paymentData);
+    if (!paymentData || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit(paymentData);
       resetForm();
+    } catch {
+      // Parent shows error toast; do not reset form so user can retry
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -74,20 +87,16 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
       setIsAnalyzing(true);
       try {
         // Try to parse payment info from description
-        const result = await detectPaymentParticipantsFromMessage(
-          description,
-          tripId,
-          user.id
-        );
+        const result = await detectPaymentParticipantsFromMessage(description, tripId, user.id);
 
         if (result.suggestedParticipants.length > 0 && result.confidence > 0.5) {
           setAutoSuggestions(result.suggestedParticipants);
-          
+
           // Auto-select high-confidence suggestions
           const highConfidenceIds = result.suggestedParticipants
             .filter(s => s.confidence >= 0.7)
             .map(s => s.userId);
-          
+
           if (highConfidenceIds.length > 0 && selectedParticipants.length === 0) {
             setSelectedParticipants(highConfidenceIds);
           }
@@ -114,7 +123,18 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
     // Debounce analysis
     const timeoutId = setTimeout(analyzeDescription, 500);
     return () => clearTimeout(timeoutId);
-  }, [description, tripId, user?.id, isDemoMode, amount, currency, selectedParticipants.length, setAmount, setCurrency, setSelectedParticipants]);
+  }, [
+    description,
+    tripId,
+    user?.id,
+    isDemoMode,
+    amount,
+    currency,
+    selectedParticipants.length,
+    setAmount,
+    setCurrency,
+    setSelectedParticipants,
+  ]);
 
   // Load automatic suggestions on mount
   useEffect(() => {
@@ -126,14 +146,14 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
       try {
         const suggestions = await getAutomaticParticipantSuggestions(tripId, user.id);
         setAutoSuggestions(suggestions);
-        
+
         // Auto-select top suggestions if none selected
         if (selectedParticipants.length === 0 && suggestions.length > 0) {
           const topSuggestions = suggestions
             .filter(s => s.confidence >= 0.6)
             .slice(0, 3)
             .map(s => s.userId);
-          
+
           if (topSuggestions.length > 0) {
             setSelectedParticipants(topSuggestions);
           }
@@ -163,13 +183,15 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 1. Amount (first - most important) */}
             <div className="flex flex-col space-y-1">
-              <Label htmlFor="amount" className="text-sm font-medium text-gray-300">Amount</Label>
+              <Label htmlFor="amount" className="text-sm font-medium text-gray-300">
+                Amount
+              </Label>
               <Input
                 id="amount"
                 type="number"
                 step="0.01"
                 value={amount || ''}
-                onChange={(e) => setAmount(Number(e.target.value))}
+                onChange={e => setAmount(Number(e.target.value))}
                 placeholder="0.00"
                 className="w-full h-12 rounded-xl bg-gray-900/40 border border-white/10 text-white px-4 focus:ring-2 focus:ring-emerald-400/40 focus:outline-none placeholder-gray-500 transition-all"
                 required
@@ -178,11 +200,13 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
 
             {/* 2. Description (second - what was it for?) */}
             <div className="flex flex-col space-y-1">
-              <Label htmlFor="description" className="text-sm font-medium text-gray-300">What's this for?</Label>
+              <Label htmlFor="description" className="text-sm font-medium text-gray-300">
+                What's this for?
+              </Label>
               <textarea
                 id="description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={e => setDescription(e.target.value)}
                 placeholder="Dinner, taxi, tickets, etc."
                 className="w-full h-12 resize-none rounded-xl bg-gray-900/40 border border-white/10 text-white px-4 py-2 focus:ring-2 focus:ring-emerald-400/40 focus:outline-none placeholder-gray-500 transition-all"
                 required
@@ -191,11 +215,10 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
 
             {/* 3. Currency (third - typically less frequently changed) */}
             <div className="flex flex-col space-y-1">
-              <Label htmlFor="currency" className="text-sm font-medium text-gray-300">Currency</Label>
-              <CurrencySelector
-                value={currency}
-                onChange={setCurrency}
-              />
+              <Label htmlFor="currency" className="text-sm font-medium text-gray-300">
+                Currency
+              </Label>
+              <CurrencySelector value={currency} onChange={setCurrency} />
             </div>
           </div>
 
@@ -212,9 +235,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                     </span>
                   )}
                 </h4>
-                {isAnalyzing && (
-                  <Sparkles size={14} className="text-emerald-400 animate-pulse" />
-                )}
+                {isAnalyzing && <Sparkles size={14} className="text-emerald-400 animate-pulse" />}
               </div>
               <button
                 type="button"
@@ -224,7 +245,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                 {allParticipantsSelected ? 'Deselect All' : 'Select All'}
               </button>
             </div>
-            
+
             {/* Auto-suggestions badge */}
             {autoSuggestions.length > 0 && !isDemoMode && (
               <div className="mb-2 flex flex-wrap gap-1">
@@ -240,15 +261,13 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                       onClick={() => toggleParticipant(suggestion.userId)}
                     >
                       {member.name}
-                      {suggestion.confidence >= 0.7 && (
-                        <Sparkles size={10} className="ml-1" />
-                      )}
+                      {suggestion.confidence >= 0.7 && <Sparkles size={10} className="ml-1" />}
                     </Badge>
                   );
                 })}
               </div>
             )}
-            
+
             <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
               {tripMembers.map(member => {
                 const isSelected = selectedParticipants.includes(member.id);
@@ -259,20 +278,24 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                     onClick={() => toggleParticipant(member.id)}
                     className={`
                       inline-flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-all w-auto shrink-0
-                      ${isSelected 
-                        ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30' 
-                        : 'bg-gray-800/50 hover:bg-gray-800/70 border-2 border-transparent'
+                      ${
+                        isSelected
+                          ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30'
+                          : 'bg-gray-800/50 hover:bg-gray-800/70 border-2 border-transparent'
                       }
                     `}
                   >
                     {/* Checkmark indicator */}
-                    <div className={`
+                    <div
+                      className={`
                       w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
-                      ${isSelected 
-                        ? 'bg-emerald-500 text-white' 
-                        : 'bg-gray-700 border border-gray-600'
+                      ${
+                        isSelected
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-gray-700 border border-gray-600'
                       }
-                    `}>
+                    `}
+                    >
                       {isSelected && <Check size={12} strokeWidth={3} />}
                     </div>
                     {member.avatar && (
@@ -282,7 +305,9 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                         className="w-6 h-6 rounded-full object-cover shrink-0"
                       />
                     )}
-                    <span className={`text-sm whitespace-nowrap ${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}>
+                    <span
+                      className={`text-sm whitespace-nowrap ${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}
+                    >
                       {member.name}
                     </span>
                   </button>
@@ -306,7 +331,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                 {allPaymentMethodsSelected ? 'Deselect All' : 'Select All'}
               </button>
             </div>
-            
+
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
               {PAYMENT_METHOD_OPTIONS.map(method => {
                 const isSelected = selectedPaymentMethods.includes(method.id);
@@ -317,23 +342,29 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                     onClick={() => togglePaymentMethod(method.id)}
                     className={`
                       flex items-center justify-center gap-2 rounded-lg h-10 cursor-pointer transition-all
-                      ${isSelected 
-                        ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30' 
-                        : 'bg-gray-900/40 border-2 border-white/10 hover:bg-gray-800/60'
+                      ${
+                        isSelected
+                          ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30'
+                          : 'bg-gray-900/40 border-2 border-white/10 hover:bg-gray-800/60'
                       }
                     `}
                   >
                     {/* Checkmark indicator */}
-                    <div className={`
+                    <div
+                      className={`
                       w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all
-                      ${isSelected 
-                        ? 'bg-emerald-500 text-white' 
-                        : 'bg-gray-700 border border-gray-600'
+                      ${
+                        isSelected
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-gray-700 border border-gray-600'
                       }
-                    `}>
+                    `}
+                    >
                       {isSelected && <Check size={12} strokeWidth={3} />}
                     </div>
-                    <span className={`text-sm ${isSelected ? 'text-white font-medium' : 'text-gray-200'}`}>
+                    <span
+                      className={`text-sm ${isSelected ? 'text-white font-medium' : 'text-gray-200'}`}
+                    >
                       {method.label}
                     </span>
                   </button>
@@ -346,13 +377,21 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
             type="submit"
             className="w-full mt-2 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl shadow-lg transition-all duration-200 hover:shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={
+              isSubmitting ||
               !amount ||
               !description ||
               selectedParticipants.length === 0 ||
               selectedPaymentMethods.length === 0
             }
           >
-            Add Payment Request
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Saving...
+              </>
+            ) : (
+              'Add Payment Request'
+            )}
           </Button>
         </form>
       </CardContent>
