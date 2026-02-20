@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Building, CreditCard, Settings, Bell, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { TravelWallet } from './TravelWallet';
 import { OrganizationSection } from './enterprise/OrganizationSection';
 import { BillingSection } from './enterprise/BillingSection';
@@ -32,8 +33,9 @@ export const EnterpriseSettings = ({
 }: EnterpriseSettingsProps) => {
   const [activeSection, setActiveSection] = useState(defaultSection);
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
+  const { toast } = useToast();
 
-  const { currentOrg, members, loading, error, fetchUserOrganizations, fetchOrgMembers } =
+  const { currentOrg, members, loading, error, fetchUserOrganizations, fetchOrgMembers, updateOrganization } =
     useOrganization();
 
   useEffect(() => {
@@ -66,9 +68,10 @@ export const EnterpriseSettings = ({
         billingEmail: currentOrg.billing_email || '',
         subscriptionEndsAt: currentOrg.subscription_ends_at || undefined,
         currentUserRole: 'owner' as const,
-        contactName: '',
-        contactEmail: '',
-        contactPhone: '',
+        contactName: (currentOrg as { contact_name?: string })?.contact_name || '',
+        contactEmail: (currentOrg as { contact_email?: string })?.contact_email || '',
+        contactPhone: (currentOrg as { contact_phone?: string })?.contact_phone || '',
+        contactJobTitle: (currentOrg as { contact_job_title?: string })?.contact_job_title || '',
       }
     : null;
 
@@ -113,6 +116,26 @@ export const EnterpriseSettings = ({
           <OrganizationSection
             organization={organization}
             onCreateOrganization={handleOpenCreateOrgModal}
+            onSave={
+              organization?.id && updateOrganization
+                ? async data => {
+                    const { error: err } = await updateOrganization(organization.id, {
+                      name: data.name,
+                      display_name: data.displayName,
+                      billing_email: data.billingEmail,
+                      contact_name: data.contactName || null,
+                      contact_email: data.contactEmail || null,
+                      contact_phone: data.contactPhone || null,
+                      contact_job_title: data.contactJobTitle || null,
+                    });
+                    if (err) {
+                      toast({ title: 'Error', description: 'Failed to save. Please try again.', variant: 'destructive' });
+                    } else {
+                      toast({ title: 'Saved', description: 'Organization settings updated.' });
+                    }
+                  }
+                : undefined
+            }
           />
         );
       case 'billing':
@@ -137,6 +160,26 @@ export const EnterpriseSettings = ({
           <OrganizationSection
             organization={organization}
             onCreateOrganization={handleOpenCreateOrgModal}
+            onSave={
+              organization?.id && updateOrganization
+                ? async data => {
+                    const { error: err } = await updateOrganization(organization.id, {
+                      name: data.name,
+                      display_name: data.displayName,
+                      billing_email: data.billingEmail,
+                      contact_name: data.contactName || null,
+                      contact_email: data.contactEmail || null,
+                      contact_phone: data.contactPhone || null,
+                      contact_job_title: data.contactJobTitle || null,
+                    });
+                    if (err) {
+                      toast({ title: 'Error', description: 'Failed to save. Please try again.', variant: 'destructive' });
+                    } else {
+                      toast({ title: 'Saved', description: 'Organization settings updated.' });
+                    }
+                  }
+                : undefined
+            }
           />
         );
     }

@@ -20,6 +20,8 @@ export interface ProfileForDisplay {
   name_preference?: 'real' | 'display' | null;
   first_name?: string | null;
   last_name?: string | null;
+  job_title?: string | null;
+  show_job_title?: boolean | null;
 }
 
 /**
@@ -76,4 +78,20 @@ export function resolveDisplayName(
   fallback: string = UNRESOLVED_NAME_SENTINEL,
 ): string {
   return getEffectiveDisplayName(profile, fallback);
+}
+
+/**
+ * Returns display name with optional job title in parentheses when show_job_title is enabled.
+ * Used in organization directory and contact information.
+ */
+export function formatDisplayNameWithJobTitle(
+  profile: ProfileForDisplay | null | undefined,
+  fallback: string = UNRESOLVED_NAME_SENTINEL,
+): string {
+  const name = getEffectiveDisplayName(profile, fallback);
+  if (name === fallback) return name;
+  if (profile?.show_job_title && profile?.job_title?.trim()) {
+    return `${name} (${profile.job_title.trim()})`;
+  }
+  return name;
 }

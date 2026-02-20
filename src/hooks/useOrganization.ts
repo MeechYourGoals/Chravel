@@ -139,6 +139,30 @@ export const useOrganization = () => {
     }
   };
 
+  const updateOrganization = async (
+    orgId: string,
+    updates: {
+      name?: string;
+      display_name?: string;
+      billing_email?: string;
+      contact_name?: string;
+      contact_email?: string;
+      contact_phone?: string;
+      contact_job_title?: string;
+    },
+  ) => {
+    try {
+      const { error } = await supabase.from('organizations').update(updates).eq('id', orgId);
+
+      if (error) throw error;
+
+      await fetchUserOrganizations();
+      return { error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  };
+
   const inviteMember = async (orgId: string, email: string, role: 'admin' | 'member') => {
     try {
       const token = crypto.randomUUID();
@@ -212,6 +236,7 @@ export const useOrganization = () => {
     fetchUserOrganizations,
     fetchOrgMembers,
     createOrganization,
+    updateOrganization,
     inviteMember,
     removeMember,
     updateMemberRole,

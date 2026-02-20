@@ -9,20 +9,32 @@ interface OrganizationData {
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
+  contactJobTitle?: string;
 }
 
 interface OrganizationSectionProps {
   organization: OrganizationData | null;
   onCreateOrganization?: () => void;
+  onSave?: (data: {
+    name: string;
+    displayName: string;
+    billingEmail: string;
+    contactName: string;
+    contactEmail: string;
+    contactPhone: string;
+    contactJobTitle: string;
+  }) => Promise<void>;
 }
 
 export const OrganizationSection = ({
   organization,
   onCreateOrganization,
+  onSave,
 }: OrganizationSectionProps) => {
   const [contactName, setContactName] = useState(organization?.contactName || '');
   const [contactEmail, setContactEmail] = useState(organization?.contactEmail || '');
   const [contactPhone, setContactPhone] = useState(organization?.contactPhone || '');
+  const [contactJobTitle, setContactJobTitle] = useState(organization?.contactJobTitle || '');
   const [orgName, setOrgName] = useState(organization?.name || '');
   const [displayName, setDisplayName] = useState(organization?.displayName || '');
   const [billingEmail, setBillingEmail] = useState(organization?.billingEmail || '');
@@ -135,7 +147,7 @@ export const OrganizationSection = ({
         </div>
       </div>
 
-      {/* Primary Contact Section */}
+      {/* Primary Contact Section - symmetrical 2x2 grid */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Primary Contact</h4>
         <p className="text-sm text-gray-400 mb-4">
@@ -162,7 +174,17 @@ export const OrganizationSection = ({
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             />
           </div>
-          <div className="md:col-span-2">
+          <div>
+            <label className="block text-sm text-gray-300 mb-2">Job Title</label>
+            <input
+              type="text"
+              value={contactJobTitle}
+              onChange={e => setContactJobTitle(e.target.value)}
+              placeholder="e.g. Travel Coordinator"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+            />
+          </div>
+          <div>
             <label className="block text-sm text-gray-300 mb-2">Contact Phone (Optional)</label>
             <input
               type="tel"
@@ -175,7 +197,25 @@ export const OrganizationSection = ({
         </div>
       </div>
 
-      <button className="mt-4 bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+      <button
+        type="button"
+        onClick={async () => {
+          if (organization && onSave) {
+            await onSave({
+              name: orgName,
+              displayName,
+              billingEmail: billingEmail,
+              contactName,
+              contactEmail,
+              contactPhone,
+              contactJobTitle,
+            });
+          } else if (!organization && onCreateOrganization) {
+            onCreateOrganization();
+          }
+        }}
+        className="mt-4 bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+      >
         {organization ? 'Save Changes' : 'Create Organization'}
       </button>
     </div>
