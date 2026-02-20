@@ -1,9 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import {
-  paymentBalanceService,
-  BalanceSummary,
-} from '../services/paymentBalanceService';
+import { paymentBalanceService, BalanceSummary } from '../services/paymentBalanceService';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,7 +31,11 @@ export const useBalanceSummary = (tripId?: string) => {
 
   const userId = user?.id;
 
-  const { data: balanceSummary, isLoading: balanceLoading, error } = useQuery({
+  const {
+    data: balanceSummary,
+    isLoading: balanceLoading,
+    error,
+  } = useQuery({
     queryKey: tripKeys.paymentBalances(tripId || '', userId || ''),
     queryFn: async (): Promise<BalanceSummary> => {
       if (!tripId) return EMPTY_BALANCE;
@@ -84,21 +85,26 @@ export const useBalanceSummary = (tripId?: string) => {
     if (!hub) {
       const channel = supabase
         .channel(`balance_payments:${tripId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_payment_messages', filter: `trip_id=eq.${tripId}` },
-          () => queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) }))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_splits' },
-          () => queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) }))
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'trip_payment_messages',
+            filter: `trip_id=eq.${tripId}`,
+          },
+          () =>
+            queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) }),
+        )
         .subscribe();
-      return () => { supabase.removeChannel(channel); };
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
 
-    const unsub1 = hub.subscribe('trip_payment_messages', '*', () => {
+    return hub.subscribe('trip_payment_messages', '*', () => {
       queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) });
     });
-    const unsub2 = hub.subscribe('payment_splits', '*', () => {
-      queryClient.invalidateQueries({ queryKey: tripKeys.paymentBalances(tripId, userId) });
-    });
-    return () => { unsub1(); unsub2(); };
   }, [tripId, demoActive, userId, queryClient]);
 
   const refreshBalanceSummary = async () => {

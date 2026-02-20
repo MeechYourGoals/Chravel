@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { demoModeService } from '../services/demoModeService';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { isDemoTrip as checkDemoTrip } from '@/utils/demoUtils';
+import { optimisticallyAddPayment, buildPaymentMessage } from '@/lib/paymentCacheUtils';
 
 export const usePayments = (tripId?: string) => {
   const queryClient = useQueryClient();
@@ -81,27 +82,31 @@ export const usePayments = (tripId?: string) => {
       // Fallback: direct channel if hub not yet mounted
       const channel = supabase
         .channel(`trip_payments:${tripId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_payment_messages', filter: `trip_id=eq.${tripId}` },
-          () => queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) }))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_splits' },
-          () => queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) }))
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'trip_payment_messages',
+            filter: `trip_id=eq.${tripId}`,
+          },
+          () => queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) }),
+        )
         .subscribe();
-      return () => { supabase.removeChannel(channel); };
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
 
-    const unsub1 = hub.subscribe('trip_payment_messages', '*', () => {
+    return hub.subscribe('trip_payment_messages', '*', () => {
       queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
     });
-    const unsub2 = hub.subscribe('payment_splits', '*', () => {
-      queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
-    });
-    return () => { unsub1(); unsub2(); };
   }, [tripId, demoActive, queryClient]);
 
-  // Refresh via cache invalidation (instant if data is already cached)
+  // Refresh: refetch and await so UI has fresh data before we consider the operation complete
   const refreshPayments = useCallback(async () => {
     if (tripId) {
-      await queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) });
+      await queryClient.refetchQueries({ queryKey: tripKeys.payments(tripId) });
     }
   }, [tripId, queryClient]);
 
@@ -141,14 +146,18 @@ export const usePayments = (tripId?: string) => {
     splitCount: number;
     splitParticipants: string[];
     paymentMethods: string[];
-  }): Promise<{ success: boolean; paymentId?: string; error?: { code: string; message: string } }> => {
+  }): Promise<{
+    success: boolean;
+    paymentId?: string;
+    error?: { code: string; message: string };
+  }> => {
     if (!tripId) {
       return {
         success: false,
         error: {
           code: 'VALIDATION_FAILED',
-          message: 'Trip ID is missing.'
-        }
+          message: 'Trip ID is missing.',
+        },
       };
     }
 
@@ -161,7 +170,7 @@ export const usePayments = (tripId?: string) => {
       }
       return {
         success: false,
-        error: { code: 'DEMO_ERROR', message: 'Failed to create demo payment.' }
+        error: { code: 'DEMO_ERROR', message: 'Failed to create demo payment.' },
       };
     }
 
@@ -171,13 +180,17 @@ export const usePayments = (tripId?: string) => {
         success: false,
         error: {
           code: 'VALIDATION_FAILED',
-          message: 'User ID is missing. Please sign in.'
-        }
+          message: 'User ID is missing. Please sign in.',
+        },
       };
     }
 
     const result = await paymentService.createPaymentMessage(tripId, userId, paymentData);
-    if (result.success && result.paymentId) {
+    if (result.success && result.paymentId && userId) {
+      // Optimistic update: show payment immediately without waiting for refetch
+      const newPayment = buildPaymentMessage(result.paymentId, tripId, userId, paymentData);
+      optimisticallyAddPayment(queryClient, tripId, newPayment);
+      // Refetch to ensure server truth (balance, etc.) — runs in background
       await refreshPayments();
     }
     return result;
@@ -228,6 +241,6 @@ export const usePayments = (tripId?: string) => {
     createPaymentMessage,
     settlePayment,
     unsettlePayment,
-    getTripPaymentSummary
+    getTripPaymentSummary,
   };
 };
