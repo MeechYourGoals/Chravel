@@ -179,7 +179,9 @@ export const usePayments = (tripId?: string) => {
 
       const previousPayments = queryClient.getQueryData(tripKeys.payments(tripId));
       const optimisticId = makeOptimisticPaymentId();
-      const optimisticUserId = userId || 'demo-user';
+      // Demo-mode payments persist with a fixed author id (`demo-user`) even if a real user is signed in.
+      // Keep optimistic rows consistent to avoid creator-only UI flicker.
+      const optimisticUserId = demoActive ? 'demo-user' : userId || 'demo-user';
       const optimisticPayment = buildPaymentMessage(
         optimisticId,
         tripId,
