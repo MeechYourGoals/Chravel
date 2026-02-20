@@ -969,8 +969,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         updatedUser.phone = (data as any).phone ?? updatedUser.phone;
         updatedUser.showEmail = data.show_email ?? updatedUser.showEmail;
         updatedUser.showPhone = data.show_phone ?? updatedUser.showPhone;
-        updatedUser.jobTitle = (data as UserProfile & { job_title?: string; show_job_title?: boolean }).job_title ?? updatedUser.jobTitle;
-        updatedUser.showJobTitle = (data as UserProfile & { job_title?: string; show_job_title?: boolean }).show_job_title ?? updatedUser.showJobTitle;
+        const dataJobTitle = (data as UserProfile & { job_title?: string | null; show_job_title?: boolean }).job_title;
+        updatedUser.jobTitle = dataJobTitle !== undefined ? (dataJobTitle ?? undefined) : updatedUser.jobTitle;
+        const dataShowJobTitle = (data as UserProfile & { job_title?: string | null; show_job_title?: boolean }).show_job_title;
+        updatedUser.showJobTitle = dataShowJobTitle !== undefined ? (dataShowJobTitle ?? false) : updatedUser.showJobTitle;
       } else {
         if (updates.display_name) updatedUser.displayName = updates.display_name;
         if (updates.real_name !== undefined) updatedUser.realName = updates.real_name ?? undefined;
