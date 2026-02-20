@@ -211,9 +211,7 @@ export const ChatSearchOverlay = ({
           {!isSearching && totalResults === 0 && !query && (
             <div className="p-8 text-center text-white/50 space-y-2">
               <p>Type to search messages and broadcasts</p>
-              <p className="text-xs text-white/40">
-                Filters: from:Name · broadcast · Tuesday · after:YYYY-MM-DD
-              </p>
+              <p className="text-xs text-white/40">Filters: from:Name · broadcast</p>
             </div>
           )}
 

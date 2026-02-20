@@ -178,7 +178,7 @@ export async function searchBroadcasts(
 }
 
 /**
- * Search trip messages with filters (sender, date range, weekday)
+ * Search trip messages with filters (sender only)
  */
 async function searchTripMessagesWithFilters(
   tripId: string,
@@ -195,15 +195,8 @@ async function searchTripMessagesWithFilters(
 
   if (parsed.text.trim()) {
     query = query.ilike('content', `%${parsed.text}%`);
-  } else if (!parsed.sender && !parsed.after && !parsed.before && parsed.weekday === undefined) {
+  } else if (!parsed.sender) {
     return [];
-  }
-
-  if (parsed.after) {
-    query = query.gte('created_at', parsed.after.toISOString());
-  }
-  if (parsed.before) {
-    query = query.lte('created_at', parsed.before.toISOString());
   }
 
   const { data, error } = await query;
@@ -221,19 +214,11 @@ async function searchTripMessagesWithFilters(
     results = results.filter(m => m.user_id && senderIds.includes(m.user_id));
   }
 
-  if (parsed.weekday !== undefined) {
-    results = results.filter(m => {
-      const d = new Date(m.created_at);
-      const dow = d.getUTCDay();
-      return dow === parsed.weekday;
-    });
-  }
-
   return results;
 }
 
 /**
- * Search broadcasts with filters (sender, date range, weekday)
+ * Search broadcasts with filters (sender only)
  * When allowEmptyContent (e.g. user typed "broadcast" only), return all matching broadcasts.
  */
 async function searchBroadcastsWithFilters(
@@ -242,12 +227,7 @@ async function searchBroadcastsWithFilters(
   limit: number = 50,
   allowEmptyContent: boolean = false,
 ): Promise<BroadcastSearchResult[]> {
-  const hasAnyFilter =
-    parsed.text.trim() ||
-    parsed.sender ||
-    parsed.after ||
-    parsed.before ||
-    parsed.weekday !== undefined;
+  const hasAnyFilter = parsed.text.trim() || parsed.sender;
 
   if (!hasAnyFilter && !allowEmptyContent) return [];
 
@@ -263,13 +243,6 @@ async function searchBroadcastsWithFilters(
     query = query.ilike('message', `%${parsed.text}%`);
   }
 
-  if (parsed.after) {
-    query = query.gte('created_at', parsed.after.toISOString());
-  }
-  if (parsed.before) {
-    query = query.lte('created_at', parsed.before.toISOString());
-  }
-
   const { data, error } = await query;
 
   if (error) {
@@ -283,13 +256,6 @@ async function searchBroadcastsWithFilters(
     const senderIds = await resolveSenderNameToIds(tripId, parsed.sender);
     if (senderIds.length === 0) return [];
     results = results.filter(b => senderIds.includes(b.created_by));
-  }
-
-  if (parsed.weekday !== undefined) {
-    results = results.filter(b => {
-      const d = new Date(b.created_at);
-      return d.getUTCDay() === parsed.weekday;
-    });
   }
 
   const creatorIds = [...new Set(results.map(b => b.created_by))];
@@ -345,13 +311,7 @@ export async function searchChatContentWithFilters(
   messages: MessageSearchResult[];
   broadcasts: BroadcastSearchResult[];
 }> {
-  const hasFilters =
-    parsed.sender ||
-    parsed.isBroadcastOnly ||
-    parsed.weekday !== undefined ||
-    parsed.after ||
-    parsed.before ||
-    parsed.rangePreset;
+  const hasFilters = parsed.sender || parsed.isBroadcastOnly;
 
   if (!hasFilters && parsed.text.trim()) {
     return searchChatContent(tripId, parsed.text);
