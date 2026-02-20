@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, MessageCircle, Megaphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { searchChatContent, MessageSearchResult, BroadcastSearchResult } from '@/services/chatSearchService';
+import {
+  searchChatContentWithFilters,
+  MessageSearchResult,
+  BroadcastSearchResult,
+} from '@/services/chatSearchService';
+import { parseMessageSearchQuery } from '@/lib/parseMessageSearchQuery';
 import { format } from 'date-fns';
 
 interface MockMessage {
@@ -26,7 +31,7 @@ export const ChatSearchOverlay = ({
   onClose,
   onResultSelect,
   isDemoMode = false,
-  demoMessages = []
+  demoMessages = [],
 }: ChatSearchOverlayProps) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -56,7 +61,7 @@ export const ChatSearchOverlay = ({
       if (isDemoMode && demoMessages.length > 0) {
         // Local search through demo messages
         const lowerQuery = query.toLowerCase();
-        
+
         // Filter regular messages
         const matchedMessages = demoMessages
           .filter(msg => !msg.isBroadcast && msg.text.toLowerCase().includes(lowerQuery))
@@ -66,9 +71,9 @@ export const ChatSearchOverlay = ({
             author_name: msg.sender.name,
             user_id: msg.sender.id,
             created_at: msg.createdAt,
-            type: 'message' as const
+            type: 'message' as const,
           }));
-        
+
         // Filter broadcasts
         const matchedBroadcasts = demoMessages
           .filter(msg => msg.isBroadcast && msg.text.toLowerCase().includes(lowerQuery))
@@ -77,17 +82,21 @@ export const ChatSearchOverlay = ({
             message: msg.text,
             created_by: msg.sender.id,
             created_by_name: msg.sender.name,
-            priority: msg.tags?.includes('urgent') ? 'urgent' : 
-                     msg.tags?.includes('logistics') ? 'high' : 'normal',
+            priority: msg.tags?.includes('urgent')
+              ? 'urgent'
+              : msg.tags?.includes('logistics')
+                ? 'high'
+                : 'normal',
             created_at: msg.createdAt,
-            type: 'broadcast' as const
+            type: 'broadcast' as const,
           }));
 
         setMessages(matchedMessages);
         setBroadcasts(matchedBroadcasts);
       } else {
-        // Query Supabase for authenticated mode
-        const results = await searchChatContent(tripId, query);
+        // Query Supabase for authenticated mode (supports filters: from:, broadcast, day:, etc.)
+        const parsed = parseMessageSearchQuery(query);
+        const results = await searchChatContentWithFilters(tripId, parsed);
         setMessages(results.messages);
         setBroadcasts(results.broadcasts);
       }
@@ -139,17 +148,18 @@ export const ChatSearchOverlay = ({
 
   const getPriorityBadge = (priority: string | null) => {
     if (!priority || priority === 'normal') return null;
-    
-    const config = {
-      urgent: { bg: 'bg-red-500', text: 'Urgent' },
-      high: { bg: 'bg-orange-500', text: 'High' },
-      reminder: { bg: 'bg-blue-500', text: 'Reminder' }
-    }[priority] || null;
+
+    const config =
+      {
+        urgent: { bg: 'bg-red-500', text: 'Urgent' },
+        high: { bg: 'bg-orange-500', text: 'High' },
+        reminder: { bg: 'bg-blue-500', text: 'Reminder' },
+      }[priority] || null;
 
     if (!config) return null;
 
     return (
-      <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium text-white", config.bg)}>
+      <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium text-white', config.bg)}>
         {config.text}
       </span>
     );
@@ -170,7 +180,7 @@ export const ChatSearchOverlay = ({
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
             placeholder="Search messages and broadcasts..."
             className="flex-1 bg-transparent text-white placeholder:text-white/50 outline-none text-base"
           />
@@ -192,21 +202,18 @@ export const ChatSearchOverlay = ({
 
         {/* Results */}
         <div ref={resultsRef} className="max-h-[60vh] overflow-y-auto scrollbar-hide">
-          {isSearching && (
-            <div className="p-8 text-center text-white/50">
-              Searching...
-            </div>
-          )}
+          {isSearching && <div className="p-8 text-center text-white/50">Searching...</div>}
 
           {!isSearching && totalResults === 0 && query && (
-            <div className="p-8 text-center text-white/50">
-              No results found for "{query}"
-            </div>
+            <div className="p-8 text-center text-white/50">No results found for "{query}"</div>
           )}
 
           {!isSearching && totalResults === 0 && !query && (
-            <div className="p-8 text-center text-white/50">
-              Type to search messages and broadcasts
+            <div className="p-8 text-center text-white/50 space-y-2">
+              <p>Type to search messages and broadcasts</p>
+              <p className="text-xs text-white/40">
+                Filters: from:Name · broadcast · Tuesday · after:YYYY-MM-DD
+              </p>
             </div>
           )}
 
@@ -224,14 +231,12 @@ export const ChatSearchOverlay = ({
                   data-index={index}
                   onClick={() => handleResultClick(index)}
                   className={cn(
-                    "w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5",
-                    selectedIndex === index && "bg-blue-500/20"
+                    'w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5',
+                    selectedIndex === index && 'bg-blue-500/20',
                   )}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <span className="text-sm font-medium text-white">
-                      {message.author_name}
-                    </span>
+                    <span className="text-sm font-medium text-white">{message.author_name}</span>
                     <span className="text-xs text-white/50">
                       {format(new Date(message.created_at), 'MMM d, h:mm a')}
                     </span>
@@ -260,8 +265,8 @@ export const ChatSearchOverlay = ({
                     data-index={globalIndex}
                     onClick={() => handleResultClick(globalIndex)}
                     className={cn(
-                      "w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5",
-                      selectedIndex === globalIndex && "bg-orange-500/20"
+                      'w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5',
+                      selectedIndex === globalIndex && 'bg-orange-500/20',
                     )}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
