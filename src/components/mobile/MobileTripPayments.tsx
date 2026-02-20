@@ -316,8 +316,8 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     };
   }, [tripId, demoActive, queryClient]);
 
-  // Subscribe to payment changes — ensures new/settled payments appear immediately
-  // (desktop usePayments may not be mounted when viewing mobile Payments tab)
+  // Subscribe to payment changes — trip-scoped via trip_payment_messages only.
+  // (payment_splits has no trip_id; settle flow updates trip_payment_messages too)
   useEffect(() => {
     if (!tripId || demoActive) return;
 
@@ -332,9 +332,6 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
           filter: `trip_id=eq.${tripId}`,
         },
         () => queryClient.refetchQueries({ queryKey: tripKeys.payments(tripId) }),
-      )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_splits' }, () =>
-        queryClient.refetchQueries({ queryKey: tripKeys.payments(tripId) }),
       )
       .subscribe();
 
