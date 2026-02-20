@@ -33,6 +33,12 @@ export default defineConfig(({ mode }) => ({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Inject build version for SW cache busting when VITE_BUILD_ID not set (e.g. Vercel)
+  define: {
+    'import.meta.env.VITE_BUILD_ID': JSON.stringify(
+      process.env.VITE_BUILD_ID || process.env.RENDER_GIT_COMMIT || buildVersion,
+    ),
+  },
   build: {
     // Performance optimizations
     rollupOptions: {
