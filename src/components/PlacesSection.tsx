@@ -10,7 +10,7 @@ import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useTripBasecamp, tripBasecampKeys } from '@/hooks/useTripBasecamp';
-import { usePersonalBasecamp } from '@/hooks/usePersonalBasecamp';
+import { personalBasecampKeys, usePersonalBasecamp } from '@/hooks/usePersonalBasecamp';
 import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
@@ -48,20 +48,6 @@ export const PlacesSection = ({
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
   const [placesRefreshTrigger, setPlacesRefreshTrigger] = useState(0);
 
-  const handleRefresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
-    await queryClient.invalidateQueries({ queryKey: ['personalBasecamp', tripId] });
-    setPlacesRefreshTrigger(prev => prev + 1);
-  }, [queryClient, tripId]);
-
-  const { isRefreshing, pullDistance } = usePullToRefresh({
-    onRefresh: handleRefresh,
-    threshold: 80,
-    maxPullDistance: 120,
-  });
-
-  const { createLinkFromPlace, removeLinkByPlaceId } = usePlacesLinkSync();
-
   // Generate demo user ID
   const getDemoUserId = () => {
     let demoId = sessionStorage.getItem('demo-user-id');
@@ -73,6 +59,22 @@ export const PlacesSection = ({
   };
 
   const effectiveUserId = user?.id || getDemoUserId();
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
+    await queryClient.invalidateQueries({
+      queryKey: personalBasecampKeys.tripUser(tripId, effectiveUserId),
+    });
+    setPlacesRefreshTrigger(prev => prev + 1);
+  }, [queryClient, tripId, effectiveUserId]);
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    maxPullDistance: 120,
+  });
+
+  const { createLinkFromPlace, removeLinkByPlaceId } = usePlacesLinkSync();
 
   // Helper to map link categories from tripsData to PlaceCategory
   const mapLinkCategoryToPlaceCategory = (label: string): PlaceCategory => {
