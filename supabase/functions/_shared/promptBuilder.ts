@@ -85,8 +85,8 @@ Rating info and price range if known.
 - For "near me" or "near my hotel" queries: Use personal basecamp coordinates if available, otherwise use trip destination
 
 **Payment Intelligence (CRITICAL):**
-- When asked about payments, debts, or expenses, ALWAYS provide specific amounts and names
-- Calculate who owes money to whom based on the payment data
+- For payment/expense questions ("who do I owe?", "what's the total?", "who owes me?"), ALWAYS call getPaymentSummary first. Do NOT rely solely on pre-fetched context — use the tool for accurate, up-to-date data.
+- When asked about payments, debts, or expenses, provide specific amounts and names from the tool result
 - Include payment method preferences when suggesting how to settle
 - Never just say "check the payments tab" - provide the actual payment summary
 
@@ -96,10 +96,12 @@ Rating info and price range if known.
 
 2) Otherwise apply saved preferences automatically to all recommendations.
 
-3) Never invent facts. If an answer is not present in Trip Context, say what you do know and propose the fastest next step.
+3) Never invent facts. If an answer is not present in Trip Context, say so explicitly: "I don't have that information in the trip context." Do NOT infer or guess payment amounts, dates, names, or calendar entries.
 
 4) When answering questions like "what time / where / address", prioritize:
    Calendar items > Places/Basecamps > Saved Links > Chat mentions > Assumptions (clearly labeled)
+
+5) USER PREFERENCES (below) are global — they apply across all trips. TRIP CONTEXT (below) is for THIS trip only. Never mix data from different trips.
 
 === TRIP CONTEXT COVERAGE (YOU HAVE ACCESS) ===
 
@@ -131,7 +133,7 @@ Source: Calendar event 'Group Dinner'
 Next: I can get you directions from your hotel if you'd like!"`;
 
   if (tripContext) {
-    basePrompt += `\n\n=== TRIP CONTEXT ===`;
+    basePrompt += `\n\n=== TRIP CONTEXT (this trip only — never mix with other trips) ===`;
 
     // Handle both old and new context structures
     const tripMetadata = tripContext.tripMetadata || tripContext;
@@ -196,10 +198,10 @@ Next: I can get you directions from your hotel if you'd like!"`;
       }
     }
 
-    // 🆕 USER PREFERENCES FOR PERSONALIZED RECOMMENDATIONS - CRITICAL FOR AI FILTERING
+    // 🆕 USER PREFERENCES (GLOBAL — apply across all trips, not trip-specific)
     if (tripContext.userPreferences) {
       const prefs = tripContext.userPreferences;
-      basePrompt += `\n\n=== 🎯 CRITICAL USER PREFERENCES (MUST APPLY TO ALL RECOMMENDATIONS) ===`;
+      basePrompt += `\n\n=== 🎯 USER PREFERENCES (GLOBAL — from AI Concierge settings, apply to all trips) ===`;
       basePrompt += `\n⚠️ YOU MUST filter ALL suggestions based on these preferences. Do NOT ask the user to clarify - you already know their preferences!`;
 
       if (prefs.dietary?.length) {
@@ -290,7 +292,14 @@ Next: I can get you directions from your hotel if you'd like!"`;
         basePrompt += `\nEntertainment: ${prefs.entertainment.join(', ')}`;
       if (prefs.budgetMin && prefs.budgetMax) {
         const unit = prefs.budgetUnit || 'experience';
-        const unitLabel = unit === 'experience' ? 'per experience' : unit === 'day' ? 'per day' : unit === 'person' ? 'per person' : 'per trip';
+        const unitLabel =
+          unit === 'experience'
+            ? 'per experience'
+            : unit === 'day'
+              ? 'per day'
+              : unit === 'person'
+                ? 'per person'
+                : 'per trip';
         basePrompt += `\nBudget Range: $${prefs.budgetMin} - $${prefs.budgetMax} ${unitLabel}`;
       }
     }

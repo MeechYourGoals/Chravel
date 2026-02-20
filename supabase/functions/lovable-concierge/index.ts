@@ -586,6 +586,18 @@ serve(async req => {
     const validatedData = validation.data;
     message = validatedData.message;
     tripId = validatedData.tripId || 'unknown';
+
+    // Reject invalid trip IDs early — prevents wrong-trip data access
+    const isValidTripId = (id: string) =>
+      id === 'unknown' ||
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ||
+      /^[a-zA-Z0-9_-]{1,20}$/.test(id); // Allow demo IDs like "1"
+    if (tripId !== 'unknown' && !isValidTripId(tripId)) {
+      logError('LOVABLE_CONCIERGE_INVALID_TRIP_ID', new Error('Invalid trip ID format'), {
+        tripId,
+      });
+      return createErrorResponse('Invalid trip ID', 400);
+    }
     const {
       tripContext,
       attachments = [],
@@ -688,17 +700,36 @@ serve(async req => {
         : Promise.resolve({ data: { user_id: 'skip' }, error: null }),
 
       // 2. Trip context building (heaviest — ~100-300 ms). Skip for general web queries.
+      // Uses 30s cache for rapid successive messages. Pass client preferences to skip DB fetch.
       hasTripId && !tripContext && tripRelated
-        ? TripContextBuilder.buildContext(tripId, user?.id, authHeader, isPaidUser).catch(error => {
+        ? TripContextBuilder.buildContextWithCache(
+            tripId,
+            user?.id,
+            authHeader,
+            isPaidUser,
+            validatedData.preferences,
+          ).catch(error => {
             console.error('Failed to build comprehensive context:', error);
             return null;
           })
         : Promise.resolve(tripContext || null),
 
       // 4. RAG keyword retrieval (skip for general web queries)
+      // Skip entirely when trip has no kb content — saves DB round-trip
       runRAGRetrieval
         ? (async () => {
             try {
+              const { data: hasKbDocs, error: kbCheckError } = await supabase
+                .from('kb_documents')
+                .select('id')
+                .eq('trip_id', tripId)
+                .limit(1)
+                .maybeSingle();
+
+              if (kbCheckError || !hasKbDocs) {
+                return '';
+              }
+
               console.log('Using keyword-only search for RAG retrieval');
               const { data: keywordResults, error: keywordError } = await supabase
                 .from('kb_chunks')
@@ -1063,7 +1094,8 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       },
       {
         name: 'searchPlaces',
-        description: 'Search for places like restaurants, hotels, attractions near a location. Returns placeId for follow-up details.',
+        description:
+          'Search for places like restaurants, hotels, attractions near a location. Returns placeId for follow-up details.',
         parameters: {
           type: 'object',
           properties: {
@@ -1076,20 +1108,25 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       },
       {
         name: 'getDirectionsETA',
-        description: 'Get driving directions, ETA, and distance between two locations. Use for "how long to get there" or "directions from X to Y" questions.',
+        description:
+          'Get driving directions, ETA, and distance between two locations. Use for "how long to get there" or "directions from X to Y" questions.',
         parameters: {
           type: 'object',
           properties: {
             origin: { type: 'string', description: 'Starting address or place name' },
             destination: { type: 'string', description: 'Destination address or place name' },
-            departureTime: { type: 'string', description: 'Optional ISO 8601 departure time for traffic-aware ETA' },
+            departureTime: {
+              type: 'string',
+              description: 'Optional ISO 8601 departure time for traffic-aware ETA',
+            },
           },
           required: ['origin', 'destination'],
         },
       },
       {
         name: 'getTimezone',
-        description: 'Get the time zone for a geographic location. Use when user asks about time zones or to normalize itinerary times.',
+        description:
+          'Get the time zone for a geographic location. Use when user asks about time zones or to normalize itinerary times.',
         parameters: {
           type: 'object',
           properties: {
@@ -1101,23 +1138,31 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       },
       {
         name: 'getPlaceDetails',
-        description: 'Get detailed info about a specific place: hours, phone, website, photos, editorial summary. Use after searchPlaces to show more details, or when user asks "tell me more about [place]" or "show me photos of [venue]".',
+        description:
+          'Get detailed info about a specific place: hours, phone, website, photos, editorial summary. Use after searchPlaces to show more details, or when user asks "tell me more about [place]" or "show me photos of [venue]".',
         parameters: {
           type: 'object',
           properties: {
-            placeId: { type: 'string', description: 'Google Places ID (from searchPlaces results)' },
+            placeId: {
+              type: 'string',
+              description: 'Google Places ID (from searchPlaces results)',
+            },
           },
           required: ['placeId'],
         },
       },
       {
         name: 'searchImages',
-        description: 'Search for images on the web. Use when user asks to "show me pictures/photos of [something]" that is NOT a specific place/venue. For venue photos, use getPlaceDetails instead.',
+        description:
+          'Search for images on the web. Use when user asks to "show me pictures/photos of [something]" that is NOT a specific place/venue. For venue photos, use getPlaceDetails instead.',
         parameters: {
           type: 'object',
           properties: {
             query: { type: 'string', description: 'Image search query' },
-            count: { type: 'number', description: 'Number of images to return (max 10, default 5)' },
+            count: {
+              type: 'number',
+              description: 'Number of images to return (max 10, default 5)',
+            },
           },
           required: ['query'],
         },
