@@ -17,6 +17,12 @@ import {
   type SmsTemplateData,
 } from '../_shared/smsTemplates.ts';
 import { sendWebPushNotification, type WebPushSubscription } from '../_shared/webPushUtils.ts';
+import {
+  buildNotificationContent,
+  type EmailContent,
+  type NotificationContentType,
+  type TripContext,
+} from '../_shared/notificationContentBuilder.ts';
 
 type DeliveryChannel = 'push' | 'email' | 'sms';
 
@@ -75,7 +81,7 @@ interface SmsOptInRow {
 
 const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
 const sendGridApiKey = Deno.env.get('SENDGRID_API_KEY');
-const sendGridFromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') || 'noreply@chravel.app';
+const sendGridFromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') || 'support@chravelapp.com';
 const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
 const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
 const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
@@ -127,6 +133,54 @@ function parseMetadata(metadata: Record<string, unknown> | null): Record<string,
   return metadata;
 }
 
+function categoryToContentType(
+  category: NotificationCategory | null,
+  metadata: Record<string, unknown>,
+): NotificationContentType | null {
+  if (!category) return null;
+
+  if (category === 'calendar_events') {
+    if (metadata.bulk_import || metadata.import_session_id) return 'calendar_bulk_import';
+    if (metadata.updated) return 'calendar_event_updated';
+    return 'calendar_event_added';
+  }
+
+  const map: Record<string, NotificationContentType> = {
+    broadcasts: 'broadcast_posted',
+    payments: metadata.settled ? 'payment_settled' : 'payment_request',
+    tasks: metadata.completed ? 'task_completed' : 'task_assigned',
+    polls: 'poll_created',
+    join_requests: metadata.approved ? 'join_request_approved' : 'join_request',
+    basecamp_updates: 'basecamp_updated',
+    trip_invites: 'trip_invite',
+    calendar_bulk_import: 'calendar_bulk_import',
+  };
+
+  return map[category] || null;
+}
+
+function buildTripContextFromRow(
+  notification: NotificationRow,
+  tripById: Map<string, TripRow>,
+  metadata: Record<string, unknown>,
+): TripContext {
+  const tripName = notification.trip_id ? tripById.get(notification.trip_id)?.name : undefined;
+
+  const location =
+    typeof metadata.location === 'string'
+      ? metadata.location
+      : Array.isArray(metadata.locations)
+        ? (metadata.locations as string[])
+        : undefined;
+
+  return {
+    tripName,
+    location,
+    startDate: typeof metadata.start_date === 'string' ? metadata.start_date : undefined,
+    endDate: typeof metadata.end_date === 'string' ? metadata.end_date : undefined,
+  };
+}
+
 function getActorUserId(metadata: Record<string, unknown>): string | undefined {
   const actorId =
     metadata.actor_user_id || metadata.sender_id || metadata.requester_id || metadata.created_by;
@@ -152,6 +206,10 @@ function buildSmsTemplateData(
     amount:
       typeof metadata.amount === 'number' || typeof metadata.amount === 'string'
         ? (metadata.amount as number | string)
+        : undefined,
+    count:
+      typeof metadata.count === 'number' || typeof metadata.count === 'string'
+        ? (metadata.count as number | string)
         : undefined,
     currency: typeof metadata.currency === 'string' ? metadata.currency : undefined,
     location:
@@ -280,7 +338,10 @@ async function sendEmail(
       email: sendGridFromEmail,
       name: 'ChravelApp',
     },
-    content: [{ type: 'text/plain', value: content }],
+    content: [
+      { type: 'text/html', value: content },
+      { type: 'text/plain', value: content.replace(/<[^>]+>/g, '') },
+    ],
   };
 
   const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
@@ -724,11 +785,37 @@ serve(async req => {
           continue;
         }
 
-        const emailResult = await sendEmail(
-          recipientEmail,
-          notification.title,
-          notification.message,
-        );
+        const emailMeta = parseMetadata(notification.metadata);
+        const contentType = categoryToContentType(category, emailMeta);
+
+        let emailSubject: string;
+        let emailBody: string;
+
+        if (contentType) {
+          const emailTripCtx = buildTripContextFromRow(notification, tripById, emailMeta);
+          const actorId = getActorUserId(emailMeta);
+          const emailActorName =
+            (typeof emailMeta.sender_name === 'string' && emailMeta.sender_name) ||
+            (typeof emailMeta.requester_name === 'string' && emailMeta.requester_name) ||
+            getDisplayName(actorId ? profileByUserId.get(actorId) : undefined);
+
+          const emailContent = buildNotificationContent({
+            type: contentType,
+            channel: 'email',
+            tripContext: emailTripCtx,
+            actorName: emailActorName,
+            count: typeof emailMeta.count === 'number' ? emailMeta.count : undefined,
+            extra: { tripId: notification.trip_id || undefined },
+          }) as EmailContent;
+
+          emailSubject = emailContent.subject;
+          emailBody = emailContent.bodyHtml;
+        } else {
+          emailSubject = notification.title;
+          emailBody = notification.message;
+        }
+
+        const emailResult = await sendEmail(recipientEmail, emailSubject, emailBody);
         if (emailResult.ok) {
           await markDelivery(supabase, delivery.id, {
             status: 'sent',

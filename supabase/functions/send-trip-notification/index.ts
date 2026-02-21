@@ -223,11 +223,11 @@ function checkNotificationTypeEnabled(
   if (!p) return true;
 
   switch (type) {
-    // Chat/messaging notifications
+    // Chat/messaging notifications are permanently suppressed
     case 'chat_message':
     case 'message':
     case 'mention':
-      return p.chat_messages === true;
+      return false;
 
     // Broadcast announcements
     case 'broadcast':

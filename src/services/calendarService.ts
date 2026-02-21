@@ -670,6 +670,7 @@ export const calendarService = {
         onProgress?.(rows.length, rows.length);
         console.info(`[calendarService] Bulk insert succeeded for ${rows.length} events`);
         this.fetchAndCacheRecentEvents(tripId, rows.length);
+        this.sendBulkImportNotification(tripId, rows.length, user.id);
         return { imported: rows.length, failed: 0, events: [] };
       }
 
@@ -696,7 +697,7 @@ export const calendarService = {
         console.warn(
           `[calendarService] Chunk ${Math.floor(i / CHUNK_SIZE) + 1} failed: ${error.message}. Falling back to sequential for chunk.`,
         );
-        const result = await this.batchInsertEvents(chunk, (c, t) =>
+        const result = await this.batchInsertEvents(chunk, (c, _t) =>
           onProgress?.(i + c, rows.length),
         );
         imported += result.imported;
@@ -715,7 +716,41 @@ export const calendarService = {
       `[calendarService] Chunked bulk import complete: ${imported} imported, ${failed} failed out of ${rows.length}`,
     );
 
+    if (imported > 0) {
+      this.sendBulkImportNotification(tripId, imported, user.id);
+    }
+
     return { imported, failed, events: allEvents };
+  },
+
+  /**
+   * Send a single aggregated notification after a bulk calendar import.
+   * Prevents notification spam from individual event inserts.
+   */
+  sendBulkImportNotification(tripId: string, count: number, excludeUserId: string): void {
+    import('../services/notificationService')
+      .then(({ notificationService }) => {
+        notificationService.sendPushNotification({
+          tripId,
+          excludeUserId,
+          type: 'calendar_bulk_import' as any,
+          title: `${count} New Calendar Events Added`,
+          body: `${count} calendar events have been added via Smart Import. Open ChravelApp to review.`,
+          icon: '/chravel-logo.png',
+          data: {
+            tripId,
+            type: 'calendar_bulk_import',
+            count,
+            bulk_import: true,
+            import_session_id: `import-${Date.now()}`,
+          },
+        });
+      })
+      .catch(err => {
+        if (import.meta.env.DEV) {
+          console.error('[calendarService] Failed to send bulk import notification:', err);
+        }
+      });
   },
 
   /**

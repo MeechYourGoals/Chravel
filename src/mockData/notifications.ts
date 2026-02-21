@@ -2,7 +2,6 @@
 // Each notification deep-links correctly to the corresponding trip/tab
 
 export type NotificationType = 
-  | 'message' 
   | 'broadcast' 
   | 'calendar' 
   | 'payment' 
@@ -58,25 +57,6 @@ export const mockNotifications: MockNotification[] = [
       request_id: 'demo-request-1',
       actor_name: 'Emily Rodriguez',
       actor_avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100'
-    }
-  },
-
-  // ===== MESSAGE - Spring Break Cancun (id: 1) =====
-  {
-    id: 'notif-message-1',
-    type: 'message',
-    title: 'New message in Spring Break Cancun',
-    message: 'Marcus: Who\'s booking the resort cabana for Saturday?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(), // 12 mins ago
-    read: false,
-    tripId: '1',
-    tripType: 'consumer',
-    focusTab: 'chat',
-    data: {
-      trip_id: '1',
-      trip_name: 'Spring Break Cancun 2026 Kappa Alpha Psi Trip',
-      actor_name: 'Marcus Johnson',
-      actor_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'
     }
   },
 
@@ -295,23 +275,6 @@ export const mockNotifications: MockNotification[] = [
     }
   },
 
-  // MESSAGE - Disney Cruise (id: 11)
-  {
-    id: 'notif-message-2',
-    type: 'message',
-    title: 'New message in Disney Cruise',
-    message: 'Grandma Rose: I booked us a character breakfast with Mickey!',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
-    read: true,
-    tripId: '11',
-    tripType: 'consumer',
-    focusTab: 'chat',
-    data: {
-      trip_id: '11',
-      trip_name: 'Disney Cruise Family Vacation',
-      actor_name: 'Grandma Rose'
-    }
-  }
 ];
 
 // Helper to get unread count
