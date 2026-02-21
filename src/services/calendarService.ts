@@ -8,6 +8,7 @@ import { calendarOfflineQueue } from './calendarOfflineQueue';
 import { offlineSyncService } from './offlineSyncService';
 import { retryWithBackoff } from '@/utils/retry';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
+import { normalizeCalendarCategory } from '@/constants/calendarCategories';
 
 export interface TripEvent {
   id: string;
@@ -868,8 +869,16 @@ export const calendarService = {
       .catch(() => {});
   },
 
-  // Convert database event to CalendarEvent format
-  convertToCalendarEvent(tripEvent: any): CalendarEvent {
+  convertToCalendarEvent(
+    tripEvent: TripEvent & {
+      creator?: { display_name?: string; avatar_url?: string };
+      recurrence_rule?: string;
+      recurrence_exceptions?: string[];
+      parent_event_id?: string;
+      is_busy?: boolean;
+      availability_status?: string;
+    },
+  ): CalendarEvent {
     const startDate = new Date(tripEvent.start_time);
     return {
       id: tripEvent.id,
@@ -885,15 +894,13 @@ export const calendarService = {
       createdBy: tripEvent.created_by,
       creatorName: tripEvent.creator?.display_name || 'Former Member',
       creatorAvatar: tripEvent.creator?.avatar_url,
-      include_in_itinerary: tripEvent.include_in_itinerary,
-      event_category: tripEvent.event_category as CalendarEvent['event_category'],
-      source_type: tripEvent.source_type as any,
+      include_in_itinerary: tripEvent.include_in_itinerary ?? true,
+      event_category: normalizeCalendarCategory(tripEvent.event_category),
+      source_type: (tripEvent.source_type as CalendarEvent['source_type']) ?? 'manual',
       source_data: tripEvent.source_data,
-      // Recurring event support
       recurrence_rule: tripEvent.recurrence_rule,
       recurrence_exceptions: tripEvent.recurrence_exceptions,
       parent_event_id: tripEvent.parent_event_id,
-      // Busy/free time blocking
       is_busy: tripEvent.is_busy ?? true,
       availability_status: tripEvent.availability_status || 'busy',
       end_time: tripEvent.end_time ? new Date(tripEvent.end_time) : undefined,

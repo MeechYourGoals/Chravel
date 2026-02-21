@@ -1,8 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
-import { PaymentMethod, PaymentMessage, PaymentSplit } from '../types/payments';
+import { PaymentMethod, PaymentMessage } from '../types/payments';
 import { mockPayments } from '@/mockData/payments';
 import { recordPaymentSplitPattern } from './chatAnalysisService';
 import { isDemoTrip } from '@/utils/demoUtils';
+import { toAppPayment } from '@/lib/adapters/paymentAdapter';
 
 interface MockPayment {
   id: string;
@@ -267,22 +268,7 @@ export const paymentService = {
 
       if (error) throw error;
 
-      return data.map(msg => ({
-        id: msg.id,
-        tripId: msg.trip_id,
-        messageId: msg.message_id,
-        amount: parseFloat(msg.amount.toString()),
-        currency: msg.currency,
-        description: msg.description,
-        splitCount: msg.split_count,
-        splitParticipants: Array.isArray(msg.split_participants)
-          ? (msg.split_participants as string[])
-          : [],
-        paymentMethods: Array.isArray(msg.payment_methods) ? (msg.payment_methods as string[]) : [],
-        createdBy: msg.created_by,
-        createdAt: msg.created_at,
-        isSettled: msg.is_settled,
-      }));
+      return data.map(toAppPayment);
     } catch (error) {
       console.error('Error fetching payment messages:', error);
       return [];

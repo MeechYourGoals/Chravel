@@ -15,6 +15,7 @@ import {
   replaceOptimisticPaymentId,
   buildPaymentMessage,
 } from '@/lib/paymentCacheUtils';
+import { toAppPayment } from '@/lib/adapters/paymentAdapter';
 
 class CreatePaymentMutationError extends Error {
   public readonly code: string;
@@ -46,20 +47,24 @@ export const usePayments = (tripId?: string) => {
         const mockPayments = demoModeService.getMockPayments(tripId, false);
         const sessionPayments = demoModeService.getSessionPayments(tripId);
 
-        return [...mockPayments, ...sessionPayments].map(p => ({
-          id: p.id,
-          tripId: p.trip_id,
-          messageId: null,
-          amount: p.amount,
-          currency: p.currency || 'USD',
-          description: p.description,
-          splitCount: p.split_count,
-          splitParticipants: p.split_participants || [],
-          paymentMethods: p.payment_methods || [],
-          createdBy: p.created_by,
-          createdAt: p.created_at,
-          isSettled: p.is_settled || false,
-        }));
+        return [...mockPayments, ...sessionPayments].map(p =>
+          toAppPayment({
+            id: p.id,
+            trip_id: p.trip_id,
+            message_id: null,
+            amount: p.amount,
+            currency: p.currency || 'USD',
+            description: p.description,
+            split_count: p.split_count,
+            split_participants: p.split_participants || [],
+            payment_methods: p.payment_methods || [],
+            created_by: p.created_by,
+            created_at: p.created_at,
+            updated_at: p.created_at,
+            is_settled: p.is_settled || false,
+            version: null,
+          }),
+        );
       }
 
       return await paymentService.getTripPaymentMessages(tripId);
