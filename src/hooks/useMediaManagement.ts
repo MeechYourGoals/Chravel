@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDemoMode } from './useDemoMode';
 import { getDomain } from '@/services/urlUtils';
 import { detectTripTier } from '../utils/tripTierDetector';
@@ -8,17 +9,10 @@ import { eventsMockData } from '../data/eventsMockData';
 import TripSpecificMockDataService from '../services/tripSpecificMockDataService';
 import UniversalMockDataService from '../services/UniversalMockDataService';
 import { cacheEntity, getCachedEntity } from '@/offline/cache';
+import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { fetchTripMediaItems, TripMediaItem } from '@/services/tripMediaService';
 
-export interface MediaItem {
-  id: string;
-  media_url: string;
-  filename: string;
-  media_type: 'image' | 'video' | 'document';
-  metadata: any;
-  created_at: string;
-  source: 'chat' | 'upload';
-  mime_type?: string | null;
-}
+export type MediaItem = TripMediaItem;
 
 export interface LinkItem {
   id: string;
@@ -35,105 +29,50 @@ export interface LinkItem {
 export type MediaType = 'all' | 'photos' | 'videos' | 'files' | 'links';
 
 export const useMediaManagement = (tripId: string) => {
-  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [linkItems, setLinkItems] = useState<LinkItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const { isDemoMode } = useDemoMode();
+  const queryClient = useQueryClient();
 
-  const fetchMediaItems = useCallback(async () => {
-    setLoading(true);
-    try {
-      let items: MediaItem[] = [];
-      const tripTier = detectTripTier(tripId);
-      const listKey = `${tripId}:list`;
-
+  const { data: mediaItems = [], isLoading: mediaLoading } = useQuery({
+    queryKey: tripKeys.media(tripId),
+    queryFn: async (): Promise<MediaItem[]> => {
       if (isDemoMode) {
-        // Trip-specific mock data
+        const tripTier = detectTripTier(tripId);
         if (
           tripTier === 'consumer' &&
           TripSpecificMockDataService.getTripMediaItems(parseInt(tripId)).length > 0
         ) {
-          items = TripSpecificMockDataService.getTripMediaItems(parseInt(tripId));
-        } else if (tripTier === 'pro' && proTripMockData[tripId]) {
+          return TripSpecificMockDataService.getTripMediaItems(parseInt(tripId));
+        }
+        if (tripTier === 'pro' && proTripMockData[tripId]) {
           const proData = proTripMockData[tripId];
-          items = [
+          return [
             ...(proData.photos || []).map(item => ({ ...item, media_type: 'image' as const })),
             ...(proData.videos || []).map(item => ({ ...item, media_type: 'video' as const })),
             ...(proData.files || []).map(item => ({ ...item, media_type: 'document' as const })),
           ];
-        } else if (tripTier === 'event' && eventsMockData[tripId]) {
+        }
+        if (tripTier === 'event' && eventsMockData[tripId]) {
           const eventData = eventsMockData[tripId];
-          items = [
+          return [
             ...(eventData.photos || []).map(item => ({ ...item, media_type: 'image' as const })),
             ...(eventData.videos || []).map(item => ({ ...item, media_type: 'video' as const })),
             ...(eventData.files || []).map(item => ({ ...item, media_type: 'document' as const })),
           ];
-        } else {
-          items = UniversalMockDataService.getCombinedMediaItems(tripId);
         }
-      } else {
-        // Fetch from Supabase
-        const [mediaResponse, filesResponse] = await Promise.all([
-          supabase
-            .from('trip_media_index')
-            .select('*')
-            .eq('trip_id', tripId)
-            .order('created_at', { ascending: false }),
-
-          supabase
-            .from('trip_files')
-            .select('*')
-            .eq('trip_id', tripId)
-            .order('created_at', { ascending: false }),
-        ]);
-
-        items = [
-          ...(mediaResponse.data || []).map(item => ({
-            id: item.id,
-            media_url: item.media_url,
-            filename: item.filename || 'Untitled',
-            media_type: item.media_type as MediaItem['media_type'],
-            metadata: item.metadata || {},
-            created_at: item.created_at,
-            source: (item.message_id ? 'chat' : 'upload') as 'chat' | 'upload',
-            mime_type: item.mime_type,
-          })),
-          ...(filesResponse.data || []).map(item => ({
-            id: item.id,
-            media_url: `/storage/trip-files/${item.name}`,
-            filename: item.name,
-            media_type: item.file_type as MediaItem['media_type'],
-            metadata: { extracted_events: item.extracted_events },
-            created_at: item.created_at,
-            source: 'upload' as const,
-          })),
-        ];
+        return UniversalMockDataService.getCombinedMediaItems(tripId);
       }
 
-      setMediaItems(items);
+      return fetchTripMediaItems(tripId);
+    },
+    enabled: !!tripId,
+    staleTime: QUERY_CACHE_CONFIG.media.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.media.gcTime,
+    refetchOnWindowFocus: QUERY_CACHE_CONFIG.media.refetchOnWindowFocus,
+  });
 
-      // Cache for offline access (best-effort, authenticated only)
-      if (!isDemoMode) {
-        await cacheEntity({ entityType: 'trip_media', entityId: listKey, tripId, data: items });
-        await cacheEntity({ entityType: 'trip_files', entityId: listKey, tripId, data: items });
-      }
-    } catch (error) {
-      console.error('Error fetching media items:', error);
-      if (isDemoMode) {
-        setMediaItems(UniversalMockDataService.getCombinedMediaItems(tripId));
-      } else {
-        const listKey = `${tripId}:list`;
-        const cached = await getCachedEntity({ entityType: 'trip_media', entityId: listKey });
-        setMediaItems((cached?.data as MediaItem[] | undefined) ?? []);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [tripId, isDemoMode]);
-
-  const fetchLinkItems = useCallback(async () => {
-    try {
-      let items: LinkItem[] = [];
+  const { data: linkItems = [], isLoading: linksLoading } = useQuery({
+    queryKey: ['tripLinks', tripId, isDemoMode],
+    queryFn: async (): Promise<LinkItem[]> => {
       const tripTier = detectTripTier(tripId);
       const listKey = `${tripId}:list`;
 
@@ -142,32 +81,37 @@ export const useMediaManagement = (tripId: string) => {
           tripTier === 'consumer' &&
           TripSpecificMockDataService.getTripLinkItems(parseInt(tripId)).length > 0
         ) {
-          items = TripSpecificMockDataService.getTripLinkItems(parseInt(tripId));
-        } else if (tripTier === 'pro' && proTripMockData[tripId]) {
-          items = proTripMockData[tripId].links || [];
-        } else if (tripTier === 'event' && eventsMockData[tripId]) {
-          items = eventsMockData[tripId].links || [];
-        } else {
-          items = UniversalMockDataService.getLinkItems(tripId);
+          return TripSpecificMockDataService.getTripLinkItems(parseInt(tripId));
         }
-      } else {
+        if (tripTier === 'pro' && proTripMockData[tripId]) {
+          return proTripMockData[tripId].links || [];
+        }
+        if (tripTier === 'event' && eventsMockData[tripId]) {
+          return eventsMockData[tripId].links || [];
+        }
+        return UniversalMockDataService.getLinkItems(tripId);
+      }
+
+      try {
         const [linksResponse, manualLinksResponse] = await Promise.all([
           supabase
             .from('trip_link_index')
-            .select('*')
+            .select(
+              'id, url, og_title, og_description, domain, og_image_url, created_at, message_id',
+            )
             .eq('trip_id', tripId)
-            .order('created_at', { ascending: false }),
-
+            .order('created_at', { ascending: false })
+            .limit(100),
           supabase
             .from('trip_links')
-            .select('*')
+            .select('id, url, title, description, created_at')
             .eq('trip_id', tripId)
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false })
+            .limit(100),
         ]);
 
-        items = [
+        const items = [
           ...(linksResponse.data || []).map(item => {
-            // Determine source based on og_description metadata
             const isFromPlaces =
               item.og_description?.includes('place_id:') ||
               item.og_description?.includes('Saved from Places');
@@ -197,35 +141,27 @@ export const useMediaManagement = (tripId: string) => {
             tags: [],
           })),
         ];
-      }
 
-      setLinkItems(items);
-
-      if (!isDemoMode) {
         await cacheEntity({ entityType: 'trip_links', entityId: listKey, tripId, data: items });
-      }
-    } catch (error) {
-      console.error('Error fetching link items:', error);
-      if (isDemoMode) {
-        setLinkItems(UniversalMockDataService.getLinkItems(tripId));
-      } else {
-        const listKey = `${tripId}:list`;
+        return items;
+      } catch {
         const cached = await getCachedEntity({ entityType: 'trip_links', entityId: listKey });
-        setLinkItems((cached?.data as LinkItem[] | undefined) ?? []);
+        return (cached?.data as LinkItem[] | undefined) ?? [];
       }
-    }
-  }, [tripId, isDemoMode]);
+    },
+    enabled: !!tripId,
+    staleTime: QUERY_CACHE_CONFIG.places.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.places.gcTime,
+  });
 
-  useEffect(() => {
-    fetchMediaItems();
-    fetchLinkItems();
-  }, [fetchMediaItems, fetchLinkItems]);
-
-  // Realtime subscription: auto-update when new media/links are inserted
   useEffect(() => {
     if (!tripId || isDemoMode) return;
 
     const channel = supabase.channel(`media-mgmt:${tripId}`);
+    const invalidateMedia = () =>
+      queryClient.invalidateQueries({ queryKey: tripKeys.media(tripId) });
+    const invalidateLinks = () =>
+      queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId] });
 
     channel.on(
       'postgres_changes',
@@ -235,24 +171,13 @@ export const useMediaManagement = (tripId: string) => {
         table: 'trip_media_index',
         filter: `trip_id=eq.${tripId}`,
       },
-      () => {
-        fetchMediaItems();
-      },
+      invalidateMedia,
     );
-
     channel.on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'trip_files',
-        filter: `trip_id=eq.${tripId}`,
-      },
-      () => {
-        fetchMediaItems();
-      },
+      { event: 'INSERT', schema: 'public', table: 'trip_files', filter: `trip_id=eq.${tripId}` },
+      invalidateMedia,
     );
-
     channel.on(
       'postgres_changes',
       {
@@ -261,30 +186,21 @@ export const useMediaManagement = (tripId: string) => {
         table: 'trip_link_index',
         filter: `trip_id=eq.${tripId}`,
       },
-      () => {
-        fetchLinkItems();
-      },
+      invalidateLinks,
     );
-
     channel.on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'trip_links',
-        filter: `trip_id=eq.${tripId}`,
-      },
-      () => {
-        fetchLinkItems();
-      },
+      { event: 'INSERT', schema: 'public', table: 'trip_links', filter: `trip_id=eq.${tripId}` },
+      invalidateLinks,
     );
 
     channel.subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, isDemoMode, fetchMediaItems, fetchLinkItems]);
+  }, [tripId, isDemoMode, queryClient]);
+
+  const loading = mediaLoading || linksLoading;
 
   const filterByType = useCallback(
     (type: MediaType) => {
@@ -305,20 +221,15 @@ export const useMediaManagement = (tripId: string) => {
   }, [mediaItems, linkItems]);
 
   return {
-    // Data
     mediaItems,
     linkItems,
     loading,
-
-    // Computed
     totalItems: mediaItems.length + linkItems.length,
-
-    // Actions
     filterByType,
     getAllItemsSorted,
     refetch: () => {
-      fetchMediaItems();
-      fetchLinkItems();
+      queryClient.invalidateQueries({ queryKey: tripKeys.media(tripId) });
+      queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId] });
     },
   };
 };

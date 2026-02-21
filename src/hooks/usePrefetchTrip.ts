@@ -5,7 +5,8 @@ import { calendarService } from '@/services/calendarService';
 import { supabase } from '@/integrations/supabase/client';
 import { paymentService } from '@/services/paymentService';
 import { paymentBalanceService } from '@/services/paymentBalanceService';
-import { getTripLinks } from '@/services/tripLinksService';
+import { fetchTripMediaItems } from '@/services/tripMediaService';
+import { fetchTripPlaces } from '@/services/tripPlacesService';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
@@ -108,7 +109,7 @@ export const usePrefetchTrip = () => {
 
         case 'polls':
           queryClient.prefetchQuery({
-            queryKey: tripKeys.polls(tripId),
+            queryKey: tripKeys.polls(tripId, isDemoMode),
             queryFn: async () => {
               const { data } = await supabase
                 .from('trip_polls')
@@ -124,15 +125,7 @@ export const usePrefetchTrip = () => {
         case 'media':
           queryClient.prefetchQuery({
             queryKey: tripKeys.media(tripId),
-            queryFn: async () => {
-              const { data } = await supabase
-                .from('trip_media_index')
-                .select('*')
-                .eq('trip_id', tripId)
-                .order('created_at', { ascending: false })
-                .limit(20);
-              return data || [];
-            },
+            queryFn: () => fetchTripMediaItems(tripId),
             staleTime: QUERY_CACHE_CONFIG.media.staleTime,
           });
           break;
@@ -158,8 +151,8 @@ export const usePrefetchTrip = () => {
         case 'places':
           // ⚡ NEW: Prefetch trip links for instant Places > Links sub-tab
           queryClient.prefetchQuery({
-            queryKey: ['tripLinks', tripId],
-            queryFn: () => getTripLinks(tripId, false),
+            queryKey: tripKeys.places(tripId),
+            queryFn: () => fetchTripPlaces(tripId, isDemoMode),
             staleTime: QUERY_CACHE_CONFIG.places.staleTime,
           });
           break;
@@ -217,6 +210,13 @@ export const usePrefetchTrip = () => {
 
       // After 800ms: Payments (messages are lightweight; balance prefetched via prefetchTab)
       setTimeout(() => prefetchTab(tripId, 'payments'), 800);
+
+      // After 1200ms: Media + Places + Polls in low-priority background
+      setTimeout(() => {
+        prefetchTab(tripId, 'media');
+        prefetchTab(tripId, 'places');
+        prefetchTab(tripId, 'polls');
+      }, 1200);
     },
     [isDemoMode, prefetchTab],
   );

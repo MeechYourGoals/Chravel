@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
-import { BasecampLocation, PlaceWithDistance, PlaceCategory } from '../types/basecamp';
+import { BasecampLocation, PlaceWithDistance } from '../types/basecamp';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,10 +14,9 @@ import { useTripBasecamp, tripBasecampKeys } from '@/hooks/useTripBasecamp';
 import { personalBasecampKeys, usePersonalBasecamp } from '@/hooks/usePersonalBasecamp';
 import { supabase } from '@/integrations/supabase/client';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
-import { demoModeService } from '@/services/demoModeService';
-import { getTripById, generateTripMockData } from '@/data/tripsData';
 import { toast } from 'sonner';
-import { cacheEntity, getCachedEntity } from '@/offline/cache';
+import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { fetchTripPlaces } from '@/services/tripPlacesService';
 
 interface PlacesSectionProps {
   tripId?: string;
@@ -44,9 +44,8 @@ export const PlacesSection = ({
   // State
   const [activeTab, setActiveTab] = useState<TabView>('basecamps');
   const [places, setPlaces] = useState<PlaceWithDistance[]>([]);
-  const [linkedPlaceIds, setLinkedPlaceIds] = useState<Set<string>>(new Set());
+  const [linkedPlaceIds] = useState<Set<string>>(new Set());
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
-  const [placesRefreshTrigger, setPlacesRefreshTrigger] = useState(0);
 
   // Generate demo user ID
   const getDemoUserId = () => {
@@ -65,7 +64,7 @@ export const PlacesSection = ({
     await queryClient.invalidateQueries({
       queryKey: personalBasecampKeys.tripUser(tripId, effectiveUserId),
     });
-    setPlacesRefreshTrigger(prev => prev + 1);
+    await queryClient.invalidateQueries({ queryKey: tripKeys.places(tripId) });
   }, [queryClient, tripId, effectiveUserId]);
 
   const { isRefreshing, pullDistance } = usePullToRefresh({
@@ -76,143 +75,18 @@ export const PlacesSection = ({
 
   const { createLinkFromPlace, removeLinkByPlaceId } = usePlacesLinkSync();
 
-  // Helper to map link categories from tripsData to PlaceCategory
-  const mapLinkCategoryToPlaceCategory = (label: string): PlaceCategory => {
-    const categoryMap: Record<string, PlaceCategory> = {
-      Accommodation: 'Accommodation',
-      Activities: 'Activity',
-      Attractions: 'Attraction',
-      Food: 'Appetite',
-      Nightlife: 'Other',
-      Event: 'Other',
-      Tips: 'Other',
-      Entrance: 'Other',
-      Cruise: 'Other',
-      General: 'Other',
-      Transportation: 'Other',
-    };
-    return categoryMap[label] || 'Other';
-  };
+  const { data: fetchedPlaces = [] } = useQuery({
+    queryKey: tripKeys.places(tripId),
+    queryFn: () => fetchTripPlaces(tripId, isDemoMode),
+    staleTime: QUERY_CACHE_CONFIG.places.staleTime,
+    gcTime: QUERY_CACHE_CONFIG.places.gcTime,
+    refetchOnWindowFocus: QUERY_CACHE_CONFIG.places.refetchOnWindowFocus,
+    enabled: !!tripId,
+  });
 
-  // City center coordinates for distance chip display
-  const cityCenterCoords: Record<string, { lat: number; lng: number }> = {
-    Cancun: { lat: 21.1619, lng: -86.8515 },
-    Tokyo: { lat: 35.6762, lng: 139.6503 },
-    Bali: { lat: -8.5069, lng: 115.2625 },
-    Nashville: { lat: 36.1627, lng: -86.7816 },
-    Indio: { lat: 33.7206, lng: -116.2156 },
-    Aspen: { lat: 39.1911, lng: -106.8175 },
-    Phoenix: { lat: 33.4484, lng: -112.074 },
-    Tulum: { lat: 20.211, lng: -87.4659 },
-    'Napa Valley': { lat: 38.5, lng: -122.3 },
-    'Port Canaveral': { lat: 28.4101, lng: -80.6188 },
-    Yellowstone: { lat: 44.4279, lng: -110.5885 },
-  };
-
-  // Load places data on mount
   useEffect(() => {
-    const loadPlaces = async () => {
-      const cacheKey = `${tripId}:places`;
-      const cached = await getCachedEntity({ entityType: 'trip_links', entityId: cacheKey });
-      const cachedPlaces = (cached?.data as PlaceWithDistance[] | undefined) ?? [];
-
-      // Helper to load trip links from tripsData.ts
-      const loadDemoPlacesFromTripsData = async (): Promise<PlaceWithDistance[]> => {
-        const trip = getTripById(Number(tripId));
-        if (!trip) return [];
-
-        // Bottom 6 consumer trips (IDs 7-12) intentionally empty to show empty state
-        if (typeof trip.id === 'number' && trip.id > 6) return [];
-
-        const { links } = generateTripMockData(trip);
-        const city = trip.location.split(',')[0].trim();
-        const coords = cityCenterCoords[city];
-
-        return links.slice(0, 5).map((link, i) => ({
-          id: `mock-link-${trip.id}-${i + 1}`,
-          name: link.title,
-          address: '',
-          coordinates: coords,
-          category: mapLinkCategoryToPlaceCategory(link.category),
-          rating: 0,
-          url: link.url,
-        }));
-      };
-
-      if (isDemoMode) {
-        try {
-          const demoPlaces = await loadDemoPlacesFromTripsData();
-          setPlaces(demoPlaces);
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error('Failed to load demo places:', error);
-          }
-        }
-      } else {
-        if (navigator.onLine === false && cachedPlaces.length > 0) {
-          setPlaces(cachedPlaces);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('trip_link_index')
-          .select('*')
-          .eq('trip_id', tripId);
-
-        if (error) {
-          if (import.meta.env.DEV) {
-            console.error('Failed to load places:', error);
-          }
-          if (cachedPlaces.length > 0) {
-            setPlaces(cachedPlaces);
-          }
-          return;
-        }
-
-        if (!data || data.length === 0) {
-          const fallbackPlaces = await loadDemoPlacesFromTripsData();
-          setPlaces(fallbackPlaces);
-          return;
-        }
-
-        const placesWithDistance: PlaceWithDistance[] = data.map(link => {
-          const placeIdMatch = link.og_description?.match(/place_id:([^ |]+)/);
-          const placeId = placeIdMatch ? placeIdMatch[1] : link.id.toString();
-
-          const coordsMatch = link.og_description?.match(/coords:([^,]+),([^ |]+)/);
-          const coordinates = coordsMatch
-            ? { lat: parseFloat(coordsMatch[1]), lng: parseFloat(coordsMatch[2]) }
-            : undefined;
-
-          const categoryMatch = link.og_description?.match(/category:([^ |]+)/);
-          const category = categoryMatch ? categoryMatch[1] : 'other';
-
-          const addressMatch = link.og_description?.match(/Saved from Places: ([^|]+)/);
-          const address = addressMatch ? addressMatch[1].trim() : '';
-
-          return {
-            id: placeId,
-            name: link.og_title || 'Unnamed Place',
-            address: address,
-            coordinates: coordinates,
-            category: category as any,
-            rating: 0,
-            url: link.url || '',
-          };
-        });
-        setPlaces(placesWithDistance);
-
-        await cacheEntity({
-          entityType: 'trip_links',
-          entityId: cacheKey,
-          tripId,
-          data: placesWithDistance,
-        });
-      }
-    };
-
-    loadPlaces();
-  }, [tripId, isDemoMode, placesRefreshTrigger]);
+    setPlaces(fetchedPlaces);
+  }, [fetchedPlaces]);
 
   // ⚡ PERFORMANCE: Sync personal basecamp from TanStack Query to local state
   // This replaces the sequential useEffect fetch with parallel query loading
