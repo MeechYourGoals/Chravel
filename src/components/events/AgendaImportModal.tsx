@@ -115,6 +115,23 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
   const [urlInput, setUrlInput] = useState('');
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
 
+  const processParseResult = useCallback(
+    (result: AgendaParseResult) => {
+      setParseResult(result);
+      if (!result.isValid || result.sessions.length === 0) {
+        setState('idle');
+        toast.error('No sessions found', {
+          description: result.errors[0] || 'Could not extract any agenda sessions',
+        });
+        return;
+      }
+      const duplicates = findDuplicateAgendaSessions(result.sessions, existingSessions);
+      setDuplicateIndices(duplicates);
+      setState('preview');
+    },
+    [existingSessions],
+  );
+
   const processFile = useCallback(
     async (file: File) => {
       setParsingSource('file');
@@ -147,23 +164,6 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
     onClearPendingResult?.();
     onClose();
   }, [resetState, onClose, onClearPendingResult]);
-
-  const processParseResult = useCallback(
-    (result: AgendaParseResult) => {
-      setParseResult(result);
-      if (!result.isValid || result.sessions.length === 0) {
-        setState('idle');
-        toast.error('No sessions found', {
-          description: result.errors[0] || 'Could not extract any agenda sessions',
-        });
-        return;
-      }
-      const duplicates = findDuplicateAgendaSessions(result.sessions, existingSessions);
-      setDuplicateIndices(duplicates);
-      setState('preview');
-    },
-    [existingSessions],
-  );
 
   // Load external pending result when modal opens
   React.useEffect(() => {

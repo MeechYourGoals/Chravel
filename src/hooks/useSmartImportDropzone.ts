@@ -49,7 +49,7 @@ export function isSmartImportFileTypeValid(file: File): boolean {
   );
 
   if (validExts.some(e => e === ext)) return true;
-  if (validMimes.includes(mime)) return true;
+  if ((validMimes as readonly string[]).includes(mime)) return true;
 
   // Fallback: check common patterns (exact MIME or extension)
   const patterns = [

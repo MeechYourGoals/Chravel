@@ -82,6 +82,19 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
   const [urlInput, setUrlInput] = useState('');
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
 
+  const processParseResult = useCallback((result: LineupParseResult) => {
+    setParseResult(result);
+    if (!result.isValid || result.names.length === 0) {
+      setState('idle');
+      toast.error('No names found', {
+        description: result.errors[0] || 'Could not extract any lineup names',
+      });
+      return;
+    }
+    setParsedNames(result.names);
+    setState('preview');
+  }, []);
+
   const processFile = useCallback(
     async (file: File) => {
       setParsingSource('file');
@@ -113,19 +126,6 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
     resetState();
     onClose();
   }, [onClose, resetState]);
-
-  const processParseResult = useCallback((result: LineupParseResult) => {
-    setParseResult(result);
-    if (!result.isValid || result.names.length === 0) {
-      setState('idle');
-      toast.error('No names found', {
-        description: result.errors[0] || 'Could not extract any lineup names',
-      });
-      return;
-    }
-    setParsedNames(result.names);
-    setState('preview');
-  }, []);
 
   const handlePasteSubmit = useCallback(async () => {
     if (!pasteText.trim()) return;
