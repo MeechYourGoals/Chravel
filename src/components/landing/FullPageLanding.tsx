@@ -5,62 +5,80 @@ import { HeroSection } from './sections/HeroSection';
 import { ProblemSolutionSection } from './sections/ProblemSolutionSection';
 
 // Lazy load sections for better performance
-const AiFeaturesSection = lazy(() => import('./sections/AiFeaturesSection').then(module => ({ default: module.AiFeaturesSection })));
-const UseCasesSection = lazy(() => import('./sections/UseCasesSection').then(module => ({ default: module.UseCasesSection })));
-const ReplacesSection = lazy(() => import('./sections/ReplacesSection').then(module => ({ default: module.ReplacesSection })));
-const FAQSection = lazy(() => import('./sections/FAQSection').then(module => ({ default: module.FAQSection })));
-const PricingLandingSection = lazy(() => import('./sections/PricingLandingSection').then(module => ({ default: module.PricingLandingSection })));
-const FooterSection = lazy(() => import('./FooterSection').then(module => ({ default: module.FooterSection })));
+const AiFeaturesSection = lazy(() =>
+  import('./sections/AiFeaturesSection').then(module => ({ default: module.AiFeaturesSection })),
+);
+const UseCasesSection = lazy(() =>
+  import('./sections/UseCasesSection').then(module => ({ default: module.UseCasesSection })),
+);
+const ReplacesSection = lazy(() =>
+  import('./sections/ReplacesSection').then(module => ({ default: module.ReplacesSection })),
+);
+const FAQSection = lazy(() =>
+  import('./sections/FAQSection').then(module => ({ default: module.FAQSection })),
+);
+const PricingLandingSection = lazy(() =>
+  import('./sections/PricingLandingSection').then(module => ({
+    default: module.PricingLandingSection,
+  })),
+);
+const FooterSection = lazy(() =>
+  import('./FooterSection').then(module => ({ default: module.FooterSection })),
+);
 
 // Premium Black & Gold Design System
 const DESIGN_TOKENS = {
   pureBlack: '#000000',
   richBlack: '#0a0a0a',
   darkCharcoal: '#121212',
-  goldPrimary: '#F4B23A',
-  goldLight: '#FFD700',
+  goldPrimary: '#C4912F',
+  goldLight: '#C4912F',
   goldDark: '#C4912F',
-  goldGlow: 'rgba(244,178,58,0.25)',
-  goldSoftGlow: 'rgba(244,178,58,0.12)',
-  goldAccentGlow: 'rgba(255,215,0,0.15)'
+  goldGlow: 'rgba(196,145,47,0.25)',
+  goldSoftGlow: 'rgba(196,145,47,0.12)',
+  goldAccentGlow: 'rgba(196,145,47,0.15)',
 };
 
 const GRADIENTS = {
   hero: {
-    colors: [DESIGN_TOKENS.pureBlack, DESIGN_TOKENS.richBlack, DESIGN_TOKENS.darkCharcoal] as [string, string, string],
+    colors: [DESIGN_TOKENS.pureBlack, DESIGN_TOKENS.richBlack, DESIGN_TOKENS.darkCharcoal] as [
+      string,
+      string,
+      string,
+    ],
     direction: 'vertical' as const,
-    accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'top' as const, opacity: 0.30 }
+    accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'top' as const, opacity: 0.3 },
   },
   replaces: {
     colors: [DESIGN_TOKENS.richBlack, DESIGN_TOKENS.pureBlack] as [string, string],
     direction: 'diagonal' as const,
-    accentGlow: { color: DESIGN_TOKENS.goldSoftGlow, position: 'center' as const, opacity: 0.20 }
+    accentGlow: { color: DESIGN_TOKENS.goldSoftGlow, position: 'center' as const, opacity: 0.2 },
   },
   howItWorks: {
     colors: [DESIGN_TOKENS.pureBlack, DESIGN_TOKENS.darkCharcoal] as [string, string],
     direction: 'vertical' as const,
-    accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'bottom' as const, opacity: 0.18 }
+    accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'bottom' as const, opacity: 0.18 },
   },
   useCases: {
     colors: [DESIGN_TOKENS.darkCharcoal, DESIGN_TOKENS.pureBlack] as [string, string],
     direction: 'diagonal' as const,
-    accentGlow: { color: DESIGN_TOKENS.goldAccentGlow, position: 'top' as const, opacity: 0.22 }
+    accentGlow: { color: DESIGN_TOKENS.goldAccentGlow, position: 'top' as const, opacity: 0.22 },
   },
   aiFeatures: {
     colors: [DESIGN_TOKENS.pureBlack, DESIGN_TOKENS.richBlack] as [string, string],
     direction: 'vertical' as const,
-    accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'center' as const, opacity: 0.20 }
+    accentGlow: { color: DESIGN_TOKENS.goldGlow, position: 'center' as const, opacity: 0.2 },
   },
   pricing: {
     colors: [DESIGN_TOKENS.richBlack, DESIGN_TOKENS.darkCharcoal] as [string, string],
     direction: 'diagonal' as const,
-    accentGlow: { color: DESIGN_TOKENS.goldSoftGlow, position: 'top' as const, opacity: 0.25 }
+    accentGlow: { color: DESIGN_TOKENS.goldSoftGlow, position: 'top' as const, opacity: 0.25 },
   },
   faq: {
     colors: [DESIGN_TOKENS.pureBlack, DESIGN_TOKENS.richBlack] as [string, string],
     direction: 'vertical' as const,
-    accentGlow: { color: DESIGN_TOKENS.goldAccentGlow, position: 'bottom' as const, opacity: 0.15 }
-  }
+    accentGlow: { color: DESIGN_TOKENS.goldAccentGlow, position: 'bottom' as const, opacity: 0.15 },
+  },
 };
 
 interface FullPageLandingProps {
@@ -89,7 +107,7 @@ export const FullPageLanding: React.FC<FullPageLandingProps> = ({ onSignUp }) =>
         className="overflow-y-auto overflow-x-hidden h-screen scroll-smooth"
         style={{
           paddingLeft: 'env(safe-area-inset-left)',
-          paddingRight: 'env(safe-area-inset-right)'
+          paddingRight: 'env(safe-area-inset-right)',
         }}
       >
         {/* Section 1: Hero */}

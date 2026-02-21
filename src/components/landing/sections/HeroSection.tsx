@@ -26,7 +26,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         <Button
           size="sm"
           onClick={onSignUp}
-          className="text-xs px-3 py-1 bg-gradient-to-r from-[#F4B23A] to-[#FFD700] hover:from-[#FFD700] hover:to-[#F4B23A] backdrop-blur-md border border-[#F4B23A]/30 text-black font-semibold shadow-lg shadow-[#F4B23A]/25 h-7"
+          className="text-xs px-3 py-1 bg-[#C4912F] hover:bg-[#C4912F]/90 backdrop-blur-md border border-[#C4912F]/30 text-black font-semibold shadow-lg shadow-[#C4912F]/25 h-7"
         >
           Login or Signup
         </Button>
@@ -57,7 +57,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
           For Friends, Families, Sports, Tours, Work Trips & More.
           <br className="hidden sm:inline" />
           Planning is Frustrating.{' '}
-          <span className="text-[#F4B23A] font-semibold">Get UnFrustrated.</span>
+          <span className="text-[#C4912F] font-semibold">Get UnFrustrated.</span>
         </p>
 
         {/* Brand Name */}
@@ -72,7 +72,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight"
             style={{
               background:
-                'linear-gradient(135deg, #4F8CFF 0%, #F4B23A 40%, #F4B23A 60%, #4F8CFF 100%)',
+                'linear-gradient(135deg, #4F8CFF 0%, #C4912F 40%, #C4912F 60%, #4F8CFF 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -103,7 +103,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
         {/* Mobile CTA - centered below preview */}
         <Button
           onClick={onSignUp}
-          className="mt-4 px-6 py-3 bg-gradient-to-r from-[#F4B23A] to-[#FFD700] hover:from-[#FFD700] hover:to-[#F4B23A] backdrop-blur-md border border-[#F4B23A]/30 text-black rounded-lg text-base font-semibold shadow-xl shadow-[#F4B23A]/30 animate-fade-in lg:hidden"
+          className="mt-4 px-6 py-3 bg-[#C4912F] hover:bg-[#C4912F]/90 backdrop-blur-md border border-[#C4912F]/30 text-black rounded-lg text-base font-semibold shadow-xl shadow-[#C4912F]/30 animate-fade-in lg:hidden"
           style={{ animationDelay: '0.2s' }}
         >
           Login or Signup
@@ -125,7 +125,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
             className="text-xl sm:text-2xl md:text-3xl lg:text-3xl font-bold leading-tight"
             style={{
               background:
-                'linear-gradient(135deg, #4F8CFF 0%, #F4B23A 40%, #F4B23A 60%, #4F8CFF 100%)',
+                'linear-gradient(135deg, #4F8CFF 0%, #C4912F 40%, #C4912F 60%, #4F8CFF 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',

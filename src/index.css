@@ -202,8 +202,8 @@
     --popover: 0 0% 4%; /* Even darker for depth */
     --popover-foreground: 0 0% 100%;
 
-    /* Gold Primary - replaces blue */
-    --primary: 42 92% 56%; /* Rich gold #F4B23A */
+    /* Gold Primary - darkest gold for consistency (#C4912F) */
+    --primary: 38 61% 48%; /* Dark amber-gold #C4912F */
     --primary-foreground: 0 0% 0%; /* Black text on gold */
 
     --secondary: 0 0% 10%; /* Dark gray secondary */
@@ -212,7 +212,7 @@
     --muted: 0 0% 15%; /* Muted elements */
     --muted-foreground: 0 0% 60%; /* Gray text */
 
-    --accent: 42 100% 60%; /* Bright gold accent */
+    --accent: 38 61% 48%; /* Same darkest gold for consistency */
     --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84.2% 60.2%;
@@ -220,12 +220,12 @@
 
     --border: 42 30% 20%; /* Gold-tinted borders */
     --input: 0 0% 8%; /* Dark inputs */
-    --ring: 42 92% 56%; /* Gold focus rings */
+    --ring: 38 61% 48%; /* Gold focus rings - matches primary */
 
     /* Gold design tokens for landing page */
-    --gold-primary: 42 92% 56%;
-    --gold-light: 48 100% 50%;
-    --gold-dark: 38 80% 45%;
+    --gold-primary: 38 61% 48%;
+    --gold-light: 38 61% 48%;
+    --gold-dark: 38 61% 48%;
     --gold-glow: 42 92% 56%;
 
     /* Payment system colors */
@@ -240,12 +240,12 @@
 
     --sidebar-background: 0 0% 8%;
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 42 92% 56%;
+    --sidebar-primary: 38 61% 48%;
     --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 0 0% 12%;
     --sidebar-accent-foreground: 0 0% 90%;
     --sidebar-border: 42 20% 20%;
-    --sidebar-ring: 42 92% 56%;
+    --sidebar-ring: 38 61% 48%;
 
     /* On-image text tokens for guaranteed contrast */
     --on-image-title: 42 60% 25%;

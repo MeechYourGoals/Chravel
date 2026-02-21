@@ -75,22 +75,22 @@ export const FullPageLandingSection: React.FC<FullPageLandingSectionProps> = ({
     if (position === 'top') {
       return `
         radial-gradient(ellipse 120% 50% at 50% 0%, ${color}${hexOpacity} 0%, transparent 50%),
-        radial-gradient(ellipse 80% 30% at 20% 10%, rgba(244,178,58,0.08) 0%, transparent 40%),
-        radial-gradient(ellipse 60% 25% at 80% 5%, rgba(255,215,0,0.06) 0%, transparent 35%)
+        radial-gradient(ellipse 80% 30% at 20% 10%, rgba(196,145,47,0.08) 0%, transparent 40%),
+        radial-gradient(ellipse 60% 25% at 80% 5%, rgba(196,145,47,0.06) 0%, transparent 35%)
       `;
     }
 
     if (position === 'bottom') {
       return `
         radial-gradient(ellipse 120% 50% at 50% 100%, ${color}${hexOpacity} 0%, transparent 50%),
-        radial-gradient(ellipse 80% 30% at 80% 90%, rgba(244,178,58,0.08) 0%, transparent 40%)
+        radial-gradient(ellipse 80% 30% at 80% 90%, rgba(196,145,47,0.08) 0%, transparent 40%)
       `;
     }
 
     // Center position - subtle ambient glow
     return `
       radial-gradient(ellipse 100% 60% at 50% 50%, ${color}${hexOpacity} 0%, transparent 55%),
-      radial-gradient(ellipse 60% 40% at 30% 40%, rgba(244,178,58,0.05) 0%, transparent 40%)
+      radial-gradient(ellipse 60% 40% at 30% 40%, rgba(196,145,47,0.05) 0%, transparent 40%)
     `;
   };
 
