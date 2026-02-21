@@ -15,7 +15,7 @@ export const ForTeams = () => {
     {
       icon: <Users size={32} className="text-accent" />,
       title: 'Scale Team Coordination',
-      description: 'From 10 to 500+ team members, Chravel handles complex logistics seamlessly',
+      description: 'From 10 to 100+ team members, Chravel handles complex logistics seamlessly',
     },
     {
       icon: <BarChart3 size={32} className="text-primary" />,
@@ -72,7 +72,7 @@ export const ForTeams = () => {
 
           <p className="text-xl sm:text-2xl md:text-3xl text-foreground max-w-3xl mx-auto">
             From touring artists to college athletics, Chravel Pro reduces operational costs and
-            eliminates coordination chaos for teams of 10 to 500+
+            eliminates coordination chaos for teams of 10 to 100+
           </p>
 
           <div className="flex flex-wrap gap-4 justify-center pt-4">
@@ -80,7 +80,7 @@ export const ForTeams = () => {
               size="lg"
               onClick={() =>
                 (window.location.href =
-                  'mailto:christian@chravelapp.com?subject=Chravel%20Pro%20Inquiry')
+                  'mailto:support@chravelapp.com?subject=Chravel%20Pro%20Inquiry')
               }
               className="text-lg px-8"
             >
@@ -88,9 +88,8 @@ export const ForTeams = () => {
             </Button>
             <Button
               size="lg"
-              variant="outline"
               onClick={() =>
-                (window.location.href = 'mailto:christian@chravelapp.com?subject=14-Day%20Trial')
+                (window.location.href = 'mailto:support@chravelapp.com?subject=14-Day%20Trial')
               }
               className="text-lg px-8"
             >
@@ -151,7 +150,7 @@ export const ForTeams = () => {
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-12 text-foreground">
-            Trusted By
+            Built For
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -195,7 +194,7 @@ export const ForTeams = () => {
                 className="w-full mb-6"
                 onClick={() =>
                   (window.location.href =
-                    'mailto:christian@chravelapp.com?subject=Starter%20Pro%2014-Day%20Trial')
+                    'mailto:support@chravelapp.com?subject=Starter%20Pro%2014-Day%20Trial')
                 }
               >
                 Start 14-Day Trial
@@ -236,7 +235,7 @@ export const ForTeams = () => {
                 className="w-full mb-6"
                 onClick={() =>
                   (window.location.href =
-                    'mailto:christian@chravelapp.com?subject=Growth%20Pro%2014-Day%20Trial')
+                    'mailto:support@chravelapp.com?subject=Growth%20Pro%2014-Day%20Trial')
                 }
               >
                 Start 14-Day Trial
@@ -278,7 +277,7 @@ export const ForTeams = () => {
                 className="w-full mb-6"
                 onClick={() =>
                   (window.location.href =
-                    'mailto:christian@chravelapp.com?subject=Enterprise%20Inquiry')
+                    'mailto:support@chravelapp.com?subject=Enterprise%20Inquiry')
                 }
               >
                 Contact Sales
@@ -323,7 +322,7 @@ export const ForTeams = () => {
             <Button
               size="lg"
               onClick={() =>
-                (window.location.href = 'mailto:christian@chravelapp.com?subject=Schedule%20Demo')
+                (window.location.href = 'mailto:support@chravelapp.com?subject=Schedule%20Demo')
               }
               className="text-lg px-8"
             >
