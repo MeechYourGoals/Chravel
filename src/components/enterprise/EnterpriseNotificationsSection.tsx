@@ -13,34 +13,10 @@ interface EnterpriseNotificationSetting {
 
 const ENTERPRISE_SETTINGS: EnterpriseNotificationSetting[] = [
   {
-    key: 'orgAnnouncements',
-    dbKey: 'org_announcements',
-    label: 'Organization Announcements',
-    desc: 'Important updates from organization administrators',
-  },
-  {
     key: 'tripInvites',
     dbKey: 'trip_invites',
     label: 'Trip Invitations',
     desc: 'When you are invited to join a trip',
-  },
-  {
-    key: 'teamUpdates',
-    dbKey: 'team_updates',
-    label: 'Team Updates',
-    desc: 'Changes to team members and permissions',
-  },
-  {
-    key: 'billingAlerts',
-    dbKey: 'billing_alerts',
-    label: 'Billing Alerts',
-    desc: 'Subscription and payment notifications',
-  },
-  {
-    key: 'emailDigest',
-    dbKey: 'email_digest',
-    label: 'Weekly Email Digest',
-    desc: 'Summary of activity across all your trips',
   },
 ];
 
@@ -49,11 +25,7 @@ export const EnterpriseNotificationsSection = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState<Record<string, boolean>>({
-    orgAnnouncements: true,
     tripInvites: true,
-    teamUpdates: true,
-    billingAlerts: true,
-    emailDigest: true,
   });
 
   const loadPreferences = useCallback(async () => {
@@ -61,11 +33,7 @@ export const EnterpriseNotificationsSection = () => {
     try {
       const prefs = await userPreferencesService.getNotificationPreferences(user.id);
       setSettings({
-        orgAnnouncements: prefs.org_announcements ?? true,
         tripInvites: prefs.trip_invites ?? true,
-        teamUpdates: prefs.team_updates ?? true,
-        billingAlerts: prefs.billing_alerts ?? true,
-        emailDigest: prefs.email_digest ?? true,
       });
     } catch (error) {
       if (import.meta.env.DEV) {

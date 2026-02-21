@@ -40,7 +40,7 @@ export function toAppMessage(row: ChatMessageRow): Message {
     attachments: row.attachments as Message['attachments'],
     media_type: row.media_type ?? undefined,
     media_url: row.media_url ?? undefined,
-    link_preview: row.link_preview as Message['link_preview'],
+    link_preview: row.link_preview as unknown as Message['link_preview'],
     privacy_mode: row.privacy_mode ?? undefined,
     privacy_encrypted: row.privacy_encrypted ?? undefined,
   };
@@ -69,7 +69,7 @@ export function toUnifiedMessage(
     deleted: row.is_deleted ?? false,
     deletedAt: row.deleted_at ?? undefined,
     type: normalizeMessageType(row.message_type),
-    attachments: row.attachments as UnifiedMessage['attachments'],
+    attachments: row.attachments as unknown as UnifiedMessage['attachments'],
     replyTo: row.reply_to_id
       ? { messageId: row.reply_to_id, content: '', senderName: '' }
       : undefined,

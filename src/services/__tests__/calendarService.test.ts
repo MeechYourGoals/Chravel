@@ -40,12 +40,15 @@ describe('calendarService', () => {
     it('should convert trip event to calendar event with timezone handling', () => {
       const tripEvent = {
         id: '123',
+        trip_id: 'trip-123',
         title: 'Test Event',
         start_time: '2024-01-15T10:00:00Z',
         end_time: '2024-01-15T11:00:00Z',
         location: 'Test Location',
         description: 'Test Description',
         created_by: 'user-123',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
         include_in_itinerary: true,
         event_category: 'activity',
         source_type: 'manual',
@@ -75,12 +78,15 @@ describe('calendarService', () => {
     it('should handle events without end time', () => {
       const tripEvent = {
         id: '123',
+        trip_id: 'trip-123',
         title: 'Test Event',
         start_time: '2024-01-15T10:00:00Z',
         end_time: null,
         location: null,
         description: null,
         created_by: 'user-123',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
         include_in_itinerary: true,
         event_category: 'activity',
         source_type: 'manual',
@@ -103,12 +109,15 @@ describe('calendarService', () => {
     it('should handle recurring events', () => {
       const tripEvent = {
         id: '123',
+        trip_id: 'trip-123',
         title: 'Recurring Event',
         start_time: '2024-01-15T10:00:00Z',
         end_time: '2024-01-15T11:00:00Z',
         location: null,
         description: null,
         created_by: 'user-123',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
         include_in_itinerary: true,
         event_category: 'activity',
         source_type: 'manual',
@@ -131,12 +140,15 @@ describe('calendarService', () => {
     it('should handle free/tentative events', () => {
       const tripEvent = {
         id: '123',
+        trip_id: 'trip-123',
         title: 'Free Time',
         start_time: '2024-01-15T10:00:00Z',
         end_time: '2024-01-15T11:00:00Z',
         location: null,
         description: null,
         created_by: 'user-123',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
         include_in_itinerary: true,
         event_category: 'activity',
         source_type: 'manual',
