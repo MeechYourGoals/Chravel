@@ -80,7 +80,7 @@ export const FooterSection = () => {
               </li>
               <li>
                 <a
-                  href="mailto:support@chravel.app"
+                  href="mailto:support@chravelapp.com"
                   className="text-foreground hover:text-primary transition-colors"
                 >
                   Support

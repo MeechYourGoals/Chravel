@@ -77,7 +77,7 @@ export const ConsumerGeneralSettings = () => {
       console.error('[AccountDeletion] Error:', err);
       toast({
         title: 'Error',
-        description: 'Failed to delete account. Please contact support at privacy@chravel.app',
+        description: 'Failed to delete account. Please contact support at privacy@chravelapp.com',
         variant: 'destructive',
       });
     } finally {
