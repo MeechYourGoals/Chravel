@@ -1,15 +1,15 @@
 // Demo notifications covering all notification types with REAL demo trip/event IDs
 // Each notification deep-links correctly to the corresponding trip/tab
 
-export type NotificationType = 
-  | 'broadcast' 
-  | 'calendar' 
-  | 'payment' 
-  | 'task' 
-  | 'poll' 
-  | 'join_request' 
-  | 'basecamp' 
-  | 'photos';
+export type NotificationType =
+  | 'broadcast'
+  | 'calendar_event'
+  | 'payment'
+  | 'task'
+  | 'poll'
+  | 'join_request'
+  | 'basecamp_update'
+  | 'media';
 
 export interface MockNotification {
   id: string;
@@ -56,8 +56,8 @@ export const mockNotifications: MockNotification[] = [
       requester_name: 'Emily Rodriguez',
       request_id: 'demo-request-1',
       actor_name: 'Emily Rodriguez',
-      actor_avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100'
-    }
+      actor_avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
+    },
   },
 
   // ===== BROADCAST - Lakers Road Trip (Pro) =====
@@ -75,8 +75,8 @@ export const mockNotifications: MockNotification[] = [
       trip_id: 'lakers-road-trip',
       trip_name: 'Lakers Road Trip - Western Conference',
       actor_name: 'Team Manager',
-      actor_avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100'
-    }
+      actor_avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
+    },
   },
 
   // ===== PAYMENT - Corporate Ski Trip Aspen (id: 10) =====
@@ -96,8 +96,8 @@ export const mockNotifications: MockNotification[] = [
       trip_name: 'Corporate Holiday Ski Trip – Aspen',
       payment_id: 'demo-payment-1',
       actor_name: 'Tom Nguyen',
-      actor_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100'
-    }
+      actor_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
+    },
   },
 
   // ===== TASK - Tokyo Adventure (id: 2) =====
@@ -117,8 +117,8 @@ export const mockNotifications: MockNotification[] = [
       trip_name: 'Tokyo Adventure',
       task_id: 'demo-task-1',
       actor_name: 'Alex Chen',
-      actor_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'
-    }
+      actor_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
+    },
   },
 
   // ===== POLL - Coachella Squad (id: 5) =====
@@ -138,8 +138,8 @@ export const mockNotifications: MockNotification[] = [
       trip_name: 'Coachella Squad 2026',
       poll_id: 'demo-poll-1',
       actor_name: 'Tyler Martinez',
-      actor_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100'
-    }
+      actor_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
+    },
   },
 
   // ===== CALENDAR - SXSW 2025 (Event) =====
@@ -157,15 +157,15 @@ export const mockNotifications: MockNotification[] = [
       trip_id: 'sxsw-2025',
       trip_name: 'SXSW 2025',
       event_id: 'a2',
-      actor_name: 'Event Organizer'
-    }
+      actor_name: 'Event Organizer',
+    },
   },
 
   // ===== BASECAMP - Kristen's Bachelorette (id: 4) =====
   {
     id: 'notif-basecamp-1',
     type: 'basecamp_update',
-    title: 'Basecamp Updated - Kristen\'s Bachelorette',
+    title: "Basecamp Updated - Kristen's Bachelorette",
     message: 'Ashley updated the hotel: Now staying at The Hermitage Hotel, 231 6th Ave N',
     timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(), // 3 hours ago
     read: false,
@@ -176,8 +176,8 @@ export const mockNotifications: MockNotification[] = [
       trip_id: '4',
       trip_name: "Kristen's Bachelorette Party",
       actor_name: 'Ashley Miller',
-      actor_avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100'
-    }
+      actor_avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+    },
   },
 
   // ===== PHOTOS - Spring Break Cancun (id: 1) =====
@@ -195,8 +195,8 @@ export const mockNotifications: MockNotification[] = [
       trip_id: '1',
       trip_name: 'Spring Break Cancun 2026 Kappa Alpha Psi Trip',
       actor_name: 'Sarah Chen',
-      actor_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'
-    }
+      actor_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
+    },
   },
 
   // ===== Additional notifications for variety =====
@@ -215,8 +215,8 @@ export const mockNotifications: MockNotification[] = [
     data: {
       trip_id: 'beyonce-cowboy-carter-tour',
       trip_name: 'Beyoncé Cowboy Carter World Tour',
-      actor_name: 'Tour Manager'
-    }
+      actor_name: 'Tour Manager',
+    },
   },
 
   // CALENDAR - Invest Fest 2025 (Event)
@@ -233,8 +233,8 @@ export const mockNotifications: MockNotification[] = [
     data: {
       trip_id: 'invest-fest-2025',
       trip_name: 'Invest Fest 2025',
-      event_id: 'if-a2'
-    }
+      event_id: 'if-a2',
+    },
   },
 
   // PAYMENT - Johnson Family Vacay (id: 6)
@@ -252,8 +252,8 @@ export const mockNotifications: MockNotification[] = [
       trip_id: '6',
       trip_name: 'Johnson Family Summer Vacay',
       payment_id: 'demo-payment-2',
-      actor_name: 'Dad (Mike)'
-    }
+      actor_name: 'Dad (Mike)',
+    },
   },
 
   // TASK - Tulum Wellness (id: 8)
@@ -271,10 +271,9 @@ export const mockNotifications: MockNotification[] = [
       trip_id: '8',
       trip_name: 'Tulum Wellness Retreat',
       task_id: 'demo-task-2',
-      actor_name: 'Maya Patel'
-    }
+      actor_name: 'Maya Patel',
+    },
   },
-
 ];
 
 // Helper to get unread count
