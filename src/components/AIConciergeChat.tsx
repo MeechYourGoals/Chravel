@@ -14,7 +14,6 @@ import {
 } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
-import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { VoiceConcierge } from './VoiceConcierge';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 
@@ -169,9 +168,6 @@ export const AIConciergeChat = ({
   // Voice state from Gemini Live session
   const [voiceState, setVoiceState] = useState<GeminiLiveState>('idle');
 
-  // Map GeminiLiveState → VoiceState for VoiceButton/AiChatInput compatibility
-  const _effectiveVoiceState: VoiceState = voiceState as VoiceState;
-
   const handleVoiceStateChange = useCallback((newState: GeminiLiveState) => {
     setVoiceState(newState);
   }, []);
@@ -188,10 +184,6 @@ export const AIConciergeChat = ({
     );
   }, []);
 
-  // Stub kept for backward compatibility
-  const _handleVoiceToggle = useCallback(() => {
-    // Handled by VoiceConcierge component
-  }, []);
 
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
   const streamAbortRef = useRef<(() => void) | null>(null);

@@ -185,6 +185,17 @@ export function useGeminiLive({
     return () => cleanup();
   }, [cleanup]);
 
+  // Close session if tripId changes (session config is immutable per connection)
+  const prevTripIdRef = useRef(tripId);
+  useEffect(() => {
+    if (prevTripIdRef.current !== tripId && wsRef.current) {
+      cleanup();
+      setState('idle');
+      setError(null);
+    }
+    prevTripIdRef.current = tripId;
+  }, [tripId, cleanup]);
+
   /**
    * Flush playback and caches for barge-in or turn end.
    */
