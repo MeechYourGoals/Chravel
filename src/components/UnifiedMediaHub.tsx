@@ -25,7 +25,6 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   const [urlsCount, setUrlsCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MediaSearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const { isDemoMode } = useDemoMode();
 
@@ -182,8 +181,13 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      <div className="space-y-4">
+        <div className="h-12 rounded-xl bg-white/10 animate-pulse" />
+        <div className="h-10 rounded-xl bg-white/5 animate-pulse" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-40 rounded-xl bg-white/5 animate-pulse" />
+          <div className="h-40 rounded-xl bg-white/5 animate-pulse" />
+        </div>
       </div>
     );
   }
@@ -198,11 +202,9 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
         tripId={tripId}
         onSearchResults={results => {
           setSearchResults(results);
-          setIsSearching(false);
         }}
         onSearchChange={query => {
           setSearchQuery(query);
-          setIsSearching(query.length > 0);
         }}
       />
 
