@@ -11,7 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 const createChainMock = (resolvedValue: { data: unknown; error: unknown }) => {
   const promise = Promise.resolve(resolvedValue);
-  const chain: Record<string, unknown> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chain: Record<string, any> = {
     select: vi.fn(),
     eq: vi.fn(),
     in: vi.fn(),
