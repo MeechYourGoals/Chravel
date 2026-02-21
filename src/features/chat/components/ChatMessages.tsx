@@ -4,6 +4,7 @@ import { ChatMessage } from './types';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { ChatMessageWithGrounding } from '@/types/grounding';
 import { MessageRenderer } from './MessageRenderer';
+import { ConciergeImageGrid } from '@/components/ai/ConciergeImageGrid';
 
 interface ChatMessagesProps {
   messages: (ChatMessage | ChatMessageWithGrounding)[];
@@ -24,27 +25,32 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: Cha
 
   return (
     <>
-      {messages.map((message) => {
+      {messages.map(message => {
         const messageWithGrounding = message as ChatMessageWithGrounding;
         return (
           <div key={message.id} className="space-y-2">
             <MessageRenderer message={message} showMapWidgets={showMapWidgets} />
-            
+
             {/* Render Maps widget for gmp-place-contextual context tokens */}
-            {showMapWidgets && messageWithGrounding.googleMapsWidget &&
+            {showMapWidgets &&
+              messageWithGrounding.googleMapsWidget &&
               !messageWithGrounding.googleMapsWidget.trimStart().startsWith('<') && (
-              <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <GoogleMapsWidget widgetToken={messageWithGrounding.googleMapsWidget} />
-              </div>
-            )}
-            
+                <div
+                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <GoogleMapsWidget widgetToken={messageWithGrounding.googleMapsWidget} />
+                </div>
+              )}
+
             {/* 🆕 Enhanced: Show grounding sources with badge */}
             {messageWithGrounding.sources && messageWithGrounding.sources.length > 0 && (
               <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className="space-y-1 px-2 max-w-xs lg:max-w-md">
                   <div className="text-xs font-medium text-gray-400 flex items-center gap-2">
                     <span>Sources:</span>
-                    {messageWithGrounding.sources.some(s => s.source === 'google_maps_grounding') && (
+                    {messageWithGrounding.sources.some(
+                      s => s.source === 'google_maps_grounding',
+                    ) && (
                       <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px]">
                         Verified by Google Maps
                       </span>
@@ -64,6 +70,21 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: Cha
                 </div>
               </div>
             )}
+
+            {/* Inline images for assistant messages (AI Concierge) */}
+            {message.type === 'assistant' &&
+              (messageWithGrounding.imagesLoading ||
+                (messageWithGrounding.assistantImages &&
+                  messageWithGrounding.assistantImages.length > 0)) && (
+                <div
+                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <ConciergeImageGrid
+                    images={messageWithGrounding.assistantImages ?? []}
+                    isLoading={messageWithGrounding.imagesLoading}
+                  />
+                </div>
+              )}
           </div>
         );
       })}
@@ -72,8 +93,14 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: Cha
           <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-4 border border-blue-500/20">
             <div className="flex space-x-1">
               <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+              <div
+                className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                style={{ animationDelay: '0.1s' }}
+              ></div>
+              <div
+                className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                style={{ animationDelay: '0.2s' }}
+              ></div>
             </div>
           </div>
         </div>

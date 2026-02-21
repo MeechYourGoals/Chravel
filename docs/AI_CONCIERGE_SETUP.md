@@ -65,6 +65,22 @@ SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
+### Optional: Inline Images (Gemini-like photo display)
+
+When users ask for photos/pictures ("show me pictures of Medellín Flower Festival"), the Concierge can display an image grid below the text response. This uses a separate `ai-images` edge function and **does not affect the main text chat flow**.
+
+1. Create a [Google Custom Search Engine](https://programmablesearchengine.google.com/) with **Image Search** enabled.
+2. Get your API key from [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+3. Set Supabase secrets:
+
+```bash
+AI_IMAGES_ENABLED=true
+GOOGLE_CUSTOM_SEARCH_API_KEY=your_api_key
+GOOGLE_CUSTOM_SEARCH_ENGINE_ID=your_search_engine_id
+```
+
+When disabled or keys are missing, the endpoint returns `{ images: [] }` and the text chat works normally.
+
 ### 3. Edge Function Deployment
 
 The `lovable-concierge` edge function is automatically deployed with the migration. Verify it's working:
