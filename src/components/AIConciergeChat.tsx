@@ -6,6 +6,9 @@ import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
+import { useAuth } from '@/hooks/useAuth';
+import { useConciergeHistory } from '../hooks/useConciergeHistory';
+import { conciergeCacheService } from '../services/conciergeCacheService';
 import { useAIConciergePreferences } from '../hooks/useAIConciergePreferences';
 import {
   invokeConcierge,
@@ -31,7 +34,7 @@ interface AIConciergeChatProps {
   isEvent?: boolean; // Deprecated: retained for backward compatibility
 }
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   type: 'user' | 'assistant';
   content: string;
@@ -150,9 +153,17 @@ export const AIConciergeChat = ({
   const { basecamp: globalBasecamp } = useBasecamp();
   const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
+  const { user } = useAuth();
   const loadedPreferences = useAIConciergePreferences();
   const effectivePreferences = preferences ?? loadedPreferences;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  // --- Persisted history hydration ---
+  const {
+    data: historyMessages,
+    isLoading: isHistoryLoading,
+    error: historyError,
+  } = useConciergeHistory(tripId);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [aiStatus, setAiStatus] = useState<
@@ -185,6 +196,39 @@ export const AIConciergeChat = ({
       streamAbortRef.current = null;
     };
   }, []);
+
+  // Hydrate messages from persisted RPC history on mount (once history loads and
+  // messages state is still empty — do not overwrite an active session).
+  useEffect(() => {
+    if (isHistoryLoading) return;
+
+    if (historyError) {
+      console.error('[AIConciergeChat] Failed to load persisted history:', historyError);
+      // Fallback: try localStorage cache (covers offline + RPC failure scenarios)
+      const userId = user?.id ?? 'anonymous';
+      const cached = conciergeCacheService.getCachedMessages(tripId, userId);
+      if (cached.length > 0 && messages.length === 0) {
+        setMessages(cached);
+      }
+      return;
+    }
+
+    if (historyMessages.length > 0 && messages.length === 0) {
+      setMessages(historyMessages);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHistoryLoading, historyError, historyMessages]);
+
+  // Fallback when offline: show cached messages from localStorage.
+  useEffect(() => {
+    if (!isOffline || messages.length > 0) return;
+    const userId = user?.id ?? 'anonymous';
+    const cached = conciergeCacheService.getCachedMessages(tripId, userId);
+    if (cached.length > 0) {
+      setMessages(cached);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOffline]);
 
   // Auto-scroll to bottom when new messages or typing indicator appear
   useEffect(() => {
@@ -501,6 +545,16 @@ export const AIConciergeChat = ({
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' },
                 );
+                // Persist to localStorage cache for offline fallback.
+                // Read the final assembled message from state via functional update.
+                setMessages(prev => {
+                  const assistantMsg = prev.find(m => m.id === streamingMessageId);
+                  if (assistantMsg) {
+                    const userId = user?.id ?? 'anonymous';
+                    conciergeCacheService.cacheMessage(tripId, currentInput, assistantMsg, userId);
+                  }
+                  return prev; // No state change — reading only
+                });
               }
             },
           },
@@ -588,6 +642,8 @@ export const AIConciergeChat = ({
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      // Persist to localStorage cache for offline fallback
+      conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id ?? 'anonymous');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('AI Concierge error:', error);
@@ -757,8 +813,17 @@ export const AIConciergeChat = ({
           </div>
         )}
 
+        {/* History loading skeleton — prevents flash of empty → populated */}
+        {isHistoryLoading && messages.length === 0 && !isQueryLimitReached && (
+          <div className="flex flex-col gap-3 p-4 animate-pulse flex-shrink-0">
+            <div className="h-8 bg-white/10 rounded-xl w-3/4" />
+            <div className="h-8 bg-white/10 rounded-xl w-1/2 self-end" />
+            <div className="h-8 bg-white/10 rounded-xl w-2/3" />
+          </div>
+        )}
+
         {/* Empty State - Compact for Mobile */}
-        {messages.length === 0 && !isQueryLimitReached && (
+        {messages.length === 0 && !isHistoryLoading && !isQueryLimitReached && (
           <div className="text-center py-6 px-4 flex-shrink-0">
             <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
               Your AI Travel Concierge

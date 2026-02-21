@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck - Temporary until ChatMessage export resolved
 /**
  * Concierge Cache Service
  * Provides offline mode support by caching AI responses
- * 
+ *
  * Features:
  * - Caches AI responses with semantic similarity matching
  * - Stores messages for offline viewing
@@ -201,12 +199,15 @@ class ConciergeCacheService {
   }
 
   /**
-   * Clear cache for a specific trip
+   * Clear cache for a specific trip.
+   * Accepts optional userId to clear the user-scoped key (matching how data is written).
+   * If userId is omitted, clears the anonymous key only. Use clearAllCaches() for a full wipe.
    */
-  clearCache(tripId: string): void {
+  clearCache(tripId: string, userId?: string): void {
     try {
-      localStorage.removeItem(`${CACHE_PREFIX}${tripId}`);
-      localStorage.removeItem(`${MESSAGES_PREFIX}${tripId}`);
+      const userKey = userId ?? 'anonymous';
+      localStorage.removeItem(`${CACHE_PREFIX}${tripId}_${userKey}`);
+      localStorage.removeItem(`${MESSAGES_PREFIX}${tripId}_${userKey}`);
     } catch (error) {
       console.error('Failed to clear cache:', error);
     }
