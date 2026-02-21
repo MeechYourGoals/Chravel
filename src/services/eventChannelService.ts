@@ -1,5 +1,12 @@
 import { supabase } from '../integrations/supabase/client';
-import { TripChannel, CreateChannelRequest, UpdateChannelRequest, ChannelMessage, ChannelMessageInput } from '../types/channels';
+import {
+  TripChannel,
+  CreateChannelRequest,
+  UpdateChannelRequest,
+  ChannelMessage,
+  ChannelMessageInput,
+} from '../types/channels';
+import { toAppChannel, toAppChannelMessage } from '@/lib/adapters/channelAdapter';
 
 /**
  * Service for event/generic channels (not role-based)
@@ -16,23 +23,11 @@ class EventChannelService {
         .order('created_at');
 
       if (error) throw error;
-      
-      // Map database columns to TripChannel type - support both naming conventions
-      const channels = (data || []).map(ch => ({
-        id: ch.id,
-        trip_id: ch.trip_id,
-        name: ch.channel_name,
-        slug: ch.channel_slug,
-        description: ch.description,
-        channel_type: ch.is_private ? 'role' : 'custom',
-        role_filter: null,
-        created_by: ch.created_by,
-        created_at: ch.created_at,
-        updated_at: ch.updated_at,
-        is_archived: ch.is_archived || false
-      }));
 
-      return channels as TripChannel[];
+      return (data || []).map(ch => ({
+        ...toAppChannel(ch),
+        channel_type: ch.is_private ? ('role' as const) : ('custom' as const),
+      }));
     } catch (error) {
       console.error('Failed to fetch channels:', error);
       return [];
@@ -41,11 +36,13 @@ class EventChannelService {
 
   async createChannel(request: CreateChannelRequest): Promise<TripChannel | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return null;
 
       const slug = request.name.toLowerCase().replace(/\s+/g, '-');
-      
+
       const { data, error } = await supabase
         .from('trip_channels')
         .insert({
@@ -56,7 +53,7 @@ class EventChannelService {
           channel_type: request.channel_type,
           role_filter: request.role_filter || null,
           created_by: user.id,
-          is_private: request.channel_type === 'role'
+          is_private: request.channel_type === 'role',
         })
         .select()
         .single();
@@ -65,27 +62,14 @@ class EventChannelService {
 
       // Ensure the creator is added as a channel member
       // (DB trigger also handles this, but adding here for immediate consistency)
-      await supabase.from('channel_members').upsert(
-        { channel_id: data.id, user_id: user.id },
-        { onConflict: 'channel_id,user_id' },
-      );
-      
-      // Map response to TripChannel
-      const channel: TripChannel = {
-        id: data.id,
-        trip_id: data.trip_id,
-        name: data.channel_name,
-        slug: data.channel_slug,
-        description: data.description,
-        channel_type: data.is_private ? 'role' : 'custom',
-        role_filter: null,
-        created_by: data.created_by,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        is_archived: data.is_archived || false
+      await supabase
+        .from('channel_members')
+        .upsert({ channel_id: data.id, user_id: user.id }, { onConflict: 'channel_id,user_id' });
+
+      return {
+        ...toAppChannel(data),
+        channel_type: data.is_private ? ('role' as const) : ('custom' as const),
       };
-      
-      return channel;
     } catch (error) {
       console.error('Failed to create channel:', error);
       return null;
@@ -94,10 +78,7 @@ class EventChannelService {
 
   async updateChannel(channelId: string, updates: UpdateChannelRequest): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('trip_channels')
-        .update(updates)
-        .eq('id', channelId);
+      const { error } = await supabase.from('trip_channels').update(updates).eq('id', channelId);
 
       return !error;
     } catch (error) {
@@ -124,12 +105,10 @@ class EventChannelService {
     try {
       const members = userIds.map(userId => ({
         channel_id: channelId,
-        user_id: userId
+        user_id: userId,
       }));
 
-      const { error } = await supabase
-        .from('channel_members')
-        .insert(members);
+      const { error } = await supabase.from('channel_members').insert(members);
 
       return !error;
     } catch (error) {
@@ -158,14 +137,14 @@ class EventChannelService {
       // Create default channels for common roles
       const defaultChannels = [
         { name: 'General', type: 'custom' as const },
-        { name: 'Announcements', type: 'custom' as const }
+        { name: 'Announcements', type: 'custom' as const },
       ];
 
       for (const channel of defaultChannels) {
         await this.createChannel({
           trip_id: tripId,
           name: channel.name,
-          channel_type: channel.type
+          channel_type: channel.type,
         });
       }
 
@@ -176,7 +155,11 @@ class EventChannelService {
     }
   }
 
-  async getChannelMessages(channelId: string, limit = 50, before?: string): Promise<ChannelMessage[]> {
+  async getChannelMessages(
+    channelId: string,
+    limit = 50,
+    before?: string,
+  ): Promise<ChannelMessage[]> {
     try {
       let query = supabase
         .from('channel_messages')
@@ -192,22 +175,9 @@ class EventChannelService {
       const { data, error } = await query;
       if (error) throw error;
 
-      // Map to ChannelMessage type
-      const messages = (data || []).map(msg => ({
-        id: msg.id,
-        channel_id: msg.channel_id,
-        trip_id: '', // Will be fetched from channel if needed
-        user_id: msg.sender_id,
-        content: msg.content,
-        author_name: 'User', // Fetch from profiles if needed
-        created_at: msg.created_at,
-        updated_at: msg.edited_at || msg.created_at,
-        edited_at: msg.edited_at,
-        is_deleted: !!msg.deleted_at,
-        deleted_at: msg.deleted_at
-      }));
+      const messages = (data || []).map(msg => toAppChannelMessage(msg, { authorName: 'User' }));
 
-      return messages.reverse() as ChannelMessage[];
+      return messages.reverse();
     } catch (error) {
       console.error('Failed to load messages:', error);
       return [];
@@ -215,7 +185,9 @@ class EventChannelService {
   }
 
   async sendMessage(input: ChannelMessageInput): Promise<ChannelMessage> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       throw Object.assign(new Error('You must be logged in to send messages.'), {
         code: 'AUTH_REQUIRED',
@@ -235,7 +207,7 @@ class EventChannelService {
         sender_id: user.id,
         content: input.content,
         message_type: 'text',
-        metadata: {}
+        metadata: {},
       })
       .select()
       .single();
@@ -249,19 +221,10 @@ class EventChannelService {
       throw new Error('No data returned after inserting message.');
     }
 
-    // Map to ChannelMessage type
-    const message: ChannelMessage = {
-      id: data.id,
-      channel_id: data.channel_id,
-      trip_id: input.trip_id,
-      user_id: data.sender_id,
-      content: data.content,
-      author_name: 'You',
-      created_at: data.created_at,
-      updated_at: data.created_at
-    };
-
-    return message;
+    return toAppChannelMessage(data, {
+      authorName: 'You',
+      tripId: input.trip_id,
+    });
   }
 }
 

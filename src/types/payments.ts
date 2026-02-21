@@ -7,12 +7,15 @@ import { Receipt } from './receipts';
 export interface PaymentMethod {
   id: string;
   type: PaymentMethodId | 'venmo' | 'zelle' | 'cashapp' | 'applepay' | 'paypal' | 'applecash' | 'cash' | 'other';
-  method_type?: string; // Database field
+  /** @deprecated Use `type` instead. Present for backward-compat with raw DB rows. */
+  method_type?: string;
   identifier: string;
   displayName?: string;
-  display_name?: string; // Database field
+  /** @deprecated Use `displayName` instead. Present for backward-compat with raw DB rows. */
+  display_name?: string;
   isPreferred?: boolean;
-  is_preferred?: boolean; // Database field
+  /** @deprecated Use `isPreferred` instead. Present for backward-compat with raw DB rows. */
+  is_preferred?: boolean;
   isVisible?: boolean;
 }
 
