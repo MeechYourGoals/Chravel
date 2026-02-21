@@ -1,11 +1,7 @@
 {
   "mcpServers": {
-    "render": {
-      "url": "https://mcp.render.com/mcp",
-      "headers": {
-        "Authorization": "Bearer <YOUR_RENDER_API_KEY>"
-      }
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=jmjiyekmxwsxkfnqwyaa"
     }
   }
 }
-
