@@ -9,8 +9,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     
     // MARK: - RevenueCat Configuration
-    // Replace with your actual API key from RevenueCat dashboard
-    private let revenueCatAPIKey = "test_QqVXiOnWgmxTHaMKTUiCrOpYMDm"
+    // API key is read from Info.plist key "REVENUECAT_API_KEY".
+    // Set it in your Xcode build settings via a .xcconfig file (not committed to git)
+    // or inject it during CI via fastlane / xcodebuild -xcconfig.
+    private var revenueCatAPIKey: String {
+        Bundle.main.object(forInfoDictionaryKey: "REVENUECAT_API_KEY") as? String ?? ""
+    }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
@@ -29,13 +33,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     private func configureRevenueCat() {
         // Set log level (use .warn in production)
         Purchases.logLevel = .debug
-        
+
+        guard !revenueCatAPIKey.isEmpty else {
+            print("[RevenueCat] REVENUECAT_API_KEY not set in Info.plist — SDK not configured.")
+            return
+        }
+
         // Configure with API key
         Purchases.configure(withAPIKey: revenueCatAPIKey)
-        
+
         // Enable automatic collection of attribution data
         Purchases.shared.attribution.enableAdServicesAttributionTokenCollection()
-        
+
         print("[RevenueCat] SDK configured successfully")
     }
 
