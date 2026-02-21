@@ -193,6 +193,23 @@ export const AIConciergeChat = ({
     }
   }, [messages.length, isTyping, messages]);
 
+  // Failsafe: if a stream callback never finalizes, release typing state so
+  // users can still send a follow-up without needing a hard refresh.
+  useEffect(() => {
+    if (!isTyping) return;
+
+    const watchdog = setTimeout(() => {
+      if (!isMounted.current) return;
+      setIsTyping(false);
+      setAiStatus(prev => (prev === 'thinking' ? 'timeout' : prev));
+      if (import.meta.env.DEV) {
+        console.warn('[AIConciergeChat] Typing watchdog released a stuck request state.');
+      }
+    }, FAST_RESPONSE_TIMEOUT_MS + 5_000);
+
+    return () => clearTimeout(watchdog);
+  }, [isTyping]);
+
   // ⚡ PERFORMANCE: 8-second initialization timeout to prevent indefinite loading
   useEffect(() => {
     // If we're already connected or have messages, no need for timeout
@@ -805,7 +822,9 @@ export const AIConciergeChat = ({
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
-            onSendMessage={handleSendMessage}
+            onSendMessage={() => {
+              void handleSendMessage();
+            }}
             onKeyPress={handleKeyPress}
             isTyping={isTyping}
             disabled={isQueryLimitReached}
