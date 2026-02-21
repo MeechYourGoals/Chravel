@@ -15,6 +15,7 @@ export interface SmsTemplateData {
   tripName?: string;
   senderName?: string;
   amount?: number | string;
+  count?: number | string;
   currency?: string;
   location?: string;
   eventName?: string;
@@ -107,7 +108,7 @@ export function generateSmsMessage(category: SmsCategory, data: SmsTemplateData)
     }
 
     case 'calendar_bulk_import': {
-      const count = data.amount ?? '0';
+      const count = data.count ?? data.amount ?? '0';
       return `${SMS_BRAND_PREFIX} ${count} calendar events added to ${tripName} via Smart Import. Open the app to review.`;
     }
 

@@ -136,8 +136,8 @@ function parseMetadata(metadata: Record<string, unknown> | null): Record<string,
 function categoryToContentType(
   category: NotificationCategory | null,
   metadata: Record<string, unknown>,
-): NotificationContentType {
-  if (!category) return 'broadcast_posted';
+): NotificationContentType | null {
+  if (!category) return null;
 
   if (category === 'calendar_events') {
     if (metadata.bulk_import || metadata.import_session_id) return 'calendar_bulk_import';
@@ -153,9 +153,10 @@ function categoryToContentType(
     join_requests: metadata.approved ? 'join_request_approved' : 'join_request',
     basecamp_updates: 'basecamp_updated',
     trip_invites: 'trip_invite',
+    calendar_bulk_import: 'calendar_bulk_import',
   };
 
-  return map[category] || 'broadcast_posted';
+  return map[category] || null;
 }
 
 function buildTripContextFromRow(
@@ -205,6 +206,10 @@ function buildSmsTemplateData(
     amount:
       typeof metadata.amount === 'number' || typeof metadata.amount === 'string'
         ? (metadata.amount as number | string)
+        : undefined,
+    count:
+      typeof metadata.count === 'number' || typeof metadata.count === 'string'
+        ? (metadata.count as number | string)
         : undefined,
     currency: typeof metadata.currency === 'string' ? metadata.currency : undefined,
     location:
@@ -782,27 +787,35 @@ serve(async req => {
 
         const emailMeta = parseMetadata(notification.metadata);
         const contentType = categoryToContentType(category, emailMeta);
-        const emailTripCtx = buildTripContextFromRow(notification, tripById, emailMeta);
-        const actorUserId = getActorUserId(emailMeta);
-        const emailActorName =
-          (typeof emailMeta.sender_name === 'string' && emailMeta.sender_name) ||
-          (typeof emailMeta.requester_name === 'string' && emailMeta.requester_name) ||
-          getDisplayName(actorUserId ? profileByUserId.get(actorUserId) : undefined);
 
-        const emailContent = buildNotificationContent({
-          type: contentType,
-          channel: 'email',
-          tripContext: emailTripCtx,
-          actorName: emailActorName,
-          count: typeof emailMeta.count === 'number' ? emailMeta.count : undefined,
-          extra: { tripId: notification.trip_id || undefined },
-        }) as EmailContent;
+        let emailSubject: string;
+        let emailBody: string;
 
-        const emailResult = await sendEmail(
-          recipientEmail,
-          emailContent.subject,
-          emailContent.bodyHtml,
-        );
+        if (contentType) {
+          const emailTripCtx = buildTripContextFromRow(notification, tripById, emailMeta);
+          const actorId = getActorUserId(emailMeta);
+          const emailActorName =
+            (typeof emailMeta.sender_name === 'string' && emailMeta.sender_name) ||
+            (typeof emailMeta.requester_name === 'string' && emailMeta.requester_name) ||
+            getDisplayName(actorId ? profileByUserId.get(actorId) : undefined);
+
+          const emailContent = buildNotificationContent({
+            type: contentType,
+            channel: 'email',
+            tripContext: emailTripCtx,
+            actorName: emailActorName,
+            count: typeof emailMeta.count === 'number' ? emailMeta.count : undefined,
+            extra: { tripId: notification.trip_id || undefined },
+          }) as EmailContent;
+
+          emailSubject = emailContent.subject;
+          emailBody = emailContent.bodyHtml;
+        } else {
+          emailSubject = notification.title;
+          emailBody = notification.message;
+        }
+
+        const emailResult = await sendEmail(recipientEmail, emailSubject, emailBody);
         if (emailResult.ok) {
           await markDelivery(supabase, delivery.id, {
             status: 'sent',
