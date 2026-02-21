@@ -51,7 +51,7 @@ export interface NotificationPayload {
 }
 
 export type NotificationType =
-  | 'chat_message'
+  | 'chat_message' // @deprecated - permanently suppressed
   | 'itinerary_update'
   | 'payment_request'
   | 'payment_split'
@@ -60,7 +60,10 @@ export type NotificationType =
   | 'poll_vote'
   | 'task_assigned'
   | 'broadcast'
-  | 'mention';
+  | 'mention' // @deprecated - permanently suppressed
+  | 'calendar_bulk_import'
+  | 'join_request'
+  | 'basecamp_update';
 
 export interface WebPushSendRequest {
   userIds?: string[];
@@ -442,32 +445,19 @@ export class NotificationService {
   }
 
   /**
-   * Send notification for new chat message
+   * Chat message notifications are permanently disabled.
+   * Chat volume is too high for push/email/SMS delivery.
+   * In-app chat continues to work normally.
+   * @deprecated No longer sends notifications. Kept for API compatibility.
    */
   async notifyNewMessage(
-    tripId: string,
-    senderName: string,
-    messagePreview: string,
-    messageId: string,
-    excludeUserId?: string,
+    _tripId: string,
+    _senderName: string,
+    _messagePreview: string,
+    _messageId: string,
+    _excludeUserId?: string,
   ): Promise<boolean> {
-    return this.sendPushNotification({
-      tripId,
-      excludeUserId,
-      type: 'chat_message',
-      title: senderName,
-      body: messagePreview,
-      icon: '/chravel-logo.png',
-      data: {
-        tripId,
-        messageId,
-        type: 'chat_message',
-      },
-      actions: [
-        { action: 'reply', title: 'Reply' },
-        { action: 'view', title: 'View Trip' },
-      ],
-    });
+    return false;
   }
 
   /**

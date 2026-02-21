@@ -13,6 +13,7 @@ export type NotificationCategory =
   | 'chat_messages'
   | 'broadcasts'
   | 'calendar_events'
+  | 'calendar_bulk_import'
   | 'payments'
   | 'tasks'
   | 'polls'
@@ -29,6 +30,7 @@ export interface NotificationPreferences {
   chat_messages: boolean;
   broadcasts: boolean;
   calendar_events: boolean;
+  calendar_bulk_import: boolean;
   payments: boolean;
   tasks: boolean;
   polls: boolean;
@@ -60,9 +62,15 @@ export interface DeliveryDecision {
  * Only high-signal, important categories to avoid spam.
  */
 export const EMAIL_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
-  'broadcasts',      // Important announcements from trip organizers
-  'payments',        // Payment requests and settlements
-  'basecamp_updates', // Location changes
+  'broadcasts',          // Important announcements from trip organizers
+  'payments',            // Payment requests and settlements
+  'basecamp_updates',    // Location changes
+  'calendar_events',     // Calendar updates
+  'calendar_bulk_import', // Bulk import summaries
+  'join_requests',       // Join request alerts
+  'tasks',               // Task assignments
+  'polls',               // New polls
+  'trip_invites',        // Trip invitations
 ];
 
 /**
@@ -70,14 +78,14 @@ export const EMAIL_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
  * High-urgency categories only - these warrant a text message.
  */
 export const SMS_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
-  'broadcasts',       // Critical announcements from organizers
-  'payments',         // Payment requests and deadlines
-  'basecamp_updates', // Location/basecamp changes
-  'calendar_events',  // Event updates and reminders
-  'join_requests',    // New member join requests (for organizers)
-  'tasks',            // Assigned tasks with actionable urgency
-  'polls',            // New polls needing input
-  'chat_messages',    // Privacy-safe new message ping
+  'broadcasts',          // Critical announcements from organizers
+  'payments',            // Payment requests and deadlines
+  'basecamp_updates',    // Location/basecamp changes
+  'calendar_events',     // Event updates and reminders
+  'calendar_bulk_import', // Bulk import summaries
+  'join_requests',       // New member join requests (for organizers)
+  'tasks',               // Assigned tasks with actionable urgency
+  'polls',               // New polls needing input
 ];
 
 /**
@@ -100,6 +108,7 @@ export const TYPE_TO_CATEGORY_MAP: Record<string, NotificationCategory> = {
   'calendar_reminder': 'calendar_events',
   'event': 'calendar_events',
   'itinerary_update': 'calendar_events',
+  'calendar_bulk_import': 'calendar_bulk_import',
 
   'payments': 'payments',
   'payment': 'payments',
@@ -244,6 +253,9 @@ export function isCategoryEnabled(
   category: NotificationCategory,
   prefs: NotificationPreferences
 ): boolean {
+  if (category === 'calendar_bulk_import') {
+    return prefs.calendar_events === true;
+  }
   return prefs[category] === true;
 }
 
@@ -272,10 +284,27 @@ export function isSmsEligible(category: NotificationCategory): boolean {
  * 4. SMS: category enabled + sms_enabled + category is sms-eligible + phone number exists + not in quiet hours
  * 5. In-app: always created if category is enabled (even during quiet hours)
  */
+/**
+ * Categories that are permanently suppressed from all external delivery channels.
+ * chat_messages removed: too high-volume for push/email/SMS.
+ * Chat still works in-app; only outbound notifications are blocked.
+ */
+export const SUPPRESSED_CATEGORIES: NotificationCategory[] = ['chat_messages'];
+
 export function getDeliveryDecision(
   category: NotificationCategory,
   prefs: NotificationPreferences
 ): DeliveryDecision {
+  if (SUPPRESSED_CATEGORIES.includes(category)) {
+    return {
+      createInApp: false,
+      sendPush: false,
+      sendEmail: false,
+      sendSms: false,
+      reason: `Category '${category}' is permanently suppressed from notifications`,
+    };
+  }
+
   // Check if category is enabled first
   const categoryEnabled = isCategoryEnabled(category, prefs);
 
@@ -324,9 +353,10 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: Omit<NotificationPreferences, 'us
   email_enabled: false, // Default off to avoid spam for new users
   sms_enabled: false,
   sms_phone_number: null,
-  chat_messages: false, // High frequency, default off
+  chat_messages: false, // Permanently disabled: too high-volume for external notifications
   broadcasts: true,
   calendar_events: true,
+  calendar_bulk_import: true,
   payments: true,
   tasks: true,
   polls: true,

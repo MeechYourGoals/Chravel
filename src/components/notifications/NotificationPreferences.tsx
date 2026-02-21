@@ -13,7 +13,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Bell, BellOff, Moon, Mail, MessageSquare, DollarSign, Calendar, Users, Megaphone } from 'lucide-react';
+import { Bell, Moon, Mail, MessageSquare, DollarSign, Calendar, Users, Megaphone } from 'lucide-react';
 import { userPreferencesService, NotificationPreferences as NotificationPrefs } from '@/services/userPreferencesService';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -24,7 +24,7 @@ export const NotificationPreferences = () => {
     email_enabled: true,
     sms_enabled: false,
     chat_messages: false,
-    mentions_only: true,
+    mentions_only: false,
     broadcasts: true,
     tasks: true,
     payments: true,
@@ -181,23 +181,6 @@ export const NotificationPreferences = () => {
       <div className="space-y-4 p-4 border rounded-lg">
         <h4 className="font-semibold text-lg">What to notify me about</h4>
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="mentions">@Mentions only (not all chat messages)</Label>
-              </div>
-              <p className="text-xs text-muted-foreground ml-6">
-                Get notified when someone mentions you
-              </p>
-            </div>
-            <Switch 
-              id="mentions"
-              checked={prefs.mentions_only}
-              onCheckedChange={(v) => updatePreference('mentions_only', v)}
-            />
-          </div>
-          
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Megaphone className="h-4 w-4 text-muted-foreground" />

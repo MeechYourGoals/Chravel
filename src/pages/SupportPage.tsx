@@ -24,23 +24,23 @@ export default function SupportPage() {
             <h2 className="text-2xl font-semibold mb-4">Contact Us</h2>
             <div className="space-y-4">
               <a
-                href="mailto:support@chravel.app"
+                href="mailto:support@chravelapp.com"
                 className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors no-underline text-foreground"
               >
                 <Mail className="h-6 w-6 text-primary" />
                 <div>
                   <p className="font-medium">Email Support</p>
-                  <p className="text-sm text-muted-foreground">support@chravel.app</p>
+                  <p className="text-sm text-muted-foreground">support@chravelapp.com</p>
                 </div>
               </a>
               <a
-                href="mailto:privacy@chravel.app"
+                href="mailto:privacy@chravelapp.com"
                 className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors no-underline text-foreground"
               >
                 <HelpCircle className="h-6 w-6 text-primary" />
                 <div>
                   <p className="font-medium">Privacy & Data</p>
-                  <p className="text-sm text-muted-foreground">privacy@chravel.app</p>
+                  <p className="text-sm text-muted-foreground">privacy@chravelapp.com</p>
                 </div>
               </a>
             </div>
@@ -65,8 +65,8 @@ export default function SupportPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Response Time</h2>
             <p className="text-foreground/90">
-              We typically respond within 4 hours during US business hours (9am–6pm ET, Monday–Friday).
-              For urgent issues, please include "Urgent" in your subject line.
+              We typically respond within 4 hours during US business hours (9am–6pm ET,
+              Monday–Friday). For urgent issues, please include "Urgent" in your subject line.
             </p>
           </section>
         </div>

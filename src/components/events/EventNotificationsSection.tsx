@@ -3,7 +3,6 @@ import {
   Bell,
   Mail,
   Smartphone,
-  MessageCircle,
   Radio,
   Calendar,
   CheckSquare,
@@ -31,13 +30,6 @@ interface EventNotificationCategory {
 }
 
 const EVENT_NOTIFICATION_CATEGORIES: EventNotificationCategory[] = [
-  {
-    key: 'chatMessages',
-    dbKey: 'chat_messages',
-    label: 'Event Chat Messages',
-    description: 'Get notified when someone sends a message in event chat',
-    icon: <MessageCircle size={16} className="text-blue-400" />,
-  },
   {
     key: 'broadcasts',
     dbKey: 'broadcasts',
@@ -92,7 +84,6 @@ export const EventNotificationsSection = () => {
   const [phoneError, setPhoneError] = useState('');
 
   const [notificationSettings, setNotificationSettings] = useState<Record<string, boolean>>({
-    chatMessages: true,
     broadcasts: true,
     calendar: true,
     joinRequests: true,
@@ -132,7 +123,6 @@ export const EventNotificationsSection = () => {
       try {
         const prefs = await userPreferencesService.getNotificationPreferences(user.id);
         setNotificationSettings({
-          chatMessages: prefs.chat_messages ?? true,
           broadcasts: prefs.broadcasts ?? true,
           calendar: prefs.calendar_events ?? true,
           joinRequests: prefs.join_requests ?? true,
@@ -188,7 +178,6 @@ export const EventNotificationsSection = () => {
     }
 
     const categoryMap: Record<string, keyof NotificationPreferences> = {
-      chatMessages: 'chat_messages',
       broadcasts: 'broadcasts',
       calendar: 'calendar_events',
       joinRequests: 'join_requests',
@@ -276,7 +265,7 @@ export const EventNotificationsSection = () => {
     try {
       const result = await notificationService.sendSMSNotification(
         user.id,
-        'Chravel Events: Test message — SMS notifications are working!',
+        'ChravelApp: Test message — SMS notifications are working!',
       );
       if (result.success && result.sid) {
         toast({

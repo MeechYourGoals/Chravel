@@ -83,6 +83,33 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
   const queryClient = useQueryClient();
 
+  const processParseResult = useCallback(
+    (result: SmartParseResult) => {
+      setParseResult(result);
+
+      if (!result.isValid || result.events.length === 0) {
+        setState('idle');
+        toast.error('No events found', {
+          description: result.errors[0] || 'Could not extract any calendar events from this file',
+        });
+        return;
+      }
+
+      // Check for duplicates
+      const duplicates = findDuplicateEvents(
+        result.events,
+        existingEvents.map(e => ({
+          start_time: e.start_time,
+          end_time: e.end_time,
+          title: e.title,
+        })),
+      );
+      setDuplicateIndices(duplicates);
+      setState('preview');
+    },
+    [existingEvents],
+  );
+
   const processFile = useCallback(
     async (file: File) => {
       setParsingSource('file');
@@ -114,33 +141,6 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
     onClearPendingResult?.();
     onClose();
   }, [resetState, onClose, onClearPendingResult]);
-
-  const processParseResult = useCallback(
-    (result: SmartParseResult) => {
-      setParseResult(result);
-
-      if (!result.isValid || result.events.length === 0) {
-        setState('idle');
-        toast.error('No events found', {
-          description: result.errors[0] || 'Could not extract any calendar events from this file',
-        });
-        return;
-      }
-
-      // Check for duplicates
-      const duplicates = findDuplicateEvents(
-        result.events,
-        existingEvents.map(e => ({
-          start_time: e.start_time,
-          end_time: e.end_time,
-          title: e.title,
-        })),
-      );
-      setDuplicateIndices(duplicates);
-      setState('preview');
-    },
-    [existingEvents],
-  );
 
   // Load external pending result (from background import) when modal opens
   React.useEffect(() => {

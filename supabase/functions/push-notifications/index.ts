@@ -210,7 +210,7 @@ async function sendEmailNotification(
       },
     ],
     from: {
-      email: Deno.env.get('SENDGRID_FROM_EMAIL') || 'noreply@chravel.app',
+      email: Deno.env.get('SENDGRID_FROM_EMAIL') || 'support@chravelapp.com',
       name: 'ChravelApp',
     },
     content: [

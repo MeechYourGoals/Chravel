@@ -288,7 +288,7 @@ export const DataExportSection: React.FC<DataExportSectionProps> = ({ className 
                   Under GDPR (General Data Protection Regulation), you have the right to receive a
                   copy of your personal data in a portable format.
                 </p>
-                <p>Your export includes all personal information stored in Chravel:</p>
+                <p>Your export includes all personal information stored in ChravelApp:</p>
                 <ul className="text-sm space-y-1 pl-4">
                   {DATA_CATEGORIES.map(cat => (
                     <li key={cat.name} className="list-disc">
