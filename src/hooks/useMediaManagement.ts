@@ -33,7 +33,7 @@ export const useMediaManagement = (tripId: string) => {
   const queryClient = useQueryClient();
 
   const { data: mediaItems = [], isLoading: mediaLoading } = useQuery({
-    queryKey: tripKeys.media(tripId),
+    queryKey: tripKeys.media(tripId, isDemoMode),
     queryFn: async (): Promise<MediaItem[]> => {
       if (isDemoMode) {
         const tripTier = detectTripTier(tripId);

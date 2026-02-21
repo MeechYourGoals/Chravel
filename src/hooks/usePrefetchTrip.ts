@@ -111,11 +111,13 @@ export const usePrefetchTrip = () => {
           queryClient.prefetchQuery({
             queryKey: tripKeys.polls(tripId, isDemoMode),
             queryFn: async () => {
-              const { data } = await supabase
+              const { data, error } = await supabase
                 .from('trip_polls')
                 .select('*')
                 .eq('trip_id', tripId)
                 .order('created_at', { ascending: false });
+
+              if (error) throw error;
               return data || [];
             },
             staleTime: QUERY_CACHE_CONFIG.polls.staleTime,
@@ -124,7 +126,7 @@ export const usePrefetchTrip = () => {
 
         case 'media':
           queryClient.prefetchQuery({
-            queryKey: tripKeys.media(tripId),
+            queryKey: tripKeys.media(tripId, isDemoMode),
             queryFn: () => fetchTripMediaItems(tripId),
             staleTime: QUERY_CACHE_CONFIG.media.staleTime,
           });
@@ -151,7 +153,7 @@ export const usePrefetchTrip = () => {
         case 'places':
           // ⚡ NEW: Prefetch trip links for instant Places > Links sub-tab
           queryClient.prefetchQuery({
-            queryKey: tripKeys.places(tripId),
+            queryKey: tripKeys.places(tripId, isDemoMode),
             queryFn: () => fetchTripPlaces(tripId, isDemoMode),
             staleTime: QUERY_CACHE_CONFIG.places.staleTime,
           });

@@ -76,7 +76,7 @@ export const PlacesSection = ({
   const { createLinkFromPlace, removeLinkByPlaceId } = usePlacesLinkSync();
 
   const { data: fetchedPlaces = [] } = useQuery({
-    queryKey: tripKeys.places(tripId),
+    queryKey: tripKeys.places(tripId, isDemoMode),
     queryFn: () => fetchTripPlaces(tripId, isDemoMode),
     staleTime: QUERY_CACHE_CONFIG.places.staleTime,
     gcTime: QUERY_CACHE_CONFIG.places.gcTime,
