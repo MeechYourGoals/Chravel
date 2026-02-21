@@ -18,9 +18,9 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
         >
           <defs>
             <linearGradient id="heroGoldTop" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#F4B23A" stopOpacity="0.6" />
-              <stop offset="50%" stopColor="#FFD700" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0.1" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.6" />
+              <stop offset="50%" stopColor="#C4912F" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.1" />
             </linearGradient>
           </defs>
           <path
@@ -37,9 +37,9 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
         >
           <defs>
             <linearGradient id="heroGoldRight" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#F4B23A" stopOpacity="0.5" />
-              <stop offset="60%" stopColor="#FFD700" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0.05" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.5" />
+              <stop offset="60%" stopColor="#C4912F" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.05" />
             </linearGradient>
           </defs>
           <path
@@ -48,17 +48,17 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
           />
         </svg>
         {/* Prominent glow orbs */}
-        <div 
+        <div
           className="absolute top-16 left-1/4 w-80 h-80 rounded-full blur-2xl opacity-30"
-          style={{ background: 'radial-gradient(circle, #F4B23A 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
-        <div 
+        <div
           className="absolute top-40 right-1/4 w-64 h-64 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #FFD700 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
-        <div 
+        <div
           className="absolute top-20 right-10 w-48 h-48 rounded-full blur-xl opacity-35"
-          style={{ background: 'radial-gradient(circle, #F4B23A 0%, transparent 65%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 65%)' }}
         />
       </div>
     );
@@ -76,14 +76,14 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
         >
           <defs>
             <linearGradient id="waveFill1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#F4B23A" stopOpacity="0.05" />
-              <stop offset="50%" stopColor="#F4B23A" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0.05" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.05" />
+              <stop offset="50%" stopColor="#C4912F" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.05" />
             </linearGradient>
             <linearGradient id="waveStroke1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#F4B23A" stopOpacity="0.1" />
-              <stop offset="50%" stopColor="#FFD700" stopOpacity="0.7" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0.1" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.1" />
+              <stop offset="50%" stopColor="#C4912F" stopOpacity="0.7" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.1" />
             </linearGradient>
           </defs>
           {/* Filled wave shape */}
@@ -116,13 +116,13 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
           />
         </svg>
         {/* Glow orbs */}
-        <div 
+        <div
           className="absolute bottom-20 left-10 w-64 h-64 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #F4B23A 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
-        <div 
+        <div
           className="absolute top-1/3 right-20 w-48 h-48 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #FFD700 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
       </div>
     );
@@ -140,12 +140,12 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
         >
           <defs>
             <linearGradient id="triGold1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#F4B23A" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#FFD700" stopOpacity="0.1" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.1" />
             </linearGradient>
             <linearGradient id="triGold2" x1="100%" y1="100%" x2="0%" y2="0%">
-              <stop offset="0%" stopColor="#FFD700" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0.1" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.1" />
             </linearGradient>
           </defs>
           {/* Large top-right triangle */}
@@ -160,13 +160,13 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
           <polygon points="1300,700 1380,780 1300,780" fill="url(#triGold2)" opacity="0.5" />
         </svg>
         {/* Glow accents */}
-        <div 
+        <div
           className="absolute top-20 right-40 w-56 h-56 rounded-full blur-2xl opacity-30"
-          style={{ background: 'radial-gradient(circle, #FFD700 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
-        <div 
+        <div
           className="absolute bottom-32 left-20 w-48 h-48 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #F4B23A 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
       </div>
     );
@@ -184,40 +184,56 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
         >
           <defs>
             <radialGradient id="diamondGlow1" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#FFD700" stopOpacity="0.7" />
-              <stop offset="60%" stopColor="#F4B23A" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.7" />
+              <stop offset="60%" stopColor="#C4912F" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0" />
             </radialGradient>
             <linearGradient id="diamondFill" x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="0%" stopColor="#FFD700" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0.3" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.3" />
             </linearGradient>
           </defs>
           {/* Large diamonds with glow halos */}
           <circle cx="120" cy="220" r="80" fill="url(#diamondGlow1)" opacity="0.4" />
           <polygon points="120,160 180,220 120,280 60,220" fill="url(#diamondFill)" />
-          
+
           <circle cx="1320" cy="150" r="100" fill="url(#diamondGlow1)" opacity="0.35" />
-          <polygon points="1320,80 1400,150 1320,220 1240,150" fill="url(#diamondFill)" opacity="0.9" />
-          
+          <polygon
+            points="1320,80 1400,150 1320,220 1240,150"
+            fill="url(#diamondFill)"
+            opacity="0.9"
+          />
+
           <circle cx="250" cy="680" r="90" fill="url(#diamondGlow1)" opacity="0.3" />
-          <polygon points="250,610 330,680 250,750 170,680" fill="url(#diamondFill)" opacity="0.7" />
-          
+          <polygon
+            points="250,610 330,680 250,750 170,680"
+            fill="url(#diamondFill)"
+            opacity="0.7"
+          />
+
           <circle cx="1150" cy="550" r="70" fill="url(#diamondGlow1)" opacity="0.35" />
-          <polygon points="1150,490 1210,550 1150,610 1090,550" fill="url(#diamondFill)" opacity="0.8" />
-          
+          <polygon
+            points="1150,490 1210,550 1150,610 1090,550"
+            fill="url(#diamondFill)"
+            opacity="0.8"
+          />
+
           {/* Small accent diamonds */}
           <polygon points="700,80 740,120 700,160 660,120" fill="url(#diamondFill)" opacity="0.5" />
-          <polygon points="900,750 930,780 900,810 870,780" fill="url(#diamondFill)" opacity="0.4" />
+          <polygon
+            points="900,750 930,780 900,810 870,780"
+            fill="url(#diamondFill)"
+            opacity="0.4"
+          />
         </svg>
         {/* Additional glow orbs */}
-        <div 
+        <div
           className="absolute top-32 left-1/4 w-56 h-56 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #F4B23A 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
-        <div 
+        <div
           className="absolute bottom-40 right-1/4 w-72 h-72 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #FFD700 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
       </div>
     );
@@ -235,19 +251,19 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
         >
           <defs>
             <radialGradient id="bubbleGold1" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#F4B23A" stopOpacity="0.6" />
-              <stop offset="60%" stopColor="#F4B23A" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.6" />
+              <stop offset="60%" stopColor="#C4912F" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0" />
             </radialGradient>
             <radialGradient id="bubbleGold2" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#FFD700" stopOpacity="0.55" />
-              <stop offset="60%" stopColor="#FFD700" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#FFD700" stopOpacity="0" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.55" />
+              <stop offset="60%" stopColor="#C4912F" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0" />
             </radialGradient>
             <radialGradient id="bubbleGold3" cx="30%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#FFD700" stopOpacity="0.7" />
-              <stop offset="50%" stopColor="#F4B23A" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.7" />
+              <stop offset="50%" stopColor="#C4912F" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0" />
             </radialGradient>
           </defs>
           {/* Large floating circles */}
@@ -264,13 +280,13 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
           <circle cx="850" cy="500" r="35" fill="url(#bubbleGold1)" opacity="0.4" />
         </svg>
         {/* Background glow */}
-        <div 
+        <div
           className="absolute top-1/2 left-16 w-80 h-80 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #F4B23A 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
-        <div 
+        <div
           className="absolute top-1/4 right-20 w-64 h-64 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #FFD700 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
       </div>
     );
@@ -288,30 +304,62 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
         >
           <defs>
             <linearGradient id="meshLine1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#F4B23A" stopOpacity="0.1" />
-              <stop offset="30%" stopColor="#F4B23A" stopOpacity="0.6" />
-              <stop offset="70%" stopColor="#FFD700" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0.1" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.1" />
+              <stop offset="30%" stopColor="#C4912F" stopOpacity="0.6" />
+              <stop offset="70%" stopColor="#C4912F" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.1" />
             </linearGradient>
             <linearGradient id="meshLine2" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#FFD700" stopOpacity="0.1" />
-              <stop offset="40%" stopColor="#FFD700" stopOpacity="0.5" />
-              <stop offset="60%" stopColor="#F4B23A" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0.1" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.1" />
+              <stop offset="40%" stopColor="#C4912F" stopOpacity="0.5" />
+              <stop offset="60%" stopColor="#C4912F" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.1" />
             </linearGradient>
             <radialGradient id="meshGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#FFD700" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#FFD700" stopOpacity="0" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0" />
             </radialGradient>
           </defs>
           {/* Diagonal grid lines */}
           <line x1="0" y1="150" x2="1440" y2="450" stroke="url(#meshLine1)" strokeWidth="3" />
-          <line x1="0" y1="350" x2="1440" y2="650" stroke="url(#meshLine1)" strokeWidth="2.5" opacity="0.7" />
+          <line
+            x1="0"
+            y1="350"
+            x2="1440"
+            y2="650"
+            stroke="url(#meshLine1)"
+            strokeWidth="2.5"
+            opacity="0.7"
+          />
           <line x1="0" y1="550" x2="1440" y2="250" stroke="url(#meshLine2)" strokeWidth="3" />
-          <line x1="0" y1="750" x2="1440" y2="450" stroke="url(#meshLine2)" strokeWidth="2.5" opacity="0.7" />
+          <line
+            x1="0"
+            y1="750"
+            x2="1440"
+            y2="450"
+            stroke="url(#meshLine2)"
+            strokeWidth="2.5"
+            opacity="0.7"
+          />
           {/* Vertical accent lines */}
-          <line x1="300" y1="0" x2="450" y2="900" stroke="url(#meshLine1)" strokeWidth="2" opacity="0.5" />
-          <line x1="1100" y1="0" x2="1250" y2="900" stroke="url(#meshLine2)" strokeWidth="2" opacity="0.5" />
+          <line
+            x1="300"
+            y1="0"
+            x2="450"
+            y2="900"
+            stroke="url(#meshLine1)"
+            strokeWidth="2"
+            opacity="0.5"
+          />
+          <line
+            x1="1100"
+            y1="0"
+            x2="1250"
+            y2="900"
+            stroke="url(#meshLine2)"
+            strokeWidth="2"
+            opacity="0.5"
+          />
           {/* Intersection glows */}
           <circle cx="520" cy="350" r="30" fill="url(#meshGlow)" />
           <circle cx="920" cy="450" r="25" fill="url(#meshGlow)" opacity="0.8" />
@@ -319,13 +367,13 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
           <circle cx="1060" cy="350" r="22" fill="url(#meshGlow)" opacity="0.7" />
         </svg>
         {/* Background glows */}
-        <div 
+        <div
           className="absolute -top-20 right-1/4 w-96 h-96 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #F4B23A 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
-        <div 
+        <div
           className="absolute bottom-20 left-1/3 w-72 h-72 rounded-full blur-2xl opacity-18"
-          style={{ background: 'radial-gradient(circle, #FFD700 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
       </div>
     );
@@ -343,17 +391,17 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
         >
           <defs>
             <linearGradient id="auroraGold1" x1="0%" y1="50%" x2="100%" y2="50%">
-              <stop offset="0%" stopColor="#F4B23A" stopOpacity="0.05" />
-              <stop offset="25%" stopColor="#F4B23A" stopOpacity="0.5" />
-              <stop offset="50%" stopColor="#FFD700" stopOpacity="0.6" />
-              <stop offset="75%" stopColor="#F4B23A" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0.05" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.05" />
+              <stop offset="25%" stopColor="#C4912F" stopOpacity="0.5" />
+              <stop offset="50%" stopColor="#C4912F" stopOpacity="0.6" />
+              <stop offset="75%" stopColor="#C4912F" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.05" />
             </linearGradient>
             <linearGradient id="auroraGold2" x1="0%" y1="50%" x2="100%" y2="50%">
-              <stop offset="0%" stopColor="#FFD700" stopOpacity="0.05" />
-              <stop offset="30%" stopColor="#FFD700" stopOpacity="0.4" />
-              <stop offset="70%" stopColor="#F4B23A" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#FFD700" stopOpacity="0.05" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.05" />
+              <stop offset="30%" stopColor="#C4912F" stopOpacity="0.4" />
+              <stop offset="70%" stopColor="#C4912F" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.05" />
             </linearGradient>
           </defs>
           {/* Main aurora band */}
@@ -384,13 +432,13 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
           />
         </svg>
         {/* Prominent glow orbs */}
-        <div 
+        <div
           className="absolute top-1/4 right-16 w-96 h-96 rounded-full blur-2xl opacity-25"
-          style={{ background: 'radial-gradient(circle, #F4B23A 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
-        <div 
+        <div
           className="absolute bottom-1/4 left-20 w-80 h-80 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #FFD700 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
       </div>
     );
@@ -408,9 +456,9 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
         >
           <defs>
             <linearGradient id="footerGold" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#F4B23A" stopOpacity="0.5" />
-              <stop offset="50%" stopColor="#FFD700" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#F4B23A" stopOpacity="0.1" />
+              <stop offset="0%" stopColor="#C4912F" stopOpacity="0.5" />
+              <stop offset="50%" stopColor="#C4912F" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#C4912F" stopOpacity="0.1" />
             </linearGradient>
           </defs>
           <path
@@ -419,13 +467,13 @@ export const GoldAccentOverlay: React.FC<GoldAccentOverlayProps> = ({ variant = 
           />
         </svg>
         {/* Glow accents */}
-        <div 
+        <div
           className="absolute top-20 left-1/4 w-64 h-64 rounded-full blur-2xl opacity-20"
-          style={{ background: 'radial-gradient(circle, #F4B23A 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
-        <div 
+        <div
           className="absolute top-10 right-1/3 w-48 h-48 rounded-full blur-2xl opacity-18"
-          style={{ background: 'radial-gradient(circle, #FFD700 0%, transparent 60%)' }}
+          style={{ background: 'radial-gradient(circle, #C4912F 0%, transparent 60%)' }}
         />
       </div>
     );

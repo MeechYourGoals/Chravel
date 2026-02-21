@@ -339,12 +339,12 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
       {/* Header with Value Prop - High contrast with background */}
       <div className="text-center space-y-6">
         <div className="space-y-4">
-          <div className="inline-block bg-gradient-to-r from-[#F4B23A] to-[#FFD700] px-6 py-3 rounded-lg shadow-lg shadow-[#F4B23A]/25">
+          <div className="inline-block bg-[#C4912F] px-6 py-3 rounded-lg shadow-lg shadow-[#C4912F]/25">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black">
               Start free. Upgrade when your trip gets serious.
             </h2>
           </div>
-          <div className="bg-gradient-to-r from-[#F4B23A]/90 to-[#FFD700]/90 backdrop-blur-sm px-4 py-3 rounded-lg max-w-3xl mx-auto shadow-md shadow-[#F4B23A]/20">
+          <div className="bg-[#C4912F]/90 backdrop-blur-sm px-4 py-3 rounded-lg max-w-3xl mx-auto shadow-md shadow-[#C4912F]/20">
             <p className="text-sm sm:text-base md:text-lg text-black font-bold leading-relaxed break-words">
               Don't lose receipts, links, or the final plan.{' '}
               <span className="text-black/80 font-bold">
@@ -558,7 +558,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
 
               <CardContent className="space-y-3 tablet:space-y-4 px-4 tablet:px-6 pb-4 tablet:pb-6 flex-1">
                 {tier.limitation && (
-                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5 tablet:p-3 text-sm text-yellow-400 break-words font-medium">
+                  <div className="bg-[#C4912F]/10 border border-[#C4912F]/20 rounded-lg p-2.5 tablet:p-3 text-sm text-[#C4912F] break-words font-medium">
                     {tier.limitation}
                   </div>
                 )}
