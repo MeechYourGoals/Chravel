@@ -15,11 +15,11 @@ import {
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+import { VoiceConcierge } from './VoiceConcierge';
+import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 
-// ─── MVP Feature Flags ────────────────────────────────────────────────────────
-// Voice and multimodal upload are disabled for MVP stability.
-// Set to true once transport layer is verified stable.
-const VOICE_ENABLED = false;
+// ─── Feature Flags ────────────────────────────────────────────────────────────
+const VOICE_ENABLED = true;
 const UPLOAD_ENABLED = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -166,10 +166,31 @@ export const AIConciergeChat = ({
 
   const isMounted = useRef(true);
 
-  // Voice is disabled for MVP — stub out state so JSX doesn't need conditional branches
-  const effectiveVoiceState: VoiceState = 'idle';
-  const handleVoiceToggle = useCallback(() => {
-    // Voice disabled for MVP
+  // Voice state from Gemini Live session
+  const [voiceState, setVoiceState] = useState<GeminiLiveState>('idle');
+
+  // Map GeminiLiveState → VoiceState for VoiceButton/AiChatInput compatibility
+  const _effectiveVoiceState: VoiceState = voiceState as VoiceState;
+
+  const handleVoiceStateChange = useCallback((newState: GeminiLiveState) => {
+    setVoiceState(newState);
+  }, []);
+
+  const handleVoiceAddMessage = useCallback((msg: ChatMessage) => {
+    if (!isMounted.current) return;
+    setMessages(prev => [...prev, msg]);
+  }, []);
+
+  const handleVoiceUpdateMessage = useCallback((id: string, content: string) => {
+    if (!isMounted.current) return;
+    setMessages(prev =>
+      prev.map(m => (m.id === id ? { ...m, content } : m)),
+    );
+  }, []);
+
+  // Stub kept for backward compatibility
+  const _handleVoiceToggle = useCallback(() => {
+    // Handled by VoiceConcierge component
   }, []);
 
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
@@ -807,43 +828,68 @@ export const AIConciergeChat = ({
           )}
         </div>
 
-        {/* Voice Active Indicator — only shown when VOICE_ENABLED=true */}
-        {VOICE_ENABLED && effectiveVoiceState !== 'idle' && effectiveVoiceState !== 'error' && (
+        {/* Voice Active Indicator — only shown when voice session is active */}
+        {VOICE_ENABLED && voiceState !== 'idle' && voiceState !== 'error' && (
           <div className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm text-emerald-300">Voice Active</span>
+              <span className="text-sm text-emerald-300">
+                {voiceState === 'listening'
+                  ? 'Listening...'
+                  : voiceState === 'thinking'
+                    ? 'Processing...'
+                    : voiceState === 'speaking'
+                      ? 'Speaking...'
+                      : voiceState === 'connecting'
+                        ? 'Connecting...'
+                        : 'Voice Active'}
+              </span>
             </div>
           </div>
         )}
 
         {/* Input */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
-          <AiChatInput
-            inputMessage={inputMessage}
-            onInputChange={setInputMessage}
-            onSendMessage={() => {
-              void handleSendMessage();
-            }}
-            onKeyPress={handleKeyPress}
-            isTyping={isTyping}
-            disabled={isQueryLimitReached}
-            showImageAttach={UPLOAD_ENABLED}
-            attachedImages={UPLOAD_ENABLED ? attachedImages : []}
-            onImageAttach={
-              UPLOAD_ENABLED
-                ? files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))
-                : undefined
-            }
-            onRemoveImage={
-              UPLOAD_ENABLED
-                ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
-                : undefined
-            }
-            voiceState={VOICE_ENABLED ? effectiveVoiceState : 'idle'}
-            isVoiceEligible={false}
-            onVoiceToggle={VOICE_ENABLED ? handleVoiceToggle : undefined}
-          />
+          <div className="flex items-center gap-2">
+            {/* Gemini Live Voice Concierge */}
+            {VOICE_ENABLED && (
+              <VoiceConcierge
+                tripId={tripId}
+                onAddMessage={handleVoiceAddMessage}
+                onUpdateMessage={handleVoiceUpdateMessage}
+                onStateChange={handleVoiceStateChange}
+                disabled={isQueryLimitReached}
+              />
+            )}
+
+            {/* Text input (flex-1 to take remaining space) */}
+            <div className="flex-1">
+              <AiChatInput
+                inputMessage={inputMessage}
+                onInputChange={setInputMessage}
+                onSendMessage={() => {
+                  void handleSendMessage();
+                }}
+                onKeyPress={handleKeyPress}
+                isTyping={isTyping}
+                disabled={isQueryLimitReached}
+                showImageAttach={UPLOAD_ENABLED}
+                attachedImages={UPLOAD_ENABLED ? attachedImages : []}
+                onImageAttach={
+                  UPLOAD_ENABLED
+                    ? files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))
+                    : undefined
+                }
+                onRemoveImage={
+                  UPLOAD_ENABLED
+                    ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
+                    : undefined
+                }
+                voiceState="idle"
+                isVoiceEligible={false}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
