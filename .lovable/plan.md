@@ -1,49 +1,46 @@
 
+# Fix: Enterprise Notification Toggles + Build Errors
 
-# Fix: Calendar "Cannot access 've' before initialization" Crash
+## Problem 1: Enterprise Notification Toggles Not Working
 
-## Root Cause
+The database table `notification_preferences` does **not** have columns for `org_announcements`, `team_updates`, `billing_alerts`, or `email_digest`. When you toggle those, the upsert tries to write to non-existent columns and fails silently. `trip_invites` works because that column exists in the DB.
 
-The runtime error "Cannot access 've' before initialization" is caused by a **variable hoisting violation** in three import modal files. In each file, `processFile` (a `useCallback`) references `processParseResult` in its body and dependency array, but `processParseResult` is declared ~30 lines later. JavaScript's `const` is block-scoped and not hoisted, so this crashes at runtime.
+Since there's no backend functionality behind Organization Announcements, Team Updates, Billing Alerts, or Weekly Email Digest, the MVP fix is to **remove those 4 toggles** and keep only **Trip Invitations** (which maps to the real `trip_invites` column and works).
 
-This is the **sole cause** of the Calendar tab crash. The error boundary catches it and displays the red error you see.
+### Changes
 
-## Surgical Fixes (4 files, no feature changes)
+**File: `src/components/enterprise/EnterpriseNotificationsSection.tsx`**
+- Remove `orgAnnouncements`, `teamUpdates`, `billingAlerts`, and `emailDigest` from the `ENTERPRISE_SETTINGS` array
+- Keep only `tripInvites` (the one that actually works)
+- Clean up the initial state to only include `tripInvites`
 
-### Fix 1 -- CalendarImportModal.tsx (lines 86-94 to 118+)
-Move the `processParseResult` useCallback **above** `processFile`. Currently `processFile` is at line 86 and `processParseResult` at line 118. Swap their order so `processParseResult` is declared first.
+**File: `src/services/userPreferencesService.ts`**
+- Remove `org_announcements`, `team_updates`, `billing_alerts`, `email_digest` from the `NotificationPreferences` interface (they don't exist in the DB)
+- Remove them from `DEFAULT_NOTIFICATION_PREFERENCES`
 
-### Fix 2 -- AgendaImportModal.tsx (lines 118-126 to 151+)
-Same pattern. Move `processParseResult` (line 151) above `processFile` (line 118).
+---
 
-### Fix 3 -- LineupImportModal.tsx (lines 85-93 to 117+)
-Same pattern. Move `processParseResult` (line 117) above `processFile` (line 85).
+## Problem 2: Pre-existing Build Errors (6 errors across 3 files)
 
-### Fix 4 -- useSmartImportDropzone.ts (line 52)
-Type error: `validMimes.includes(mime)` fails because `mime` is `string` but the array is `readonly` literal types. Fix by casting: `validMimes.includes(mime as any)` or widening the array type.
+### Fix A: `src/lib/adapters/messageAdapter.ts` (lines 43, 72)
+Two `as` casts from Supabase JSON types fail because the types don't overlap. Fix by casting through `unknown` first:
+- Line 43: `row.link_preview as unknown as Message['link_preview']`
+- Line 72: `row.attachments as unknown as UnifiedMessage['attachments']`
 
-## Additional Build Errors (not causing the crash but must be fixed)
+### Fix B: `src/services/__tests__/calendarService.test.ts` (4 errors, lines 63, 96, 126, 152)
+Test mock objects are missing `trip_id`, `created_at`, `updated_at` required by the `TripEvent` interface. Add those three fields to each test fixture.
 
-### Fix 5 -- SeatManagement.tsx (line 46)
-The query selects `job_title` and `show_job_title` from `profiles_public`, but those columns do not exist in the table. Fix by removing those two fields from the `.select()` and removing the conditional logic that references them (lines 53-54). Display name falls back to `resolved_display_name || display_name || 'Unknown'`.
+### Fix C: `src/services/calendarService.ts` (line 905)
+`availability_status` is typed as `'busy' | 'free' | 'tentative'` but the fallback `|| 'busy'` produces a `string`. Fix: use a type assertion `as const` or explicit cast: `(tripEvent.availability_status || 'busy') as 'busy' | 'free' | 'tentative'`.
 
-### Fix 6 -- chatSearchService.test.ts (lines 28-37)
-Mock chain methods typed as `unknown` need explicit casting. Wrap mock returns with `(supabase.from(...) as any).mockReturnValue(...)` or type the mock properly.
-
-## What This Restores
-- Calendar tab loads without crash
-- All calendar views (day/month/itinerary) render normally
-- Import modals (Calendar, Agenda, Lineup) function correctly
-- Add Event and Export continue working (they were never broken, just unreachable due to the crash)
-- Clean build with zero TypeScript errors
+---
 
 ## Files Modified
+
 | File | Change | Risk |
 |------|--------|------|
-| `CalendarImportModal.tsx` | Reorder two `useCallback` declarations | None -- pure declaration order fix |
-| `AgendaImportModal.tsx` | Reorder two `useCallback` declarations | None |
-| `LineupImportModal.tsx` | Reorder two `useCallback` declarations | None |
-| `useSmartImportDropzone.ts` | Widen type in `.includes()` call | None |
-| `SeatManagement.tsx` | Remove non-existent column references | None -- columns don't exist |
-| `chatSearchService.test.ts` | Fix mock typing | None -- test file only |
-
+| `EnterpriseNotificationsSection.tsx` | Remove 4 non-functional toggles, keep Trip Invitations | None -- removes dead code |
+| `userPreferencesService.ts` | Remove 4 non-existent DB fields from interface/defaults | None -- fields don't exist in DB |
+| `messageAdapter.ts` | Add `unknown` intermediate cast on 2 lines | None -- runtime behavior unchanged |
+| `calendarService.test.ts` | Add 3 missing required fields to 4 test fixtures | None -- test-only |
+| `calendarService.ts` | Type-narrow availability_status fallback | None -- same runtime value |
