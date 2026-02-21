@@ -135,7 +135,7 @@ const proTiers: PricingTier[] = [
     enterprise: true,
     ctaAction: () =>
       (window.location.href =
-        'mailto:christian@chravelapp.com?subject=Starter%20Pro%2014-Day%20Trial'),
+        'mailto:support@chravelapp.com?subject=Starter%20Pro%2014-Day%20Trial'),
   },
   {
     id: 'growth-pro',
@@ -153,7 +153,7 @@ const proTiers: PricingTier[] = [
     badge: 'Most Popular',
     ctaAction: () =>
       (window.location.href =
-        'mailto:christian@chravelapp.com?subject=Growth%20Pro%2014-Day%20Trial'),
+        'mailto:support@chravelapp.com?subject=Growth%20Pro%2014-Day%20Trial'),
   },
   {
     id: 'enterprise',
@@ -168,7 +168,7 @@ const proTiers: PricingTier[] = [
     category: 'pro',
     enterprise: true,
     ctaAction: () =>
-      (window.location.href = 'mailto:christian@chravelapp.com?subject=Enterprise%20Inquiry'),
+      (window.location.href = 'mailto:support@chravelapp.com?subject=Enterprise%20Inquiry'),
   },
 ];
 
