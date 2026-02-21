@@ -268,7 +268,8 @@ export const AIConciergeChat = ({
   }, [isOffline, aiStatus]);
 
   const handleSendMessage = async (messageOverride?: string) => {
-    const typedMessage = (messageOverride ?? inputMessage).trim();
+    const typedMessage =
+      typeof messageOverride === 'string' ? messageOverride.trim() : inputMessage.trim();
     // When upload is disabled, ignore any attached images so they never gate send
     const selectedImages = UPLOAD_ENABLED ? [...attachedImages] : [];
     const hasImageAttachments = selectedImages.length > 0;
