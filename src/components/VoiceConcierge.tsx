@@ -67,6 +67,7 @@ export const VoiceConcierge: React.FC<VoiceConciergeProps> = ({
     assistantTranscript,
     startSession,
     endSession,
+    interruptPlayback,
     isSupported,
   } = useGeminiLive({
     tripId,
@@ -121,14 +122,18 @@ export const VoiceConcierge: React.FC<VoiceConciergeProps> = ({
     if (disabled) return;
 
     if (state === 'idle' || state === 'error') {
-      // Reset draft refs for a fresh session
       draftUserMsgIdRef.current = null;
       draftAssistantMsgIdRef.current = null;
       void startSession();
+    } else if (state === 'speaking') {
+      // Barge-in: stop playback but keep session alive for next user turn
+      draftUserMsgIdRef.current = null;
+      draftAssistantMsgIdRef.current = null;
+      interruptPlayback();
     } else {
       endSession();
     }
-  }, [state, startSession, endSession, disabled]);
+  }, [state, startSession, endSession, interruptPlayback, disabled]);
 
   const isActive = state === 'listening' || state === 'speaking' || state === 'thinking';
 

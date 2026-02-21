@@ -31,6 +31,8 @@ interface UseGeminiLiveReturn {
   assistantTranscript: string;
   startSession: () => Promise<void>;
   endSession: () => void;
+  /** Flush playback and return to listening without closing the session (barge-in). */
+  interruptPlayback: () => void;
   isSupported: boolean;
 }
 
@@ -590,6 +592,36 @@ export function useGeminiLive({
     onTurnComplete,
   ]);
 
+  /**
+   * Flush playback and return to listening without closing the WebSocket.
+   * Used for manual barge-in (user taps mic while model is speaking).
+   * The mic capture continues, so the user can start speaking immediately.
+   * The server's VAD will detect user speech and handle the server-side interrupt.
+   */
+  const interruptPlayback = useCallback(() => {
+    flushModelOutput();
+    modelRespondingRef.current = false;
+
+    // Finalize the current assistant output with whatever text we have
+    const partialAssistant = assistantTranscriptAccRef.current.trim();
+    if (partialAssistant || userTranscriptAccRef.current.trim()) {
+      onTurnComplete?.(userTranscriptAccRef.current.trim(), partialAssistant);
+    }
+
+    // Reset for next turn
+    userTranscriptAccRef.current = '';
+    assistantTranscriptAccRef.current = '';
+    setUserTranscript('');
+    setAssistantTranscript('');
+    setState('listening');
+
+    // Restart thinking timer
+    clearThinkingTimer();
+    thinkingTimerRef.current = setTimeout(() => {
+      setState(prev => (prev === 'listening' ? 'thinking' : prev));
+    }, THINKING_DELAY_MS);
+  }, [flushModelOutput, onTurnComplete, clearThinkingTimer]);
+
   const endSession = useCallback(() => {
     // Finalize any pending turn
     const pendingUser = userTranscriptAccRef.current.trim();
@@ -614,6 +646,7 @@ export function useGeminiLive({
     assistantTranscript,
     startSession,
     endSession,
+    interruptPlayback,
     isSupported,
   };
 }
