@@ -62,12 +62,21 @@ export const CONSUMER_TRIP_CATEGORIES: TripCategory[] = [
   { id: 'nightlife', label: 'Nightlife', color: 'amber' }
 ];
 
+/**
+ * Pro trip categories for UI display.
+ *
+ * IMPORTANT: IDs here must match ProCategoryEnum values in proCategories.ts.
+ * The previous version used kebab-case IDs (business-travel, school-trip, etc.)
+ * which did NOT match ProCategoryEnum and caused silent lookup failures.
+ */
 export const PRO_TRIP_CATEGORIES: TripCategory[] = [
-  { id: 'business-travel', label: 'Business Travel', color: 'slate' },
-  { id: 'school-trip', label: 'School Trip', color: 'sky' },
-  { id: 'content', label: 'Content', color: 'lime' },
-  { id: 'tour', label: 'Tour', color: 'coral' },
-  { id: 'sports-pro', label: 'Sports (Pro/Collegiate)', color: 'orange' }
+  { id: 'work', label: 'Business Travel', color: 'slate' },
+  { id: 'school', label: 'School Trip', color: 'sky' },
+  { id: 'productions', label: 'Content / Productions', color: 'lime' },
+  { id: 'touring', label: 'Tour', color: 'coral' },
+  { id: 'sports', label: 'Sports (Pro/Collegiate)', color: 'orange' },
+  { id: 'celebrations', label: 'Celebrations', color: 'fuchsia' },
+  { id: 'other', label: 'Other', color: 'gray' },
 ];
 
 export interface AIRecommendation {

@@ -1,16 +1,23 @@
 // Demo notifications covering all notification types with REAL demo trip/event IDs
 // Each notification deep-links correctly to the corresponding trip/tab
 
-export type NotificationType = 
-  | 'message' 
-  | 'broadcast' 
-  | 'calendar' 
-  | 'payment' 
-  | 'task' 
-  | 'poll' 
-  | 'join_request' 
-  | 'basecamp' 
-  | 'photos';
+/**
+ * Mock notification types aligned with canonical NotificationCategory values.
+ * See src/constants/notificationCategories.ts for the source of truth.
+ *
+ * Previous values ('message', 'calendar', 'basecamp', 'photos') were
+ * inconsistent with the backend canonical categories.
+ */
+export type NotificationType =
+  | 'chat_message'
+  | 'broadcast'
+  | 'calendar_event'
+  | 'payment'
+  | 'task'
+  | 'poll'
+  | 'join_request'
+  | 'basecamp_update'
+  | 'media';
 
 export interface MockNotification {
   id: string;
@@ -64,7 +71,7 @@ export const mockNotifications: MockNotification[] = [
   // ===== MESSAGE - Spring Break Cancun (id: 1) =====
   {
     id: 'notif-message-1',
-    type: 'message',
+    type: 'chat_message',
     title: 'New message in Spring Break Cancun',
     message: 'Marcus: Who\'s booking the resort cabana for Saturday?',
     timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(), // 12 mins ago
@@ -165,7 +172,7 @@ export const mockNotifications: MockNotification[] = [
   // ===== CALENDAR - SXSW 2025 (Event) =====
   {
     id: 'notif-calendar-1',
-    type: 'calendar',
+    type: 'calendar_event',
     title: 'Agenda Updated - SXSW 2025',
     message: 'Opening Keynote moved to 11:00 AM. Interactive Showcase now starts at 12:30 PM.',
     timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 hours ago
@@ -184,7 +191,7 @@ export const mockNotifications: MockNotification[] = [
   // ===== BASECAMP - Kristen's Bachelorette (id: 4) =====
   {
     id: 'notif-basecamp-1',
-    type: 'basecamp',
+    type: 'basecamp_update',
     title: 'Basecamp Updated - Kristen\'s Bachelorette',
     message: 'Ashley updated the hotel: Now staying at The Hermitage Hotel, 231 6th Ave N',
     timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(), // 3 hours ago
@@ -203,7 +210,7 @@ export const mockNotifications: MockNotification[] = [
   // ===== PHOTOS - Spring Break Cancun (id: 1) =====
   {
     id: 'notif-photos-1',
-    type: 'photos',
+    type: 'media',
     title: 'New Photos - Spring Break Cancun',
     message: 'Sarah Chen uploaded 15 new photos to Spring Break Cancun album',
     timestamp: new Date(Date.now() - 1000 * 60 * 240).toISOString(), // 4 hours ago
@@ -242,7 +249,7 @@ export const mockNotifications: MockNotification[] = [
   // CALENDAR - Invest Fest 2025 (Event)
   {
     id: 'notif-calendar-2',
-    type: 'calendar',
+    type: 'calendar_event',
     title: 'Event Reminder - Invest Fest 2025',
     message: 'Robert Kiyosaki keynote starts in 1 hour at Hall A - Main Stage',
     timestamp: new Date(Date.now() - 1000 * 60 * 360).toISOString(), // 6 hours ago
@@ -298,7 +305,7 @@ export const mockNotifications: MockNotification[] = [
   // MESSAGE - Disney Cruise (id: 11)
   {
     id: 'notif-message-2',
-    type: 'message',
+    type: 'chat_message',
     title: 'New message in Disney Cruise',
     message: 'Grandma Rose: I booked us a character breakfast with Mickey!',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
