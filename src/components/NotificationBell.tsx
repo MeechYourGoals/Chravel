@@ -67,9 +67,11 @@ export const NotificationBell = () => {
     if (!isDemoMode && user) {
       fetchNotifications();
 
-      // Subscribe to real-time notifications
+      // Subscribe to real-time notifications.
+      // Channel name is unique per user + component to prevent naming conflicts
+      // with TripActionBar which subscribes to the same Postgres events.
       const channel = supabase
-        .channel('notification_updates')
+        .channel(`notification_bell_${user.id}`)
         .on(
           'postgres_changes',
           {

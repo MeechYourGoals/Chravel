@@ -11,6 +11,11 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+// DB-side cap so search never downloads the entire table.
+// Client-side scoring is applied afterward, returning at most `limit` results (default 50).
+// 500 rows covers effectively all real-world trips while preventing unbounded egress.
+const SEARCH_DB_LIMIT = 500;
+
 export interface MediaSearchResult {
   id: string;
   media_url: string;
@@ -58,20 +63,24 @@ export async function searchMedia(options: SearchOptions): Promise<MediaSearchRe
   }
 
   try {
-    // Fetch all media items for the trip
+    // Fetch media items for the trip with a DB-side limit.
+    // We order by recency so the most relevant items are included first.
+    // Client-side scoring + slicing is applied after to produce the final result set.
     const [mediaResponse, filesResponse] = await Promise.all([
       supabase
         .from('trip_media_index')
         .select('*')
         .eq('trip_id', tripId)
         .in('media_type', mediaTypes)
-        .order('created_at', { ascending: false }),
-      
+        .order('created_at', { ascending: false })
+        .limit(SEARCH_DB_LIMIT),
+
       supabase
         .from('trip_files')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(SEARCH_DB_LIMIT),
     ]);
 
     const allItems: MediaSearchResult[] = [
@@ -240,13 +249,15 @@ export async function searchMediaByTags(
         .from('trip_media_index')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false }),
-      
+        .order('created_at', { ascending: false })
+        .limit(SEARCH_DB_LIMIT),
+
       supabase
         .from('trip_files')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(SEARCH_DB_LIMIT),
     ]);
 
     const allItems: MediaSearchResult[] = [

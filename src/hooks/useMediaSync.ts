@@ -4,6 +4,12 @@ import { subscribeToMediaUpdates } from '@/services/chatService';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { mediaService } from '@/services/mediaService';
+import { logEgress } from '@/lib/egressLogger';
+
+// Safety cap: fetch the most recent N items per type.
+// Realtime subscription handles new inserts, so capping the initial load
+// is safe and significantly reduces egress for media-heavy trips.
+const MEDIA_FETCH_LIMIT = 200;
 
 type Tables = Database['public']['Tables'];
 type MediaRow = Tables['trip_media_index']['Row'];
@@ -29,23 +35,28 @@ export function useMediaSync(tripId: string) {
       setError(null);
 
       try {
-        // Fetch all media types in parallel
+        // Fetch all media types in parallel.
+        // LIMIT applied per type: realtime handles new inserts so capping
+        // the initial load is safe and meaningfully reduces egress.
         const [mediaResult, filesResult, linksResult] = await Promise.all([
           supabase
             .from('trip_media_index')
             .select('*')
             .eq('trip_id', tripId)
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false })
+            .limit(MEDIA_FETCH_LIMIT),
           supabase
             .from('trip_files')
             .select('*')
             .eq('trip_id', tripId)
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false })
+            .limit(MEDIA_FETCH_LIMIT),
           supabase
             .from('trip_link_index')
             .select('*')
             .eq('trip_id', tripId)
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false })
+            .limit(MEDIA_FETCH_LIMIT),
         ]);
 
         if (mediaResult.error) throw mediaResult.error;
@@ -58,6 +69,10 @@ export function useMediaSync(tripId: string) {
         setVideos(mediaItems.filter(item => item.media_type === 'video'));
         setFiles(filesResult.data || []);
         setLinks(linksResult.data || []);
+
+        logEgress('trip_media_index', 'select', mediaResult.data, { limit: MEDIA_FETCH_LIMIT });
+        logEgress('trip_files', 'select', filesResult.data, { limit: MEDIA_FETCH_LIMIT });
+        logEgress('trip_link_index', 'select', linksResult.data, { limit: MEDIA_FETCH_LIMIT });
 
         // Subscribe to real-time updates
         subscription = subscribeToMediaUpdates(tripId, {
@@ -114,17 +129,20 @@ export function useMediaSync(tripId: string) {
           .from('trip_media_index')
           .select('*')
           .eq('trip_id', tripId)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(MEDIA_FETCH_LIMIT),
         supabase
           .from('trip_files')
           .select('*')
           .eq('trip_id', tripId)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(MEDIA_FETCH_LIMIT),
         supabase
           .from('trip_link_index')
           .select('*')
           .eq('trip_id', tripId)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(MEDIA_FETCH_LIMIT),
       ]);
 
       if (mediaResult.data) {
