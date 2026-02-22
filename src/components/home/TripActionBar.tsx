@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Settings,
-  Plus,
   Search,
   Bell,
   MessageCircle,
@@ -18,12 +17,18 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { supabase } from '@/integrations/supabase/client';
+import { useNotificationRealtime } from '@/hooks/useNotificationRealtime';
 import { mockNotifications } from '@/mockData/notifications';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 interface Notification {
   id: string;
@@ -49,7 +54,7 @@ interface Notification {
   timestamp: string;
   isRead: boolean;
   isHighPriority?: boolean;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 interface TripActionBarProps {
@@ -86,67 +91,21 @@ export const TripActionBar = ({
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchUnreadCount = async () => {
-    if (!user) return;
-
-    const { count, error } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('is_read', false);
-
-    if (!error && count !== null) {
-      setUnreadCount(count);
-    }
-  };
-
-  const fetchNotifications = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (error) {
-      console.error('Error fetching notifications:', error);
-      return;
-    }
-
-    if (data) {
-      setNotifications(
-        data.map(n => ({
-          id: n.id,
-          type: (n.type || 'system') as any,
-          title: n.title,
-          description: n.message,
-          tripId: (n.metadata as any)?.trip_id || '',
-          tripName: (n.metadata as any)?.trip_name || '',
-          timestamp: formatDistanceToNow(new Date(n.created_at || new Date()), { addSuffix: true }),
-          isRead: n.is_read || false,
-          isHighPriority: n.type === 'broadcast',
-          data: n.metadata,
-        })),
-      );
-    }
-  };
+  const {
+    notifications,
+    unreadCount,
+    fetchNotifications,
+    fetchUnreadCount,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+  } = useNotificationRealtime();
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read locally
-    setNotifications(prev =>
-      prev.map(n => (n.id === notification.id ? { ...n, isRead: true } : n)),
-    );
-
-    // Mark as read in database (if not demo mode)
     if (!isDemoMode && user) {
-      await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
-      fetchUnreadCount();
+      await markAsRead(notification.id);
     }
 
     // Determine base route based on trip type
@@ -183,30 +142,15 @@ export const TripActionBar = ({
     setIsNotificationsOpen?.(false);
   };
 
-  const markAllAsRead = async () => {
-    // Mark locally
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-
-    // Mark in database (if not demo mode)
+  const handleMarkAllAsRead = async () => {
     if (!isDemoMode && user) {
-      const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
-      if (unreadIds.length > 0) {
-        await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
-      }
+      await markAllAsRead(notifications);
     }
-    fetchUnreadCount();
   };
 
-  const clearAllNotifications = async () => {
-    const notificationIds = notifications.map(n => n.id);
-
-    // Clear locally
-    setNotifications([]);
-    setUnreadCount(0);
-
-    // Delete from database (if not demo mode)
-    if (!isDemoMode && user && notificationIds.length > 0) {
-      await supabase.from('notifications').delete().in('id', notificationIds);
+  const handleClearAll = async () => {
+    if (!isDemoMode && user) {
+      await clearAll(notifications);
     }
   };
 
@@ -240,56 +184,11 @@ export const TripActionBar = ({
     }
   };
 
-  // Fetch notifications and count
-  useEffect(() => {
-    if (!isDemoMode && user) {
-      fetchNotifications();
-      fetchUnreadCount();
-
-      // Subscribe to real-time notifications.
-      // Channel name is unique per user + component to prevent naming conflicts
-      // with NotificationBell which subscribes to the same Postgres events.
-      const channel = supabase
-        .channel(`notification_bar_${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`,
-          },
-          payload => {
-            const newNotification = payload.new as any;
-            setNotifications(prev => [
-              {
-                id: newNotification.id,
-                type: newNotification.type || 'system',
-                title: newNotification.title,
-                description: newNotification.message,
-                tripId: newNotification.metadata?.trip_id || '',
-                tripName: newNotification.metadata?.trip_name || '',
-                timestamp: formatDistanceToNow(new Date(newNotification.created_at), {
-                  addSuffix: true,
-                }),
-                isRead: newNotification.is_read || false,
-                isHighPriority: newNotification.type === 'broadcast',
-                data: newNotification.metadata,
-              },
-              ...prev,
-            ]);
-            fetchUnreadCount();
-          },
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    } else if (isDemoMode) {
-      const mockNotifs = mockNotifications.map(n => ({
+  // Demo mode: use mock data (hook returns empty when isDemoMode)
+  const displayNotifications = isDemoMode
+    ? mockNotifications.map(n => ({
         id: n.id,
-        type: n.type as any,
+        type: n.type as Notification['type'],
         title: n.title,
         description: n.message,
         tripId: n.tripId,
@@ -298,11 +197,12 @@ export const TripActionBar = ({
         isRead: n.read,
         isHighPriority: n.type === 'broadcast',
         data: { ...n.data, tripType: n.tripType },
-      }));
-      setNotifications(mockNotifs);
-      setUnreadCount(mockNotifications.filter(n => !n.read).length);
-    }
-  }, [isDemoMode, user]);
+      }))
+    : notifications;
+
+  const displayUnreadCount = isDemoMode
+    ? mockNotifications.filter(n => !n.read).length
+    : unreadCount;
 
   return (
     <div
@@ -351,16 +251,19 @@ export const TripActionBar = ({
         )}
       >
         <span className="text-sm lg:text-base">Alerts</span>
-        {unreadCount > 0 && (
+        {displayUnreadCount > 0 && (
           <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {displayUnreadCount > 9 ? '9+' : displayUnreadCount}
           </div>
         )}
       </button>
 
       {/* Notifications Modal */}
       <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
-        <DialogContent showClose={false} className="sm:max-w-[500px] max-h-[80vh] bg-card/95 backdrop-blur-xl border-2 border-border/50 text-foreground p-0">
+        <DialogContent
+          showClose={false}
+          className="sm:max-w-[500px] max-h-[80vh] bg-card/95 backdrop-blur-xl border-2 border-border/50 text-foreground p-0"
+        >
           <DialogHeader className="p-4 border-b border-border/50">
             {/* Row 1: Title + Close button - properly spaced */}
             <div className="flex items-center justify-between">
@@ -374,20 +277,20 @@ export const TripActionBar = ({
                 </button>
               </DialogClose>
             </div>
-            
+
             {/* Row 2: Action buttons - separate row with spacing */}
-            {notifications.length > 0 && (
+            {displayNotifications.length > 0 && (
               <div className="flex items-center gap-4 mt-3 pt-2">
-                {unreadCount > 0 && (
+                {displayUnreadCount > 0 && (
                   <button
-                    onClick={markAllAsRead}
+                    onClick={handleMarkAllAsRead}
                     className="text-sm text-primary hover:text-primary/80 hover:bg-primary/10 transition-colors font-medium px-3 py-1.5 rounded-lg"
                   >
                     Mark all read
                   </button>
                 )}
                 <button
-                  onClick={clearAllNotifications}
+                  onClick={handleClearAll}
                   className="text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors font-medium px-3 py-1.5 rounded-lg"
                 >
                   Clear all
@@ -397,13 +300,13 @@ export const TripActionBar = ({
           </DialogHeader>
 
           <div className="max-h-[calc(80vh-8rem)] overflow-y-auto">
-            {notifications.length === 0 ? (
+            {displayNotifications.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
                 <Bell size={32} className="mx-auto mb-2 opacity-50" />
                 <p>No notifications yet</p>
               </div>
             ) : (
-              notifications.map(notification => (
+              displayNotifications.map(notification => (
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
