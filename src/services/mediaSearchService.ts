@@ -60,11 +60,14 @@ export async function searchMedia(options: SearchOptions): Promise<MediaSearchRe
     return [];
   }
 
-  const queryWords = query
+  // NFD normalization: "café" -> "cafe" so accented chars match stored data
+  const normalizedQuery = query
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .trim()
-    .split(/\s+/)
-    .filter(w => w.length > 0);
+    .trim();
+
+  const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
 
   // Sanitize for filter (alphanumeric, hyphen, underscore only) to avoid injection
   const sanitize = (s: string) => s.replace(/[^a-z0-9_-]/g, '');
@@ -150,6 +153,14 @@ export async function searchMedia(options: SearchOptions): Promise<MediaSearchRe
   }
 }
 
+/** Normalize for search: "café" -> "cafe" so accented chars match */
+function normalizeForSearch(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 /**
  * Build searchable text from media item
  */
@@ -201,16 +212,18 @@ function calculateRelevanceScore(
 ): { score: number; matchedFields: string[] } {
   let score = 0;
   const matchedFields: string[] = [];
+  const normSearchable = normalizeForSearch(searchableText);
+  const normFilename = normalizeForSearch(item.filename);
 
   // Exact filename match
-  if (item.filename.toLowerCase() === queryWords.join(' ')) {
+  if (normFilename === queryWords.join(' ')) {
     score = 1.0;
     matchedFields.push('filename');
     return { score, matchedFields };
   }
 
   // Partial filename match
-  if (item.filename.toLowerCase().includes(queryWords.join(' '))) {
+  if (normFilename.includes(queryWords.join(' '))) {
     score += 0.8;
     matchedFields.push('filename');
   }
@@ -221,7 +234,7 @@ function calculateRelevanceScore(
     ...(Array.isArray(item.metadata.ai_tags) ? item.metadata.ai_tags : []),
   ];
   const tagMatches = tags.filter((tag: unknown) => {
-    const tagStr = String(tag).toLowerCase();
+    const tagStr = normalizeForSearch(String(tag));
     return queryWords.some(word => tagStr.includes(word));
   });
   if (tagMatches.length > 0) {
@@ -231,7 +244,7 @@ function calculateRelevanceScore(
 
   // Description match
   if (item.metadata.description) {
-    const desc = String(item.metadata.description).toLowerCase();
+    const desc = normalizeForSearch(String(item.metadata.description));
     const descMatches = queryWords.filter(word => desc.includes(word));
     if (descMatches.length > 0) {
       score += 0.4 * (descMatches.length / queryWords.length);
@@ -240,7 +253,7 @@ function calculateRelevanceScore(
   }
 
   // Word-by-word matches in searchable text
-  const wordMatches = queryWords.filter(word => searchableText.includes(word));
+  const wordMatches = queryWords.filter(word => normSearchable.includes(word));
   score += 0.2 * (wordMatches.length / queryWords.length);
 
   // Normalize score to 0-1 range
@@ -263,7 +276,7 @@ export async function searchMediaByTags(
   if (tags.length === 0) return [];
 
   try {
-    const tagsLower = tags.map(t => t.toLowerCase().trim()).filter(Boolean);
+    const tagsLower = tags.map(t => normalizeForSearch(t.trim())).filter(Boolean);
     const orParts = tagsLower.flatMap(tag => [
       `metadata.cs.${JSON.stringify({ tags: [tag] })}`,
       `metadata.cs.${JSON.stringify({ ai_tags: [tag] })}`,

@@ -1,5 +1,5 @@
 /**
- * Shared notification realtime hook — ONE subscription for NotificationBell and TripActionBar.
+ * Shared notification realtime hook — ONE subscription for TripActionBar.
  * Deduplicates channels: both components share the same Supabase subscription and state.
  */
 

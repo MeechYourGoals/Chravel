@@ -1,6 +1,6 @@
 /**
  * Shared notification state for useNotificationRealtime.
- * Ensures NotificationBell and TripActionBar share ONE subscription and state.
+ * Ensures TripActionBar (and any future notification consumers) share ONE subscription and state.
  */
 
 import { create } from 'zustand';

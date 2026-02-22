@@ -49,6 +49,8 @@ export const tripKeys = {
   // Pro-specific
   roster: (tripId: string) => ['tripRoster', tripId] as const,
   channels: (tripId: string) => ['tripChannels', tripId] as const,
+  tripAdmins: (tripId: string) => ['tripAdmins', tripId] as const,
+  tripRoles: (tripId: string) => ['tripRoles', tripId] as const,
 
   // Event-specific
   agenda: (tripId: string) => ['eventAgenda', tripId] as const,
@@ -130,6 +132,18 @@ export const QUERY_CACHE_CONFIG = {
   places: {
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+  },
+
+  // Trip admins / roles - stable, realtime handles updates
+  tripAdmins: {
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  },
+  tripRoles: {
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
   },
 } as const;
