@@ -25,20 +25,22 @@ function createSafeStorage(): Storage {
 }
 
 /**
- * Environment variable resolution — no hardcoded fallbacks.
- * VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set in:
- *   - Local dev:  .env file (see .env.example)
- *   - CI:         GitHub Actions secrets
- *   - Render:     Render dashboard environment variables
- *   - Vercel:     Vercel project environment variables
+ * Environment variable resolution with publishable fallbacks.
+ * VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY should be set in env,
+ * but we provide safe fallbacks using the project's publishable credentials
+ * to prevent the app from crashing when env injection fails (e.g. Lovable preview).
  */
 const env = (import.meta as any)?.env ?? {};
 
-const SUPABASE_URL = (env.VITE_SUPABASE_URL as string | undefined) || '';
+const FALLBACK_PROJECT_ID = 'jmjiyekmxwsxkfnqwyaa';
+const FALLBACK_URL = `https://${FALLBACK_PROJECT_ID}.supabase.co`;
+const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI';
+
+const SUPABASE_URL = (env.VITE_SUPABASE_URL as string | undefined) || FALLBACK_URL;
 const SUPABASE_ANON_KEY =
   (env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
   (env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
-  '';
+  FALLBACK_ANON_KEY;
 
 // Track whether env vars are present (used by DevEnvBanner)
 export const isUsingEnvVars = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
