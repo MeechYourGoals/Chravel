@@ -177,6 +177,10 @@ export const AIConciergeChat = ({
   const hasShownLimitToastRef = useRef(false);
 
   const isMounted = useRef(true);
+  // Guard so history hydration only fires once per mount, even if historyMessages
+  // reference changes. Avoids the stale-closure race where messages.length is
+  // read from a stale closure but the user has already submitted a message.
+  const hasHydratedRef = useRef(false);
 
   // ─── Voice (Gemini Live bidi streaming) ──────────────────────────────────
   const voiceUserDraftIdRef = useRef<string | null>(null);
@@ -300,26 +304,35 @@ export const AIConciergeChat = ({
     };
   }, []);
 
-  // Hydrate messages from persisted RPC history on mount (once history loads and
-  // messages state is still empty — do not overwrite an active session).
+  // Hydrate messages from persisted RPC history on mount.
+  // Fires once per mount via hasHydratedRef — eliminates the stale-closure race
+  // where messages.length might read a stale value if the user submits at the same
+  // instant history loads. The functional setState updater is the source of truth.
   useEffect(() => {
-    if (isHistoryLoading) return;
+    if (isHistoryLoading || hasHydratedRef.current) return;
 
     if (historyError) {
       console.error('[AIConciergeChat] Failed to load persisted history:', historyError);
       // Fallback: try localStorage cache (covers offline + RPC failure scenarios)
       const userId = user?.id ?? 'anonymous';
       const cached = conciergeCacheService.getCachedMessages(tripId, userId);
-      if (cached.length > 0 && messages.length === 0) {
-        setMessages(cached);
+      if (cached.length > 0) {
+        setMessages(prev => (prev.length === 0 ? cached : prev));
       }
+      hasHydratedRef.current = true;
       return;
     }
 
-    if (historyMessages.length > 0 && messages.length === 0) {
-      setMessages(historyMessages);
+    if (historyMessages.length > 0) {
+      // Use functional updater so we read the live messages state, not a closure copy.
+      setMessages(prev => {
+        if (prev.length > 0) return prev; // user already sent a message — don't overwrite
+        return historyMessages;
+      });
       setHistoryLoadedFromServer(true);
     }
+
+    hasHydratedRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHistoryLoading, historyError, historyMessages]);
 
