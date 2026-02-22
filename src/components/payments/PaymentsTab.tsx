@@ -134,8 +134,10 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
   // Balance summary loads independently and shows its own skeleton.
   if (paymentsLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="space-y-3">
+        <div className="h-24 bg-muted/50 rounded-lg border border-border animate-pulse" />
+        <div className="h-16 bg-muted/50 rounded-lg border border-border animate-pulse" />
+        <div className="h-40 bg-muted/50 rounded-lg border border-border animate-pulse" />
       </div>
     );
   }

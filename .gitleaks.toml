@@ -1,0 +1,47 @@
+# Gitleaks configuration for Chravel
+# Docs: https://github.com/gitleaks/gitleaks
+# Run locally: gitleaks detect --source . --config .gitleaks.toml
+
+title = "Chravel Secret Scanner"
+
+[extend]
+# Use the official Gitleaks default ruleset as a base
+useDefault = true
+
+[[allowlists]]
+  description = "Ignore example/placeholder files and test fixtures"
+  paths = [
+    ".env.example",
+    ".env.production.example",
+    ".*\\.test\\.ts$",
+    ".*\\.spec\\.ts$",
+    ".*__snapshots__.*",
+    ".*\\.d\\.ts$",
+  ]
+  regexes = [
+    # Placeholder patterns that are not real keys
+    "your-.*-key",
+    "your_.*_key",
+    "sk_live_xxx",
+    "sk_live_your",
+    "pk_live_your",
+    "pk_test_stub",
+    "whsec_your",
+    "re_your",
+  ]
+
+[[rules]]
+  description = "Supabase anon key hardcoded in source"
+  id = "supabase-anon-key-hardcoded"
+  regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'''
+  tags = ["supabase", "jwt", "key"]
+  [rules.allowlist]
+    paths = [".env.example", ".env.production.example"]
+
+[[rules]]
+  description = "RevenueCat API key hardcoded"
+  id = "revenuecat-key"
+  regex = '''(appl_|test_)[A-Za-z0-9]{20,}'''
+  tags = ["revenuecat", "key"]
+  [rules.allowlist]
+    paths = [".env.example", ".env.production.example"]

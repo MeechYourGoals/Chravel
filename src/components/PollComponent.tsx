@@ -26,25 +26,32 @@ interface PollComponentProps {
   permissions?: PollPermissions;
 }
 
-export const PollComponent = ({ 
-  tripId, 
+export const PollComponent = ({
+  tripId,
   showCreatePoll: controlledShowCreatePoll,
   onShowCreatePollChange,
   hideCreateButton = false,
-  permissions
+  permissions,
 }: PollComponentProps) => {
   const { isDemoMode } = useDemoMode();
-  
+
   // Default permissions for non-Event trips (full access)
   // In demo mode, all permissions are enabled
-  const effectivePermissions: PollPermissions = isDemoMode 
+  const effectivePermissions: PollPermissions = isDemoMode
     ? { canView: true, canVote: true, canCreate: true, canClose: true, canDelete: true }
-    : (permissions ?? { canView: true, canVote: true, canCreate: true, canClose: true, canDelete: true });
-  
+    : (permissions ?? {
+        canView: true,
+        canVote: true,
+        canCreate: true,
+        canClose: true,
+        canDelete: true,
+      });
+
   // Use controlled state if provided, otherwise use internal state
-  const isControlled = controlledShowCreatePoll !== undefined && onShowCreatePollChange !== undefined;
+  const isControlled =
+    controlledShowCreatePoll !== undefined && onShowCreatePollChange !== undefined;
   const [internalShowCreatePoll, setInternalShowCreatePoll] = React.useState(false);
-  
+
   const showCreatePoll = isControlled ? controlledShowCreatePoll : internalShowCreatePoll;
   const setShowCreatePoll = isControlled ? onShowCreatePollChange : setInternalShowCreatePoll;
 
@@ -61,7 +68,7 @@ export const PollComponent = ({
     isVoting,
     isRemovingVote,
     isClosing,
-    isDeleting
+    isDeleting,
   } = useTripPolls(tripId);
 
   const userId = user?.id;
@@ -72,7 +79,7 @@ export const PollComponent = ({
       const userVote = poll.allow_multiple
         ? userVoteOptions.map(opt => opt.id)
         : userVoteOptions[0]?.id;
-        
+
       return {
         id: poll.id,
         question: poll.question,
@@ -80,7 +87,7 @@ export const PollComponent = ({
           id: option.id,
           text: option.text,
           votes: option.votes,
-          voters: option.voters
+          voters: option.voters,
         })),
         totalVotes: poll.total_votes,
         userVote,
@@ -92,7 +99,7 @@ export const PollComponent = ({
         allow_vote_change: poll.allow_vote_change,
         deadline_at: poll.deadline_at,
         closed_at: poll.closed_at,
-        closed_by: poll.closed_by
+        closed_by: poll.closed_by,
       };
     });
   }, [polls, userId]);
@@ -107,7 +114,7 @@ export const PollComponent = ({
     }
 
     if (!effectivePermissions.canVote) {
-      toast.error('You don\'t have permission to vote');
+      toast.error("You don't have permission to vote");
       return;
     }
     try {
@@ -119,7 +126,7 @@ export const PollComponent = ({
 
   const handleCreatePoll = async (question: string, options: string[], settings: PollSettings) => {
     if (!effectivePermissions.canCreate) {
-      toast.error('You don\'t have permission to create polls');
+      toast.error("You don't have permission to create polls");
       return;
     }
     try {
@@ -132,7 +139,7 @@ export const PollComponent = ({
 
   const handleClosePoll = async (pollId: string) => {
     if (!effectivePermissions.canClose) {
-      toast.error('You don\'t have permission to close polls');
+      toast.error("You don't have permission to close polls");
       return;
     }
     try {
@@ -148,7 +155,7 @@ export const PollComponent = ({
 
   const handleDeletePoll = async (pollId: string) => {
     if (!effectivePermissions.canDelete) {
-      toast.error('You don\'t have permission to delete polls');
+      toast.error("You don't have permission to delete polls");
       return;
     }
     try {
@@ -157,7 +164,6 @@ export const PollComponent = ({
       console.error('Failed to delete poll:', error);
     }
   };
-
 
   const isPollClosedForVoting = (poll: PollType) => {
     if (poll.status === 'closed') return true;
@@ -175,16 +181,17 @@ export const PollComponent = ({
       ['Total Votes', poll.totalVotes.toString()],
       ['Status', poll.status],
       [],
-      ['Option', 'Votes', 'Percentage', ...(poll.is_anonymous ? [] : ['Voters'])]
+      ['Option', 'Votes', 'Percentage', ...(poll.is_anonymous ? [] : ['Voters'])],
     ];
 
     poll.options.forEach(option => {
-      const percentage = poll.totalVotes > 0 ? ((option.votes / poll.totalVotes) * 100).toFixed(1) : '0';
+      const percentage =
+        poll.totalVotes > 0 ? ((option.votes / poll.totalVotes) * 100).toFixed(1) : '0';
       const row = [
         option.text,
         option.votes.toString(),
         `${percentage}%`,
-        ...(poll.is_anonymous ? [] : [option.voters?.join(', ') || ''])
+        ...(poll.is_anonymous ? [] : [option.voters?.join(', ') || '']),
       ];
       csvLines.push(row);
     });
@@ -199,7 +206,7 @@ export const PollComponent = ({
     URL.revokeObjectURL(url);
 
     toast.success('Poll exported', {
-      description: 'Results saved as CSV file.'
+      description: 'Results saved as CSV file.',
     });
   };
 
@@ -225,8 +232,9 @@ export const PollComponent = ({
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-6">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+        <div className="space-y-2">
+          <div className="h-20 rounded-xl bg-white/5 animate-pulse" />
+          <div className="h-20 rounded-xl bg-white/5 animate-pulse" />
         </div>
       ) : formattedPolls.length === 0 && !showCreatePoll ? (
         <PollsEmptyState />

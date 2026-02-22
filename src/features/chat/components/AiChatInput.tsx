@@ -7,7 +7,7 @@ import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 interface AiChatInputProps {
   inputMessage: string;
   onInputChange: (message: string) => void;
-  onSendMessage: () => void;
+  onSendMessage: () => void | Promise<void>;
   onKeyPress: (e: React.KeyboardEvent) => void;
   isTyping: boolean;
   disabled?: boolean;
@@ -64,10 +64,15 @@ export const AiChatInput = ({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSendMessage();
+      void onSendMessage();
     } else {
       onKeyPress(e);
     }
+  };
+
+  const handleSendClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    void onSendMessage();
   };
 
   const isLimitReached = usageStatus?.status === 'limit_reached';
@@ -100,7 +105,8 @@ export const AiChatInput = ({
           </Badge>
           {isLimitReached && onUpgradeClick && (
             <button
-              onClick={onUpgradeClick}
+              type="button"
+              onClick={() => onUpgradeClick()}
               className="text-xs text-primary hover:underline flex items-center gap-1"
             >
               <Sparkles className="w-3 h-3" />
@@ -124,6 +130,7 @@ export const AiChatInput = ({
                 className="w-full h-full object-cover"
               />
               <button
+                type="button"
                 onClick={() => onRemoveImage?.(idx)}
                 className="absolute top-0 right-0 bg-black/70 rounded-bl-lg p-0.5"
                 aria-label="Remove image"
@@ -161,6 +168,7 @@ export const AiChatInput = ({
         {/* Image attach button */}
         {showImageAttach && (
           <button
+            type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || isLimitReached}
             className="size-11 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -180,13 +188,15 @@ export const AiChatInput = ({
           className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
-          onClick={onSendMessage}
+          type="button"
+          onClick={handleSendClick}
           disabled={
             (!inputMessage.trim() && attachedImages.length === 0) ||
             isTyping ||
             disabled ||
             isLimitReached
           }
+          aria-label="Send message"
           className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:opacity-90 text-white size-11 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shrink-0"
         >
           <Send size={18} />
