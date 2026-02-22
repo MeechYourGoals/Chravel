@@ -1,7 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { AudioPlaybackQueue } from '@/lib/geminiLive/audioPlayback';
+import { startAudioCapture, type AudioCaptureHandle } from '@/lib/geminiLive/audioCapture';
 
-export type GeminiLiveState = 'idle' | 'connecting' | 'listening' | 'speaking' | 'error';
+export type GeminiLiveState =
+  | 'idle'
+  | 'connecting'
+  | 'listening'
+  | 'thinking'
+  | 'speaking'
+  | 'error';
 
 export interface ToolCallRequest {
   name: string;
@@ -12,74 +20,47 @@ export interface ToolCallRequest {
 interface UseGeminiLiveOptions {
   tripId: string;
   voice?: string;
-  onTranscript?: (text: string) => void;
   onToolCall?: (call: ToolCallRequest) => Promise<Record<string, unknown>>;
-  onTurnComplete?: () => void;
+  onTurnComplete?: (userText: string, assistantText: string) => void;
 }
 
 interface UseGeminiLiveReturn {
   state: GeminiLiveState;
   error: string | null;
+  userTranscript: string;
+  assistantTranscript: string;
   startSession: () => Promise<void>;
   endSession: () => void;
+  interruptPlayback: () => void;
   isSupported: boolean;
 }
 
-const LIVE_INPUT_SAMPLE_RATE = 16000;
+const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
+const SESSION_TIMEOUT_MS = 15_000;
+const WEBSOCKET_SETUP_TIMEOUT_MS = 15_000;
+const THINKING_DELAY_MS = 1_500;
 
-const downsampleTo16k = (input: Float32Array, inputSampleRate: number): Float32Array => {
-  if (inputSampleRate <= LIVE_INPUT_SAMPLE_RATE) return input;
+// Safari < 14.5 exposes webkitAudioContext instead of AudioContext
+const SafeAudioContext: typeof AudioContext | undefined =
+  typeof window !== 'undefined'
+    ? window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    : undefined;
 
-  const sampleRateRatio = inputSampleRate / LIVE_INPUT_SAMPLE_RATE;
-  const outputLength = Math.floor(input.length / sampleRateRatio);
-  const output = new Float32Array(outputLength);
-  let offsetResult = 0;
-  let offsetBuffer = 0;
+let idCounter = 0;
+function uniqueId(prefix: string): string {
+  idCounter += 1;
+  return `${prefix}-${Date.now()}-${idCounter}`;
+}
 
-  while (offsetResult < output.length) {
-    const nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
-    let accum = 0;
-    let count = 0;
-
-    for (let i = offsetBuffer; i < nextOffsetBuffer && i < input.length; i++) {
-      accum += input[i];
-      count++;
-    }
-
-    output[offsetResult] = count > 0 ? accum / count : 0;
-    offsetResult++;
-    offsetBuffer = nextOffsetBuffer;
-  }
-
-  return output;
-};
-
-/**
- * Maps a raw server-side error message to a user-friendly string.
- * Keeps technical details out of the UI while preserving actionability.
- */
 function mapSessionError(raw: string): string {
   const lower = raw.toLowerCase();
-
-  // "Method doesn't allow unregistered callers" = API key missing, wrong, or restricted
-  if (
-    lower.includes('unregistered callers') ||
-    lower.includes('callers without established identity')
-  ) {
-    return 'Voice failed: API key missing or restricted. Ensure GEMINI_API_KEY is set in Supabase Edge Function secrets and has no HTTP referrer/IP restrictions blocking server requests.';
+  if (lower.includes('unregistered callers') || lower.includes('callers without established identity')) {
+    return 'Voice failed: API key missing or restricted. Ensure GEMINI_API_KEY is set in Supabase Edge Function secrets.';
   }
-  if (
-    raw.includes('403') ||
-    lower.includes('not enabled') ||
-    lower.includes('not enabled for this account')
-  ) {
+  if (raw.includes('403') || lower.includes('not enabled')) {
     return 'Voice is unavailable right now (API configuration issue). Please try again later.';
   }
-  if (
-    lower.includes('gemini_api_key') ||
-    lower.includes('api key') ||
-    lower.includes('not configured')
-  ) {
+  if (lower.includes('gemini_api_key') || lower.includes('api key') || lower.includes('not configured')) {
     return 'Voice AI is not configured. Please contact support.';
   }
   if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('authentication')) {
@@ -97,223 +78,185 @@ function mapSessionError(raw: string): string {
   return raw;
 }
 
-/**
- * Maps a WebSocket close code to a user-friendly message.
- * Returns null for clean closes (1000, 1005) so callers know not to show an error.
- */
 function mapWsCloseError(code: number, reason: string): string | null {
-  // Clean close — no error to show
   if (code === 1000 || code === 1005) return null;
-
   if (reason) return reason;
-
   const MESSAGES: Record<number, string> = {
     1001: 'Voice session ended (browser navigated away).',
     1002: 'Voice connection protocol error — please try again.',
-    1003: 'Voice connection received invalid data — please try again.',
     1006: 'Voice connection dropped — check your internet and try again.',
     1011: 'Voice server error — please try again.',
-    1012: 'Voice server is restarting — please try again in a moment.',
-    1013: 'Voice service temporarily unavailable — please try again.',
     4000: 'Voice session expired — please start a new session.',
     4001: 'Voice session not authorized — please refresh and try again.',
     4429: 'Voice rate limit reached — please wait a moment and try again.',
   };
-
   return MESSAGES[code] ?? `Voice disconnected unexpectedly (code ${code}).`;
 }
 
 /**
- * Hook for Gemini Live bidirectional audio via WebSocket.
- * Opens a direct client-to-Gemini WebSocket authenticated via a short-lived token
- * from the gemini-voice-session edge function.
+ * Gemini Live bidirectional voice hook.
  *
- * Error coverage:
- * - Concurrent startSession calls (isStartingRef guard)
- * - Microphone permission denied / not found / in use
- * - AudioContext creation failure or iOS suspension
- * - Edge function errors (API key missing, rate limit, auth, timeout)
- * - WebSocket setup timeout
- * - WebSocket close with non-clean code (mapped to human messages)
- * - Gemini protocol-level error messages (data.error)
- * - Audio playback on closed AudioContext
+ * Uses refs for all callbacks that are read inside the WebSocket handler
+ * to avoid stale-closure bugs when callbacks change between renders.
  */
 export function useGeminiLive({
   tripId,
   voice = 'Puck',
-  onTranscript,
   onToolCall,
   onTurnComplete,
 }: UseGeminiLiveOptions): UseGeminiLiveReturn {
   const [state, setState] = useState<GeminiLiveState>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [userTranscript, setUserTranscript] = useState('');
+  const [assistantTranscript, setAssistantTranscript] = useState('');
 
+  // ── Refs for WebSocket-safe callback access (avoids stale closures) ──
+  const onTurnCompleteRef = useRef(onTurnComplete);
+  useEffect(() => { onTurnCompleteRef.current = onTurnComplete; }, [onTurnComplete]);
+
+  const onToolCallRef = useRef(onToolCall);
+  useEffect(() => { onToolCallRef.current = onToolCall; }, [onToolCall]);
+
+  // ── Internal refs ──
   const wsRef = useRef<WebSocket | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const playbackCtxRef = useRef<AudioContext | null>(null);
+  const captureCtxRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const processorNodeRef = useRef<ScriptProcessorNode | null>(null);
-  /** Prevents a double-tap on the mic from spawning two concurrent sessions. */
+  const captureHandleRef = useRef<AudioCaptureHandle | null>(null);
+  const playbackQueueRef = useRef<AudioPlaybackQueue | null>(null);
   const isStartingRef = useRef(false);
+  const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Check browser support
+  const userTranscriptAccRef = useRef('');
+  const assistantTranscriptAccRef = useRef('');
+  const modelRespondingRef = useRef(false);
+  // Track whether user has spoken at all this turn (for thinking timer logic)
+  const userHasSpokenRef = useRef(false);
+
   const isSupported =
     typeof window !== 'undefined' &&
     typeof WebSocket !== 'undefined' &&
-    typeof AudioContext !== 'undefined' &&
+    SafeAudioContext !== undefined &&
     typeof navigator?.mediaDevices?.getUserMedia === 'function';
 
+  const clearThinkingTimer = useCallback(() => {
+    if (thinkingTimerRef.current) {
+      clearTimeout(thinkingTimerRef.current);
+      thinkingTimerRef.current = null;
+    }
+  }, []);
+
   const cleanup = useCallback(() => {
-    // Always reset the starting guard so the next tap works
     isStartingRef.current = false;
+    clearThinkingTimer();
+
+    captureHandleRef.current?.stop();
+    captureHandleRef.current = null;
 
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
-    if (sourceNodeRef.current) {
-      sourceNodeRef.current.disconnect();
-      sourceNodeRef.current = null;
+
+    playbackQueueRef.current?.destroy();
+    playbackQueueRef.current = null;
+
+    if (playbackCtxRef.current?.state !== 'closed') {
+      playbackCtxRef.current?.close().catch(() => {});
     }
-    if (processorNodeRef.current) {
-      processorNodeRef.current.disconnect();
-      processorNodeRef.current.onaudioprocess = null;
-      processorNodeRef.current = null;
+    playbackCtxRef.current = null;
+
+    if (captureCtxRef.current?.state !== 'closed') {
+      captureCtxRef.current?.close().catch(() => {});
     }
-    if (audioContextRef.current?.state !== 'closed') {
-      audioContextRef.current?.close().catch(() => {});
-      audioContextRef.current = null;
-    }
+    captureCtxRef.current = null;
+
     if (wsRef.current) {
-      wsRef.current.close();
+      wsRef.current.onopen = null;
+      wsRef.current.onmessage = null;
+      wsRef.current.onerror = null;
+      wsRef.current.onclose = null;
+      if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
+        wsRef.current.close();
+      }
       wsRef.current = null;
     }
-  }, []);
+  }, [clearThinkingTimer]);
 
   useEffect(() => {
     return () => cleanup();
   }, [cleanup]);
 
-  const playAudioChunk = useCallback((base64Audio: string) => {
-    // Don't attempt playback if the context was closed (e.g. during cleanup)
-    if (!audioContextRef.current || audioContextRef.current.state === 'closed') return;
-
-    try {
-      const binaryString = atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+  // Close session if tripId changes (session config is immutable per connection)
+  const prevTripIdRef = useRef(tripId);
+  useEffect(() => {
+    if (prevTripIdRef.current !== tripId && wsRef.current) {
+      // Finalize any pending turn before closing
+      const pendingUser = userTranscriptAccRef.current.trim();
+      const pendingAssistant = assistantTranscriptAccRef.current.trim();
+      if (pendingUser || pendingAssistant) {
+        onTurnCompleteRef.current?.(pendingUser, pendingAssistant);
       }
-
-      const int16Array = new Int16Array(bytes.buffer);
-      const float32Array = new Float32Array(int16Array.length);
-      for (let i = 0; i < int16Array.length; i++) {
-        float32Array[i] = int16Array[i] / 32768.0;
-      }
-
-      const sampleRate = 24000;
-      const audioBuffer = audioContextRef.current.createBuffer(1, float32Array.length, sampleRate);
-      audioBuffer.getChannelData(0).set(float32Array);
-
-      const source = audioContextRef.current.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContextRef.current.destination);
-      source.start();
-    } catch (err) {
-      console.error('[GeminiLive] Audio playback error:', err);
+      userTranscriptAccRef.current = '';
+      assistantTranscriptAccRef.current = '';
+      cleanup();
+      setState('idle');
+      setError(null);
+      setUserTranscript('');
+      setAssistantTranscript('');
     }
+    prevTripIdRef.current = tripId;
+  }, [tripId, cleanup]);
+
+  const flushModelOutput = useCallback(() => {
+    playbackQueueRef.current?.flush();
+    clearThinkingTimer();
+  }, [clearThinkingTimer]);
+
+  const resetTurnAccumulators = useCallback(() => {
+    userTranscriptAccRef.current = '';
+    assistantTranscriptAccRef.current = '';
+    modelRespondingRef.current = false;
+    userHasSpokenRef.current = false;
+    setUserTranscript('');
+    setAssistantTranscript('');
   }, []);
 
-  const startAudioCapture = useCallback(
-    (ws: WebSocket, stream: MediaStream) => {
-      // Don't start capture if the context was closed or is in a bad state
-      if (!audioContextRef.current || audioContextRef.current.state === 'closed') return;
+  /**
+   * Handle tool calls from Gemini Live (uses ref for latest callback).
+   */
+  const handleToolCallWs = useCallback(
+    async (ws: WebSocket, toolCallData: Record<string, unknown>) => {
+      const functionCalls = (toolCallData.functionCalls || []) as Array<{
+        id: string;
+        name: string;
+        args?: Record<string, unknown>;
+      }>;
 
-      try {
-        const sourceNode = audioContextRef.current.createMediaStreamSource(stream);
-        const processorNode = audioContextRef.current.createScriptProcessor(4096, 1, 1);
-        sourceNodeRef.current = sourceNode;
-        processorNodeRef.current = processorNode;
-
-        processorNode.onaudioprocess = event => {
-          if (ws.readyState !== WebSocket.OPEN) return;
-
-          const inputData = event.inputBuffer.getChannelData(0);
-          const inputSampleRate = audioContextRef.current?.sampleRate || LIVE_INPUT_SAMPLE_RATE;
-          const downsampledData = downsampleTo16k(inputData, inputSampleRate);
-
-          const pcm16 = new Int16Array(downsampledData.length);
-          for (let i = 0; i < downsampledData.length; i++) {
-            const s = Math.max(-1, Math.min(1, downsampledData[i]));
-            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-          }
-
-          const uint8 = new Uint8Array(pcm16.buffer);
-          let binary = '';
-          for (let i = 0; i < uint8.length; i++) {
-            binary += String.fromCharCode(uint8[i]);
-          }
-          const base64 = btoa(binary);
-
+      const handler = onToolCallRef.current;
+      if (!handler) {
+        if (ws.readyState === WebSocket.OPEN) {
           ws.send(
             JSON.stringify({
-              realtimeInput: {
-                mediaChunks: [
-                  {
-                    mimeType: 'audio/pcm;rate=16000',
-                    data: base64,
-                  },
-                ],
+              toolResponse: {
+                functionResponses: functionCalls.map(fc => ({
+                  id: fc.id,
+                  name: fc.name,
+                  response: { result: 'Tool execution not available' },
+                })),
               },
             }),
           );
-        };
-
-        sourceNode.connect(processorNode);
-        // ScriptProcessorNode must be connected to the destination to receive
-        // audio data. The outputBuffer is not written to, so speakers are silent.
-        processorNode.connect(audioContextRef.current.destination);
-      } catch (err) {
-        console.error('[GeminiLive] Audio capture setup failed:', err);
-        setError('Failed to set up audio capture. Please try again.');
-        setState('error');
-        cleanup();
-      }
-    },
-    [cleanup],
-  );
-
-  /** Handle tool calls from Gemini Live and send results back */
-  const handleToolCall = useCallback(
-    async (ws: WebSocket, toolCallData: any) => {
-      if (!onToolCall) {
-        // No handler — send empty response so Gemini can continue
-        ws.send(
-          JSON.stringify({
-            toolResponse: {
-              functionResponses: (toolCallData.functionCalls || []).map((fc: any) => ({
-                id: fc.id,
-                name: fc.name,
-                response: { result: 'Tool execution not available' },
-              })),
-            },
-          }),
-        );
+        }
         return;
       }
 
-      const functionCalls = toolCallData.functionCalls || [];
       const responses = await Promise.all(
-        functionCalls.map(async (fc: any) => {
+        functionCalls.map(async fc => {
           try {
-            const result = await onToolCall({
-              id: fc.id,
-              name: fc.name,
-              args: fc.args || {},
-            });
+            const result = await handler({ id: fc.id, name: fc.name, args: fc.args || {} });
             return { id: fc.id, name: fc.name, response: result };
           } catch (err) {
-            console.error(`[GeminiLive] Tool call ${fc.name} failed:`, err);
             return {
               id: fc.id,
               name: fc.name,
@@ -324,18 +267,11 @@ export function useGeminiLive({
       );
 
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(
-          JSON.stringify({
-            toolResponse: { functionResponses: responses },
-          }),
-        );
+        ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
       }
     },
-    [onToolCall],
+    [],
   );
-
-  const SESSION_TIMEOUT_MS = 15_000;
-  const WEBSOCKET_SETUP_TIMEOUT_MS = 15_000;
 
   const startSession = useCallback(async () => {
     if (!isSupported) {
@@ -344,9 +280,7 @@ export function useGeminiLive({
       return;
     }
 
-    // Guard against double-tap or re-entry while already starting / active
     if (isStartingRef.current || wsRef.current?.readyState === WebSocket.OPEN) {
-      console.warn('[GeminiLive] startSession called while already active — ignoring');
       return;
     }
     isStartingRef.current = true;
@@ -354,8 +288,9 @@ export function useGeminiLive({
     try {
       setState('connecting');
       setError(null);
+      resetTurnAccumulators();
 
-      // ── 1. Fetch ephemeral session token from edge function ───────────────
+      // 1. Fetch ephemeral token
       const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
         body: { tripId, voice },
       });
@@ -373,8 +308,6 @@ export function useGeminiLive({
 
       const accessToken =
         typeof sessionData?.accessToken === 'string' ? sessionData.accessToken : null;
-      // SECURITY: apiKey fallback REMOVED — never send raw API keys to browser WebSocket.
-      // Only ephemeral access tokens (created server-side) are allowed.
       const sessionErrMsg =
         typeof (sessionData as { error?: string })?.error === 'string'
           ? (sessionData as { error: string }).error
@@ -384,7 +317,7 @@ export function useGeminiLive({
         throw new Error(mapSessionError(sessionErrMsg || 'Failed to get voice session'));
       }
 
-      // ── 2. Request microphone with device-specific error messages ─────────
+      // 2. Request microphone
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -398,198 +331,286 @@ export function useGeminiLive({
       } catch (mediaErr) {
         const name = mediaErr instanceof Error ? mediaErr.name : '';
         if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          throw new Error(
-            'Microphone permission denied. Allow microphone access in your browser settings and try again.',
-          );
+          throw new Error('Microphone permission denied. Allow microphone access in your browser settings and try again.');
         }
         if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
           throw new Error('No microphone detected. Connect a microphone and try again.');
         }
         if (name === 'NotReadableError' || name === 'TrackStartError') {
-          throw new Error(
-            'Microphone is already in use by another app. Close other apps and try again.',
-          );
+          throw new Error('Microphone is already in use by another app. Close other apps and try again.');
         }
         throw new Error('Could not access microphone. Check your audio settings and try again.');
       }
       mediaStreamRef.current = stream;
 
-      // ── 3. Create audio context for playback (24 kHz matches Gemini output) ─
-      try {
-        audioContextRef.current = new AudioContext({ sampleRate: 24000 });
-      } catch {
-        throw new Error('Failed to initialize audio. Check your audio settings and try again.');
+      // 3. Create AudioContexts (separate for capture and playback)
+      // Uses SafeAudioContext which falls back to webkitAudioContext on older Safari
+      if (!SafeAudioContext) {
+        throw new Error('Audio is not supported in this browser.');
       }
-      // iOS Safari suspends AudioContext until resumed inside a user-gesture handler.
-      // startSession is always called from a tap, so resuming here is safe.
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume().catch(() => {
-          console.warn('[GeminiLive] AudioContext.resume() failed — audio playback may be silent');
-        });
+      try {
+        playbackCtxRef.current = new SafeAudioContext({ sampleRate: 24000 });
+      } catch {
+        throw new Error('Failed to initialize audio playback.');
+      }
+      try {
+        captureCtxRef.current = new SafeAudioContext();
+      } catch {
+        throw new Error('Failed to initialize audio capture.');
       }
 
-      // ── 4. Open WebSocket to Gemini Live ──────────────────────────────────
+      if (playbackCtxRef.current.state === 'suspended') {
+        await playbackCtxRef.current.resume().catch(() => {});
+      }
+      if (captureCtxRef.current.state === 'suspended') {
+        await captureCtxRef.current.resume().catch(() => {});
+      }
+
+      playbackQueueRef.current = new AudioPlaybackQueue(playbackCtxRef.current);
+
+      // 4. Open WebSocket to Gemini Live
       const websocketUrl =
         typeof sessionData?.websocketUrl === 'string' && sessionData.websocketUrl.length > 0
           ? sessionData.websocketUrl
           : 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
-      // SECURITY: Only ephemeral access tokens are used — no raw key= fallback
+
       const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
-      // Timeout if setupComplete never arrives (prevents infinite "connecting" spinner)
       let setupTimeoutId: ReturnType<typeof setTimeout> | undefined;
       const clearSetupTimeout = () => {
-        if (setupTimeoutId) {
+        if (setupTimeoutId !== undefined) {
           clearTimeout(setupTimeoutId);
           setupTimeoutId = undefined;
         }
       };
 
       ws.onopen = () => {
-        console.log('[GeminiLive] WebSocket connected');
-
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
-            console.warn('[GeminiLive] Setup timeout — no setupComplete received');
             setError('Voice connection timed out. Please try again.');
             setState('error');
             cleanup();
           }
         }, WEBSOCKET_SETUP_TIMEOUT_MS);
-
-        // When using an ephemeral access token, the session setup (model, voice,
-        // system instruction, AND tools) is already baked into the token by the
-        // edge function. Sending a duplicate setup message risks overriding the
-        // token config and stripping tool declarations.
-        // Ephemeral access tokens embed all session config (model, voice,
-        // system instruction, tools). No client-side setup message needed.
-        // The legacy apiKey fallback path has been removed for security.
       };
 
+      // ── WebSocket message handler ──
+      // All mutable state is accessed via refs to avoid stale closures.
       ws.onmessage = event => {
         try {
           const data = JSON.parse(event.data);
 
-          // ── Server-side protocol error ──────────────────────────────────
           if (data.error) {
             clearSetupTimeout();
             const code: number | undefined = data.error?.code;
-            const serverMsg = String(data.error?.message || 'Voice session error from server');
-            // Map known Gemini error codes to friendly messages
+            const serverMsg = String(data.error?.message || 'Voice session error');
             const userMsg =
               code === 429
                 ? 'Voice rate limit reached — please wait a moment and try again.'
                 : code === 503
                   ? 'Voice service temporarily unavailable — please try again.'
                   : mapSessionError(serverMsg);
-            console.error('[GeminiLive] Server protocol error:', data.error);
             setError(userMsg);
             setState('error');
             cleanup();
             return;
           }
 
-          // ── Setup complete — session is live ────────────────────────────
           if (data.setupComplete) {
             clearSetupTimeout();
-            // Reset the guard now that the session is fully established
             isStartingRef.current = false;
-            console.log('[GeminiLive] Setup complete, starting audio capture');
             setState('listening');
-            startAudioCapture(ws, stream);
+
+            if (captureCtxRef.current && mediaStreamRef.current) {
+              captureHandleRef.current = startAudioCapture(
+                mediaStreamRef.current,
+                captureCtxRef.current,
+                (base64PCM: string) => {
+                  if (ws.readyState !== WebSocket.OPEN) return;
+                  ws.send(
+                    JSON.stringify({
+                      realtimeInput: {
+                        mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: base64PCM }],
+                      },
+                    }),
+                  );
+                },
+              );
+            }
+            // No thinking timer here — it only starts after user speaks
             return;
           }
 
-          // ── Tool call from Gemini ───────────────────────────────────────
           if (data.toolCall) {
-            console.log('[GeminiLive] Tool call received:', data.toolCall);
-            handleToolCall(ws, data.toolCall);
+            void handleToolCallWs(ws, data.toolCall);
             return;
           }
 
-          // ── Audio / text response from model ────────────────────────────
           if (data.serverContent) {
-            const parts = data.serverContent.modelTurn?.parts || [];
+            const sc = data.serverContent;
+
+            if (sc.interrupted) {
+              playbackQueueRef.current?.flush();
+              clearThinkingTimer();
+              modelRespondingRef.current = false;
+
+              const partialUser = userTranscriptAccRef.current.trim();
+              const partialAssistant = assistantTranscriptAccRef.current.trim();
+              if (partialUser || partialAssistant) {
+                onTurnCompleteRef.current?.(partialUser, partialAssistant);
+              }
+
+              userTranscriptAccRef.current = '';
+              assistantTranscriptAccRef.current = '';
+              userHasSpokenRef.current = false;
+              setUserTranscript('');
+              setAssistantTranscript('');
+              setState('listening');
+              return;
+            }
+
+            const parts = sc.modelTurn?.parts || [];
+            if (parts.length > 0 && !modelRespondingRef.current) {
+              clearThinkingTimer();
+              modelRespondingRef.current = true;
+            }
 
             for (const part of parts) {
               if (part.inlineData?.data) {
                 setState('speaking');
-                playAudioChunk(part.inlineData.data);
+                playbackQueueRef.current?.enqueue(part.inlineData.data);
               }
-              if (part.text && onTranscript) {
-                onTranscript(part.text);
+              if (typeof part.text === 'string' && part.text.length > 0) {
+                setState(prev => (prev === 'listening' || prev === 'thinking' ? 'speaking' : prev));
+                assistantTranscriptAccRef.current += part.text;
+                setAssistantTranscript(assistantTranscriptAccRef.current);
               }
             }
 
-            // Turn complete — model finished responding, ready for next user input
-            if (data.serverContent.turnComplete) {
+            if (sc.inputTranscript) {
+              clearThinkingTimer();
+              const transcript = typeof sc.inputTranscript === 'string'
+                ? sc.inputTranscript
+                : sc.inputTranscript?.text || '';
+              if (transcript) {
+                userHasSpokenRef.current = true;
+                userTranscriptAccRef.current = transcript;
+                setUserTranscript(transcript);
+                setState('listening');
+
+                // Restart thinking timer now that user has spoken
+                thinkingTimerRef.current = setTimeout(() => {
+                  setState(prev => (prev === 'listening' ? 'thinking' : prev));
+                }, THINKING_DELAY_MS);
+              }
+            }
+
+            if (sc.outputTranscript) {
+              const transcript = typeof sc.outputTranscript === 'string'
+                ? sc.outputTranscript
+                : sc.outputTranscript?.text || '';
+              if (transcript) {
+                assistantTranscriptAccRef.current += transcript;
+                setAssistantTranscript(assistantTranscriptAccRef.current);
+              }
+            }
+
+            if (sc.turnComplete) {
+              playbackQueueRef.current?.flush();
+              clearThinkingTimer();
+
+              const finalUser = userTranscriptAccRef.current.trim();
+              const finalAssistant = assistantTranscriptAccRef.current.trim();
+              if (finalUser || finalAssistant) {
+                onTurnCompleteRef.current?.(finalUser, finalAssistant);
+              }
+
+              userTranscriptAccRef.current = '';
+              assistantTranscriptAccRef.current = '';
+              modelRespondingRef.current = false;
+              userHasSpokenRef.current = false;
+              setUserTranscript('');
+              setAssistantTranscript('');
               setState('listening');
-              onTurnComplete?.();
             }
           }
-
-          // ── User interrupted AI mid-response ───────────────────────────
-          if (data.serverContent?.interrupted) {
-            console.log('[GeminiLive] AI interrupted by user');
-            setState('listening');
-          }
-        } catch (err) {
-          console.error('[GeminiLive] Message handling error:', err);
+        } catch {
+          // Malformed message — skip
         }
       };
 
-      ws.onerror = event => {
+      ws.onerror = () => {
         clearSetupTimeout();
-        console.error('[GeminiLive] WebSocket error event:', event);
-        // onclose always fires after onerror, so we let onclose set the final
-        // error message rather than setting it here with incomplete information.
       };
 
       ws.onclose = event => {
         clearSetupTimeout();
-        console.log('[GeminiLive] WebSocket closed:', event.code, event.reason);
         const msg = mapWsCloseError(event.code, event.reason);
+
+        const pendingUser = userTranscriptAccRef.current.trim();
+        const pendingAssistant = assistantTranscriptAccRef.current.trim();
+        if (pendingUser || pendingAssistant) {
+          onTurnCompleteRef.current?.(pendingUser, pendingAssistant);
+        }
+
         if (msg) {
           setError(msg);
           setState('error');
         } else {
-          // Clean close (1000 / 1005) — don't clobber an error state if we're
-          // already in one (e.g. onerror fired just before this)
           setState(prev => (prev === 'error' ? prev : 'idle'));
         }
         cleanup();
       };
     } catch (err) {
-      console.error('[GeminiLive] Start session error:', err);
       setError(err instanceof Error ? err.message : 'Failed to start voice session.');
       setState('error');
       cleanup();
     }
-  }, [
-    isSupported,
-    tripId,
-    voice,
-    cleanup,
-    playAudioChunk,
-    onTranscript,
-    onTurnComplete,
-    startAudioCapture,
-    handleToolCall,
-  ]);
+  }, [isSupported, tripId, voice, cleanup, handleToolCallWs, clearThinkingTimer, resetTurnAccumulators]);
+
+  const interruptPlayback = useCallback(() => {
+    flushModelOutput();
+    modelRespondingRef.current = false;
+
+    const partialUser = userTranscriptAccRef.current.trim();
+    const partialAssistant = assistantTranscriptAccRef.current.trim();
+    if (partialAssistant || partialUser) {
+      onTurnCompleteRef.current?.(partialUser, partialAssistant);
+    }
+
+    userTranscriptAccRef.current = '';
+    assistantTranscriptAccRef.current = '';
+    userHasSpokenRef.current = false;
+    setUserTranscript('');
+    setAssistantTranscript('');
+    setState('listening');
+  }, [flushModelOutput]);
 
   const endSession = useCallback(() => {
+    const pendingUser = userTranscriptAccRef.current.trim();
+    const pendingAssistant = assistantTranscriptAccRef.current.trim();
+    if (pendingUser || pendingAssistant) {
+      onTurnCompleteRef.current?.(pendingUser, pendingAssistant);
+    }
+
+    resetTurnAccumulators();
     setState('idle');
     setError(null);
     cleanup();
-  }, [cleanup]);
+  }, [cleanup, resetTurnAccumulators]);
 
   return {
     state,
     error,
+    userTranscript,
+    assistantTranscript,
     startSession,
     endSession,
+    interruptPlayback,
     isSupported,
   };
 }
+
+export { uniqueId };

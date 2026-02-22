@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, Crown, Sparkles } from 'lucide-react';
+import { Search, Crown, Sparkles, Square } from 'lucide-react';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from '@/features/chat/components/ChatMessages';
@@ -14,12 +14,12 @@ import {
 } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { useGeminiLive, uniqueId } from '@/hooks/useGeminiLive';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+import { supabase } from '@/integrations/supabase/client';
 
-// ─── MVP Feature Flags ────────────────────────────────────────────────────────
-// Voice and multimodal upload are disabled for MVP stability.
-// Set to true once transport layer is verified stable.
-const VOICE_ENABLED = false;
+// ─── Feature Flags ────────────────────────────────────────────────────────────
+const VOICE_ENABLED = true;
 const UPLOAD_ENABLED = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ interface AIConciergeChatProps {
   basecamp?: { name: string; address: string };
   preferences?: TripPreferences;
   isDemoMode?: boolean;
-  isEvent?: boolean; // Deprecated: retained for backward compatibility
+  isEvent?: boolean;
 }
 
 interface ChatMessage {
@@ -45,9 +45,9 @@ interface ChatMessage {
     title: string;
     url: string;
     snippet: string;
-    source?: string; // 🆕 Track if from Google Maps grounding
+    source?: string;
   }>;
-  googleMapsWidget?: string; // 🆕 Widget context token
+  googleMapsWidget?: string;
 }
 
 interface ConciergeInvokePayload {
@@ -88,8 +88,6 @@ interface FallbackTripContext {
   payments?: FallbackPayment[];
 }
 
-// 60s timeout: backend pre-flight (context/RAG) + Gemini streaming with Google Search
-// can exceed 45s for real-time queries. Gemini Flash typically responds in 5–15s.
 const FAST_RESPONSE_TIMEOUT_MS = 60_000;
 
 const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
@@ -166,11 +164,113 @@ export const AIConciergeChat = ({
 
   const isMounted = useRef(true);
 
-  // Voice is disabled for MVP — stub out state so JSX doesn't need conditional branches
-  const effectiveVoiceState: VoiceState = 'idle';
+  // ─── Voice (Gemini Live bidi streaming) ──────────────────────────────────
+  const voiceUserDraftIdRef = useRef<string | null>(null);
+  const voiceAssistantDraftIdRef = useRef<string | null>(null);
+
+  const handleVoiceTurnComplete = useCallback(
+    (userText: string, assistantText: string) => {
+      if (voiceUserDraftIdRef.current && userText) {
+        const draftId = voiceUserDraftIdRef.current;
+        setMessages(prev =>
+          prev.map(m => (m.id === draftId ? { ...m, content: userText } : m)),
+        );
+      }
+      if (voiceAssistantDraftIdRef.current && assistantText) {
+        const draftId = voiceAssistantDraftIdRef.current;
+        setMessages(prev =>
+          prev.map(m => (m.id === draftId ? { ...m, content: assistantText } : m)),
+        );
+      }
+      voiceUserDraftIdRef.current = null;
+      voiceAssistantDraftIdRef.current = null;
+
+      if (userText || assistantText) {
+        void persistVoiceTurn(tripId, userText, assistantText);
+      }
+    },
+    [tripId],
+  );
+
+  const {
+    state: geminiState,
+    userTranscript,
+    assistantTranscript,
+    startSession,
+    endSession,
+    interruptPlayback,
+    isSupported: voiceSupported,
+  } = useGeminiLive({
+    tripId,
+    onTurnComplete: handleVoiceTurnComplete,
+  });
+
+  const effectiveVoiceState: VoiceState = geminiState as VoiceState;
+
   const handleVoiceToggle = useCallback(() => {
-    // Voice disabled for MVP
-  }, []);
+    if (geminiState === 'idle' || geminiState === 'error') {
+      voiceUserDraftIdRef.current = null;
+      voiceAssistantDraftIdRef.current = null;
+      void startSession();
+    } else if (geminiState === 'speaking') {
+      voiceUserDraftIdRef.current = null;
+      voiceAssistantDraftIdRef.current = null;
+      interruptPlayback();
+    } else {
+      endSession();
+    }
+  }, [geminiState, startSession, endSession, interruptPlayback]);
+
+  // Draft user message: create on first transcript, update live
+  useEffect(() => {
+    if (!VOICE_ENABLED) return;
+    if ((geminiState === 'listening' || geminiState === 'thinking') && userTranscript) {
+      if (!voiceUserDraftIdRef.current) {
+        const id = uniqueId('voice-user');
+        voiceUserDraftIdRef.current = id;
+        setMessages(prev => [
+          ...prev,
+          {
+            id,
+            type: 'user' as const,
+            content: userTranscript,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+      } else {
+        const draftId = voiceUserDraftIdRef.current;
+        setMessages(prev =>
+          prev.map(m => (m.id === draftId ? { ...m, content: userTranscript } : m)),
+        );
+      }
+    }
+  }, [geminiState, userTranscript]);
+
+  // Draft assistant message: create when model starts responding, update as text streams
+  useEffect(() => {
+    if (!VOICE_ENABLED) return;
+    if (geminiState === 'speaking' && assistantTranscript) {
+      if (!voiceAssistantDraftIdRef.current) {
+        const id = uniqueId('voice-asst');
+        voiceAssistantDraftIdRef.current = id;
+        setMessages(prev => [
+          ...prev,
+          {
+            id,
+            type: 'assistant' as const,
+            content: assistantTranscript,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+      } else {
+        const draftId = voiceAssistantDraftIdRef.current;
+        setMessages(prev =>
+          prev.map(m => (m.id === draftId ? { ...m, content: assistantTranscript } : m)),
+        );
+      }
+    }
+  }, [geminiState, assistantTranscript]);
+  // ── End voice ────────────────────────────────────────────────────────────
 
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
   const streamAbortRef = useRef<(() => void) | null>(null);
@@ -212,7 +312,6 @@ export const AIConciergeChat = ({
 
   // ⚡ PERFORMANCE: 8-second initialization timeout to prevent indefinite loading
   useEffect(() => {
-    // If we're already connected or have messages, no need for timeout
     if (aiStatus === 'connected' || messages.length > 0) {
       return;
     }
@@ -287,7 +386,6 @@ export const AIConciergeChat = ({
   const handleSendMessage = async (messageOverride?: string) => {
     const typedMessage =
       typeof messageOverride === 'string' ? messageOverride.trim() : inputMessage.trim();
-    // When upload is disabled, ignore any attached images so they never gate send
     const selectedImages = UPLOAD_ENABLED ? [...attachedImages] : [];
     const hasImageAttachments = selectedImages.length > 0;
     if ((!typedMessage && !hasImageAttachments) || isTyping) return;
@@ -298,7 +396,6 @@ export const AIConciergeChat = ({
       typedMessage ||
       `📎 Attached ${selectedImages.length} image${selectedImages.length === 1 ? '' : 's'}`;
 
-    // Check offline mode first
     if (isOffline) {
       setMessages(prev => [
         ...prev,
@@ -329,7 +426,6 @@ export const AIConciergeChat = ({
       timestamp: new Date().toISOString(),
     };
 
-    // Show user message + typing indicator immediately so UI never feels frozen
     setMessages(prev => [...prev, userMessage]);
     const currentInput = messageToSend;
     if (!messageOverride) {
@@ -359,7 +455,6 @@ export const AIConciergeChat = ({
       }
     }
 
-    // Lightweight fallback context is used only for graceful degradation messages.
     const fallbackContext = {
       tripId,
       title: 'Current Trip',
@@ -382,8 +477,6 @@ export const AIConciergeChat = ({
           }
         : undefined;
 
-    // Guard: true once the streaming path is entered so the finally block
-    // does not prematurely reset isTyping (callbacks manage it instead).
     let streamingStarted = false;
 
     try {
@@ -392,8 +485,7 @@ export const AIConciergeChat = ({
         attachments = await Promise.all(selectedImages.map(fileToAttachmentPayload));
       }
 
-      // Build chat history for context - truncate each message to prevent validation overflow
-      const MAX_MESSAGE_LENGTH = 3000; // Keep under 20000 limit with room for multiple messages
+      const MAX_MESSAGE_LENGTH = 3000;
       const chatHistory = messages.slice(-6).map(msg => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
         content:
@@ -417,14 +509,11 @@ export const AIConciergeChat = ({
       };
 
       // ========== STREAMING PATH ==========
-      // Demo mode falls back to non-streaming since demo-concierge doesn't support SSE.
       if (!isDemoMode) {
         const streamingMessageId = `stream-${Date.now()}`;
         let receivedAnyChunk = false;
         const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
 
-        // Helper: update the streaming message by ID. Returns prev unchanged
-        // when updater yields an empty patch (avoids unnecessary re-renders).
         const updateStreamMsg = (updater: (msg: ChatMessage) => Partial<ChatMessage>) => {
           setMessages(prev => {
             const idx = prev.findIndex(m => m.id === streamingMessageId);
@@ -437,9 +526,6 @@ export const AIConciergeChat = ({
           });
         };
 
-        // Don't create the assistant bubble yet — let the typing dots show alone
-        // until the first chunk arrives, preventing an empty dark bubble.
-
         const streamHandle = invokeConciergeStream(
           requestBody,
           {
@@ -448,7 +534,6 @@ export const AIConciergeChat = ({
               if (!receivedAnyChunk) {
                 receivedAnyChunk = true;
                 setIsTyping(false);
-                // Create the assistant bubble on the first chunk so it appears with content
                 setMessages(prev => [
                   ...prev,
                   {
@@ -480,7 +565,6 @@ export const AIConciergeChat = ({
               if (!receivedAnyChunk) {
                 setIsTyping(false);
                 setAiStatus('degraded');
-                // Bubble doesn't exist yet — create it with fallback content
                 setMessages(prev => [
                   ...prev,
                   {
@@ -498,11 +582,10 @@ export const AIConciergeChat = ({
             },
             onDone: () => {
               clearTimeout(streamTimer.id);
-              streamAbortRef.current = null; // Clear so cleanup doesn't double-abort
+              streamAbortRef.current = null;
               if (!isMounted.current) return;
               setIsTyping(false);
               if (!receivedAnyChunk) {
-                // Stream ended with zero chunks — create bubble with error
                 setMessages(prev => [
                   ...prev,
                   {
@@ -513,7 +596,6 @@ export const AIConciergeChat = ({
                   },
                 ]);
               } else {
-                // If bubble exists but somehow empty, patch it
                 updateStreamMsg(msg =>
                   msg.content.length > 0
                     ? {}
@@ -526,9 +608,8 @@ export const AIConciergeChat = ({
         );
 
         streamAbortRef.current = streamHandle.abort;
-        streamingStarted = true; // Streaming callbacks now own isTyping lifecycle
+        streamingStarted = true;
 
-        // Abort if no chunks arrive within the timeout window
         streamTimer.id = setTimeout(() => {
           if (receivedAnyChunk) return;
           streamHandle.abort();
@@ -556,7 +637,7 @@ export const AIConciergeChat = ({
           });
         }, FAST_RESPONSE_TIMEOUT_MS);
 
-        return; // Streaming manages its own lifecycle via onDone
+        return;
       }
 
       // ========== NON-STREAMING FALLBACK (demo mode) ==========
@@ -564,7 +645,6 @@ export const AIConciergeChat = ({
         demoMode: isDemoMode,
       });
 
-      // Graceful degradation: If AI service unavailable, provide helpful fallback
       if (!data || error) {
         if (import.meta.env.DEV) {
           console.warn('AI service unavailable or timed out, using graceful degradation');
@@ -612,7 +692,6 @@ export const AIConciergeChat = ({
       }
       setAiStatus('error');
 
-      // Try graceful degradation
       try {
         const fallbackResponse = generateFallbackResponse(
           currentInput,
@@ -627,7 +706,6 @@ export const AIConciergeChat = ({
         };
         setMessages(prev => [...prev, errorMessage]);
       } catch {
-        // Ultimate fallback
         const errorMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           type: 'assistant',
@@ -637,16 +715,12 @@ export const AIConciergeChat = ({
         setMessages(prev => [...prev, errorMessage]);
       }
     } finally {
-      // Only reset isTyping here for the non-streaming path (demo mode / errors before streaming).
-      // The streaming path sets streamingStarted=true and its callbacks (onChunk / onError / onDone)
-      // manage isTyping independently so we must not clobber them here.
       if (!streamingStarted) {
         setIsTyping(false);
       }
     }
   };
 
-  // Generate fallback response when AI is unavailable
   const generateFallbackResponse = (
     query: string,
     tripContext: FallbackTripContext,
@@ -654,7 +728,6 @@ export const AIConciergeChat = ({
   ): string => {
     const lowerQuery = query.toLowerCase();
 
-    // Location-based queries
     if (lowerQuery.match(/\b(where|location|address|directions|near|around|close)\b/)) {
       if (basecampLocation) {
         return `📍 **Location Information**\n\nBased on your trip basecamp:\n\n**${basecampLocation.name}**\n${basecampLocation.address}\n\nYou can use Google Maps to find directions and nearby places.`;
@@ -662,7 +735,6 @@ export const AIConciergeChat = ({
       return `📍 I can help with location queries once the AI service is restored. For now, you can use the Places tab to search for locations.`;
     }
 
-    // Calendar/event queries
     if (lowerQuery.match(/\b(when|time|schedule|calendar|event|agenda|upcoming)\b/)) {
       if (tripContext?.itinerary?.length || tripContext?.calendar?.length) {
         const events = tripContext.itinerary || tripContext.calendar || [];
@@ -679,7 +751,6 @@ export const AIConciergeChat = ({
       return `📅 Check the Calendar tab for your trip schedule.`;
     }
 
-    // Payment queries - provide actual payment data from context
     if (lowerQuery.match(/\b(payment|money|owe|spent|cost|budget|expense)\b/)) {
       if (tripContext?.payments?.length) {
         const unsettled = tripContext.payments.filter(p => !p.isSettled && !p.settled);
@@ -701,12 +772,10 @@ export const AIConciergeChat = ({
       return `💰 No payment data available yet. Add expenses in the Payments tab to track who owes what.`;
     }
 
-    // Task queries
     if (lowerQuery.match(/\b(task|todo|complete|done|pending|assigned)\b/)) {
       return `✅ Check the Tasks tab to see what needs to be completed.`;
     }
 
-    // Default helpful response
     return `I'm temporarily unavailable, but you can:\n\n• Use the **Places** tab to find locations\n• Check the **Calendar** for your schedule\n• View **Payments** for expense tracking\n• See **Tasks** for what needs to be done\n\nFull AI assistance will return shortly!`;
   };
 
@@ -797,7 +866,7 @@ export const AIConciergeChat = ({
           </div>
         )}
 
-        {/* Chat Messages - min-height ensures multiple messages visible */}
+        {/* Chat Messages */}
         <div
           ref={chatScrollRef}
           className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0"
@@ -807,17 +876,36 @@ export const AIConciergeChat = ({
           )}
         </div>
 
-        {/* Voice Active Indicator — only shown when VOICE_ENABLED=true */}
-        {VOICE_ENABLED && effectiveVoiceState !== 'idle' && effectiveVoiceState !== 'error' && (
+        {/* Voice Active Indicator — only shown when voice session is active */}
+        {VOICE_ENABLED && geminiState !== 'idle' && geminiState !== 'error' && (
           <div className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm text-emerald-300">Voice Active</span>
+              <span className="text-sm text-emerald-300">
+                {geminiState === 'listening'
+                  ? 'Listening...'
+                  : geminiState === 'thinking'
+                    ? 'Processing...'
+                    : geminiState === 'speaking'
+                      ? 'Speaking...'
+                      : geminiState === 'connecting'
+                        ? 'Connecting...'
+                        : 'Voice Active'}
+              </span>
             </div>
+            <button
+              type="button"
+              onClick={endSession}
+              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
+              aria-label="End voice session"
+            >
+              <Square size={10} />
+              End
+            </button>
           </div>
         )}
 
-        {/* Input */}
+        {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
           <AiChatInput
             inputMessage={inputMessage}
@@ -841,7 +929,7 @@ export const AIConciergeChat = ({
                 : undefined
             }
             voiceState={VOICE_ENABLED ? effectiveVoiceState : 'idle'}
-            isVoiceEligible={false}
+            isVoiceEligible={VOICE_ENABLED && voiceSupported}
             onVoiceToggle={VOICE_ENABLED ? handleVoiceToggle : undefined}
           />
         </div>
@@ -849,3 +937,27 @@ export const AIConciergeChat = ({
     </div>
   );
 };
+
+async function persistVoiceTurn(
+  tripId: string,
+  userText: string,
+  assistantText: string,
+): Promise<void> {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('ai_queries').insert({
+      trip_id: tripId,
+      user_id: user.id,
+      query_text: userText || '[voice input]',
+      response_text: assistantText || '[voice response]',
+      source_count: 0,
+      created_at: new Date().toISOString(),
+    });
+  } catch {
+    // Persistence failure must never block voice UX
+  }
+}
