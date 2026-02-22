@@ -56,3 +56,8 @@ $$;
 -- Grant EXECUTE to authenticated users only. Anon cannot call this function.
 GRANT EXECUTE ON FUNCTION public.get_concierge_trip_history(TEXT, INTEGER) TO authenticated;
 REVOKE EXECUTE ON FUNCTION public.get_concierge_trip_history(TEXT, INTEGER) FROM anon;
+
+-- Composite index so the RPC lookup stays fast as ai_queries grows.
+-- Covers the WHERE (trip_id, user_id) filter and ORDER BY created_at in one scan.
+CREATE INDEX IF NOT EXISTS idx_ai_queries_trip_user_created
+  ON public.ai_queries (trip_id, user_id, created_at ASC);
