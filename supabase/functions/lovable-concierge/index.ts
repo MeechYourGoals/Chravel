@@ -23,6 +23,17 @@ const FORCE_LOVABLE_PROVIDER = (Deno.env.get('AI_PROVIDER') || '').toLowerCase()
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
+// In-memory cache for get_concierge_trip_history RPC results.
+// Keyed by `${tripId}:${userId}`, 30 s TTL (matches TripContextBuilder cache).
+// Prevents a repeated DB round-trip for every message in a rapid back-to-back conversation.
+// This cache lives in the edge-function process and is never shared across users.
+interface HistoryCacheEntry {
+  data: ChatMessage[];
+  expiresAt: number;
+}
+const historyCache = new Map<string, HistoryCacheEntry>();
+const HISTORY_CACHE_TTL_MS = 30_000;
+
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -792,16 +803,29 @@ serve(async req => {
       // 6. Persisted concierge history from ai_queries.
       // Only fetch when we have a real trip and an authenticated user.
       // On any failure, treat as empty array — history is non-critical context.
+      // 6. Persisted concierge history (30 s in-process cache to avoid DB hit on every message)
       hasTripId && !serverDemoMode && user
-        ? supabase
-            .rpc('get_concierge_trip_history', { p_trip_id: tripId, p_limit: 10 })
-            .then(({ data, error: rpcError }: { data: Array<{ role: string; content: string; created_at: string }> | null; error: unknown }) => {
-              if (rpcError || !data) return [] as ChatMessage[];
-              return data.filter(
+        ? (async (): Promise<ChatMessage[]> => {
+            const cacheKey = `${tripId}:${user.id}`;
+            const cached = historyCache.get(cacheKey);
+            if (cached && cached.expiresAt > Date.now()) {
+              return cached.data;
+            }
+            try {
+              const { data, error: rpcError } = await supabase.rpc(
+                'get_concierge_trip_history',
+                { p_trip_id: tripId, p_limit: 10 },
+              ) as { data: Array<{ role: string; content: string; created_at: string }> | null; error: unknown };
+              if (rpcError || !data) return [];
+              const messages = data.filter(
                 (m) => m.role === 'user' || m.role === 'assistant',
               ) as ChatMessage[];
-            })
-            .catch(() => [] as ChatMessage[])
+              historyCache.set(cacheKey, { data: messages, expiresAt: Date.now() + HISTORY_CACHE_TTL_MS });
+              return messages;
+            } catch {
+              return [];
+            }
+          })()
         : Promise.resolve([] as ChatMessage[]),
     ]);
 
