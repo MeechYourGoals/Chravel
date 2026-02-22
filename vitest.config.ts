@@ -4,6 +4,15 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    // Provide dummy Supabase env vars for test runner (CI often lacks .env)
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
+      process.env.VITE_SUPABASE_URL || 'https://test.supabase.co',
+    ),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(
+      process.env.VITE_SUPABASE_ANON_KEY || 'test-anon-key',
+    ),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
