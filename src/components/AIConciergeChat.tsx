@@ -6,6 +6,9 @@ import { ChatMessages } from '@/features/chat/components/ChatMessages';
 import { AiChatInput } from '@/features/chat/components/AiChatInput';
 import { useConciergeUsage } from '../hooks/useConciergeUsage';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
+import { useAuth } from '@/hooks/useAuth';
+import { useConciergeHistory } from '../hooks/useConciergeHistory';
+import { conciergeCacheService } from '../services/conciergeCacheService';
 import { useAIConciergePreferences } from '../hooks/useAIConciergePreferences';
 import {
   invokeConcierge,
@@ -31,7 +34,7 @@ interface AIConciergeChatProps {
   isEvent?: boolean;
 }
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   type: 'user' | 'assistant';
   content: string;
@@ -148,9 +151,20 @@ export const AIConciergeChat = ({
   const { basecamp: globalBasecamp } = useBasecamp();
   const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
+  const { user } = useAuth();
   const loadedPreferences = useAIConciergePreferences();
   const effectivePreferences = preferences ?? loadedPreferences;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // True after the chat is hydrated from the server DB (not just cache/empty).
+  // Used to show the "Picked up where you left off" chip.
+  const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(false);
+
+  // --- Persisted history hydration ---
+  const {
+    data: historyMessages,
+    isLoading: isHistoryLoading,
+    error: historyError,
+  } = useConciergeHistory(tripId);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [aiStatus, setAiStatus] = useState<
@@ -163,6 +177,10 @@ export const AIConciergeChat = ({
   const hasShownLimitToastRef = useRef(false);
 
   const isMounted = useRef(true);
+  // Guard so history hydration only fires once per mount, even if historyMessages
+  // reference changes. Avoids the stale-closure race where messages.length is
+  // read from a stale closure but the user has already submitted a message.
+  const hasHydratedRef = useRef(false);
 
   // ─── Voice (Gemini Live bidi streaming) ──────────────────────────────────
   const voiceUserDraftIdRef = useRef<string | null>(null);
@@ -285,6 +303,49 @@ export const AIConciergeChat = ({
       streamAbortRef.current = null;
     };
   }, []);
+
+  // Hydrate messages from persisted RPC history on mount.
+  // Fires once per mount via hasHydratedRef — eliminates the stale-closure race
+  // where messages.length might read a stale value if the user submits at the same
+  // instant history loads. The functional setState updater is the source of truth.
+  useEffect(() => {
+    if (isHistoryLoading || hasHydratedRef.current) return;
+
+    if (historyError) {
+      console.error('[AIConciergeChat] Failed to load persisted history:', historyError);
+      // Fallback: try localStorage cache (covers offline + RPC failure scenarios)
+      const userId = user?.id ?? 'anonymous';
+      const cached = conciergeCacheService.getCachedMessages(tripId, userId);
+      if (cached.length > 0) {
+        setMessages(prev => (prev.length === 0 ? cached : prev));
+      }
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    if (historyMessages.length > 0) {
+      // Use functional updater so we read the live messages state, not a closure copy.
+      setMessages(prev => {
+        if (prev.length > 0) return prev; // user already sent a message — don't overwrite
+        return historyMessages;
+      });
+      setHistoryLoadedFromServer(true);
+    }
+
+    hasHydratedRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHistoryLoading, historyError, historyMessages]);
+
+  // Fallback when offline: show cached messages from localStorage.
+  useEffect(() => {
+    if (!isOffline || messages.length > 0) return;
+    const userId = user?.id ?? 'anonymous';
+    const cached = conciergeCacheService.getCachedMessages(tripId, userId);
+    if (cached.length > 0) {
+      setMessages(cached);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOffline]);
 
   // Auto-scroll to bottom when new messages or typing indicator appear
   useEffect(() => {
@@ -512,6 +573,7 @@ export const AIConciergeChat = ({
       if (!isDemoMode) {
         const streamingMessageId = `stream-${Date.now()}`;
         let receivedAnyChunk = false;
+        let accumulatedStreamContent = ''; // accumulates full text so we can cache after onDone
         const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
 
         const updateStreamMsg = (updater: (msg: ChatMessage) => Partial<ChatMessage>) => {
@@ -531,6 +593,7 @@ export const AIConciergeChat = ({
           {
             onChunk: (text: string) => {
               if (!isMounted.current) return;
+              accumulatedStreamContent += text; // always accumulate for caching
               if (!receivedAnyChunk) {
                 receivedAnyChunk = true;
                 setIsTyping(false);
@@ -601,6 +664,22 @@ export const AIConciergeChat = ({
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' },
                 );
+                // Cache the completed response for offline fallback.
+                // Use the locally accumulated string — no setState read needed.
+                if (accumulatedStreamContent) {
+                  const cachedMsg: ChatMessage = {
+                    id: streamingMessageId,
+                    type: 'assistant',
+                    content: accumulatedStreamContent,
+                    timestamp: new Date().toISOString(),
+                  };
+                  conciergeCacheService.cacheMessage(
+                    tripId,
+                    currentInput,
+                    cachedMsg,
+                    user?.id ?? 'anonymous',
+                  );
+                }
               }
             },
           },
@@ -686,6 +765,8 @@ export const AIConciergeChat = ({
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      // Persist to localStorage cache for offline fallback
+      conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id ?? 'anonymous');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('AI Concierge error:', error);
@@ -844,8 +925,17 @@ export const AIConciergeChat = ({
           </div>
         )}
 
+        {/* History loading skeleton — prevents flash of empty → populated */}
+        {isHistoryLoading && messages.length === 0 && !isQueryLimitReached && (
+          <div className="flex flex-col gap-3 p-4 animate-pulse flex-shrink-0">
+            <div className="h-8 bg-white/10 rounded-xl w-3/4" />
+            <div className="h-8 bg-white/10 rounded-xl w-1/2 self-end" />
+            <div className="h-8 bg-white/10 rounded-xl w-2/3" />
+          </div>
+        )}
+
         {/* Empty State - Compact for Mobile */}
-        {messages.length === 0 && !isQueryLimitReached && (
+        {messages.length === 0 && !isHistoryLoading && !isQueryLimitReached && (
           <div className="text-center py-6 px-4 flex-shrink-0">
             <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
               Your AI Travel Concierge
@@ -871,6 +961,14 @@ export const AIConciergeChat = ({
           ref={chatScrollRef}
           className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0"
         >
+          {/* "Picked up where you left off" divider — shown once when server history hydrates */}
+          {historyLoadedFromServer && messages.length > 0 && (
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-xs text-gray-500 whitespace-nowrap">↩ Picked up where you left off</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+          )}
           {messages.length > 0 && (
             <ChatMessages messages={messages} isTyping={isTyping} showMapWidgets={true} />
           )}

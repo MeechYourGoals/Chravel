@@ -23,6 +23,17 @@ const FORCE_LOVABLE_PROVIDER = (Deno.env.get('AI_PROVIDER') || '').toLowerCase()
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
+// In-memory cache for get_concierge_trip_history RPC results.
+// Keyed by `${tripId}:${userId}`, 30 s TTL (matches TripContextBuilder cache).
+// Prevents a repeated DB round-trip for every message in a rapid back-to-back conversation.
+// This cache lives in the edge-function process and is never shared across users.
+interface HistoryCacheEntry {
+  data: ChatMessage[];
+  expiresAt: number;
+}
+const historyCache = new Map<string, HistoryCacheEntry>();
+const HISTORY_CACHE_TTL_MS = 30_000;
+
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -688,7 +699,7 @@ serve(async req => {
     const isPaidUser = planResolution.usagePlan !== 'free';
 
     // Fire remaining independent queries at once
-    const [membershipResult, contextResult, ragResult, privacyResult] = await Promise.all([
+    const [membershipResult, contextResult, ragResult, privacyResult, persistedHistory] = await Promise.all([
       // 1. Trip membership check
       hasTripId && !serverDemoMode && user
         ? supabase
@@ -788,6 +799,34 @@ serve(async req => {
               .maybeSingle(),
           ).catch(() => ({ data: null }))
         : Promise.resolve({ data: null }),
+
+      // 6. Persisted concierge history from ai_queries.
+      // Only fetch when we have a real trip and an authenticated user.
+      // On any failure, treat as empty array — history is non-critical context.
+      // 6. Persisted concierge history (30 s in-process cache to avoid DB hit on every message)
+      hasTripId && !serverDemoMode && user
+        ? (async (): Promise<ChatMessage[]> => {
+            const cacheKey = `${tripId}:${user.id}`;
+            const cached = historyCache.get(cacheKey);
+            if (cached && cached.expiresAt > Date.now()) {
+              return cached.data;
+            }
+            try {
+              const { data, error: rpcError } = await supabase.rpc(
+                'get_concierge_trip_history',
+                { p_trip_id: tripId, p_limit: 10 },
+              ) as { data: Array<{ role: string; content: string; created_at: string }> | null; error: unknown };
+              if (rpcError || !data) return [];
+              const messages = data.filter(
+                (m) => m.role === 'user' || m.role === 'assistant',
+              ) as ChatMessage[];
+              historyCache.set(cacheKey, { data: messages, expiresAt: Date.now() + HISTORY_CACHE_TTL_MS });
+              return messages;
+            } catch {
+              return [];
+            }
+          })()
+        : Promise.resolve([] as ChatMessage[]),
     ]);
 
     // --- EVALUATE PARALLEL RESULTS ---
@@ -889,9 +928,22 @@ serve(async req => {
 
     const ragContext = ragResult || '';
 
+    // --- MERGE CHAT HISTORY ---
+    // Priority: client-provided chatHistory (in-memory session) takes precedence over
+    // persisted history. If the client sends messages, it already has the freshest state.
+    // Persisted history is the fallback when the user arrives in a new session.
+    const mergedChatHistory: ChatMessage[] =
+      chatHistory.length > 0 ? chatHistory : (persistedHistory ?? []);
+
+    if (mergedChatHistory.length > 0) {
+      console.log(
+        `[Context] Chat history source: ${chatHistory.length > 0 ? 'client' : 'persisted'} (${mergedChatHistory.length} messages)`,
+      );
+    }
+
     // 🆕 SMART MODEL SELECTION: Analyze query complexity
     const contextSize = comprehensiveContext ? JSON.stringify(comprehensiveContext).length : 0;
-    const complexity = analyzeQueryComplexity(message, chatHistory.length, contextSize);
+    const complexity = analyzeQueryComplexity(message, mergedChatHistory.length, contextSize);
 
     console.log(
       `[Model Selection] Complexity score: ${complexity.score.toFixed(2)}, Recommended: ${complexity.recommendedModel}`,
@@ -951,9 +1003,28 @@ Answer the user's question accurately. Use web search for real-time info (weathe
     const MAX_CHAT_HISTORY_MESSAGES = 10;
     const MAX_SYSTEM_PROMPT_LENGTH = 8000; // Characters, not tokens (rough estimate)
     const MAX_TOTAL_CONTEXT_LENGTH = 12000; // Characters
+    const MAX_HISTORY_MSG_LENGTH = 2500; // Per-message char cap before trimming
+    const MAX_HISTORY_TOTAL_LENGTH = 8000; // Total char budget for history
 
-    // Truncate chat history if too long
-    const limitedChatHistory = chatHistory.slice(-MAX_CHAT_HISTORY_MESSAGES);
+    // Step 1: Per-message truncation — prevents a single long response from blowing context.
+    const perMessageTruncated = mergedChatHistory.map(msg => {
+      if (msg.content.length <= MAX_HISTORY_MSG_LENGTH) return msg;
+      console.log('[Context Management] Truncating long history message');
+      return { ...msg, content: msg.content.substring(0, MAX_HISTORY_MSG_LENGTH) + '\n...[truncated for context]' };
+    });
+
+    // Step 2: Total budget enforcement — drop oldest messages until total chars fit.
+    // Most recent messages are most relevant; trim from the front.
+    let historyForSlicing = perMessageTruncated;
+    let totalHistoryLength = historyForSlicing.reduce((sum, m) => sum + m.content.length, 0);
+    while (historyForSlicing.length > 0 && totalHistoryLength > MAX_HISTORY_TOTAL_LENGTH) {
+      const removed = historyForSlicing.shift();
+      totalHistoryLength -= (removed?.content.length ?? 0);
+      console.log('[Context Management] Dropped oldest history message to fit budget');
+    }
+
+    // Step 3: Recency limit — keep at most MAX_CHAT_HISTORY_MESSAGES.
+    const limitedChatHistory = historyForSlicing.slice(-MAX_CHAT_HISTORY_MESSAGES);
 
     // Truncate system prompt if too long (preserve most important parts)
     let finalSystemPrompt = systemPrompt;
