@@ -48,7 +48,7 @@ export function useConciergeHistory(tripId: string): {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['conciergeHistory', tripId, user?.id ?? 'anon'],
     queryFn: async (): Promise<ConciergeChatMessage[]> => {
-      const { data: rows, error: rpcError } = await supabase.rpc(
+      const { data: rows, error: rpcError } = await (supabase.rpc as any)(
         'get_concierge_trip_history',
         { p_trip_id: tripId, p_limit: 10 },
       );
@@ -61,7 +61,7 @@ export function useConciergeHistory(tripId: string): {
         return [];
       }
 
-      return (rows as RpcHistoryRow[]).map((row, idx) => ({
+      return (rows as unknown as RpcHistoryRow[]).map((row, idx) => ({
         id: `history-${row.created_at ?? Date.now()}-${idx}`,
         type: (row.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
         content: row.content,

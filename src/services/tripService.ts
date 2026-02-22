@@ -295,7 +295,7 @@ export const tripService = {
       if (!user) return [];
 
       const TRIP_LIST_COLUMNS =
-        'id, name, description, start_date, end_date, destination, trip_type, created_at, cover_image_url, created_by, is_archived, card_color, organizer_display_name';
+        'id, name, description, start_date, end_date, destination, trip_type, created_at, updated_at, cover_image_url, created_by, is_archived, card_color, organizer_display_name';
       let query = supabase
         .from('trips')
         .select(TRIP_LIST_COLUMNS)

@@ -20,8 +20,8 @@ function buildMediaItems(
 ): TripMediaItem[] {
   return [
     ...mediaData.map(item => ({
-      id: item.id,
-      media_url: item.media_url,
+      id: item.id as string,
+      media_url: item.media_url as string,
       filename: (item.filename as string) || 'Untitled',
       media_type: item.media_type as TripMediaItem['media_type'],
       metadata: (item.metadata as Record<string, unknown>) || {},
@@ -30,7 +30,7 @@ function buildMediaItems(
       mime_type: item.mime_type as string | null,
     })),
     ...filesData.map(item => ({
-      id: item.id,
+      id: item.id as string,
       media_url: `/storage/trip-files/${item.name}`,
       filename: item.name as string,
       media_type: item.file_type as TripMediaItem['media_type'],

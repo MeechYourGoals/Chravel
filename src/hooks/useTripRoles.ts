@@ -50,7 +50,7 @@ async function fetchTripRoles(tripId: string, isDemoMode: boolean): Promise<Trip
         roleName: role.role_name,
         description: role.description || '',
         permissionLevel: role.permission_level as 'view' | 'edit' | 'admin',
-        featurePermissions: role.feature_permissions as TripRole['featurePermissions'],
+        featurePermissions: role.feature_permissions as unknown as TripRole['featurePermissions'],
         createdBy: role.created_by,
         createdAt: role.created_at,
         updatedAt: role.updated_at,
@@ -136,7 +136,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
             roleName,
             description: '',
             permissionLevel,
-            featurePermissions: featurePermissions ?? {},
+            featurePermissions: (featurePermissions ?? {}) as TripRole['featurePermissions'],
             createdBy: user?.id || 'demo-user',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -161,7 +161,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
           _trip_id: tripId,
           _role_name: roleName,
           _permission_level: permissionLevel,
-          _feature_permissions: featurePermissions || null,
+          _feature_permissions: (featurePermissions || null) as any,
         });
 
         if (error) throw error;
