@@ -5,7 +5,7 @@ import { calendarService } from '@/services/calendarService';
 import { supabase } from '@/integrations/supabase/client';
 import { paymentService } from '@/services/paymentService';
 import { paymentBalanceService } from '@/services/paymentBalanceService';
-import { fetchTripMediaItems } from '@/services/tripMediaService';
+import { fetchTripMediaItemsPaginated } from '@/services/tripMediaService';
 import { fetchTripPlaces } from '@/services/tripPlacesService';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
@@ -125,9 +125,14 @@ export const usePrefetchTrip = () => {
           break;
 
         case 'media':
-          queryClient.prefetchQuery({
-            queryKey: tripKeys.media(tripId, isDemoMode),
-            queryFn: () => fetchTripMediaItems(tripId),
+          // Match useMediaManagement key so prefetch populates the same cache
+          queryClient.prefetchInfiniteQuery({
+            queryKey: [...tripKeys.media(tripId, isDemoMode), 'paginated'],
+            queryFn: ({ pageParam }: { pageParam?: string }) =>
+              fetchTripMediaItemsPaginated(tripId, pageParam),
+            initialPageParam: undefined as string | undefined,
+            getNextPageParam: (lastPage: { hasMore: boolean; nextCursor: string | null }) =>
+              lastPage.hasMore && lastPage.nextCursor ? lastPage.nextCursor : undefined,
             staleTime: QUERY_CACHE_CONFIG.media.staleTime,
           });
           break;

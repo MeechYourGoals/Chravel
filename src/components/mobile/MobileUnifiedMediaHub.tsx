@@ -1,5 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, FileText, Image as ImageIcon, Link2, Loader2, Trash2, Upload, Video, X } from 'lucide-react';
+import {
+  Camera,
+  FileText,
+  Image as ImageIcon,
+  Link2,
+  Loader2,
+  Trash2,
+  Upload,
+  Video,
+  X,
+} from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { hapticService } from '../../services/hapticService';
@@ -46,9 +56,16 @@ const VIDEO_ACCEPT = [
   '.avi',
 ].join(',');
 
-const IMAGE_ACCEPT = ['image/*', 'image/heic', 'image/heif', '.jpg', '.jpeg', '.png', '.heic', '.heif'].join(
-  ',',
-);
+const IMAGE_ACCEPT = [
+  'image/*',
+  'image/heic',
+  'image/heif',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.heic',
+  '.heif',
+].join(',');
 
 const DOCUMENT_ACCEPT = [
   // PDFs + Office
@@ -89,7 +106,15 @@ const DOCUMENT_ACCEPT = [
 export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) => {
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
-  const { mediaItems: realMediaItems, linkItems, loading, refetch } = useMediaManagement(tripId);
+  const {
+    mediaItems: realMediaItems,
+    linkItems,
+    loading,
+    refetch,
+    hasMoreMedia,
+    fetchNextMediaPage,
+    isFetchingNextMedia,
+  } = useMediaManagement(tripId);
   const [selectedTab, setSelectedTab] = useState<MobileMediaTab>('all');
   const [isUploading, setIsUploading] = useState(false);
   const [isAddLinkOpen, setIsAddLinkOpen] = useState(false);
@@ -121,11 +146,12 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
   const videoCaptureInputRef = useRef<HTMLInputElement>(null);
   const videoLibraryInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaScrollSentinelRef = useRef<HTMLDivElement>(null);
 
   const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
       await refetch();
-    }
+    },
   });
 
   const revokeQueueRef = useRef<string[]>([]);
@@ -144,12 +170,33 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
     };
   }, []);
 
+  // Infinite scroll: load more media when sentinel is visible
+  useEffect(() => {
+    if (!hasMoreMedia || !fetchNextMediaPage || isFetchingNextMedia || isDemoMode) return;
+    const el = mediaScrollSentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting) fetchNextMediaPage();
+      },
+      { rootMargin: '200px', threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMoreMedia, fetchNextMediaPage, isFetchingNextMedia, isDemoMode]);
+
   const mediaItems: MediaItem[] = useMemo(() => {
     const fromDb: MediaItem[] = realMediaItems
-      .filter(item => item.media_type === 'image' || item.media_type === 'video' || item.media_type === 'document')
+      .filter(
+        item =>
+          item.media_type === 'image' ||
+          item.media_type === 'video' ||
+          item.media_type === 'document',
+      )
       .map(item => ({
         id: item.id,
-        type: item.media_type === 'video' ? 'video' : item.media_type === 'document' ? 'file' : 'image',
+        type:
+          item.media_type === 'video' ? 'video' : item.media_type === 'document' ? 'file' : 'image',
         url: item.media_url,
         uploadedBy: 'User',
         uploadedAt: new Date(item.created_at),
@@ -276,10 +323,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
         const mime = contentType || '';
         // Check extension for video detection (Files app may not set MIME type correctly)
         const isVideoByExtension = /\.(mp4|mov|m4v|avi|webm|mkv)$/i.test(file.name);
-        const detected: 'image' | 'video' | 'document' =
-          mime.startsWith('image/') ? 'image' : 
-          (mime.startsWith('video/') || isVideoByExtension) ? 'video' : 
-          'document';
+        const detected: 'image' | 'video' | 'document' = mime.startsWith('image/')
+          ? 'image'
+          : mime.startsWith('video/') || isVideoByExtension
+            ? 'video'
+            : 'document';
 
         const finalType: 'image' | 'video' | 'document' =
           target === 'photos' ? 'image' : target === 'videos' ? 'video' : 'document';
@@ -424,10 +472,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       }
 
       // Delete from database
-      const { error } = await supabase
-        .from('trip_media_index')
-        .delete()
-        .eq('id', item.id);
+      const { error } = await supabase.from('trip_media_index').delete().eq('id', item.id);
 
       if (error) throw error;
       toast.success('Deleted successfully');
@@ -458,10 +503,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       }
 
       // Delete from database
-      const { error } = await supabase
-        .from('trip_links')
-        .delete()
-        .eq('id', linkId);
+      const { error } = await supabase.from('trip_links').delete().eq('id', linkId);
 
       if (error) throw error;
       toast.success('Link deleted successfully');
@@ -589,7 +631,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             disabled={isUploading}
             className="native-button flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl font-medium shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {isUploading ? <Loader2 size={20} className="animate-spin" /> : <actionLeft.Icon size={20} />}
+            {isUploading ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : (
+              <actionLeft.Icon size={20} />
+            )}
             <span>{actionLeft.label}</span>
           </button>
           {actionRight && (
@@ -598,7 +644,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
               disabled={isUploading}
               className="native-button flex items-center justify-center gap-2 bg-white/10 text-white px-4 py-3 rounded-xl font-medium backdrop-blur-sm disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isUploading ? <Loader2 size={20} className="animate-spin" /> : <actionRight.Icon size={20} />}
+              {isUploading ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : (
+                <actionRight.Icon size={20} />
+              )}
               <span>{actionRight.label}</span>
             </button>
           )}
@@ -612,13 +662,15 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
 
       {/* Filter Tabs with Counters */}
       <div className="flex gap-2 px-4 py-3 border-b border-white/10 safe-container overflow-x-auto native-scroll scrollbar-hide">
-        {([
-          { id: 'all', label: 'All', count: allCount },
-          { id: 'photos', label: 'Photos', count: photosCount },
-          { id: 'videos', label: 'Videos', count: videosCount },
-          { id: 'files', label: 'Files', count: filesCount },
-          { id: 'urls', label: 'Links', count: urlsCount }
-        ] as const).map((tab) => (
+        {(
+          [
+            { id: 'all', label: 'All', count: allCount },
+            { id: 'photos', label: 'Photos', count: photosCount },
+            { id: 'videos', label: 'Videos', count: videosCount },
+            { id: 'files', label: 'Files', count: filesCount },
+            { id: 'urls', label: 'Links', count: urlsCount },
+          ] as const
+        ).map(tab => (
           <button
             key={tab.id}
             onClick={async () => {
@@ -634,7 +686,8 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
               }
             `}
           >
-            {tab.label} {tab.count > 0 && (
+            {tab.label}{' '}
+            {tab.count > 0 && (
               <span className={selectedTab === tab.id ? 'text-blue-200' : 'text-gray-500'}>
                 ({tab.count})
               </span>
@@ -644,11 +697,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       </div>
 
       {/* Media Grid */}
-      <div 
+      <div
         className="flex-1 overflow-y-auto px-2 py-2 native-scroll safe-container-bottom"
-        style={{ 
+        style={{
           WebkitOverflowScrolling: 'touch',
-          overscrollBehavior: 'contain'
+          overscrollBehavior: 'contain',
         }}
       >
         {loading ? (
@@ -665,14 +718,13 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                 {selectedTab === 'urls' ? 'No links yet' : 'No media yet'}
               </p>
               <p className="text-sm text-gray-500">
-                {selectedTab === 'urls' 
+                {selectedTab === 'urls'
                   ? 'Links from chat appear here — or add one quietly'
                   : selectedTab === 'videos'
-                  ? 'Tap “Take Video” to record or upload from your library'
-                  : selectedTab === 'files'
-                  ? 'Tap “Upload File” to add PDFs, docs, spreadsheets, and more'
-                  : 'Tap “Take Photo” to add photos'
-                }
+                    ? 'Tap “Take Video” to record or upload from your library'
+                    : selectedTab === 'files'
+                      ? 'Tap “Upload File” to add PDFs, docs, spreadsheets, and more'
+                      : 'Tap “Take Photo” to add photos'}
               </p>
             </div>
           </div>
@@ -682,32 +734,43 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             {selectedTab !== 'urls' && filteredMedia.length > 0 && (
               <div className="media-grid animate-fade-in mb-4">
                 {filteredMedia
-                  .filter((item): item is MediaItem & { type: 'image' | 'video' } => 
-                    item.type === 'image' || item.type === 'video'
+                  .filter(
+                    (item): item is MediaItem & { type: 'image' | 'video' } =>
+                      item.type === 'image' || item.type === 'video',
                   )
                   .map((item, index) => (
-                  <div 
-                    key={item.id}
-                    style={{ 
-                      animationDelay: `${index * 30}ms`,
-                      animation: 'fade-in 0.3s ease-out both'
-                    }}
-                  >
-                    <MediaGridItem
-                      item={item}
-                      onPress={() => {
-                        // Find index in swipeableMedia array for navigation
-                        const swipeIndex = swipeableMedia.findIndex(m => m.id === item.id);
-                        if (swipeIndex !== -1) {
-                          setActiveMediaIndex(swipeIndex);
-                        }
+                    <div
+                      key={item.id}
+                      style={{
+                        animationDelay: `${index * 30}ms`,
+                        animation: 'fade-in 0.3s ease-out both',
                       }}
-                      onLongPress={() => {
-                        setItemToDelete(item);
-                      }}
-                    />
-                  </div>
-                ))}
+                    >
+                      <MediaGridItem
+                        item={item}
+                        onPress={() => {
+                          // Find index in swipeableMedia array for navigation
+                          const swipeIndex = swipeableMedia.findIndex(m => m.id === item.id);
+                          if (swipeIndex !== -1) {
+                            setActiveMediaIndex(swipeIndex);
+                          }
+                        }}
+                        onLongPress={() => {
+                          setItemToDelete(item);
+                        }}
+                      />
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* Infinite scroll sentinel for media (photos/videos/files) */}
+            {selectedTab !== 'urls' && hasMoreMedia && (
+              <div ref={mediaScrollSentinelRef} className="h-4" aria-hidden />
+            )}
+            {isFetchingNextMedia && (
+              <div className="flex justify-center py-4">
+                <Loader2 size={24} className="animate-spin text-gray-500" />
               </div>
             )}
 
@@ -763,7 +826,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                       className="block bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors active:scale-98"
                       style={{
                         animationDelay: `${index * 30}ms`,
-                        animation: 'fade-in 0.3s ease-out both'
+                        animation: 'fade-in 0.3s ease-out both',
                       }}
                     >
                       <div className="flex items-start gap-3">
@@ -781,9 +844,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                           <p className="text-gray-400 text-xs mb-2 line-clamp-2">
                             {link.description}
                           </p>
-                          <p className="text-blue-400 text-xs truncate">
-                            {link.domain}
-                          </p>
+                          <p className="text-blue-400 text-xs truncate">{link.domain}</p>
                         </div>
                       </div>
                     </a>
@@ -801,7 +862,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           items={viewerItems}
           initialIndex={activeMediaIndex}
           onClose={() => setActiveMediaIndex(-1)}
-          onIndexChange={(newIndex) => setActiveMediaIndex(newIndex)}
+          onIndexChange={newIndex => setActiveMediaIndex(newIndex)}
         />
       )}
 
@@ -819,15 +880,15 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
               This will permanently remove "{itemToDelete.filename || 'this item'}" from the trip.
             </p>
             <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => setItemToDelete(null)} 
+              <button
+                onClick={() => setItemToDelete(null)}
                 className="native-button bg-white/10 text-white py-3 rounded-xl font-medium"
                 disabled={isDeleting}
               >
                 Cancel
               </button>
-              <button 
-                onClick={() => handleDeleteMedia(itemToDelete)} 
+              <button
+                onClick={() => handleDeleteMedia(itemToDelete)}
                 className="native-button bg-red-600 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2"
                 disabled={isDeleting}
               >
