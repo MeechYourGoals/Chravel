@@ -40,6 +40,12 @@ const SESSION_TIMEOUT_MS = 15_000;
 const WEBSOCKET_SETUP_TIMEOUT_MS = 15_000;
 const THINKING_DELAY_MS = 1_500;
 
+// Safari < 14.5 exposes webkitAudioContext instead of AudioContext
+const SafeAudioContext: typeof AudioContext | undefined =
+  typeof window !== 'undefined'
+    ? window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    : undefined;
+
 let idCounter = 0;
 function uniqueId(prefix: string): string {
   idCounter += 1;
@@ -130,7 +136,7 @@ export function useGeminiLive({
   const isSupported =
     typeof window !== 'undefined' &&
     typeof WebSocket !== 'undefined' &&
-    typeof AudioContext !== 'undefined' &&
+    SafeAudioContext !== undefined &&
     typeof navigator?.mediaDevices?.getUserMedia === 'function';
 
   const clearThinkingTimer = useCallback(() => {
@@ -338,13 +344,17 @@ export function useGeminiLive({
       mediaStreamRef.current = stream;
 
       // 3. Create AudioContexts (separate for capture and playback)
+      // Uses SafeAudioContext which falls back to webkitAudioContext on older Safari
+      if (!SafeAudioContext) {
+        throw new Error('Audio is not supported in this browser.');
+      }
       try {
-        playbackCtxRef.current = new AudioContext({ sampleRate: 24000 });
+        playbackCtxRef.current = new SafeAudioContext({ sampleRate: 24000 });
       } catch {
         throw new Error('Failed to initialize audio playback.');
       }
       try {
-        captureCtxRef.current = new AudioContext();
+        captureCtxRef.current = new SafeAudioContext();
       } catch {
         throw new Error('Failed to initialize audio capture.');
       }

@@ -32,8 +32,15 @@ export function startAudioCapture(
     onChunk(base64);
   };
 
+  // Route through a zero-gain node to prevent mic audio leaking to speakers.
+  // ScriptProcessorNode requires a destination connection to fire onaudioprocess,
+  // but we only read the input — we never want the raw mic signal on speakers.
+  const muteNode = audioContext.createGain();
+  muteNode.gain.value = 0;
+
   source.connect(processor);
-  processor.connect(audioContext.destination);
+  processor.connect(muteNode);
+  muteNode.connect(audioContext.destination);
 
   return {
     stop: () => {
@@ -45,6 +52,11 @@ export function startAudioCapture(
       }
       try {
         processor.disconnect();
+      } catch {
+        // Already disconnected
+      }
+      try {
+        muteNode.disconnect();
       } catch {
         // Already disconnected
       }
