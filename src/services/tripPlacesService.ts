@@ -84,7 +84,12 @@ export const fetchTripPlaces = async (
   }
 
   if (!data || data.length === 0) {
-    return loadDemoPlacesFromTripsData(tripId);
+    // Only fall back to demo data when explicitly in demo mode
+    // Real trips with no places should show empty state, not mock data
+    if (isDemoMode) {
+      return loadDemoPlacesFromTripsData(tripId);
+    }
+    return [];
   }
 
   const placesWithDistance: PlaceWithDistance[] = data.map(link => {

@@ -43,7 +43,7 @@ export const PlacesSection = ({
 
   // State
   const [activeTab, setActiveTab] = useState<TabView>('basecamps');
-  const [places, setPlaces] = useState<PlaceWithDistance[]>([]);
+  // places derived directly from TanStack Query — no duplicate local state
   const [linkedPlaceIds] = useState<Set<string>>(new Set());
   const [personalBasecamp, setPersonalBasecamp] = useState<PersonalBasecamp | null>(null);
 
@@ -84,9 +84,8 @@ export const PlacesSection = ({
     enabled: !!tripId,
   });
 
-  useEffect(() => {
-    setPlaces(fetchedPlaces);
-  }, [fetchedPlaces]);
+  // Use query data directly — no sync useEffect needed
+  const places = fetchedPlaces;
 
   // ⚡ PERFORMANCE: Sync personal basecamp from TanStack Query to local state
   // This replaces the sequential useEffect fetch with parallel query loading
@@ -229,11 +228,11 @@ export const PlacesSection = ({
             places={places}
             basecamp={tripBasecamp || null}
             personalBasecamp={personalBasecamp}
-            onPlaceAdded={place => {
-              setPlaces(prev => [...prev, place]);
+            onPlaceAdded={() => {
+              queryClient.invalidateQueries({ queryKey: tripKeys.places(tripId) });
             }}
             onPlaceRemoved={placeId => {
-              setPlaces(prev => prev.filter(p => p.id !== placeId));
+              queryClient.invalidateQueries({ queryKey: tripKeys.places(tripId) });
               removeLinkByPlaceId(tripId, placeId);
             }}
             onAddToLinks={async place => {
