@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getCachedAuthUser } from '@/lib/authCache';
 import { demoModeService } from './demoModeService';
 import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
@@ -290,9 +291,7 @@ export const tripService = {
         return adaptedTrips;
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCachedAuthUser();
       if (!user) return [];
 
       const TRIP_LIST_COLUMNS =

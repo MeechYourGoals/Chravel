@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { invalidateAuthCache } from '@/lib/authCache';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import { useDemoModeStore } from '@/store/demoModeStore';
 import { isSessionTokenValid } from '@/utils/tokenValidation';
@@ -648,6 +649,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }, 0);
       } else {
         authDebug('onAuthStateChange:signedOutOrNoSession');
+        invalidateAuthCache();
         // App-preview: keep demo user when logged out.
         setUser(shouldUseDemoUserRef.current ? demoUser : null);
         setIsLoading(false);
@@ -888,6 +890,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     // Sign out from Supabase (no-op if not authenticated)
+    invalidateAuthCache();
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

@@ -9,7 +9,7 @@
 
 | Change | Current Rank | Notes |
 |--------|--------------|-------|
-| 1. Notification consolidation | 92 | NotificationBell not rendered (dead code). TripActionBar works. |
+| 1. Notification consolidation | 95 | NotificationBell removed (dead code). TripActionBar works. |
 | 2. Narrow select in getUserTrips | 95 | Fixed: added `card_color`, `organizer_display_name` for Pro/Event cards. |
 | 3. Media search → Postgres | 92 | Fixed: added NFD normalization for accented chars (e.g. "café" → "cafe"). |
 | 4. Media grid pagination | 92 | Fixed: added infinite scroll to MobileUnifiedMediaHub; prefetch key aligned. |
@@ -63,7 +63,7 @@
 
 | Component | Status |
 |-----------|--------|
-| NotificationBell | Not rendered anywhere; no impact. |
+| NotificationBell | Removed (dead code). TripActionBar handles notifications. |
 | TripActionBar | Uses shared `useNotificationRealtime`; behavior unchanged. |
 | useTrips | Still returns `refreshTrips`; `useUserTripsRealtime` replaces dual channels. |
 | MediaTabs | Uses `useMediaSync` for search; `useMediaManagement` for grid. Unchanged. |
@@ -71,6 +71,22 @@
 | Pro/Event cards | `card_color` and `organizer_display_name` restored. |
 | Mobile media | Infinite scroll added. |
 | Prefetch | Uses `prefetchInfiniteQuery` with matching key. |
+
+---
+
+## Additional Fixes (Post-Audit Round 2)
+
+### Auth user caching
+- **`authCache.ts`** — 5-minute in-memory cache for `getUser()`. Reduces `/auth/v1/user` calls from repeated service invocations.
+- **`tripService.getUserTrips`** — Uses `getCachedAuthUser()` instead of `supabase.auth.getUser()`.
+- **`invalidateAuthCache()`** — Called on sign-out and `onAuthStateChange` when session is lost.
+
+### trip_admins / trip_channels React Query
+- **`useTripAdmins`** — Migrated to `useQuery` with `staleTime: 60s`, `refetchOnWindowFocus: false`. Realtime subscription invalidates on change.
+- **`useTripRoles`** — Migrated to `useQuery` (includes trip_channels via join). Same caching + realtime invalidation.
+
+### NotificationBell removal
+- Removed dead `NotificationBell.tsx` component. TripActionBar handles notifications.
 
 ---
 
@@ -82,16 +98,16 @@ The merged PR **reduces**:
 - **Media egress:** Search pushed to Postgres (O(results) vs O(all)); paginated grids (50 vs all).
 - **Realtime channels:** Fewer Supabase channels (notification consolidation, useTrips merge).
 
-The PR **does not** address:
+~~The PR **does not** address:~~
 
-- **Auth user caching:** `/auth/v1/user` (121K calls) — still uncached. Consider React Query with `staleTime` for auth state.
-- **trip_admins / trip_channels:** `useTripAdmins` and channel hooks use raw `useState`/`useEffect` with no React Query caching. Consider migrating to `useQuery` with `staleTime` and `refetchOnWindowFocus: false`.
+- ~~**Auth user caching:**~~ **Fixed** — `authCache` with 5min TTL; `getUserTrips` uses it.
+- ~~**trip_admins / trip_channels:**~~ **Fixed** — `useTripAdmins` and `useTripRoles` migrated to React Query.
 
 ---
 
 ## Recommendations to Reach 95+ on All Items
 
-1. **NotificationBell:** Either render it (e.g. in header/nav) or remove the dead code.
+1. ~~**NotificationBell:**~~ Removed dead code.
 2. **Auth user:** Add `useQuery`-style caching for `getUser()`/`getSession()` if used across many components.
 3. **trip_admins / trip_channels:** Migrate to React Query with `staleTime` to reduce repeated fetches on mount/unmount.
 
