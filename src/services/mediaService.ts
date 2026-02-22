@@ -13,6 +13,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getUploadContentType, inferMimeTypeFromFilename } from '@/utils/mime';
 
+// Default page size for media list queries. Realtime subscriptions handle
+// new inserts so capping the initial fetch is safe and reduces egress.
+const DEFAULT_MEDIA_LIMIT = 200;
+
 export interface TripMedia {
   id: string;
   trip_id: string;
@@ -228,12 +232,13 @@ export const mediaService = {
   /**
    * Get all media items for a trip
    */
-  async getMediaItems(tripId: string): Promise<MediaItem[]> {
+  async getMediaItems(tripId: string, limit = DEFAULT_MEDIA_LIMIT): Promise<MediaItem[]> {
     const { data, error } = await supabase
       .from('trip_media_index')
       .select('*')
       .eq('trip_id', tripId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
     if (error) throw error;
 
@@ -255,14 +260,16 @@ export const mediaService = {
    */
   async getMediaByType(
     tripId: string,
-    mediaType: 'image' | 'video' | 'document'
+    mediaType: 'image' | 'video' | 'document',
+    limit = DEFAULT_MEDIA_LIMIT,
   ): Promise<MediaItem[]> {
     const { data, error } = await supabase
       .from('trip_media_index')
       .select('*')
       .eq('trip_id', tripId)
       .eq('media_type', mediaType)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
     if (error) throw error;
 

@@ -6,6 +6,10 @@ import imageCompression from 'browser-image-compression';
 import { mediaService } from '@/services/mediaService';
 import { getUploadContentType } from '@/utils/mime';
 
+// Initial fetch cap for trip media. Realtime INSERT events are received
+// via the subscription below, so recent uploads always appear regardless of cap.
+const TRIP_MEDIA_FETCH_LIMIT = 200;
+
 interface TripMedia {
   id: string;
   trip_id: string;
@@ -100,7 +104,8 @@ export const useTripMedia = (tripId: string) => {
         .from('trip_media_index')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(TRIP_MEDIA_FETCH_LIMIT);
 
       if (error) throw error;
       return data || [];

@@ -246,9 +246,11 @@ export const TripActionBar = ({
       fetchNotifications();
       fetchUnreadCount();
 
-      // Subscribe to real-time notifications
+      // Subscribe to real-time notifications.
+      // Channel name is unique per user + component to prevent naming conflicts
+      // with NotificationBell which subscribes to the same Postgres events.
       const channel = supabase
-        .channel('notification_updates')
+        .channel(`notification_bar_${user.id}`)
         .on(
           'postgres_changes',
           {

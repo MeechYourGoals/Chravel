@@ -874,9 +874,10 @@ class BasecampService {
         query = query.eq('basecamp_type', options.basecampType);
       }
 
-      if (options?.limit) {
-        query = query.limit(options.limit);
-      }
+      // Always apply a limit: callers can pass their own, otherwise default to 50.
+      // Without a cap this could return thousands of rows for active trips.
+      const effectiveLimit = options?.limit ?? 50;
+      query = query.limit(effectiveLimit);
 
       const { data, error } = await query;
 
