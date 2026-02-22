@@ -25,7 +25,11 @@ AS $$
   -- chronological message list ready for use as chatHistory.
   --
   -- p_limit is the number of *exchanges* to return (each becomes 2 messages).
-  -- We apply the LIMIT on the subquery before unnesting so we cap exchanges, not rows.
+  --
+  -- IMPORTANT: We want the MOST RECENT p_limit exchanges, not the oldest.
+  -- Step 1: inner subquery orders DESC + LIMIT to get the newest exchanges.
+  -- Step 2: outer query re-sorts those exchanges ASC so chatHistory is chronological.
+  -- Step 3: CROSS JOIN emits user + assistant rows for each exchange.
   SELECT
     pair.role,
     pair.content,
@@ -40,17 +44,18 @@ AS $$
       AND q.user_id   = auth.uid()
       AND q.query_text    IS NOT NULL
       AND q.response_text IS NOT NULL
-    ORDER BY q.created_at ASC
+    ORDER BY q.created_at DESC   -- newest first so LIMIT keeps the most recent exchanges
     LIMIT p_limit
-  ) exchanges
+  ) recent_exchanges
   CROSS JOIN LATERAL (
     VALUES
-      ('user'::TEXT,      exchanges.query_text,    exchanges.created_at),
-      ('assistant'::TEXT, exchanges.response_text, exchanges.created_at)
+      ('user'::TEXT,      recent_exchanges.query_text,    recent_exchanges.created_at),
+      ('assistant'::TEXT, recent_exchanges.response_text, recent_exchanges.created_at)
   ) AS pair(role, content, created_at)
   ORDER BY pair.created_at ASC, pair.role DESC;
-  -- Secondary sort: 'user' (DESC) sorts before 'assistant' when timestamps are equal,
-  -- ensuring user message appears first in each exchange pair.
+  -- Final ASC sort: restore chronological order for chatHistory injection.
+  -- Secondary sort on role DESC: 'user' > 'assistant' alphabetically,
+  -- so user message appears before assistant when timestamps are equal.
 $$;
 
 -- Grant EXECUTE to authenticated users only. Anon cannot call this function.
