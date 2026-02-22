@@ -36,14 +36,14 @@ export interface SearchOptions {
 
 /**
  * Full-text search across media metadata
- * 
+ *
  * Searches in:
  * - Filename
  * - Metadata tags
  * - Metadata description
  * - Extracted text (for documents)
  * - AI-generated tags
- * 
+ *
  * @param options - Search options
  * @returns Array of matching media items with relevance scores
  */
@@ -132,7 +132,7 @@ export async function searchMedia(options: SearchOptions): Promise<MediaSearchRe
       .map(item => {
         const searchableText = buildSearchableText(item);
         const { score, matchedFields } = calculateRelevanceScore(searchableText, queryWords, item);
-        
+
         return {
           ...item,
           matchScore: score,
@@ -154,10 +154,7 @@ export async function searchMedia(options: SearchOptions): Promise<MediaSearchRe
  * Build searchable text from media item
  */
 function buildSearchableText(item: MediaSearchResult): string {
-  const parts: string[] = [
-    item.filename,
-    item.media_type,
-  ];
+  const parts: string[] = [item.filename, item.media_type];
 
   // Add metadata tags
   if (item.metadata.tags && Array.isArray(item.metadata.tags)) {
@@ -189,7 +186,7 @@ function buildSearchableText(item: MediaSearchResult): string {
 
 /**
  * Calculate relevance score for a media item
- * 
+ *
  * Scoring algorithm:
  * - Exact filename match: 1.0
  * - Partial filename match: 0.8
@@ -200,7 +197,7 @@ function buildSearchableText(item: MediaSearchResult): string {
 function calculateRelevanceScore(
   searchableText: string,
   queryWords: string[],
-  item: MediaSearchResult
+  item: MediaSearchResult,
 ): { score: number; matchedFields: string[] } {
   let score = 0;
   const matchedFields: string[] = [];
@@ -254,14 +251,14 @@ function calculateRelevanceScore(
 
 /**
  * Search media by tags
- * 
+ *
  * @param tripId - Trip ID
  * @param tags - Array of tags to search for
  * @returns Array of media items matching any of the tags
  */
 export async function searchMediaByTags(
   tripId: string,
-  tags: string[]
+  tags: string[],
 ): Promise<MediaSearchResult[]> {
   if (tags.length === 0) return [];
 
@@ -317,9 +314,7 @@ export async function searchMediaByTags(
         ...(Array.isArray(item.metadata.ai_tags) ? item.metadata.ai_tags : []),
       ].map((t: unknown) => String(t).toLowerCase());
 
-      return tagsLower.some(
-        searchTag => itemTags.some(itemTag => itemTag.includes(searchTag)),
-      );
+      return tagsLower.some(searchTag => itemTags.some(itemTag => itemTag.includes(searchTag)));
     });
   } catch (error) {
     console.error('[mediaSearchService] Tag search error:', error);
