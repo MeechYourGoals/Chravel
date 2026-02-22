@@ -157,6 +157,9 @@ export const AIConciergeChat = ({
   const loadedPreferences = useAIConciergePreferences();
   const effectivePreferences = preferences ?? loadedPreferences;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // True after the chat is hydrated from the server DB (not just cache/empty).
+  // Used to show the "Picked up where you left off" chip.
+  const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(false);
 
   // --- Persisted history hydration ---
   const {
@@ -215,6 +218,7 @@ export const AIConciergeChat = ({
 
     if (historyMessages.length > 0 && messages.length === 0) {
       setMessages(historyMessages);
+      setHistoryLoadedFromServer(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHistoryLoading, historyError, historyMessages]);
@@ -447,6 +451,7 @@ export const AIConciergeChat = ({
       if (!isDemoMode) {
         const streamingMessageId = `stream-${Date.now()}`;
         let receivedAnyChunk = false;
+        let accumulatedStreamContent = ''; // accumulates full text so we can cache after onDone
         const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
 
         // Helper: update the streaming message by ID. Returns prev unchanged
@@ -471,6 +476,7 @@ export const AIConciergeChat = ({
           {
             onChunk: (text: string) => {
               if (!isMounted.current) return;
+              accumulatedStreamContent += text; // always accumulate for caching
               if (!receivedAnyChunk) {
                 receivedAnyChunk = true;
                 setIsTyping(false);
@@ -545,16 +551,22 @@ export const AIConciergeChat = ({
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' },
                 );
-                // Persist to localStorage cache for offline fallback.
-                // Read the final assembled message from state via functional update.
-                setMessages(prev => {
-                  const assistantMsg = prev.find(m => m.id === streamingMessageId);
-                  if (assistantMsg) {
-                    const userId = user?.id ?? 'anonymous';
-                    conciergeCacheService.cacheMessage(tripId, currentInput, assistantMsg, userId);
-                  }
-                  return prev; // No state change — reading only
-                });
+                // Cache the completed response for offline fallback.
+                // Use the locally accumulated string — no setState read needed.
+                if (accumulatedStreamContent) {
+                  const cachedMsg: ChatMessage = {
+                    id: streamingMessageId,
+                    type: 'assistant',
+                    content: accumulatedStreamContent,
+                    timestamp: new Date().toISOString(),
+                  };
+                  conciergeCacheService.cacheMessage(
+                    tripId,
+                    currentInput,
+                    cachedMsg,
+                    user?.id ?? 'anonymous',
+                  );
+                }
               }
             },
           },
@@ -849,6 +861,14 @@ export const AIConciergeChat = ({
           ref={chatScrollRef}
           className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0"
         >
+          {/* "Picked up where you left off" divider — shown once when server history hydrates */}
+          {historyLoadedFromServer && messages.length > 0 && (
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-xs text-gray-500 whitespace-nowrap">↩ Picked up where you left off</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+          )}
           {messages.length > 0 && (
             <ChatMessages messages={messages} isTyping={isTyping} showMapWidgets={true} />
           )}
@@ -861,6 +881,31 @@ export const AIConciergeChat = ({
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-sm text-emerald-300">Voice Active</span>
             </div>
+          </div>
+        )}
+
+        {/* Query usage bar — shown for limited plans so users always know how many asks remain */}
+        {isLimitedPlan && usage && usage.limit !== null && (
+          <div className="flex items-center justify-between px-4 py-1.5 border-t border-white/5 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    usage.isLimitReached
+                      ? 'bg-red-500'
+                      : (usage.remaining ?? 0) <= 2
+                        ? 'bg-orange-400'
+                        : 'bg-emerald-500'
+                  }`}
+                  style={{ width: `${Math.min(100, ((usage.used) / usage.limit) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <span className={`text-xs ml-3 whitespace-nowrap flex-shrink-0 ${queryAllowanceTone}`}>
+              {usage.isLimitReached
+                ? 'Trip limit reached'
+                : `${usage.remaining} ask${(usage.remaining ?? 0) === 1 ? '' : 's'} left this trip`}
+            </span>
           </div>
         )}
 
