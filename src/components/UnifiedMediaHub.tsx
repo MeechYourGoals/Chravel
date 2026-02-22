@@ -28,7 +28,8 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const { isDemoMode } = useDemoMode();
 
-  const { mediaItems, loading, refetch } = useMediaManagement(tripId);
+  const { mediaItems, loading, refetch, hasMoreMedia, fetchNextMediaPage, isFetchingNextMedia } =
+    useMediaManagement(tripId);
 
   // Filter out deleted items for demo mode
   const filteredMediaItems = mediaItems.filter(item => !deletedIds.has(item.id));
@@ -161,19 +162,16 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
       );
     }
 
-    const displayItems = filteredItems.slice(0, 8);
-
     return (
       <div className="space-y-4">
-        {displayItems.length > 0 && (
-          <MediaGrid items={displayItems} onDeleteItem={handleDeleteItem} />
-        )}
-        {filteredItems.length > 8 && (
-          <p className="text-center text-gray-400 text-sm">
-            Showing 8 of {filteredItems.length} items
-            {searchQuery && ` matching "${searchQuery}"`}
-            {!searchQuery && ' • Use tabs above to filter by type'}
-          </p>
+        {filteredItems.length > 0 && (
+          <MediaGrid
+            items={filteredItems}
+            onDeleteItem={handleDeleteItem}
+            onLoadMore={fetchNextMediaPage}
+            hasMore={hasMoreMedia}
+            isLoadingMore={isFetchingNextMedia}
+          />
         )}
       </div>
     );

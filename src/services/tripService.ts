@@ -295,9 +295,11 @@ export const tripService = {
       } = await supabase.auth.getUser();
       if (!user) return [];
 
+      const TRIP_LIST_COLUMNS =
+        'id, name, description, start_date, end_date, destination, trip_type, created_at, cover_image_url, created_by, is_archived';
       let query = supabase
         .from('trips')
-        .select('*')
+        .select(TRIP_LIST_COLUMNS)
         .eq('created_by', user.id)
         .eq('is_archived', false)
         .eq('is_hidden', false)
@@ -330,7 +332,7 @@ export const tripService = {
       if (pendingTripIds.length > 0) {
         const { data: pendingTripsData, error: pendingTripsError } = await supabase
           .from('trips')
-          .select('*')
+          .select(TRIP_LIST_COLUMNS)
           .in('id', pendingTripIds)
           .eq('is_archived', false)
           .eq('is_hidden', false);
@@ -367,7 +369,7 @@ export const tripService = {
         if (memberTripIds.length > 0) {
           const { data: memberTripsData, error: memberTripsError } = await supabase
             .from('trips')
-            .select('*')
+            .select(TRIP_LIST_COLUMNS)
             .in('id', memberTripIds)
             .eq('is_archived', false)
             .eq('is_hidden', false);

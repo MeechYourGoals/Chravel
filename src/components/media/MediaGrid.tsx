@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MediaTile } from './MediaTile';
 import { MediaViewerModal, type MediaViewerItem } from './MediaViewerModal';
 import { Loader2 } from 'lucide-react';
@@ -21,6 +21,10 @@ interface MediaGridProps {
   maxItems?: number;
   uploadQueue?: UploadProgress[];
   onDeleteItem: (id: string) => void;
+  /** Infinite scroll: load more when sentinel is visible */
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 export const MediaGrid = ({
@@ -28,9 +32,27 @@ export const MediaGrid = ({
   maxItems,
   uploadQueue = [],
   onDeleteItem,
+  onLoadMore,
+  hasMore = false,
+  isLoadingMore = false,
 }: MediaGridProps) => {
   const [activeMediaIndex, setActiveMediaIndex] = useState<number>(-1);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const displayItems = maxItems ? items.slice(0, maxItems) : items;
+
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || isLoadingMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting) onLoadMore();
+      },
+      { rootMargin: '200px', threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore, isLoadingMore]);
 
   // Derive MIME type from media_type if not provided
   const getMimeType = (item: MediaItemData): string => {
@@ -71,7 +93,7 @@ export const MediaGrid = ({
       {/* Upload Progress Items */}
       {uploadQueue.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {uploadQueue.map((upload) => (
+          {uploadQueue.map(upload => (
             <div
               key={upload.fileId}
               className="relative aspect-square rounded-lg bg-background/50 border border-white/10 overflow-hidden"
@@ -89,16 +111,12 @@ export const MediaGrid = ({
                 ) : upload.status === 'complete' ? (
                   <>
                     <span className="text-green-500 text-2xl mb-2">✓</span>
-                    <p className="text-xs text-foreground/80 truncate w-full">
-                      {upload.fileName}
-                    </p>
+                    <p className="text-xs text-foreground/80 truncate w-full">{upload.fileName}</p>
                   </>
                 ) : upload.status === 'error' ? (
                   <>
                     <span className="text-red-500 text-2xl mb-2">✗</span>
-                    <p className="text-xs text-foreground/80 truncate w-full">
-                      {upload.fileName}
-                    </p>
+                    <p className="text-xs text-foreground/80 truncate w-full">{upload.fileName}</p>
                     <p className="text-xs text-red-500/80 mt-1">
                       {upload.error || 'Upload failed'}
                     </p>
@@ -112,7 +130,7 @@ export const MediaGrid = ({
 
       {/* Actual Media Items - Using canonical MediaTile */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {displayItems.map((item) => (
+        {displayItems.map(item => (
           <MediaTile
             key={item.id}
             id={item.id}
@@ -121,10 +139,18 @@ export const MediaGrid = ({
             fileName={item.filename}
             metadata={item.metadata}
             onDelete={onDeleteItem}
-            onView={(media) => handleViewMedia(item.id)}
+            onView={media => handleViewMedia(item.id)}
           />
         ))}
       </div>
+
+      {/* Infinite scroll sentinel */}
+      {hasMore && <div ref={sentinelRef} className="h-4" aria-hidden />}
+      {isLoadingMore && (
+        <div className="flex justify-center py-4">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      )}
 
       {maxItems && items.length > maxItems && (
         <p className="text-center text-gray-400 text-sm">
@@ -138,7 +164,7 @@ export const MediaGrid = ({
           items={viewerItems}
           initialIndex={activeMediaIndex}
           onClose={() => setActiveMediaIndex(-1)}
-          onIndexChange={(newIndex) => setActiveMediaIndex(newIndex)}
+          onIndexChange={newIndex => setActiveMediaIndex(newIndex)}
         />
       )}
     </div>

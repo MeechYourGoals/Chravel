@@ -2,19 +2,17 @@
 // @ts-nocheck - Temporary until trip_files columns added to generated types
 /**
  * Media Search Service
- * 
- * Provides full-text search capabilities for media metadata
- * Searches across filenames, tags, descriptions, and extracted text
- * 
+ *
+ * Provides full-text search capabilities for media metadata.
+ * Pushes ilike (filename) + @> (metadata JSONB tags) to Postgres to reduce egress from O(all rows) to O(results).
+ *
  * @module services/mediaSearchService
  */
 
 import { supabase } from '@/integrations/supabase/client';
 
-// DB-side cap so search never downloads the entire table.
-// Client-side scoring is applied afterward, returning at most `limit` results (default 50).
-// 500 rows covers effectively all real-world trips while preventing unbounded egress.
-const SEARCH_DB_LIMIT = 500;
+// DB-side limit for search. Pushed filters (ilike, @>) reduce rows before fetch.
+const SEARCH_DB_LIMIT = 100;
 
 export interface MediaSearchResult {
   id: string;
@@ -38,14 +36,14 @@ export interface SearchOptions {
 
 /**
  * Full-text search across media metadata
- * 
+ *
  * Searches in:
  * - Filename
  * - Metadata tags
  * - Metadata description
  * - Extracted text (for documents)
  * - AI-generated tags
- * 
+ *
  * @param options - Search options
  * @returns Array of matching media items with relevance scores
  */
@@ -62,26 +60,51 @@ export async function searchMedia(options: SearchOptions): Promise<MediaSearchRe
     return [];
   }
 
-  try {
-    // Fetch media items for the trip with a DB-side limit.
-    // We order by recency so the most relevant items are included first.
-    // Client-side scoring + slicing is applied after to produce the final result set.
-    const [mediaResponse, filesResponse] = await Promise.all([
-      supabase
-        .from('trip_media_index')
-        .select('*')
-        .eq('trip_id', tripId)
-        .in('media_type', mediaTypes)
-        .order('created_at', { ascending: false })
-        .limit(SEARCH_DB_LIMIT),
+  const queryWords = query
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .filter(w => w.length > 0);
 
-      supabase
-        .from('trip_files')
-        .select('*')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false })
-        .limit(SEARCH_DB_LIMIT),
-    ]);
+  // Sanitize for filter (alphanumeric, hyphen, underscore only) to avoid injection
+  const sanitize = (s: string) => s.replace(/[^a-z0-9_-]/g, '');
+
+  try {
+    // Build DB-side OR filter: ilike on filename + @> on metadata tags/ai_tags
+    const orParts: string[] = [];
+    for (const word of queryWords) {
+      const safe = sanitize(word);
+      if (safe) {
+        orParts.push(`filename.ilike.%${safe}%`);
+        orParts.push(`metadata.cs.${JSON.stringify({ tags: [safe] })}`);
+        orParts.push(`metadata.cs.${JSON.stringify({ ai_tags: [safe] })}`);
+      }
+    }
+
+    const mediaQuery = supabase
+      .from('trip_media_index')
+      .select('id, media_url, filename, media_type, metadata, created_at')
+      .eq('trip_id', tripId)
+      .in('media_type', mediaTypes)
+      .order('created_at', { ascending: false })
+      .limit(SEARCH_DB_LIMIT);
+
+    const mediaResponse =
+      orParts.length > 0 ? await mediaQuery.or(orParts.join(',')) : await mediaQuery;
+
+    // trip_files: ilike on name (filename)
+    const filesOrParts = queryWords
+      .map(w => (sanitize(w) ? `name.ilike.%${sanitize(w)}%` : ''))
+      .filter(Boolean);
+    const filesQuery = supabase
+      .from('trip_files')
+      .select('id, name, file_type, extracted_events, created_at')
+      .eq('trip_id', tripId)
+      .order('created_at', { ascending: false })
+      .limit(SEARCH_DB_LIMIT);
+
+    const filesResponse =
+      filesOrParts.length > 0 ? await filesQuery.or(filesOrParts.join(',')) : await filesQuery;
 
     const allItems: MediaSearchResult[] = [
       ...(mediaResponse.data || []).map(item => ({
@@ -104,15 +127,12 @@ export async function searchMedia(options: SearchOptions): Promise<MediaSearchRe
       })),
     ];
 
-    // Perform client-side search with scoring
-    const queryLower = query.toLowerCase().trim();
-    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 0);
-
+    // Client-side scoring on DB-filtered results (reduces egress from O(all) to O(results))
     const scoredResults = allItems
       .map(item => {
         const searchableText = buildSearchableText(item);
         const { score, matchedFields } = calculateRelevanceScore(searchableText, queryWords, item);
-        
+
         return {
           ...item,
           matchScore: score,
@@ -134,10 +154,7 @@ export async function searchMedia(options: SearchOptions): Promise<MediaSearchRe
  * Build searchable text from media item
  */
 function buildSearchableText(item: MediaSearchResult): string {
-  const parts: string[] = [
-    item.filename,
-    item.media_type,
-  ];
+  const parts: string[] = [item.filename, item.media_type];
 
   // Add metadata tags
   if (item.metadata.tags && Array.isArray(item.metadata.tags)) {
@@ -169,7 +186,7 @@ function buildSearchableText(item: MediaSearchResult): string {
 
 /**
  * Calculate relevance score for a media item
- * 
+ *
  * Scoring algorithm:
  * - Exact filename match: 1.0
  * - Partial filename match: 0.8
@@ -180,7 +197,7 @@ function buildSearchableText(item: MediaSearchResult): string {
 function calculateRelevanceScore(
   searchableText: string,
   queryWords: string[],
-  item: MediaSearchResult
+  item: MediaSearchResult,
 ): { score: number; matchedFields: string[] } {
   let score = 0;
   const matchedFields: string[] = [];
@@ -234,30 +251,40 @@ function calculateRelevanceScore(
 
 /**
  * Search media by tags
- * 
+ *
  * @param tripId - Trip ID
  * @param tags - Array of tags to search for
  * @returns Array of media items matching any of the tags
  */
 export async function searchMediaByTags(
   tripId: string,
-  tags: string[]
+  tags: string[],
 ): Promise<MediaSearchResult[]> {
+  if (tags.length === 0) return [];
+
   try {
+    const tagsLower = tags.map(t => t.toLowerCase().trim()).filter(Boolean);
+    const orParts = tagsLower.flatMap(tag => [
+      `metadata.cs.${JSON.stringify({ tags: [tag] })}`,
+      `metadata.cs.${JSON.stringify({ ai_tags: [tag] })}`,
+    ]);
+
     const [mediaResponse, filesResponse] = await Promise.all([
       supabase
         .from('trip_media_index')
-        .select('*')
+        .select('id, media_url, filename, media_type, metadata, created_at')
         .eq('trip_id', tripId)
+        .or(orParts.join(','))
         .order('created_at', { ascending: false })
         .limit(SEARCH_DB_LIMIT),
 
+      // trip_files metadata structure differs; fetch limited set for client-side tag match
       supabase
         .from('trip_files')
-        .select('*')
+        .select('id, name, file_type, extracted_events, created_at')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false })
-        .limit(SEARCH_DB_LIMIT),
+        .limit(50),
     ]);
 
     const allItems: MediaSearchResult[] = [
@@ -281,17 +308,13 @@ export async function searchMediaByTags(
       })),
     ];
 
-    const tagsLower = tags.map(t => t.toLowerCase());
-
     return allItems.filter(item => {
       const itemTags = [
         ...(Array.isArray(item.metadata.tags) ? item.metadata.tags : []),
         ...(Array.isArray(item.metadata.ai_tags) ? item.metadata.ai_tags : []),
       ].map((t: unknown) => String(t).toLowerCase());
 
-      return tagsLower.some(searchTag => 
-        itemTags.some(itemTag => itemTag.includes(searchTag))
-      );
+      return tagsLower.some(searchTag => itemTags.some(itemTag => itemTag.includes(searchTag)));
     });
   } catch (error) {
     console.error('[mediaSearchService] Tag search error:', error);

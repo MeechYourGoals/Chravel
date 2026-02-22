@@ -1,6 +1,6 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useDemoMode } from './useDemoMode';
 import { getDomain } from '@/services/urlUtils';
 import { detectTripTier } from '../utils/tripTierDetector';
@@ -10,7 +10,7 @@ import TripSpecificMockDataService from '../services/tripSpecificMockDataService
 import UniversalMockDataService from '../services/UniversalMockDataService';
 import { cacheEntity, getCachedEntity } from '@/offline/cache';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
-import { fetchTripMediaItems, TripMediaItem } from '@/services/tripMediaService';
+import { fetchTripMediaItemsPaginated, TripMediaItem } from '@/services/tripMediaService';
 
 export type MediaItem = TripMediaItem;
 
@@ -32,43 +32,52 @@ export const useMediaManagement = (tripId: string) => {
   const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
 
-  const { data: mediaItems = [], isLoading: mediaLoading } = useQuery({
-    queryKey: tripKeys.media(tripId, isDemoMode),
-    queryFn: async (): Promise<MediaItem[]> => {
+  const mediaInfiniteQuery = useInfiniteQuery({
+    queryKey: [...tripKeys.media(tripId, isDemoMode), 'paginated'],
+    queryFn: async ({ pageParam }: { pageParam?: string }) => {
       if (isDemoMode) {
         const tripTier = detectTripTier(tripId);
+        let items: MediaItem[] = [];
         if (
           tripTier === 'consumer' &&
           TripSpecificMockDataService.getTripMediaItems(parseInt(tripId)).length > 0
         ) {
-          return TripSpecificMockDataService.getTripMediaItems(parseInt(tripId));
-        }
-        if (tripTier === 'pro' && proTripMockData[tripId]) {
+          items = TripSpecificMockDataService.getTripMediaItems(parseInt(tripId));
+        } else if (tripTier === 'pro' && proTripMockData[tripId]) {
           const proData = proTripMockData[tripId];
-          return [
+          items = [
             ...(proData.photos || []).map(item => ({ ...item, media_type: 'image' as const })),
             ...(proData.videos || []).map(item => ({ ...item, media_type: 'video' as const })),
             ...(proData.files || []).map(item => ({ ...item, media_type: 'document' as const })),
           ];
-        }
-        if (tripTier === 'event' && eventsMockData[tripId]) {
+        } else if (tripTier === 'event' && eventsMockData[tripId]) {
           const eventData = eventsMockData[tripId];
-          return [
+          items = [
             ...(eventData.photos || []).map(item => ({ ...item, media_type: 'image' as const })),
             ...(eventData.videos || []).map(item => ({ ...item, media_type: 'video' as const })),
             ...(eventData.files || []).map(item => ({ ...item, media_type: 'document' as const })),
           ];
+        } else {
+          items = UniversalMockDataService.getCombinedMediaItems(tripId);
         }
-        return UniversalMockDataService.getCombinedMediaItems(tripId);
+        return { items, nextCursor: null, hasMore: false };
       }
-
-      return fetchTripMediaItems(tripId);
+      return fetchTripMediaItemsPaginated(tripId, pageParam);
     },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: lastPage =>
+      lastPage.hasMore && lastPage.nextCursor ? lastPage.nextCursor : undefined,
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.media.staleTime,
-    gcTime: QUERY_CACHE_CONFIG.media.gcTime,
-    refetchOnWindowFocus: QUERY_CACHE_CONFIG.media.refetchOnWindowFocus,
   });
+
+  const mediaItems = useMemo(
+    () => mediaInfiniteQuery.data?.pages.flatMap(p => p.items) ?? [],
+    [mediaInfiniteQuery.data],
+  );
+  const mediaLoading = mediaInfiniteQuery.isLoading;
+  const hasMoreMedia = mediaInfiniteQuery.hasNextPage;
+  const fetchNextMediaPage = mediaInfiniteQuery.fetchNextPage;
 
   const { data: linkItems = [], isLoading: linksLoading } = useQuery({
     queryKey: ['tripLinks', tripId, isDemoMode],
@@ -227,6 +236,9 @@ export const useMediaManagement = (tripId: string) => {
     totalItems: mediaItems.length + linkItems.length,
     filterByType,
     getAllItemsSorted,
+    hasMoreMedia: !isDemoMode && hasMoreMedia,
+    fetchNextMediaPage,
+    isFetchingNextMedia: mediaInfiniteQuery.isFetchingNextPage,
     refetch: () => {
       queryClient.invalidateQueries({ queryKey: tripKeys.media(tripId) });
       queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId] });

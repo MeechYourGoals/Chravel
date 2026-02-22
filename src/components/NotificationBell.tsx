@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Bell,
   MessageCircle,
@@ -17,7 +17,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useNotificationRealtime } from '@/hooks/useNotificationRealtime';
 import { mockNotifications } from '@/mockData/notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { JoinRequestNotification } from './notifications/JoinRequestNotification';
@@ -49,126 +49,54 @@ interface Notification {
   timestamp: string;
   isRead: boolean;
   isHighPriority?: boolean;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 export const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
   const { pendingCount: inboundRequestsCount } = useInboundJoinRequests();
   const isMobile = useMobilePortrait();
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const {
+    notifications: realtimeNotifications,
+    unreadCount: realtimeUnreadCount,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+    deleteNotification,
+  } = useNotificationRealtime();
 
-  // Fetch real notifications from database
-  useEffect(() => {
-    if (!isDemoMode && user) {
-      fetchNotifications();
+  const allNotifications = isDemoMode
+    ? mockNotifications.map(n => ({
+        id: n.id,
+        type: n.type as Notification['type'],
+        title: n.title,
+        description: n.message,
+        tripId: n.tripId,
+        tripName: n.data?.trip_name || 'Demo Trip',
+        timestamp: formatDistanceToNow(new Date(n.timestamp), { addSuffix: true }),
+        isRead: n.read,
+        isHighPriority: n.type === 'broadcast',
+        data: { ...n.data, tripType: n.tripType },
+      }))
+    : realtimeNotifications;
 
-      // Subscribe to real-time notifications.
-      // Channel name is unique per user + component to prevent naming conflicts
-      // with TripActionBar which subscribes to the same Postgres events.
-      const channel = supabase
-        .channel(`notification_bell_${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`,
-          },
-          payload => {
-            const newNotification = payload.new as any;
-            setNotifications(prev => [
-              {
-                id: newNotification.id,
-                type: newNotification.type || 'system',
-                title: newNotification.title,
-                description: newNotification.message,
-                tripId: newNotification.metadata?.trip_id || '',
-                tripName: newNotification.metadata?.trip_name || '',
-                timestamp: formatDistanceToNow(new Date(newNotification.created_at), {
-                  addSuffix: true,
-                }),
-                isRead: newNotification.is_read || false,
-                isHighPriority: newNotification.type === 'broadcast',
-                data: newNotification.metadata,
-              },
-              ...prev,
-            ]);
-          },
-        )
-        .subscribe();
+  const notifications = isDemoMode
+    ? allNotifications.filter(n => !deletedIds.has(n.id))
+    : allNotifications;
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    } else if (isDemoMode) {
-      setNotifications(
-        mockNotifications.map(n => ({
-          id: n.id,
-          type: n.type as any,
-          title: n.title,
-          description: n.message,
-          tripId: n.tripId,
-          tripName: n.data?.trip_name || 'Demo Trip',
-          timestamp: formatDistanceToNow(new Date(n.timestamp), { addSuffix: true }),
-          isRead: n.read,
-          isHighPriority: n.type === 'broadcast',
-          data: { ...n.data, tripType: n.tripType },
-        })),
-      );
-    }
-  }, [isDemoMode, user]);
-
-  const fetchNotifications = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_visible', true) // Only fetch visible notifications
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (error) {
-      console.error('Error fetching notifications:', error);
-      return;
-    }
-
-    if (data) {
-      setNotifications(
-        data.map(n => ({
-          id: n.id,
-          type: (n.type || 'system') as any,
-          title: n.title,
-          description: n.message,
-          tripId: (n.metadata as any)?.trip_id || '',
-          tripName: (n.metadata as any)?.trip_name || '',
-          timestamp: formatDistanceToNow(new Date(n.created_at || new Date()), { addSuffix: true }),
-          isRead: n.is_read || false,
-          isHighPriority: n.type === 'broadcast',
-          data: n.metadata,
-        })),
-      );
-    }
-  };
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = isDemoMode
+    ? notifications.filter(n => !n.isRead).length
+    : realtimeUnreadCount;
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read locally
-    setNotifications(prev =>
-      prev.map(n => (n.id === notification.id ? { ...n, isRead: true } : n)),
-    );
-
-    // Mark as read in database (if not demo mode)
     if (!isDemoMode && user) {
-      await supabase.from('notifications').update({ is_read: true }).eq('id', notification.id);
+      await markAsRead(notification.id);
     }
 
     // Determine base route based on trip type
@@ -237,46 +165,24 @@ export const NotificationBell = () => {
     }
   };
 
-  const deleteNotification = async (notificationId: string, e?: React.MouseEvent) => {
+  const handleDeleteNotification = async (notificationId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (isDemoMode) {
+      setDeletedIds(prev => new Set(prev).add(notificationId));
+      return;
+    }
+    await deleteNotification(notificationId);
+  };
 
-    // Remove locally
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
-
-    // Soft delete in database (if not demo mode)
+  const handleMarkAllAsRead = async () => {
     if (!isDemoMode && user) {
-      await supabase
-        .from('notifications')
-        .update({ is_visible: false, cleared_at: new Date().toISOString() })
-        .eq('id', notificationId);
+      await markAllAsRead(notifications);
     }
   };
 
-  const markAllAsRead = async () => {
-    // Mark locally
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-
-    // Mark in database (if not demo mode)
+  const handleClearAll = async () => {
     if (!isDemoMode && user) {
-      const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
-      if (unreadIds.length > 0) {
-        await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
-      }
-    }
-  };
-
-  const clearAllNotifications = async () => {
-    const notificationIds = notifications.map(n => n.id);
-
-    // Clear locally
-    setNotifications([]);
-
-    // Soft delete all in database (if not demo mode)
-    if (!isDemoMode && user && notificationIds.length > 0) {
-      await supabase
-        .from('notifications')
-        .update({ is_visible: false, cleared_at: new Date().toISOString() })
-        .in('id', notificationIds);
+      await clearAll(notifications);
     }
   };
 
@@ -321,14 +227,14 @@ export const NotificationBell = () => {
                 <div className="flex items-center gap-3 mt-3">
                   {unreadCount > 0 && (
                     <button
-                      onClick={markAllAsRead}
+                      onClick={handleMarkAllAsRead}
                       className="text-sm text-glass-orange hover:text-glass-yellow transition-colors"
                     >
                       Mark all read
                     </button>
                   )}
                   <button
-                    onClick={clearAllNotifications}
+                    onClick={handleClearAll}
                     className="text-sm text-gray-400 hover:text-red-400 transition-colors"
                   >
                     Clear all
@@ -353,7 +259,7 @@ export const NotificationBell = () => {
                         isDemoMode={isDemoMode}
                         onAction={() => {
                           if (isDemoMode) {
-                            setNotifications(prev => prev.filter(n => n.id !== notification.id));
+                            setDeletedIds(prev => new Set(prev).add(notification.id));
                           } else {
                             fetchNotifications();
                           }
@@ -397,18 +303,22 @@ export const NotificationBell = () => {
                         {!isMobile && (
                           <div className="flex flex-col items-end gap-1 shrink-0">
                             <button
-                              onClick={e => deleteNotification(notification.id, e)}
+                              onClick={e => handleDeleteNotification(notification.id, e)}
                               className="p-1.5 rounded-lg text-destructive hover:bg-destructive/20 transition-all"
                               title="Delete notification"
                             >
                               <Trash2 size={16} />
                             </button>
-                            <p className="text-xs text-muted-foreground">{notification.timestamp}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {notification.timestamp}
+                            </p>
                           </div>
                         )}
                         {/* Timestamp only on mobile (swipe to delete) */}
                         {isMobile && (
-                          <p className="text-xs text-muted-foreground shrink-0">{notification.timestamp}</p>
+                          <p className="text-xs text-muted-foreground shrink-0">
+                            {notification.timestamp}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -419,7 +329,7 @@ export const NotificationBell = () => {
                     return (
                       <SwipeableNotificationRow
                         key={notification.id}
-                        onDelete={() => deleteNotification(notification.id)}
+                        onDelete={() => handleDeleteNotification(notification.id)}
                       >
                         {notificationContent}
                       </SwipeableNotificationRow>
