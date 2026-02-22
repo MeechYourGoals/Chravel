@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AudioPlaybackQueue } from '@/lib/geminiLive/audioPlayback';
 import { startAudioCapture, type AudioCaptureHandle } from '@/lib/geminiLive/audioCapture';
+import { GEMINI_LIVE_WEBSOCKET_URL } from '@/lib/geminiLive/voiceConfig';
 
 export type GeminiLiveState =
   | 'idle'
@@ -43,7 +44,8 @@ const THINKING_DELAY_MS = 1_500;
 // Safari < 14.5 exposes webkitAudioContext instead of AudioContext
 const SafeAudioContext: typeof AudioContext | undefined =
   typeof window !== 'undefined'
-    ? window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    ? (window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
     : undefined;
 
 let idCounter = 0;
@@ -54,14 +56,22 @@ function uniqueId(prefix: string): string {
 
 function mapSessionError(raw: string): string {
   const lower = raw.toLowerCase();
-  if (lower.includes('unregistered callers') || lower.includes('callers without established identity')) {
-    return 'Voice failed: API key missing or restricted. Ensure GEMINI_API_KEY is set in Supabase Edge Function secrets.';
+  // "unregistered callers" = key is set but invalid/restricted (e.g. HTTP referrer blocks server-side)
+  if (
+    lower.includes('unregistered callers') ||
+    lower.includes('callers without established identity')
+  ) {
+    return 'Voice failed: API key may be invalid or have restrictions (e.g. HTTP referrer) that block server-side requests. If GEMINI_API_KEY is set in Supabase, ensure the Generative Language API is enabled and key restrictions allow server-side use.';
   }
   if (raw.includes('403') || lower.includes('not enabled')) {
     return 'Voice is unavailable right now (API configuration issue). Please try again later.';
   }
-  if (lower.includes('gemini_api_key') || lower.includes('api key') || lower.includes('not configured')) {
-    return 'Voice AI is not configured. Please contact support.';
+  // Key truly not set (server returns "GEMINI_API_KEY not configured")
+  if (lower.includes('gemini_api_key') || lower.includes('not configured')) {
+    return 'Voice AI is not configured. Add GEMINI_API_KEY in Supabase Dashboard → Edge Functions → Secrets, then redeploy.';
+  }
+  if (lower.includes('api key')) {
+    return 'Voice AI configuration issue. Check GEMINI_API_KEY in Supabase secrets.';
   }
   if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('authentication')) {
     return 'Voice session authentication failed. Please refresh the page and try again.';
@@ -112,10 +122,14 @@ export function useGeminiLive({
 
   // ── Refs for WebSocket-safe callback access (avoids stale closures) ──
   const onTurnCompleteRef = useRef(onTurnComplete);
-  useEffect(() => { onTurnCompleteRef.current = onTurnComplete; }, [onTurnComplete]);
+  useEffect(() => {
+    onTurnCompleteRef.current = onTurnComplete;
+  }, [onTurnComplete]);
 
   const onToolCallRef = useRef(onToolCall);
-  useEffect(() => { onToolCallRef.current = onToolCall; }, [onToolCall]);
+  useEffect(() => {
+    onToolCallRef.current = onToolCall;
+  }, [onToolCall]);
 
   // ── Internal refs ──
   const wsRef = useRef<WebSocket | null>(null);
@@ -133,6 +147,7 @@ export function useGeminiLive({
   // Track whether user has spoken at all this turn (for thinking timer logic)
   const userHasSpokenRef = useRef(false);
 
+  // getUserMedia in WKWebView requires iOS 14.5+ (April 2021). Older iOS: isSupported=false, text input still works.
   const isSupported =
     typeof window !== 'undefined' &&
     typeof WebSocket !== 'undefined' &&
@@ -176,7 +191,10 @@ export function useGeminiLive({
       wsRef.current.onmessage = null;
       wsRef.current.onerror = null;
       wsRef.current.onclose = null;
-      if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
+      if (
+        wsRef.current.readyState === WebSocket.OPEN ||
+        wsRef.current.readyState === WebSocket.CONNECTING
+      ) {
         wsRef.current.close();
       }
       wsRef.current = null;
@@ -275,7 +293,9 @@ export function useGeminiLive({
 
   const startSession = useCallback(async () => {
     if (!isSupported) {
-      setError('Voice is not supported in this browser. Try Chrome, Edge, or Safari.');
+      setError(
+        'Voice requires iOS 14.5+ or a modern browser (Chrome, Edge, Safari). Text input works on all devices.',
+      );
       setState('error');
       return;
     }
@@ -331,13 +351,17 @@ export function useGeminiLive({
       } catch (mediaErr) {
         const name = mediaErr instanceof Error ? mediaErr.name : '';
         if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          throw new Error('Microphone permission denied. Allow microphone access in your browser settings and try again.');
+          throw new Error(
+            'Microphone permission denied. Allow microphone access in your browser settings and try again.',
+          );
         }
         if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
           throw new Error('No microphone detected. Connect a microphone and try again.');
         }
         if (name === 'NotReadableError' || name === 'TrackStartError') {
-          throw new Error('Microphone is already in use by another app. Close other apps and try again.');
+          throw new Error(
+            'Microphone is already in use by another app. Close other apps and try again.',
+          );
         }
         throw new Error('Could not access microphone. Check your audio settings and try again.');
       }
@@ -368,11 +392,11 @@ export function useGeminiLive({
 
       playbackQueueRef.current = new AudioPlaybackQueue(playbackCtxRef.current);
 
-      // 4. Open WebSocket to Gemini Live
+      // 4. Open WebSocket to Gemini Live (server may override URL; fallback to centralized constant)
       const websocketUrl =
         typeof sessionData?.websocketUrl === 'string' && sessionData.websocketUrl.length > 0
           ? sessionData.websocketUrl
-          : 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
+          : GEMINI_LIVE_WEBSOCKET_URL;
 
       const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
       const ws = new WebSocket(wsUrl);
@@ -491,9 +515,10 @@ export function useGeminiLive({
 
             if (sc.inputTranscript) {
               clearThinkingTimer();
-              const transcript = typeof sc.inputTranscript === 'string'
-                ? sc.inputTranscript
-                : sc.inputTranscript?.text || '';
+              const transcript =
+                typeof sc.inputTranscript === 'string'
+                  ? sc.inputTranscript
+                  : sc.inputTranscript?.text || '';
               if (transcript) {
                 userHasSpokenRef.current = true;
                 userTranscriptAccRef.current = transcript;
@@ -508,9 +533,10 @@ export function useGeminiLive({
             }
 
             if (sc.outputTranscript) {
-              const transcript = typeof sc.outputTranscript === 'string'
-                ? sc.outputTranscript
-                : sc.outputTranscript?.text || '';
+              const transcript =
+                typeof sc.outputTranscript === 'string'
+                  ? sc.outputTranscript
+                  : sc.outputTranscript?.text || '';
               if (transcript) {
                 assistantTranscriptAccRef.current += transcript;
                 setAssistantTranscript(assistantTranscriptAccRef.current);
@@ -568,7 +594,15 @@ export function useGeminiLive({
       setState('error');
       cleanup();
     }
-  }, [isSupported, tripId, voice, cleanup, handleToolCallWs, clearThinkingTimer, resetTurnAccumulators]);
+  }, [
+    isSupported,
+    tripId,
+    voice,
+    cleanup,
+    handleToolCallWs,
+    clearThinkingTimer,
+    resetTurnAccumulators,
+  ]);
 
   const interruptPlayback = useCallback(() => {
     flushModelOutput();

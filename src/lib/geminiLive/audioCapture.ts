@@ -8,6 +8,10 @@
  * The downsampling uses simple averaging which is sufficient for speech audio.
  * Chunk size of 4096 samples at 48 kHz ≈ 85 ms, well within the recommended
  * 50–100 ms range for balanced latency/overhead.
+ *
+ * NOTE: ScriptProcessorNode is deprecated in favor of AudioWorklet. Chrome has
+ * committed to keeping ScriptProcessorNode working. A future migration to
+ * AudioWorklet would improve compliance but is not required for shipping.
  */
 
 const TARGET_SAMPLE_RATE = 16_000;

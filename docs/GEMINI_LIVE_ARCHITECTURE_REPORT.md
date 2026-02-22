@@ -133,7 +133,7 @@ supabase functions deploy lovable-concierge
 
 1. **Verify secret:** Supabase Dashboard → Project Settings → Edge Functions → Secrets → confirm `GEMINI_API_KEY`
 2. **Redeploy:** `supabase functions deploy gemini-voice-session lovable-concierge`
-3. **Test:** Call `GET https://<project>.supabase.co/functions/v1/gemini-voice-session` with header `Authorization: Bearer <anon_key>` — returns `{ configured: true }` if key is set
+3. **Test:** Call `GET https://<project>.supabase.co/functions/v1/gemini-voice-session` (no auth required) — returns `{ configured: true }` if key is set. If `configured: true` but voice fails with 403, the key may have API restrictions (e.g. HTTP referrer) that block server-side requests.
 4. **Optional:** Add `AI_PROVIDER=gemini` (or leave unset) to force Gemini over Lovable
 
 ---
