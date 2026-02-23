@@ -334,7 +334,33 @@ export const AIConciergeChat = ({
               .join('\n\n');
             injectToolResultMessage(content);
           }
+        } else if (call.name === 'getDistanceMatrix' && result.success) {
+          const rows = result.rows as Array<{
+            origin: string;
+            elements: Array<{
+              destination: string;
+              durationText: string | null;
+              distanceText: string | null;
+            }>;
+          }>;
+          if (rows && rows.length > 0) {
+            const mode = String(result.travelMode ?? 'driving');
+            const lines: string[] = [`**Travel Times (${mode})**`];
+            for (const row of rows.slice(0, 3)) {
+              for (const el of row.elements.slice(0, 3)) {
+                if (el.durationText) {
+                  lines.push(
+                    `${row.origin} → ${el.destination}: **${el.durationText}** (${el.distanceText ?? ''})`,
+                  );
+                }
+              }
+            }
+            if (lines.length > 1) {
+              injectToolResultMessage(lines.join('\n'));
+            }
+          }
         }
+        // validateAddress: no visual card — AI confirms the address verbally.
 
         return result;
       } catch (err) {
