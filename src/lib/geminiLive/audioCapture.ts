@@ -10,7 +10,9 @@
  * 50–100 ms range for balanced latency/overhead.
  */
 
-const TARGET_SAMPLE_RATE = 16_000;
+import { assertChunkFraming, AUDIO_CONTRACT } from '@/voice/audioContract';
+
+const TARGET_SAMPLE_RATE = AUDIO_CONTRACT.expectedSampleRateHz;
 
 export interface AudioCaptureHandle {
   stop: () => void;
@@ -20,7 +22,9 @@ export function startAudioCapture(
   stream: MediaStream,
   audioContext: AudioContext,
   onChunk: (base64PCM: string) => void,
+  options?: { diagnosticsEnabled?: boolean },
 ): AudioCaptureHandle {
+  const diagnosticsEnabled = options?.diagnosticsEnabled ?? import.meta.env.DEV;
   const source = audioContext.createMediaStreamSource(stream);
   const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
@@ -28,6 +32,7 @@ export function startAudioCapture(
     const inputData = event.inputBuffer.getChannelData(0);
     const inputSampleRate = audioContext.sampleRate;
     const downsampled = downsampleTo16k(inputData, inputSampleRate);
+    assertChunkFraming(downsampled.length, diagnosticsEnabled);
     const base64 = float32ToPCM16Base64(downsampled);
     onChunk(base64);
   };
