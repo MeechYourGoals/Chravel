@@ -3,6 +3,7 @@ import { ClipboardList, Plus, Trash2, GripVertical, Edit2, Check, X } from 'luci
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
 import { Button } from '../ui/button';
+import { ActionPill } from '../ui/ActionPill';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Card, CardContent } from '../ui/card';
@@ -210,13 +211,13 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
         </div>
 
         {canCreate && !isAddingTask && (
-          <Button
+          <ActionPill
+            variant="manualOutline"
+            leftIcon={<Plus size={16} />}
             onClick={() => setIsAddingTask(true)}
-            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
           >
-            <Plus size={16} className="mr-2" />
             Add Task
-          </Button>
+          </ActionPill>
         )}
       </div>
 

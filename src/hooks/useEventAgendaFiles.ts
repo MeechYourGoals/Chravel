@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getUploadContentType } from '@/utils/mime';
 import type { AgendaFile } from '@/types/events';
+import { withTimeout } from '@/utils/timeout';
 
 const MAX_AGENDA_FILES = 5;
 const MAX_FILE_SIZE_MB = 25;
@@ -50,12 +51,29 @@ export function useEventAgendaFiles({ eventId, enabled = true }: UseEventAgendaF
     setLoadError(null);
 
     const prefix = getPrefix(eventId);
-    const { data, error } = await supabase.storage
-      .from('trip-media')
-      .list(prefix, { sortBy: { column: 'created_at', order: 'asc' } });
+    let data: any[] | null = null;
+    let error: any = null;
+
+    try {
+      const result = await withTimeout(
+        supabase.storage
+          .from('trip-media')
+          .list(prefix, { sortBy: { column: 'created_at', order: 'asc' } }),
+        5000,
+        'Agenda files request timed out',
+      );
+      data = result.data;
+      error = result.error;
+    } catch {
+      // Timeout or network error — treat as empty
+      setFiles([]);
+      setIsLoading(false);
+      return;
+    }
 
     if (error) {
-      setLoadError(`Failed to load agenda files: ${error.message}`);
+      // For new events, storage folder may not exist — treat as empty instead of error
+      setFiles([]);
       setIsLoading(false);
       return;
     }
