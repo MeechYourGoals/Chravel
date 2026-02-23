@@ -219,6 +219,7 @@ export const AIConciergeChat = ({
     startSession,
     endSession,
     interruptPlayback,
+    sendImage: sendImageToLive,
     isSupported: voiceSupported,
   } = useGeminiLive({
     tripId,
@@ -227,6 +228,31 @@ export const AIConciergeChat = ({
   });
 
   const effectiveVoiceState: VoiceState = geminiState as VoiceState;
+
+  // When a voice session is active and the user attaches an image, send it
+  // directly to Gemini Live as an inline data frame so the model can see it
+  // while speaking. Images are still queued for the text path when voice is idle.
+  const handleImageAttach = useCallback(
+    async (files: File[]) => {
+      const voiceIsActive =
+        geminiState === 'listening' || geminiState === 'thinking' || geminiState === 'speaking';
+
+      setAttachedImages(prev => [...prev, ...files].slice(0, 4));
+
+      if (!voiceIsActive) return;
+
+      // Fire-and-forget: convert each image and send via Live WebSocket
+      for (const file of files) {
+        try {
+          const attachment = await fileToAttachmentPayload(file);
+          sendImageToLive(attachment.mimeType, attachment.data);
+        } catch {
+          // Non-blocking — image will still be in attachedImages for the text path
+        }
+      }
+    },
+    [geminiState, sendImageToLive],
+  );
 
   const handleVoiceToggle = useCallback(() => {
     if (geminiState === 'idle' || geminiState === 'error') {
@@ -1031,11 +1057,7 @@ export const AIConciergeChat = ({
             disabled={isQueryLimitReached}
             showImageAttach={UPLOAD_ENABLED}
             attachedImages={UPLOAD_ENABLED ? attachedImages : []}
-            onImageAttach={
-              UPLOAD_ENABLED
-                ? files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))
-                : undefined
-            }
+            onImageAttach={UPLOAD_ENABLED ? handleImageAttach : undefined}
             onRemoveImage={
               UPLOAD_ENABLED
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))

@@ -34,6 +34,8 @@ interface UseGeminiLiveReturn {
   startSession: () => Promise<void>;
   endSession: () => void;
   interruptPlayback: () => void;
+  /** Send an image frame to Gemini Live during an active voice session. */
+  sendImage: (mimeType: string, base64Data: string) => void;
   isSupported: boolean;
 }
 
@@ -296,6 +298,17 @@ export function useGeminiLive({
     [],
   );
 
+  const sendImage = useCallback((mimeType: string, base64Data: string) => {
+    if (wsRef.current?.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(
+      JSON.stringify({
+        realtimeInput: {
+          mediaChunks: [{ mimeType, data: base64Data }],
+        },
+      }),
+    );
+  }, []);
+
   const startSession = useCallback(async () => {
     if (!isSupported) {
       setError('Voice is not supported in this browser. Try Chrome, Edge, or Safari.');
@@ -312,6 +325,30 @@ export function useGeminiLive({
       setState('connecting');
       setError(null);
       resetTurnAccumulators();
+
+      // Create AudioContexts FIRST — synchronously, before any await.
+      // Safari and iOS require AudioContext to be created (or resume()d) within the
+      // synchronous frame of a user gesture. After the first await, the gesture
+      // context expires and suspended contexts can never be unlocked on strict browsers.
+      if (!SafeAudioContext) {
+        throw new Error('Audio is not supported in this browser.');
+      }
+      try {
+        playbackCtxRef.current = new SafeAudioContext({ sampleRate: 24000 });
+      } catch {
+        throw new Error('Failed to initialize audio playback.');
+      }
+      try {
+        captureCtxRef.current = new SafeAudioContext();
+      } catch {
+        playbackCtxRef.current?.close().catch(() => {});
+        playbackCtxRef.current = null;
+        throw new Error('Failed to initialize audio capture.');
+      }
+      // Kick off resume synchronously — no await, so we stay in the gesture frame.
+      // If already running (common on second open) this is a no-op.
+      void playbackCtxRef.current.resume().catch(() => {});
+      void captureCtxRef.current.resume().catch(() => {});
 
       // 1. Fetch ephemeral token
       const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
@@ -372,26 +409,13 @@ export function useGeminiLive({
       }
       mediaStreamRef.current = stream;
 
-      // 3. Create AudioContexts (separate for capture and playback)
-      // Uses SafeAudioContext which falls back to webkitAudioContext on older Safari
-      if (!SafeAudioContext) {
-        throw new Error('Audio is not supported in this browser.');
-      }
-      try {
-        playbackCtxRef.current = new SafeAudioContext({ sampleRate: 24000 });
-      } catch {
-        throw new Error('Failed to initialize audio playback.');
-      }
-      try {
-        captureCtxRef.current = new SafeAudioContext();
-      } catch {
-        throw new Error('Failed to initialize audio capture.');
-      }
-
-      if (playbackCtxRef.current.state === 'suspended') {
+      // 3. AudioContexts already created above (before first await).
+      // Resume again here in case they were suspended after the async gap
+      // (Chrome usually handles this fine; this is a belt-and-suspenders guard).
+      if (playbackCtxRef.current?.state === 'suspended') {
         await playbackCtxRef.current.resume().catch(() => {});
       }
-      if (captureCtxRef.current.state === 'suspended') {
+      if (captureCtxRef.current?.state === 'suspended') {
         await captureCtxRef.current.resume().catch(() => {});
       }
 
@@ -453,13 +477,14 @@ export function useGeminiLive({
             return;
           }
 
-          // setupComplete: top-level or nested (API versions may differ)
+          // Gemini Live sends {"setupComplete": {}} — the value is an empty protobuf
+          // message serialised as an empty object {}, NOT boolean true. Comparing
+          // `=== true` always fails, keeping the session stuck in 'connecting' forever.
+          // The correct check is simply: does the key exist in the message?
           const setupComplete =
-            data.setupComplete === true ||
-            data.setup?.setupComplete === true ||
-            data.setupComplete === 'true' ||
-            (data.serverContent &&
-              (data.serverContent as { setupComplete?: boolean }).setupComplete === true);
+            Object.prototype.hasOwnProperty.call(data, 'setupComplete') ||
+            (data.serverContent != null &&
+              Object.prototype.hasOwnProperty.call(data.serverContent, 'setupComplete'));
 
           if (setupComplete) {
             if (import.meta.env.DEV) {
@@ -668,6 +693,7 @@ export function useGeminiLive({
     startSession,
     endSession,
     interruptPlayback,
+    sendImage,
     isSupported,
   };
 }
