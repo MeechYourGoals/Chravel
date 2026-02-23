@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { TripTask } from '../../types/tasks';
 import { Plus } from 'lucide-react';
-import { Button } from '../ui/button';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
 import { TaskCreateModal } from './TaskCreateModal';
+import { ActionPill } from '../ui/ActionPill';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import {
-  PARITY_ACTION_BUTTON_CLASS,
   TRIP_PARITY_COL_START,
   TRIP_PARITY_HEADER_SPAN_CLASS,
   TRIP_PARITY_ROW_CLASS,
@@ -29,7 +28,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<TripTask | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
-  const { variant, accentColors } = useTripVariant();
+  const { variant } = useTripVariant();
   const {
     tasks,
     isLoading,
@@ -123,17 +122,27 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   return (
     <div className="space-y-6">
       {/* Header - Title Row */}
-      <div className={variant === 'pro' ? PRO_PARITY_ROW_CLASS : variant === 'events' ? EVENT_PARITY_ROW_CLASS : TRIP_PARITY_ROW_CLASS}>
-        <h2 className={`text-xl font-semibold text-white ${variant === 'pro' ? PRO_PARITY_HEADER_SPAN_CLASS : variant === 'events' ? EVENT_PARITY_HEADER_SPAN_CLASS : TRIP_PARITY_HEADER_SPAN_CLASS}`}>
+      <div
+        className={
+          variant === 'pro'
+            ? PRO_PARITY_ROW_CLASS
+            : variant === 'events'
+              ? EVENT_PARITY_ROW_CLASS
+              : TRIP_PARITY_ROW_CLASS
+        }
+      >
+        <h2
+          className={`text-xl font-semibold text-white ${variant === 'pro' ? PRO_PARITY_HEADER_SPAN_CLASS : variant === 'events' ? EVENT_PARITY_HEADER_SPAN_CLASS : TRIP_PARITY_HEADER_SPAN_CLASS}`}
+        >
           Tasks
         </h2>
-        <Button
+        <ActionPill
+          variant="manualOutline"
+          leftIcon={<Plus />}
+          iconOnly
           onClick={() => setShowCreateModal(true)}
-          className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
-        >
-          <Plus size={16} className="flex-shrink-0" />
-          <span className="whitespace-nowrap">Add Task</span>
-        </Button>
+          className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} w-full`}
+        />
       </div>
 
       {/* Subtitle + Filters on same row */}

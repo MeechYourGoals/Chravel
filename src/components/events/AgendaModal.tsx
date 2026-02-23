@@ -12,7 +12,6 @@ import {
   Image,
   User,
   Save,
-  Sparkles,
   Eye,
   Loader2,
   AlertCircle,
@@ -22,6 +21,7 @@ import { AgendaImportModal } from './AgendaImportModal';
 import { useBackgroundAgendaImport } from '@/features/calendar/hooks/useBackgroundAgendaImport';
 import { ParsedAgendaSession } from '@/utils/agendaImportParsers';
 import { Button } from '../ui/button';
+import { ActionPill } from '../ui/ActionPill';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
@@ -31,11 +31,7 @@ import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { useEventAgendaFiles } from '@/hooks/useEventAgendaFiles';
 import { EventAgendaItem, AgendaFile } from '@/types/events';
 import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
-import {
-  EVENT_PARITY_COL_START,
-  EVENT_PARITY_ROW_CLASS,
-  PARITY_ACTION_BUTTON_CLASS,
-} from '@/lib/tabParity';
+import { EVENT_PARITY_COL_START, EVENT_PARITY_ROW_CLASS } from '@/lib/tabParity';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -295,43 +291,43 @@ export const AgendaModal = ({
                 {canCreateSessions && (
                   <>
                     {hasPaidSmartImport ? (
-                      <Button
+                      <ActionPill
+                        variant="aiOutline"
                         onClick={() => setShowImportModal(true)}
-                        variant="outline"
-                        className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10`}
+                        className={`${EVENT_PARITY_COL_START.calendar} w-full`}
                       >
-                        <Sparkles size={16} className="flex-shrink-0" />
-                        <span className="whitespace-nowrap">Smart Import</span>
-                      </Button>
+                        <span className="whitespace-nowrap">Import</span>
+                      </ActionPill>
                     ) : (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span tabIndex={0}>
-                              <Button
+                            <span tabIndex={0} className={EVENT_PARITY_COL_START.calendar}>
+                              <ActionPill
+                                variant="aiOutline"
                                 disabled
-                                variant="outline"
-                                className={`${EVENT_PARITY_COL_START.calendar} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-400/70`}
+                                className="w-full opacity-50"
                               >
                                 <Lock size={16} className="flex-shrink-0" />
-                                <span className="whitespace-nowrap">Smart Import</span>
-                              </Button>
+                                <span className="whitespace-nowrap">Import</span>
+                              </ActionPill>
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro /
+                            Import is available on paid plans (Explorer+ / Trip Pass / Pro /
                             Enterprise).
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     )}
-                    <Button
+                    <ActionPill
+                      variant="manualOutline"
+                      leftIcon={<Plus />}
                       onClick={() => setIsAddingSession(true)}
-                      className={`${EVENT_PARITY_COL_START.chat} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
+                      className={`${EVENT_PARITY_COL_START.chat} w-full`}
                     >
-                      <Plus size={16} className="flex-shrink-0" />
                       <span className="whitespace-nowrap">Add Session</span>
-                    </Button>
+                    </ActionPill>
                   </>
                 )}
                 {/* Agenda Files label — under Line-up tab */}
@@ -342,7 +338,7 @@ export const AgendaModal = ({
                   Files ({agendaFiles.length}/{maxFiles})
                 </div>
                 {canUpload && canUploadMore && (
-                  <label className={`${EVENT_PARITY_COL_START.tasks} w-full`}>
+                  <>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -352,23 +348,18 @@ export const AgendaModal = ({
                       className="hidden"
                       disabled={isUploading}
                     />
-                    <Button
-                      asChild
-                      className={`${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black cursor-pointer`}
+                    <ActionPill
+                      variant="manualOutline"
+                      leftIcon={isUploading ? <Loader2 className="animate-spin" /> : <Upload />}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`${EVENT_PARITY_COL_START.tasks} w-full`}
                       disabled={isUploading}
                     >
-                      <span>
-                        {isUploading ? (
-                          <Loader2 size={16} className="flex-shrink-0 animate-spin" />
-                        ) : (
-                          <Upload size={16} className="flex-shrink-0" />
-                        )}
-                        <span className="whitespace-nowrap">
-                          {isUploading ? 'Uploading...' : 'Upload Schedule'}
-                        </span>
+                      <span className="whitespace-nowrap">
+                        {isUploading ? 'Uploading...' : 'Upload Schedule'}
                       </span>
-                    </Button>
-                  </label>
+                    </ActionPill>
+                  </>
                 )}
               </>
             )}
