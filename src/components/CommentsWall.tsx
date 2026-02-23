@@ -68,7 +68,11 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         />
       )}
       {/* Row 1: Header + Create Poll Button */}
-      <div className={variant === 'pro' ? PRO_PARITY_ROW_CLASS : variant === 'events' ? EVENT_PARITY_ROW_CLASS : TRIP_PARITY_ROW_CLASS}>
+      <div
+        className={`flex items-center justify-between sm:grid gap-2 ${
+          variant === 'pro' ? 'sm:grid-cols-9' : variant === 'events' ? 'sm:grid-cols-8' : 'sm:grid-cols-8'
+        }`}
+      >
         <h3
           className={`text-base font-semibold text-white flex items-center gap-2 ${variant === 'pro' ? PRO_PARITY_HEADER_SPAN_CLASS : variant === 'events' ? EVENT_PARITY_HEADER_SPAN_CLASS : TRIP_PARITY_HEADER_SPAN_CLASS}`}
         >
@@ -78,10 +82,10 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         {effectivePermissions.canCreate && (
           <Button
             onClick={() => setShowCreatePoll(true)}
-            className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg min-w-[110px] px-4`}
+            className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg w-auto sm:w-full min-w-0 sm:min-w-[110px] p-3 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl`}
           >
-            <Plus size={14} className="flex-shrink-0" />
-            <span className="whitespace-nowrap text-sm">New Poll</span>
+            <Plus className="w-5 h-5 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+            <span className="whitespace-nowrap text-sm hidden sm:inline">New Poll</span>
           </Button>
         )}
       </div>
