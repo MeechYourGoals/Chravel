@@ -171,7 +171,7 @@ export const AiChatInput = ({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || isLimitReached}
-            className="size-11 min-w-[44px] rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="size-11 min-w-[44px] rounded-full flex items-center justify-center bg-gradient-to-r from-emerald-600 to-cyan-600 text-white hover:opacity-90 transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Attach image"
           >
             <ImagePlus size={18} aria-hidden />
