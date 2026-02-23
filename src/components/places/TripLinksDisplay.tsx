@@ -490,7 +490,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                         <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
                           Cancel
                         </Button>
-                        <Button onClick={handleCreateLink} className="bg-black/60 border border-white/30 text-white hover:bg-white/10">Add Link</Button>
+                        <Button onClick={handleCreateLink} className="bg-black/60 border border-white/30 text-white hover:bg-white/10 shadow-none">Add Link</Button>
                       </div>
                     </div>
                   </DialogContent>
