@@ -447,7 +447,7 @@ export const MobileTripTabs = ({
         case 'payments':
           return <MobileTripPayments tripId={tripId} />;
         case 'concierge':
-          return <AIConciergeChat tripId={tripId} basecamp={basecamp} isDemoMode={isDemoMode} />;
+          return <AIConciergeChat tripId={tripId} basecamp={basecamp} isDemoMode={isDemoMode} onTabChange={onTabChange} />;
         default:
           return (
             <TripChat

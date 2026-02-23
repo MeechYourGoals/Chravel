@@ -38,6 +38,7 @@ const TripTasksTab = lazy(() =>
 );
 
 interface ProTabContentProps {
+  onTabChange?: (tab: string) => void;
   activeTab: string;
   tripId: string;
   basecamp: { name: string; address: string };
@@ -77,6 +78,7 @@ const getSkeletonForTab = (tabId: string) => {
 
 export const ProTabContent = ({
   activeTab,
+  onTabChange,
   tripId,
   basecamp,
   tripData,
@@ -261,7 +263,7 @@ export const ProTabContent = ({
           </div>
         );
       case 'ai-chat':
-        return <AIConciergeChat tripId={tripId} basecamp={basecamp} />;
+        return <AIConciergeChat tripId={tripId} basecamp={basecamp} onTabChange={onTabChange} />;
       default:
         return <TripTabs activeTab="chat" onTabChange={() => {}} tripId={tripId} />;
     }

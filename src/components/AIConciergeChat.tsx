@@ -36,6 +36,7 @@ interface AIConciergeChatProps {
   preferences?: TripPreferences;
   isDemoMode?: boolean;
   isEvent?: boolean;
+  onTabChange?: (tab: string) => void;
 }
 
 export interface ChatMessage {
@@ -1128,9 +1129,14 @@ export const AIConciergeChat = ({
         <ConciergeSearchModal
           open={searchOpen}
           onOpenChange={setSearchOpen}
-          messages={messages}
-          onSelectMessage={id => {
+          tripId={tripId}
+          onNavigate={(tab, id) => {
+            if (tab === "concierge" || tab === "ai-chat") {
             const el = document.getElementById(`msg-${id}`);
+            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else if (onTabChange) {
+            onTabChange(tab);
+          }
             el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }}
         />
