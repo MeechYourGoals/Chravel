@@ -1,45 +1,36 @@
-/**
- * Universal Search Service
- * Comprehensive search across all trip content types: messages, calendar, tasks, polls, media
- * Supports both demo mode (mock data) and authenticated mode (Supabase)
- */
 import { supabase } from '@/integrations/supabase/client';
-import { searchMessages } from './messageSearchService';
-import { demoModeService } from './demoModeService';
-import { tripsData } from '@/data/tripsData';
-import { proTripMockData } from '@/data/proTripMockData';
-import { eventsMockData } from '@/data/eventsMockData';
 
-export type ContentType = 'trips' | 'messages' | 'calendar' | 'tasks' | 'polls' | 'media';
+export type ContentType = 'trips' | 'messages' | 'concierge' | 'calendar' | 'task' | 'poll' | 'payment' | 'place' | 'link' | 'media';
 export type SearchMode = 'keyword' | 'semantic' | 'hybrid';
 
 export interface UniversalSearchParams {
   query: string;
   contentTypes: ContentType[];
   filters: {
-    tripIds?: string[]; // Empty = all trips
-    dateRange?: { start: string; end: string };
-    status?: string;
+    tripIds?: string[];
+    dateRange?: { start: Date; end: Date };
+    tags?: string[];
   };
-  searchMode: SearchMode;
+  searchMode?: SearchMode;
   isDemoMode: boolean;
 }
 
 export interface UniversalSearchResult {
   id: string;
-  contentType: 'trip' | 'message' | 'calendar' | 'task' | 'poll' | 'media';
+  contentType: ContentType;
   tripId: string;
   tripName: string;
   title: string;
   snippet: string;
   matchScore: number;
   deepLink: string;
-  metadata: Record<string, any>;
-  timestamp: string;
+  thumbnailUrl?: string;
+  metadata?: Record<string, any>;
+  timestamp?: string;
 }
 
 /**
- * Search trips by name/location
+ * Search trips
  */
 async function searchTrips(
   query: string,
@@ -49,63 +40,62 @@ async function searchTrips(
   const queryLower = query.toLowerCase();
 
   if (isDemoMode) {
-    // ⚡ OPTIMIZATION: Synchronous demo data loading
-    const mockTrips = demoModeService.getMockTrips();
+    const mockTrips = (await import('@/data/tripsData')).trips;
     return mockTrips
       .filter(trip => {
         const matchesQuery = 
-          trip.name.toLowerCase().includes(queryLower) ||
-          trip.destination?.toLowerCase().includes(queryLower);
-        const matchesTripFilter = !tripIds || tripIds.includes(trip.id);
-        return matchesQuery && matchesTripFilter;
+          trip.title.toLowerCase().includes(queryLower) ||
+          trip.location.toLowerCase().includes(queryLower);
+        const matchesFilter = !tripIds || tripIds.includes(trip.id.toString());
+        return matchesQuery && matchesFilter;
       })
       .map(trip => ({
-        id: trip.id,
-        contentType: 'trip' as const,
-        tripId: trip.id,
-        tripName: trip.name,
-        title: trip.name,
-        snippet: trip.destination || '',
+        id: trip.id.toString(),
+        contentType: 'trips' as const,
+        tripId: trip.id.toString(),
+        tripName: trip.title,
+        title: trip.title,
+        snippet: trip.location,
         matchScore: 0.9,
         deepLink: `/trip/${trip.id}`,
-        metadata: { type: trip.trip_type, destination: trip.destination },
-        timestamp: trip.start_date || new Date().toISOString()
+        thumbnailUrl: trip.coverPhoto,
+        timestamp: new Date().toISOString()
       }));
   }
 
   // Search real trips
   const tripQuery = supabase
     .from('trips')
-    .select('id, name, destination, start_date, trip_type')
+    .select('id, name, destination, start_date, header_image_url')
     .or(`name.ilike.%${query}%,destination.ilike.%${query}%`);
 
   if (tripIds && tripIds.length > 0) {
     tripQuery.in('id', tripIds);
   }
 
-  const { data, error } = await tripQuery.limit(20);
+  const { data, error } = await tripQuery.limit(5);
   
   if (error) {
     console.error('Trip search error:', error);
     return [];
   }
 
-  return (data || []).map(trip => ({
+  return (data || []).map((trip: any) => ({
     id: trip.id,
-    contentType: 'trip' as const,
+    contentType: 'trips' as const,
     tripId: trip.id,
     tripName: trip.name,
     title: trip.name,
-    snippet: trip.destination || '',
+    snippet: trip.destination,
     matchScore: 0.9,
     deepLink: `/trip/${trip.id}`,
-    metadata: { type: trip.trip_type, destination: trip.destination },
-    timestamp: trip.start_date || new Date().toISOString()
+    thumbnailUrl: trip.header_image_url,
+    timestamp: trip.start_date
   }));
 }
 
 /**
- * Search messages across trips
+ * Search chat messages across trips (Trip Chat)
  */
 async function searchMessagesAcrossTrips(
   query: string,
@@ -115,7 +105,6 @@ async function searchMessagesAcrossTrips(
   const queryLower = query.toLowerCase();
 
   if (isDemoMode) {
-    // Search mock messages from mockSearchData
     const mockMessages = (await import('@/data/mockSearchData')).mockMessages;
     return mockMessages
       .filter(msg => {
@@ -125,11 +114,11 @@ async function searchMessagesAcrossTrips(
       })
       .map(msg => ({
         id: msg.id,
-        contentType: 'message' as const,
+        contentType: 'messages' as const,
         tripId: msg.tripId,
         tripName: msg.tripName,
         title: `Message from ${msg.authorName}`,
-        snippet: msg.content.slice(0, 150),
+        snippet: msg.content.slice(0, 100),
         matchScore: 0.85,
         deepLink: `/trip/${msg.tripId}#chat-message-${msg.id}`,
         metadata: { authorName: msg.authorName },
@@ -139,8 +128,8 @@ async function searchMessagesAcrossTrips(
 
   // Search real messages
   const messageQuery = supabase
-    .from('trip_chat_messages')
-    .select('id, content, author_name, created_at, trip_id, trips(name)')
+    .from('trip_messages')
+    .select('id, content, created_at, trip_id, author_id, trips(name), profiles:author_id(display_name)')
     .ilike('content', `%${query}%`)
     .order('created_at', { ascending: false });
 
@@ -157,16 +146,66 @@ async function searchMessagesAcrossTrips(
 
   return (data || []).map((msg: any) => ({
     id: msg.id,
-    contentType: 'message' as const,
+    contentType: 'messages' as const,
     tripId: msg.trip_id,
     tripName: msg.trips?.name || 'Unknown Trip',
-    title: `Message from ${msg.author_name}`,
+    title: `Message from ${msg.profiles?.display_name || 'User'}`,
     snippet: msg.content.slice(0, 150),
     matchScore: 0.85,
     deepLink: `/trip/${msg.trip_id}#chat-message-${msg.id}`,
-    metadata: { authorName: msg.author_name },
+    metadata: { authorName: msg.profiles?.display_name },
     timestamp: msg.created_at
   }));
+}
+
+/**
+ * Search concierge messages
+ */
+async function searchConciergeMessages(
+  query: string,
+  isDemoMode: boolean,
+  tripIds?: string[]
+): Promise<UniversalSearchResult[]> {
+  if (isDemoMode) {
+    // In demo mode, we could return some mock concierge results if needed
+    return [];
+  }
+
+  const conciergeQuery = supabase
+    .from('ai_queries')
+    .select('id, query_text, response_text, created_at, trip_id')
+    .or(`query_text.ilike.%${query}%,response_text.ilike.%${query}%`)
+    .order('created_at', { ascending: false });
+
+  if (tripIds && tripIds.length > 0) {
+    conciergeQuery.in('trip_id', tripIds);
+  }
+
+  const { data, error } = await conciergeQuery.limit(20);
+
+  if (error) {
+    console.error('Concierge search error:', error);
+    return [];
+  }
+
+  return (data || []).map((msg: any) => {
+    // Determine if query or response matched (or both)
+    const queryMatch = msg.query_text?.toLowerCase().includes(query.toLowerCase());
+    const text = queryMatch ? msg.query_text : msg.response_text;
+    const prefix = queryMatch ? 'You asked: ' : 'Concierge: ';
+
+    return {
+      id: msg.id,
+      contentType: 'concierge' as const,
+      tripId: msg.trip_id,
+      tripName: '', // Usually scoped to one trip anyway
+      title: 'Concierge Conversation',
+      snippet: prefix + (text?.slice(0, 150) || ''),
+      matchScore: 0.88,
+      deepLink: `/trip/${msg.trip_id}#concierge-message-${msg.id}`,
+      timestamp: msg.created_at
+    };
+  });
 }
 
 /**
@@ -366,6 +405,135 @@ async function searchPolls(
 }
 
 /**
+ * Search payments
+ */
+async function searchPayments(
+  query: string,
+  isDemoMode: boolean,
+  tripIds?: string[]
+): Promise<UniversalSearchResult[]> {
+  if (isDemoMode) {
+    // Return empty for now or add mock payments
+    return [];
+  }
+
+  const paymentQuery = supabase
+    .from('trip_payment_messages')
+    .select('id, description, amount, currency, created_at, trip_id')
+    .ilike('description', `%${query}%`)
+    .order('created_at', { ascending: false });
+
+  if (tripIds && tripIds.length > 0) {
+    paymentQuery.in('trip_id', tripIds);
+  }
+
+  const { data, error } = await paymentQuery.limit(20);
+
+  if (error) {
+    console.error('Payment search error:', error);
+    return [];
+  }
+
+  return (data || []).map((payment: any) => ({
+    id: payment.id,
+    contentType: 'payment' as const,
+    tripId: payment.trip_id,
+    tripName: '',
+    title: payment.description,
+    snippet: `Amount: ${payment.amount} ${payment.currency}`,
+    matchScore: 0.86,
+    deepLink: `/trip/${payment.trip_id}#payment-${payment.id}`,
+    metadata: { amount: payment.amount, currency: payment.currency },
+    timestamp: payment.created_at
+  }));
+}
+
+/**
+ * Search places (from trip_link_index)
+ */
+async function searchPlaces(
+  query: string,
+  isDemoMode: boolean,
+  tripIds?: string[]
+): Promise<UniversalSearchResult[]> {
+  if (isDemoMode) {
+    return [];
+  }
+
+  const placesQuery = supabase
+    .from('trip_link_index')
+    .select('id, og_title, og_description, created_at, trip_id')
+    .or(`og_title.ilike.%${query}%,og_description.ilike.%${query}%`)
+    .order('created_at', { ascending: false });
+
+  if (tripIds && tripIds.length > 0) {
+    placesQuery.in('trip_id', tripIds);
+  }
+
+  const { data, error } = await placesQuery.limit(20);
+
+  if (error) {
+    console.error('Places search error:', error);
+    return [];
+  }
+
+  return (data || []).map((place: any) => ({
+    id: place.id,
+    contentType: 'place' as const,
+    tripId: place.trip_id,
+    tripName: '',
+    title: place.og_title || 'Untitled Place',
+    snippet: place.og_description || '',
+    matchScore: 0.84,
+    deepLink: `/trip/${place.trip_id}#place-${place.id}`,
+    timestamp: place.created_at
+  }));
+}
+
+/**
+ * Search links (from trip_links)
+ */
+async function searchLinks(
+  query: string,
+  isDemoMode: boolean,
+  tripIds?: string[]
+): Promise<UniversalSearchResult[]> {
+  if (isDemoMode) {
+    return [];
+  }
+
+  const linksQuery = supabase
+    .from('trip_links')
+    .select('id, title, description, url, created_at, trip_id')
+    .or(`title.ilike.%${query}%,description.ilike.%${query}%,url.ilike.%${query}%`)
+    .order('created_at', { ascending: false });
+
+  if (tripIds && tripIds.length > 0) {
+    linksQuery.in('trip_id', tripIds);
+  }
+
+  const { data, error } = await linksQuery.limit(20);
+
+  if (error) {
+    console.error('Links search error:', error);
+    return [];
+  }
+
+  return (data || []).map((link: any) => ({
+    id: link.id,
+    contentType: 'link' as const,
+    tripId: link.trip_id,
+    tripName: '',
+    title: link.title || link.url,
+    snippet: link.description || link.url,
+    matchScore: 0.82,
+    deepLink: `/trip/${link.trip_id}#link-${link.id}`,
+    metadata: { url: link.url },
+    timestamp: link.created_at
+  }));
+}
+
+/**
  * Search media files
  */
 async function searchMedia(
@@ -452,14 +620,26 @@ export async function performUniversalSearch(
   if (contentTypes.includes('messages')) {
     searchPromises.push(searchMessagesAcrossTrips(query, isDemoMode, filters.tripIds));
   }
+  if (contentTypes.includes('concierge')) {
+    searchPromises.push(searchConciergeMessages(query, isDemoMode, filters.tripIds));
+  }
   if (contentTypes.includes('calendar')) {
     searchPromises.push(searchCalendarEvents(query, isDemoMode, filters.tripIds));
   }
-  if (contentTypes.includes('tasks')) {
+  if (contentTypes.includes('task')) {
     searchPromises.push(searchTasks(query, isDemoMode, filters.tripIds));
   }
-  if (contentTypes.includes('polls')) {
+  if (contentTypes.includes('poll')) {
     searchPromises.push(searchPolls(query, isDemoMode, filters.tripIds));
+  }
+  if (contentTypes.includes('payment')) {
+    searchPromises.push(searchPayments(query, isDemoMode, filters.tripIds));
+  }
+  if (contentTypes.includes('place')) {
+    searchPromises.push(searchPlaces(query, isDemoMode, filters.tripIds));
+  }
+  if (contentTypes.includes('link')) {
+    searchPromises.push(searchLinks(query, isDemoMode, filters.tripIds));
   }
   if (contentTypes.includes('media')) {
     searchPromises.push(searchMedia(query, isDemoMode, filters.tripIds));
