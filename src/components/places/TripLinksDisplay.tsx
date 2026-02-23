@@ -428,9 +428,9 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                   <DialogTrigger asChild>
                     <button
                       onClick={() => resetForm()}
-                      className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black px-4 py-2 md:px-5 md:py-2.5 rounded-xl transition-all font-medium text-sm md:text-base flex items-center shadow-lg shadow-yellow-500/25"
+                      className="bg-black/60 border border-white/30 text-white hover:bg-white/10 px-3.5 py-2.5 min-h-[42px] rounded-xl transition-all font-medium text-sm flex items-center"
                     >
-                      <Plus className="w-4 h-4 md:w-5 md:h-5 mr-1" />
+                      <Plus className="w-4 h-4 mr-1" />
                       Add Link
                     </button>
                   </DialogTrigger>
@@ -490,7 +490,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                         <Button variant="ghost" onClick={() => setIsAddModalOpen(false)}>
                           Cancel
                         </Button>
-                        <Button onClick={handleCreateLink}>Add Link</Button>
+                        <Button onClick={handleCreateLink} className="bg-black/60 border border-white/30 text-white hover:bg-white/10">Add Link</Button>
                       </div>
                     </div>
                   </DialogContent>
