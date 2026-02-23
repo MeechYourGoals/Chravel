@@ -124,7 +124,7 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.3",
     "vaul": "^0.9.3",
-    "vite": "^5.4.1",
+    "vite": "^5.4.21",
     "workbox-build": "^7.4.0",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.6"
