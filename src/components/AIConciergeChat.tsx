@@ -23,7 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const VOICE_ENABLED = true;
-const UPLOAD_ENABLED = false;
+const UPLOAD_ENABLED = true;
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AIConciergeChatProps {
@@ -190,9 +190,7 @@ export const AIConciergeChat = ({
     (userText: string, assistantText: string) => {
       if (voiceUserDraftIdRef.current && userText) {
         const draftId = voiceUserDraftIdRef.current;
-        setMessages(prev =>
-          prev.map(m => (m.id === draftId ? { ...m, content: userText } : m)),
-        );
+        setMessages(prev => prev.map(m => (m.id === draftId ? { ...m, content: userText } : m)));
       }
       if (voiceAssistantDraftIdRef.current && assistantText) {
         const draftId = voiceAssistantDraftIdRef.current;
@@ -210,6 +208,10 @@ export const AIConciergeChat = ({
     [tripId],
   );
 
+  const handleVoiceError = useCallback((message: string) => {
+    toast.error('Voice failed', { description: message });
+  }, []);
+
   const {
     state: geminiState,
     userTranscript,
@@ -221,6 +223,7 @@ export const AIConciergeChat = ({
   } = useGeminiLive({
     tripId,
     onTurnComplete: handleVoiceTurnComplete,
+    onError: handleVoiceError,
   });
 
   const effectiveVoiceState: VoiceState = geminiState as VoiceState;
@@ -766,7 +769,12 @@ export const AIConciergeChat = ({
 
       setMessages(prev => [...prev, assistantMessage]);
       // Persist to localStorage cache for offline fallback
-      conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id ?? 'anonymous');
+      conciergeCacheService.cacheMessage(
+        tripId,
+        currentInput,
+        assistantMessage,
+        user?.id ?? 'anonymous',
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('AI Concierge error:', error);
@@ -965,7 +973,9 @@ export const AIConciergeChat = ({
           {historyLoadedFromServer && messages.length > 0 && (
             <div className="flex items-center gap-2 mb-4">
               <div className="flex-1 h-px bg-white/10" />
-              <span className="text-xs text-gray-500 whitespace-nowrap">↩ Picked up where you left off</span>
+              <span className="text-xs text-gray-500 whitespace-nowrap">
+                ↩ Picked up where you left off
+              </span>
               <div className="flex-1 h-px bg-white/10" />
             </div>
           )}
@@ -976,9 +986,14 @@ export const AIConciergeChat = ({
 
         {/* Voice Active Indicator — only shown when voice session is active */}
         {VOICE_ENABLED && geminiState !== 'idle' && geminiState !== 'error' && (
-          <div className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0">
+          <div
+            className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
+            role="status"
+            aria-live="polite"
+            aria-label={`Voice: ${geminiState === 'listening' ? 'Listening' : geminiState === 'thinking' ? 'Processing' : geminiState === 'speaking' ? 'Speaking' : geminiState === 'connecting' ? 'Connecting' : 'Active'}`}
+          >
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
               <span className="text-sm text-emerald-300">
                 {geminiState === 'listening'
                   ? 'Listening...'
@@ -1041,20 +1056,24 @@ async function persistVoiceTurn(
   userText: string,
   assistantText: string,
 ): Promise<void> {
+  if (!tripId || (!userText.trim() && !assistantText.trim())) return;
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from('ai_queries').insert({
+    const { error } = await supabase.from('ai_queries').insert({
       trip_id: tripId,
       user_id: user.id,
-      query_text: userText || '[voice input]',
-      response_text: assistantText || '[voice response]',
+      query_text: userText.trim() || '[voice input]',
+      response_text: assistantText.trim() || '[voice response]',
       source_count: 0,
       created_at: new Date().toISOString(),
     });
+    if (error && import.meta.env.DEV) {
+      console.warn('[persistVoiceTurn] Insert failed:', error.message);
+    }
   } catch {
     // Persistence failure must never block voice UX
   }

@@ -154,7 +154,7 @@ export const AiChatInput = ({
         />
       )}
 
-      <div className="chat-composer flex flex-nowrap items-center gap-3">
+      <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
         {/* Microphone (left) — tap to start Gemini Live or Web Speech voice */}
         {onVoiceToggle && (
           <VoiceButton
@@ -165,16 +165,16 @@ export const AiChatInput = ({
           />
         )}
 
-        {/* Image attach button */}
+        {/* Image attach button — always visible when enabled (mobile-safe touch target) */}
         {showImageAttach && (
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || isLimitReached}
-            className="size-11 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="size-11 min-w-[44px] rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Attach image"
           >
-            <ImagePlus size={18} />
+            <ImagePlus size={18} aria-hidden />
           </button>
         )}
 
@@ -185,7 +185,7 @@ export const AiChatInput = ({
           placeholder={isLimitReached ? 'Upgrade to continue chatting...' : 'Ask me anything...'}
           rows={2}
           disabled={disabled || isLimitReached}
-          className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
           type="button"

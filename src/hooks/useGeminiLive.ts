@@ -22,6 +22,8 @@ interface UseGeminiLiveOptions {
   voice?: string;
   onToolCall?: (call: ToolCallRequest) => Promise<Record<string, unknown>>;
   onTurnComplete?: (userText: string, assistantText: string) => void;
+  /** Called when voice session fails — use for toast/analytics */
+  onError?: (message: string) => void;
 }
 
 interface UseGeminiLiveReturn {
@@ -43,7 +45,8 @@ const THINKING_DELAY_MS = 1_500;
 // Safari < 14.5 exposes webkitAudioContext instead of AudioContext
 const SafeAudioContext: typeof AudioContext | undefined =
   typeof window !== 'undefined'
-    ? window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    ? (window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
     : undefined;
 
 let idCounter = 0;
@@ -54,13 +57,20 @@ function uniqueId(prefix: string): string {
 
 function mapSessionError(raw: string): string {
   const lower = raw.toLowerCase();
-  if (lower.includes('unregistered callers') || lower.includes('callers without established identity')) {
+  if (
+    lower.includes('unregistered callers') ||
+    lower.includes('callers without established identity')
+  ) {
     return 'Voice failed: API key missing or restricted. Ensure GEMINI_API_KEY is set in Supabase Edge Function secrets.';
   }
   if (raw.includes('403') || lower.includes('not enabled')) {
     return 'Voice is unavailable right now (API configuration issue). Please try again later.';
   }
-  if (lower.includes('gemini_api_key') || lower.includes('api key') || lower.includes('not configured')) {
+  if (
+    lower.includes('gemini_api_key') ||
+    lower.includes('api key') ||
+    lower.includes('not configured')
+  ) {
     return 'Voice AI is not configured. Please contact support.';
   }
   if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('authentication')) {
@@ -104,6 +114,7 @@ export function useGeminiLive({
   voice = 'Puck',
   onToolCall,
   onTurnComplete,
+  onError,
 }: UseGeminiLiveOptions): UseGeminiLiveReturn {
   const [state, setState] = useState<GeminiLiveState>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -112,10 +123,19 @@ export function useGeminiLive({
 
   // ── Refs for WebSocket-safe callback access (avoids stale closures) ──
   const onTurnCompleteRef = useRef(onTurnComplete);
-  useEffect(() => { onTurnCompleteRef.current = onTurnComplete; }, [onTurnComplete]);
+  useEffect(() => {
+    onTurnCompleteRef.current = onTurnComplete;
+  }, [onTurnComplete]);
 
   const onToolCallRef = useRef(onToolCall);
-  useEffect(() => { onToolCallRef.current = onToolCall; }, [onToolCall]);
+  useEffect(() => {
+    onToolCallRef.current = onToolCall;
+  }, [onToolCall]);
+
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   // ── Internal refs ──
   const wsRef = useRef<WebSocket | null>(null);
@@ -176,7 +196,10 @@ export function useGeminiLive({
       wsRef.current.onmessage = null;
       wsRef.current.onerror = null;
       wsRef.current.onclose = null;
-      if (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING) {
+      if (
+        wsRef.current.readyState === WebSocket.OPEN ||
+        wsRef.current.readyState === WebSocket.CONNECTING
+      ) {
         wsRef.current.close();
       }
       wsRef.current = null;
@@ -314,7 +337,9 @@ export function useGeminiLive({
           : sessionError?.message;
 
       if (sessionError || !accessToken) {
-        throw new Error(mapSessionError(sessionErrMsg || 'Failed to get voice session'));
+        const errMsg = mapSessionError(sessionErrMsg || 'Failed to get voice session');
+        onErrorRef.current?.(errMsg);
+        throw new Error(errMsg);
       }
 
       // 2. Request microphone
@@ -331,13 +356,17 @@ export function useGeminiLive({
       } catch (mediaErr) {
         const name = mediaErr instanceof Error ? mediaErr.name : '';
         if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          throw new Error('Microphone permission denied. Allow microphone access in your browser settings and try again.');
+          throw new Error(
+            'Microphone permission denied. Allow microphone access in your browser settings and try again.',
+          );
         }
         if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
           throw new Error('No microphone detected. Connect a microphone and try again.');
         }
         if (name === 'NotReadableError' || name === 'TrackStartError') {
-          throw new Error('Microphone is already in use by another app. Close other apps and try again.');
+          throw new Error(
+            'Microphone is already in use by another app. Close other apps and try again.',
+          );
         }
         throw new Error('Could not access microphone. Check your audio settings and try again.');
       }
@@ -372,7 +401,7 @@ export function useGeminiLive({
       const websocketUrl =
         typeof sessionData?.websocketUrl === 'string' && sessionData.websocketUrl.length > 0
           ? sessionData.websocketUrl
-          : 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
+          : 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
       const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
       const ws = new WebSocket(wsUrl);
@@ -387,9 +416,14 @@ export function useGeminiLive({
       };
 
       ws.onopen = () => {
+        if (import.meta.env.DEV) {
+          console.log('[useGeminiLive] WebSocket opened, waiting for setupComplete');
+        }
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
-            setError('Voice connection timed out. Please try again.');
+            const msg = 'Voice connection timed out. Please try again.';
+            onErrorRef.current?.(msg);
+            setError(msg);
             setState('error');
             cleanup();
           }
@@ -412,13 +446,25 @@ export function useGeminiLive({
                 : code === 503
                   ? 'Voice service temporarily unavailable — please try again.'
                   : mapSessionError(serverMsg);
+            onErrorRef.current?.(userMsg);
             setError(userMsg);
             setState('error');
             cleanup();
             return;
           }
 
-          if (data.setupComplete) {
+          // setupComplete: top-level or nested (API versions may differ)
+          const setupComplete =
+            data.setupComplete === true ||
+            data.setup?.setupComplete === true ||
+            data.setupComplete === 'true' ||
+            (data.serverContent &&
+              (data.serverContent as { setupComplete?: boolean }).setupComplete === true);
+
+          if (setupComplete) {
+            if (import.meta.env.DEV) {
+              console.log('[useGeminiLive] setupComplete received, starting audio capture');
+            }
             clearSetupTimeout();
             isStartingRef.current = false;
             setState('listening');
@@ -491,9 +537,10 @@ export function useGeminiLive({
 
             if (sc.inputTranscript) {
               clearThinkingTimer();
-              const transcript = typeof sc.inputTranscript === 'string'
-                ? sc.inputTranscript
-                : sc.inputTranscript?.text || '';
+              const transcript =
+                typeof sc.inputTranscript === 'string'
+                  ? sc.inputTranscript
+                  : sc.inputTranscript?.text || '';
               if (transcript) {
                 userHasSpokenRef.current = true;
                 userTranscriptAccRef.current = transcript;
@@ -508,9 +555,10 @@ export function useGeminiLive({
             }
 
             if (sc.outputTranscript) {
-              const transcript = typeof sc.outputTranscript === 'string'
-                ? sc.outputTranscript
-                : sc.outputTranscript?.text || '';
+              const transcript =
+                typeof sc.outputTranscript === 'string'
+                  ? sc.outputTranscript
+                  : sc.outputTranscript?.text || '';
               if (transcript) {
                 assistantTranscriptAccRef.current += transcript;
                 setAssistantTranscript(assistantTranscriptAccRef.current);
@@ -556,6 +604,7 @@ export function useGeminiLive({
         }
 
         if (msg) {
+          onErrorRef.current?.(msg);
           setError(msg);
           setState('error');
         } else {
@@ -564,11 +613,21 @@ export function useGeminiLive({
         cleanup();
       };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start voice session.');
+      const errMsg = err instanceof Error ? err.message : 'Failed to start voice session.';
+      onErrorRef.current?.(errMsg);
+      setError(errMsg);
       setState('error');
       cleanup();
     }
-  }, [isSupported, tripId, voice, cleanup, handleToolCallWs, clearThinkingTimer, resetTurnAccumulators]);
+  }, [
+    isSupported,
+    tripId,
+    voice,
+    cleanup,
+    handleToolCallWs,
+    clearThinkingTimer,
+    resetTurnAccumulators,
+  ]);
 
   const interruptPlayback = useCallback(() => {
     flushModelOutput();
