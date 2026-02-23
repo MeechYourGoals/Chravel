@@ -434,7 +434,7 @@ serve(async req => {
     if (tripId) {
       try {
         // Voice is pro-only (checked above), so always include preferences
-        const tripContext = await TripContextBuilder.buildContext(
+        const tripContext = await TripContextBuilder.buildContextWithCache(
           tripId,
           user.id,
           authHeader,

@@ -40,7 +40,7 @@ interface UseGeminiLiveReturn {
 }
 
 const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
-const SESSION_TIMEOUT_MS = 15_000;
+const SESSION_TIMEOUT_MS = 30_000;
 const WEBSOCKET_SETUP_TIMEOUT_MS = 15_000;
 const THINKING_DELAY_MS = 1_500;
 
