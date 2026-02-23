@@ -1,5 +1,5 @@
 /**
- * AI Concierge Chat Component Tests
+ * AIConciergeChat Component Tests
  *
  * Tests cover:
  * - Rate limiting UI and countdown timer
@@ -14,7 +14,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { AIConciergeChat } from '../AIConciergeChat';
 import { conciergeCacheService } from '../../services/conciergeCacheService';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 
 // Mock dependencies
 vi.mock('../../integrations/supabase/client', () => ({
@@ -98,18 +97,35 @@ const createWrapper = () => {
 };
 
 describe('AIConciergeChat', () => {
+  let queryClient: QueryClient;
+
   beforeEach(() => {
     vi.clearAllMocks();
     conciergeCacheService.clearAllCaches();
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
+  const renderWithProviders = (component: React.ReactNode) => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        {component}
+      </QueryClientProvider>
+    );
+  };
+
   describe('Header Simplification', () => {
     it('shows privacy text and query allowance near title', async () => {
-      render(<AIConciergeChat tripId="test-trip" />, { wrapper: createWrapper() });
+      renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       await waitFor(() => {
         expect(screen.getByText(/private convo/i)).toBeInTheDocument();
@@ -118,7 +134,7 @@ describe('AIConciergeChat', () => {
     });
 
     it('removes legacy status pills from header', () => {
-      render(<AIConciergeChat tripId="test-trip" />, { wrapper: createWrapper() });
+      renderWithProviders(<AIConciergeChat tripId="test-trip" />);
       expect(screen.queryByText(/ready with web search/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/^live$/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/limited mode/i)).not.toBeInTheDocument();
@@ -144,7 +160,7 @@ describe('AIConciergeChat', () => {
 
       conciergeCacheService.cacheMessage('test-trip', 'test query', cachedMessages[1] as any);
 
-      render(<AIConciergeChat tripId="test-trip" />, { wrapper: createWrapper() });
+      renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       // Messages should be loaded from cache
       const loaded = conciergeCacheService.getCachedMessages('test-trip');

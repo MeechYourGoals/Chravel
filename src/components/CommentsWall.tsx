@@ -58,6 +58,40 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
     canDelete: true,
   };
 
+  // Determine responsive breakpoints based on variant parity
+  const isMdVariant = variant === 'pro' || variant === 'events';
+
+  const gridClass = isMdVariant ? 'md:grid' : 'sm:grid';
+  const gridColsClass = variant === 'pro'
+    ? 'md:grid-cols-9'
+    : variant === 'events'
+      ? 'md:grid-cols-8'
+      : 'sm:grid-cols-8';
+
+  const headerSpanClass = variant === 'pro'
+    ? PRO_PARITY_HEADER_SPAN_CLASS
+    : variant === 'events'
+      ? EVENT_PARITY_HEADER_SPAN_CLASS
+      : TRIP_PARITY_HEADER_SPAN_CLASS;
+
+  const buttonColStartClass = variant === 'pro'
+    ? PRO_PARITY_COL_START.team
+    : variant === 'events'
+      ? EVENT_PARITY_COL_START.tasks
+      : TRIP_PARITY_COL_START.tasks;
+
+  const buttonResponsiveClass = isMdVariant
+    ? 'md:w-full md:min-w-[110px] md:px-4 md:py-2.5 md:rounded-xl'
+    : 'sm:w-full sm:min-w-[110px] sm:px-4 sm:py-2.5 sm:rounded-xl';
+
+  const iconResponsiveClass = isMdVariant
+    ? 'md:w-3.5 md:h-3.5'
+    : 'sm:w-3.5 sm:h-3.5';
+
+  const textResponsiveClass = isMdVariant
+    ? 'md:inline'
+    : 'sm:inline';
+
   return (
     <div className="relative p-4 space-y-3">
       {(isRefreshing || pullDistance > 0) && (
@@ -68,9 +102,11 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         />
       )}
       {/* Row 1: Header + Create Poll Button */}
-      <div className={variant === 'pro' ? PRO_PARITY_ROW_CLASS : variant === 'events' ? EVENT_PARITY_ROW_CLASS : TRIP_PARITY_ROW_CLASS}>
+      <div
+        className={`flex items-center justify-between gap-2 ${gridClass} ${gridColsClass}`}
+      >
         <h3
-          className={`text-base font-semibold text-white flex items-center gap-2 ${variant === 'pro' ? PRO_PARITY_HEADER_SPAN_CLASS : variant === 'events' ? EVENT_PARITY_HEADER_SPAN_CLASS : TRIP_PARITY_HEADER_SPAN_CLASS}`}
+          className={`text-base font-semibold text-white flex items-center gap-2 ${headerSpanClass}`}
         >
           <MessageCircle size={18} className="text-glass-enterprise-blue" />
           Group Polls
@@ -78,16 +114,13 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         {effectivePermissions.canCreate && (
           <Button
             onClick={() => setShowCreatePoll(true)}
-            className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg min-w-[110px] px-4`}
+            className={`${buttonColStartClass} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90 text-black shadow-lg w-auto min-w-0 p-3 rounded-lg ${buttonResponsiveClass}`}
           >
-            <Plus size={14} className="flex-shrink-0" />
-            <span className="whitespace-nowrap text-sm">New Poll</span>
+            <Plus className={`w-5 h-5 flex-shrink-0 ${iconResponsiveClass}`} />
+            <span className={`whitespace-nowrap text-sm hidden ${textResponsiveClass}`}>New Poll</span>
           </Button>
         )}
       </div>
-
-
-
 
       {/* Row 3: Poll Content */}
       <PollComponent

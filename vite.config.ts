@@ -77,11 +77,8 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    // Enable minification (defaults to esbuild)
-    // esbuild is significantly faster and uses less memory than terser
-    esbuild: {
-      drop: mode === 'production' ? ['console', 'debugger'] : [],
-    },
+    // Use esbuild for faster and lighter minification (default)
+    minify: 'esbuild',
     // Optimize CSS
     cssMinify: true,
     // Set chunk size warnings

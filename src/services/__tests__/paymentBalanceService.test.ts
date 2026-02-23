@@ -15,12 +15,17 @@ const createChainableMock = (resolvedValue: { data: any; error: any }) => {
     eq: vi.fn().mockReturnThis(),
     neq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
-    or: vi.fn().mockReturnThis(), // Added missing 'or' method
+    or: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue(resolvedValue),
     single: vi.fn().mockResolvedValue(resolvedValue),
-    then: vi.fn((resolve: any) => resolve(resolvedValue)),
+    then: vi.fn((resolve: any, reject: any) => {
+        // If resolvedValue contains error, we might want to consider it a "success" response from Supabase client
+        // (Supabase client doesn't throw on error usually, unless .throwOnError() is used, which is not here)
+        // So we resolve with the value.
+        resolve(resolvedValue);
+    }),
   };
-  // Make all chain methods return the chain
+  // Make all chain methods return the chain explicitly
   chain.select.mockReturnValue(chain);
   chain.eq.mockReturnValue(chain);
   chain.neq.mockReturnValue(chain);
@@ -52,7 +57,7 @@ describe('paymentBalanceService', () => {
       if (tableMocks[table]) {
         return tableMocks[table];
       }
-      // Default: return an empty chainable mock
+      // Default: return an empty chainable mock to prevent crashes
       return createChainableMock({ data: [], error: null });
     };
   };
@@ -145,13 +150,12 @@ describe('paymentBalanceService', () => {
         }),
       );
 
-      // Mock currency conversion (same currency, no conversion needed)
       vi.mocked(currencyService.normalizeToBaseCurrency).mockResolvedValue([
         { amount: 100, currency: 'USD', originalAmount: 100, originalCurrency: 'USD' },
       ]);
       vi.mocked(currencyService.convertCurrency).mockResolvedValue(50);
 
-      const result = await paymentBalanceService.getBalanceSummary('trip-1', 'user-1');
+      const result = await paymentBalanceService.getBalanceSummary('trip-1', 'user-1', 'USD');
 
       expect(result.baseCurrency).toBe('USD');
       expect(result.balances).toHaveLength(1);
@@ -161,7 +165,6 @@ describe('paymentBalanceService', () => {
     });
 
     it('should handle multi-currency payments correctly', async () => {
-      // Simplified test: User 1 pays EUR, user 2 owes them money
       const mockPayments = [
         {
           id: 'payment-1',
@@ -212,23 +215,19 @@ describe('paymentBalanceService', () => {
         }),
       );
 
-      // Mock currency conversion - EUR payment normalized to USD
       vi.mocked(currencyService.normalizeToBaseCurrency).mockResolvedValue([
         { amount: 54.5, currency: 'USD', originalAmount: 50, originalCurrency: 'EUR' },
       ]);
 
-      // Mock split conversion: 25 EUR -> ~27.25 USD
       vi.mocked(currencyService.convertCurrency).mockResolvedValue(27.25);
 
       const result = await paymentBalanceService.getBalanceSummary('trip-1', 'user-1', 'USD');
 
       expect(result.baseCurrency).toBe('USD');
-      // The service normalizes currencies - test that it returns the right currency
-      expect(result.baseCurrency).toBe('USD');
-      // Test passes if no errors are thrown and we get a valid result structure
-      expect(result).toHaveProperty('balances');
-      expect(result).toHaveProperty('totalOwed');
-      expect(result).toHaveProperty('totalOwedToYou');
+      expect(result.balances).toHaveLength(1); // FAILED HERE BEFORE
+      expect(result.balances[0].userId).toBe('user-2');
+      expect(result.balances[0].amountOwed).toBeCloseTo(27.25);
+      expect(result.totalOwedToYou).toBeCloseTo(27.25);
     });
 
     it('should filter out settled payments', async () => {
@@ -386,6 +385,7 @@ describe('paymentBalanceService', () => {
 
       const result = await paymentBalanceService.getBalanceSummary('trip-1', 'user-1');
 
+      expect(result.balances).toHaveLength(1);
       expect(result.balances[0].preferredPaymentMethod).toBeTruthy();
       expect(result.balances[0].preferredPaymentMethod?.type).toBe('venmo');
       expect(result.balances[0].preferredPaymentMethod?.identifier).toBe('@user2');
@@ -393,10 +393,16 @@ describe('paymentBalanceService', () => {
     });
 
     it('should throw error when user is not authenticated', async () => {
+      // Mock auth to return error
       (supabase.auth.getUser as any).mockResolvedValue({
         data: { user: null },
         error: { message: 'Not authenticated' },
       });
+
+      // We don't expect DB calls, but safeguard mocks
+      (supabase.from as any).mockImplementation(
+        createFromMock({})
+      );
 
       await expect(paymentBalanceService.getBalanceSummary('trip-1', 'user-1')).rejects.toThrow(
         'Unauthorized: Authentication required',
@@ -409,6 +415,7 @@ describe('paymentBalanceService', () => {
         error: null,
       });
 
+      // Updated to handle .or() being called
       (supabase.from as any).mockImplementation((table: string) => {
         if (table === 'trip_members') {
           return createChainableMock({ data: null, error: null });
@@ -422,6 +429,8 @@ describe('paymentBalanceService', () => {
     });
 
     it('should handle errors gracefully', async () => {
+        // This test simulates a DB error that is NOT unauthorized
+        // The service catches generic errors and returns empty summary
       const mockSelect = vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({
           data: null,
@@ -431,21 +440,13 @@ describe('paymentBalanceService', () => {
 
       (supabase.from as any).mockImplementation((table: string) => {
         if (table === 'trip_members') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  or: vi.fn().mockReturnValue({ // Add missing or
-                    maybeSingle: vi
-                      .fn()
-                      .mockResolvedValue({ data: { id: 'membership-1' }, error: null }),
-                  }),
-                }),
-              }),
-            }),
-          };
+          // Simulate DB error on trip_members query
+          const chain = createChainableMock({ data: null, error: { message: 'DB Error' } });
+          // Overwrite maybeSingle to return error
+          chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: { message: 'DB Error' } });
+          return chain;
         }
-        return { select: mockSelect };
+        return createChainableMock({ data: [], error: null });
       });
 
       const result = await paymentBalanceService.getBalanceSummary('trip-1', 'user-1');
