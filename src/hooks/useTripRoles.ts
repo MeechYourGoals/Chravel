@@ -157,7 +157,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
           return { success: true, message: 'Role created', role_id: newRole.id };
         }
 
-        const { data, error } = await supabase.rpc('create_trip_role' as 'create_trip_role', {
+        const { data, error } = await supabase.rpc('create_trip_role' as const, {
           _trip_id: tripId,
           _role_name: roleName,
           _permission_level: permissionLevel,
@@ -205,7 +205,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
           return { success: true, message: 'Role deleted' };
         }
 
-        const { data, error } = await supabase.rpc('delete_trip_role' as 'delete_trip_role', {
+        const { data, error } = await supabase.rpc('delete_trip_role' as const, {
           _role_id: roleId,
         });
 

@@ -158,7 +158,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
 
       setIsProcessing(true);
       try {
-        const { data, error } = await supabase.rpc('promote_to_admin' as 'promote_to_admin', {
+        const { data, error } = await supabase.rpc('promote_to_admin' as const, {
           _trip_id: tripId,
           _target_user_id: targetUserId,
         });
@@ -187,7 +187,7 @@ export const useTripAdmins = ({ tripId, enabled = true }: UseTripAdminsProps) =>
 
       setIsProcessing(true);
       try {
-        const { data, error } = await supabase.rpc('demote_from_admin' as 'demote_from_admin', {
+        const { data, error } = await supabase.rpc('demote_from_admin' as const, {
           _trip_id: tripId,
           _target_user_id: targetUserId,
         });
