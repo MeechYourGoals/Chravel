@@ -44,6 +44,17 @@ const SESSION_TIMEOUT_MS = 30_000;
 const WEBSOCKET_SETUP_TIMEOUT_MS = 15_000;
 const THINKING_DELAY_MS = 1_500;
 
+/** Structured debug logging — enabled in dev mode or when VITE_VOICE_DEBUG=true */
+const VOICE_DEBUG =
+  typeof import.meta !== 'undefined' &&
+  (import.meta.env?.DEV || import.meta.env?.VITE_VOICE_DEBUG === 'true');
+
+function voiceLog(event: string, data?: Record<string, unknown>): void {
+  if (!VOICE_DEBUG) return;
+  const ts = new Date().toISOString().slice(11, 23);
+  console.log(`[GeminiLive ${ts}] ${event}`, data ?? '');
+}
+
 // Safari < 14.5 exposes webkitAudioContext instead of AudioContext
 const SafeAudioContext: typeof AudioContext | undefined =
   typeof window !== 'undefined'
@@ -320,6 +331,7 @@ export function useGeminiLive({
       setState('connecting');
       setError(null);
       resetTurnAccumulators();
+      voiceLog('session:start', { tripId, voice });
 
       // Create AudioContext FIRST — synchronously, before any await.
       // Safari and iOS require AudioContext to be created (or resume()d) within the
@@ -331,6 +343,10 @@ export function useGeminiLive({
       try {
         // Use system default sample rate for best compatibility (echo cancellation etc)
         audioCtxRef.current = new SafeAudioContext();
+        voiceLog('audioContext:created', {
+          sampleRate: audioCtxRef.current.sampleRate,
+          state: audioCtxRef.current.state,
+        });
       } catch {
         throw new Error('Failed to initialize audio system.');
       }
@@ -364,9 +380,16 @@ export function useGeminiLive({
 
       if (sessionError || !accessToken) {
         const errMsg = mapSessionError(sessionErrMsg || 'Failed to get voice session');
+        voiceLog('session:tokenError', { error: errMsg });
         onErrorRef.current?.(errMsg);
         throw new Error(errMsg);
       }
+      voiceLog('session:tokenReceived', {
+        hasToken: true,
+        model: sessionData?.model,
+        voice: sessionData?.voice,
+        hasWebsocketUrl: !!sessionData?.websocketUrl,
+      });
 
       // 2. Request microphone
       let stream: MediaStream;
@@ -398,26 +421,53 @@ export function useGeminiLive({
         throw new Error('Could not access microphone. Check your audio settings and try again.');
       }
       mediaStreamRef.current = stream;
+      voiceLog('mic:acquired', {
+        tracks: stream.getAudioTracks().map(t => ({
+          label: t.label,
+          settings: t.getSettings(),
+        })),
+      });
 
       // 3. AudioContext already created above.
-      // Resume again here in case it was suspended after the async gap
+      // Resume again here in case it was suspended after the async gap.
+      // iOS Safari often suspends contexts; we must force-resume and verify.
       if (audioCtxRef.current?.state === 'suspended') {
+        await audioCtxRef.current.resume().catch(() => {});
+      }
+      // If still suspended after resume attempt, try one more time with a small delay
+      // (iOS Safari sometimes needs a tick before the context unblocks).
+      if (audioCtxRef.current?.state === 'suspended') {
+        await new Promise(r => setTimeout(r, 100));
         await audioCtxRef.current.resume().catch(() => {});
       }
 
       if (!audioCtxRef.current) {
         throw new Error('Audio context lost.');
       }
+      voiceLog('audioContext:resumed', {
+        state: audioCtxRef.current.state,
+        sampleRate: audioCtxRef.current.sampleRate,
+      });
 
       playbackQueueRef.current = new AudioPlaybackQueue(audioCtxRef.current);
 
       // 4. Open WebSocket to Gemini Live
+      // Ephemeral tokens MUST use BidiGenerateContentConstrained (not BidiGenerateContent).
+      // BidiGenerateContent expects ?key=<API_KEY> while BidiGenerateContentConstrained
+      // expects ?access_token=<EPHEMERAL_TOKEN>.
+      const CONSTRAINED_WS_URL =
+        'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
       const websocketUrl =
         typeof sessionData?.websocketUrl === 'string' && sessionData.websocketUrl.length > 0
           ? sessionData.websocketUrl
-          : 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
+          : CONSTRAINED_WS_URL;
 
       const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
+      voiceLog('ws:connecting', {
+        endpoint: websocketUrl.split('/').pop(),
+        audioContextState: audioCtxRef.current?.state,
+        audioContextSampleRate: audioCtxRef.current?.sampleRate,
+      });
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -430,9 +480,7 @@ export function useGeminiLive({
       };
 
       ws.onopen = () => {
-        if (import.meta.env.DEV) {
-          console.log('[useGeminiLive] WebSocket opened, waiting for setupComplete');
-        }
+        voiceLog('ws:opened', { readyState: ws.readyState });
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
             const msg = 'Voice connection timed out. Please try again.';
@@ -450,6 +498,7 @@ export function useGeminiLive({
           const data = JSON.parse(event.data);
 
           if (data.error) {
+            voiceLog('ws:serverError', { code: data.error?.code, message: data.error?.message });
             clearSetupTimeout();
             const code: number | undefined = data.error?.code;
             const serverMsg = String(data.error?.message || 'Voice session error');
@@ -472,9 +521,10 @@ export function useGeminiLive({
               Object.prototype.hasOwnProperty.call(data.serverContent, 'setupComplete'));
 
           if (setupComplete) {
-            if (import.meta.env.DEV) {
-              console.log('[useGeminiLive] setupComplete received, starting audio capture');
-            }
+            voiceLog('ws:setupComplete', {
+              audioContextState: audioCtxRef.current?.state,
+              hasMediaStream: !!mediaStreamRef.current,
+            });
             clearSetupTimeout();
             isStartingRef.current = false;
             setState('listening');
@@ -499,6 +549,11 @@ export function useGeminiLive({
           }
 
           if (data.toolCall) {
+            voiceLog('server:toolCall', {
+              functions: ((data.toolCall.functionCalls || []) as Array<{ name: string }>).map(
+                fc => fc.name,
+              ),
+            });
             void handleToolCallWs(ws, data.toolCall);
             return;
           }
@@ -507,6 +562,7 @@ export function useGeminiLive({
             const sc = data.serverContent;
 
             if (sc.interrupted) {
+              voiceLog('server:interrupted');
               playbackQueueRef.current?.flush();
               clearThinkingTimer();
               modelRespondingRef.current = false;
@@ -534,6 +590,12 @@ export function useGeminiLive({
 
             for (const part of parts) {
               if (part.inlineData?.data) {
+                if (!modelRespondingRef.current) {
+                  voiceLog('server:firstAudioChunk', {
+                    mimeType: part.inlineData.mimeType,
+                    dataLen: part.inlineData.data.length,
+                  });
+                }
                 setState('speaking');
                 playbackQueueRef.current?.enqueue(part.inlineData.data);
               }
@@ -575,6 +637,10 @@ export function useGeminiLive({
             }
 
             if (sc.turnComplete) {
+              voiceLog('server:turnComplete', {
+                userText: userTranscriptAccRef.current.slice(0, 50),
+                assistantText: assistantTranscriptAccRef.current.slice(0, 50),
+              });
               playbackQueueRef.current?.flush();
               clearThinkingTimer();
 
@@ -598,11 +664,13 @@ export function useGeminiLive({
         }
       };
 
-      ws.onerror = () => {
+      ws.onerror = ev => {
+        voiceLog('ws:error', { type: (ev as ErrorEvent).message ?? 'unknown' });
         clearSetupTimeout();
       };
 
       ws.onclose = event => {
+        voiceLog('ws:closed', { code: event.code, reason: event.reason, wasClean: event.wasClean });
         clearSetupTimeout();
         const msg = mapWsCloseError(event.code, event.reason);
 
