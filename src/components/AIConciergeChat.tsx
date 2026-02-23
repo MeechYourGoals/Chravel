@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, Crown, Sparkles, Square } from 'lucide-react';
+import { Search, Crown, Sparkles, Square, Mic } from 'lucide-react';
+import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from '@/features/chat/components/ChatMessages';
@@ -174,6 +175,7 @@ export const AIConciergeChat = ({
     'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
   >('connected');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
@@ -1094,18 +1096,44 @@ export const AIConciergeChat = ({
         {/* Header */}
         <div className="border-b border-white/10 bg-black/30 p-3 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <Search size={20} className="text-white" />
-            </div>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95"
+              aria-label="Search concierge"
+            >
+              <Search size={18} className="text-white" />
+            </button>
             <span className={`text-xs whitespace-nowrap ${queryAllowanceTone}`}>
               {queryAllowanceText}
             </span>
             <h3 className="text-lg font-semibold text-white flex-1 text-center">AI Concierge</h3>
             <p className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
-              🔒 Private Convo
+              Private Convo
             </p>
+            {VOICE_LIVE_ENABLED && (
+              <button
+                type="button"
+                onClick={handleVoiceToggle}
+                className="w-9 h-9 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95"
+                aria-label="Voice concierge"
+              >
+                <Mic size={16} className="text-white" />
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Search Modal */}
+        <ConciergeSearchModal
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          messages={messages}
+          onSelectMessage={(id) => {
+            const el = document.getElementById(`msg-${id}`);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }}
+        />
 
         {/* Usage Limit Reached State */}
         {isQueryLimitReached && usage?.limit !== null && (
