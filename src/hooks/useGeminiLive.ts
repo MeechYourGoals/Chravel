@@ -141,8 +141,8 @@ export function useGeminiLive({
 
   // ── Internal refs ──
   const wsRef = useRef<WebSocket | null>(null);
-  const playbackCtxRef = useRef<AudioContext | null>(null);
-  const captureCtxRef = useRef<AudioContext | null>(null);
+  // Using a single AudioContext for input and output to avoid conflicts and improve echo cancellation
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const captureHandleRef = useRef<AudioCaptureHandle | null>(null);
   const playbackQueueRef = useRef<AudioPlaybackQueue | null>(null);
@@ -183,15 +183,10 @@ export function useGeminiLive({
     playbackQueueRef.current?.destroy();
     playbackQueueRef.current = null;
 
-    if (playbackCtxRef.current?.state !== 'closed') {
-      playbackCtxRef.current?.close().catch(() => {});
+    if (audioCtxRef.current?.state !== 'closed') {
+      audioCtxRef.current?.close().catch(() => {});
     }
-    playbackCtxRef.current = null;
-
-    if (captureCtxRef.current?.state !== 'closed') {
-      captureCtxRef.current?.close().catch(() => {});
-    }
-    captureCtxRef.current = null;
+    audioCtxRef.current = null;
 
     if (wsRef.current) {
       wsRef.current.onopen = null;
@@ -326,7 +321,7 @@ export function useGeminiLive({
       setError(null);
       resetTurnAccumulators();
 
-      // Create AudioContexts FIRST — synchronously, before any await.
+      // Create AudioContext FIRST — synchronously, before any await.
       // Safari and iOS require AudioContext to be created (or resume()d) within the
       // synchronous frame of a user gesture. After the first await, the gesture
       // context expires and suspended contexts can never be unlocked on strict browsers.
@@ -334,21 +329,15 @@ export function useGeminiLive({
         throw new Error('Audio is not supported in this browser.');
       }
       try {
-        playbackCtxRef.current = new SafeAudioContext({ sampleRate: 24000 });
+        // Use system default sample rate for best compatibility (echo cancellation etc)
+        audioCtxRef.current = new SafeAudioContext();
       } catch {
-        throw new Error('Failed to initialize audio playback.');
+        throw new Error('Failed to initialize audio system.');
       }
-      try {
-        captureCtxRef.current = new SafeAudioContext();
-      } catch {
-        playbackCtxRef.current?.close().catch(() => {});
-        playbackCtxRef.current = null;
-        throw new Error('Failed to initialize audio capture.');
-      }
+
       // Kick off resume synchronously — no await, so we stay in the gesture frame.
       // If already running (common on second open) this is a no-op.
-      void playbackCtxRef.current.resume().catch(() => {});
-      void captureCtxRef.current.resume().catch(() => {});
+      void audioCtxRef.current.resume().catch(() => {});
 
       // 1. Fetch ephemeral token
       const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
@@ -388,6 +377,7 @@ export function useGeminiLive({
             channelCount: 1,
             echoCancellation: true,
             noiseSuppression: true,
+            autoGainControl: true, // Also important for voice clarity
           },
         });
       } catch (mediaErr) {
@@ -409,17 +399,17 @@ export function useGeminiLive({
       }
       mediaStreamRef.current = stream;
 
-      // 3. AudioContexts already created above (before first await).
-      // Resume again here in case they were suspended after the async gap
-      // (Chrome usually handles this fine; this is a belt-and-suspenders guard).
-      if (playbackCtxRef.current?.state === 'suspended') {
-        await playbackCtxRef.current.resume().catch(() => {});
-      }
-      if (captureCtxRef.current?.state === 'suspended') {
-        await captureCtxRef.current.resume().catch(() => {});
+      // 3. AudioContext already created above.
+      // Resume again here in case it was suspended after the async gap
+      if (audioCtxRef.current?.state === 'suspended') {
+        await audioCtxRef.current.resume().catch(() => {});
       }
 
-      playbackQueueRef.current = new AudioPlaybackQueue(playbackCtxRef.current);
+      if (!audioCtxRef.current) {
+        throw new Error('Audio context lost.');
+      }
+
+      playbackQueueRef.current = new AudioPlaybackQueue(audioCtxRef.current);
 
       // 4. Open WebSocket to Gemini Live
       const websocketUrl =
@@ -455,7 +445,6 @@ export function useGeminiLive({
       };
 
       // ── WebSocket message handler ──
-      // All mutable state is accessed via refs to avoid stale closures.
       ws.onmessage = event => {
         try {
           const data = JSON.parse(event.data);
@@ -477,10 +466,6 @@ export function useGeminiLive({
             return;
           }
 
-          // Gemini Live sends {"setupComplete": {}} — the value is an empty protobuf
-          // message serialised as an empty object {}, NOT boolean true. Comparing
-          // `=== true` always fails, keeping the session stuck in 'connecting' forever.
-          // The correct check is simply: does the key exist in the message?
           const setupComplete =
             Object.prototype.hasOwnProperty.call(data, 'setupComplete') ||
             (data.serverContent != null &&
@@ -494,10 +479,10 @@ export function useGeminiLive({
             isStartingRef.current = false;
             setState('listening');
 
-            if (captureCtxRef.current && mediaStreamRef.current) {
+            if (audioCtxRef.current && mediaStreamRef.current) {
               captureHandleRef.current = startAudioCapture(
                 mediaStreamRef.current,
-                captureCtxRef.current,
+                audioCtxRef.current,
                 (base64PCM: string) => {
                   if (ws.readyState !== WebSocket.OPEN) return;
                   ws.send(
@@ -510,7 +495,6 @@ export function useGeminiLive({
                 },
               );
             }
-            // No thinking timer here — it only starts after user speaks
             return;
           }
 

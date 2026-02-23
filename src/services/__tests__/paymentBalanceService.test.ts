@@ -15,6 +15,7 @@ const createChainableMock = (resolvedValue: { data: any; error: any }) => {
     eq: vi.fn().mockReturnThis(),
     neq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(), // Added missing .or() method
     maybeSingle: vi.fn().mockResolvedValue(resolvedValue),
     single: vi.fn().mockResolvedValue(resolvedValue),
     then: vi.fn((resolve: any) => resolve(resolvedValue)),
@@ -24,6 +25,7 @@ const createChainableMock = (resolvedValue: { data: any; error: any }) => {
   chain.eq.mockReturnValue(chain);
   chain.neq.mockReturnValue(chain);
   chain.in.mockReturnValue(chain);
+  chain.or.mockReturnValue(chain);
   return chain;
 };
 
@@ -221,9 +223,6 @@ describe('paymentBalanceService', () => {
       const result = await paymentBalanceService.getBalanceSummary('trip-1', 'user-1', 'USD');
 
       expect(result.baseCurrency).toBe('USD');
-      // The service normalizes currencies - test that it returns the right currency
-      expect(result.baseCurrency).toBe('USD');
-      // Test passes if no errors are thrown and we get a valid result structure
       expect(result).toHaveProperty('balances');
       expect(result).toHaveProperty('totalOwed');
       expect(result).toHaveProperty('totalOwedToYou');
@@ -407,6 +406,7 @@ describe('paymentBalanceService', () => {
         error: null,
       });
 
+      // Updated to handle .or() being called
       (supabase.from as any).mockImplementation((table: string) => {
         if (table === 'trip_members') {
           return createChainableMock({ data: null, error: null });
@@ -420,28 +420,23 @@ describe('paymentBalanceService', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Database error' },
-        }),
-      });
+      // Create a mock that returns a chainable object for select().eq()... etc
+      // We need to support the chain structure used in the service
+      const mockChain = createChainableMock({ data: [], error: null });
+
+      // Override eq to throw or return error on a specific call?
+      // The service does:
+      // [membershipResult, messagesResult] = await Promise.all(...)
+      // If messagesResult has error, it throws.
 
       (supabase.from as any).mockImplementation((table: string) => {
         if (table === 'trip_members') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
-                  maybeSingle: vi
-                    .fn()
-                    .mockResolvedValue({ data: { id: 'membership-1' }, error: null }),
-                }),
-              }),
-            }),
-          };
+           return createChainableMock({ data: { id: 'mem-1' }, error: null });
         }
-        return { select: mockSelect };
+        if (table === 'trip_payment_messages') {
+           return createChainableMock({ data: null, error: { message: 'Database error' } });
+        }
+        return createChainableMock({ data: [], error: null });
       });
 
       const result = await paymentBalanceService.getBalanceSummary('trip-1', 'user-1');

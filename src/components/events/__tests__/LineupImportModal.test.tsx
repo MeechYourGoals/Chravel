@@ -40,9 +40,11 @@ describe('LineupImportModal', () => {
       screen.getByPlaceholderText('Paste lineup page URL'),
       'https://example.com/artists',
     );
-    await user.click(screen.getByRole('button', { name: 'Extract' }));
+    // Button is labeled "Import" with icon, so we search by name /Import/i
+    await user.click(screen.getByRole('button', { name: /Import/i }));
 
-    expect(await screen.findByText('3 names ready to import')).toBeInTheDocument();
+    // Use regex to be resilient against whitespace
+    expect(await screen.findByText(/3 names ready to import/i)).toBeInTheDocument();
 
     const theoBadge = screen.getByText('Theo Von');
     const row = theoBadge.parentElement as HTMLElement;
@@ -82,6 +84,6 @@ describe('LineupImportModal', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Extract Names with AI' }));
 
-    expect(await screen.findByText('1 names ready to import')).toBeInTheDocument();
+    expect(await screen.findByText(/1 names ready to import/i)).toBeInTheDocument();
   });
 });
