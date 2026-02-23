@@ -3,9 +3,7 @@ const GOOGLE_CUSTOM_SEARCH_CX = Deno.env.get('GOOGLE_CUSTOM_SEARCH_CX');
 
 // Resolve the Supabase functions base URL for building proxy URLs.
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
-const SUPABASE_FUNCTIONS_BASE_URL = SUPABASE_URL
-  ? `${SUPABASE_URL}/functions/v1`
-  : '/functions/v1';
+const SUPABASE_FUNCTIONS_BASE_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1` : '/functions/v1';
 
 function buildPlacePhotoProxyUrl(
   placePhotoName: string,
@@ -38,11 +36,15 @@ export async function executeFunctionCall(
     result = await _executeImpl(supabase, functionName, args, tripId, userId, locationContext);
     const elapsed = Math.round(performance.now() - startMs);
     const ok = !result?.error;
-    console.log(`[Tool] ${functionName} | ${elapsed}ms | ${ok ? 'success' : 'error: ' + (result?.error ?? 'unknown')}`);
+    console.log(
+      `[Tool] ${functionName} | ${elapsed}ms | ${ok ? 'success' : 'error: ' + (result?.error ?? 'unknown')}`,
+    );
     return result;
   } catch (err) {
     const elapsed = Math.round(performance.now() - startMs);
-    console.error(`[Tool] ${functionName} | ${elapsed}ms | exception: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(
+      `[Tool] ${functionName} | ${elapsed}ms | exception: ${err instanceof Error ? err.message : String(err)}`,
+    );
     throw err;
   }
 }
@@ -210,8 +212,9 @@ async function _executeImpl(
           priceLevel: p.priceLevel || null,
           mapsUrl: p.googleMapsUri || null,
           photoCount: p.photos?.length || 0,
-          previewPhotoUrl:
-            p.photos?.[0]?.name ? buildPlacePhotoProxyUrl(p.photos[0].name, 600, 400) : null,
+          previewPhotoUrl: p.photos?.[0]?.name
+            ? buildPlacePhotoProxyUrl(p.photos[0].name, 600, 400)
+            : null,
         })),
       };
     }
@@ -260,6 +263,8 @@ async function _executeImpl(
       const durationSeconds = parseInt(route.duration?.replace('s', '') || '0', 10);
       const distanceMeters = route.distanceMeters || 0;
 
+      const mapsDeepLink = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+
       return {
         success: true,
         durationMinutes: Math.round(durationSeconds / 60),
@@ -268,6 +273,7 @@ async function _executeImpl(
         summary: route.description || `${Math.round(durationSeconds / 60)} min drive`,
         origin,
         destination,
+        mapsUrl: mapsDeepLink,
       };
     }
 
@@ -287,7 +293,10 @@ async function _executeImpl(
 
       const tzData = await tzResponse.json();
       if (tzData.status !== 'OK') {
-        return { error: `Time Zone API error: ${tzData.status}`, errorMessage: tzData.errorMessage };
+        return {
+          error: `Time Zone API error: ${tzData.status}`,
+          errorMessage: tzData.errorMessage,
+        };
       }
 
       return {
@@ -353,7 +362,8 @@ async function _executeImpl(
       if (!GOOGLE_CUSTOM_SEARCH_CX) {
         return {
           error: 'Image search not configured. GOOGLE_CUSTOM_SEARCH_CX secret is missing.',
-          suggestion: 'Try asking me to "search for [place name]" instead — I can show place photos from Google Maps.',
+          suggestion:
+            'Try asking me to "search for [place name]" instead — I can show place photos from Google Maps.',
         };
       }
 
@@ -373,6 +383,91 @@ async function _executeImpl(
           thumbnailUrl: item.image?.thumbnailLink || '',
           imageUrl: item.link || '',
           sourceDomain: item.displayLink || '',
+        })),
+      };
+    }
+
+    case 'getStaticMapUrl': {
+      // Returns an image-proxy URL for a Google Maps Static API image.
+      // The API key stays server-side inside the image-proxy edge function.
+      const { center, zoom, markers, path, width, height } = args;
+
+      if (!center) {
+        return { error: 'center parameter is required (address or "lat,lng")' };
+      }
+
+      const w = Math.min(Number(width) || 600, 640);
+      const h = Math.min(Number(height) || 400, 640);
+      const z = zoom ? Math.min(Number(zoom), 20) : 13;
+
+      const params = new URLSearchParams();
+      params.set('center', String(center));
+      params.set('zoom', String(z));
+      params.set('w', String(w));
+      params.set('h', String(h));
+
+      const markerList: string[] = Array.isArray(markers)
+        ? (markers as string[]).map(String)
+        : markers
+          ? [String(markers)]
+          : [];
+      for (const marker of markerList) {
+        params.append('markers', marker);
+      }
+      if (path) {
+        params.set('path', String(path));
+      }
+
+      // image-proxy staticmap mode: no API key exposed to client
+      const imageUrl = `${SUPABASE_FUNCTIONS_BASE_URL}/image-proxy?${params.toString()}`;
+
+      return {
+        success: true,
+        imageUrl,
+        center: String(center),
+      };
+    }
+
+    case 'searchWeb': {
+      // Real-time web search using Google Custom Search API (text mode).
+      // Use for current hours, prices, reviews, events — anything requiring live data.
+      const { query, count } = args;
+      if (!GOOGLE_MAPS_API_KEY) {
+        return { error: 'Google API key not configured' };
+      }
+      if (!GOOGLE_CUSTOM_SEARCH_CX) {
+        return {
+          error: 'Web search not configured. GOOGLE_CUSTOM_SEARCH_CX secret is missing.',
+          suggestion:
+            'Set up a Custom Search Engine at https://programmablesearchengine.google.com and add GOOGLE_CUSTOM_SEARCH_CX to Supabase secrets.',
+        };
+      }
+
+      const num = Math.min(Number(count) || 5, 10);
+      const csUrl = new URL('https://www.googleapis.com/customsearch/v1');
+      csUrl.searchParams.set('q', String(query));
+      csUrl.searchParams.set('num', String(num));
+      csUrl.searchParams.set('cx', GOOGLE_CUSTOM_SEARCH_CX);
+      csUrl.searchParams.set('key', GOOGLE_MAPS_API_KEY);
+
+      const csResponse = await fetch(csUrl.toString(), { signal: AbortSignal.timeout(8_000) });
+      if (!csResponse.ok) {
+        const errText = await csResponse.text().catch(() => '');
+        return {
+          error: `Web search failed (${csResponse.status})`,
+          details: errText.slice(0, 200),
+        };
+      }
+
+      const csData = await csResponse.json();
+      return {
+        success: true,
+        query: String(query),
+        results: ((csData.items as Array<Record<string, unknown>>) || []).map(item => ({
+          title: String(item.title || ''),
+          url: String(item.link || ''),
+          snippet: String(item.snippet || ''),
+          domain: String(item.displayLink || ''),
         })),
       };
     }

@@ -699,135 +699,144 @@ serve(async req => {
     const isPaidUser = planResolution.usagePlan !== 'free';
 
     // Fire remaining independent queries at once
-    const [membershipResult, contextResult, ragResult, privacyResult, persistedHistory] = await Promise.all([
-      // 1. Trip membership check
-      hasTripId && !serverDemoMode && user
-        ? supabase
-            .from('trip_members')
-            .select('user_id')
-            .eq('trip_id', tripId)
-            .eq('user_id', user.id)
-            .maybeSingle()
-        : Promise.resolve({ data: { user_id: 'skip' }, error: null }),
+    const [membershipResult, contextResult, ragResult, privacyResult, persistedHistory] =
+      await Promise.all([
+        // 1. Trip membership check
+        hasTripId && !serverDemoMode && user
+          ? supabase
+              .from('trip_members')
+              .select('user_id')
+              .eq('trip_id', tripId)
+              .eq('user_id', user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: { user_id: 'skip' }, error: null }),
 
-      // 2. Trip context building (heaviest — ~100-300 ms). Skip for general web queries.
-      // Uses 30s cache for rapid successive messages. Pass client preferences to skip DB fetch.
-      hasTripId && !tripContext && tripRelated
-        ? TripContextBuilder.buildContextWithCache(
-            tripId,
-            user?.id,
-            authHeader,
-            isPaidUser,
-            validatedData.preferences,
-          ).catch(error => {
-            console.error('Failed to build comprehensive context:', error);
-            return null;
-          })
-        : Promise.resolve(tripContext || null),
+        // 2. Trip context building (heaviest — ~100-300 ms). Skip for general web queries.
+        // Uses 30s cache for rapid successive messages. Pass client preferences to skip DB fetch.
+        hasTripId && !tripContext && tripRelated
+          ? TripContextBuilder.buildContextWithCache(
+              tripId,
+              user?.id,
+              authHeader,
+              isPaidUser,
+              validatedData.preferences,
+            ).catch(error => {
+              console.error('Failed to build comprehensive context:', error);
+              return null;
+            })
+          : Promise.resolve(tripContext || null),
 
-      // 4. RAG keyword retrieval (skip for general web queries)
-      // Skip entirely when trip has no kb content — saves DB round-trip
-      runRAGRetrieval
-        ? (async () => {
-            try {
-              const { data: hasKbDocs, error: kbCheckError } = await supabase
-                .from('kb_documents')
-                .select('id')
-                .eq('trip_id', tripId)
-                .limit(1)
-                .maybeSingle();
+        // 4. RAG keyword retrieval (skip for general web queries)
+        // Skip entirely when trip has no kb content — saves DB round-trip
+        runRAGRetrieval
+          ? (async () => {
+              try {
+                const { data: hasKbDocs, error: kbCheckError } = await supabase
+                  .from('kb_documents')
+                  .select('id')
+                  .eq('trip_id', tripId)
+                  .limit(1)
+                  .maybeSingle();
 
-              if (kbCheckError || !hasKbDocs) {
+                if (kbCheckError || !hasKbDocs) {
+                  return '';
+                }
+
+                console.log('Using keyword-only search for RAG retrieval');
+                const { data: keywordResults, error: keywordError } = await supabase
+                  .from('kb_chunks')
+                  .select('id, content, doc_id, modality')
+                  .textSearch('content_tsv', message.split(' ').slice(0, 5).join(' & '), {
+                    type: 'plain',
+                  })
+                  .limit(10);
+
+                if (keywordError || !keywordResults?.length) return '';
+
+                const docIds = [
+                  ...new Set(keywordResults.map((r: any) => r.doc_id).filter(Boolean)),
+                ];
+                const docMap = new Map();
+
+                if (docIds.length > 0) {
+                  const { data: docs } = await supabase
+                    .from('kb_documents')
+                    .select('id, source, trip_id')
+                    .in('id', docIds)
+                    .eq('trip_id', tripId);
+                  docs?.forEach((d: any) => docMap.set(d.id, d));
+                }
+
+                const tripChunks = keywordResults.filter((r: any) => {
+                  const doc = docMap.get(r.doc_id);
+                  return doc?.trip_id === tripId;
+                });
+
+                if (!tripChunks.length) return '';
+
+                console.log(`Found ${tripChunks.length} relevant context items via keyword search`);
+                let ctx = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n';
+                ctx += 'Retrieved using keyword matching:\n';
+                tripChunks.forEach((result: any, idx: number) => {
+                  const doc = docMap.get(result.doc_id);
+                  const sourceType = doc?.source || result.modality || 'unknown';
+                  ctx += `\n[${idx + 1}] [${sourceType}] ${(result.content || '').substring(0, 300)}`;
+                });
+                ctx +=
+                  '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
+                return ctx;
+              } catch (ragError) {
+                console.error('RAG retrieval failed:', ragError);
                 return '';
               }
+            })()
+          : Promise.resolve(''),
 
-              console.log('Using keyword-only search for RAG retrieval');
-              const { data: keywordResults, error: keywordError } = await supabase
-                .from('kb_chunks')
-                .select('id, content, doc_id, modality')
-                .textSearch('content_tsv', message.split(' ').slice(0, 5).join(' & '), {
-                  type: 'plain',
-                })
-                .limit(10);
+        // 5. Privacy config check
+        hasTripId && !serverDemoMode
+          ? Promise.resolve(
+              supabase
+                .from('trip_privacy_configs')
+                .select('ai_access_enabled')
+                .eq('trip_id', tripId)
+                .maybeSingle(),
+            ).catch(() => ({ data: null }))
+          : Promise.resolve({ data: null }),
 
-              if (keywordError || !keywordResults?.length) return '';
-
-              const docIds = [...new Set(keywordResults.map((r: any) => r.doc_id).filter(Boolean))];
-              const docMap = new Map();
-
-              if (docIds.length > 0) {
-                const { data: docs } = await supabase
-                  .from('kb_documents')
-                  .select('id, source, trip_id')
-                  .in('id', docIds)
-                  .eq('trip_id', tripId);
-                docs?.forEach((d: any) => docMap.set(d.id, d));
+        // 6. Persisted concierge history from ai_queries.
+        // Only fetch when we have a real trip and an authenticated user.
+        // On any failure, treat as empty array — history is non-critical context.
+        // 6. Persisted concierge history (30 s in-process cache to avoid DB hit on every message)
+        hasTripId && !serverDemoMode && user
+          ? (async (): Promise<ChatMessage[]> => {
+              const cacheKey = `${tripId}:${user.id}`;
+              const cached = historyCache.get(cacheKey);
+              if (cached && cached.expiresAt > Date.now()) {
+                return cached.data;
               }
-
-              const tripChunks = keywordResults.filter((r: any) => {
-                const doc = docMap.get(r.doc_id);
-                return doc?.trip_id === tripId;
-              });
-
-              if (!tripChunks.length) return '';
-
-              console.log(`Found ${tripChunks.length} relevant context items via keyword search`);
-              let ctx = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n';
-              ctx += 'Retrieved using keyword matching:\n';
-              tripChunks.forEach((result: any, idx: number) => {
-                const doc = docMap.get(result.doc_id);
-                const sourceType = doc?.source || result.modality || 'unknown';
-                ctx += `\n[${idx + 1}] [${sourceType}] ${(result.content || '').substring(0, 300)}`;
-              });
-              ctx +=
-                '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
-              return ctx;
-            } catch (ragError) {
-              console.error('RAG retrieval failed:', ragError);
-              return '';
-            }
-          })()
-        : Promise.resolve(''),
-
-      // 5. Privacy config check
-      hasTripId && !serverDemoMode
-        ? Promise.resolve(
-            supabase
-              .from('trip_privacy_configs')
-              .select('ai_access_enabled')
-              .eq('trip_id', tripId)
-              .maybeSingle(),
-          ).catch(() => ({ data: null }))
-        : Promise.resolve({ data: null }),
-
-      // 6. Persisted concierge history from ai_queries.
-      // Only fetch when we have a real trip and an authenticated user.
-      // On any failure, treat as empty array — history is non-critical context.
-      // 6. Persisted concierge history (30 s in-process cache to avoid DB hit on every message)
-      hasTripId && !serverDemoMode && user
-        ? (async (): Promise<ChatMessage[]> => {
-            const cacheKey = `${tripId}:${user.id}`;
-            const cached = historyCache.get(cacheKey);
-            if (cached && cached.expiresAt > Date.now()) {
-              return cached.data;
-            }
-            try {
-              const { data, error: rpcError } = await supabase.rpc(
-                'get_concierge_trip_history',
-                { p_trip_id: tripId, p_limit: 10 },
-              ) as { data: Array<{ role: string; content: string; created_at: string }> | null; error: unknown };
-              if (rpcError || !data) return [];
-              const messages = data.filter(
-                (m) => m.role === 'user' || m.role === 'assistant',
-              ) as ChatMessage[];
-              historyCache.set(cacheKey, { data: messages, expiresAt: Date.now() + HISTORY_CACHE_TTL_MS });
-              return messages;
-            } catch {
-              return [];
-            }
-          })()
-        : Promise.resolve([] as ChatMessage[]),
-    ]);
+              try {
+                const { data, error: rpcError } = (await supabase.rpc(
+                  'get_concierge_trip_history',
+                  { p_trip_id: tripId, p_limit: 10 },
+                )) as {
+                  data: Array<{ role: string; content: string; created_at: string }> | null;
+                  error: unknown;
+                };
+                if (rpcError || !data) return [];
+                const messages = data.filter(
+                  m => m.role === 'user' || m.role === 'assistant',
+                ) as ChatMessage[];
+                historyCache.set(cacheKey, {
+                  data: messages,
+                  expiresAt: Date.now() + HISTORY_CACHE_TTL_MS,
+                });
+                return messages;
+              } catch {
+                return [];
+              }
+            })()
+          : Promise.resolve([] as ChatMessage[]),
+      ]);
 
     // --- EVALUATE PARALLEL RESULTS ---
 
@@ -1010,7 +1019,10 @@ Answer the user's question accurately. Use web search for real-time info (weathe
     const perMessageTruncated = mergedChatHistory.map(msg => {
       if (msg.content.length <= MAX_HISTORY_MSG_LENGTH) return msg;
       console.log('[Context Management] Truncating long history message');
-      return { ...msg, content: msg.content.substring(0, MAX_HISTORY_MSG_LENGTH) + '\n...[truncated for context]' };
+      return {
+        ...msg,
+        content: msg.content.substring(0, MAX_HISTORY_MSG_LENGTH) + '\n...[truncated for context]',
+      };
     });
 
     // Step 2: Total budget enforcement — drop oldest messages until total chars fit.
@@ -1019,7 +1031,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
     let totalHistoryLength = historyForSlicing.reduce((sum, m) => sum + m.content.length, 0);
     while (historyForSlicing.length > 0 && totalHistoryLength > MAX_HISTORY_TOTAL_LENGTH) {
       const removed = historyForSlicing.shift();
-      totalHistoryLength -= (removed?.content.length ?? 0);
+      totalHistoryLength -= removed?.content.length ?? 0;
       console.log('[Context Management] Dropped oldest history message to fit budget');
     }
 
@@ -1234,6 +1246,43 @@ Answer the user's question accurately. Use web search for real-time info (weathe
               type: 'number',
               description: 'Number of images to return (max 10, default 5)',
             },
+          },
+          required: ['query'],
+        },
+      },
+      {
+        name: 'getStaticMapUrl',
+        description:
+          'Generate a map image showing a location or route. Use when the user wants to see a map or after providing directions. Embed the returned imageUrl with Markdown: ![Map](imageUrl).',
+        parameters: {
+          type: 'object',
+          properties: {
+            center: {
+              type: 'string',
+              description: 'Address or "lat,lng" to center the map on',
+            },
+            zoom: {
+              type: 'number',
+              description: 'Zoom level 1-20 (default 13; use 12 for city-level, 15 for walking)',
+            },
+            markers: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Marker locations as addresses or "lat,lng" strings',
+            },
+          },
+          required: ['center'],
+        },
+      },
+      {
+        name: 'searchWeb',
+        description:
+          'Search the web for real-time information: current business hours, prices, reviews, upcoming events, or live data unavailable in trip context. Include sources in your response.',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Search query' },
+            count: { type: 'number', description: 'Number of results (max 10, default 5)' },
           },
           required: ['query'],
         },

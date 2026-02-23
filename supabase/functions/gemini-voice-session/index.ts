@@ -106,6 +106,99 @@ const VOICE_FUNCTION_DECLARATIONS = [
       properties: {},
     },
   },
+  {
+    name: 'getDirectionsETA',
+    description:
+      'Get driving directions, travel time, and distance between two locations. Use for "how long to get there", "how far is it", or "directions from X to Y" questions.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        origin: { type: 'STRING', description: 'Starting address or place name' },
+        destination: { type: 'STRING', description: 'Destination address or place name' },
+        departureTime: {
+          type: 'STRING',
+          description: 'Optional ISO 8601 departure time for traffic-aware ETA',
+        },
+      },
+      required: ['origin', 'destination'],
+    },
+  },
+  {
+    name: 'getTimezone',
+    description: 'Get the time zone for a geographic location.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        lat: { type: 'NUMBER', description: 'Latitude' },
+        lng: { type: 'NUMBER', description: 'Longitude' },
+      },
+      required: ['lat', 'lng'],
+    },
+  },
+  {
+    name: 'getPlaceDetails',
+    description:
+      'Get detailed info about a specific place: hours, phone, website, editorial summary, and photos. Use after searchPlaces or when the user asks for more details about a venue.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        placeId: {
+          type: 'STRING',
+          description: 'Google Places ID from a previous searchPlaces result',
+        },
+      },
+      required: ['placeId'],
+    },
+  },
+  {
+    name: 'searchImages',
+    description:
+      'Search for images on the web. Use when the user asks to see pictures of something that is NOT a specific venue — for venue photos use getPlaceDetails instead.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        query: { type: 'STRING', description: 'Image search query' },
+        count: { type: 'NUMBER', description: 'Number of images (max 10, default 5)' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'getStaticMapUrl',
+    description:
+      'Generate a map image showing a location or route and display it in the chat. Use after giving directions or when the user wants to see where something is on a map.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        center: {
+          type: 'STRING',
+          description: 'Address or "lat,lng" to center the map on',
+        },
+        zoom: {
+          type: 'NUMBER',
+          description: 'Zoom level 1-20 (default 13; use 12 for city, 15 for walking)',
+        },
+        markers: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description: 'Marker locations as addresses or "lat,lng" strings',
+        },
+      },
+      required: ['center'],
+    },
+  },
+  {
+    name: 'searchWeb',
+    description:
+      'Search the web for real-time information: current business hours, prices, reviews, upcoming events, or anything requiring live data beyond your knowledge cutoff.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        query: { type: 'STRING', description: 'Search query' },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 /** Voice-specific addendum appended to the full system prompt */
@@ -119,8 +212,16 @@ You are now speaking via bidirectional voice audio. Adapt your responses:
 - Avoid lists — narrate sequentially instead
 - Be warm, concise, and personable
 - If you don't know something specific, say so briefly and suggest checking the app
-- For places, say the name and a brief description — don't try to give URLs
-- When executing actions (adding events, creating tasks), confirm what you did conversationally`;
+- When executing actions (adding events, creating tasks), confirm what you did conversationally
+
+=== VISUAL CARDS IN CHAT ===
+When you call these tools, a visual card automatically appears in the chat window:
+- searchPlaces / getPlaceDetails → photos, ratings, and a Maps link appear in chat. Say: "I've shared photos in our chat" then describe the top result verbally.
+- getStaticMapUrl → a map image appears in chat. Say: "I've dropped a map in our chat for you."
+- getDirectionsETA → a directions card with a Maps link appears in chat. Say the drive time aloud and mention: "I've added a link in chat to open it in Maps."
+- searchImages → images appear in chat. Say: "I've pulled up some images in our chat."
+- searchWeb → source links appear in chat. Summarize 1-2 key facts aloud and say: "Check the chat for the source links."
+Never speak URLs or markdown. The chat handles the visual output automatically.`;
 
 async function createEphemeralToken(params: {
   model: string;
