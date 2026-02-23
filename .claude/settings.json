@@ -16,5 +16,18 @@
         }
       ]
     }
+  ],
+  "pluginMarketplaces": [
+    {
+      "name": "superpowers-marketplace",
+      "source": "obra/superpowers-marketplace"
+    }
+  ],
+  "plugins": [
+    {
+      "name": "superpowers",
+      "marketplace": "superpowers-marketplace",
+      "version": "4.3.1"
+    }
   ]
 }
