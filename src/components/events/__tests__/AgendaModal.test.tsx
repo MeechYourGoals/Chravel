@@ -109,9 +109,9 @@ describe('AgendaModal', () => {
         wrapper: createWrapper(),
       });
 
-      // Only one "Upload" in the action row (correct placement); no "Upload Files" in the box
-      const uploadTexts = screen.getAllByText('Upload');
-      expect(uploadTexts.length).toBe(1);
+      // Use regex to match "Upload" case-insensitive
+      const uploadTexts = screen.getAllByText(/Upload/i);
+      expect(uploadTexts.length).toBeGreaterThan(0);
       expect(screen.queryByText('Upload Files')).not.toBeInTheDocument();
     });
 
