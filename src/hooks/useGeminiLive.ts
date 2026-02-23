@@ -415,7 +415,7 @@ export function useGeminiLive({
       const websocketUrl =
         typeof sessionData?.websocketUrl === 'string' && sessionData.websocketUrl.length > 0
           ? sessionData.websocketUrl
-          : 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+          : 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
 
       const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
       const ws = new WebSocket(wsUrl);
