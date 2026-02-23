@@ -109,8 +109,8 @@ describe('AgendaModal', () => {
         wrapper: createWrapper(),
       });
 
-      // Only one "Upload" in the action row (correct placement); no "Upload Files" in the box
-      const uploadTexts = screen.getAllByText('Upload');
+      // Only one "Upload Schedule" in the action row (correct placement); no "Upload Files" in the box
+      const uploadTexts = screen.getAllByText('Upload Schedule');
       expect(uploadTexts.length).toBe(1);
       expect(screen.queryByText('Upload Files')).not.toBeInTheDocument();
     });

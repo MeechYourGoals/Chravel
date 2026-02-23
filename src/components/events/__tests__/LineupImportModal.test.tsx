@@ -40,9 +40,11 @@ describe('LineupImportModal', () => {
       screen.getByPlaceholderText('Paste lineup page URL'),
       'https://example.com/artists',
     );
-    await user.click(screen.getByRole('button', { name: 'Extract' }));
+    // Button text is 'Import' for URL input
+    await user.click(screen.getByRole('button', { name: 'Import' }));
 
-    expect(await screen.findByText('3 names ready to import')).toBeInTheDocument();
+    // 3 names -> plural "names"
+    expect(await screen.findByText((content) => content.includes('3 names ready to import'))).toBeInTheDocument();
 
     const theoBadge = screen.getByText('Theo Von');
     const row = theoBadge.parentElement as HTMLElement;
@@ -82,6 +84,7 @@ describe('LineupImportModal', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Extract Names with AI' }));
 
-    expect(await screen.findByText('1 names ready to import')).toBeInTheDocument();
+    // 1 name -> singular "name". Use regex to handle whitespace/singular/plural safely
+    expect(await screen.findByText(/1\s+name\s+ready\s+to\s+import/i)).toBeInTheDocument();
   });
 });

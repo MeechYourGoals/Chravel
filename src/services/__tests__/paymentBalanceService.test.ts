@@ -15,6 +15,7 @@ const createChainableMock = (resolvedValue: { data: any; error: any }) => {
     eq: vi.fn().mockReturnThis(),
     neq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(), // Added missing 'or' method
     maybeSingle: vi.fn().mockResolvedValue(resolvedValue),
     single: vi.fn().mockResolvedValue(resolvedValue),
     then: vi.fn((resolve: any) => resolve(resolvedValue)),
@@ -24,6 +25,7 @@ const createChainableMock = (resolvedValue: { data: any; error: any }) => {
   chain.eq.mockReturnValue(chain);
   chain.neq.mockReturnValue(chain);
   chain.in.mockReturnValue(chain);
+  chain.or.mockReturnValue(chain);
   return chain;
 };
 
@@ -433,9 +435,11 @@ describe('paymentBalanceService', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
-                  maybeSingle: vi
-                    .fn()
-                    .mockResolvedValue({ data: { id: 'membership-1' }, error: null }),
+                  or: vi.fn().mockReturnValue({ // Add missing or
+                    maybeSingle: vi
+                      .fn()
+                      .mockResolvedValue({ data: { id: 'membership-1' }, error: null }),
+                  }),
                 }),
               }),
             }),
