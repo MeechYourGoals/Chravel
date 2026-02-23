@@ -77,14 +77,8 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    // Enable minification
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: mode === 'production',
-        drop_debugger: true,
-      },
-    },
+    // Use esbuild for faster and lighter minification (default)
+    minify: 'esbuild',
     // Optimize CSS
     cssMinify: true,
     // Set chunk size warnings
