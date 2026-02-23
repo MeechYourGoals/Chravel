@@ -18,6 +18,7 @@ import {
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { useGeminiLive, uniqueId } from '@/hooks/useGeminiLive';
+import type { ToolCallRequest } from '@/hooks/useGeminiLive';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -212,6 +213,137 @@ export const AIConciergeChat = ({
     toast.error('Voice failed', { description: message });
   }, []);
 
+  // Inject a read-only assistant card into chat for tool results that produce
+  // visual output (photos, maps, links). The AI verbally describes the result;
+  // this card makes the same data visible in the chat window.
+  const injectToolResultMessage = useCallback((content: string) => {
+    setMessages(prev => [
+      ...prev,
+      {
+        id: uniqueId('tool-card'),
+        type: 'assistant' as const,
+        content,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+  }, []);
+
+  // Execute a Gemini Live tool call server-side and inject visual cards for
+  // tools that return displayable content (photos, maps, links, web results).
+  const handleVoiceToolCall = useCallback(
+    async (call: ToolCallRequest): Promise<Record<string, unknown>> => {
+      try {
+        const { data, error } = await supabase.functions.invoke('execute-concierge-tool', {
+          body: { toolName: call.name, args: call.args, tripId },
+        });
+
+        if (error) {
+          return { error: error.message };
+        }
+
+        const result = (data ?? {}) as Record<string, unknown>;
+
+        // ── Rich card injection per tool ──────────────────────────────────
+        if (call.name === 'searchPlaces' && Array.isArray(result.places)) {
+          const places = result.places as Array<{
+            name: string;
+            address?: string;
+            rating?: number;
+            priceLevel?: string;
+            previewPhotoUrl?: string;
+            mapsUrl?: string;
+          }>;
+          if (places.length > 0) {
+            const content = places
+              .slice(0, 3)
+              .map(p => {
+                const lines: string[] = [`**${p.name}**`];
+                if (p.address) lines.push(p.address);
+                const meta: string[] = [];
+                if (p.rating) meta.push(`⭐ ${p.rating}`);
+                if (p.priceLevel) meta.push(p.priceLevel);
+                if (meta.length > 0) lines.push(meta.join(' · '));
+                if (p.previewPhotoUrl) lines.push(`![${p.name}](${p.previewPhotoUrl})`);
+                if (p.mapsUrl) lines.push(`[Open in Maps](${p.mapsUrl})`);
+                return lines.join('\n');
+              })
+              .join('\n\n---\n\n');
+            injectToolResultMessage(content);
+          }
+        } else if (call.name === 'getPlaceDetails' && result.success) {
+          const p = result as {
+            name?: string;
+            address?: string;
+            rating?: number;
+            hours?: string[];
+            photoUrls?: string[];
+            mapsUrl?: string;
+            website?: string;
+            editorialSummary?: string;
+          };
+          const lines: string[] = [`**${p.name ?? 'Place'}**`];
+          if (p.address) lines.push(p.address);
+          if (p.rating) lines.push(`⭐ ${p.rating}`);
+          if (p.editorialSummary) lines.push(`_${p.editorialSummary}_`);
+          if (p.hours && p.hours.length > 0) lines.push(p.hours.slice(0, 3).join('\n'));
+          if (p.photoUrls && p.photoUrls[0])
+            lines.push(`![${p.name ?? 'Photo'}](${p.photoUrls[0]})`);
+          if (p.mapsUrl) lines.push(`[View on Google Maps](${p.mapsUrl})`);
+          if (p.website) lines.push(`[Website](${p.website})`);
+          injectToolResultMessage(lines.join('\n'));
+        } else if (call.name === 'getStaticMapUrl' && result.imageUrl) {
+          injectToolResultMessage(`![Map](${result.imageUrl})`);
+        } else if (call.name === 'getDirectionsETA' && result.success) {
+          const d = result as {
+            origin?: string;
+            destination?: string;
+            durationMinutes?: number;
+            distanceMiles?: number;
+            mapsUrl?: string;
+          };
+          const lines: string[] = [
+            `**${d.origin ?? ''} → ${d.destination ?? ''}**`,
+            `🕐 ${d.durationMinutes} min drive · 📍 ${d.distanceMiles} miles`,
+          ];
+          if (d.mapsUrl) lines.push(`[Open in Google Maps](${d.mapsUrl})`);
+          injectToolResultMessage(lines.join('\n'));
+        } else if (call.name === 'searchImages' && Array.isArray(result.images)) {
+          const images = result.images as Array<{
+            title: string;
+            thumbnailUrl: string;
+            imageUrl: string;
+          }>;
+          if (images.length > 0) {
+            const content = images
+              .slice(0, 4)
+              .map(img => `[![${img.title}](${img.thumbnailUrl})](${img.imageUrl})`)
+              .join('  ');
+            injectToolResultMessage(content);
+          }
+        } else if (call.name === 'searchWeb' && Array.isArray(result.results)) {
+          const webResults = result.results as Array<{
+            title: string;
+            url: string;
+            snippet: string;
+            domain: string;
+          }>;
+          if (webResults.length > 0) {
+            const content = webResults
+              .slice(0, 3)
+              .map(r => `**[${r.title}](${r.url})**\n${r.snippet}`)
+              .join('\n\n');
+            injectToolResultMessage(content);
+          }
+        }
+
+        return result;
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : 'Tool execution failed' };
+      }
+    },
+    [tripId, injectToolResultMessage],
+  );
+
   const {
     state: geminiState,
     userTranscript,
@@ -219,14 +351,41 @@ export const AIConciergeChat = ({
     startSession,
     endSession,
     interruptPlayback,
+    sendImage: sendImageToLive,
     isSupported: voiceSupported,
   } = useGeminiLive({
     tripId,
     onTurnComplete: handleVoiceTurnComplete,
+    onToolCall: handleVoiceToolCall,
     onError: handleVoiceError,
   });
 
   const effectiveVoiceState: VoiceState = geminiState as VoiceState;
+
+  // When a voice session is active and the user attaches an image, send it
+  // directly to Gemini Live as an inline data frame so the model can see it
+  // while speaking. Images are still queued for the text path when voice is idle.
+  const handleImageAttach = useCallback(
+    async (files: File[]) => {
+      const voiceIsActive =
+        geminiState === 'listening' || geminiState === 'thinking' || geminiState === 'speaking';
+
+      setAttachedImages(prev => [...prev, ...files].slice(0, 4));
+
+      if (!voiceIsActive) return;
+
+      // Fire-and-forget: convert each image and send via Live WebSocket
+      for (const file of files) {
+        try {
+          const attachment = await fileToAttachmentPayload(file);
+          sendImageToLive(attachment.mimeType, attachment.data);
+        } catch {
+          // Non-blocking — image will still be in attachedImages for the text path
+        }
+      }
+    },
+    [geminiState, sendImageToLive],
+  );
 
   const handleVoiceToggle = useCallback(() => {
     if (geminiState === 'idle' || geminiState === 'error') {
@@ -1031,11 +1190,7 @@ export const AIConciergeChat = ({
             disabled={isQueryLimitReached}
             showImageAttach={UPLOAD_ENABLED}
             attachedImages={UPLOAD_ENABLED ? attachedImages : []}
-            onImageAttach={
-              UPLOAD_ENABLED
-                ? files => setAttachedImages(prev => [...prev, ...files].slice(0, 4))
-                : undefined
-            }
+            onImageAttach={UPLOAD_ENABLED ? handleImageAttach : undefined}
             onRemoveImage={
               UPLOAD_ENABLED
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
