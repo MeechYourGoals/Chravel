@@ -1,66 +1,66 @@
 
+# Fix Plan: Event Detail Issues (4 Items)
 
-# Phase 1: Fix All Build Errors to Restore Preview
+## Issue 1: Event Team shows "Trip Creator" instead of real name
 
-## Root Cause
-9 TypeScript build errors across 4 files are blocking compilation. The preview cannot load because the app fails to build.
+**Root cause:** In `src/hooks/useTripMembers.ts` (lines 129-141), when the creator is missing from the `trip_members` table, a fallback member is created. If the profile lookup returns `null` (e.g., timing issue, RLS, or the `profiles_public` view not returning data), the fallback uses `"Trip Creator"` as the `display_name` and `resolved_display_name`.
 
-## Errors and Fixes
+**Fix:** The profile fetch at line 123-127 uses `.maybeSingle()` which can silently return null. We need to:
+1. Add a retry or broader fallback using the `useAuth` user profile data when the `profiles_public` query returns null for the current user.
+2. Additionally, in `EventDetail.tsx` (line 181-185), when mapping `tripMembers` to participants, the `name` field is already set from `useTripMembers` output -- so the root fix must be in `useTripMembers.ts` to ensure the creator profile is resolved properly.
+3. Use `getEffectiveDisplayName` from `resolveDisplayName.ts` as an additional fallback when the profile query returns null but the user is the current authenticated user (their auth metadata likely has their name).
 
-### File 1: `src/hooks/useConciergeHistory.ts` (2 errors)
-
-**Error**: `get_concierge_trip_history` RPC not in generated types; cast of return type fails.
-
-**Fix (lines 51-54)**: Change `supabase.rpc(` to `(supabase.rpc as any)(` to bypass the missing type definition.
-
-**Fix (line 64)**: Change `rows as RpcHistoryRow[]` to `rows as unknown as RpcHistoryRow[]` for the intermediate cast.
+**Files to modify:**
+- `src/hooks/useTripMembers.ts` -- improve creator profile fallback logic
 
 ---
 
-### File 2: `src/hooks/useTripRoles.ts` (3 errors)
+## Issue 2: Event Team section shows count "1" but no avatar/chip initially
 
-**Error 1 (line 53)**: `role.feature_permissions` (type `Json`) cast directly to `FeaturePermissions` fails.
-**Fix**: `role.feature_permissions as unknown as TripRole['featurePermissions']`
+**Root cause:** In `src/components/TripHeader.tsx` (line 642), the skeleton is only shown when `isMembersLoading && mergedParticipants.length === 0`. However, the `trip.participants` array passed from `EventDetail.tsx` depends on `tripMembers` from `useTripMembers`, which is initially empty (`[]`). When `isMembersLoading` becomes false but participants is still empty briefly (race condition), the `CollaboratorsGrid` renders with 0 items while the count shows `Math.max(mergedParticipants.length, trip.created_by ? 1 : 0)` = 1.
 
-**Error 2 (line 139)**: `featurePermissions ?? {}` produces `FeaturePermissions | {}` which is not assignable.
-**Fix**: `(featurePermissions ?? {}) as TripRole['featurePermissions']`
+**Fix:** Ensure the skeleton/loading state persists until `tripMembers` is actually populated. The `isMembersLoading` prop from `EventDetail.tsx` should accurately reflect the loading state. Verify that `membersLoading` from `useTripMembers` is passed through to `TripHeader` as `isMembersLoading`.
 
-**Error 3 (line 164)**: `FeaturePermissions` not assignable to `Json` (missing index signature).
-**Fix**: `(featurePermissions || null) as any`
+**Files to modify:**
+- `src/pages/EventDetail.tsx` -- verify `isMembersLoading={membersLoading}` is passed to TripHeader
 
 ---
 
-### File 3: `src/services/tripMediaService.ts` (1 error)
+## Issue 3: Agenda right panel (files) loading spinner takes too long
 
-**Error (line 21)**: `item.id` and `item.media_url` are `unknown` (from `Record<string, unknown>`), not assignable to `string`.
+**Root cause:** In `src/hooks/useEventAgendaFiles.ts`, the `loadFiles` function calls `supabase.storage.from('trip-media').list(prefix, ...)`. For a brand-new event with no files, the storage folder may not exist yet, causing the Supabase Storage API to take longer or return an error that's caught silently. The spinner at line 650-654 of `AgendaModal.tsx` shows indefinitely during this time.
 
-**Fix (lines 23-24)**: Cast `item.id as string` and `item.media_url as string`. Same for `filesData` map (line 33): `item.id as string`.
+**Fix:**
+1. In `useEventAgendaFiles.ts`, add a timeout or fast-path: if the storage list returns empty or an error for a new event, resolve quickly rather than hanging.
+2. Ensure `isLoading` is set to `false` promptly even on edge cases (the current code already does this, so the real issue may be the storage API latency). Add a `AbortController` timeout of ~5 seconds as a safeguard.
+
+**Files to modify:**
+- `src/hooks/useEventAgendaFiles.ts` -- add timeout safeguard and ensure fast resolution for empty/new events
 
 ---
 
-### File 4: `src/services/tripService.ts` (3 errors, same root cause)
+## Issue 4: "Add Task" button is golden with black text -- should match tab pill design
 
-**Error (lines 340, 378, 429)**: `TRIP_LIST_COLUMNS` select string (line 298) is missing `updated_at`, but the `Trip` interface requires it. All objects spread from those query results lack `updated_at`.
-
-**Fix (line 298)**: Add `updated_at` to the `TRIP_LIST_COLUMNS` string:
+**Root cause:** In `src/components/events/EventTasksTab.tsx` (line 215), the Add Task button uses:
 ```
-'id, name, description, start_date, end_date, destination, trip_type, created_at, updated_at, cover_image_url, created_by, is_archived, card_color, organizer_display_name'
+className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
 ```
+This is a solid gold button, violating the design language where sub-tab action buttons should use the `ActionPill` component with `manualOutline` variant (black bg, white border, white text, matching the tab pill dimensions: `min-h-[42px]`, `rounded-xl`, `text-sm`, `font-medium`).
 
-This single change resolves all 3 errors in this file.
+**Fix:** Replace the `<Button>` with an `<ActionPill variant="manualOutline">` component, matching how CalendarHeader does it. This gives it the black background, white text/border, same height and border-radius as the "Tasks" tab above.
+
+Also fix the submit button inside the Add Task form (line 253) which has the same gold styling -- this one can remain gold since it's a form submit CTA inside a card, not a sub-tab action button.
+
+**Files to modify:**
+- `src/components/events/EventTasksTab.tsx` -- replace Add Task header button with ActionPill
 
 ---
 
-## Summary Table
+## Technical Summary
 
-| File | Line(s) | Fix | Risk |
-|------|---------|-----|------|
-| useConciergeHistory.ts | 51-54, 64 | `as any` on RPC, `as unknown` on result | None -- RPC exists in DB |
-| useTripRoles.ts | 53, 139, 164 | `as unknown` intermediate casts for Json/FeaturePermissions | None -- runtime unchanged |
-| tripMediaService.ts | 23-24, 33 | `as string` on `item.id`, `item.media_url` | None -- values are strings from DB |
-| tripService.ts | 298 | Add `updated_at` to SELECT columns | None -- column exists, was just omitted |
-
-## Phase 2: Comprehensive Debugging Report
-
-After the build fixes are applied and preview loads, I will perform a deep audit of Chat, AI Concierge, Payments, Places, Polls, and Tasks for both regular and pro trips, following the exact output format specified in the request.
-
+| # | Issue | File(s) | Change |
+|---|-------|---------|--------|
+| 1 | "Trip Creator" instead of real name | `useTripMembers.ts` | Improve creator profile fallback using auth user data |
+| 2 | Team section empty despite count=1 | `EventDetail.tsx` | Ensure `membersLoading` is properly threaded to TripHeader |
+| 3 | Agenda files panel slow loading | `useEventAgendaFiles.ts` | Add timeout safeguard for storage API calls |
+| 4 | Add Task button gold instead of pill | `EventTasksTab.tsx` | Replace Button with ActionPill manualOutline variant |
