@@ -126,12 +126,26 @@ export const useTripMembers = (tripId?: string) => {
             .eq('user_id', tripData.created_by)
             .maybeSingle();
 
-          // 3. Always add creator to list (use "Trip Creator" fallback when profile missing)
+          // 3. Always add creator to list — prefer profile, then auth user metadata, then generic fallback
+          let creatorProfileData = creatorProfile;
+          if (!creatorProfileData && user && user.id === tripData.created_by) {
+            // Use auth user metadata as fallback when profiles_public query returns null
+            const meta = (user as any).user_metadata || {};
+            const authName = meta.display_name || meta.full_name || meta.name || user.email?.split('@')[0] || null;
+            creatorProfileData = {
+              user_id: tripData.created_by,
+              display_name: authName,
+              first_name: meta.first_name || null,
+              last_name: meta.last_name || null,
+              resolved_display_name: authName,
+              avatar_url: meta.avatar_url || null,
+            };
+          }
           const tempMember = {
             user_id: tripData.created_by,
             role: 'admin',
             created_at: new Date().toISOString(),
-            profiles: creatorProfile || {
+            profiles: creatorProfileData || {
               user_id: tripData.created_by,
               display_name: 'Trip Creator',
               first_name: null,
