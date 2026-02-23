@@ -1287,6 +1287,43 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           required: ['query'],
         },
       },
+      {
+        name: 'getDistanceMatrix',
+        description:
+          'Get travel times and distances from multiple origins to multiple destinations. Use for "how long from hotel to each restaurant?" or comparing route options.',
+        parameters: {
+          type: 'object',
+          properties: {
+            origins: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Starting addresses or place names',
+            },
+            destinations: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Destination addresses or place names',
+            },
+            mode: {
+              type: 'string',
+              description: 'Travel mode: driving (default), walking, bicycling, or transit',
+            },
+          },
+          required: ['origins', 'destinations'],
+        },
+      },
+      {
+        name: 'validateAddress',
+        description:
+          'Validate and clean up an address, and get its exact coordinates. Use when a user mentions an address and you want to confirm it is correct and get lat/lng for map operations.',
+        parameters: {
+          type: 'object',
+          properties: {
+            address: { type: 'string', description: 'Address to validate and geocode' },
+          },
+          required: ['address'],
+        },
+      },
     ];
 
     // ========== BUILD GEMINI TOOLS ==========

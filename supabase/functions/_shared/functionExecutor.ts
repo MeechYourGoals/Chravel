@@ -472,6 +472,116 @@ async function _executeImpl(
       };
     }
 
+    case 'getDistanceMatrix': {
+      // Distance Matrix API: travel times from multiple origins to multiple destinations.
+      // Use for "how long from hotel to each restaurant?" or multi-stop planning.
+      const { origins, destinations, mode } = args;
+      if (!GOOGLE_MAPS_API_KEY) {
+        return { error: 'Google API key not configured' };
+      }
+
+      const originList: string[] = Array.isArray(origins)
+        ? (origins as unknown[]).map(String)
+        : [String(origins)];
+      const destList: string[] = Array.isArray(destinations)
+        ? (destinations as unknown[]).map(String)
+        : [String(destinations)];
+
+      const validModes = new Set(['driving', 'walking', 'bicycling', 'transit']);
+      const travelMode = validModes.has(String(mode)) ? String(mode) : 'driving';
+
+      const params = new URLSearchParams();
+      params.set('origins', originList.join('|'));
+      params.set('destinations', destList.join('|'));
+      params.set('mode', travelMode);
+      params.set('key', GOOGLE_MAPS_API_KEY);
+
+      const dmUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?${params.toString()}`;
+      const dmResponse = await fetch(dmUrl, { signal: AbortSignal.timeout(10_000) });
+
+      if (!dmResponse.ok) {
+        return { error: `Distance Matrix API failed (${dmResponse.status})` };
+      }
+
+      const dmData = await dmResponse.json();
+      if (dmData.status !== 'OK') {
+        return { error: `Distance Matrix error: ${dmData.status}` };
+      }
+
+      const originAddresses: string[] = dmData.origin_addresses || [];
+      const destAddresses: string[] = dmData.destination_addresses || [];
+
+      return {
+        success: true,
+        travelMode,
+        origins: originAddresses,
+        destinations: destAddresses,
+        rows: ((dmData.rows as Array<{ elements: Array<Record<string, unknown>> }>) || []).map(
+          (row, i) => ({
+            origin: originAddresses[i] ?? originList[i],
+            elements: (row.elements || []).map((el: Record<string, unknown>, j: number) => ({
+              destination: destAddresses[j] ?? destList[j],
+              status: String(el.status || 'UNKNOWN'),
+              durationText: (el.duration as { text?: string } | null)?.text ?? null,
+              durationSeconds: (el.duration as { value?: number } | null)?.value ?? null,
+              distanceText: (el.distance as { text?: string } | null)?.text ?? null,
+              distanceMeters: (el.distance as { value?: number } | null)?.value ?? null,
+            })),
+          }),
+        ),
+      };
+    }
+
+    case 'validateAddress': {
+      // Address Validation API: clean up and geocode an address the user dictated.
+      // Returns formatted address, lat/lng, and component breakdown.
+      const { address } = args;
+      if (!GOOGLE_MAPS_API_KEY) {
+        return { error: 'Google API key not configured' };
+      }
+
+      const avResponse = await fetch(
+        'https://addressvalidation.googleapis.com/v1:validateAddress',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+          },
+          body: JSON.stringify({
+            address: { addressLines: [String(address)] },
+          }),
+          signal: AbortSignal.timeout(8_000),
+        },
+      );
+
+      if (!avResponse.ok) {
+        const errBody = await avResponse.text().catch(() => '');
+        return {
+          error: `Address Validation failed (${avResponse.status})`,
+          details: errBody.slice(0, 200),
+        };
+      }
+
+      const avData = await avResponse.json();
+      const result = avData.result as Record<string, unknown> | null;
+
+      const geocode = result?.geocode as Record<string, unknown> | null;
+      const location = geocode?.location as { latitude?: number; longitude?: number } | null;
+      const addr = result?.address as Record<string, unknown> | null;
+      const verdict = result?.verdict as Record<string, unknown> | null;
+
+      return {
+        success: true,
+        formattedAddress: String(addr?.formattedAddress || ''),
+        lat: location?.latitude ?? null,
+        lng: location?.longitude ?? null,
+        addressComplete: verdict?.addressComplete ?? null,
+        hasUnconfirmedComponents: verdict?.hasUnconfirmedComponents ?? null,
+        components: (addr?.addressComponents as unknown[]) ?? [],
+      };
+    }
+
     default:
       return { error: `Unknown function: ${functionName}` };
   }
