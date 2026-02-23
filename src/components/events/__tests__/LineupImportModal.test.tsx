@@ -87,3 +87,4 @@ describe('LineupImportModal', () => {
     expect(await screen.findByText(/1\s*names?\s*ready\s*to\s*import/i)).toBeInTheDocument();
   });
 });
+// Force CI re-run
