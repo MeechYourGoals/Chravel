@@ -23,7 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const VOICE_ENABLED = true;
-const UPLOAD_ENABLED = false;
+const UPLOAD_ENABLED = true;
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AIConciergeChatProps {
@@ -190,9 +190,7 @@ export const AIConciergeChat = ({
     (userText: string, assistantText: string) => {
       if (voiceUserDraftIdRef.current && userText) {
         const draftId = voiceUserDraftIdRef.current;
-        setMessages(prev =>
-          prev.map(m => (m.id === draftId ? { ...m, content: userText } : m)),
-        );
+        setMessages(prev => prev.map(m => (m.id === draftId ? { ...m, content: userText } : m)));
       }
       if (voiceAssistantDraftIdRef.current && assistantText) {
         const draftId = voiceAssistantDraftIdRef.current;
@@ -766,7 +764,12 @@ export const AIConciergeChat = ({
 
       setMessages(prev => [...prev, assistantMessage]);
       // Persist to localStorage cache for offline fallback
-      conciergeCacheService.cacheMessage(tripId, currentInput, assistantMessage, user?.id ?? 'anonymous');
+      conciergeCacheService.cacheMessage(
+        tripId,
+        currentInput,
+        assistantMessage,
+        user?.id ?? 'anonymous',
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('AI Concierge error:', error);
@@ -965,7 +968,9 @@ export const AIConciergeChat = ({
           {historyLoadedFromServer && messages.length > 0 && (
             <div className="flex items-center gap-2 mb-4">
               <div className="flex-1 h-px bg-white/10" />
-              <span className="text-xs text-gray-500 whitespace-nowrap">↩ Picked up where you left off</span>
+              <span className="text-xs text-gray-500 whitespace-nowrap">
+                ↩ Picked up where you left off
+              </span>
               <div className="flex-1 h-px bg-white/10" />
             </div>
           )}
