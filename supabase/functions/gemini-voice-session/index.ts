@@ -6,16 +6,18 @@ import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 // Using gemini-2.0-flash-exp as the stable default for Live API (bidirectional audio)
-const GEMINI_LIVE_MODEL =
-  Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-2.0-flash-exp';
+const GEMINI_LIVE_MODEL = Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-2.0-flash-exp';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
-// v1alpha is the default/stable Live API; v1alpha can have different behavior
+// Ephemeral tokens MUST use BidiGenerateContentConstrained (not BidiGenerateContent).
+// BidiGenerateContent expects ?key=<API_KEY>; BidiGenerateContentConstrained expects
+// ?access_token=<EPHEMERAL_TOKEN>. Using the wrong endpoint causes auth failures
+// ("unregistered callers" / 403 / silent WS close).
 const LIVE_WEBSOCKET_URL =
-  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
+  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
 
 const parseEnvInt = (
   value: string | undefined,
@@ -362,6 +364,78 @@ async function createEphemeralToken(params: {
   };
 }
 
+/** Retry variant of createEphemeralToken that omits Google Search grounding. */
+async function createEphemeralTokenWithoutGrounding(params: {
+  model: string;
+  systemInstruction: string;
+  voice: string;
+}): Promise<{ token: string; expireTime?: string; newSessionExpireTime?: string }> {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  const now = Date.now();
+  const expireTime = new Date(now + GEMINI_EPHEMERAL_EXPIRE_MINUTES * 60 * 1000).toISOString();
+  const newSessionExpireTime = new Date(
+    now + GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS * 1000,
+  ).toISOString();
+
+  const tokenRequestBody = {
+    uses: GEMINI_EPHEMERAL_USES,
+    expireTime,
+    newSessionExpireTime,
+    bidiGenerateContentSetup: {
+      model: params.model,
+      generationConfig: {
+        responseModalities: ['AUDIO', 'TEXT'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: params.voice,
+            },
+          },
+        },
+      },
+      systemInstruction: {
+        parts: [{ text: params.systemInstruction }],
+      },
+      tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
+    },
+  };
+
+  const tokenResponse = await fetch(
+    'https://generativelanguage.googleapis.com/v1alpha/auth_tokens',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY,
+      },
+      body: JSON.stringify(tokenRequestBody),
+      signal: AbortSignal.timeout(15_000),
+    },
+  );
+
+  if (!tokenResponse.ok) {
+    const body = await tokenResponse.text();
+    throw new Error(
+      `Token creation failed (no grounding) (${tokenResponse.status}): ${body.substring(0, 400)}`,
+    );
+  }
+
+  const tokenData = await tokenResponse.json();
+  const tokenName = tokenData?.name;
+  if (typeof tokenName !== 'string' || tokenName.trim().length === 0) {
+    throw new Error('Gemini auth_tokens.create returned an empty token (no grounding retry)');
+  }
+
+  return {
+    token: tokenName,
+    expireTime: tokenData?.expireTime,
+    newSessionExpireTime: tokenData?.newSessionExpireTime,
+  };
+}
+
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -472,12 +546,35 @@ serve(async req => {
       });
       console.log('[gemini-voice-session] Token created successfully', {
         expireTime: ephemeral.expireTime,
+        websocketUrl: LIVE_WEBSOCKET_URL,
       });
     } catch (tokenErr) {
-      console.error('[gemini-voice-session] Token creation failed', {
-        error: tokenErr instanceof Error ? tokenErr.message : String(tokenErr),
-      });
-      throw tokenErr;
+      const tokenErrMsg = tokenErr instanceof Error ? tokenErr.message : String(tokenErr);
+      console.error('[gemini-voice-session] Token creation failed', { error: tokenErrMsg });
+
+      // If the model does not support Google Search grounding alongside function
+      // declarations, retry once without grounding. Some Gemini Live models reject
+      // the combination with a 400 or 500 status.
+      if (ENABLE_VOICE_GROUNDING && tokenErrMsg.includes('400')) {
+        console.warn(
+          '[gemini-voice-session] Retrying token creation without Google Search grounding',
+        );
+        try {
+          ephemeral = await createEphemeralTokenWithoutGrounding({
+            model: GEMINI_LIVE_MODEL,
+            systemInstruction,
+            voice,
+          });
+          console.log('[gemini-voice-session] Token created (no grounding) successfully');
+        } catch (retryErr) {
+          console.error('[gemini-voice-session] Retry without grounding also failed', {
+            error: retryErr instanceof Error ? retryErr.message : String(retryErr),
+          });
+          throw retryErr;
+        }
+      } else {
+        throw tokenErr;
+      }
     }
 
     // SECURITY: The response MUST only contain the ephemeral accessToken, NEVER
