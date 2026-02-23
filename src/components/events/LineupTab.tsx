@@ -10,7 +10,6 @@ import {
   Trash2,
   Clock,
   MapPin,
-  Sparkles,
   Lock,
   Upload,
   FileText,
@@ -41,8 +40,8 @@ import {
   EVENT_PARITY_COL_START,
   EVENT_PARITY_HEADER_SPAN_CLASS,
   EVENT_PARITY_ROW_CLASS,
-  PARITY_ACTION_BUTTON_CLASS,
 } from '@/lib/tabParity';
+import { ActionPill } from '../ui/ActionPill';
 
 interface LineupPermissions {
   canView: boolean;
@@ -221,32 +220,26 @@ export const LineupTab = ({
         {canCreate && !isAddingMember && (
           <>
             {hasPaidSmartImport ? (
-              <Button
+              <ActionPill
+                variant="aiOutline"
                 onClick={() => setShowSmartImport(true)}
-                variant="outline"
-                className={`${EVENT_PARITY_COL_START.media} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/50 text-yellow-300 hover:text-yellow-200`}
+                className={`${EVENT_PARITY_COL_START.media} w-full`}
               >
-                <Sparkles size={16} className="flex-shrink-0" />
                 <span className="whitespace-nowrap">Import</span>
-              </Button>
+              </ActionPill>
             ) : (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span tabIndex={0} className={EVENT_PARITY_COL_START.media}>
-                      <Button
-                        disabled
-                        variant="outline"
-                        className={`${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/30 text-yellow-300/70`}
-                      >
+                      <ActionPill variant="aiOutline" disabled className="w-full opacity-50">
                         <Lock size={16} className="flex-shrink-0" />
                         <span className="whitespace-nowrap">Import</span>
-                      </Button>
+                      </ActionPill>
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Smart Import is available on paid plans (Explorer+ / Trip Pass / Pro /
-                    Enterprise).
+                    Import is available on paid plans (Explorer+ / Trip Pass / Pro / Enterprise).
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -263,35 +256,28 @@ export const LineupTab = ({
                   className="hidden"
                   disabled={isUploading}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={`${EVENT_PARITY_COL_START.polls} ${PARITY_ACTION_BUTTON_CLASS} border-yellow-500/40 text-yellow-300/90 hover:text-yellow-200`}
-                  disabled={isUploading}
+                <ActionPill
+                  variant="manualOutline"
+                  leftIcon={isUploading ? <Loader2 className="animate-spin" /> : <Upload />}
                   onClick={() => fileInputRef.current?.click()}
+                  className={`${EVENT_PARITY_COL_START.polls} w-full`}
+                  disabled={isUploading}
                 >
-                  {isUploading ? (
-                    <>
-                      <Loader2 size={16} className="flex-shrink-0 animate-spin" />
-                      <span className="whitespace-nowrap">Uploading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={16} className="flex-shrink-0" />
-                      <span className="whitespace-nowrap">Upload</span>
-                    </>
-                  )}
-                </Button>
+                  <span className="whitespace-nowrap">
+                    {isUploading ? 'Uploading...' : 'Upload'}
+                  </span>
+                </ActionPill>
               </>
             )}
 
-            <Button
+            <ActionPill
+              variant="manualOutline"
+              leftIcon={<Plus />}
               onClick={() => setIsAddingMember(true)}
-              className={`${EVENT_PARITY_COL_START.tasks} ${PARITY_ACTION_BUTTON_CLASS} bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black`}
+              className={`${EVENT_PARITY_COL_START.tasks} w-full`}
             >
-              <Plus size={16} className="flex-shrink-0" />
               <span className="whitespace-nowrap">Add</span>
-            </Button>
+            </ActionPill>
           </>
         )}
       </div>
