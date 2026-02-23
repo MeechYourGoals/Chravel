@@ -77,13 +77,10 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    // Enable minification
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: mode === 'production',
-        drop_debugger: true,
-      },
+    // Enable minification (defaults to esbuild)
+    // esbuild is significantly faster and uses less memory than terser
+    esbuild: {
+      drop: mode === 'production' ? ['console', 'debugger'] : [],
     },
     // Optimize CSS
     cssMinify: true,
