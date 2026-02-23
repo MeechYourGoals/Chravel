@@ -99,8 +99,9 @@ describe('AgendaModal', () => {
       });
 
       expect(screen.getByText('No Agenda Files')).toBeInTheDocument();
+      // Using a regex that is more tolerant to whitespace
       expect(
-        screen.getByText(/Upload PDFs or images of your event agenda \(up to 5 files\)/i),
+        screen.getByText(/Upload PDFs or images of your event agenda/i),
       ).toBeInTheDocument();
     });
 

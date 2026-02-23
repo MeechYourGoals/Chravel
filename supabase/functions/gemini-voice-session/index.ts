@@ -5,8 +5,9 @@ import { TripContextBuilder } from '../_shared/contextBuilder.ts';
 import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+// Using gemini-2.0-flash-exp as the stable default for Live API (bidirectional audio)
 const GEMINI_LIVE_MODEL =
-  Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+  Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-2.0-flash-exp';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -239,7 +240,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
 ];
 
 // Feature flag: enable native Google Search grounding in voice alongside function declarations.
-// gemini-2.5-flash-native-audio-preview supports this; text-only flash models do not.
+// gemini-2.0-flash-exp supports this; text-only flash models do not.
 // Set ENABLE_VOICE_GROUNDING=false in Supabase secrets to disable if the model rejects it.
 const ENABLE_VOICE_GROUNDING =
   (Deno.env.get('ENABLE_VOICE_GROUNDING') || 'true').toLowerCase() !== 'false';
@@ -251,7 +252,7 @@ const VOICE_ADDENDUM = `
 You are now speaking via bidirectional voice audio. Adapt your responses:
 - Keep responses under 3 sentences unless the user asks for detail
 - Use natural conversational language — NO markdown, NO links, NO bullet points, NO formatting
-- Say numbers as words when natural ("about twenty dollars" not "$20.00")
+- Say numbers as words when natural ("about twenty dollars" not "0.00")
 - Avoid lists — narrate sequentially instead
 - Be warm, concise, and personable
 - If you don't know something specific, say so briefly and suggest checking the app
@@ -305,7 +306,7 @@ async function createEphemeralToken(params: {
       tools: [
         { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
         // Native Google Search grounding — lets the model cite live web info directly.
-        // Only supported by gemini-2.5-flash-native-audio-preview and newer Live models.
+        // Only supported by gemini-2.0-flash-exp and newer Live models.
         // Falls back gracefully if unsupported (token request will fail with 400; handled below).
         ...(ENABLE_VOICE_GROUNDING ? [{ googleSearch: {} }] : []),
       ],
@@ -434,7 +435,7 @@ serve(async req => {
     if (tripId) {
       try {
         // Voice is pro-only (checked above), so always include preferences
-        const tripContext = await TripContextBuilder.buildContext(
+        const tripContext = await TripContextBuilder.buildContextWithCache(
           tripId,
           user.id,
           authHeader,

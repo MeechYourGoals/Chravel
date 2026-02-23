@@ -415,6 +415,7 @@ describe('paymentBalanceService', () => {
         error: null,
       });
 
+      // Updated to handle .or() being called
       (supabase.from as any).mockImplementation((table: string) => {
         if (table === 'trip_members') {
           return createChainableMock({ data: null, error: null });

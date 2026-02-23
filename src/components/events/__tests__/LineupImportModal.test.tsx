@@ -40,7 +40,8 @@ describe('LineupImportModal', () => {
       screen.getByPlaceholderText('Paste lineup page URL'),
       'https://example.com/artists',
     );
-    await user.click(screen.getByRole('button', { name: 'Extract' }));
+    // Button is labeled "Import" with icon, so we search by name /Import/i
+    await user.click(screen.getByRole('button', { name: /Import/i }));
 
     // Use regex to match text that might be split across elements
     expect(await screen.findByText(/3\s*names?\s*ready\s*to\s*import/i)).toBeInTheDocument();
