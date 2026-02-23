@@ -199,7 +199,50 @@ const VOICE_FUNCTION_DECLARATIONS = [
       required: ['query'],
     },
   },
+  {
+    name: 'getDistanceMatrix',
+    description:
+      'Get travel times and distances from multiple origins to multiple destinations. Use for "how long to get from hotel to each restaurant" or comparing multiple locations.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        origins: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description: 'Starting addresses or place names',
+        },
+        destinations: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description: 'Destination addresses or place names',
+        },
+        mode: {
+          type: 'STRING',
+          description: 'Travel mode: driving (default), walking, bicycling, or transit',
+        },
+      },
+      required: ['origins', 'destinations'],
+    },
+  },
+  {
+    name: 'validateAddress',
+    description:
+      'Validate and clean up an address the user mentioned, and get its exact coordinates. Use when a user dictates an address or asks if an address is correct.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        address: { type: 'STRING', description: 'Address to validate and geocode' },
+      },
+      required: ['address'],
+    },
+  },
 ];
+
+// Feature flag: enable native Google Search grounding in voice alongside function declarations.
+// gemini-2.5-flash-native-audio-preview supports this; text-only flash models do not.
+// Set ENABLE_VOICE_GROUNDING=false in Supabase secrets to disable if the model rejects it.
+const ENABLE_VOICE_GROUNDING =
+  (Deno.env.get('ENABLE_VOICE_GROUNDING') || 'true').toLowerCase() !== 'false';
 
 /** Voice-specific addendum appended to the full system prompt */
 const VOICE_ADDENDUM = `
@@ -221,6 +264,8 @@ When you call these tools, a visual card automatically appears in the chat windo
 - getDirectionsETA → a directions card with a Maps link appears in chat. Say the drive time aloud and mention: "I've added a link in chat to open it in Maps."
 - searchImages → images appear in chat. Say: "I've pulled up some images in our chat."
 - searchWeb → source links appear in chat. Summarize 1-2 key facts aloud and say: "Check the chat for the source links."
+- getDistanceMatrix → a travel time comparison appears in chat. Read out the key times aloud and say: "I've shared a comparison in the chat."
+- validateAddress → no visual card; just confirm the cleaned-up address and coordinates verbally.
 Never speak URLs or markdown. The chat handles the visual output automatically.`;
 
 async function createEphemeralToken(params: {
@@ -257,7 +302,13 @@ async function createEphemeralToken(params: {
       systemInstruction: {
         parts: [{ text: params.systemInstruction }],
       },
-      tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
+      tools: [
+        { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
+        // Native Google Search grounding — lets the model cite live web info directly.
+        // Only supported by gemini-2.5-flash-native-audio-preview and newer Live models.
+        // Falls back gracefully if unsupported (token request will fail with 400; handled below).
+        ...(ENABLE_VOICE_GROUNDING ? [{ googleSearch: {} }] : []),
+      ],
     },
   };
 
