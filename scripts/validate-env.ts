@@ -104,6 +104,30 @@ const FEATURE_FLAG_VARS: EnvVarSpec[] = [
     canStubForTestFlight: true,
     stubValue: 'false',
   },
+  {
+    name: 'VITE_VOICE_LIVE_ENABLED',
+    required: false,
+    description: 'Enable Gemini Live voice (false in prod until confirmed)',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'false',
+  },
+  {
+    name: 'VITE_VOICE_DIAGNOSTICS_ENABLED',
+    required: false,
+    description: 'Voice diagnostics (connection codes, audio params)',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'false',
+  },
+  {
+    name: 'VITE_VOICE_USE_WEBSOCKET_ONLY',
+    required: false,
+    description: 'Enforce WebSocket for voice (reject SSE/HTTP)',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'true',
+  },
 ];
 
 const ANALYTICS_VARS: EnvVarSpec[] = [
@@ -196,7 +220,10 @@ function loadEnvFile(): Record<string, string> {
         const eqIdx = trimmed.indexOf('=');
         if (eqIdx === -1) continue;
         const key = trimmed.slice(0, eqIdx).trim();
-        const value = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+        const value = trimmed
+          .slice(eqIdx + 1)
+          .trim()
+          .replace(/^["']|["']$/g, '');
         if (value) vars[key] = value;
       }
     }
@@ -267,7 +294,9 @@ function validate(): void {
       console.log(`     Purpose:  ${spec.description}`);
     }
     console.log('\n💡 Tip: Copy .env.example to .env and fill in the required values.');
-    console.log('   The app uses hardcoded Supabase defaults for dev, but production builds need real keys.');
+    console.log(
+      '   The app uses hardcoded Supabase defaults for dev, but production builds need real keys.',
+    );
     process.exit(1);
   }
 

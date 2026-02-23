@@ -2,6 +2,20 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AudioPlaybackQueue } from '@/lib/geminiLive/audioPlayback';
 import { startAudioCapture, type AudioCaptureHandle } from '@/lib/geminiLive/audioCapture';
+import { VOICE_LIVE_ENABLED, VOICE_DIAGNOSTICS_ENABLED } from '@/config/voiceFeatureFlags';
+import {
+  recordFailure,
+  isOpen as isCircuitBreakerOpen,
+  reset as resetCircuitBreaker,
+} from '@/voice/circuitBreaker';
+import { createWebSocketTransport } from '@/voice/transport/createTransport';
+import {
+  logAudioContextParams,
+  checkCaptureSampleRate,
+  assertChunkFraming,
+  ensureAudioContextResumed,
+  AUDIO_CONTRACT,
+} from '@/voice/audioContract';
 
 export type GeminiLiveState =
   | 'idle'
@@ -24,6 +38,8 @@ interface UseGeminiLiveOptions {
   onTurnComplete?: (userText: string, assistantText: string) => void;
   /** Called when voice session fails — use for toast/analytics */
   onError?: (message: string) => void;
+  /** Called when circuit breaker opens (voice disabled for session) */
+  onCircuitBreakerOpen?: () => void;
 }
 
 interface UseGeminiLiveReturn {
@@ -37,6 +53,10 @@ interface UseGeminiLiveReturn {
   /** Send an image frame to Gemini Live during an active voice session. */
   sendImage: (mimeType: string, base64Data: string) => void;
   isSupported: boolean;
+  /** Circuit breaker tripped — voice disabled until reset. */
+  circuitBreakerOpen: boolean;
+  /** Reset circuit breaker for "Try voice again". */
+  resetCircuitBreaker: () => void;
 }
 
 const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
@@ -128,11 +148,13 @@ export function useGeminiLive({
   onToolCall,
   onTurnComplete,
   onError,
+  onCircuitBreakerOpen,
 }: UseGeminiLiveOptions): UseGeminiLiveReturn {
   const [state, setState] = useState<GeminiLiveState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [userTranscript, setUserTranscript] = useState('');
   const [assistantTranscript, setAssistantTranscript] = useState('');
+  const [circuitBreakerOpen, setCircuitBreakerOpen] = useState(false);
 
   // ── Refs for WebSocket-safe callback access (avoids stale closures) ──
   const onTurnCompleteRef = useRef(onTurnComplete);
@@ -149,6 +171,16 @@ export function useGeminiLive({
   useEffect(() => {
     onErrorRef.current = onError;
   }, [onError]);
+
+  const onCircuitBreakerOpenRef = useRef(onCircuitBreakerOpen);
+  useEffect(() => {
+    onCircuitBreakerOpenRef.current = onCircuitBreakerOpen;
+  }, [onCircuitBreakerOpen]);
+
+  // Sync circuit breaker state on mount
+  useEffect(() => {
+    setCircuitBreakerOpen(isCircuitBreakerOpen());
+  }, []);
 
   // ── Internal refs ──
   const wsRef = useRef<WebSocket | null>(null);
@@ -171,6 +203,14 @@ export function useGeminiLive({
     typeof WebSocket !== 'undefined' &&
     SafeAudioContext !== undefined &&
     typeof navigator?.mediaDevices?.getUserMedia === 'function';
+
+  const recordVoiceFailure = useCallback((errMsg: string) => {
+    const justOpened = recordFailure(errMsg);
+    if (justOpened) {
+      setCircuitBreakerOpen(true);
+      onCircuitBreakerOpenRef.current?.();
+    }
+  }, []);
 
   const clearThinkingTimer = useCallback(() => {
     if (thinkingTimerRef.current) {
@@ -316,6 +356,17 @@ export function useGeminiLive({
   }, []);
 
   const startSession = useCallback(async () => {
+    if (!VOICE_LIVE_ENABLED) {
+      return; // Feature flag: no voice init
+    }
+
+    if (isCircuitBreakerOpen()) {
+      setCircuitBreakerOpen(true);
+      setError('Voice is temporarily unavailable. Tap "Try voice again" to retry.');
+      setState('error');
+      return;
+    }
+
     if (!isSupported) {
       setError('Voice is not supported in this browser. Try Chrome, Edge, or Safari.');
       setState('error');
@@ -349,6 +400,19 @@ export function useGeminiLive({
         });
       } catch {
         throw new Error('Failed to initialize audio system.');
+      }
+
+      logAudioContextParams(audioCtxRef.current, VOICE_DIAGNOSTICS_ENABLED);
+      const { needsResample } = checkCaptureSampleRate(
+        audioCtxRef.current.sampleRate,
+        VOICE_DIAGNOSTICS_ENABLED,
+      );
+      if (needsResample && VOICE_DIAGNOSTICS_ENABLED) {
+        console.log(
+          '[useGeminiLive] Capture will resample to',
+          AUDIO_CONTRACT.expectedSampleRateHz,
+          'Hz',
+        );
       }
 
       // Kick off resume synchronously — no await, so we stay in the gesture frame.
@@ -405,20 +469,19 @@ export function useGeminiLive({
         });
       } catch (mediaErr) {
         const name = mediaErr instanceof Error ? mediaErr.name : '';
+        let errMsg: string;
         if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          throw new Error(
-            'Microphone permission denied. Allow microphone access in your browser settings and try again.',
-          );
+          errMsg =
+            'Microphone permission denied. Allow microphone access in your browser settings and try again.';
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          errMsg = 'No microphone detected. Connect a microphone and try again.';
+        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+          errMsg = 'Microphone is already in use by another app. Close other apps and try again.';
+        } else {
+          errMsg = 'Could not access microphone. Check your audio settings and try again.';
         }
-        if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-          throw new Error('No microphone detected. Connect a microphone and try again.');
-        }
-        if (name === 'NotReadableError' || name === 'TrackStartError') {
-          throw new Error(
-            'Microphone is already in use by another app. Close other apps and try again.',
-          );
-        }
-        throw new Error('Could not access microphone. Check your audio settings and try again.');
+        recordVoiceFailure(errMsg);
+        throw new Error(errMsg);
       }
       mediaStreamRef.current = stream;
       voiceLog('mic:acquired', {
@@ -451,6 +514,7 @@ export function useGeminiLive({
 
       playbackQueueRef.current = new AudioPlaybackQueue(audioCtxRef.current);
 
+      // 4. Open WebSocket to Gemini Live (duplex transport required)
       // 4. Open WebSocket to Gemini Live
       // Ephemeral tokens MUST use BidiGenerateContentConstrained (not BidiGenerateContent).
       // BidiGenerateContent expects ?key=<API_KEY> while BidiGenerateContentConstrained
@@ -484,6 +548,7 @@ export function useGeminiLive({
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
             const msg = 'Voice connection timed out. Please try again.';
+            recordVoiceFailure(msg);
             onErrorRef.current?.(msg);
             setError(msg);
             setState('error');
@@ -508,6 +573,7 @@ export function useGeminiLive({
                 : code === 503
                   ? 'Voice service temporarily unavailable — please try again.'
                   : mapSessionError(serverMsg);
+            recordVoiceFailure(userMsg);
             onErrorRef.current?.(userMsg);
             setError(userMsg);
             setState('error');
@@ -543,6 +609,7 @@ export function useGeminiLive({
                     }),
                   );
                 },
+                { diagnosticsEnabled: VOICE_DIAGNOSTICS_ENABLED },
               );
             }
             return;
@@ -681,6 +748,7 @@ export function useGeminiLive({
         }
 
         if (msg) {
+          recordVoiceFailure(msg);
           onErrorRef.current?.(msg);
           setError(msg);
           setState('error');
@@ -691,6 +759,7 @@ export function useGeminiLive({
       };
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to start voice session.';
+      recordVoiceFailure(errMsg);
       onErrorRef.current?.(errMsg);
       setError(errMsg);
       setState('error');
@@ -704,6 +773,7 @@ export function useGeminiLive({
     handleToolCallWs,
     clearThinkingTimer,
     resetTurnAccumulators,
+    recordVoiceFailure,
   ]);
 
   const interruptPlayback = useCallback(() => {
@@ -737,6 +807,13 @@ export function useGeminiLive({
     cleanup();
   }, [cleanup, resetTurnAccumulators]);
 
+  const handleResetCircuitBreaker = useCallback(() => {
+    resetCircuitBreaker();
+    setCircuitBreakerOpen(false);
+    setError(null);
+    setState('idle');
+  }, []);
+
   return {
     state,
     error,
@@ -747,6 +824,8 @@ export function useGeminiLive({
     interruptPlayback,
     sendImage,
     isSupported,
+    circuitBreakerOpen,
+    resetCircuitBreaker: handleResetCircuitBreaker,
   };
 }
 
