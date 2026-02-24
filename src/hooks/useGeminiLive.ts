@@ -621,9 +621,6 @@ export function useGeminiLive({
       }
 
       if (!audioCtxRef.current) throw new Error('Audio context lost.');
-      if (!audioCtxRef.current) {
-        throw new Error('Audio context lost.');
-      }
       voiceLog('audioContext:resumed', {
         state: audioCtxRef.current.state,
         sampleRate: audioCtxRef.current.sampleRate,
@@ -820,7 +817,6 @@ export function useGeminiLive({
                     dataLen: part.inlineData.data.length,
                   });
                 }
-                setState('speaking');
                 playbackQueueRef.current?.enqueue(part.inlineData.data);
               }
               if (typeof part.text === 'string' && part.text.length > 0) {
