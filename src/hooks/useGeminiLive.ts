@@ -829,6 +829,7 @@ export function useGeminiLive({
                     dataLen: part.inlineData.data.length,
                   });
                 }
+                setState('playing');
                 playbackQueueRef.current?.enqueue(part.inlineData.data);
               }
               if (typeof part.text === 'string' && part.text.length > 0) {

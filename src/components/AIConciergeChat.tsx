@@ -443,10 +443,13 @@ export const AIConciergeChat = ({
   useEffect(() => {
     setVoiceState(tripId, effectiveVoiceState);
   }, [tripId, effectiveVoiceState, setVoiceState]);
+  }, [tripId, geminiState, setVoiceState]);
 
   useEffect(() => {
     setLastError(tripId, geminiState === 'error' ? (geminiError ?? 'Voice session error') : null);
   }, [tripId, geminiState, geminiError, setLastError]);
+
+  // effectiveVoiceState already declared above (line 414)
 
   // When a voice session is active and the user attaches an image, send it
   // directly to Gemini Live as an inline data frame so the model can see it
@@ -1165,7 +1168,7 @@ export const AIConciergeChat = ({
             <h3 className="text-lg font-semibold text-white flex-1 text-center">AI Concierge</h3>
             <div className="flex items-center gap-2 flex-shrink-0">
               <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
-              {VOICE_LIVE_ENABLED && (
+
                 <button
                   type="button"
                   onClick={handleVoiceToggle}
@@ -1174,7 +1177,7 @@ export const AIConciergeChat = ({
                 >
                   <Mic size={18} className="text-white" />
                 </button>
-              )}
+
             </div>
           </div>
         </div>
@@ -1213,6 +1216,7 @@ export const AIConciergeChat = ({
                   <Crown size={16} className="mr-2" />
                   Explorer - 10 Asks/Trip ($9.99/mo)
                 </Button>
+
               )}
               <Button
                 onClick={() => (window.location.href = upgradeUrl)}
@@ -1280,6 +1284,39 @@ export const AIConciergeChat = ({
           )}
         </div>
 
+        {/* Voice active status bar */}
+        {VOICE_LIVE_ENABLED && geminiState !== 'idle' && geminiState !== 'error' && !circuitBreakerOpen && (
+          <div
+            className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
+            role="alert"
+            aria-live="polite"
+            aria-label={`Voice: ${effectiveVoiceState === 'listening' ? 'Listening' : effectiveVoiceState === 'thinking' ? 'Processing' : effectiveVoiceState === 'speaking' ? 'Speaking' : effectiveVoiceState === 'connecting' ? 'Connecting' : 'Active'}`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
+              <span className="text-sm text-emerald-300">
+                {effectiveVoiceState === 'listening'
+                  ? 'Listening...'
+                  : effectiveVoiceState === 'thinking'
+                    ? 'Processing...'
+                    : effectiveVoiceState === 'speaking'
+                      ? 'Speaking...'
+                      : effectiveVoiceState === 'connecting'
+                        ? 'Connecting...'
+                        : 'Voice Active'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={endSession}
+              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
+              aria-label="End voice session"
+            >
+              End Session
+            </button>
+          </div>
+        )}
+
         {/* Circuit breaker: Try voice again */}
         {VOICE_LIVE_ENABLED && circuitBreakerOpen && (
           <div
@@ -1336,42 +1373,7 @@ export const AIConciergeChat = ({
             )}
           </div>
         )}
-        {/* Voice Active Indicator — only shown when voice session is active */}
-        {VOICE_LIVE_ENABLED &&
-          !circuitBreakerOpen &&
-          geminiState !== 'idle' &&
-          geminiState !== 'error' && (
-            <div
-              className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
-              role="status"
-              aria-live="polite"
-              aria-label={`Voice: ${geminiState === 'listening' ? 'Listening' : geminiState === 'thinking' ? 'Processing' : geminiState === 'speaking' ? 'Speaking' : geminiState === 'connecting' ? 'Connecting' : 'Active'}`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
-                <span className="text-sm text-emerald-300">
-                  {geminiState === 'listening'
-                    ? 'Listening...'
-                    : geminiState === 'thinking'
-                      ? 'Processing...'
-                      : geminiState === 'speaking'
-                        ? 'Speaking...'
-                        : geminiState === 'connecting'
-                          ? 'Connecting...'
-                          : 'Voice Active'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={endSession}
-                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
-                aria-label="End voice session"
-              >
-                <Square size={10} />
-                End
-              </button>
-            </div>
-          )}
+        {/* Voice Active Indicator already rendered above (lines ~1250) */}
 
         {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
@@ -1392,9 +1394,9 @@ export const AIConciergeChat = ({
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
                 : undefined
             }
-            voiceState={VOICE_LIVE_ENABLED ? effectiveVoiceState : 'idle'}
-            isVoiceEligible={VOICE_LIVE_ENABLED && voiceSupported && !circuitBreakerOpen}
-            onVoiceToggle={VOICE_LIVE_ENABLED ? handleVoiceToggle : undefined}
+            voiceState={effectiveVoiceState}
+            isVoiceEligible={voiceSupported && !circuitBreakerOpen}
+            onVoiceToggle={handleVoiceToggle}
           />
         </div>
       </div>

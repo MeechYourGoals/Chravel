@@ -6,6 +6,7 @@ import { Button } from '../ui/button';
 import { ActionPill } from '../ui/ActionPill';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
+import { EVENT_PARITY_ROW_CLASS, EVENT_PARITY_COL_START, EVENT_PARITY_HEADER_SPAN_CLASS } from '@/lib/tabParity';
 import { Card, CardContent } from '../ui/card';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
@@ -199,8 +200,8 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
         />
       )}
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className={EVENT_PARITY_ROW_CLASS}>
+        <div className={`flex items-center gap-3 ${EVENT_PARITY_HEADER_SPAN_CLASS}`}>
           <ClipboardList size={24} className="text-yellow-500" />
           <div>
             <h2 className="text-xl font-semibold text-white">Event Tasks</h2>
@@ -214,10 +215,10 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
           <ActionPill
             variant="manualOutline"
             leftIcon={<Plus size={16} />}
+            iconOnly
             onClick={() => setIsAddingTask(true)}
-          >
-            Add Task
-          </ActionPill>
+            className={`${EVENT_PARITY_COL_START.tasks} w-full`}
+          />
         )}
       </div>
 
@@ -251,7 +252,7 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
               <Button
                 onClick={handleAddTask}
                 disabled={isCreating}
-                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
+                className="bg-black/60 border border-white/30 text-white hover:bg-white/10 shadow-none font-semibold"
               >
                 Add Task
               </Button>

@@ -95,6 +95,7 @@ describe('TripLinksDisplay', () => {
 
   it(
     'retry button refetches on error',
+    { timeout: 25000 },
     async () => {
       // First 2 calls fail (initial + auto-retry), 3rd (manual Retry) succeeds
       const getTripLinksSpy = vi
@@ -123,7 +124,6 @@ describe('TripLinksDisplay', () => {
         },
         { timeout: 5000 },
       );
-    },
-    { timeout: 25000 },
+    }
   );
 });
