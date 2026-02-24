@@ -97,6 +97,15 @@ interface FallbackTripContext {
 }
 
 const FAST_RESPONSE_TIMEOUT_MS = 60_000;
+const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB — keeps base64 under 6 MB server limit
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+]);
 const VOICE_DIAGNOSTICS_ENABLED =
   import.meta.env.DEV || (import.meta.env.VITE_VOICE_DEBUG || '').toLowerCase() === 'true';
 
@@ -165,10 +174,18 @@ export const AIConciergeChat = ({
   const { user } = useAuth();
   const loadedPreferences = useAIConciergePreferences();
   const effectivePreferences = preferences ?? loadedPreferences;
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const storeSession = useConciergeSessionStore(s => s.getSession(tripId));
+  const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
+
+  // Hydrate from Zustand store on mount (preserves messages across tab switches)
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    storeSession.messages.length > 0 ? (storeSession.messages as ChatMessage[]) : [],
+  );
   // True after the chat is hydrated from the server DB (not just cache/empty).
   // Used to show the "Picked up where you left off" chip.
-  const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(false);
+  const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(
+    storeSession.historyLoadedFromServer,
+  );
 
   // --- Persisted history hydration ---
   const {
@@ -421,9 +438,11 @@ export const AIConciergeChat = ({
           : geminiState === 'interrupted'
             ? 'listening'
             : (geminiState as VoiceState);
-  // Sync voice state to concierge session store
+
+  // Sync voice state to concierge session store (mapped to VoiceSessionState)
   useEffect(() => {
     setVoiceState(tripId, effectiveVoiceState);
+  }, [tripId, effectiveVoiceState, setVoiceState]);
   }, [tripId, geminiState, setVoiceState]);
 
   useEffect(() => {
@@ -437,10 +456,24 @@ export const AIConciergeChat = ({
   // while speaking. Images are still queued for the text path when voice is idle.
   const handleImageAttach = useCallback(
     async (files: File[]) => {
+      const validated: File[] = [];
+      for (const file of files) {
+        if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+          toast.error(`"${file.name}" is not a supported image format.`);
+          continue;
+        }
+        if (file.size > MAX_IMAGE_SIZE_BYTES) {
+          toast.error(`"${file.name}" exceeds 4 MB. Please resize and try again.`);
+          continue;
+        }
+        validated.push(file);
+      }
+      if (validated.length === 0) return;
+
       const voiceIsActive =
         geminiState === 'listening' || geminiState === 'sending' || geminiState === 'playing';
 
-      setAttachedImages(prev => [...prev, ...files].slice(0, 4));
+      setAttachedImages(prev => [...prev, ...validated].slice(0, 4));
 
       if (!voiceIsActive) return;
 
@@ -578,6 +611,13 @@ export const AIConciergeChat = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOffline]);
+
+  // Sync messages to Zustand store so they persist across tab switches
+  useEffect(() => {
+    if (messages.length > 0) {
+      setStoreMessages(tripId, messages as import('@/store/conciergeSessionStore').ConciergeSessionMessage[]);
+    }
+  }, [messages, tripId, setStoreMessages]);
 
   // Auto-scroll to bottom when new messages or typing indicator appear
   useEffect(() => {

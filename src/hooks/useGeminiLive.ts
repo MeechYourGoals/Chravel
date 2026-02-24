@@ -86,6 +86,7 @@ const SESSION_TIMEOUT_MS = 30_000;
 const WEBSOCKET_SETUP_TIMEOUT_MS = 15_000;
 const THINKING_DELAY_MS = 1_500;
 const BARGE_IN_RMS_THRESHOLD = 0.035;
+const EPHEMERAL_TOKEN_WARN_MS = 25 * 60 * 1000; // Warn 5 min before 30-min default expiry
 
 /** Structured debug logging — enabled in dev mode or when VITE_VOICE_DEBUG=true */
 const VOICE_DEBUG =
@@ -240,6 +241,7 @@ export function useGeminiLive({
   const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const turnStartedAtRef = useRef<number | null>(null);
   const cancelStartedAtRef = useRef<number | null>(null);
+  const sessionExpiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const userTranscriptAccRef = useRef('');
   const assistantTranscriptAccRef = useRef('');
@@ -314,6 +316,10 @@ export function useGeminiLive({
   const cleanup = useCallback(() => {
     isStartingRef.current = false;
     clearThinkingTimer();
+    if (sessionExpiryTimerRef.current) {
+      clearTimeout(sessionExpiryTimerRef.current);
+      sessionExpiryTimerRef.current = null;
+    }
 
     captureHandleRef.current?.stop();
     captureHandleRef.current = null;
@@ -621,9 +627,6 @@ export function useGeminiLive({
       }
 
       if (!audioCtxRef.current) throw new Error('Audio context lost.');
-      if (!audioCtxRef.current) {
-        throw new Error('Audio context lost.');
-      }
       voiceLog('audioContext:resumed', {
         state: audioCtxRef.current.state,
         sampleRate: audioCtxRef.current.sampleRate,
@@ -719,6 +722,12 @@ export function useGeminiLive({
             });
             clearSetupTimeout();
             isStartingRef.current = false;
+
+            // Start session expiry countdown — warn user before the ephemeral token expires
+            sessionExpiryTimerRef.current = setTimeout(() => {
+              onErrorRef.current?.('Voice session expiring soon. Please restart to continue.');
+              patchDiagnostics({ lastError: 'Session nearing expiry' });
+            }, EPHEMERAL_TOKEN_WARN_MS);
             transition('ready', 'setup_complete');
 
             if (audioCtxRef.current && mediaStreamRef.current) {

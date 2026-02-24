@@ -26,8 +26,10 @@ interface CachedMessages {
 
 const CACHE_PREFIX = 'concierge_cache_';
 const MESSAGES_PREFIX = 'concierge_messages_';
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours - encourages more queries, drives subscription conversion
+const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days - aligns with documented TTL, maximises offline utility
 const SIMILARITY_THRESHOLD = 0.6; // Minimum similarity to use cached response
+const MAX_CACHED_RESPONSES = 100; // Per-trip response cache capacity
+const MAX_CACHED_MESSAGES = 200; // Per-trip message cache capacity
 
 class ConciergeCacheService {
   /**
@@ -47,10 +49,15 @@ class ConciergeCacheService {
         tripId
       });
       
-      // Keep only last 50 responses
-      const recent = cached.slice(-50);
-      
-      localStorage.setItem(cacheKey, JSON.stringify(recent));
+      const recent = cached.slice(-MAX_CACHED_RESPONSES);
+
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(recent));
+      } catch {
+        // localStorage quota exceeded — evict oldest half and retry
+        const trimmed = recent.slice(Math.floor(recent.length / 2));
+        try { localStorage.setItem(cacheKey, JSON.stringify(trimmed)); } catch { /* give up silently */ }
+      }
       
       // Also update messages cache (user-isolated)
       this.updateMessagesCache(tripId, response, userId);
@@ -133,16 +140,20 @@ class ConciergeCacheService {
       const cacheKey = `${MESSAGES_PREFIX}${tripId}_${userKey}`;
       const existing = this.getCachedMessages(tripId, userId);
       
-      // Add new message (keep last 100 messages)
-      const updated = [...existing, message].slice(-100);
-      
+      const updated = [...existing, message].slice(-MAX_CACHED_MESSAGES);
+
       const cached: CachedMessages = {
         messages: updated,
         timestamp: Date.now(),
         tripId
       };
-      
-      localStorage.setItem(cacheKey, JSON.stringify(cached));
+
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(cached));
+      } catch {
+        const trimmed = { ...cached, messages: updated.slice(Math.floor(updated.length / 2)) };
+        try { localStorage.setItem(cacheKey, JSON.stringify(trimmed)); } catch { /* give up silently */ }
+      }
     } catch (error) {
       console.error('Failed to update messages cache:', error);
     }

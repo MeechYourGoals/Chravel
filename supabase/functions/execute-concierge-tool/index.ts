@@ -90,6 +90,23 @@ serve(async (req: Request) => {
         ? (args as Record<string, unknown>)
         : {};
 
+    // ── Resolve location context from trip basecamp for proximity-aware tools ──
+    let locationContext: { lat?: number; lng?: number } | null = null;
+    if (tripIdStr) {
+      try {
+        const { data: tripData } = await supabase
+          .from('trips')
+          .select('latitude, longitude')
+          .eq('id', tripIdStr)
+          .maybeSingle();
+        if (tripData?.latitude && tripData?.longitude) {
+          locationContext = { lat: tripData.latitude, lng: tripData.longitude };
+        }
+      } catch {
+        // Non-critical — tools still work without location bias
+      }
+    }
+
     // ── Execute ────────────────────────────────────────────────────────────
     const result = await executeFunctionCall(
       supabase,
@@ -97,7 +114,7 @@ serve(async (req: Request) => {
       argsObj,
       tripIdStr,
       user.id,
-      null, // locationContext — voice doesn't pass lat/lng here
+      locationContext,
     );
 
     return new Response(JSON.stringify(result), {
