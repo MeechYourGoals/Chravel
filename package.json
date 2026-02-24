@@ -154,10 +154,12 @@
     "typescript-eslint": "^8.46.2",
     "vaul": "^0.9.3",
     "vite": "^5.4.21",
-    "vitest": "^1.6.1",
     "workbox-build": "^7.4.0",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8",
     "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
   }
 }

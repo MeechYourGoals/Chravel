@@ -1112,7 +1112,7 @@ export const AIConciergeChat = ({
             <h3 className="text-lg font-semibold text-white flex-1 text-center">AI Concierge</h3>
             <div className="flex items-center gap-2 flex-shrink-0">
               <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
-              {VOICE_LIVE_ENABLED && (
+
                 <button
                   type="button"
                   onClick={handleVoiceToggle}
@@ -1121,7 +1121,7 @@ export const AIConciergeChat = ({
                 >
                   <Mic size={18} className="text-white" />
                 </button>
-              )}
+
             </div>
           </div>
         </div>
@@ -1160,6 +1160,7 @@ export const AIConciergeChat = ({
                   <Crown size={16} className="mr-2" />
                   Explorer - 10 Asks/Trip ($9.99/mo)
                 </Button>
+
               )}
               <Button
                 onClick={() => (window.location.href = upgradeUrl)}
@@ -1304,9 +1305,9 @@ export const AIConciergeChat = ({
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
                 : undefined
             }
-            voiceState={VOICE_LIVE_ENABLED ? effectiveVoiceState : 'idle'}
-            isVoiceEligible={VOICE_LIVE_ENABLED && voiceSupported && !circuitBreakerOpen}
-            onVoiceToggle={VOICE_LIVE_ENABLED ? handleVoiceToggle : undefined}
+            voiceState={effectiveVoiceState}
+            isVoiceEligible={voiceSupported && !circuitBreakerOpen}
+            onVoiceToggle={handleVoiceToggle}
           />
         </div>
       </div>
