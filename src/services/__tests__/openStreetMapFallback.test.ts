@@ -118,7 +118,8 @@ describe('openStreetMapFallback', () => {
       // Mock google.maps.LatLng
       global.google = {
         maps: {
-          LatLng: vi.fn((lat, lng) => ({ lat, lng })),
+          // Use standard function to support 'new'
+          LatLng: vi.fn(function(lat, lng) { return { lat, lng }; }),
         } as any,
       };
 

@@ -77,7 +77,7 @@ const createWrapper = () => {
   );
 };
 
-describe('AgendaModal Smart Import', () => {
+describe('AgendaModal Import', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -93,7 +93,7 @@ describe('AgendaModal Smart Import', () => {
       wrapper: createWrapper(),
     });
 
-    const importButton = screen.getByRole('button', { name: /Smart Import/i });
+    const importButton = screen.getByRole('button', { name: /Import/i });
     expect(importButton).toBeInTheDocument();
     expect(importButton).not.toBeDisabled();
   });
@@ -109,7 +109,7 @@ describe('AgendaModal Smart Import', () => {
       wrapper: createWrapper(),
     });
 
-    const importButton = screen.getByRole('button', { name: /Smart Import/i });
+    const importButton = screen.getByRole('button', { name: /Import/i });
     expect(importButton).toBeInTheDocument();
     expect(importButton).toBeDisabled();
   });
