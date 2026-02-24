@@ -226,12 +226,8 @@ export const AIConciergeChat = ({
   const handleDictationResult = useCallback(
     (text: string) => {
       if (!text.trim()) return;
-      // Auto-send the transcribed text as a message
-      setInputMessage(text);
-      // Use a microtask to let React flush setInputMessage, then send
-      queueMicrotask(() => {
-        handleSendMessageRef.current?.(text);
-      });
+      // Insert text into input field only — user reviews and sends manually
+      setInputMessage(prev => prev ? prev + ' ' + text.trim() : text.trim());
     },
     [],
   );
@@ -420,6 +416,28 @@ export const AIConciergeChat = ({
       setAiStatus('connected');
     }
   }, [isOffline, aiStatus]);
+
+  // ── Delete a single concierge message (privacy) ──────────────────────────
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    // Remove from local state immediately
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+
+    // If it's a persisted history message, also update DB
+    const historyMatch = messageId.match(/^history-(user|assistant)-([^-]+)/);
+    if (historyMatch && user?.id) {
+      const [, role, rowId] = historyMatch;
+      if (role === 'user') {
+        // Delete entire row (removes both Q and A from DB)
+        await supabase.from('ai_queries').delete().eq('id', rowId).eq('user_id', user.id);
+        // Also remove the paired assistant message from UI
+        const pairedPrefix = `history-assistant-${rowId}`;
+        setMessages(prev => prev.filter(m => !m.id.startsWith(pairedPrefix)));
+      } else {
+        // Just null out the response text in DB
+        await supabase.from('ai_queries').update({ response_text: null }).eq('id', rowId).eq('user_id', user.id);
+      }
+    }
+  }, [user?.id]);
 
   const handleSendMessage = async (messageOverride?: string) => {
     const typedMessage =
@@ -1002,8 +1020,13 @@ export const AIConciergeChat = ({
               <div className="flex-1 h-px bg-white/10" />
             </div>
           )}
-          {messages.length > 0 && (
-            <ChatMessages messages={messages} isTyping={isTyping} showMapWidgets={true} />
+        {messages.length > 0 && (
+            <ChatMessages
+              messages={messages}
+              isTyping={isTyping}
+              showMapWidgets={true}
+              onDeleteMessage={handleDeleteMessage}
+            />
           )}
         </div>
 

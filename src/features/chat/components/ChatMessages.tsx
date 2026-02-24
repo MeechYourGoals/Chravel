@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Trash2 } from 'lucide-react';
 import { ChatMessage } from './types';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { ChatMessageWithGrounding } from '@/types/grounding';
@@ -9,9 +9,10 @@ interface ChatMessagesProps {
   messages: (ChatMessage | ChatMessageWithGrounding)[];
   isTyping: boolean;
   showMapWidgets?: boolean;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
-export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: ChatMessagesProps) => {
+export const ChatMessages = ({ messages, isTyping, showMapWidgets = false, onDeleteMessage }: ChatMessagesProps) => {
   if (messages.length === 0) {
     return (
       <div className="text-center py-8">
@@ -27,8 +28,21 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: Cha
       {messages.map((message) => {
         const messageWithGrounding = message as ChatMessageWithGrounding;
         return (
-          <div key={message.id} id={`msg-${message.id}`} className="space-y-2">
+          <div key={message.id} id={`msg-${message.id}`} className="space-y-2 group/msg relative">
             <MessageRenderer message={message} showMapWidgets={showMapWidgets} />
+            {onDeleteMessage && (
+              <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}>
+                <button
+                  type="button"
+                  onClick={() => onDeleteMessage(message.id)}
+                  className="opacity-0 group-hover/msg:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive p-1 rounded"
+                  aria-label="Delete message"
+                  title="Delete message"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
             
             {/* Render Maps widget for gmp-place-contextual context tokens */}
             {showMapWidgets && messageWithGrounding.googleMapsWidget &&

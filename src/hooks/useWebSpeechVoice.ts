@@ -76,6 +76,8 @@ export function useWebSpeechVoice(
   const restartCountRef = useRef(0);
   const restartWithoutResultRef = useRef(0);
   const intentionalStopRef = useRef(false);
+  // Track the last processed result index to avoid re-reading cumulative results
+  const resultIndexRef = useRef(0);
 
   const [debugInfo] = useState<VoiceDebugInfo>({
     selectedModel: 'web-speech-api',
@@ -189,18 +191,21 @@ export function useWebSpeechVoice(
       let finalText = '';
       let interimText = '';
 
-      for (let i = 0; i < event.results.length; i++) {
+      // Only process results from the last-seen index forward to prevent
+      // re-reading the entire cumulative results array (which caused
+      // repeated text when continuous=true on desktop Chrome).
+      for (let i = resultIndexRef.current; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
           finalText += result[0].transcript;
+          resultIndexRef.current = i + 1; // advance past this final result
         } else {
           interimText += result[0].transcript;
         }
       }
 
-      // Accumulate final results; show interim for feedback
+      // Only append NEW final text
       if (finalText) {
-        // Append final text (don't overwrite previous finals from restarts)
         const prev = accumulatedTranscriptRef.current;
         const separator = prev && !prev.endsWith(' ') ? ' ' : '';
         accumulatedTranscriptRef.current = prev + separator + finalText;
@@ -340,6 +345,7 @@ export function useWebSpeechVoice(
     accumulatedTranscriptRef.current = '';
     restartCountRef.current = 0;
     restartWithoutResultRef.current = 0;
+    resultIndexRef.current = 0;
     intentionalStopRef.current = false;
 
     // NOTE: We do NOT call getUserMedia here. SpeechRecognition manages its
