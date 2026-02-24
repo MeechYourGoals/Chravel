@@ -152,6 +152,7 @@ export const AIConciergeChat = ({
   basecamp,
   preferences,
   isDemoMode = false,
+  onTabChange,
 }: AIConciergeChatProps) => {
   const { basecamp: globalBasecamp } = useBasecamp();
   const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
@@ -1131,13 +1132,12 @@ export const AIConciergeChat = ({
           onOpenChange={setSearchOpen}
           tripId={tripId}
           onNavigate={(tab, id) => {
-            if (tab === "concierge" || tab === "ai-chat") {
-            const el = document.getElementById(`msg-${id}`);
-            el?.scrollIntoView({ behavior: "smooth", block: "center" });
-          } else if (onTabChange) {
-            onTabChange(tab);
-          }
-            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (tab === 'concierge' || tab === 'ai-chat') {
+              const el = document.getElementById(`msg-${id}`);
+              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else if (onTabChange) {
+              onTabChange(tab);
+            }
           }}
         />
 
