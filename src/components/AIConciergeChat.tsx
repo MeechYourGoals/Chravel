@@ -421,16 +421,15 @@ export const AIConciergeChat = ({
           : geminiState === 'interrupted'
             ? 'listening'
             : (geminiState as VoiceState);
-  // Sync voice state to concierge session store
+
+  // Sync voice state to concierge session store (mapped to VoiceSessionState)
   useEffect(() => {
-    setVoiceState(tripId, geminiState);
-  }, [tripId, geminiState, setVoiceState]);
+    setVoiceState(tripId, effectiveVoiceState);
+  }, [tripId, effectiveVoiceState, setVoiceState]);
 
   useEffect(() => {
     setLastError(tripId, geminiState === 'error' ? (geminiError ?? 'Voice session error') : null);
   }, [tripId, geminiState, geminiError, setLastError]);
-
-  const effectiveVoiceState: VoiceState = geminiState as VoiceState;
 
   // When a voice session is active and the user attaches an image, send it
   // directly to Gemini Live as an inline data frame so the model can see it
@@ -473,10 +472,8 @@ export const AIConciergeChat = ({
 
   // Draft user message: create on first transcript, update live
   useEffect(() => {
-    if (!VOICE_ENABLED) return;
-    if ((geminiState === 'listening' || geminiState === 'sending') && userTranscript) {
     if (!VOICE_LIVE_ENABLED) return;
-    if ((geminiState === 'listening' || geminiState === 'thinking') && userTranscript) {
+    if ((geminiState === 'listening' || geminiState === 'sending') && userTranscript) {
       if (!voiceUserDraftIdRef.current) {
         const id = uniqueId('voice-user');
         voiceUserDraftIdRef.current = id;
@@ -500,10 +497,8 @@ export const AIConciergeChat = ({
 
   // Draft assistant message: create when model starts responding, update as text streams
   useEffect(() => {
-    if (!VOICE_ENABLED) return;
-    if (geminiState === 'playing' && assistantTranscript) {
     if (!VOICE_LIVE_ENABLED) return;
-    if (geminiState === 'speaking' && assistantTranscript) {
+    if (geminiState === 'playing' && assistantTranscript) {
       if (!voiceAssistantDraftIdRef.current) {
         const id = uniqueId('voice-asst');
         voiceAssistantDraftIdRef.current = id;
@@ -1253,27 +1248,6 @@ export const AIConciergeChat = ({
             className="flex items-center justify-between px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 flex-shrink-0"
             role="alert"
             aria-live="polite"
-            aria-label={`Voice: ${geminiState === 'listening' ? 'Listening' : geminiState === 'sending' ? 'Processing' : geminiState === 'playing' ? 'Speaking' : geminiState === 'requesting_mic' || geminiState === 'ready' ? 'Connecting' : 'Active'}`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
-              <span className="text-sm text-emerald-300">
-                {geminiState === 'listening'
-                  ? 'Listening...'
-                  : geminiState === 'sending'
-                    ? 'Processing...'
-                    : geminiState === 'playing'
-                      ? 'Speaking...'
-                      : geminiState === 'requesting_mic' || geminiState === 'ready'
-                        ? 'Connecting...'
-                        : 'Voice Active'}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={endSession}
-              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
-              aria-label="End voice session"
           >
             <span className="text-sm text-amber-300">
               Voice is temporarily unavailable—switched to text.
@@ -1289,7 +1263,7 @@ export const AIConciergeChat = ({
           </div>
         )}
 
-        {VOICE_DIAGNOSTICS_ENABLED && VOICE_ENABLED && (
+        {VOICE_DIAGNOSTICS_ENABLED && VOICE_LIVE_ENABLED && (
           <div className="px-4 py-2 border-b border-white/10 bg-black/30 text-[11px] text-gray-300 space-y-1">
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <span>State: {geminiState}</span>
