@@ -5,8 +5,11 @@ import { TripContextBuilder } from '../_shared/contextBuilder.ts';
 import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-// Using gemini-2.0-flash-exp as the stable default for Live API (bidirectional audio)
-const GEMINI_LIVE_MODEL = Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-2.0-flash-exp';
+// Default Live API model for bidirectional audio. gemini-2.0-flash-exp is deprecated;
+// use gemini-2.5-flash-preview-native-audio as the current stable Live-capable model.
+// Override via GEMINI_LIVE_MODEL env var in Supabase secrets.
+const GEMINI_LIVE_MODEL =
+  Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-2.5-flash-preview-native-audio';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
