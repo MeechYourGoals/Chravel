@@ -116,11 +116,7 @@ describe('AIConciergeChat', () => {
   });
 
   const renderWithProviders = (component: React.ReactNode) => {
-    return render(
-      <QueryClientProvider client={queryClient}>
-        {component}
-      </QueryClientProvider>
-    );
+    return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>);
   };
 
   describe('Header Simplification', () => {
@@ -131,6 +127,18 @@ describe('AIConciergeChat', () => {
         expect(screen.getByText(/private convo/i)).toBeInTheDocument();
       });
       expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
+    });
+
+    it('always renders the header microphone button', async () => {
+      renderWithProviders(<AIConciergeChat tripId="test-trip" />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('header-voice-mic')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('header-voice-mic')).toHaveAttribute(
+        'aria-label',
+        'Voice concierge',
+      );
     });
 
     it('removes legacy status pills from header', () => {
