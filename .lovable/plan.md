@@ -1,131 +1,197 @@
+# Fix: Dictation Repeating Text, No Auto-Send, and Message Deletion
 
+## Three Issues
 
-# Fix: Concierge Search, History, and Mobile Dictation
+### Issue 1: Dictation repeats words endlessly (critical)
 
-## Issues Identified
+**Root cause**: The `onresult` handler in `useWebSpeechVoice.ts` iterates over ALL `event.results` from index 0 on every callback. When `continuous = true` (non-iOS), the browser's `results` array grows cumulatively -- but the code re-reads every result from the start, appending already-accumulated text. This causes "this is great start but I also need" to repeat hundreds of times.
 
-### Issue 1: Calendar events not appearing in search
-**Root cause**: The `searchCalendarEvents` function in `universalSearchService.ts` searches `title` and `location` columns but NOT the `description` column. The event "Flight leaves at 1130pm" has "Flight" in both `title` and `description`, so it should be found by title alone. However, the search also needs `description` coverage for cases where the keyword only appears in the description. Additionally, the `event_category` field (e.g. "Flight") is not searched, which would improve category-based results.
+**Fix**: Track the last processed result index via a ref (`resultIndexRef`). On each `onresult`, only process results from the last-seen index forward.
 
-**Verification needed**: The calendar search SQL itself looks correct for the "flight" keyword. The issue may also be RLS-related -- will add console logging to confirm whether data returns or errors silently.
+### Issue 2: Dictation auto-sends instead of populating the text field
 
-### Issue 2: Concierge conversation history never loads
-**Root cause (confirmed)**: The RPC function `get_concierge_trip_history` does not exist in the database. The `useConciergeHistory` hook calls this non-existent function, which silently fails and returns empty arrays. This means:
-- Chat history is never hydrated from the server on page load
-- Clicking "Concierge Conversation" search results tries to scroll to a message that doesn't exist
-- Users see an empty Concierge tab every time they return to it
+**Root cause**: In `AIConciergeChat.tsx` lines 226-237, `handleDictationResult` calls `setInputMessage(text)` then immediately fires `handleSendMessageRef.current(text)` via `queueMicrotask`. The user confirmed they want insert-only behavior.
 
-**Fix**: Replace the broken RPC call with a direct query to the `ai_queries` table (which DOES contain the data -- confirmed 87+ rows for the test trip).
+**Fix**: Change `handleDictationResult` to only call `setInputMessage(text)` -- remove the `queueMicrotask` auto-send. The user can then review, edit, and press Send manually.
 
-### Issue 3: Mobile dictation says "Listening" but produces no transcription
-**Root cause**: The Web Speech API on mobile browsers (especially iOS Safari) has known issues:
-1. On iOS PWA (standalone mode), `SpeechRecognition` may not be available at all
-2. On mobile Safari, the `onresult` event may not fire if the recognition stops too quickly
-3. The current implementation waits 2 seconds of silence to finalize, but on mobile the `onend` event may fire before any `onresult` events arrive
-4. The `continuous = !isIOS` logic sets `continuous = false` on iOS, which means recognition stops after the first pause -- but the auto-restart in `onend` should handle this
+### Issue 3: Users cannot delete concierge messages (privacy)
 
-**Most likely mobile failure**: The `SpeechRecognition` API fires `onend` without ever firing `onresult` on mobile. The auto-restart logic kicks in but no transcript accumulates. The user sees "Listening" indefinitely because `activeRef` stays true.
+**Root cause**: No delete functionality exists. The `ai_queries` table has no DELETE RLS policy. The `ChatMessages` and `MessageRenderer` components have no delete buttons.
 
----
+**Fix**: 
 
-## Fix Plan
-
-### A) Fix Concierge History (Critical -- Issue 2)
-
-**File: `src/hooks/useConciergeHistory.ts`**
-
-Replace the broken `supabase.rpc('get_concierge_trip_history')` call with a direct query to `ai_queries` table:
-
-```typescript
-const { data: rows, error: queryError } = await supabase
-  .from('ai_queries')
-  .select('id, query_text, response_text, created_at')
-  .eq('trip_id', tripId)
-  .eq('user_id', user.id)
-  .order('created_at', { ascending: true })
-  .limit(p_limit * 2); // Each row has both user + assistant
-```
-
-Then map each row into two messages (user query + assistant response), producing the same `ConciergeChatMessage[]` shape the caller expects. This avoids needing a DB migration to create the missing RPC function.
-
-**Also increase limit from 10 to 50** (currently `p_limit: 10` means only 5 conversation pairs are loaded -- too few for scroll-to-message from search).
-
-### B) Enhance Calendar Search (Issue 1)
-
-**File: `src/services/universalSearchService.ts`**
-
-In `searchCalendarEvents`, add `description` and `event_category` to the search filter:
-
-```typescript
-// Before:
-.or(`title.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%`)
-
-// After:
-.or(`title.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%,event_category.ilike.%${safeQuery}%`)
-```
-
-Also update the snippet to include `event_category` when available:
-```typescript
-snippet: `${event.event_category ? event.event_category + ' - ' : ''}${event.location || 'No location'} - ${new Date(event.start_time).toLocaleString()}`
-```
-
-### C) Fix Mobile Dictation (Issue 3)
-
-**File: `src/hooks/useWebSpeechVoice.ts`**
-
-Three targeted fixes:
-
-1. **Add a "no results" timeout**: If `onresult` never fires within 5 seconds of starting, show a toast suggesting the user try again or check mic permissions. This prevents the perpetual "Listening..." state on mobile.
-
-2. **Improve the iOS restart logic**: When `onend` fires with no accumulated transcript after multiple restarts, break out and show an error rather than silently restarting forever.
-
-3. **Add `audiostart`/`soundstart` event handlers**: These events fire when the browser detects audio/sound from the mic. If `audiostart` never fires within 3 seconds, it means the mic isn't actually capturing -- show a diagnostic message.
-
-```typescript
-// In createRecognition():
-recognition.onaudiostart = () => {
-  if (noAudioTimerRef.current) {
-    clearTimeout(noAudioTimerRef.current);
-    noAudioTimerRef.current = null;
-  }
-};
-```
-
-And in `startVoice`:
-```typescript
-// Start a "no audio detected" timer
-noAudioTimerRef.current = setTimeout(() => {
-  if (activeRef.current && !accumulatedTranscriptRef.current) {
-    setErrorMessage('No audio detected. Please check microphone permissions.');
-    cleanup();
-    setVoiceState('error');
-  }
-}, 5000);
-```
+- Add a DELETE RLS policy on `ai_queries` so users can delete their own rows
+- Add swipe-to-delete or long-press-to-delete on individual message bubbles in the concierge chat
+- When a user message is deleted, it still counts toward their plans query allotment so they can't cheat the system
+- When an AI response is deleted, it should no longer show up in concierge search results
+- Both types of deletion also remove the message from local state and the Zustand store
 
 ---
 
-## Files Changed
+## File-by-File Changes
 
-| File | Change | Priority |
-|------|--------|----------|
-| `src/hooks/useConciergeHistory.ts` | Replace broken RPC with direct `ai_queries` table query; increase limit to 50 | Critical |
-| `src/services/universalSearchService.ts` | Add `description` and `event_category` to calendar event search filter | High |
-| `src/hooks/useWebSpeechVoice.ts` | Add no-audio timeout, improve restart exhaustion handling | High |
+### A) Fix dictation repeating (`src/hooks/useWebSpeechVoice.ts`)
+
+1. Add `resultIndexRef = useRef(0)` to track the last-processed result index
+2. Reset it to 0 in `startVoice` alongside other refs
+3. In `recognition.onresult`, only iterate from `resultIndexRef.current` to `event.results.length`:
+
+```text
+Before (broken):
+  for (let i = 0; i < event.results.length; i++) {
+    if (result.isFinal) finalText += ...
+    else interimText += ...
+  }
+  accumulatedTranscriptRef.current = prev + separator + finalText;
+
+After (fixed):
+  for (let i = resultIndexRef.current; i < event.results.length; i++) {
+    if (event.results[i].isFinal) {
+      finalText += event.results[i][0].transcript;
+      resultIndexRef.current = i + 1;  // advance past this final result
+    } else {
+      interimText += event.results[i][0].transcript;
+    }
+  }
+  // Only append NEW final text
+  if (finalText) {
+    accumulatedTranscriptRef.current += separator + finalText;
+  }
+```
+
+This ensures each result segment is only processed once, eliminating the repetition.
+
+### B) Remove auto-send (`src/components/AIConciergeChat.tsx`)
+
+Change `handleDictationResult` (lines 226-237) to only populate the input field:
+
+```typescript
+const handleDictationResult = useCallback(
+  (text: string) => {
+    if (!text.trim()) return;
+    // Insert text into input field only -- user reviews and sends manually
+    setInputMessage(prev => prev ? prev + ' ' + text : text);
+  },
+  [],
+);
+```
+
+Key changes:
+
+- Remove the `queueMicrotask` that calls `handleSendMessageRef.current`
+- Use functional update to append (in case user dictates multiple segments)
+
+### C) Add message deletion UI (`src/features/chat/components/ChatMessages.tsx`)
+
+Add an optional `onDeleteMessage` prop. When provided, render a delete button on each message bubble (shown on long-press for mobile, hover for desktop):
+
+```typescript
+interface ChatMessagesProps {
+  messages: (ChatMessage | ChatMessageWithGrounding)[];
+  isTyping: boolean;
+  showMapWidgets?: boolean;
+  onDeleteMessage?: (messageId: string) => void;  // NEW
+}
+```
+
+Each message `<div>` gets a small trash icon that appears on hover/focus, calling `onDeleteMessage(message.id)`.
+
+### D) Add message deletion UI to MessageRenderer (`src/features/chat/components/MessageRenderer.tsx`)
+
+Add `onDelete?: (id: string) => void` prop. Show a small Trash2 icon button in the top-right corner of each message bubble on hover, with a confirmation tap on mobile.
+
+### E) Wire deletion in AIConciergeChat (`src/components/AIConciergeChat.tsx`)
+
+Add a `handleDeleteMessage` function that:
+
+1. Removes the message from local `messages` state
+2. If the message ID starts with `history-user-` or `history-assistant-`, extract the `ai_queries` row ID and:
+  - For user messages: delete the entire `ai_queries` row (since the question is being removed)
+  - For assistant messages: update the row to set `response_text = null`
+3. For non-history (current-session) messages, just remove from local state
+
+```typescript
+const handleDeleteMessage = useCallback(async (messageId: string) => {
+  // Remove from local state immediately
+  setMessages(prev => prev.filter(m => m.id !== messageId));
+  
+  // If it's a persisted history message, also delete from DB
+  const historyMatch = messageId.match(/^history-(user|assistant)-([^-]+)-/);
+  if (historyMatch && user?.id) {
+    const [, role, rowId] = historyMatch;
+    if (role === 'user') {
+      // Delete the entire row (removes both Q and A)
+      await supabase.from('ai_queries').delete().eq('id', rowId).eq('user_id', user.id);
+      // Also remove the paired assistant message
+      const pairedId = messageId.replace('history-user-', 'history-assistant-');
+      setMessages(prev => prev.filter(m => m.id !== pairedId));
+    } else {
+      // Just null out the response
+      await supabase.from('ai_queries').update({ response_text: null }).eq('id', rowId).eq('user_id', user.id);
+    }
+  }
+}, [user?.id]);
+```
+
+Pass it to `ChatMessages`:
+
+```tsx
+<ChatMessages
+  messages={messages}
+  isTyping={isTyping}
+  showMapWidgets={true}
+  onDeleteMessage={handleDeleteMessage}
+/>
+```
+
+### F) Add DELETE RLS policy (new migration)
+
+Create `supabase/migrations/20260224_add_ai_queries_delete_policy.sql`:
+
+```sql
+CREATE POLICY "Users can delete their own AI queries"
+  ON ai_queries
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own AI queries"
+  ON ai_queries
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
+---
+
+## Files Changed Summary
+
+
+| File                                                            | Change                                                            | Priority |
+| --------------------------------------------------------------- | ----------------------------------------------------------------- | -------- |
+| `src/hooks/useWebSpeechVoice.ts`                                | Fix result index tracking to prevent repeated text                | Critical |
+| `src/components/AIConciergeChat.tsx`                            | Remove auto-send; add `handleDeleteMessage`; pass to ChatMessages | Critical |
+| `src/features/chat/components/ChatMessages.tsx`                 | Add `onDeleteMessage` prop, render delete button per message      | High     |
+| `src/features/chat/components/MessageRenderer.tsx`              | Add `onDelete` prop, show trash icon on hover/long-press          | High     |
+| `supabase/migrations/20260224_add_ai_queries_delete_policy.sql` | DELETE + UPDATE RLS policies for `ai_queries`                     | High     |
+
 
 ## What is NOT changed
-- `AIConciergeChat.tsx` -- no changes needed (history hydration logic and search navigation already work correctly once data is available)
-- `ConciergeSearchModal.tsx` -- no changes needed (UI is correct)
+
 - `VoiceButton.tsx` -- no changes needed
+- `AiChatInput.tsx` -- no changes needed
+- `universalSearchService.ts` -- no changes needed
+- `conciergeGateway.ts` -- no changes needed
 - Edge functions -- no changes needed
-- Database schema -- no migrations needed
+- Zustand store -- messages sync automatically via existing effect
 
 ## Regression Checklist
-- Concierge tab loads with previous conversation history visible
-- Searching "flight" returns the calendar event
-- Clicking a Concierge search result scrolls to the message in chat
-- Dictation works on desktop Chrome
-- Dictation on mobile shows error after 5s if no audio detected (instead of perpetual "Listening")
-- Map cards, grounding sources, and tool results still render
-- No console errors
 
+- Dictation produces clean, non-repeating text
+- Transcribed text appears in input field without auto-sending
+- User can edit text before pressing Send
+- Trash icon appears on hover/long-press for each message bubble
+- Deleting a user message removes it from UI and DB
+- Deleting an AI response removes it from UI and nulls `response_text` in DB
+- Map cards, grounding sources, and tool results still render
+- Search still finds concierge conversations
+- No console errors
