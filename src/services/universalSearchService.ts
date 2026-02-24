@@ -307,7 +307,7 @@ async function searchTasks(
         title: task.title,
         snippet: task.description || 'No description',
         matchScore: 0.86,
-        deepLink: `/trip/${task.tripId}#task-${task.id}`,
+        deepLink: `/trip/${task.trip_id}#task-${task.id}`,
         metadata: { priority: task.priority, status: task.status },
         timestamp: task.createdAt
       }));
@@ -372,7 +372,7 @@ async function searchPolls(
         title: poll.question,
         snippet: `${poll.totalVotes} votes`,
         matchScore: 0.84,
-        deepLink: `/trip/${poll.tripId}#poll-${poll.id}`,
+        deepLink: `/trip/${poll.trip_id}#poll-${poll.id}`,
         metadata: { totalVotes: poll.totalVotes },
         timestamp: poll.createdAt
       }));
@@ -574,7 +574,7 @@ async function searchMedia(
         title: media.filename,
         snippet: `${media.type} - ${media.tags?.join(', ') || 'No tags'}`,
         matchScore: 0.82,
-        deepLink: `/trip/${media.tripId}#media-${media.id}`,
+        deepLink: `/trip/${media.trip_id}#media-${media.id}`,
         metadata: { type: media.type, tags: media.tags },
         timestamp: media.createdAt
       }));
@@ -664,8 +664,7 @@ export async function performUniversalSearch(
 
   // Flatten and sort by match score
   const allResults = results
-    .filter((r): r is PromiseFulfilledResult<UniversalSearchResult[]> => r.status === 'fulfilled')
-    .map(r => r.value)
+    .map(r => (r.status === 'fulfilled' ? r.value : []))
     .flat();
 
   return allResults.sort((a, b) => b.matchScore - a.matchScore);
