@@ -77,11 +77,18 @@ export const AiChatInput = ({
 
   const isLimitReached = usageStatus?.status === 'limit_reached';
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const imageFiles = files.filter(f => f.type.startsWith('image/'));
     if (imageFiles.length > 0) {
-      onImageAttach?.(imageFiles);
+      setIsProcessingImages(true);
+      try {
+        onImageAttach?.(imageFiles);
+      } finally {
+        setIsProcessingImages(false);
+      }
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -142,12 +149,12 @@ export const AiChatInput = ({
         </div>
       )}
 
-      {/* Hidden file input */}
+      {/* Hidden file input — explicit MIME list for better cross-browser compatibility */}
       {showImageAttach && (
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
           multiple
           className="hidden"
           onChange={handleFileSelect}
@@ -170,11 +177,15 @@ export const AiChatInput = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || isLimitReached}
+            disabled={disabled || isLimitReached || isProcessingImages}
             className="size-11 min-w-[44px] rounded-full flex items-center justify-center bg-gradient-to-r from-emerald-600 to-cyan-600 text-white hover:opacity-90 transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Attach image"
+            aria-label={isProcessingImages ? 'Processing images...' : 'Attach image'}
           >
-            <ImagePlus size={18} aria-hidden />
+            {isProcessingImages ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden />
+            ) : (
+              <ImagePlus size={18} aria-hidden />
+            )}
           </button>
         )}
 
