@@ -56,20 +56,20 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
   };
 
   const getTooltip = () => {
-    if (!isEligible) return 'Voice concierge — Upgrade to use';
+    if (!isEligible) return 'Dictation — Upgrade to use';
     switch (voiceState) {
       case 'connecting':
-        return 'Connecting...';
+        return 'Starting mic...';
       case 'listening':
-        return 'Listening...';
+        return 'Listening — tap to stop';
       case 'thinking':
         return 'Processing...';
       case 'speaking':
-        return 'Tap to interrupt';
+        return 'Listening...';
       case 'error':
         return 'Tap to retry';
       default:
-        return 'Start voice';
+        return 'Tap to dictate';
     }
   };
 
