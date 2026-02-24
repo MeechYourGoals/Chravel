@@ -67,10 +67,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
     parameters: {
       type: 'OBJECT',
       properties: {
-        content: { type: 'STRING', description: 'Task description' },
+        title: { type: 'STRING', description: 'Task title / description' },
         dueDate: { type: 'STRING', description: 'Due date in ISO format (optional)' },
       },
-      required: ['content'],
+      required: ['title'],
     },
   },
   {

@@ -80,14 +80,15 @@ async function _executeImpl(
     }
 
     case 'createTask': {
-      const { content, assignee, dueDate } = args;
+      const { title, content, assignee, dueDate } = args;
+      const taskTitle = title || content || 'Untitled task';
       const { data, error } = await supabase
         .from('trip_tasks')
         .insert({
           trip_id: tripId,
-          content,
-          created_by: userId || null,
-          due_date: dueDate || null,
+          title: taskTitle,
+          creator_id: userId || null,
+          due_at: dueDate || null,
         })
         .select()
         .single();
@@ -95,7 +96,7 @@ async function _executeImpl(
       return {
         success: true,
         task: data,
-        message: `Created task: "${content}"${assignee ? ` for ${assignee}` : ''}`,
+        message: `Created task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}`,
       };
     }
 
