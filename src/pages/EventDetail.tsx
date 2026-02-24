@@ -284,6 +284,7 @@ const EventDetail = () => {
           <TripHeader 
               trip={{...trip, created_by: actualCreatorId}} 
               onDescriptionUpdate={setTripDescription}
+              isMembersLoading={membersLoading}
             />
           </Suspense>
 

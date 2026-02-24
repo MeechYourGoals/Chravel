@@ -16,7 +16,7 @@ interface UseUniversalSearchOptions {
 
 export const useUniversalSearch = (query: string, options: UseUniversalSearchOptions = {}) => {
   const {
-    contentTypes = ['trips', 'messages', 'calendar', 'tasks', 'polls', 'media'],
+    contentTypes = ['trips', 'messages', 'calendar', 'task', 'poll', 'media'],
     searchMode = 'keyword',
     tripIds,
   } = options;

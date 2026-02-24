@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, Crown, Sparkles, Square } from 'lucide-react';
+import { Search, Crown, Sparkles, Square, Mic } from 'lucide-react';
+import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
 import { ChatMessages } from '@/features/chat/components/ChatMessages';
@@ -21,10 +22,12 @@ import { useGeminiLive, uniqueId } from '@/hooks/useGeminiLive';
 import type { ToolCallRequest } from '@/hooks/useGeminiLive';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { supabase } from '@/integrations/supabase/client';
+import { VOICE_LIVE_ENABLED } from '@/config/voiceFeatureFlags';
+import { useConciergeSessionStore } from '@/store/conciergeSessionStore';
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
-const VOICE_ENABLED = true;
 const UPLOAD_ENABLED = true;
+// VOICE_LIVE_ENABLED now from VOICE_LIVE_ENABLED (voiceFeatureFlags.ts)
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AIConciergeChatProps {
@@ -33,6 +36,7 @@ interface AIConciergeChatProps {
   preferences?: TripPreferences;
   isDemoMode?: boolean;
   isEvent?: boolean;
+  onTabChange?: (tab: string) => void;
 }
 
 export interface ChatMessage {
@@ -153,6 +157,7 @@ export const AIConciergeChat = ({
   basecamp,
   preferences,
   isDemoMode = false,
+  onTabChange,
 }: AIConciergeChatProps) => {
   const { basecamp: globalBasecamp } = useBasecamp();
   const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
@@ -177,6 +182,7 @@ export const AIConciergeChat = ({
     'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
   >('connected');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
@@ -217,6 +223,15 @@ export const AIConciergeChat = ({
   const handleVoiceError = useCallback((message: string) => {
     toast.error('Voice failed', { description: message });
   }, []);
+
+  const handleCircuitBreakerOpen = useCallback(() => {
+    toast.error('Voice is temporarily unavailable—switched to text.', {
+      description: 'Tap "Try voice again" to retry.',
+    });
+  }, []);
+
+  const setVoiceState = useConciergeSessionStore(s => s.setVoiceState);
+  const setLastError = useConciergeSessionStore(s => s.setLastError);
 
   // Inject a read-only assistant card into chat for tool results that produce
   // visual output (photos, maps, links). The AI verbally describes the result;
@@ -377,6 +392,7 @@ export const AIConciergeChat = ({
 
   const {
     state: geminiState,
+    error: geminiError,
     userTranscript,
     assistantTranscript,
     diagnostics,
@@ -385,11 +401,14 @@ export const AIConciergeChat = ({
     interruptPlayback,
     sendImage: sendImageToLive,
     isSupported: voiceSupported,
+    circuitBreakerOpen,
+    resetCircuitBreaker,
   } = useGeminiLive({
     tripId,
     onTurnComplete: handleVoiceTurnComplete,
     onToolCall: handleVoiceToolCall,
     onError: handleVoiceError,
+    onCircuitBreakerOpen: handleCircuitBreakerOpen,
   });
 
   const effectiveVoiceState: VoiceState =
@@ -402,6 +421,16 @@ export const AIConciergeChat = ({
           : geminiState === 'interrupted'
             ? 'listening'
             : (geminiState as VoiceState);
+  // Sync voice state to concierge session store
+  useEffect(() => {
+    setVoiceState(tripId, geminiState);
+  }, [tripId, geminiState, setVoiceState]);
+
+  useEffect(() => {
+    setLastError(tripId, geminiState === 'error' ? (geminiError ?? 'Voice session error') : null);
+  }, [tripId, geminiState, geminiError, setLastError]);
+
+  const effectiveVoiceState: VoiceState = geminiState as VoiceState;
 
   // When a voice session is active and the user attaches an image, send it
   // directly to Gemini Live as an inline data frame so the model can see it
@@ -446,6 +475,8 @@ export const AIConciergeChat = ({
   useEffect(() => {
     if (!VOICE_ENABLED) return;
     if ((geminiState === 'listening' || geminiState === 'sending') && userTranscript) {
+    if (!VOICE_LIVE_ENABLED) return;
+    if ((geminiState === 'listening' || geminiState === 'thinking') && userTranscript) {
       if (!voiceUserDraftIdRef.current) {
         const id = uniqueId('voice-user');
         voiceUserDraftIdRef.current = id;
@@ -471,6 +502,8 @@ export const AIConciergeChat = ({
   useEffect(() => {
     if (!VOICE_ENABLED) return;
     if (geminiState === 'playing' && assistantTranscript) {
+    if (!VOICE_LIVE_ENABLED) return;
+    if (geminiState === 'speaking' && assistantTranscript) {
       if (!voiceAssistantDraftIdRef.current) {
         const id = uniqueId('voice-asst');
         voiceAssistantDraftIdRef.current = id;
@@ -1082,21 +1115,51 @@ export const AIConciergeChat = ({
   return (
     <div className="flex flex-col px-0 py-4 overflow-hidden flex-1 min-h-0 h-full max-h-[calc(100vh-240px)]">
       <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
-        {/* Header */}
+        {/* Header — search/mic aligned with input bar send button (gradient theme) */}
         <div className="border-b border-white/10 bg-black/30 p-3 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <Search size={20} className="text-white" />
-            </div>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+              aria-label="Search concierge"
+            >
+              <Search size={18} className="text-white" />
+            </button>
             <span className={`text-xs whitespace-nowrap ${queryAllowanceTone}`}>
               {queryAllowanceText}
             </span>
             <h3 className="text-lg font-semibold text-white flex-1 text-center">AI Concierge</h3>
-            <p className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
-              🔒 Private Convo
-            </p>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
+              {VOICE_LIVE_ENABLED && (
+                <button
+                  type="button"
+                  onClick={handleVoiceToggle}
+                  className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+                  aria-label="Voice concierge"
+                >
+                  <Mic size={18} className="text-white" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Search Modal */}
+        <ConciergeSearchModal
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          tripId={tripId}
+          onNavigate={(tab, id) => {
+            if (tab === 'concierge' || tab === 'ai-chat') {
+              const el = document.getElementById(`msg-${id}`);
+              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else if (onTabChange) {
+              onTabChange(tab);
+            }
+          }}
+        />
 
         {/* Usage Limit Reached State */}
         {isQueryLimitReached && usage?.limit !== null && (
@@ -1184,11 +1247,11 @@ export const AIConciergeChat = ({
           )}
         </div>
 
-        {/* Voice Active Indicator — only shown when voice session is active */}
-        {VOICE_ENABLED && geminiState !== 'idle' && geminiState !== 'error' && (
+        {/* Circuit breaker: Try voice again */}
+        {VOICE_LIVE_ENABLED && circuitBreakerOpen && (
           <div
-            className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
-            role="status"
+            className="flex items-center justify-between px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 flex-shrink-0"
+            role="alert"
             aria-live="polite"
             aria-label={`Voice: ${geminiState === 'listening' ? 'Listening' : geminiState === 'sending' ? 'Processing' : geminiState === 'playing' ? 'Speaking' : geminiState === 'requesting_mic' || geminiState === 'ready' ? 'Connecting' : 'Active'}`}
           >
@@ -1211,10 +1274,18 @@ export const AIConciergeChat = ({
               onClick={endSession}
               className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
               aria-label="End voice session"
+          >
+            <span className="text-sm text-amber-300">
+              Voice is temporarily unavailable—switched to text.
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetCircuitBreaker}
+              className="text-amber-300 border-amber-500/50 hover:bg-amber-500/20"
             >
-              <Square size={10} />
-              End
-            </button>
+              Try voice again
+            </Button>
           </div>
         )}
 
@@ -1253,6 +1324,42 @@ export const AIConciergeChat = ({
             )}
           </div>
         )}
+        {/* Voice Active Indicator — only shown when voice session is active */}
+        {VOICE_LIVE_ENABLED &&
+          !circuitBreakerOpen &&
+          geminiState !== 'idle' &&
+          geminiState !== 'error' && (
+            <div
+              className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
+              role="status"
+              aria-live="polite"
+              aria-label={`Voice: ${geminiState === 'listening' ? 'Listening' : geminiState === 'thinking' ? 'Processing' : geminiState === 'speaking' ? 'Speaking' : geminiState === 'connecting' ? 'Connecting' : 'Active'}`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
+                <span className="text-sm text-emerald-300">
+                  {geminiState === 'listening'
+                    ? 'Listening...'
+                    : geminiState === 'thinking'
+                      ? 'Processing...'
+                      : geminiState === 'speaking'
+                        ? 'Speaking...'
+                        : geminiState === 'connecting'
+                          ? 'Connecting...'
+                          : 'Voice Active'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={endSession}
+                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
+                aria-label="End voice session"
+              >
+                <Square size={10} />
+                End
+              </button>
+            </div>
+          )}
 
         {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
@@ -1273,9 +1380,9 @@ export const AIConciergeChat = ({
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
                 : undefined
             }
-            voiceState={VOICE_ENABLED ? effectiveVoiceState : 'idle'}
-            isVoiceEligible={VOICE_ENABLED && voiceSupported}
-            onVoiceToggle={VOICE_ENABLED ? handleVoiceToggle : undefined}
+            voiceState={VOICE_LIVE_ENABLED ? effectiveVoiceState : 'idle'}
+            isVoiceEligible={VOICE_LIVE_ENABLED && voiceSupported && !circuitBreakerOpen}
+            onVoiceToggle={VOICE_LIVE_ENABLED ? handleVoiceToggle : undefined}
           />
         </div>
       </div>

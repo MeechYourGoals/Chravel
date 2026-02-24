@@ -2,7 +2,9 @@
  * Microphone capture → PCM16 16 kHz mono for Gemini Live.
  */
 
-const TARGET_SAMPLE_RATE = 16_000;
+import { assertChunkFraming, AUDIO_CONTRACT } from '@/voice/audioContract';
+
+const TARGET_SAMPLE_RATE = AUDIO_CONTRACT.expectedSampleRateHz;
 
 export interface AudioCaptureHandle {
   stop: () => void;
@@ -13,7 +15,9 @@ export function startAudioCapture(
   audioContext: AudioContext,
   onChunk: (base64PCM: string) => void,
   onRms?: (rms: number) => void,
+  options?: { diagnosticsEnabled?: boolean },
 ): AudioCaptureHandle {
+  const diagnosticsEnabled = options?.diagnosticsEnabled ?? import.meta.env.DEV;
   const source = audioContext.createMediaStreamSource(stream);
   const processor = audioContext.createScriptProcessor(2048, 1, 1);
 
@@ -22,6 +26,7 @@ export function startAudioCapture(
     onRms?.(computeRms(inputData));
     const inputSampleRate = audioContext.sampleRate;
     const downsampled = downsampleTo16k(inputData, inputSampleRate);
+    assertChunkFraming(downsampled.length, diagnosticsEnabled);
     const base64 = float32ToPCM16Base64(downsampled);
     onChunk(base64);
   };

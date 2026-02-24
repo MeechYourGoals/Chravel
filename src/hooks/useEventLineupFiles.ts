@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getUploadContentType } from '@/utils/mime';
 import type { AgendaFile } from '@/types/events';
+import { withTimeout } from '@/utils/timeout';
 
 const MAX_LINEUP_FILES = 5;
 const MAX_FILE_SIZE_MB = 25;
@@ -50,12 +51,27 @@ export function useEventLineupFiles({ eventId, enabled = true }: UseEventLineupF
     setLoadError(null);
 
     const prefix = getPrefix(eventId);
-    const { data, error } = await supabase.storage
-      .from('trip-media')
-      .list(prefix, { sortBy: { column: 'created_at', order: 'asc' } });
+    let data: any[] | null = null;
+    let error: any = null;
+
+    try {
+      const result = await withTimeout(
+        supabase.storage
+          .from('trip-media')
+          .list(prefix, { sortBy: { column: 'created_at', order: 'asc' } }),
+        5000,
+        'Lineup files request timed out',
+      );
+      data = result.data;
+      error = result.error;
+    } catch {
+      setFiles([]);
+      setIsLoading(false);
+      return;
+    }
 
     if (error) {
-      setLoadError(`Failed to load lineup files: ${error.message}`);
+      setFiles([]);
       setIsLoading(false);
       return;
     }

@@ -91,7 +91,7 @@ export const ConsumerSettings = ({
 
   return (
     <SettingsLayout
-      title="Consumer Settings"
+      title="Personal Settings"
       sections={sections}
       activeSection={activeSection}
       onSectionChange={setActiveSection}

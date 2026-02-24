@@ -120,6 +120,7 @@ export const ProTripDetailContent = ({
       {/* Tab Content */}
       <ProTabContent
         activeTab={activeTab}
+        onTabChange={onTabChange}
         tripId={tripId}
         basecamp={basecamp}
         tripData={tripData}

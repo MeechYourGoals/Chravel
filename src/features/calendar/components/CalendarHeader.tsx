@@ -1,10 +1,9 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus, Calendar as CalendarIcon, List, Download, Upload, Grid3x3 } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, List, Download, Grid3x3 } from 'lucide-react';
 import { ViewMode } from '../hooks/useCalendarManagement';
 import { useTripVariant } from '@/contexts/TripVariantContext';
+import { ActionPill } from '@/components/ui/ActionPill';
 import {
-  PARITY_ACTION_BUTTON_CLASS,
   TRIP_PARITY_COL_START,
   TRIP_PARITY_ROW_CLASS,
   PRO_PARITY_ROW_CLASS,
@@ -56,35 +55,43 @@ export const CalendarHeader = ({
 
   // Select grid tokens based on variant
   const rowClass =
-    variant === 'pro' ? PRO_PARITY_ROW_CLASS
-    : variant === 'events' ? EVENT_PARITY_ROW_CLASS
-    : TRIP_PARITY_ROW_CLASS;
+    variant === 'pro'
+      ? PRO_PARITY_ROW_CLASS
+      : variant === 'events'
+        ? EVENT_PARITY_ROW_CLASS
+        : TRIP_PARITY_ROW_CLASS;
 
   const titleSpan =
-    variant === 'pro' ? 'md:col-span-5'
-    : variant === 'events' ? 'md:col-span-4'
-    : 'sm:col-span-4';
+    variant === 'pro' ? 'md:col-span-5' : variant === 'events' ? 'md:col-span-4' : 'sm:col-span-4';
 
   // Map buttons to the correct columns per variant
   const colImport =
-    variant === 'pro' ? PRO_PARITY_COL_START.places
-    : variant === 'events' ? EVENT_PARITY_COL_START.lineup
-    : TRIP_PARITY_COL_START.payments;
+    variant === 'pro'
+      ? PRO_PARITY_COL_START.places
+      : variant === 'events'
+        ? EVENT_PARITY_COL_START.lineup
+        : TRIP_PARITY_COL_START.payments;
 
   const colExport =
-    variant === 'pro' ? PRO_PARITY_COL_START.polls
-    : variant === 'events' ? EVENT_PARITY_COL_START.media
-    : TRIP_PARITY_COL_START.places;
+    variant === 'pro'
+      ? PRO_PARITY_COL_START.polls
+      : variant === 'events'
+        ? EVENT_PARITY_COL_START.media
+        : TRIP_PARITY_COL_START.places;
 
   const colViewToggle =
-    variant === 'pro' ? PRO_PARITY_COL_START.tasks
-    : variant === 'events' ? EVENT_PARITY_COL_START.polls
-    : TRIP_PARITY_COL_START.polls;
+    variant === 'pro'
+      ? PRO_PARITY_COL_START.tasks
+      : variant === 'events'
+        ? EVENT_PARITY_COL_START.polls
+        : TRIP_PARITY_COL_START.polls;
 
   const colAddEvent =
-    variant === 'pro' ? PRO_PARITY_COL_START.team
-    : variant === 'events' ? EVENT_PARITY_COL_START.tasks
-    : TRIP_PARITY_COL_START.tasks;
+    variant === 'pro'
+      ? PRO_PARITY_COL_START.team
+      : variant === 'events'
+        ? EVENT_PARITY_COL_START.tasks
+        : TRIP_PARITY_COL_START.tasks;
 
   return (
     <div className="mb-6">
@@ -94,52 +101,47 @@ export const CalendarHeader = ({
           <h2 className="text-2xl font-bold text-foreground text-center">Group Calendar</h2>
         </div>
 
-        {/* Import button */}
-        <Button
-          variant="outline"
-          size="sm"
+        {/* Import button — AI-assisted action */}
+        <ActionPill
+          variant="aiOutline"
           onClick={onImport}
-          className={`${colImport} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5`}
+          className={`${colImport} w-full`}
           disabled={!onImport}
         >
-          <Upload className="h-4 w-4 flex-shrink-0" />
           <span className="hidden lg:inline whitespace-nowrap">Import</span>
-        </Button>
+        </ActionPill>
 
-        {/* Export button */}
-        <Button
-          variant="outline"
-          size="sm"
+        {/* Export button — manual action */}
+        <ActionPill
+          variant="manualOutline"
+          leftIcon={<Download />}
           onClick={onExport}
-          className={`${colExport} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5`}
+          className={`${colExport} w-full`}
           disabled={!onExport}
         >
-          <Download className="h-4 w-4 flex-shrink-0" />
           <span className="hidden lg:inline whitespace-nowrap">Export</span>
-        </Button>
+        </ActionPill>
 
-        {/* View toggle button */}
-        <Button
-          variant="outline"
-          size="sm"
+        {/* View toggle button — manual action */}
+        <ActionPill
+          variant="manualOutline"
+          leftIcon={getViewButtonIcon()}
           onClick={onToggleView}
-          className={`${colViewToggle} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5`}
+          className={`${colViewToggle} w-full`}
         >
-          {getViewButtonIcon()}
           <span className="hidden lg:inline whitespace-nowrap">{getViewButtonLabel()}</span>
-        </Button>
+        </ActionPill>
 
-        {/* Add Event button */}
-        <Button
-          variant="outline"
-          size="sm"
+        {/* Add Event button — manual action */}
+        <ActionPill
+          variant="manualOutline"
+          leftIcon={<Plus />}
           onClick={onAddEvent}
-          className={`${colAddEvent} ${PARITY_ACTION_BUTTON_CLASS} flex items-center justify-center gap-1.5`}
+          className={`${colAddEvent} w-full`}
           disabled={!onAddEvent}
         >
-          <Plus className="h-4 w-4 flex-shrink-0" />
           <span className="hidden lg:inline whitespace-nowrap">Add Event</span>
-        </Button>
+        </ActionPill>
       </div>
     </div>
   );
