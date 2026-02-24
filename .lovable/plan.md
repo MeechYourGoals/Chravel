@@ -1,161 +1,171 @@
 
+Objective: Fix the two requested issues without regressions by (1) renaming “Consumer Settings” to “Personal Settings” and (2) resolving profile photo upload failures across authenticated and demo scenarios, while also clearing current build blockers introduced in the recent Concierge search changes.
 
-# Concierge: Mic Restoration, Search Implementation, and Layout Fixes
+What I investigated and confirmed
 
-## Root Cause Report: Mic Button Missing
+1) “Consumer Settings” label source
+- Found in `src/components/ConsumerSettings.tsx` line ~94:
+  - `title="Consumer Settings"`
+- This is the sidebar section title shown in your screenshot.
 
-**Cause: Feature flag `VITE_VOICE_LIVE_ENABLED` defaults to `false`**
+2) Exact root cause of “Upload failed” for profile photo
+- Upload code path is in `src/components/consumer/ConsumerProfileSection.tsx`:
+  - Uses `supabase.storage.from('avatars').upload(...)` (lines ~135–139)
+  - Generic error toast on catch (lines ~161–164), which hides the real backend cause.
+- Database/storage inspection confirms the real failure:
+  - `storage.buckets` currently has `advertiser-assets` and `trip-media`, but NOT `avatars`.
+  - No `storage.objects` RLS policies exist for `avatars`.
+- Evidence from read queries:
+  - `select id,name,public from storage.buckets where id in ('avatars','trip-media','advertiser-assets')`
+    - returned only `advertiser-assets`, `trip-media`
+  - `pg_policies` query for avatars-related policies returned empty.
+- Why this happens despite code existing:
+  - There is a migration file `supabase/migrations/20250131000002_create_avatars_storage_bucket.sql`, but it is not applied in the current DB migration history.
+- Result:
+  - Every authenticated avatar upload to bucket `avatars` fails at storage layer and surfaces only the generic toast.
 
-- File: `src/config/voiceFeatureFlags.ts` line 31
-- The flag defaults to `'false'` and is not set in `.env`
-- In `AIConciergeChat.tsx` line 1273-1275, mic-related props are gated:
-  ```
-  voiceState={VOICE_LIVE_ENABLED ? effectiveVoiceState : 'idle'}
-  isVoiceEligible={VOICE_LIVE_ENABLED && voiceSupported && !circuitBreakerOpen}
-  onVoiceToggle={VOICE_LIVE_ENABLED ? handleVoiceToggle : undefined}
-  ```
-- In `AiChatInput.tsx` line 159: `{onVoiceToggle && (<VoiceButton .../>)}` -- when `onVoiceToggle` is `undefined`, VoiceButton is never rendered
-- The search icon in the header (line 1097-1099) is purely decorative -- it's a static icon inside a `div`, with no click handler
+3) Current build blockers that must be fixed alongside this work
+- `AIConciergeChat.tsx`:
+  - `onTabChange` referenced but not destructured from props.
+  - `el` used outside scope in `onNavigate`.
+- `universalSearchService.ts`:
+  - Demo import uses nonexistent `.trips` export from `tripsData.ts` (actual export is `tripsData`).
+  - Uses nonexistent table `trip_messages` (typed DB has `trip_chat_messages`).
+  - Query shape around chat search causes type explosion (`TS2589`) due invalid/over-complex typed chain.
 
-**Hypotheses tested:**
-- CSS hidden/opacity: No -- component isn't mounted at all
-- Route mismatch: No -- AIConciergeChat renders fine
-- Provider missing: No -- useGeminiLive is imported and initialized
-- Feature flag: YES -- `VOICE_LIVE_ENABLED` is `false`, blocking all voice UI
+Implementation plan (small, surgical, no regressions)
 
----
+Phase 1 — Unblock build first (required to ship)
+1. Fix `AIConciergeChat.tsx` compile errors
+- File: `src/components/AIConciergeChat.tsx`
+- Changes:
+  - Include `onTabChange` in component prop destructuring.
+  - Correct `onNavigate` callback block so `el` is only used in the concierge branch.
+  - Remove duplicate/out-of-scope `el?.scrollIntoView(...)`.
+- Scope: minimal line edits around search modal callback only.
 
-## Implementation Plan
+2. Fix universal search compile errors introduced by recent search modal integration
+- File: `src/services/universalSearchService.ts`
+- Changes:
+  - Replace demo import usage:
+    - from `(await import('@/data/tripsData')).trips`
+    - to `(await import('@/data/tripsData')).tripsData`
+  - Replace `trip_messages` query with `trip_chat_messages`.
+  - Simplify message search query typing to avoid deep-instantiation:
+    - select only fields guaranteed on `trip_chat_messages` (`id, content, created_at, trip_id, author_name`)
+    - do not use typed relational select that causes recursive inference.
+- Optional tiny hardening (if needed by TS):
+  - narrow message query result mapping with explicit local interface type.
+- Goal: typecheck/build pass without broad refactor.
 
-### 1. Enable Voice Feature Flag
+Phase 2 — Fix the requested UX copy
+3. Rename “Consumer Settings” -> “Personal Settings”
+- File: `src/components/ConsumerSettings.tsx`
+- Change:
+  - `title="Consumer Settings"` -> `title="Personal Settings"`
+- Scope: 1-line UI copy change.
 
-Add `VITE_VOICE_LIVE_ENABLED=true` to the project's `.env` file. This single change restores the mic button, since all voice wiring (useGeminiLive, VoiceButton, audio capture, playback, barge-in) is already fully implemented.
+Phase 3 — Fix avatar upload root cause in backend + frontend resilience
+4. Add idempotent migration to create avatars bucket and policies in current environment
+- New migration file (timestamped, current series):
+  - Create bucket `avatars` if missing (public = true).
+  - Add/ensure INSERT/UPDATE/DELETE policies scoped to folder prefix `[auth.uid()]`.
+  - Add SELECT policy for public read (matching existing URL usage).
+- This is the primary fix for authenticated upload failures.
 
-**File:** `.env` -- add `VITE_VOICE_LIVE_ENABLED=true`
+5. Harden frontend upload flow and demo/auth behavior
+- File: `src/components/consumer/ConsumerProfileSection.tsx`
+- Changes:
+  - Keep demo no-write behavior for true demo-only sessions, but prevent false positives for authenticated sessions.
+  - Use auth/session-aware branching (authenticated users should use real upload path).
+  - Improve error reporting:
+    - capture storage error message/code and map to actionable user toast (e.g., bucket missing, RLS denied, file too large).
+  - Keep existing success path (`updateProfile({ avatar_url })`) unchanged to avoid regressions.
+- Important: preserve existing text profile save flow; do not alter `updateProfile` semantics in `useAuth`.
 
-### 2. Header Layout Redesign
+6. (Optional but low-risk) Add backend preflight for better diagnostics
+- In upload handler section, optionally check bucket availability once and return clearer toast message if bucket missing.
+- Keep this minimal and local to profile upload; no global changes.
 
-Current header (line 1095-1107) is a flat row with decorative search icon, query allowance text, "AI Concierge" title, and lock emoji privacy label.
+Phase 4 — Tests + proof artifacts (non-negotiable)
 
-**New layout:**
-```
-[Search btn]  [query allowance]  AI Concierge  Private Convo  [Mic btn]
-```
+Automated tests to add/update
+1. `src/services/universalSearchService` tests (or update existing search tests)
+- Covers:
+  - demo trip search uses `tripsData` export correctly.
+  - message search uses `trip_chat_messages` and returns mapped results.
 
-Changes to `AIConciergeChat.tsx` header section:
-- Replace the static search icon `div` with a clickable button that opens a search modal
-- Remove the lock emoji from "Private Convo"
-- Add a secondary mic button in the header (top-right) for quick access, keeping the existing bottom-left mic in `AiChatInput` as-is
-- Style Search and Mic header buttons with the same emerald-to-cyan gradient (`from-emerald-600 to-cyan-600`) to match Send button
+2. `ConsumerProfileSection` upload tests
+- Mock `supabase.storage.from('avatars').upload` + `getPublicUrl` + `updateProfile`.
+- Cases:
+  - authenticated success path updates avatar + success toast.
+  - authenticated failure path shows descriptive error toast.
+  - demo/no-session path bypasses remote upload and still gives non-error UX.
+- Ensure no regression to profile save text fields.
 
-### 3. Search Button: Concierge Command Palette
+3. Build validation checks
+- `npm run typecheck`
+- `npm run build`
+- (and lint if in your standard gate)
 
-Create a new `ConciergeSearchModal` component that opens on Search button click.
+Manual QA checklist (with evidence capture)
+A. Settings label
+- Open settings modal/page.
+- Verify left header now reads “Personal Settings.”
+- Capture screenshot.
 
-**Phase 1 (this PR):**
-- Search within concierge chat history (local `messages` state)
-- Debounced text input (300ms)
-- Results grouped: "Concierge Messages" section
-- Each result shows a snippet, clicking scrolls to that message
-- Stubbed "Search across trip" toggle (disabled, wired but not functional)
+B. Authenticated profile photo upload
+- Logged-in user:
+  - Upload valid JPG/PNG/GIF (<5MB).
+  - Verify success toast.
+  - Verify avatar updates immediately.
+  - Refresh page; verify persisted avatar remains.
+- Capture:
+  - browser Network request for storage upload + profile update,
+  - success UI screenshot.
 
-**Phase 2 (future):**
-- Wire the toggle to call `useUniversalSearch` (already exists at `src/hooks/useUniversalSearch.ts`)
-- Groups: Places, Calendar, Tasks, Polls, Payments, Media
-- Action buttons per result: Open, Pin, Share to chat, Create task
+C. Failure/edge handling
+- Upload invalid type and >5MB file:
+  - verify correct validation toast.
+- Simulate bucket/policy failure in dev/mock:
+  - verify descriptive error toast (not generic “upload failed” only).
+- Capture console/network errors for proof.
 
-**New files:**
-- `src/components/ai/ConciergeSearchModal.tsx` -- modal component with search input, local message filtering, result list
+D. Demo-mode behavior
+- In demo-only session:
+  - verify no backend failure toast.
+  - verify expected UX behavior (demo success behavior without persistence).
+- In authenticated + non-demo normal mode:
+  - verify real upload path used.
+- Capture screenshots + console/network summary.
 
-**Modified files:**
-- `src/components/AIConciergeChat.tsx` -- add state for search modal open/close, pass `messages` to modal, wire search button click
+E. Regression checks
+- Text profile updates still save.
+- No change to non-profile settings sections.
+- Concierge UI still renders (post compile fix).
+- `typecheck` and `build` logs attached.
 
-### 4. Button Styling Consistency
+Files planned for change
+- `src/components/ConsumerSettings.tsx` (copy rename)
+- `src/components/consumer/ConsumerProfileSection.tsx` (upload flow resilience + better errors)
+- `src/components/AIConciergeChat.tsx` (fix `onTabChange`/`el` compile errors)
+- `src/services/universalSearchService.ts` (fix exports/table/typechain compile errors)
+- `supabase/migrations/<new_timestamp>_ensure_avatars_bucket_and_policies.sql` (root-cause backend fix)
+- tests:
+  - `src/components/consumer/__tests__/ConsumerProfileSection.test.tsx` (new)
+  - search service test file (new or updated existing)
 
-Ensure Search, Upload (ImagePlus), Send, and Mic all share the same bluish-green/teal style:
+Risk controls / rollback
+- Changes are localized and reversible.
+- Migration is idempotent and bucket/policy scoped to `avatars` only.
+- If upload regresses, rollback path is:
+  1) revert frontend upload handling changes,
+  2) keep migration (safe; additive and correct),
+  3) re-run tests and typecheck/build.
 
-| Button | Current | New |
-|--------|---------|-----|
-| Search (header) | Static decorative icon | `bg-gradient-to-r from-emerald-600 to-cyan-600` clickable button |
-| Mic (header) | N/A | Same gradient, `size-9` |
-| Mic (bottom) | Already correct gradient | No change |
-| Upload (bottom) | `bg-white/5 border-white/10` | `bg-gradient-to-r from-emerald-600 to-cyan-600` |
-| Send (bottom) | Already correct gradient | No change |
-
-**Files modified:**
-- `src/features/chat/components/AiChatInput.tsx` -- update ImagePlus button className
-
-### 5. Remove Lock Emoji from "Private Convo"
-
-In `AIConciergeChat.tsx` line 1104-1106, change from:
-```
-🔒 Private Convo
-```
-to:
-```
-Private Convo
-```
-
----
-
-## Concierge Component Audit (Scoring 1-100)
-
-| Component | Score | Status | Risk | Fix |
-|-----------|-------|--------|------|-----|
-| UI entry (AIConciergeChat.tsx) | 85 | Working | Low | Header layout needs rework |
-| Chat message list + persistence | 90 | Working | Low | History hydration + cache working |
-| Voice UI controls (VoiceButton) | 95 | Working (hidden by flag) | Low | Enable flag |
-| Audio capture (audioCapture.ts) | 90 | Working | Low | Tested pipeline |
-| Streaming client (useGeminiLive) | 85 | Working | Med | 15s timeouts in place |
-| Playback + barge-in (audioPlayback.ts) | 90 | Working | Low | Flush/stop implemented |
-| State management (conciergeSessionStore) | 85 | Working | Low | Zustand store synced |
-| Provider (Gemini + Lovable fallback) | 80 | Working | Med | Fallback on any Gemini error |
-| Error boundary / toasts | 80 | Working | Low | Toast on voice errors |
-| Feature flags (voiceFeatureFlags.ts) | 70 | Root cause | High | Flag defaults to false |
-| Styling + responsive | 80 | Working | Med | Button inconsistency |
-| Search button | 10 | Not wired | High | No handler, purely decorative |
-
----
-
-## QA Checklist
-
-**Mic button:**
-- [ ] Mic button visible in bottom-left of input area
-- [ ] Mic button visible in header top-right
-- [ ] Tap mic -- permission prompt appears
-- [ ] Deny mic -- error toast shown
-- [ ] Allow mic -- state changes to "listening", pulse animation
-- [ ] Speak -- userTranscript appears as draft message
-- [ ] AI responds -- assistantTranscript streams, audio plays
-- [ ] Tap during speaking -- barge-in interrupts playback
-- [ ] 3 failures -- circuit breaker bar appears
-- [ ] "Try voice again" -- circuit resets
-
-**Search:**
-- [ ] Click search icon -- modal opens
-- [ ] Type query -- results filter from chat history
-- [ ] Click result -- modal closes, message scrolled to
-- [ ] "Search across trip" toggle visible but disabled
-
-**Styling:**
-- [ ] Search, Upload, Send, Mic buttons all share emerald-to-cyan gradient
-- [ ] "Private Convo" has no lock emoji
-- [ ] Layout: Search (left), title (center), Private Convo + Mic (right)
-
-**No regressions:**
-- [ ] Text chat still works (send message, get streaming response)
-- [ ] History loads from server
-- [ ] Image attach still works
-- [ ] Offline fallback still works
-
----
-
-## Technical Summary of Changes
-
-| # | File | Change |
-|---|------|--------|
-| 1 | `.env` | Add `VITE_VOICE_LIVE_ENABLED=true` |
-| 2 | `src/components/AIConciergeChat.tsx` | Rework header layout: clickable search button, remove lock emoji, add header mic button, wire search modal state |
-| 3 | `src/components/ai/ConciergeSearchModal.tsx` | New: search modal for concierge chat history with debounced filtering |
-| 4 | `src/features/chat/components/AiChatInput.tsx` | Update Upload button to emerald-cyan gradient |
-
+Definition of done
+- “Personal Settings” label visible.
+- Authenticated profile photo upload succeeds end-to-end.
+- Demo mode no longer surfaces broken upload UX.
+- Build errors listed are resolved.
+- Proof bundle provided: typecheck/build outputs + UI screenshots + network/log evidence.
