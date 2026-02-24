@@ -41,10 +41,13 @@ export interface VoiceDiagnostics {
   reconnectAttempts: number;
   lastError: string | null;
   metrics: {
+    t0GestureMs: number | null;
     firstAudioChunkSentMs: number | null;
     firstTokenReceivedMs: number | null;
     firstAudioFramePlayedMs: number | null;
     cancelLatencyMs: number | null;
+    audioBytesSent: number;
+    audioBytesReceived: number;
   };
 }
 
@@ -174,10 +177,13 @@ const initialDiagnostics: VoiceDiagnostics = {
   reconnectAttempts: 0,
   lastError: null,
   metrics: {
+    t0GestureMs: null,
     firstAudioChunkSentMs: null,
     firstTokenReceivedMs: null,
     firstAudioFramePlayedMs: null,
     cancelLatencyMs: null,
+    audioBytesSent: 0,
+    audioBytesReceived: 0,
   },
 };
 
@@ -482,6 +488,7 @@ export function useGeminiLive({
     isStartingRef.current = true;
 
     try {
+      const t0Gesture = performance.now();
       transition('requesting_mic', 'start_clicked');
       patchDiagnostics({
         connectionStatus: 'connecting',
@@ -492,7 +499,8 @@ export function useGeminiLive({
       setError(null);
       resetTurnAccumulators();
       resetMetricsForNewTurn();
-      voiceLog('session:start', { tripId, voice });
+      patchMetrics({ t0GestureMs: t0Gesture });
+      voiceLog('session:start', { tripId, voice, t0Gesture });
 
       if (!SafeAudioContext) {
         throw new Error('Audio is not supported in this browser.');
@@ -752,13 +760,16 @@ export function useGeminiLive({
                   if (stateRef.current === 'ready' || stateRef.current === 'listening') {
                     transition('sending', 'audio_chunk_sent');
                   }
-                  ws.send(
-                    JSON.stringify({
-                      realtimeInput: {
-                        mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: base64PCM }],
-                      },
-                    }),
-                  );
+                  const payload = JSON.stringify({
+                    realtimeInput: {
+                      mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: base64PCM }],
+                    },
+                  });
+                  ws.send(payload);
+                  patchMetrics({
+                    audioBytesSent:
+                      diagnosticsRef.current.metrics.audioBytesSent + base64PCM.length,
+                  });
                 },
                 rms => {
                   patchDiagnostics({ micRms: rms });
@@ -835,6 +846,11 @@ export function useGeminiLive({
                   });
                 }
                 setState('playing');
+                patchMetrics({
+                  audioBytesReceived:
+                    diagnosticsRef.current.metrics.audioBytesReceived +
+                    part.inlineData.data.length,
+                });
                 playbackQueueRef.current?.enqueue(part.inlineData.data);
               }
               if (typeof part.text === 'string' && part.text.length > 0) {
