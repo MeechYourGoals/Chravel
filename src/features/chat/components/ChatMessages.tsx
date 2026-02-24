@@ -27,7 +27,7 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false }: Cha
       {messages.map((message) => {
         const messageWithGrounding = message as ChatMessageWithGrounding;
         return (
-          <div key={message.id} className="space-y-2">
+          <div key={message.id} id={`msg-${message.id}`} className="space-y-2">
             <MessageRenderer message={message} showMapWidgets={showMapWidgets} />
             
             {/* Render Maps widget for gmp-place-contextual context tokens */}

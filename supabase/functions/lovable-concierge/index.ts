@@ -1488,7 +1488,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
                 has_map_widget: !!googleMapsWidget,
                 function_calls: streamFnCalls,
                 streamed: true,
-              });
+              }, user?.id);
             }
 
             if (!serverDemoMode && user) {
@@ -1962,7 +1962,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             grounding_sources: citations.length,
             has_map_widget: !!googleMapsWidget,
             function_calls: functionCallResults.map(r => r.name),
-          });
+          }, user?.id);
         }
 
         if (user) {
@@ -2072,16 +2072,12 @@ async function storeConversation(
   aiResponse: string,
   type: string,
   metadata?: any,
+  userId?: string | null,
 ) {
   try {
-    // Get user_id from auth context if available
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
     await supabase.from('ai_queries').insert({
       trip_id: tripId,
-      user_id: user?.id || null,
+      user_id: userId || null,
       query_text: userMessage,
       response_text: aiResponse,
       source_count: metadata?.grounding_sources || 0,

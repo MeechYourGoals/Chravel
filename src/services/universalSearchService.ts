@@ -3,6 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 export type ContentType = 'trips' | 'messages' | 'concierge' | 'calendar' | 'task' | 'poll' | 'payment' | 'place' | 'link' | 'media';
 export type SearchMode = 'keyword' | 'semantic' | 'hybrid';
 
+/** Escape SQL LIKE/ILIKE wildcards so user input is treated as literal text. */
+function escapeSqlLike(input: string): string {
+  return input.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
 export interface UniversalSearchParams {
   query: string;
   contentTypes: ContentType[];
@@ -63,11 +68,12 @@ async function searchTrips(
       }));
   }
 
-  // Search real trips
+  const safeQuery = escapeSqlLike(query);
+
   const tripQuery = supabase
     .from('trips')
     .select('id, name, destination, start_date, header_image_url')
-    .or(`name.ilike.%${query}%,destination.ilike.%${query}%`);
+    .or(`name.ilike.%${safeQuery}%,destination.ilike.%${safeQuery}%`);
 
   if (tripIds && tripIds.length > 0) {
     tripQuery.in('id', tripIds);
@@ -126,11 +132,12 @@ async function searchMessagesAcrossTrips(
       }));
   }
 
-  // Search real messages
+  const safeQuery = escapeSqlLike(query);
+
   const { data, error } = await supabase
     .from('trip_chat_messages' as any)
     .select('id, content, created_at, trip_id, author_name')
-    .ilike('content', `%${query}%`)
+    .ilike('content', `%${safeQuery}%`)
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -166,10 +173,12 @@ async function searchConciergeMessages(
     return [];
   }
 
+  const safeQuery = escapeSqlLike(query);
+
   const conciergeQuery = supabase
     .from('ai_queries')
     .select('id, query_text, response_text, created_at, trip_id')
-    .or(`query_text.ilike.%${query}%,response_text.ilike.%${query}%`)
+    .or(`query_text.ilike.%${safeQuery}%,response_text.ilike.%${safeQuery}%`)
     .order('created_at', { ascending: false });
 
   if (tripIds && tripIds.length > 0) {
@@ -237,11 +246,12 @@ async function searchCalendarEvents(
       }));
   }
 
-  // Search real calendar events
+  const safeQuery = escapeSqlLike(query);
+
   const eventQuery = supabase
     .from('trip_events')
     .select('id, title, location, start_time, trip_id, trips(name)')
-    .or(`title.ilike.%${query}%,location.ilike.%${query}%`)
+    .or(`title.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%`)
     .order('start_time', { ascending: false });
 
   if (tripIds && tripIds.length > 0) {
@@ -303,11 +313,12 @@ async function searchTasks(
       }));
   }
 
-  // Search real tasks
+  const safeQuery = escapeSqlLike(query);
+
   const taskQuery = supabase
     .from('trip_tasks')
     .select('id, title, description, priority, status, created_at, trip_id, trips(name)')
-    .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+    .or(`title.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`)
     .order('created_at', { ascending: false });
 
   if (tripIds && tripIds.length > 0) {
@@ -367,11 +378,12 @@ async function searchPolls(
       }));
   }
 
-  // Search real polls
+  const safeQuery = escapeSqlLike(query);
+
   const pollQuery = supabase
     .from('trip_polls')
     .select('id, question, total_votes, created_at, trip_id, trips(name)')
-    .ilike('question', `%${query}%`)
+    .ilike('question', `%${safeQuery}%`)
     .order('created_at', { ascending: false });
 
   if (tripIds && tripIds.length > 0) {
@@ -412,10 +424,12 @@ async function searchPayments(
     return [];
   }
 
+  const safeQuery = escapeSqlLike(query);
+
   const paymentQuery = supabase
     .from('trip_payment_messages')
     .select('id, description, amount, currency, created_at, trip_id')
-    .ilike('description', `%${query}%`)
+    .ilike('description', `%${safeQuery}%`)
     .order('created_at', { ascending: false });
 
   if (tripIds && tripIds.length > 0) {
@@ -455,10 +469,12 @@ async function searchPlaces(
     return [];
   }
 
+  const safeQuery = escapeSqlLike(query);
+
   const placesQuery = supabase
     .from('trip_link_index')
     .select('id, og_title, og_description, created_at, trip_id')
-    .or(`og_title.ilike.%${query}%,og_description.ilike.%${query}%`)
+    .or(`og_title.ilike.%${safeQuery}%,og_description.ilike.%${safeQuery}%`)
     .order('created_at', { ascending: false });
 
   if (tripIds && tripIds.length > 0) {
@@ -497,10 +513,12 @@ async function searchLinks(
     return [];
   }
 
+  const safeQuery = escapeSqlLike(query);
+
   const linksQuery = supabase
     .from('trip_links')
     .select('id, title, description, url, created_at, trip_id')
-    .or(`title.ilike.%${query}%,description.ilike.%${query}%,url.ilike.%${query}%`)
+    .or(`title.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%,url.ilike.%${safeQuery}%`)
     .order('created_at', { ascending: false });
 
   if (tripIds && tripIds.length > 0) {
@@ -562,11 +580,12 @@ async function searchMedia(
       }));
   }
 
-  // Search real media
+  const safeQuery = escapeSqlLike(query);
+
   const mediaQuery = supabase
     .from('trip_files')
     .select('id, name, file_type, created_at, trip_id, trips(name)')
-    .ilike('name', `%${query}%`)
+    .ilike('name', `%${safeQuery}%`)
     .order('created_at', { ascending: false });
 
   if (tripIds && tripIds.length > 0) {
