@@ -174,10 +174,18 @@ export const AIConciergeChat = ({
   const { user } = useAuth();
   const loadedPreferences = useAIConciergePreferences();
   const effectivePreferences = preferences ?? loadedPreferences;
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const storeSession = useConciergeSessionStore(s => s.getSession(tripId));
+  const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
+
+  // Hydrate from Zustand store on mount (preserves messages across tab switches)
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    storeSession.messages.length > 0 ? (storeSession.messages as ChatMessage[]) : [],
+  );
   // True after the chat is hydrated from the server DB (not just cache/empty).
   // Used to show the "Picked up where you left off" chip.
-  const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(false);
+  const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(
+    storeSession.historyLoadedFromServer,
+  );
 
   // --- Persisted history hydration ---
   const {
@@ -600,6 +608,13 @@ export const AIConciergeChat = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOffline]);
+
+  // Sync messages to Zustand store so they persist across tab switches
+  useEffect(() => {
+    if (messages.length > 0) {
+      setStoreMessages(tripId, messages as import('@/store/conciergeSessionStore').ConciergeSessionMessage[]);
+    }
+  }, [messages, tripId, setStoreMessages]);
 
   // Auto-scroll to bottom when new messages or typing indicator appear
   useEffect(() => {
