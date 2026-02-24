@@ -21,7 +21,17 @@ import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { supabase } from '@/integrations/supabase/client';
-import { useConciergeSessionStore } from '@/store/conciergeSessionStore';
+import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
+
+const EMPTY_SESSION: ConciergeSession = {
+  tripId: '',
+  messages: [],
+  voiceState: 'idle',
+  lastError: null,
+  lastErrorAt: null,
+  lastSuccessAt: null,
+  historyLoadedFromServer: false,
+};
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
@@ -171,7 +181,8 @@ export const AIConciergeChat = ({
   const { user } = useAuth();
   const loadedPreferences = useAIConciergePreferences();
   const effectivePreferences = preferences ?? loadedPreferences;
-  const storeSession = useConciergeSessionStore(s => s.getSession(tripId));
+  const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
+  const storeSession = storeSessionRaw ?? EMPTY_SESSION;
   const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
 
   // Hydrate from Zustand store on mount (preserves messages across tab switches)
