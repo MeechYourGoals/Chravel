@@ -93,6 +93,8 @@ interface FallbackTripContext {
 }
 
 const FAST_RESPONSE_TIMEOUT_MS = 60_000;
+const VOICE_DIAGNOSTICS_ENABLED =
+  import.meta.env.DEV || (import.meta.env.VITE_VOICE_DEBUG || '').toLowerCase() === 'true';
 
 const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -113,6 +115,9 @@ const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment>
     name: file.name,
   };
 };
+
+const formatMetric = (value: number | null): string =>
+  typeof value === 'number' ? `${Math.round(value)}ms` : 'n/a';
 
 const invokeConciergeWithTimeout = async (
   requestBody: Record<string, unknown> & { message: string },
@@ -374,6 +379,7 @@ export const AIConciergeChat = ({
     state: geminiState,
     userTranscript,
     assistantTranscript,
+    diagnostics,
     startSession,
     endSession,
     interruptPlayback,
@@ -386,7 +392,16 @@ export const AIConciergeChat = ({
     onError: handleVoiceError,
   });
 
-  const effectiveVoiceState: VoiceState = geminiState as VoiceState;
+  const effectiveVoiceState: VoiceState =
+    geminiState === 'requesting_mic' || geminiState === 'ready'
+      ? 'connecting'
+      : geminiState === 'sending'
+        ? 'thinking'
+        : geminiState === 'playing'
+          ? 'speaking'
+          : geminiState === 'interrupted'
+            ? 'listening'
+            : (geminiState as VoiceState);
 
   // When a voice session is active and the user attaches an image, send it
   // directly to Gemini Live as an inline data frame so the model can see it
@@ -394,7 +409,7 @@ export const AIConciergeChat = ({
   const handleImageAttach = useCallback(
     async (files: File[]) => {
       const voiceIsActive =
-        geminiState === 'listening' || geminiState === 'thinking' || geminiState === 'speaking';
+        geminiState === 'listening' || geminiState === 'sending' || geminiState === 'playing';
 
       setAttachedImages(prev => [...prev, ...files].slice(0, 4));
 
@@ -418,7 +433,7 @@ export const AIConciergeChat = ({
       voiceUserDraftIdRef.current = null;
       voiceAssistantDraftIdRef.current = null;
       void startSession();
-    } else if (geminiState === 'speaking') {
+    } else if (geminiState === 'playing') {
       voiceUserDraftIdRef.current = null;
       voiceAssistantDraftIdRef.current = null;
       interruptPlayback();
@@ -430,7 +445,7 @@ export const AIConciergeChat = ({
   // Draft user message: create on first transcript, update live
   useEffect(() => {
     if (!VOICE_ENABLED) return;
-    if ((geminiState === 'listening' || geminiState === 'thinking') && userTranscript) {
+    if ((geminiState === 'listening' || geminiState === 'sending') && userTranscript) {
       if (!voiceUserDraftIdRef.current) {
         const id = uniqueId('voice-user');
         voiceUserDraftIdRef.current = id;
@@ -455,7 +470,7 @@ export const AIConciergeChat = ({
   // Draft assistant message: create when model starts responding, update as text streams
   useEffect(() => {
     if (!VOICE_ENABLED) return;
-    if (geminiState === 'speaking' && assistantTranscript) {
+    if (geminiState === 'playing' && assistantTranscript) {
       if (!voiceAssistantDraftIdRef.current) {
         const id = uniqueId('voice-asst');
         voiceAssistantDraftIdRef.current = id;
@@ -1175,18 +1190,18 @@ export const AIConciergeChat = ({
             className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
             role="status"
             aria-live="polite"
-            aria-label={`Voice: ${geminiState === 'listening' ? 'Listening' : geminiState === 'thinking' ? 'Processing' : geminiState === 'speaking' ? 'Speaking' : geminiState === 'connecting' ? 'Connecting' : 'Active'}`}
+            aria-label={`Voice: ${geminiState === 'listening' ? 'Listening' : geminiState === 'sending' ? 'Processing' : geminiState === 'playing' ? 'Speaking' : geminiState === 'requesting_mic' || geminiState === 'ready' ? 'Connecting' : 'Active'}`}
           >
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
               <span className="text-sm text-emerald-300">
                 {geminiState === 'listening'
                   ? 'Listening...'
-                  : geminiState === 'thinking'
+                  : geminiState === 'sending'
                     ? 'Processing...'
-                    : geminiState === 'speaking'
+                    : geminiState === 'playing'
                       ? 'Speaking...'
-                      : geminiState === 'connecting'
+                      : geminiState === 'requesting_mic' || geminiState === 'ready'
                         ? 'Connecting...'
                         : 'Voice Active'}
               </span>
@@ -1200,6 +1215,42 @@ export const AIConciergeChat = ({
               <Square size={10} />
               End
             </button>
+          </div>
+        )}
+
+        {VOICE_DIAGNOSTICS_ENABLED && VOICE_ENABLED && (
+          <div className="px-4 py-2 border-b border-white/10 bg-black/30 text-[11px] text-gray-300 space-y-1">
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              <span>State: {geminiState}</span>
+              <span>Conn: {diagnostics.connectionStatus}</span>
+              <span>AudioCtx: {diagnostics.audioContextState}</span>
+              <span>SampleRate: {diagnostics.audioSampleRate ?? 'n/a'}</span>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              <span>Mic permission: {diagnostics.micPermission}</span>
+              <span>Encoding: {diagnostics.inputEncoding}</span>
+              <span>RMS: {diagnostics.micRms.toFixed(4)}</span>
+              <span>
+                WS close: {diagnostics.wsCloseCode ?? 'n/a'} {diagnostics.wsCloseReason ?? ''}
+              </span>
+            </div>
+            <div className="w-full h-1.5 bg-white/10 rounded overflow-hidden">
+              <div
+                className="h-full bg-emerald-400 transition-all"
+                style={{ width: `${Math.min(100, diagnostics.micRms * 1500)}%` }}
+              />
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              <span>
+                t_first_audio_send: {formatMetric(diagnostics.metrics.firstAudioChunkSentMs)}
+              </span>
+              <span>t_first_token: {formatMetric(diagnostics.metrics.firstTokenReceivedMs)}</span>
+              <span>t_first_play: {formatMetric(diagnostics.metrics.firstAudioFramePlayedMs)}</span>
+              <span>t_cancel: {formatMetric(diagnostics.metrics.cancelLatencyMs)}</span>
+            </div>
+            {diagnostics.lastError && (
+              <div className="text-red-300">Last error: {diagnostics.lastError}</div>
+            )}
           </div>
         )}
 
