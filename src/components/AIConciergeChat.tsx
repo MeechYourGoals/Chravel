@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, Crown, Sparkles, Square, Mic } from 'lucide-react';
+import { Search, Crown, Sparkles, Square, Mic, ImagePlus } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -204,6 +204,7 @@ export const AIConciergeChat = ({
     Promise.resolve(),
   );
   const hasShownLimitToastRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isMounted = useRef(true);
   // Guard so history hydration only fires once per mount, even if historyMessages
@@ -488,6 +489,15 @@ export const AIConciergeChat = ({
     },
     [geminiState, sendImageToLive],
   );
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length > 0) {
+      handleImageAttach(imageFiles);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleVoiceToggle = useCallback(() => {
     if (geminiState === 'idle' || geminiState === 'error') {
@@ -1177,13 +1187,13 @@ export const AIConciergeChat = ({
 
               <button
                 type="button"
-                onClick={handleVoiceToggle}
-                data-testid="header-voice-mic"
+                onClick={() => fileInputRef.current?.click()}
+                data-testid="header-upload-btn"
                 className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
-                aria-label="Voice concierge"
-                title="Start voice concierge"
+                aria-label="Attach images"
+                title="Attach images"
               >
-                <Mic size={18} className="text-white" />
+                <ImagePlus size={18} className="text-white" />
               </button>
             </div>
           </div>
@@ -1202,6 +1212,16 @@ export const AIConciergeChat = ({
               onTabChange(tab);
             }
           }}
+        />
+
+        {/* Hidden file input for header upload button */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+          multiple
+          className="hidden"
+          onChange={handleFileSelect}
         />
 
         {/* Usage Limit Reached State */}

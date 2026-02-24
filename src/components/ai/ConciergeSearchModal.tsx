@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useDebounce } from '@/hooks/useDebounce';
+// import { useDebounce } from '@/hooks/useDebounce'; // Unused
 import { useUniversalSearch } from '@/hooks/useUniversalSearch';
 import { ContentType, UniversalSearchResult } from '@/services/universalSearchService';
 
@@ -164,7 +164,7 @@ export const ConciergeSearchModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-neutral-900 border-white/10 text-white max-w-md sm:max-w-lg p-0 gap-0 overflow-hidden">
+      <DialogContent showClose={false} className="bg-neutral-900 border-white/10 text-white max-w-md sm:max-w-lg p-0 gap-0 overflow-hidden">
         <DialogHeader className="p-4 pb-2 border-b border-white/5 bg-black/40">
           <DialogTitle className="text-white text-base sr-only">Search Concierge</DialogTitle>
           <div className="relative">

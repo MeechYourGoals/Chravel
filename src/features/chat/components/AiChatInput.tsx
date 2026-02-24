@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Send, Sparkles, ImagePlus, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Send, Sparkles, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
@@ -49,7 +49,6 @@ export const AiChatInput = ({
   onRemoveImage,
   showImageAttach = false,
 }: AiChatInputProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   useEffect(() => {
@@ -76,22 +75,6 @@ export const AiChatInput = ({
   };
 
   const isLimitReached = usageStatus?.status === 'limit_reached';
-
-  const [isProcessingImages, setIsProcessingImages] = useState(false);
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const imageFiles = files.filter(f => f.type.startsWith('image/'));
-    if (imageFiles.length > 0) {
-      setIsProcessingImages(true);
-      try {
-        onImageAttach?.(imageFiles);
-      } finally {
-        setIsProcessingImages(false);
-      }
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
   return (
     <div className="space-y-2">
@@ -149,18 +132,6 @@ export const AiChatInput = ({
         </div>
       )}
 
-      {/* Hidden file input — explicit MIME list for better cross-browser compatibility */}
-      {showImageAttach && (
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
-          multiple
-          className="hidden"
-          onChange={handleFileSelect}
-        />
-      )}
-
       <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
         {/* Microphone (left) — tap to start Gemini Live or Web Speech voice */}
         {onVoiceToggle && (
@@ -172,23 +143,7 @@ export const AiChatInput = ({
           />
         )}
 
-        {/* Image attach button — always visible when enabled (mobile-safe touch target) */}
-        {showImageAttach && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || isLimitReached || isProcessingImages}
-            className="size-11 min-w-[44px] rounded-full flex items-center justify-center bg-gradient-to-r from-emerald-600 to-cyan-600 text-white hover:opacity-90 transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={isProcessingImages ? 'Processing images...' : 'Attach image'}
-          >
-            {isProcessingImages ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden />
-            ) : (
-              <ImagePlus size={18} aria-hidden />
-            )}
-          </button>
-        )}
-
+        {/* Input Textarea */}
         <textarea
           value={inputMessage}
           onChange={e => onInputChange(e.target.value)}

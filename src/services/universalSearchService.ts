@@ -139,7 +139,7 @@ async function searchMessagesAcrossTrips(
     .select('id, content, created_at, trip_id, author_name')
     .ilike('content', `%${safeQuery}%`)
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(20); // Reduced from 50 to 20
 
   if (error) {
     console.error('Message search error:', error);
@@ -258,7 +258,7 @@ async function searchCalendarEvents(
     eventQuery.in('trip_id', tripIds);
   }
 
-  const { data, error } = await eventQuery.limit(30);
+  const { data, error } = await eventQuery.limit(20); // Reduced from 30 to 20
   
   if (error) {
     console.error('Calendar search error:', error);
@@ -307,7 +307,7 @@ async function searchTasks(
         title: task.title,
         snippet: task.description || 'No description',
         matchScore: 0.86,
-        deepLink: `/trip/${task.tripId}#task-${task.id}`,
+        deepLink: `/trip/${task.trip_id}#task-${task.id}`,
         metadata: { priority: task.priority, status: task.status },
         timestamp: task.createdAt
       }));
@@ -325,7 +325,7 @@ async function searchTasks(
     taskQuery.in('trip_id', tripIds);
   }
 
-  const { data, error } = await taskQuery.limit(30);
+  const { data, error } = await taskQuery.limit(20); // Reduced from 30 to 20
   
   if (error) {
     console.error('Task search error:', error);
@@ -372,7 +372,7 @@ async function searchPolls(
         title: poll.question,
         snippet: `${poll.totalVotes} votes`,
         matchScore: 0.84,
-        deepLink: `/trip/${poll.tripId}#poll-${poll.id}`,
+        deepLink: `/trip/${poll.trip_id}#poll-${poll.id}`,
         metadata: { totalVotes: poll.totalVotes },
         timestamp: poll.createdAt
       }));
@@ -574,7 +574,7 @@ async function searchMedia(
         title: media.filename,
         snippet: `${media.type} - ${media.tags?.join(', ') || 'No tags'}`,
         matchScore: 0.82,
-        deepLink: `/trip/${media.tripId}#media-${media.id}`,
+        deepLink: `/trip/${media.trip_id}#media-${media.id}`,
         metadata: { type: media.type, tags: media.tags },
         timestamp: media.createdAt
       }));
@@ -592,7 +592,7 @@ async function searchMedia(
     mediaQuery.in('trip_id', tripIds);
   }
 
-  const { data, error } = await mediaQuery.limit(30);
+  const { data, error } = await mediaQuery.limit(20); // Reduced from 30 to 20
   
   if (error) {
     console.error('Media search error:', error);
@@ -659,10 +659,13 @@ export async function performUniversalSearch(
     searchPromises.push(searchMedia(query, isDemoMode, filters.tripIds));
   }
 
-  // Wait for all searches to complete
-  const resultArrays = await Promise.all(searchPromises);
+  // Wait for all searches to complete (settled)
+  const results = await Promise.allSettled(searchPromises);
 
   // Flatten and sort by match score
-  const allResults = resultArrays.flat();
+  const allResults = results
+    .map(r => (r.status === 'fulfilled' ? r.value : []))
+    .flat();
+
   return allResults.sort((a, b) => b.matchScore - a.matchScore);
 }
