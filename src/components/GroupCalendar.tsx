@@ -204,8 +204,6 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           <div className="flex justify-center items-center py-16">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
-        ) : events.length === 0 ? (
-          <CalendarEmptyState onCreateEvent={() => setShowAddEvent(true)} />
         ) : (
           <CalendarGrid
             events={events}
@@ -266,8 +264,6 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
             error={error instanceof Error ? error : error ? new Error(String(error)) : undefined}
             onRetry={refreshEvents}
           />
-        ) : events.length === 0 ? (
-          <CalendarEmptyState onCreateEvent={() => setShowAddEvent(true)} />
         ) : (
           <ItineraryView events={events} tripName="Trip Itinerary" />
         )}
@@ -306,8 +302,6 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         <div className="flex justify-center items-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
-      ) : events.length === 0 ? (
-        <CalendarEmptyState onCreateEvent={() => setShowAddEvent(true)} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:h-[420px]">
           <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-2 flex items-center h-full">
