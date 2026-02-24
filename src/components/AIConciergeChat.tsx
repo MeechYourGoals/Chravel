@@ -614,7 +614,10 @@ export const AIConciergeChat = ({
   // Sync messages to Zustand store so they persist across tab switches
   useEffect(() => {
     if (messages.length > 0) {
-      setStoreMessages(tripId, messages as import('@/store/conciergeSessionStore').ConciergeSessionMessage[]);
+      setStoreMessages(
+        tripId,
+        messages as import('@/store/conciergeSessionStore').ConciergeSessionMessage[],
+      );
     }
   }, [messages, tripId, setStoreMessages]);
 
@@ -1152,7 +1155,7 @@ export const AIConciergeChat = ({
       <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
         {/* Header — search/mic aligned with input bar send button (gradient theme) */}
         <div className="border-b border-white/10 bg-black/30 p-3 flex-shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -1161,22 +1164,27 @@ export const AIConciergeChat = ({
             >
               <Search size={18} className="text-white" />
             </button>
-            <span className={`text-xs whitespace-nowrap ${queryAllowanceTone}`}>
+            <span
+              className={`text-xs whitespace-nowrap max-w-[140px] truncate ${queryAllowanceTone}`}
+            >
               {queryAllowanceText}
             </span>
-            <h3 className="text-lg font-semibold text-white flex-1 text-center">AI Concierge</h3>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <h3 className="text-lg font-semibold text-white flex-1 text-center min-w-0">
+              AI Concierge
+            </h3>
+            <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
               <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
 
-                <button
-                  type="button"
-                  onClick={handleVoiceToggle}
-                  className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
-                  aria-label="Voice concierge"
-                >
-                  <Mic size={18} className="text-white" />
-                </button>
-
+              <button
+                type="button"
+                onClick={handleVoiceToggle}
+                data-testid="header-voice-mic"
+                className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+                aria-label="Voice concierge"
+                title="Start voice concierge"
+              >
+                <Mic size={18} className="text-white" />
+              </button>
             </div>
           </div>
         </div>
@@ -1215,7 +1223,6 @@ export const AIConciergeChat = ({
                   <Crown size={16} className="mr-2" />
                   Explorer - 10 Asks/Trip ($9.99/mo)
                 </Button>
-
               )}
               <Button
                 onClick={() => (window.location.href = upgradeUrl)}
@@ -1284,37 +1291,43 @@ export const AIConciergeChat = ({
         </div>
 
         {/* Voice active status bar */}
-        {VOICE_LIVE_ENABLED && geminiState !== 'idle' && geminiState !== 'error' && !circuitBreakerOpen && (
-          <div
-            className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
-            role="alert"
-            aria-live="polite"
-            aria-label={`Voice: ${effectiveVoiceState === 'listening' ? 'Listening' : effectiveVoiceState === 'thinking' ? 'Processing' : effectiveVoiceState === 'speaking' ? 'Speaking' : effectiveVoiceState === 'connecting' ? 'Connecting' : 'Active'}`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
-              <span className="text-sm text-emerald-300">
-                {effectiveVoiceState === 'listening'
-                  ? 'Listening...'
-                  : effectiveVoiceState === 'thinking'
-                    ? 'Processing...'
-                    : effectiveVoiceState === 'speaking'
-                      ? 'Speaking...'
-                      : effectiveVoiceState === 'connecting'
-                        ? 'Connecting...'
-                        : 'Voice Active'}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={endSession}
-              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
-              aria-label="End voice session"
+        {VOICE_LIVE_ENABLED &&
+          geminiState !== 'idle' &&
+          geminiState !== 'error' &&
+          !circuitBreakerOpen && (
+            <div
+              className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
+              role="alert"
+              aria-live="polite"
+              aria-label={`Voice: ${effectiveVoiceState === 'listening' ? 'Listening' : effectiveVoiceState === 'thinking' ? 'Processing' : effectiveVoiceState === 'speaking' ? 'Speaking' : effectiveVoiceState === 'connecting' ? 'Connecting' : 'Active'}`}
             >
-              End Session
-            </button>
-          </div>
-        )}
+              <div className="flex items-center gap-2">
+                <span
+                  className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+                  aria-hidden="true"
+                />
+                <span className="text-sm text-emerald-300">
+                  {effectiveVoiceState === 'listening'
+                    ? 'Listening...'
+                    : effectiveVoiceState === 'thinking'
+                      ? 'Processing...'
+                      : effectiveVoiceState === 'speaking'
+                        ? 'Speaking...'
+                        : effectiveVoiceState === 'connecting'
+                          ? 'Connecting...'
+                          : 'Voice Active'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={endSession}
+                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
+                aria-label="End voice session"
+              >
+                End Session
+              </button>
+            </div>
+          )}
 
         {/* Circuit breaker: Try voice again */}
         {VOICE_LIVE_ENABLED && circuitBreakerOpen && (
