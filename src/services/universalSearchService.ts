@@ -250,8 +250,8 @@ async function searchCalendarEvents(
 
   const eventQuery = supabase
     .from('trip_events')
-    .select('id, title, location, start_time, trip_id, trips(name)')
-    .or(`title.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%`)
+    .select('id, title, description, location, start_time, trip_id, event_category, trips(name)')
+    .or(`title.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%,event_category.ilike.%${safeQuery}%`)
     .order('start_time', { ascending: false });
 
   if (tripIds && tripIds.length > 0) {
@@ -271,7 +271,7 @@ async function searchCalendarEvents(
     tripId: event.trip_id,
     tripName: event.trips?.name || 'Unknown Trip',
     title: event.title,
-    snippet: `${event.location || 'No location'} - ${new Date(event.start_time).toLocaleString()}`,
+    snippet: `${event.event_category ? event.event_category + ' - ' : ''}${event.location || 'No location'} - ${new Date(event.start_time).toLocaleString()}`,
     matchScore: 0.88,
     deepLink: `/trip/${event.trip_id}#calendar-event-${event.id}`,
     metadata: { location: event.location, startTime: event.start_time },

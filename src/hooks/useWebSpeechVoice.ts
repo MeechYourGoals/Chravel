@@ -71,8 +71,10 @@ export function useWebSpeechVoice(
   const recognitionRef = useRef<any>(null);
   const activeRef = useRef(false);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noAudioTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const accumulatedTranscriptRef = useRef('');
   const restartCountRef = useRef(0);
+  const restartWithoutResultRef = useRef(0);
   const intentionalStopRef = useRef(false);
 
   const [debugInfo] = useState<VoiceDebugInfo>({
@@ -98,9 +100,14 @@ export function useWebSpeechVoice(
     activeRef.current = false;
     intentionalStopRef.current = true;
     restartCountRef.current = 0;
+    restartWithoutResultRef.current = 0;
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
+    }
+    if (noAudioTimerRef.current) {
+      clearTimeout(noAudioTimerRef.current);
+      noAudioTimerRef.current = null;
     }
     if (recognitionRef.current) {
       try {
@@ -156,12 +163,27 @@ export function useWebSpeechVoice(
     // iOS Safari may support maxAlternatives but we only need the best result
     recognition.maxAlternatives = 1;
 
+    // Cancel the no-audio timer when audio is actually detected
+    recognition.onaudiostart = () => {
+      if (noAudioTimerRef.current) {
+        clearTimeout(noAudioTimerRef.current);
+        noAudioTimerRef.current = null;
+      }
+    };
+
     recognition.onstart = () => {
       if (!activeRef.current) return;
       setVoiceState('listening');
     };
 
     recognition.onresult = (event: any) => {
+      // Any result means audio is working — clear no-audio timer
+      if (noAudioTimerRef.current) {
+        clearTimeout(noAudioTimerRef.current);
+        noAudioTimerRef.current = null;
+      }
+      // Reset consecutive-restart-without-result counter
+      restartWithoutResultRef.current = 0;
       if (!activeRef.current) return;
 
       let finalText = '';
@@ -250,6 +272,19 @@ export function useWebSpeechVoice(
       // iOS auto-restart: recognition ended but user didn't tap stop
       if (isIOS && activeRef.current && restartCountRef.current < IOS_MAX_RESTARTS) {
         restartCountRef.current++;
+        restartWithoutResultRef.current++;
+
+        // If we've restarted 3+ times without a single result, the mic isn't
+        // capturing.  Surface an error instead of looping silently.
+        if (restartWithoutResultRef.current >= 3 && !accumulatedTranscriptRef.current.trim()) {
+          setErrorMessage(
+            'No speech detected. Please check your microphone permissions and try again.',
+          );
+          cleanup();
+          setVoiceState('error');
+          return;
+        }
+
         // Small delay to avoid rapid restart loops
         setTimeout(() => {
           if (!activeRef.current || intentionalStopRef.current) return;
@@ -304,6 +339,7 @@ export function useWebSpeechVoice(
     setUserTranscript('');
     accumulatedTranscriptRef.current = '';
     restartCountRef.current = 0;
+    restartWithoutResultRef.current = 0;
     intentionalStopRef.current = false;
 
     // NOTE: We do NOT call getUserMedia here. SpeechRecognition manages its
@@ -316,6 +352,18 @@ export function useWebSpeechVoice(
       const recognition = createRecognition();
       recognitionRef.current = recognition;
       recognition.start();
+
+      // Start a "no audio detected" timer — if onresult / onaudiostart
+      // never fire within 5s, the mic likely isn't working on this device.
+      noAudioTimerRef.current = setTimeout(() => {
+        if (activeRef.current && !accumulatedTranscriptRef.current.trim()) {
+          setErrorMessage(
+            'No audio detected. Please check microphone permissions and try again.',
+          );
+          cleanup();
+          setVoiceState('error');
+        }
+      }, 5000);
     } catch (err) {
       console.error('[useWebSpeechVoice] Failed to start recognition:', err);
       setErrorMessage('Failed to start voice recognition. Please try again.');
