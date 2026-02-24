@@ -5,6 +5,7 @@ import { useDemoMode } from '../../hooks/useDemoMode';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../../hooks/use-toast';
 import { getConsistentAvatar } from '../../utils/avatarUtils';
+import { normalizeImageMimeType } from '../../lib/utils';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
@@ -131,10 +132,13 @@ export const ConsumerProfileSection = () => {
       // Path must start with user.id for RLS policies to work correctly
       const filePath = `${user.id}/${Date.now()}.${fileExt}`;
 
+      // Normalize MIME type (e.g. image/jpg -> image/jpeg) for Supabase allowed_mime_types
+      const contentType = normalizeImageMimeType(file.type);
+
       // Upload to Supabase Storage with upsert to allow overwriting
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, {
         cacheControl: '3600',
-        contentType: file.type,
+        contentType,
         upsert: true,
       });
 
@@ -167,6 +171,12 @@ export const ConsumerProfileSection = () => {
           description = 'Permission denied. Please ensure you are signed in.';
         } else if (errMsg.includes('Payload too large') || errMsg.includes('413')) {
           description = 'File is too large. Maximum size is 5MB.';
+        } else if (
+          errMsg.toLowerCase().includes('mime') ||
+          errMsg.toLowerCase().includes('content type') ||
+          errMsg.toLowerCase().includes('file type')
+        ) {
+          description = 'Invalid image format. Please use JPG, PNG, or GIF.';
         }
       }
       toast({

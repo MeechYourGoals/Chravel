@@ -1,13 +1,13 @@
 /**
  * AvatarUpload Component
- * 
+ *
  * Production-ready avatar upload with:
  * - Image cropping with aspect ratio enforcement (1:1)
  * - Client-side compression before upload
  * - Default avatar generation (initials-based SVG)
  * - Supabase Storage integration
  * - Mobile-responsive UI
- * 
+ *
  * @see AVATAR_UPLOAD_IMPLEMENTATION.md for full documentation
  */
 
@@ -20,7 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, normalizeImageMimeType } from '@/lib/utils';
 import { getInitials, generateDefaultAvatar } from '@/utils/avatarUtils';
 
 const ASPECT_RATIO = 1; // 1:1 for avatars
@@ -60,7 +60,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [imgSrc, setImgSrc] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  
+
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -103,7 +103,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
     }
 
     setError(null);
-    
+
     // Read file and set up for cropping
     const reader = new FileReader();
     reader.onload = () => {
@@ -121,7 +121,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
    */
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = e.currentTarget;
-    
+
     const crop = centerCrop(
       makeAspectCrop(
         {
@@ -130,12 +130,12 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
         },
         ASPECT_RATIO,
         naturalWidth,
-        naturalHeight
+        naturalHeight,
       ),
       naturalWidth,
-      naturalHeight
+      naturalHeight,
     );
-    
+
     setCrop(crop);
   }, []);
 
@@ -198,7 +198,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       // Set canvas dimensions
       const cropWidth = Math.round(crop.width * scaleX);
       const cropHeight = Math.round(crop.height * scaleY);
-      
+
       if (cropWidth < MIN_DIMENSION || cropHeight < MIN_DIMENSION) {
         setError(`Image must be at least ${MIN_DIMENSION}x${MIN_DIMENSION} pixels`);
         setIsUploading(false);
@@ -223,13 +223,13 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
         0,
         0,
         cropWidth,
-        cropHeight
+        cropHeight,
       );
 
       // Convert canvas to blob
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(
-          (blob) => {
+          blob => {
             if (blob) {
               resolve(blob);
             } else {
@@ -237,7 +237,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
             }
           },
           'image/jpeg',
-          COMPRESSION_QUALITY
+          COMPRESSION_QUALITY,
         );
       });
 
@@ -252,17 +252,17 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       // Upload to Supabase Storage
       // Note: Path should start with user.id (not 'avatars/') since we're already using .from('avatars')
       // Storage policies require the first path segment to match auth.uid()
-      const fileExt =
-        compressedFile.name.includes('.')
-          ? compressedFile.name.split('.').pop()
-          : compressedFile.type.split('/')[1] || 'jpg';
+      const fileExt = compressedFile.name.includes('.')
+        ? compressedFile.name.split('.').pop()
+        : compressedFile.type.split('/')[1] || 'jpg';
       const filePath = `${user.id}/${Date.now()}.${fileExt}`;
 
+      const contentType = normalizeImageMimeType(compressedFile.type);
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, compressedFile, {
           cacheControl: '3600',
-          contentType: compressedFile.type,
+          contentType,
           upsert: true,
         });
 
@@ -271,9 +271,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       }
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
 
       if (!urlData?.publicUrl) {
         throw new Error('Failed to get public URL');
@@ -297,7 +295,15 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
     } finally {
       setIsUploading(false);
     }
-  }, [completedCrop, user, updateProfile, compressImage, onUploadComplete, onUploadError, handleCancelCrop]);
+  }, [
+    completedCrop,
+    user,
+    updateProfile,
+    compressImage,
+    onUploadComplete,
+    onUploadError,
+    handleCancelCrop,
+  ]);
 
   /**
    * Use default avatar (initials-based SVG)
@@ -310,10 +316,10 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
     try {
       const defaultAvatarUrl = generateDefaultAvatar(displayName);
-      
+
       // Update profile with default avatar
       const { error: profileError } = await updateProfile({ avatar_url: defaultAvatarUrl });
-      
+
       if (profileError) throw profileError;
 
       onUploadComplete?.(defaultAvatarUrl);
@@ -340,7 +346,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
             {initials}
           </AvatarFallback>
         </Avatar>
-        
+
         {/* Upload Overlay */}
         {!isCropping && (
           <button
@@ -356,11 +362,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       </div>
 
       {/* Error Message */}
-      {error && (
-        <div className="text-sm text-destructive text-center max-w-xs">
-          {error}
-        </div>
-      )}
+      {error && <div className="text-sm text-destructive text-center max-w-xs">{error}</div>}
 
       {/* Action Buttons */}
       {!isCropping ? (
@@ -385,7 +387,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
               </>
             )}
           </Button>
-          
+
           {!currentAvatarUrl && (
             <Button
               type="button"
@@ -407,7 +409,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
             <ReactCrop
               crop={crop}
               onChange={(_, percentCrop) => setCrop(percentCrop)}
-              onComplete={(c) => setCompletedCrop(c)}
+              onComplete={c => setCompletedCrop(c)}
               aspect={ASPECT_RATIO}
               minWidth={MIN_DIMENSION}
               minHeight={MIN_DIMENSION}
@@ -437,11 +439,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
               <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
-            <Button
-              type="button"
-              onClick={handleSaveCrop}
-              disabled={isUploading || !completedCrop}
-            >
+            <Button type="button" onClick={handleSaveCrop} disabled={isUploading || !completedCrop}>
               {isUploading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
