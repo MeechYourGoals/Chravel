@@ -530,6 +530,36 @@ export function useGeminiLive({
         audioSampleRate: audioCtxRef.current.sampleRate,
       });
 
+      // Request mic IMMEDIATELY — must happen within the user gesture frame.
+      // iOS Safari will deny getUserMedia if called after an async gap (e.g. token fetch).
+      // We run getUserMedia and the token fetch in parallel.
+      const micPromise = navigator.mediaDevices
+        .getUserMedia({
+          audio: {
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        })
+        .catch((mediaErr: unknown) => {
+          const name = mediaErr instanceof Error ? mediaErr.name : '';
+          let errMsg: string;
+          if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+            errMsg =
+              'Microphone permission denied. Allow microphone access in your browser settings and try again.';
+          } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+            errMsg = 'No microphone detected. Connect a microphone and try again.';
+          } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+            errMsg =
+              'Microphone is already in use by another app. Close other apps and try again.';
+          } else {
+            errMsg = 'Could not access microphone. Check your audio settings and try again.';
+          }
+          recordVoiceFailure(errMsg);
+          throw new Error(errMsg);
+        });
+
       if (typeof navigator !== 'undefined' && 'permissions' in navigator) {
         try {
           const status = await navigator.permissions.query({
@@ -551,10 +581,13 @@ export function useGeminiLive({
         ),
       );
 
-      const { data: sessionData, error: sessionError } = (await Promise.race([
-        sessionPromise,
-        timeoutPromise,
-      ])) as Awaited<typeof sessionPromise>;
+      // Wait for both mic access and token in parallel
+      const [stream, tokenResult] = await Promise.all([
+        micPromise,
+        Promise.race([sessionPromise, timeoutPromise]) as Promise<Awaited<typeof sessionPromise>>,
+      ]);
+
+      const { data: sessionData, error: sessionError } = tokenResult;
 
       const accessToken =
         typeof sessionData?.accessToken === 'string' ? sessionData.accessToken : null;
@@ -576,32 +609,6 @@ export function useGeminiLive({
         hasWebsocketUrl: !!sessionData?.websocketUrl,
       });
 
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            channelCount: 1,
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
-      } catch (mediaErr) {
-        const name = mediaErr instanceof Error ? mediaErr.name : '';
-        let errMsg: string;
-        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          errMsg =
-            'Microphone permission denied. Allow microphone access in your browser settings and try again.';
-        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-          errMsg = 'No microphone detected. Connect a microphone and try again.';
-        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-          errMsg = 'Microphone is already in use by another app. Close other apps and try again.';
-        } else {
-          errMsg = 'Could not access microphone. Check your audio settings and try again.';
-        }
-        recordVoiceFailure(errMsg);
-        throw new Error(errMsg);
-      }
       mediaStreamRef.current = stream;
       voiceLog('mic:acquired', {
         tracks: stream.getAudioTracks().map(t => ({
@@ -613,14 +620,12 @@ export function useGeminiLive({
       const track = stream.getAudioTracks()[0];
       patchDiagnostics({ micDeviceLabel: track?.label || null });
 
-      // 3. AudioContext already created above.
+      // AudioContext already created above.
       // Resume again here in case it was suspended after the async gap.
       // iOS Safari often suspends contexts; we must force-resume and verify.
       if (audioCtxRef.current?.state === 'suspended') {
         await audioCtxRef.current.resume().catch(() => {});
       }
-      // If still suspended after resume attempt, try one more time with a small delay
-      // (iOS Safari sometimes needs a tick before the context unblocks).
       if (audioCtxRef.current?.state === 'suspended') {
         await new Promise(r => setTimeout(r, 100));
         await audioCtxRef.current.resume().catch(() => {});
@@ -868,13 +873,16 @@ export function useGeminiLive({
             }
 
             if (sc.turnComplete) {
-              flushModelOutput();
               voiceLog('server:turnComplete', {
                 userText: userTranscriptAccRef.current.slice(0, 50),
                 assistantText: assistantTranscriptAccRef.current.slice(0, 50),
               });
-              playbackQueueRef.current?.flush();
+              // Do NOT flush playback here — turnComplete means the model is done
+              // sending, but buffered audio frames may still be queued for playback.
+              // Flushing here cuts off the last ~0.5-1s of speech. Only flush on
+              // barge-in/interrupt where immediate silence is desired.
               clearThinkingTimer();
+              modelRespondingRef.current = false;
 
               const finalUser = userTranscriptAccRef.current.trim();
               const finalAssistant = assistantTranscriptAccRef.current.trim();
