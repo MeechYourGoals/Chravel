@@ -40,7 +40,7 @@ async function searchTrips(
   const queryLower = query.toLowerCase();
 
   if (isDemoMode) {
-    const mockTrips = (await import('@/data/tripsData')).trips;
+    const mockTrips = (await import('@/data/tripsData')).tripsData;
     return mockTrips
       .filter(trip => {
         const matchesQuery = 
@@ -127,18 +127,13 @@ async function searchMessagesAcrossTrips(
   }
 
   // Search real messages
-  const messageQuery = supabase
-    .from('trip_messages')
-    .select('id, content, created_at, trip_id, author_id, trips(name), profiles:author_id(display_name)')
+  const { data, error } = await supabase
+    .from('trip_chat_messages' as any)
+    .select('id, content, created_at, trip_id, author_name')
     .ilike('content', `%${query}%`)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(50);
 
-  if (tripIds && tripIds.length > 0) {
-    messageQuery.in('trip_id', tripIds);
-  }
-
-  const { data, error } = await messageQuery.limit(50);
-  
   if (error) {
     console.error('Message search error:', error);
     return [];
@@ -148,12 +143,12 @@ async function searchMessagesAcrossTrips(
     id: msg.id,
     contentType: 'messages' as const,
     tripId: msg.trip_id,
-    tripName: msg.trips?.name || 'Unknown Trip',
-    title: `Message from ${msg.profiles?.display_name || 'User'}`,
-    snippet: msg.content.slice(0, 150),
+    tripName: 'Trip',
+    title: `Message from ${msg.author_name || 'User'}`,
+    snippet: (msg.content || '').slice(0, 150),
     matchScore: 0.85,
     deepLink: `/trip/${msg.trip_id}#chat-message-${msg.id}`,
-    metadata: { authorName: msg.profiles?.display_name },
+    metadata: { authorName: msg.author_name },
     timestamp: msg.created_at
   }));
 }

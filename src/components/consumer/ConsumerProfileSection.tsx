@@ -156,11 +156,22 @@ export const ConsumerProfileSection = () => {
         title: 'Photo uploaded',
         description: 'Your profile photo has been updated.',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading photo:', error);
+      const errMsg = error?.message || error?.statusCode || '';
+      let description = 'Failed to upload profile photo. Please try again.';
+      if (typeof errMsg === 'string') {
+        if (errMsg.includes('Bucket not found') || errMsg.includes('not found')) {
+          description = 'Storage bucket not configured. Please contact support.';
+        } else if (errMsg.includes('row-level security') || errMsg.includes('security policy')) {
+          description = 'Permission denied. Please ensure you are signed in.';
+        } else if (errMsg.includes('Payload too large') || errMsg.includes('413')) {
+          description = 'File is too large. Maximum size is 5MB.';
+        }
+      }
       toast({
         title: 'Upload failed',
-        description: 'Failed to upload profile photo. Please try again.',
+        description,
         variant: 'destructive',
       });
     } finally {
