@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, Crown, Sparkles, Square, Mic, ImagePlus } from 'lucide-react';
+import { Search, Crown, Sparkles, ImagePlus } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -18,16 +18,14 @@ import {
 } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
-import { useGeminiLive, uniqueId } from '@/hooks/useGeminiLive';
-import type { ToolCallRequest } from '@/hooks/useGeminiLive';
+import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { supabase } from '@/integrations/supabase/client';
-import { VOICE_LIVE_ENABLED } from '@/config/voiceFeatureFlags';
 import { useConciergeSessionStore } from '@/store/conciergeSessionStore';
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
-// VOICE_LIVE_ENABLED now from VOICE_LIVE_ENABLED (voiceFeatureFlags.ts)
+// Voice is now dictation-only (Web Speech API). Gemini Live duplex is disabled.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AIConciergeChatProps {
@@ -106,8 +104,9 @@ const ALLOWED_IMAGE_TYPES = new Set([
   'image/heic',
   'image/heif',
 ]);
-const VOICE_DIAGNOSTICS_ENABLED =
-  import.meta.env.DEV || (import.meta.env.VITE_VOICE_DEBUG || '').toLowerCase() === 'true';
+
+/** Simple unique ID generator for chat messages */
+const uniqueId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
 const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -129,8 +128,6 @@ const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment>
   };
 };
 
-const formatMetric = (value: number | null): string =>
-  typeof value === 'number' ? `${Math.round(value)}ms` : 'n/a';
 
 const invokeConciergeWithTimeout = async (
   requestBody: Record<string, unknown> & { message: string },
@@ -212,356 +209,41 @@ export const AIConciergeChat = ({
   // read from a stale closure but the user has already submitted a message.
   const hasHydratedRef = useRef(false);
 
-  // ─── Voice (Gemini Live bidi streaming) ──────────────────────────────────
-  const voiceUserDraftIdRef = useRef<string | null>(null);
-  const voiceAssistantDraftIdRef = useRef<string | null>(null);
-
-  const handleVoiceTurnComplete = useCallback(
-    (userText: string, assistantText: string) => {
-      if (voiceUserDraftIdRef.current && userText) {
-        const draftId = voiceUserDraftIdRef.current;
-        setMessages(prev => prev.map(m => (m.id === draftId ? { ...m, content: userText } : m)));
-      }
-      if (voiceAssistantDraftIdRef.current && assistantText) {
-        const draftId = voiceAssistantDraftIdRef.current;
-        setMessages(prev =>
-          prev.map(m => (m.id === draftId ? { ...m, content: assistantText } : m)),
-        );
-      }
-      voiceUserDraftIdRef.current = null;
-      voiceAssistantDraftIdRef.current = null;
-
-      if (userText || assistantText) {
-        void persistVoiceTurn(tripId, userText, assistantText);
-      }
+  // ─── Voice (Dictation-Only — Web Speech API) ─────────────────────────────
+  // Microphone captures speech → text → populates input field (auto-sends).
+  // No model audio output. No duplex WebSocket. No barge-in.
+  const handleDictationResult = useCallback(
+    (text: string) => {
+      if (!text.trim()) return;
+      // Auto-send the transcribed text as a message
+      setInputMessage(text);
+      // Use a microtask to let React flush setInputMessage, then send
+      queueMicrotask(() => {
+        handleSendMessageRef.current?.(text);
+      });
     },
-    [tripId],
-  );
-
-  const handleVoiceError = useCallback((message: string) => {
-    toast.error('Voice failed', { description: message });
-  }, []);
-
-  const handleCircuitBreakerOpen = useCallback(() => {
-    toast.error('Voice is temporarily unavailable—switched to text.', {
-      description: 'Tap "Try voice again" to retry.',
-    });
-  }, []);
-
-  const setVoiceState = useConciergeSessionStore(s => s.setVoiceState);
-  const setLastError = useConciergeSessionStore(s => s.setLastError);
-
-  // Inject a read-only assistant card into chat for tool results that produce
-  // visual output (photos, maps, links). The AI verbally describes the result;
-  // this card makes the same data visible in the chat window.
-  const injectToolResultMessage = useCallback((content: string) => {
-    setMessages(prev => [
-      ...prev,
-      {
-        id: uniqueId('tool-card'),
-        type: 'assistant' as const,
-        content,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
-  }, []);
-
-  // Execute a Gemini Live tool call server-side and inject visual cards for
-  // tools that return displayable content (photos, maps, links, web results).
-  const handleVoiceToolCall = useCallback(
-    async (call: ToolCallRequest): Promise<Record<string, unknown>> => {
-      try {
-        const { data, error } = await supabase.functions.invoke('execute-concierge-tool', {
-          body: { toolName: call.name, args: call.args, tripId },
-        });
-
-        if (error) {
-          return { error: error.message };
-        }
-
-        const result = (data ?? {}) as Record<string, unknown>;
-
-        // ── Rich card injection per tool ──────────────────────────────────
-        if (call.name === 'searchPlaces' && Array.isArray(result.places)) {
-          const places = result.places as Array<{
-            name: string;
-            address?: string;
-            rating?: number;
-            priceLevel?: string;
-            previewPhotoUrl?: string;
-            mapsUrl?: string;
-          }>;
-          if (places.length > 0) {
-            const content = places
-              .slice(0, 3)
-              .map(p => {
-                const lines: string[] = [`**${p.name}**`];
-                if (p.address) lines.push(p.address);
-                const meta: string[] = [];
-                if (p.rating) meta.push(`⭐ ${p.rating}`);
-                if (p.priceLevel) meta.push(p.priceLevel);
-                if (meta.length > 0) lines.push(meta.join(' · '));
-                if (p.previewPhotoUrl) lines.push(`![${p.name}](${p.previewPhotoUrl})`);
-                if (p.mapsUrl) lines.push(`[Open in Maps](${p.mapsUrl})`);
-                return lines.join('\n');
-              })
-              .join('\n\n---\n\n');
-            injectToolResultMessage(content);
-          }
-        } else if (call.name === 'getPlaceDetails' && result.success) {
-          const p = result as {
-            name?: string;
-            address?: string;
-            rating?: number;
-            hours?: string[];
-            photoUrls?: string[];
-            mapsUrl?: string;
-            website?: string;
-            editorialSummary?: string;
-          };
-          const lines: string[] = [`**${p.name ?? 'Place'}**`];
-          if (p.address) lines.push(p.address);
-          if (p.rating) lines.push(`⭐ ${p.rating}`);
-          if (p.editorialSummary) lines.push(`_${p.editorialSummary}_`);
-          if (p.hours && p.hours.length > 0) lines.push(p.hours.slice(0, 3).join('\n'));
-          if (p.photoUrls && p.photoUrls[0])
-            lines.push(`![${p.name ?? 'Photo'}](${p.photoUrls[0]})`);
-          if (p.mapsUrl) lines.push(`[View on Google Maps](${p.mapsUrl})`);
-          if (p.website) lines.push(`[Website](${p.website})`);
-          injectToolResultMessage(lines.join('\n'));
-        } else if (call.name === 'getStaticMapUrl' && result.imageUrl) {
-          injectToolResultMessage(`![Map](${result.imageUrl})`);
-        } else if (call.name === 'getDirectionsETA' && result.success) {
-          const d = result as {
-            origin?: string;
-            destination?: string;
-            durationMinutes?: number;
-            distanceMiles?: number;
-            mapsUrl?: string;
-          };
-          const lines: string[] = [
-            `**${d.origin ?? ''} → ${d.destination ?? ''}**`,
-            `🕐 ${d.durationMinutes} min drive · 📍 ${d.distanceMiles} miles`,
-          ];
-          if (d.mapsUrl) lines.push(`[Open in Google Maps](${d.mapsUrl})`);
-          injectToolResultMessage(lines.join('\n'));
-        } else if (call.name === 'searchImages' && Array.isArray(result.images)) {
-          const images = result.images as Array<{
-            title: string;
-            thumbnailUrl: string;
-            imageUrl: string;
-          }>;
-          if (images.length > 0) {
-            const content = images
-              .slice(0, 4)
-              .map(img => `[![${img.title}](${img.thumbnailUrl})](${img.imageUrl})`)
-              .join('  ');
-            injectToolResultMessage(content);
-          }
-        } else if (call.name === 'searchWeb' && Array.isArray(result.results)) {
-          const webResults = result.results as Array<{
-            title: string;
-            url: string;
-            snippet: string;
-            domain: string;
-          }>;
-          if (webResults.length > 0) {
-            const content = webResults
-              .slice(0, 3)
-              .map(r => `**[${r.title}](${r.url})**\n${r.snippet}`)
-              .join('\n\n');
-            injectToolResultMessage(content);
-          }
-        } else if (call.name === 'getDistanceMatrix' && result.success) {
-          const rows = result.rows as Array<{
-            origin: string;
-            elements: Array<{
-              destination: string;
-              durationText: string | null;
-              distanceText: string | null;
-            }>;
-          }>;
-          if (rows && rows.length > 0) {
-            const mode = String(result.travelMode ?? 'driving');
-            const lines: string[] = [`**Travel Times (${mode})**`];
-            for (const row of rows.slice(0, 3)) {
-              for (const el of row.elements.slice(0, 3)) {
-                if (el.durationText) {
-                  lines.push(
-                    `${row.origin} → ${el.destination}: **${el.durationText}** (${el.distanceText ?? ''})`,
-                  );
-                }
-              }
-            }
-            if (lines.length > 1) {
-              injectToolResultMessage(lines.join('\n'));
-            }
-          }
-        }
-        // validateAddress: no visual card — AI confirms the address verbally.
-
-        return result;
-      } catch (err) {
-        return { error: err instanceof Error ? err.message : 'Tool execution failed' };
-      }
-    },
-    [tripId, injectToolResultMessage],
+    [],
   );
 
   const {
-    state: geminiState,
-    error: geminiError,
-    userTranscript,
-    assistantTranscript,
-    diagnostics,
-    startSession,
-    endSession,
-    interruptPlayback,
-    sendImage: sendImageToLive,
-    isSupported: voiceSupported,
-    circuitBreakerOpen,
-    resetCircuitBreaker,
-  } = useGeminiLive({
-    tripId,
-    onTurnComplete: handleVoiceTurnComplete,
-    onToolCall: handleVoiceToolCall,
-    onError: handleVoiceError,
-    onCircuitBreakerOpen: handleCircuitBreakerOpen,
-  });
+    voiceState: dictationState,
+    toggleVoice: toggleDictation,
+    errorMessage: dictationError,
+  } = useWebSpeechVoice(handleDictationResult);
 
-  const effectiveVoiceState: VoiceState =
-    geminiState === 'requesting_mic' || geminiState === 'ready'
-      ? 'connecting'
-      : geminiState === 'sending'
-        ? 'thinking'
-        : geminiState === 'playing'
-          ? 'speaking'
-          : geminiState === 'interrupted'
-            ? 'listening'
-            : (geminiState as VoiceState);
+  // Map dictation state to the VoiceState type used by VoiceButton
+  const effectiveVoiceState: VoiceState = dictationState;
 
-  // Sync voice state to concierge session store (mapped to VoiceSessionState)
+  // Show dictation errors as toasts
   useEffect(() => {
-    setVoiceState(tripId, effectiveVoiceState);
-  }, [tripId, effectiveVoiceState, setVoiceState]);
-
-  useEffect(() => {
-    setLastError(tripId, geminiState === 'error' ? (geminiError ?? 'Voice session error') : null);
-  }, [tripId, geminiState, geminiError, setLastError]);
-
-  // effectiveVoiceState already declared above (line 414)
-
-  // When a voice session is active and the user attaches an image, send it
-  // directly to Gemini Live as an inline data frame so the model can see it
-  // while speaking. Images are still queued for the text path when voice is idle.
-  const handleImageAttach = useCallback(
-    async (files: File[]) => {
-      const validated: File[] = [];
-      for (const file of files) {
-        if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-          toast.error(`"${file.name}" is not a supported image format.`);
-          continue;
-        }
-        if (file.size > MAX_IMAGE_SIZE_BYTES) {
-          toast.error(`"${file.name}" exceeds 4 MB. Please resize and try again.`);
-          continue;
-        }
-        validated.push(file);
-      }
-      if (validated.length === 0) return;
-
-      const voiceIsActive =
-        geminiState === 'listening' || geminiState === 'sending' || geminiState === 'playing';
-
-      setAttachedImages(prev => [...prev, ...validated].slice(0, 4));
-
-      if (!voiceIsActive) return;
-
-      // Fire-and-forget: convert each image and send via Live WebSocket
-      for (const file of files) {
-        try {
-          const attachment = await fileToAttachmentPayload(file);
-          sendImageToLive(attachment.mimeType, attachment.data);
-        } catch {
-          // Non-blocking — image will still be in attachedImages for the text path
-        }
-      }
-    },
-    [geminiState, sendImageToLive],
-  );
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const imageFiles = files.filter(f => f.type.startsWith('image/'));
-    if (imageFiles.length > 0) {
-      handleImageAttach(imageFiles);
+    if (dictationError) {
+      toast.error('Voice error', { description: dictationError });
     }
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+  }, [dictationError]);
 
   const handleVoiceToggle = useCallback(() => {
-    if (geminiState === 'idle' || geminiState === 'error') {
-      voiceUserDraftIdRef.current = null;
-      voiceAssistantDraftIdRef.current = null;
-      void startSession();
-    } else if (geminiState === 'playing') {
-      voiceUserDraftIdRef.current = null;
-      voiceAssistantDraftIdRef.current = null;
-      interruptPlayback();
-    } else {
-      endSession();
-    }
-  }, [geminiState, startSession, endSession, interruptPlayback]);
-
-  // Draft user message: create on first transcript, update live
-  useEffect(() => {
-    if (!VOICE_LIVE_ENABLED) return;
-    if ((geminiState === 'listening' || geminiState === 'sending') && userTranscript) {
-      if (!voiceUserDraftIdRef.current) {
-        const id = uniqueId('voice-user');
-        voiceUserDraftIdRef.current = id;
-        setMessages(prev => [
-          ...prev,
-          {
-            id,
-            type: 'user' as const,
-            content: userTranscript,
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-      } else {
-        const draftId = voiceUserDraftIdRef.current;
-        setMessages(prev =>
-          prev.map(m => (m.id === draftId ? { ...m, content: userTranscript } : m)),
-        );
-      }
-    }
-  }, [geminiState, userTranscript]);
-
-  // Draft assistant message: create when model starts responding, update as text streams
-  useEffect(() => {
-    if (!VOICE_LIVE_ENABLED) return;
-    if (geminiState === 'playing' && assistantTranscript) {
-      if (!voiceAssistantDraftIdRef.current) {
-        const id = uniqueId('voice-asst');
-        voiceAssistantDraftIdRef.current = id;
-        setMessages(prev => [
-          ...prev,
-          {
-            id,
-            type: 'assistant' as const,
-            content: assistantTranscript,
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-      } else {
-        const draftId = voiceAssistantDraftIdRef.current;
-        setMessages(prev =>
-          prev.map(m => (m.id === draftId ? { ...m, content: assistantTranscript } : m)),
-        );
-      }
-    }
-  }, [geminiState, assistantTranscript]);
+    toggleDictation();
+  }, [toggleDictation]);
   // ── End voice ────────────────────────────────────────────────────────────
 
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
@@ -1221,7 +903,11 @@ export const AIConciergeChat = ({
           accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
           multiple
           className="hidden"
-          onChange={handleFileSelect}
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
+            if (files.length > 0) setAttachedImages(prev => [...prev, ...files].slice(0, 4));
+            if (fileInputRef.current) fileInputRef.current.value = '';
+          }}
         />
 
         {/* Usage Limit Reached State */}
@@ -1310,102 +996,31 @@ export const AIConciergeChat = ({
           )}
         </div>
 
-        {/* Voice active status bar */}
-        {VOICE_LIVE_ENABLED &&
-          geminiState !== 'idle' &&
-          geminiState !== 'error' &&
-          !circuitBreakerOpen && (
-            <div
-              className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
-              role="alert"
-              aria-live="polite"
-              aria-label={`Voice: ${effectiveVoiceState === 'listening' ? 'Listening' : effectiveVoiceState === 'thinking' ? 'Processing' : effectiveVoiceState === 'speaking' ? 'Speaking' : effectiveVoiceState === 'connecting' ? 'Connecting' : 'Active'}`}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
-                  aria-hidden="true"
-                />
-                <span className="text-sm text-emerald-300">
-                  {effectiveVoiceState === 'listening'
-                    ? 'Listening...'
-                    : effectiveVoiceState === 'thinking'
-                      ? 'Processing...'
-                      : effectiveVoiceState === 'speaking'
-                        ? 'Speaking...'
-                        : effectiveVoiceState === 'connecting'
-                          ? 'Connecting...'
-                          : 'Voice Active'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={endSession}
-                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
-                aria-label="End voice session"
-              >
-                End Session
-              </button>
-            </div>
-          )}
-
-        {/* Circuit breaker: Try voice again */}
-        {VOICE_LIVE_ENABLED && circuitBreakerOpen && (
+        {/* Voice listening indicator (dictation mode) */}
+        {dictationState === 'listening' && (
           <div
-            className="flex items-center justify-between px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 flex-shrink-0"
+            className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
             role="alert"
             aria-live="polite"
+            aria-label="Listening for dictation"
           >
-            <span className="text-sm text-amber-300">
-              Voice is temporarily unavailable—switched to text.
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetCircuitBreaker}
-              className="text-amber-300 border-amber-500/50 hover:bg-amber-500/20"
-            >
-              Try voice again
-            </Button>
-          </div>
-        )}
-
-        {VOICE_DIAGNOSTICS_ENABLED && VOICE_LIVE_ENABLED && (
-          <div className="px-4 py-2 border-b border-white/10 bg-black/30 text-[11px] text-gray-300 space-y-1">
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              <span>State: {geminiState}</span>
-              <span>Conn: {diagnostics.connectionStatus}</span>
-              <span>AudioCtx: {diagnostics.audioContextState}</span>
-              <span>SampleRate: {diagnostics.audioSampleRate ?? 'n/a'}</span>
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              <span>Mic permission: {diagnostics.micPermission}</span>
-              <span>Encoding: {diagnostics.inputEncoding}</span>
-              <span>RMS: {diagnostics.micRms.toFixed(4)}</span>
-              <span>
-                WS close: {diagnostics.wsCloseCode ?? 'n/a'} {diagnostics.wsCloseReason ?? ''}
-              </span>
-            </div>
-            <div className="w-full h-1.5 bg-white/10 rounded overflow-hidden">
-              <div
-                className="h-full bg-emerald-400 transition-all"
-                style={{ width: `${Math.min(100, diagnostics.micRms * 1500)}%` }}
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+                aria-hidden="true"
               />
+              <span className="text-sm text-emerald-300">Listening...</span>
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              <span>
-                t_first_audio_send: {formatMetric(diagnostics.metrics.firstAudioChunkSentMs)}
-              </span>
-              <span>t_first_token: {formatMetric(diagnostics.metrics.firstTokenReceivedMs)}</span>
-              <span>t_first_play: {formatMetric(diagnostics.metrics.firstAudioFramePlayedMs)}</span>
-              <span>t_cancel: {formatMetric(diagnostics.metrics.cancelLatencyMs)}</span>
-            </div>
-            {diagnostics.lastError && (
-              <div className="text-red-300">Last error: {diagnostics.lastError}</div>
-            )}
+            <button
+              type="button"
+              onClick={toggleDictation}
+              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
+              aria-label="Stop listening"
+            >
+              Stop
+            </button>
           </div>
         )}
-        {/* Voice Active Indicator already rendered above (lines ~1250) */}
 
         {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
@@ -1420,14 +1035,14 @@ export const AIConciergeChat = ({
             disabled={isQueryLimitReached}
             showImageAttach={UPLOAD_ENABLED}
             attachedImages={UPLOAD_ENABLED ? attachedImages : []}
-            onImageAttach={UPLOAD_ENABLED ? handleImageAttach : undefined}
+            onImageAttach={UPLOAD_ENABLED ? (files: File[]) => setAttachedImages(prev => [...prev, ...files].slice(0, 4)) : undefined}
             onRemoveImage={
               UPLOAD_ENABLED
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
                 : undefined
             }
             voiceState={effectiveVoiceState}
-            isVoiceEligible={voiceSupported && !circuitBreakerOpen}
+            isVoiceEligible={true}
             onVoiceToggle={handleVoiceToggle}
           />
         </div>
@@ -1435,31 +1050,3 @@ export const AIConciergeChat = ({
     </div>
   );
 };
-
-async function persistVoiceTurn(
-  tripId: string,
-  userText: string,
-  assistantText: string,
-): Promise<void> {
-  if (!tripId || (!userText.trim() && !assistantText.trim())) return;
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { error } = await supabase.from('ai_queries').insert({
-      trip_id: tripId,
-      user_id: user.id,
-      query_text: userText.trim() || '[voice input]',
-      response_text: assistantText.trim() || '[voice response]',
-      source_count: 0,
-      created_at: new Date().toISOString(),
-    });
-    if (error && import.meta.env.DEV) {
-      console.warn('[persistVoiceTurn] Insert failed:', error.message);
-    }
-  } catch {
-    // Persistence failure must never block voice UX
-  }
-}

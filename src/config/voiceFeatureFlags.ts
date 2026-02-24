@@ -27,8 +27,8 @@ const getEnv = (key: VoiceEnvKey, fallback: string): string => {
 
 const parseBool = (value: string): boolean => value.toLowerCase() === 'true' || value === '1';
 
-/** Voice Live (Gemini bidirectional) enabled. Default: true so mic remains visible. */
-export const VOICE_LIVE_ENABLED = parseBool(getEnv('VITE_VOICE_LIVE_ENABLED', 'true'));
+/** Voice Live (Gemini bidirectional) enabled. Default: false — dictation-only mode. */
+export const VOICE_LIVE_ENABLED = parseBool(getEnv('VITE_VOICE_LIVE_ENABLED', 'false'));
 
 /** Extra diagnostics (connection codes, audio params) when true. Default: false. */
 export const VOICE_DIAGNOSTICS_ENABLED = parseBool(
