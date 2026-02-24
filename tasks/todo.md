@@ -13,3 +13,8 @@
 - Added barge-in handling with RMS-based interruption detection while model is playing and explicit cancel signal dispatch.
 - Added dev diagnostics panel in `AIConciergeChat` showing mic meter, transport/audio status, and latency metrics.
 - Preserved text chat flow, message persistence hooks, and existing concierge cache/history behavior.
+
+
+## Post-PR hardening
+- [x] Fixed stale-closure regressions in `useGeminiLive` callback handlers by using refs for state/diagnostics reads inside WS/audio callbacks.
+- [x] Re-ran typecheck and targeted lint for the modified hook.

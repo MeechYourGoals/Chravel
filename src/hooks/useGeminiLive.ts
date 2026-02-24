@@ -160,6 +160,8 @@ export function useGeminiLive({
   const [userTranscript, setUserTranscript] = useState('');
   const [assistantTranscript, setAssistantTranscript] = useState('');
   const [diagnostics, setDiagnostics] = useState<VoiceDiagnostics>(initialDiagnostics);
+  const stateRef = useRef<GeminiLiveState>('idle');
+  const diagnosticsRef = useRef<VoiceDiagnostics>(initialDiagnostics);
 
   const onTurnCompleteRef = useRef(onTurnComplete);
   useEffect(() => {
@@ -175,6 +177,14 @@ export function useGeminiLive({
   useEffect(() => {
     onErrorRef.current = onError;
   }, [onError]);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    diagnosticsRef.current = diagnostics;
+  }, [diagnostics]);
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -198,20 +208,25 @@ export function useGeminiLive({
     typeof navigator?.mediaDevices?.getUserMedia === 'function';
 
   const patchDiagnostics = useCallback((patch: Partial<VoiceDiagnostics>) => {
-    setDiagnostics(prev => ({ ...prev, ...patch }));
+    setDiagnostics(prev => {
+      const next = { ...prev, ...patch };
+      diagnosticsRef.current = next;
+      return next;
+    });
   }, []);
 
   const patchMetrics = useCallback((patch: Partial<VoiceDiagnostics['metrics']>) => {
-    setDiagnostics(prev => ({ ...prev, metrics: { ...prev.metrics, ...patch } }));
+    setDiagnostics(prev => {
+      const next = { ...prev, metrics: { ...prev.metrics, ...patch } };
+      diagnosticsRef.current = next;
+      return next;
+    });
   }, []);
 
-  const debugLog = useCallback(
-    (event: string, payload: Record<string, unknown> = {}) => {
-      if (!diagnostics.enabled) return;
-      console.debug('[GeminiLive]', event, payload);
-    },
-    [diagnostics.enabled],
-  );
+  const debugLog = useCallback((event: string, payload: Record<string, unknown> = {}) => {
+    if (!diagnosticsRef.current.enabled) return;
+    console.debug('[GeminiLive]', event, payload);
+  }, []);
 
   const transition = useCallback(
     (next: GeminiLiveState, reason: string) => {
@@ -219,6 +234,7 @@ export function useGeminiLive({
         if (prev !== next) {
           debugLog('state_transition', { from: prev, to: next, reason });
         }
+        stateRef.current = next;
         return next;
       });
     },
@@ -497,7 +513,10 @@ export function useGeminiLive({
       if (!audioCtxRef.current) throw new Error('Audio context lost.');
 
       playbackQueueRef.current = new AudioPlaybackQueue(audioCtxRef.current, () => {
-        if (turnStartedAtRef.current && diagnostics.metrics.firstAudioFramePlayedMs === null) {
+        if (
+          turnStartedAtRef.current &&
+          diagnosticsRef.current.metrics.firstAudioFramePlayedMs === null
+        ) {
           patchMetrics({ firstAudioFramePlayedMs: performance.now() - turnStartedAtRef.current });
         }
       });
@@ -573,13 +592,13 @@ export function useGeminiLive({
                   if (ws.readyState !== WebSocket.OPEN) return;
                   if (
                     turnStartedAtRef.current &&
-                    diagnostics.metrics.firstAudioChunkSentMs === null
+                    diagnosticsRef.current.metrics.firstAudioChunkSentMs === null
                   ) {
                     patchMetrics({
                       firstAudioChunkSentMs: performance.now() - turnStartedAtRef.current,
                     });
                   }
-                  if (state === 'ready' || state === 'listening') {
+                  if (stateRef.current === 'ready' || stateRef.current === 'listening') {
                     transition('sending', 'audio_chunk_sent');
                   }
                   ws.send(
@@ -635,7 +654,10 @@ export function useGeminiLive({
             const parts = sc.modelTurn?.parts || [];
             if (parts.length > 0 && !modelRespondingRef.current) {
               modelRespondingRef.current = true;
-              if (turnStartedAtRef.current && diagnostics.metrics.firstTokenReceivedMs === null) {
+              if (
+                turnStartedAtRef.current &&
+                diagnosticsRef.current.metrics.firstTokenReceivedMs === null
+              ) {
                 patchMetrics({
                   firstTokenReceivedMs: performance.now() - turnStartedAtRef.current,
                 });
@@ -667,7 +689,7 @@ export function useGeminiLive({
                 setUserTranscript(transcript);
                 transition('listening', 'input_transcript');
                 thinkingTimerRef.current = setTimeout(() => {
-                  if (state === 'listening') transition('sending', 'thinking_timeout');
+                  if (stateRef.current === 'listening') transition('sending', 'thinking_timeout');
                 }, THINKING_DELAY_MS);
               }
             }
@@ -711,7 +733,7 @@ export function useGeminiLive({
           connectionStatus: 'closed',
           wsCloseCode: event.code,
           wsCloseReason: event.reason || null,
-          reconnectAttempts: diagnostics.reconnectAttempts + 1,
+          reconnectAttempts: diagnosticsRef.current.reconnectAttempts + 1,
         });
 
         const pendingUser = userTranscriptAccRef.current.trim();
@@ -741,11 +763,6 @@ export function useGeminiLive({
     isSupported,
     tripId,
     voice,
-    state,
-    diagnostics.metrics.firstAudioChunkSentMs,
-    diagnostics.metrics.firstAudioFramePlayedMs,
-    diagnostics.metrics.firstTokenReceivedMs,
-    diagnostics.reconnectAttempts,
     cleanup,
     clearThinkingTimer,
     debugLog,
