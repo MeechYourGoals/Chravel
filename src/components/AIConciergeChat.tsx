@@ -443,7 +443,6 @@ export const AIConciergeChat = ({
   useEffect(() => {
     setVoiceState(tripId, effectiveVoiceState);
   }, [tripId, effectiveVoiceState, setVoiceState]);
-  }, [tripId, geminiState, setVoiceState]);
 
   useEffect(() => {
     setLastError(tripId, geminiState === 'error' ? (geminiError ?? 'Voice session error') : null);
