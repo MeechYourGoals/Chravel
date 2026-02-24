@@ -106,7 +106,6 @@ export async function searchTripMessages(
     )
     .eq('trip_id', tripId)
     .ilike('content', `%${query}%`)
-    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -189,7 +188,6 @@ async function searchTripMessagesWithFilters(
     .from('trip_chat_messages')
     .select('id, content, author_name, user_id, created_at')
     .eq('trip_id', tripId)
-    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(limit);
 

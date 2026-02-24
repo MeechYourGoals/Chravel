@@ -58,50 +58,55 @@ export const ChatSearchOverlay = ({
 
     setIsSearching(true);
     const timer = setTimeout(async () => {
-      if (isDemoMode && demoMessages.length > 0) {
-        // Local search through demo messages
-        const lowerQuery = query.toLowerCase();
+      try {
+        if (isDemoMode && demoMessages.length > 0) {
+          // Local search through demo messages
+          const lowerQuery = query.toLowerCase();
 
-        // Filter regular messages
-        const matchedMessages = demoMessages
-          .filter(msg => !msg.isBroadcast && msg.text.toLowerCase().includes(lowerQuery))
-          .map(msg => ({
-            id: msg.id,
-            content: msg.text,
-            author_name: msg.sender.name,
-            user_id: msg.sender.id,
-            created_at: msg.createdAt,
-            type: 'message' as const,
-          }));
+          // Filter regular messages
+          const matchedMessages = demoMessages
+            .filter(msg => !msg.isBroadcast && msg.text.toLowerCase().includes(lowerQuery))
+            .map(msg => ({
+              id: msg.id,
+              content: msg.text,
+              author_name: msg.sender.name,
+              user_id: msg.sender.id,
+              created_at: msg.createdAt,
+              type: 'message' as const,
+            }));
 
-        // Filter broadcasts
-        const matchedBroadcasts = demoMessages
-          .filter(msg => msg.isBroadcast && msg.text.toLowerCase().includes(lowerQuery))
-          .map(msg => ({
-            id: msg.id,
-            message: msg.text,
-            created_by: msg.sender.id,
-            created_by_name: msg.sender.name,
-            priority: msg.tags?.includes('urgent')
-              ? 'urgent'
-              : msg.tags?.includes('logistics')
-                ? 'high'
-                : 'normal',
-            created_at: msg.createdAt,
-            type: 'broadcast' as const,
-          }));
+          // Filter broadcasts
+          const matchedBroadcasts = demoMessages
+            .filter(msg => msg.isBroadcast && msg.text.toLowerCase().includes(lowerQuery))
+            .map(msg => ({
+              id: msg.id,
+              message: msg.text,
+              created_by: msg.sender.id,
+              created_by_name: msg.sender.name,
+              priority: msg.tags?.includes('urgent')
+                ? 'urgent'
+                : msg.tags?.includes('logistics')
+                  ? 'high'
+                  : 'normal',
+              created_at: msg.createdAt,
+              type: 'broadcast' as const,
+            }));
 
-        setMessages(matchedMessages);
-        setBroadcasts(matchedBroadcasts);
-      } else {
-        // Query Supabase for authenticated mode (supports filters: from:, broadcast, day:, etc.)
-        const parsed = parseMessageSearchQuery(query);
-        const results = await searchChatContentWithFilters(tripId, parsed);
-        setMessages(results.messages);
-        setBroadcasts(results.broadcasts);
+          setMessages(matchedMessages);
+          setBroadcasts(matchedBroadcasts);
+        } else {
+          // Query Supabase for authenticated mode (supports filters: from:, broadcast, day:, etc.)
+          const parsed = parseMessageSearchQuery(query);
+          const results = await searchChatContentWithFilters(tripId, parsed);
+          setMessages(results.messages);
+          setBroadcasts(results.broadcasts);
+        }
+      } catch (error) {
+        console.error("Chat search failed:", error);
+      } finally {
+        setIsSearching(false);
+        setSelectedIndex(0);
       }
-      setIsSearching(false);
-      setSelectedIndex(0);
     }, 300);
 
     return () => clearTimeout(timer);
@@ -176,25 +181,27 @@ export const ChatSearchOverlay = ({
         {/* Search Input */}
         <div className="flex items-center gap-3 p-4 border-b border-white/10">
           <Search className="w-5 h-5 text-white/50" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search messages and broadcasts..."
-            className="flex-1 bg-transparent text-white placeholder:text-white/50 outline-none text-base"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="p-1 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <X className="w-4 h-4 text-white/70" />
-            </button>
-          )}
+          <div className="relative flex-1">
+            <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Search messages and broadcasts..."
+                className="w-full bg-transparent text-white placeholder:text-white/50 outline-none text-base pr-8"
+            />
+            {query && (
+                <button
+                onClick={() => setQuery('')}
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
+                >
+                <X className="w-4 h-4 text-white/70" />
+                </button>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors ml-2"
           >
             <X className="w-5 h-5 text-white/70" />
           </button>
