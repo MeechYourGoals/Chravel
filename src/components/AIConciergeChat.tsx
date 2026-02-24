@@ -443,13 +443,10 @@ export const AIConciergeChat = ({
   useEffect(() => {
     setVoiceState(tripId, effectiveVoiceState);
   }, [tripId, effectiveVoiceState, setVoiceState]);
-  }, [tripId, geminiState, setVoiceState]);
 
   useEffect(() => {
     setLastError(tripId, geminiState === 'error' ? (geminiError ?? 'Voice session error') : null);
   }, [tripId, geminiState, geminiError, setLastError]);
-
-  // effectiveVoiceState already declared above (line 414)
 
   // When a voice session is active and the user attaches an image, send it
   // directly to Gemini Live as an inline data frame so the model can see it
