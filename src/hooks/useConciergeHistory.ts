@@ -13,12 +13,6 @@ export interface ConciergeChatMessage {
   timestamp: string;
 }
 
-interface RpcHistoryRow {
-  role: string;
-  content: string;
-  created_at: string | null;
-}
-
 const VALID_TRIP_ID = /^[a-zA-Z0-9_-]{1,50}$/;
 
 function isValidTripId(tripId: string): boolean {
@@ -28,13 +22,11 @@ function isValidTripId(tripId: string): boolean {
 /**
  * Fetches the authenticated user's persisted AI concierge history for a trip.
  *
- * Uses the get_concierge_trip_history RPC which:
- *  - filters by auth.uid() server-side (never trusts client user_id)
- *  - returns alternating user/assistant message pairs in chronological order
- *  - is executable by authenticated role only
+ * Queries the `ai_queries` table directly (the previous RPC
+ * `get_concierge_trip_history` does not exist in the database).
  *
- * Returns data in the ChatMessage shape used by AIConciergeChat so the caller
- * can hydrate the messages state directly.
+ * Each row in `ai_queries` contains both the user's query and the assistant's
+ * response, so we map each row into two ConciergeChatMessage entries.
  */
 export function useConciergeHistory(tripId: string): {
   data: ConciergeChatMessage[];
@@ -48,28 +40,54 @@ export function useConciergeHistory(tripId: string): {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['conciergeHistory', tripId, user?.id ?? 'anon'],
     queryFn: async (): Promise<ConciergeChatMessage[]> => {
-      const { data: rows, error: rpcError } = await (supabase.rpc as any)(
-        'get_concierge_trip_history',
-        { p_trip_id: tripId, p_limit: 10 },
-      );
+      if (!user?.id) return [];
 
-      if (rpcError) {
-        throw new Error(rpcError.message ?? 'Failed to fetch concierge history');
+      const { data: rows, error: queryError } = await supabase
+        .from('ai_queries')
+        .select('id, query_text, response_text, created_at')
+        .eq('trip_id', tripId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+      if (queryError) {
+        throw new Error(queryError.message ?? 'Failed to fetch concierge history');
       }
 
-      if (!rows || !Array.isArray(rows) || rows.length === 0) {
+      if (!rows || rows.length === 0) {
         return [];
       }
 
-      return (rows as unknown as RpcHistoryRow[]).map((row, idx) => ({
-        id: `history-${row.created_at ?? Date.now()}-${idx}`,
-        type: (row.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-        content: row.content,
-        timestamp: row.created_at ?? new Date().toISOString(),
-      }));
+      const messages: ConciergeChatMessage[] = [];
+
+      rows.forEach((row, idx) => {
+        const ts = row.created_at ?? new Date().toISOString();
+
+        // User message
+        if (row.query_text) {
+          messages.push({
+            id: `history-user-${row.id}-${idx}`,
+            type: 'user',
+            content: row.query_text,
+            timestamp: ts,
+          });
+        }
+
+        // Assistant response
+        if (row.response_text) {
+          messages.push({
+            id: `history-assistant-${row.id}-${idx}`,
+            type: 'assistant',
+            content: row.response_text,
+            timestamp: ts,
+          });
+        }
+      });
+
+      return messages;
     },
     enabled,
-    staleTime: 30 * 1000, // 30 s — aligns with TripContextBuilder cache TTL
+    staleTime: 30 * 1000,
     retry: 1,
     refetchOnWindowFocus: false,
   });
