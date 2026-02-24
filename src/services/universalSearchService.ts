@@ -79,7 +79,7 @@ async function searchTrips(
     tripQuery.in('id', tripIds);
   }
 
-  const { data, error } = await tripQuery.limit(5);
+  const { data, error } = await tripQuery.limit(3);
   
   if (error) {
     console.error('Trip search error:', error);
@@ -139,7 +139,7 @@ async function searchMessagesAcrossTrips(
     .select('id, content, created_at, trip_id, author_name')
     .ilike('content', `%${safeQuery}%`)
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(20);
 
   if (error) {
     console.error('Message search error:', error);
@@ -185,7 +185,7 @@ async function searchConciergeMessages(
     conciergeQuery.in('trip_id', tripIds);
   }
 
-  const { data, error } = await conciergeQuery.limit(20);
+  const { data, error } = await conciergeQuery.limit(10);
 
   if (error) {
     console.error('Concierge search error:', error);
@@ -258,7 +258,7 @@ async function searchCalendarEvents(
     eventQuery.in('trip_id', tripIds);
   }
 
-  const { data, error } = await eventQuery.limit(30);
+  const { data, error } = await eventQuery.limit(20);
   
   if (error) {
     console.error('Calendar search error:', error);
@@ -325,7 +325,7 @@ async function searchTasks(
     taskQuery.in('trip_id', tripIds);
   }
 
-  const { data, error } = await taskQuery.limit(30);
+  const { data, error } = await taskQuery.limit(20);
   
   if (error) {
     console.error('Task search error:', error);
@@ -592,7 +592,7 @@ async function searchMedia(
     mediaQuery.in('trip_id', tripIds);
   }
 
-  const { data, error } = await mediaQuery.limit(30);
+  const { data, error } = await mediaQuery.limit(20);
   
   if (error) {
     console.error('Media search error:', error);
@@ -659,10 +659,18 @@ export async function performUniversalSearch(
     searchPromises.push(searchMedia(query, isDemoMode, filters.tripIds));
   }
 
-  // Wait for all searches to complete
-  const resultArrays = await Promise.all(searchPromises);
+  // Wait for all searches — use allSettled so one failure doesn't block others
+  const settled = await Promise.allSettled(searchPromises);
 
-  // Flatten and sort by match score
-  const allResults = resultArrays.flat();
-  return allResults.sort((a, b) => b.matchScore - a.matchScore);
+  // Collect fulfilled results, skip rejected
+  const allResults: UniversalSearchResult[] = [];
+  for (const result of settled) {
+    if (result.status === 'fulfilled') {
+      allResults.push(...result.value);
+    }
+  }
+
+  // Sort by match score, cap at 50 results for faster rendering
+  allResults.sort((a, b) => b.matchScore - a.matchScore);
+  return allResults.slice(0, 50);
 }

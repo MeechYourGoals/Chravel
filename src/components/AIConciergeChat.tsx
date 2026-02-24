@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, Crown, Sparkles, Square, Mic } from 'lucide-react';
+import { Search, Crown, Sparkles, ImagePlus } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -489,6 +489,15 @@ export const AIConciergeChat = ({
     [geminiState, sendImageToLive],
   );
 
+  const handleHeaderFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length > 0) {
+      handleImageAttach(imageFiles);
+    }
+    if (headerFileInputRef.current) headerFileInputRef.current.value = '';
+  }, [handleImageAttach]);
+
   const handleVoiceToggle = useCallback(() => {
     if (geminiState === 'idle' || geminiState === 'error') {
       voiceUserDraftIdRef.current = null;
@@ -557,6 +566,7 @@ export const AIConciergeChat = ({
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
   const streamAbortRef = useRef<(() => void) | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const headerFileInputRef = useRef<HTMLInputElement>(null);
 
   // Track mount state + abort in-flight streams on unmount
   useEffect(() => {
@@ -1175,15 +1185,24 @@ export const AIConciergeChat = ({
             <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
               <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
 
+              <input
+                ref={headerFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+                multiple
+                className="hidden"
+                onChange={handleHeaderFileSelect}
+              />
               <button
                 type="button"
-                onClick={handleVoiceToggle}
-                data-testid="header-voice-mic"
-                className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
-                aria-label="Voice concierge"
-                title="Start voice concierge"
+                onClick={() => headerFileInputRef.current?.click()}
+                disabled={isQueryLimitReached}
+                data-testid="header-upload-btn"
+                className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Attach image"
+                title="Attach image"
               >
-                <Mic size={18} className="text-white" />
+                <ImagePlus size={18} className="text-white" />
               </button>
             </div>
           </div>
@@ -1398,9 +1417,7 @@ export const AIConciergeChat = ({
             onKeyPress={handleKeyPress}
             isTyping={isTyping}
             disabled={isQueryLimitReached}
-            showImageAttach={UPLOAD_ENABLED}
             attachedImages={UPLOAD_ENABLED ? attachedImages : []}
-            onImageAttach={UPLOAD_ENABLED ? handleImageAttach : undefined}
             onRemoveImage={
               UPLOAD_ENABLED
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
