@@ -179,7 +179,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Email/phone live in private_profiles; profiles only has display_name, etc.
       await supabase
         .from('profiles')
-        .upsert({ user_id: supabaseUser.id, display_name: displayName }, { onConflict: 'user_id' });
+        .upsert(
+          { user_id: supabaseUser.id, display_name: displayName },
+          { onConflict: 'user_id', ignoreDuplicates: true },
+        );
     } catch (error) {
       // Never block auth on profile creation failures.
       if (import.meta.env.DEV) {
@@ -210,17 +213,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         const { data: minData, error: minError } = await supabase
           .from('profiles')
-          .select('id, user_id, display_name, email, avatar_url, first_name, last_name, show_email, show_phone')
+          .select(
+            'id, user_id, display_name, real_name, name_preference, first_name, last_name, avatar_url, bio, phone, show_email, show_phone',
+          )
           .eq('user_id', userId)
           .single();
 
         if (minError || !minData) return null;
         return {
           ...(minData as any),
-          real_name: null,
-          name_preference: 'display',
-          bio: null,
-          phone: null,
+          real_name: (minData as any).real_name ?? null,
+          name_preference: (minData as any).name_preference ?? 'display',
+          bio: (minData as any).bio ?? null,
+          phone: (minData as any).phone ?? null,
         } as UserProfile;
       }
 
@@ -927,7 +932,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       // Phone is stored directly in the profiles table.
       const profileUpdates = { ...updates };
-      const hasPhoneUpdate = updates.phone !== undefined;
 
       // Use UPSERT so profile updates persist even if the profiles row was never created.
       // This is critical for avatar uploads + identity propagation.
@@ -948,6 +952,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.error('Error updating profile:', error);
         }
         return { error };
+      }
+
+      // Keep auth metadata aligned so fallback identity hydration cannot regress user-visible names.
+      if (updates.display_name !== undefined || updates.real_name !== undefined) {
+        const metadataUpdates: Record<string, string | null> = {};
+
+        if (updates.display_name !== undefined) {
+          metadataUpdates.display_name = updates.display_name ?? null;
+        }
+
+        if (updates.real_name !== undefined) {
+          metadataUpdates.full_name = updates.real_name ?? null;
+        }
+
+        const hasMetadataUpdates = Object.keys(metadataUpdates).length > 0;
+        if (hasMetadataUpdates) {
+          const { error: authUpdateError } = await supabase.auth.updateUser({ data: metadataUpdates });
+          if (authUpdateError && import.meta.env.DEV) {
+            console.warn('[Auth] Failed to sync auth metadata after profile update:', authUpdateError);
+          }
+        }
       }
 
       // Phone is now saved directly in the profiles upsert above.

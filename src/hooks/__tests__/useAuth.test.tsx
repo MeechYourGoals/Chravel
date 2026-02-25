@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
@@ -17,7 +17,7 @@ const mockUser = {
 };
 
 const mockSession = {
-  access_token: 'mock-access-token',
+  access_token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjNlNDU2Ny1lODliLTEyZDMtYTQ1Ni00MjY2MTQxNzQwMDAiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMH0.signature',
   refresh_token: 'mock-refresh-token',
   expires_in: 3600,
   expires_at: Date.now() / 1000 + 3600,
@@ -67,6 +67,7 @@ const { mockSupabaseClient } = vi.hoisted(() => {
         signInWithOtp: vi.fn(),
         refreshSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
         resetPasswordForEmail: vi.fn(),
+        updateUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
         onAuthStateChange: vi.fn(() => ({
           data: { subscription: { unsubscribe: vi.fn() } },
         })),
@@ -93,8 +94,6 @@ vi.mock('@/store/demoModeStore', () => ({
   }),
 }));
 
-// Import after mocks are set up
-import { supabase } from '@/integrations/supabase/client';
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -133,6 +132,42 @@ describe('AuthProvider', () => {
 
     // Initially loading should be true
     expect(result.current.isLoading).toBe(true);
+  });
+
+
+
+  it('syncs auth metadata when updating display and real names', async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+    mockSupabaseClient.auth.getUser.mockResolvedValue({
+      data: { user: mockUser },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.user).toBeTruthy();
+    });
+
+    await act(async () => {
+      await result.current.updateProfile({
+        display_name: 'Crew Chief',
+        real_name: 'Christian Amechi',
+      });
+    });
+
+    expect(mockSupabaseClient.auth.updateUser).toHaveBeenCalledWith({
+      data: {
+        display_name: 'Crew Chief',
+        full_name: 'Christian Amechi',
+      },
+    });
   });
 
   it('should handle sign up flow', async () => {
