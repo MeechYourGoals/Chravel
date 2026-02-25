@@ -298,6 +298,8 @@ export const TripHeader = ({
 
   const isProOrEvent = trip.trip_type === 'pro' || trip.trip_type === 'event';
   const isEvent = trip.trip_type === 'event';
+  const recapLabel = isEvent ? 'Event Recap' : 'PDF Recap';
+  const recapActionLabel = isEvent ? 'Create Event Recap' : 'Create PDF Recap';
   const hasCoverPhoto = Boolean(coverPhoto);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -711,11 +713,11 @@ export const TripHeader = ({
                     ? 'bg-gray-800/50 hover:bg-gray-700/50 text-white border border-gray-700 hover:border-gray-600'
                     : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-gray-600/50',
                 )}
-                title={canExport ? 'Create PDF Recap' : 'Upgrade for PDF recap'}
-                aria-label="Create PDF Recap"
+                title={canExport ? recapActionLabel : 'Upgrade for PDF recap'}
+                aria-label={recapActionLabel}
               >
                 <FileDown size={14} />
-                <span>PDF Recap</span>
+                <span>{recapLabel}</span>
               </button>
 
               {/* Right-aligned: Leave Trip */}

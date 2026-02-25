@@ -4,18 +4,19 @@ import { MessageInbox } from '../components/MessageInbox';
 import { TripDetailHeader } from '../components/trip/TripDetailHeader';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { TripExportModal } from '../components/trip/TripExportModal';
 
 // 🚀 OPTIMIZATION: Lazy load heavy components for faster initial render
 const TripHeader = lazy(() =>
   import('../components/TripHeader').then(module => ({
-    default: module.TripHeader
-  }))
+    default: module.TripHeader,
+  })),
 );
 
 const EventDetailContent = lazy(() =>
   import('../components/events/EventDetailContent').then(module => ({
-    default: module.EventDetailContent
-  }))
+    default: module.EventDetailContent,
+  })),
 );
 import { TripVariantProvider } from '../contexts/TripVariantContext';
 import { useAuth } from '../hooks/useAuth';
@@ -25,12 +26,15 @@ import { useTrips } from '../hooks/useTrips';
 import { eventsMockData } from '../data/eventsMockData';
 import { ProTripNotFound } from '../components/pro/ProTripNotFound';
 import { TripContext } from '../types/tripContext';
-import { Message } from '../types/messages';
 import { MobileEventDetail } from './MobileEventDetail';
 import { useEmbeddingGeneration } from '../hooks/useEmbeddingGeneration';
 import { convertSupabaseTripToEvent } from '../utils/tripConverter';
 import { useTripMembers } from '../hooks/useTripMembers';
-
+import { ExportSection } from '../types/tripExport';
+import { openOrDownloadBlob } from '../utils/download';
+import { orderExportSections } from '../utils/exportSectionOrder';
+import { demoModeService } from '../services/demoModeService';
+import { toast } from 'sonner';
 
 const EventDetail = () => {
   const isMobile = useIsMobile();
@@ -48,24 +52,25 @@ const EventDetail = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [showTripSettings, setShowTripSettings] = useState(false);
   const [showTripsPlusModal, setShowTripsPlusModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [tripDescription, setTripDescription] = useState<string>('');
 
   // Determine event data availability - handle both demo and authenticated modes
   const eventNotFound = isDemoMode && eventId && !(eventId in eventsMockData);
-  
+
   // Get event data from appropriate source
   const eventData = React.useMemo(() => {
     if (!eventId) return null;
-    
+
     // Demo mode: use mock data
     if (isDemoMode) {
       return eventNotFound ? null : eventsMockData[eventId];
     }
-    
+
     // Authenticated mode: find event from user's trips
     const eventTrip = userTrips?.find(t => t.id === eventId && t.trip_type === 'event');
     if (!eventTrip) return null;
-    
+
     // Convert Supabase trip to EventData format
     return convertSupabaseTripToEvent(eventTrip);
   }, [eventId, isDemoMode, eventNotFound, userTrips]);
@@ -100,7 +105,7 @@ const EventDetail = () => {
   React.useEffect(() => {
     // Only scroll if we're showing the main content (not loading/error/mobile)
     if (demoModeLoading || !eventId || eventNotFound || !isDemoMode || isMobile) return;
-    
+
     const scrollToChat = () => {
       setTimeout(() => {
         const chatElement = document.querySelector('[data-chat-container]');
@@ -126,15 +131,13 @@ const EventDetail = () => {
   }
 
   if (!eventId) {
-    return (
-      <ProTripNotFound message="No event ID provided." />
-    );
+    return <ProTripNotFound message="No event ID provided." />;
   }
 
   // 🔐 DEMO MODE: Show mock events not found
   if (isDemoMode && eventNotFound) {
     return (
-      <ProTripNotFound 
+      <ProTripNotFound
         message="The requested demo event could not be found."
         details={`Event ID: ${eventId}`}
         availableIds={Object.keys(eventsMockData)}
@@ -144,11 +147,11 @@ const EventDetail = () => {
 
   // Event data not found (either mode)
   if (!eventData) {
-    const errorMessage = isDemoMode 
+    const errorMessage = isDemoMode
       ? "This demo event doesn't exist."
       : "This event doesn't exist or you don't have access.";
     return (
-      <ProTripNotFound 
+      <ProTripNotFound
         message={errorMessage}
         details={isDemoMode ? `Event ID: ${eventId}` : undefined}
         availableIds={isDemoMode ? Object.keys(eventsMockData) : undefined}
@@ -160,14 +163,17 @@ const EventDetail = () => {
   // 🔄 Merge real trip members for authenticated events
   // Get actual creator ID from Supabase trip data in authenticated mode
   const eventTrip = userTrips?.find(t => t.id === eventId);
-  const actualCreatorId = isDemoMode ? 'demo-user' : (eventTrip?.created_by || user?.id || '');
-  
+  const actualCreatorId = isDemoMode ? 'demo-user' : eventTrip?.created_by || user?.id || '';
+
   const trip = {
     id: eventId,
     title: eventData.title,
     location: eventData.location,
     dateRange: eventData.dateRange,
-    description: tripDescription || eventData.description || `Professional ${eventData.category.toLowerCase()} event in ${eventData.location}`,
+    description:
+      tripDescription ||
+      eventData.description ||
+      `Professional ${eventData.category.toLowerCase()} event in ${eventData.location}`,
     created_by: actualCreatorId,
     trip_type: 'event' as const,
     card_color: (eventData as any).card_color,
@@ -176,34 +182,160 @@ const EventDetail = () => {
       ? eventData.participants.map((p: any) => ({
           id: p.id,
           name: p.name,
-          avatar: p.avatar
+          avatar: p.avatar,
         }))
       : tripMembers.map(m => ({
           id: m.id,
           name: m.name,
-          avatar: m.avatar || ''
-        }))
+          avatar: m.avatar || '',
+        })),
   };
 
   // Mock basecamp data for Events
   const basecamp = {
-    name: "Event Headquarters",
-    address: `${eventData.location}, Main Venue`
+    name: 'Event Headquarters',
+    address: `${eventData.location}, Main Venue`,
   };
 
-  // Messages are now handled by unified messaging service
-  const tripMessages: Message[] = [];
+  const handleExport = async (sections: ExportSection[]) => {
+    const orderedSections = orderExportSections(sections);
+    const eventIdForExport = eventId || '1';
+    const isNumericId = !eventIdForExport.includes('-');
+
+    toast.info('Creating Recap', {
+      description: `Building your event memories for "${eventData.title}"...`,
+    });
+
+    try {
+      let blob: Blob;
+
+      if (isDemoMode || isNumericId) {
+        const mockCalendar = demoModeService.getMockCalendarEvents(eventIdForExport);
+        const mockAttachments = demoModeService.getMockAttachments(eventIdForExport);
+        const mockPayments = demoModeService.getMockPayments(eventIdForExport);
+        const mockPolls = demoModeService.getMockPolls(eventIdForExport);
+        const mockTasks = demoModeService.getMockTasks(eventIdForExport);
+        const mockPlaces = demoModeService.getMockPlaces(eventIdForExport);
+
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: eventIdForExport,
+            tripTitle: eventData.title,
+            destination: eventData.location,
+            dateRange: eventData.dateRange,
+            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
+            payments:
+              orderedSections.includes('payments') && mockPayments.length > 0
+                ? {
+                    items: mockPayments,
+                    total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+                    currency: mockPayments[0]?.currency || 'USD',
+                  }
+                : undefined,
+            polls: orderedSections.includes('polls') ? mockPolls : undefined,
+            tasks: orderedSections.includes('tasks')
+              ? mockTasks.map(task => ({
+                  title: task.title,
+                  description: task.description,
+                  completed: task.completed,
+                }))
+              : undefined,
+            places: orderedSections.includes('places') ? mockPlaces : undefined,
+            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
+          },
+          orderedSections,
+          { customization: { compress: true, maxItemsPerSection: 100 } },
+        );
+      } else {
+        const { getExportData } = await import('../services/tripExportDataService');
+        const realData = await getExportData(eventIdForExport, orderedSections);
+
+        if (!realData) {
+          throw new Error('Could not fetch event data for export');
+        }
+
+        const { generateClientPDF } = await import('../utils/exportPdfClient');
+        blob = await generateClientPDF(
+          {
+            tripId: eventIdForExport,
+            tripTitle: realData.trip.title,
+            destination: realData.trip.destination,
+            dateRange: realData.trip.dateRange,
+            description: realData.trip.description,
+            calendar: realData.calendar,
+            payments: realData.payments,
+            polls: realData.polls,
+            tasks: realData.tasks,
+            places: realData.places,
+            roster: realData.roster,
+            attachments: realData.attachments,
+            broadcasts: realData.broadcasts,
+          },
+          orderedSections,
+          { customization: { compress: true, maxItemsPerSection: 100 } },
+        );
+      }
+
+      const filename = `${eventData.title.replace(/[^a-zA-Z0-9]/g, '_')}_recap.pdf`;
+      openOrDownloadBlob(blob, filename);
+
+      toast.success('Recap Ready!', {
+        description: `PDF ready: ${filename}`,
+      });
+    } catch (error) {
+      toast.error('Export Failed', {
+        description:
+          error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.',
+      });
+      throw error;
+    }
+  };
 
   // Mock data for Event context - same structure as standard trips
   const mockBroadcasts = [
-    { id: 1, senderName: "Event Coordinator", content: `${eventData.category} schedule confirmed for all attendees`, timestamp: "2025-01-15T15:30:00Z" },
-    { id: 2, senderName: "Operations", content: `Welcome to ${eventData.title} - check your itinerary for updates`, timestamp: "2025-01-15T10:00:00Z" }
+    {
+      id: 1,
+      senderName: 'Event Coordinator',
+      content: `${eventData.category} schedule confirmed for all attendees`,
+      timestamp: '2025-01-15T15:30:00Z',
+    },
+    {
+      id: 2,
+      senderName: 'Operations',
+      content: `Welcome to ${eventData.title} - check your itinerary for updates`,
+      timestamp: '2025-01-15T10:00:00Z',
+    },
   ];
 
   const mockLinks = [
-    { id: '1', title: "Official Event Website", url: "https://event-official.com/info", category: "Information", votes: 0, addedBy: "System", addedAt: new Date().toISOString() },
-    { id: '2', title: "Venue Information", url: "https://venues.com/events", category: "Venue", votes: 0, addedBy: "System", addedAt: new Date().toISOString() },
-    { id: '3', title: "Networking Hub", url: "https://networking.events.com", category: "Networking", votes: 0, addedBy: "System", addedAt: new Date().toISOString() }
+    {
+      id: '1',
+      title: 'Official Event Website',
+      url: 'https://event-official.com/info',
+      category: 'Information',
+      votes: 0,
+      addedBy: 'System',
+      addedAt: new Date().toISOString(),
+    },
+    {
+      id: '2',
+      title: 'Venue Information',
+      url: 'https://venues.com/events',
+      category: 'Venue',
+      votes: 0,
+      addedBy: 'System',
+      addedAt: new Date().toISOString(),
+    },
+    {
+      id: '3',
+      title: 'Networking Hub',
+      url: 'https://networking.events.com',
+      category: 'Networking',
+      votes: 0,
+      addedBy: 'System',
+      addedAt: new Date().toISOString(),
+    },
   ];
 
   // Early return for mobile after all hooks are initialized
@@ -219,37 +351,37 @@ const EventDetail = () => {
     participants: trip.participants.map(p => ({
       id: p.id.toString(),
       name: p.name,
-      role: 'attendee'
+      role: 'attendee',
     })),
     itinerary: eventData.itinerary.map((day, index) => ({
       id: index.toString(),
       title: `Day ${index + 1}`,
       date: day.date,
-      events: day.events as any // Mock data for demo - type assertion for simplified event structure
+      events: day.events as any, // Mock data for demo - type assertion for simplified event structure
     })),
     accommodation: basecamp.name,
     currentDate: new Date().toISOString().split('T')[0],
     upcomingEvents: eventData.itinerary
-      .flatMap(day => 
+      .flatMap(day =>
         day.events.map(event => ({
           id: `${day.date}-${event.title}`,
           title: event.title,
           date: day.date,
           time: event.time,
-          location: event.location
-        }))
+          location: event.location,
+        })),
       )
       .slice(0, 5),
     recentUpdates: mockBroadcasts.map(b => ({
       id: b.id.toString(),
       type: 'broadcast',
       message: b.content,
-      timestamp: b.timestamp
+      timestamp: b.timestamp,
     })),
     basecamp,
     isPro: false,
     broadcasts: mockBroadcasts as any, // Mock data for demo - type assertion for simplified broadcast structure
-    links: mockLinks
+    links: mockLinks,
   };
 
   return (
@@ -274,16 +406,19 @@ const EventDetail = () => {
           )}
 
           {/* Trip Header */}
-          <Suspense fallback={
-            <div className="mb-8 animate-pulse">
-              <div className="h-8 bg-white/5 rounded w-2/3 mb-4"></div>
-              <div className="h-4 bg-white/5 rounded w-1/2 mb-2"></div>
-              <div className="h-32 bg-white/5 rounded"></div>
-            </div>
-          }>
-          <TripHeader 
-              trip={{...trip, created_by: actualCreatorId}} 
+          <Suspense
+            fallback={
+              <div className="mb-8 animate-pulse">
+                <div className="h-8 bg-white/5 rounded w-2/3 mb-4"></div>
+                <div className="h-4 bg-white/5 rounded w-1/2 mb-2"></div>
+                <div className="h-32 bg-white/5 rounded"></div>
+              </div>
+            }
+          >
+            <TripHeader
+              trip={{ ...trip, created_by: actualCreatorId }}
               onDescriptionUpdate={setTripDescription}
+              onShowExport={() => setShowExportModal(true)}
               isMembersLoading={membersLoading}
             />
           </Suspense>
@@ -294,7 +429,7 @@ const EventDetail = () => {
               activeTab={activeTab}
               onTabChange={setActiveTab}
               onShowTripsPlusModal={() => setShowTripsPlusModal(true)}
-              tripId={eventId}
+              tripId={eventId || '1'}
               basecamp={basecamp}
               eventData={eventData}
               tripContext={tripContext}
@@ -303,6 +438,15 @@ const EventDetail = () => {
         </div>
 
         {/* All the same modals as standard trips */}
+        <TripExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          onExport={handleExport}
+          tripName={eventData.title}
+          tripId={eventId || '1'}
+          tripType="event"
+        />
+
         <TripDetailModals
           showSettings={showSettings}
           onCloseSettings={() => setShowSettings(false)}
@@ -315,7 +459,7 @@ const EventDetail = () => {
           showTripsPlusModal={showTripsPlusModal}
           onCloseTripsPlusModal={() => setShowTripsPlusModal(false)}
           tripName={eventData.title}
-          tripId={eventId}
+          tripId={eventId || '1'}
           userId={user?.id}
         />
       </div>
