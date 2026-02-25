@@ -376,15 +376,16 @@ Next: I can get you directions from your hotel if you'd like!"`;
     // 🆕 TASK MANAGEMENT
     if (tripContext.tasks?.length) {
       basePrompt += `\n\n=== ✅ TASK STATUS ===`;
-      const completedTasks = tripContext.tasks.filter((task: any) => task.status === 'completed');
-      const pendingTasks = tripContext.tasks.filter((task: any) => task.status !== 'completed');
+      const completedTasks = tripContext.tasks.filter((task: any) => task.completed);
+      const pendingTasks = tripContext.tasks.filter((task: any) => !task.completed);
 
       basePrompt += `\nCompleted: ${completedTasks.length} | Pending: ${pendingTasks.length}`;
 
       if (pendingTasks.length > 0) {
         basePrompt += `\n**Pending Tasks:**`;
         pendingTasks.forEach((task: any) => {
-          basePrompt += `\n- ${task.title} (Assigned to: ${task.assignedTo || 'Unassigned'})`;
+          const dueLabel = task.dueAt ? ` (due: ${task.dueAt})` : '';
+          basePrompt += `\n- ${task.title || task.description || 'Untitled'}${dueLabel} (Created by: ${task.creator || 'Unknown'})`;
         });
       }
     }

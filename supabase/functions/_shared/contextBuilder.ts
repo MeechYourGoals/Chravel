@@ -61,10 +61,11 @@ export interface ComprehensiveTripContext {
   }>;
   tasks: Array<{
     id: string;
-    content: string;
-    assignee?: string;
-    dueDate?: string;
-    isComplete: boolean;
+    title: string;
+    description?: string;
+    creator?: string;
+    dueAt?: string;
+    completed: boolean;
   }>;
   payments: Array<{
     id: string;
@@ -111,7 +112,7 @@ export interface ComprehensiveTripContext {
       id: string;
       name: string;
       type: string;
-      url: string;
+      category?: string;
       uploadedBy: string;
       uploadedAt: string;
     }>;
@@ -229,7 +230,7 @@ export class TripContextBuilder {
       // ── Phase 2: Collect ALL user IDs needing display names ───────────────
       const allUserIds = new Set<string>();
       rawMembers.forEach((m: any) => m.user_id && allUserIds.add(m.user_id));
-      rawTasks.forEach((t: any) => t.assignee_id && allUserIds.add(t.assignee_id));
+      rawTasks.forEach((t: any) => t.creator_id && allUserIds.add(t.creator_id));
       rawPayments.forEach((p: any) => p.created_by && allUserIds.add(p.created_by));
       rawBroadcasts.forEach((b: any) => b.created_by && allUserIds.add(b.created_by));
       rawFiles.forEach((f: any) => f.uploaded_by && allUserIds.add(f.uploaded_by));
@@ -248,10 +249,11 @@ export class TripContextBuilder {
 
       const tasks = rawTasks.map((t: any) => ({
         id: t.id,
-        content: t.content,
-        assignee: t.assignee_id ? names.get(t.assignee_id) || 'Team Member' : undefined,
-        dueDate: t.due_date,
-        isComplete: t.is_complete,
+        title: t.title,
+        description: t.description || undefined,
+        creator: t.creator_id ? names.get(t.creator_id) || 'Team Member' : undefined,
+        dueAt: t.due_at || undefined,
+        completed: !!t.completed,
       }));
 
       const payments = rawPayments.map((p: any) => ({
@@ -273,9 +275,9 @@ export class TripContextBuilder {
 
       const files = rawFiles.map((f: any) => ({
         id: f.id,
-        name: f.file_name,
+        name: f.name,
         type: f.file_type,
-        url: f.file_url,
+        category: f.file_category || undefined,
         uploadedBy: f.uploaded_by ? names.get(f.uploaded_by) || 'Trip Member' : 'Unknown',
         uploadedAt: f.created_at,
       }));
@@ -548,7 +550,7 @@ export class TripContextBuilder {
     try {
       const { data, error } = await supabase
         .from('trip_tasks')
-        .select('id, content, assignee_id, due_date, is_complete')
+        .select('id, title, description, creator_id, due_at, completed')
         .eq('trip_id', tripId);
 
       if (error) throw error;
@@ -671,7 +673,7 @@ export class TripContextBuilder {
     try {
       const { data, error } = await supabase
         .from('trip_files')
-        .select('id, file_name, file_type, file_url, uploaded_by, created_at')
+        .select('id, name, file_type, file_category, uploaded_by, created_at')
         .eq('trip_id', tripId);
 
       if (error) throw error;

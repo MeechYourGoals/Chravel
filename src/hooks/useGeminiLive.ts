@@ -41,10 +41,13 @@ export interface VoiceDiagnostics {
   reconnectAttempts: number;
   lastError: string | null;
   metrics: {
+    t0GestureMs: number | null;
     firstAudioChunkSentMs: number | null;
     firstTokenReceivedMs: number | null;
     firstAudioFramePlayedMs: number | null;
     cancelLatencyMs: number | null;
+    audioBytesSent: number;
+    audioBytesReceived: number;
   };
 }
 
@@ -174,10 +177,13 @@ const initialDiagnostics: VoiceDiagnostics = {
   reconnectAttempts: 0,
   lastError: null,
   metrics: {
+    t0GestureMs: null,
     firstAudioChunkSentMs: null,
     firstTokenReceivedMs: null,
     firstAudioFramePlayedMs: null,
     cancelLatencyMs: null,
+    audioBytesSent: 0,
+    audioBytesReceived: 0,
   },
 };
 
@@ -482,6 +488,7 @@ export function useGeminiLive({
     isStartingRef.current = true;
 
     try {
+      const t0Gesture = performance.now();
       transition('requesting_mic', 'start_clicked');
       patchDiagnostics({
         connectionStatus: 'connecting',
@@ -492,7 +499,8 @@ export function useGeminiLive({
       setError(null);
       resetTurnAccumulators();
       resetMetricsForNewTurn();
-      voiceLog('session:start', { tripId, voice });
+      patchMetrics({ t0GestureMs: t0Gesture });
+      voiceLog('session:start', { tripId, voice, t0Gesture });
 
       if (!SafeAudioContext) {
         throw new Error('Audio is not supported in this browser.');
@@ -530,6 +538,36 @@ export function useGeminiLive({
         audioSampleRate: audioCtxRef.current.sampleRate,
       });
 
+      // Request mic IMMEDIATELY — must happen within the user gesture frame.
+      // iOS Safari will deny getUserMedia if called after an async gap (e.g. token fetch).
+      // We run getUserMedia and the token fetch in parallel.
+      const micPromise = navigator.mediaDevices
+        .getUserMedia({
+          audio: {
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        })
+        .catch((mediaErr: unknown) => {
+          const name = mediaErr instanceof Error ? mediaErr.name : '';
+          let errMsg: string;
+          if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+            errMsg =
+              'Microphone permission denied. Allow microphone access in your browser settings and try again.';
+          } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+            errMsg = 'No microphone detected. Connect a microphone and try again.';
+          } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+            errMsg =
+              'Microphone is already in use by another app. Close other apps and try again.';
+          } else {
+            errMsg = 'Could not access microphone. Check your audio settings and try again.';
+          }
+          recordVoiceFailure(errMsg);
+          throw new Error(errMsg);
+        });
+
       if (typeof navigator !== 'undefined' && 'permissions' in navigator) {
         try {
           const status = await navigator.permissions.query({
@@ -551,10 +589,13 @@ export function useGeminiLive({
         ),
       );
 
-      const { data: sessionData, error: sessionError } = (await Promise.race([
-        sessionPromise,
-        timeoutPromise,
-      ])) as Awaited<typeof sessionPromise>;
+      // Wait for both mic access and token in parallel
+      const [stream, tokenResult] = await Promise.all([
+        micPromise,
+        Promise.race([sessionPromise, timeoutPromise]) as Promise<Awaited<typeof sessionPromise>>,
+      ]);
+
+      const { data: sessionData, error: sessionError } = tokenResult;
 
       const accessToken =
         typeof sessionData?.accessToken === 'string' ? sessionData.accessToken : null;
@@ -576,32 +617,6 @@ export function useGeminiLive({
         hasWebsocketUrl: !!sessionData?.websocketUrl,
       });
 
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            channelCount: 1,
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
-      } catch (mediaErr) {
-        const name = mediaErr instanceof Error ? mediaErr.name : '';
-        let errMsg: string;
-        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          errMsg =
-            'Microphone permission denied. Allow microphone access in your browser settings and try again.';
-        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-          errMsg = 'No microphone detected. Connect a microphone and try again.';
-        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-          errMsg = 'Microphone is already in use by another app. Close other apps and try again.';
-        } else {
-          errMsg = 'Could not access microphone. Check your audio settings and try again.';
-        }
-        recordVoiceFailure(errMsg);
-        throw new Error(errMsg);
-      }
       mediaStreamRef.current = stream;
       voiceLog('mic:acquired', {
         tracks: stream.getAudioTracks().map(t => ({
@@ -613,14 +628,12 @@ export function useGeminiLive({
       const track = stream.getAudioTracks()[0];
       patchDiagnostics({ micDeviceLabel: track?.label || null });
 
-      // 3. AudioContext already created above.
+      // AudioContext already created above.
       // Resume again here in case it was suspended after the async gap.
       // iOS Safari often suspends contexts; we must force-resume and verify.
       if (audioCtxRef.current?.state === 'suspended') {
         await audioCtxRef.current.resume().catch(() => {});
       }
-      // If still suspended after resume attempt, try one more time with a small delay
-      // (iOS Safari sometimes needs a tick before the context unblocks).
       if (audioCtxRef.current?.state === 'suspended') {
         await new Promise(r => setTimeout(r, 100));
         await audioCtxRef.current.resume().catch(() => {});
@@ -747,13 +760,16 @@ export function useGeminiLive({
                   if (stateRef.current === 'ready' || stateRef.current === 'listening') {
                     transition('sending', 'audio_chunk_sent');
                   }
-                  ws.send(
-                    JSON.stringify({
-                      realtimeInput: {
-                        mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: base64PCM }],
-                      },
-                    }),
-                  );
+                  const payload = JSON.stringify({
+                    realtimeInput: {
+                      mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: base64PCM }],
+                    },
+                  });
+                  ws.send(payload);
+                  patchMetrics({
+                    audioBytesSent:
+                      diagnosticsRef.current.metrics.audioBytesSent + base64PCM.length,
+                  });
                 },
                 rms => {
                   patchDiagnostics({ micRms: rms });
@@ -830,6 +846,11 @@ export function useGeminiLive({
                   });
                 }
                 setState('playing');
+                patchMetrics({
+                  audioBytesReceived:
+                    diagnosticsRef.current.metrics.audioBytesReceived +
+                    part.inlineData.data.length,
+                });
                 playbackQueueRef.current?.enqueue(part.inlineData.data);
               }
               if (typeof part.text === 'string' && part.text.length > 0) {
@@ -868,13 +889,16 @@ export function useGeminiLive({
             }
 
             if (sc.turnComplete) {
-              flushModelOutput();
               voiceLog('server:turnComplete', {
                 userText: userTranscriptAccRef.current.slice(0, 50),
                 assistantText: assistantTranscriptAccRef.current.slice(0, 50),
               });
-              playbackQueueRef.current?.flush();
+              // Do NOT flush playback here — turnComplete means the model is done
+              // sending, but buffered audio frames may still be queued for playback.
+              // Flushing here cuts off the last ~0.5-1s of speech. Only flush on
+              // barge-in/interrupt where immediate silence is desired.
               clearThinkingTimer();
+              modelRespondingRef.current = false;
 
               const finalUser = userTranscriptAccRef.current.trim();
               const finalAssistant = assistantTranscriptAccRef.current.trim();
