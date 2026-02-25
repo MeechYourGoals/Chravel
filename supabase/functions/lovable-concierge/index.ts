@@ -34,6 +34,14 @@ interface HistoryCacheEntry {
 const historyCache = new Map<string, HistoryCacheEntry>();
 const HISTORY_CACHE_TTL_MS = 30_000;
 
+// 🆕 RATE LIMITING & CACHING (In-Memory)
+// Protects against rapid-fire abuse on the same function instance
+const requestCounts = new Map<string, { count: number; windowStart: number }>();
+const responseCache = new Map<string, { response: any; timestamp: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 10; // 10 requests per minute per instance
+const CACHE_TTL_MS = 60_000; // 1 minute cache for identical queries
+
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -601,7 +609,15 @@ serve(async req => {
     }
 
     const validatedData = validation.data;
-    message = validatedData.message;
+    // 🆕 PII SANITIZATION: Redact immediately, use redacted text for everything
+    const piiRedaction = redactPII(validatedData.message, {
+      redactEmails: true,
+      redactPhones: true,
+      redactCreditCards: true,
+      redactSSN: true,
+      redactIPs: true,
+    });
+    message = piiRedaction.redactedText; // Use redacted message for processing
     tripId = validatedData.tripId || 'unknown';
 
     // Reject invalid trip IDs early — prevents wrong-trip data access
@@ -624,30 +640,35 @@ serve(async req => {
       stream: requestedStream = false,
     } = validatedData;
 
-    // 🆕 SAFETY: Content filtering and PII redaction
+    // 🆕 SAFETY: Content filtering
     const profanityCheck = filterProfanity(message);
     if (!profanityCheck.isClean) {
       console.warn('[Safety] Profanity detected in query:', profanityCheck.violations);
-      // Log but don't block - allow user to proceed with filtered text
     }
 
-    // Redact PII from logs (but keep original for AI processing)
-    const piiRedaction = redactPII(message, {
-      redactEmails: true,
-      redactPhones: true,
-      redactCreditCards: true,
-      redactSSN: true,
-      redactIPs: true,
-    });
-
-    // Use redacted text for logging
-    const logMessage = piiRedaction.redactions.length > 0 ? piiRedaction.redactedText : message;
+    const logMessage = message; // Already redacted
 
     if (piiRedaction.redactions.length > 0) {
       console.log(
-        '[Safety] PII redacted from logs:',
+        '[Safety] PII redacted from query:',
         piiRedaction.redactions.map(r => r.type),
       );
+    }
+
+    // 🆕 CACHING CHECK (Short-term deduplication)
+    // Only cache read-only queries (no attachments, no function calls implied by context)
+    const cacheKey = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(`${tripId}:${message}:${JSON.stringify(config)}`),
+    ).then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join(''));
+
+    const cachedEntry = responseCache.get(cacheKey);
+    if (cachedEntry && Date.now() - cachedEntry.timestamp < CACHE_TTL_MS) {
+      console.log('[Cache] Serving cached response');
+      return new Response(JSON.stringify(cachedEntry.response), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
     }
 
     const authHeader = req.headers.get('Authorization');
@@ -684,6 +705,50 @@ serve(async req => {
     }
 
     user = authenticatedUser;
+
+    // 🆕 IN-MEMORY RATE LIMITING (Burst Protection)
+    const now = Date.now();
+    const userRateLimit = requestCounts.get(user.id) || { count: 0, windowStart: now };
+    if (now - userRateLimit.windowStart > RATE_LIMIT_WINDOW_MS) {
+      userRateLimit.count = 1;
+      userRateLimit.windowStart = now;
+    } else {
+      userRateLimit.count++;
+    }
+    requestCounts.set(user.id, userRateLimit);
+
+    if (userRateLimit.count > MAX_REQUESTS_PER_WINDOW) {
+      console.warn(`[RateLimit] User ${user.id} exceeded in-memory burst limit`);
+      return new Response(
+        JSON.stringify({
+          error: 'Too many requests. Please slow down.',
+          success: false,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 },
+      );
+    }
+
+    // 🆕 DB-BASED CIRCUIT BREAKER (Sustained Abuse Protection)
+    // Check total requests across all instances in the last minute
+    if (!serverDemoMode) {
+      const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+      const { count: recentRequestCount, error: countError } = await supabase
+        .from('concierge_usage')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gt('created_at', oneMinuteAgo);
+
+      if (!countError && (recentRequestCount || 0) > 20) {
+        console.warn(`[RateLimit] User ${user.id} exceeded DB-based circuit breaker (sustained load)`);
+        return new Response(
+          JSON.stringify({
+            error: 'High traffic detected. Please try again in a minute.',
+            success: false,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 },
+        );
+      }
+    }
 
     // --- PARALLELIZED PRE-FLIGHT CHECKS ---
     // Membership, usage plan, context building, RAG retrieval, and privacy
@@ -2011,28 +2076,32 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         }
       }
 
-      return new Response(
-        JSON.stringify({
-          response: aiResponse,
-          usage,
-          sources: citations,
-          googleMapsWidget,
-          success: true,
-          model: selectedModel,
-          complexity: {
-            score: complexity.score,
-            recommended: complexity.recommendedModel,
-            factors: complexity.factors,
-          },
-          usedChainOfThought: useChainOfThought,
-          functionCalls:
-            functionCallResults.length > 0 ? functionCallResults.map(r => r.name) : undefined,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
+      const responsePayload = {
+        response: aiResponse,
+        usage,
+        sources: citations,
+        googleMapsWidget,
+        success: true,
+        model: selectedModel,
+        complexity: {
+          score: complexity.score,
+          recommended: complexity.recommendedModel,
+          factors: complexity.factors,
         },
-      );
+        usedChainOfThought: useChainOfThought,
+        functionCalls:
+          functionCallResults.length > 0 ? functionCallResults.map(r => r.name) : undefined,
+      };
+
+      // 🆕 UPDATE CACHE
+      if (!functionCallResults.length) {
+        responseCache.set(cacheKey, { response: responsePayload, timestamp: Date.now() });
+      }
+
+      return new Response(JSON.stringify(responsePayload), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
     } catch (geminiError) {
       console.error(
         '[Gemini] Direct concierge call failed, attempting Lovable runtime fallback:',
