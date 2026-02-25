@@ -1,127 +1,379 @@
-# Codex Instructions – Chravel
+# AGENTS.md — Chravel Engineering Guide
+> Universal instructions for every AI coding agent (Claude Code, Cursor, Codex, Lovable, Jules, Replit).
+> This file is always in context. Keep it dense and navigational. Long explanations live in `/docs/`.
+> **Prime directive: If it doesn't build, it doesn't ship.**
 
-## Identity
-You are an apex principal engineer and product architect with decades of experience in large-scale, production systems. You think in first principles, design like Figma/Stripe/Notion, and ship like a senior infra engineer at OpenAI/Anthropic.
+---
 
-Traits:
-- Production-paranoid about regressions and edge cases.
-- Minimalist: clarity and maintainability > cleverness.
-- High-bandwidth communication: dense, structured, example-driven.
-- Assume nothing, verify everything, and briefly explain your rationale.
+## 0. Non-Negotiables (read first, enforce always)
 
-## Chravel Context
-You are building Chravel, an AI-native “Travel OS” for group trips, touring logistics, and events.
+1. **No regressions.** If you change behavior, explain why and include a verification checklist.
+2. **Surgical diffs win.** Fix the root cause. No "while I'm here" refactors. No mapping-layer hacks to paper over mismatches.
+3. **One source of truth.** No duplicate types, constants, hooks, or business logic. When you find duplication, consolidate.
+4. **Type safety > vibes.** No `any` unless it's an intentional boundary with an inline comment explaining why.
+5. **Mobile-first, always.** Every UI change must be evaluated for small screens, tap targets, and PWA constraints.
+6. **Performance is a feature.** No unnecessary re-renders, chatty queries, or heavy mounts on critical paths.
+7. **Build passes before commit.** Mentally simulate `npm run lint && npm run typecheck && npm run build` before every output.
+8. **Dead code is a liability.** Confirm no imports with `rg "symbolName"`, then delete. Never leave unreachable exports.
+9. **Security by default.** No hardcoded secrets, no client-side trust of IDs or roles, no RLS weakening.
+10. **When stuck or uncertain: search first, then ask.** Do not hallucinate fixes. Cite sources in commits.
 
-Core ideas:
-- Use cases: friend/family trips, campus/fan travel, touring artists and sports teams, corporate retreats, conferences/festivals.
-- Analogy: “AI powered Slack/Notion/Whatsapp/Microsoft Teams/Google Gemini for trips, teams, and tours” with strong mobile UX.
+---
 
-Tech + quality:
-- Frontend: React 18 + TypeScript (strict), Tailwind, mobile-first PWA.
-- State: TanStack Query for server state, Zustand for client state (no Redux).
-- Backend assumptions: PostgreSQL + Redis, GraphQL API, WebSockets for real-time collab.
-- Integrations: Stripe (payments), Google Maps APIs (search/geo/routing), Firebase (push), S3-like storage (media).
-- Quality bar: type safety everywhere, WCAG 2.1 AA, Lighthouse ≥ 90 on mobile, fast perceived interactions (<200ms).
+## 1. What Chravel Is
 
-## Seven-Gate Pipeline
-Use these gates for non-trivial changes. For tiny tweaks (copy, small style fixes), you may compress the gates into 1–2 planning sentences.
+**Chravel = Group Travel OS.** It replaces 15+ fragmented apps with one coordination layer for Chat/Broadcasts, Calendar, Places & Links, AI Concierge, Polls, Tasks, Payments tracking, and Media.
 
-1) Scope
-- Restate the goal in one sentence.
-- List affected areas/modules and main risks (low/med/high).
-- Call out any ambiguities and propose concrete assumptions.
+**User tiers:** Consumer (friends/family) → Pro (touring artists, sports teams) → Enterprise (corporate/campus) → Advertiser → Admin
 
-2) Target
-- Identify which files/modules to touch and why.
-- Keep changes focused: avoid unnecessary surfaces or refactors.
+**Product guardrail:** Chravel is coordination, not an OTA booking engine. Do not build booking-aggregation workflows that trigger licensing/compliance traps unless explicitly asked.
 
-3) Implement
-- Implement the smallest coherent solution.
-- Prefer clear naming, explicit types, small components/functions, and boring, composable patterns over clever abstractions.
+**Events are the viral engine:** event link → guests → new users. Treat event flows as high-priority, high-regression-risk surfaces.
 
-4) Verify
-- Describe tests (unit/integration) and add/adjust them where practical.
-- Describe manual checks for key flows and edge cases (mobile included).
+---
 
-5) Document
-- Produce a PR-style summary: what changed, why, how to test, risks, and rollback plan or feature flag strategy.
-- Note any follow-ups or TODOs explicitly.
+## 2. Repo Map (verify before coding, never guess paths)
 
-6) Network & Monetization (Chravel-specific)
-- When relevant, ask: does this strengthen collaboration loops, increase switching costs (data/history), or support monetization (Pro features, payments, affiliates)?
-- Suggest small hooks (analytics events, upsell entry points) when they are cheap and natural.
+```
+/src
+├── features/           # Domain logic (canonical home for new features)
+│   ├── broadcasts/     # Announcements → components/, hooks/
+│   ├── calendar/       # Scheduling → components/, hooks/
+│   └── chat/           # Messaging → components/, hooks/
+├── components/         # Shared UI (also domain-split by subfolder)
+│   ├── ui/             # shadcn/ui primitives (Radix-based)
+│   ├── trip/           # Trip cards, detail shells
+│   ├── events/         # Event flows (viral engine — regression-sensitive)
+│   ├── invite/         # Invite + join flows
+│   ├── payments/       # Payment UI
+│   ├── places/         # Google Maps/Places UI
+│   ├── polls/ poll/    # ⚠️ DUPLICATION EXISTS — consolidate on next touch
+│   ├── pro/            # Pro-tier features
+│   ├── mobile/         # Mobile-specific shells
+│   └── ...             # Other domain folders
+├── pages/              # Route-level components (TripDetail, AuthPage, etc.)
+├── hooks/              # Global shared hooks
+├── contexts/           # React contexts
+├── store/              # Zustand stores (client state)
+├── stores/             # ⚠️ DUPLICATION EXISTS — merge with store/ on next touch
+├── services/           # Non-UI logic (messaging, paymentProcessors)
+├── types/              # All shared TypeScript types
+│   └── index.ts        # Main barrel export
+├── integrations/
+│   └── supabase/
+│       ├── client.ts   # Supabase singleton — always import from here
+│       └── types.ts    # Generated DB types
+├── lib/                # Pure utilities + adapters
+├── native/             # Capacitor native bridges
+├── offline/            # Offline/PWA logic
+├── voice/              # Gemini Live voice transport
+├── billing/            # RevenueCat hooks + providers
+├── telemetry/          # Analytics providers
+├── platform/           # Platform-detection utilities
+└── mockData/           # Dev/demo fixtures
+```
 
-7) Ethics & Scale
-- Default to privacy and security, least privilege, and clear user control.
-- Avoid dark patterns or misleading UX.
-- Consider behavior at 100x more users, trips, and events.
+**Key config files:**
+- `vite.config.ts` — build config
+- `capacitor.config.ts` — iOS/PWA native config
+- `tailwind.config.ts` — design tokens
+- `vitest.config.ts` — unit test config
+- `playwright.config.ts` — e2e test config
+- `eslint.config.js` — lint rules
 
-## AI & Automation Rules
-- Use AI to summarize, suggest, optimize, and automate repeatable flows (e.g., itinerary suggestions, route optimization, conflict resolution).
-- Do not fabricate live data such as prices or availability; external APIs are the source of truth.
-- For high-impact operations (payments, destructive edits), design for explicit user confirmation and safe rollback.
+---
 
-## Decision Rules
-- When uncertain, default to the professional/touring use case: if it works for a 30+ person tour across many cities, it will work for a 5-person friend trip.
-- Prefer designs that are easy to extend and automate later (good data modeling, clear boundaries).
-- Bias toward production-ready code, not prototypes: real error states, loading states, and empty states.
-- Keep responses concise and structured; do not waste tokens on storytelling.
+## 3. Stack Reference
 
-## Workflow Orchestration
-### 1. Plan Node Default
-- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions).
-- If something goes sideways, STOP and re-plan immediately — don't keep pushing.
-- Use plan mode for verification steps, not just building.
-- Write detailed specs upfront to reduce ambiguity.
+| Layer | Tool | Notes |
+|-------|------|-------|
+| UI | React 18 + TypeScript | `"strict": false` in tsconfig — be explicit anyway |
+| Styling | Tailwind CSS + shadcn/ui | Radix primitives, `cn()` for merging classes |
+| Server state | TanStack Query v5 | All data fetching goes through query hooks |
+| Client state | Zustand v5 | `src/store/` (canonical) |
+| Backend | Supabase | Postgres + RLS + Realtime + Edge Functions |
+| Auth | Supabase Auth | Always gate data fetches after auth resolves |
+| Real-time | Supabase Realtime | Clean up channels in `useEffect` returns |
+| Maps | Google Maps JS API (`@googlemaps/js-api-loader`) | One map instance per page |
+| AI | `@google/genai` (Gemini) | Voice via `src/voice/`, concierge via `src/components/ai/` |
+| Mobile | Capacitor v8 (iOS) + PWA | `src/native/` for bridge calls |
+| Subscriptions | RevenueCat (`src/billing/`) | Web via `purchases-js`, native via `purchases-capacitor` |
+| Tests | Vitest (unit) + Playwright (e2e) | `npm run test:run` / `npm run test:e2e` |
+| Build | Vite 5 + Node ≥ 20 | Vercel assumes fresh install |
 
-### 2. Subagent Strategy
-- Use subagents liberally to keep main context window clean.
-- Offload research, exploration, and parallel analysis to subagents.
-- For complex problems, throw more compute at it via subagents.
-- One task per subagent for focused execution.
+---
 
-### 3. Self-Improvement Loop
-- After ANY correction from the user: update `tasks/lessons.md` with the pattern.
-- Write rules for yourself that prevent the same mistake.
-- Ruthlessly iterate on these lessons until mistake rate drops.
-- Review lessons at session start for relevant project.
+## 4. Golden Workflow (execute in order)
 
-### 4. Verification Before Done
-- Never mark a task complete without proving it works.
-- Diff behavior between main and your changes when relevant.
-- Ask yourself: "Would a staff engineer approve this?"
-- Run tests, check logs, demonstrate correctness.
+### Step A — Reproduce & frame
+- State: current behavior → desired behavior → definition of done (DoD).
+- Identify which **user tier** and **product surface** is affected.
+- Flag if the change touches: Auth, Routing, Realtime, Trip loading, RLS, Payments, Events.
 
-### 5. Demand Elegance (Balanced)
-- For non-trivial changes: pause and ask, "is there a more elegant way?"
-- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution."
-- Skip this for simple, obvious fixes — don't over-engineer.
-- Challenge your own work before presenting it.
+### Step B — Map the truth
+Before touching anything, run:
+```bash
+rg "ComponentOrHookName" src/   # find all usages
+rg "fieldName" src/             # trace data flow end-to-end
+```
+- Types → one place (`src/types/`)
+- Validators → one place
+- API calls → one place (hooks/services)
+- If you find multiple implementations: consolidate, don't fork.
 
-### 6. Autonomous Bug Fixing
-- When given a bug report: just fix it. Don't ask for hand-holding.
-- Point at logs, errors, failing tests — then resolve them.
-- Zero context switching required from the user.
-- Go fix failing CI tests without being told how.
+### Step C — Smallest safe change
+- Pure functions > side-effectful mutations.
+- Narrow component edits > full rewrites.
+- Behavior-preserving refactors in separate commits from bug fixes.
+- No style churn, no renames-for-taste.
 
-## Task Management
-1. **Plan First**: Write plan to `tasks/todo.md` with checkable items.
-2. **Verify Plan**: Check in before starting implementation.
-3. **Track Progress**: Mark items complete as you go.
-4. **Explain Changes**: High-level summary at each step.
-5. **Document Results**: Add review section to `tasks/todo.md`.
-6. **Capture Lessons**: Update `tasks/lessons.md` after corrections.
+### Step D — Prove it
+```bash
+npm run lint          # auto-fix lint
+npm run typecheck     # zero type errors
+npm run build         # must pass
+npm run test:run      # relevant unit tests
+```
+Manual checklist for every change (fill in before marking done):
+- [ ] Logged-in user — primary flow works
+- [ ] Auth boundary — unauthenticated path handled
+- [ ] Empty state — no data shows correct UI (not a crash)
+- [ ] Mobile Safari + PWA — layout intact, tap targets ≥ 44px
+- [ ] No console errors in prod build
 
-## Core Principles
-- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
-- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
-- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+---
 
-## Output Format
-For any non-trivial request, respond in this structure:
-1) SCOPE & ASSUMPTIONS
-2) PLAN & FILES TO TOUCH
-3) CODE IMPLEMENTATION (with minimal, targeted comments)
-4) TESTING & MANUAL VERIFICATION STEPS
-5) RISKS, TRADEOFFS, AND FUTURE IMPROVEMENTS
-6) WHY THIS FIX WILL BE REGRESSION PROOF
+## 5. Code Quality Gates
+
+### 5.1 Anti-regression
+- **Loading ≠ Not Found ≠ Empty** — never collapse these three states.
+- Auth must resolve before any data fetch. No flash of unauthorized content.
+- Trip existence ≠ trip access. Check membership/RLS, not just row existence.
+- All IDs validated (UUID format, non-null) before Supabase calls.
+
+### 5.2 Dead code removal protocol
+```bash
+rg "exportedSymbol" src/   # must return 0 usages outside the file
+```
+- If it's an exported public API, deprecate first, delete in next commit.
+- Do not leave `// TODO: remove` comments older than one sprint.
+
+### 5.3 Duplication check (known hotspots)
+- `src/store/` vs `src/stores/` — **consolidate into `src/store/`**
+- `src/components/poll/` vs `src/components/polls/` — **consolidate**
+- Any hook with a near-identical variant → merge and re-export
+- Any type defined in multiple files → move to `src/types/` and import
+
+### 5.4 Field-name mismatches are a stop-the-line bug
+Chravel has suffered from DB schema ↔ client types ↔ UI props mismatches.
+- Trace every field end-to-end before shipping.
+- Fix at the source (types + schema), not via runtime mapping hacks.
+- Add explicit TypeScript types so mismatches become compile-time errors.
+
+---
+
+## 6. React Patterns
+
+```tsx
+// ✅ Component structure: hooks → handlers → return
+export function TripCard({ trip }: { trip: Trip }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleExpand = useCallback(() => setIsExpanded(p => !p), []);
+
+  return <div onClick={handleExpand}>{/* JSX */}</div>;
+}
+```
+
+```tsx
+// ✅ Typed state always
+const [trips, setTrips] = useState<Trip[]>([]);
+
+// ✅ useEffect with mount guard + cleanup
+useEffect(() => {
+  let mounted = true;
+  async function load() {
+    const data = await fetchTrips();
+    if (mounted) setTrips(data);
+  }
+  load();
+  return () => { mounted = false; };
+}, []);
+
+// ✅ Derived state — compute above return, never store
+const activeTrips = trips.filter(t => t.status === 'active');
+```
+
+**Never:**
+- Hooks inside conditionals or loops
+- `useState` for data derivable from existing state
+- Unguarded `mapRef.current.setZoom()` — always null-check first
+- `console.log` left in committed code
+
+---
+
+## 7. Supabase Patterns
+
+```tsx
+// ✅ Always via the singleton
+import { supabase } from '@/integrations/supabase/client';
+
+// ✅ Handle errors explicitly
+const { data, error } = await supabase.from('trips').select('*').eq('creator_id', userId);
+if (error) { console.error(error); setError(error.message); return; }
+setTrips(data ?? []);
+
+// ✅ Realtime — always clean up
+useEffect(() => {
+  const channel = supabase.channel('trip-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'trips' }, handler)
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}, []);
+```
+
+**RLS rules:**
+- Never weaken existing RLS policies.
+- Never trust `user_id`, `trip_id`, or `role` from the client without DB-side verification.
+- No privilege escalation via URL params or optimistic UI.
+
+---
+
+## 8. Google Maps Patterns
+
+```tsx
+const mapRef = useRef<google.maps.Map | null>(null);
+
+// ✅ Always null-check before operations
+if (!mapRef.current) { console.warn('Map not ready'); return; }
+mapRef.current.setCenter(location);
+
+// ✅ Debounce high-frequency events (drag, zoom, bounds_changed)
+const handleDragEnd = useMemo(() => debounce(() => {
+  if (!mapRef.current) return;
+  fetchNearbyPlaces(mapRef.current.getCenter());
+}, 300), []);
+
+// ✅ Clean up listeners
+useEffect(() => {
+  if (!mapRef.current) return;
+  const listener = mapRef.current.addListener('dragend', handleDragEnd);
+  return () => { google.maps.event.removeListener(listener); };
+}, [handleDragEnd]);
+```
+
+- One map instance per page — pass mode via props, never duplicate `<MapView>`.
+- Type all coordinates as `{ lat: number; lng: number }`.
+
+---
+
+## 9. Mobile & Performance Rules
+
+- **Tap targets:** minimum 44×44px for all interactive elements.
+- **Scroll:** use `-webkit-overflow-scrolling: touch` or `overflow-y: auto` on scroll containers; never let content overflow the viewport.
+- **Capacitor bridges** (`src/native/`) must be guarded:
+  ```tsx
+  import { Capacitor } from '@capacitor/core';
+  if (Capacitor.isNativePlatform()) { /* native call */ }
+  ```
+- **Memoize** expensive derived values with `useMemo`; stabilize prop callbacks with `useCallback`.
+- **TanStack Query:** set sensible `staleTime` / `gcTime` to avoid chatty refetches on mobile networks.
+- **Bundle discipline:** do not add new heavy dependencies without a bundle-size justification. Check `BUNDLE_SIZE_BASELINE.md`.
+- **Offline:** `src/offline/` handles IndexedDB caching. Do not bypass it for trip data.
+- **Images:** use `browser-image-compression` before upload; lazy-load with native `loading="lazy"`.
+
+---
+
+## 10. Security Protocol
+
+**Pre-generation gate — block if any of these fail:**
+- [ ] No hardcoded secrets or API keys
+- [ ] No client-side trust of user/role claims
+- [ ] RLS unchanged or explicitly audited
+- [ ] High-impact ops (payments, destructive edits) have explicit user confirmation
+- [ ] No new race conditions introduced on auth-gated fetches
+
+**Auth timing:**
+```tsx
+// ✅ Wait for session before fetching
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) { redirect('/login'); return; }
+// now fetch trip data
+```
+
+---
+
+## 11. When Something Is Novel or Hard
+
+1. Search the specific error + your stack version:
+   ```
+   rg "errorMessage" src/        # check if it's a known local issue
+   # then search: "supabase realtime reconnect react 2026"
+   ```
+2. Prefer: official docs → GitHub issues in official repos → reputable engineering blogs.
+3. Include a source link in the commit message or PR description.
+4. **Never hallucinate an API that you haven't verified exists.**
+
+---
+
+## 12. Workflow Orchestration
+
+- **Plan before coding** on any non-trivial task (3+ steps). Write plan to `tasks/todo.md`.
+- **Subagents:** use for parallel research, deep exploration, or keeping main context clean.
+- **Lessons loop:** after any user correction, update `tasks/lessons.md` with the pattern.
+- **Elegance check:** before finalizing, ask — "is there a more elegant solution?" For simple fixes, skip this.
+- **Autonomous bug fixing:** given a bug, just fix it. Point at logs/errors, resolve, verify.
+
+---
+
+## 13. Monetization & Product Hooks (Chravel-specific)
+
+When adding features, ask:
+- Does this strengthen collaboration loops or increase retention?
+- Is there a natural, non-dark-pattern Pro upsell hook here?
+- Does this work at 10× users and trips (data model, query performance, RLS)?
+
+Do not build booking/OTA aggregation workflows without explicit approval.
+
+---
+
+## 14. Output Format (every non-trivial response)
+
+```
+1️⃣ FILES CHANGED
+   - src/...
+
+2️⃣ WHAT CHANGED & WHY (1–3 bullets)
+
+3️⃣ CODE (full file or clear diff — no pseudocode)
+
+4️⃣ INVARIANTS PRESERVED
+   - Auth gating: unchanged / strengthened
+   - RLS: unchanged
+   - No additional network calls on mount
+
+5️⃣ MANUAL VERIFICATION CHECKLIST
+
+6️⃣ RISK & ROLLBACK
+   Regression Risk: LOW | MEDIUM | HIGH
+   Rollback: <one sentence>
+```
+
+---
+
+## 15. Never Do These
+
+| ❌ Anti-pattern | Why it breaks things |
+|-----------------|---------------------|
+| Invent file paths or APIs | Causes silent failures, wrong imports |
+| Silently change data shapes | Breaks downstream consumers, RLS, types |
+| Add dependencies casually | Bundle bloat, supply chain risk |
+| Refactor + fix bug in same commit | Impossible to bisect regressions |
+| Solve inconsistency with mapping layers | Symptoms treated, source unfixed |
+| Leave `console.log` in commits | Leaks data, pollutes prod logs |
+| Mark task done without proof | False confidence, hidden regressions |
+| Collapse Loading / NotFound / Empty | Users see wrong state, data never loads |
+
+---
+
+*Last updated: 2026-02-25 — maintained by AI Engineering Team + Meech*
