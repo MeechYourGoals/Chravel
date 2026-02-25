@@ -15,6 +15,9 @@
 5. **Mobile-first.** Every UI change must work on small screens, PWA, and iOS (Capacitor). Check tap targets, scroll, overflow at 375px width.
 6. **Performance is a feature.** No heavy re-renders, chatty queries, excessive providers, or unnecessary mounts.
 7. **Build gate.** Every commit must pass `npm run lint && npm run typecheck && npm run build`.
+8. **Realtime = minimal hardening first.** On hot realtime paths (chat, subscriptions, presence), prefer a closure/state-race patch over a rewrite. Fix the race; don't touch unrelated logic.
+9. **Verify push before closing.** After any fix, run `git branch -vv` and confirm the branch is tracking remote and the push succeeded. Do not mark done until confirmed.
+10. **"Yes please" = add the spec now.** When a user confirms they want regression coverage, add an automated test for that exact flow immediately — don't re-explain behavior instead.
 
 ---
 
@@ -368,6 +371,23 @@ useEffect(() => {
 - Check `useDemoModeStore()` before live Supabase fetches.
 - Demo data lives in `src/data/` and `src/mockData/`.
 
+### Vite chunk strategy (do not break)
+Named manual chunks in `vite.config.ts` — adding a heavy import from a named chunk into an unexpected code path will split it and break caching:
+
+| Chunk | Contains |
+|---|---|
+| `react-vendor` | react, react-dom, react-router-dom |
+| `ui-vendor` | @radix-ui/* (core components) |
+| `supabase` | @supabase/supabase-js |
+| `utils` | date-fns, clsx, tailwind-merge |
+| `charts` | recharts |
+| `pdf` | jspdf, jspdf-autotable, html2canvas |
+
+**Externalized** (optional telemetry — may not be installed): `@sentry/capacitor`, `@sentry/react`, `posthog-js`.
+- Do not add imports of these in core paths — they are optional and will throw if absent.
+- `chunkSizeWarningLimit` is 1000 KB — if a chunk exceeds this, split it, don't raise the limit.
+- New heavy deps (xlsx, recharts, jspdf) belong in lazy-loaded pages, not in shared hooks.
+
 ---
 
 ## 11. Testing
@@ -452,6 +472,82 @@ If you encounter something unfamiliar — Supabase RLS edge case, Capacitor API 
 - **When uncertain on scope**: default to the professional/touring use case (30+ person tour across cities) — if it works there, it works for a 5-person friend trip.
 - **On high-impact operations** (payments, destructive edits): design for explicit user confirmation and safe rollback.
 - **Privacy and security by default**: least-privilege access, clear user control, no dark patterns.
+
+---
+
+## 16. Billing & Entitlements
+
+**Single source of truth**: `src/stores/entitlementsStore.ts` (`useEntitlementsStore`).
+**Product/tier config**: `src/billing/config.ts` (`BILLING_PRODUCTS`, `TIER_ENTITLEMENTS`).
+**Types**: `src/billing/types.ts` (`SubscriptionTier`, `EntitlementId`, `PurchaseType`).
+
+### Entitlement sources (priority order)
+| Source | When set |
+|---|---|
+| `admin` | Super admin email allowlist (`isSuperAdminEmail`) or `enterprise_admin` role |
+| `revenuecat` | iOS/Android IAP via RevenueCat |
+| `stripe` | Web subscription via Stripe |
+| `demo` | Demo mode — gets `frequent-chraveler` tier (full access) |
+| `none` | Unauthenticated / free user |
+
+### How to gate a feature
+```tsx
+// ✅ Always read from the store — never re-derive from user profile or JWT
+const { isPro, isSuperAdmin, entitlements } = useEntitlementsStore();
+
+if (!entitlements.has('pdf_export')) return <UpgradePrompt />;
+```
+
+### Tiers (as defined in `src/billing/types.ts`)
+- `free` → `plus` (Explorer, consumer) → `frequent-chraveler` (Pro, consumer) → `pro-enterprise`
+- Consumer plans (`explorer`, `frequent-chraveler`) **must use Apple IAP on iOS** (`requiresIAPOnIOS: true`).
+- B2B/Enterprise plans (`pro-enterprise`) **may use external payment** (App Store Reader Rule exception).
+- Trip split payments for real-world services are **not subject to IAP**.
+
+### Rules
+- Never trust `plan` or `role` from URL params or JWT claims on the client.
+- Call `refreshEntitlements(userId, userEmail)` on auth state change, not on every render.
+- Super admin bypasses all entitlement checks — the email allowlist is the failsafe.
+- `setDemoMode(true)` grants full access — always check `isDemoMode` before branching on entitlements in tests.
+- Do not add a new `EntitlementId` without adding it to `TIER_ENTITLEMENTS` in `billing/config.ts`.
+
+---
+
+## 17. AI Concierge Rate Limits
+
+**Service**: `src/services/conciergeRateLimitService.ts` (singleton: `conciergeRateLimitService`).
+**Model**: DB-backed for real users (`concierge_usage` table), localStorage for demo mode.
+
+### Limits (per user, per trip — no daily reset)
+| Tier | `userTier` param | Queries per trip |
+|---|---|---|
+| Free | `'free'` | 5 |
+| Explorer / Plus | `'plus'` | 10 |
+| Frequent Chraveler / Pro | `'pro'` | Unlimited |
+
+### Usage pattern
+```ts
+// ✅ Always check before sending to Gemini
+const canProceed = await conciergeRateLimitService.canQuery(userId, tripId, userTier);
+if (!canProceed) { showUpgradePrompt(); return; }
+
+// ✅ Increment after a successful query
+await conciergeRateLimitService.incrementUsage(userId, tripId, userTier);
+
+// ✅ Show remaining to the user
+const remaining = await conciergeRateLimitService.getRemainingQueries(userId, tripId, userTier);
+```
+
+### Deprecated methods (do not use)
+- `getDailyLimit()` → use `getTripLimit()` (per-trip, not daily)
+- `getTimeUntilReset()` → always returns `''`; remove callsites when encountered
+
+### Rules
+- Limits persist for the **lifetime of the trip** — there is no reset mechanism for users.
+- Demo mode falls back to localStorage (no DB write) — don't add DB assertions in demo test paths.
+- Pro users bypass all checks — `canQuery` returns `true` immediately.
+- If the DB insert fails, the service falls back to localStorage to avoid blocking the user.
+- The `concierge_usage` table is append-only (one row per query) — count rows, don't sum a column.
 
 ---
 
