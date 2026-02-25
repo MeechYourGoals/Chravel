@@ -34,7 +34,7 @@ class OfflineService {
     console.log('[Offline] Connection restored');
     this.isOnline = true;
     this.notifyListeners(true);
-    
+
     toast({
       title: 'Connection Restored',
       description: 'Syncing queued operations...',
@@ -48,7 +48,7 @@ class OfflineService {
     console.log('[Offline] Connection lost');
     this.isOnline = false;
     this.notifyListeners(false);
-    
+
     toast({
       variant: 'destructive',
       title: 'Connection Lost',
@@ -81,11 +81,7 @@ class OfflineService {
   /**
    * Queue an operation for later execution
    */
-  queueOperation(
-    type: string,
-    operation: () => Promise<any>,
-    data: any
-  ): void {
+  queueOperation(type: string, operation: () => Promise<any>, data: any): void {
     const queuedOp: QueuedOperation = {
       id: `${type}-${Date.now()}-${Math.random()}`,
       type,
@@ -120,7 +116,7 @@ class OfflineService {
         console.log('[Offline] Operation completed:', op.id);
       } catch (error) {
         console.error('[Offline] Operation failed:', op.id, error);
-        
+
         // Retry if under max retries
         if (op.retryCount < this.maxRetries) {
           op.retryCount++;

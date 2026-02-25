@@ -135,9 +135,7 @@ describe('Channel Send Flow', () => {
       });
 
       // sendMessage should throw instead of returning null
-      await expect(
-        channelService.sendMessage({ channelId, content })
-      ).rejects.toMatchObject({
+      await expect(channelService.sendMessage({ channelId, content })).rejects.toMatchObject({
         code: '42501',
       });
 
@@ -158,7 +156,7 @@ describe('Channel Send Flow', () => {
       });
 
       await expect(
-        channelService.sendMessage({ channelId: 'ch-1', content: 'test' })
+        channelService.sendMessage({ channelId: 'ch-1', content: 'test' }),
       ).rejects.toThrow('logged in');
     });
 
@@ -168,9 +166,9 @@ describe('Channel Send Flow', () => {
         error: null,
       });
 
-      await expect(
-        channelService.sendMessage({ channelId: '', content: 'test' })
-      ).rejects.toThrow('No channel selected');
+      await expect(channelService.sendMessage({ channelId: '', content: 'test' })).rejects.toThrow(
+        'No channel selected',
+      );
     });
   });
 
@@ -214,7 +212,7 @@ describe('Channel Send Flow', () => {
       mockInsertSingle.mockRejectedValue(new TypeError('Failed to fetch'));
 
       await expect(
-        channelService.sendMessage({ channelId: 'ch-1', content: 'test' })
+        channelService.sendMessage({ channelId: 'ch-1', content: 'test' }),
       ).rejects.toThrow('fetch');
     });
 
@@ -230,7 +228,7 @@ describe('Channel Send Flow', () => {
       });
 
       await expect(
-        channelService.sendMessage({ channelId: 'ch-1', content: 'test' })
+        channelService.sendMessage({ channelId: 'ch-1', content: 'test' }),
       ).rejects.toMatchObject({ code: '23503' });
 
       // And the error maps to correct toast

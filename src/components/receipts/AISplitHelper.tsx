@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Sparkles, Calculator } from 'lucide-react';
 import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
@@ -10,11 +9,11 @@ interface AISplitHelperProps {
   onSplitCalculated: (splitCount: number) => void;
 }
 
-export const AISplitHelper = ({ 
-  isOpen, 
-  onClose, 
-  receiptAmount, 
-  onSplitCalculated 
+export const AISplitHelper = ({
+  isOpen,
+  onClose,
+  receiptAmount,
+  onSplitCalculated,
 }: AISplitHelperProps) => {
   const { isPlus } = useConsumerSubscription();
   const [isCalculating, setIsCalculating] = useState(false);
@@ -23,21 +22,21 @@ export const AISplitHelper = ({
 
   const handleCalculate = async () => {
     if (!isPlus) return;
-    
+
     setIsCalculating(true);
-    
+
     // Mock AI calculation - in real implementation, this would call Gemini.
     setTimeout(() => {
       const mockSuggestions = [
-        "Based on typical dinner receipts, I suggest splitting between 4-6 people.",
-        "For a grocery receipt of this amount, usually 2-4 people are involved.",
-        "This looks like a group activity expense, recommend splitting 6-8 ways.",
-        "For transportation costs, typically split among all trip participants."
+        'Based on typical dinner receipts, I suggest splitting between 4-6 people.',
+        'For a grocery receipt of this amount, usually 2-4 people are involved.',
+        'This looks like a group activity expense, recommend splitting 6-8 ways.',
+        'For transportation costs, typically split among all trip participants.',
       ];
-      
+
       const randomSuggestion = mockSuggestions[Math.floor(Math.random() * mockSuggestions.length)];
       const suggestedCount = Math.floor(Math.random() * 6) + 3; // Random between 3-8
-      
+
       setSuggestion(randomSuggestion);
       setSplitCount(suggestedCount);
       setIsCalculating(false);
@@ -63,10 +62,7 @@ export const AISplitHelper = ({
             </div>
             <h3 className="text-lg font-semibold text-white">AI Split Helper</h3>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -77,9 +73,7 @@ export const AISplitHelper = ({
           <div className="bg-white/5 rounded-xl p-4">
             <div className="text-center">
               <div className="text-gray-400 text-sm">Receipt Total</div>
-              <div className="text-white font-bold text-2xl">
-                ${receiptAmount.toFixed(2)}
-              </div>
+              <div className="text-white font-bold text-2xl">${receiptAmount.toFixed(2)}</div>
             </div>
           </div>
 

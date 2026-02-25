@@ -18,7 +18,7 @@ export const MediaFilters = ({ activeFilter, onFilterChange }: MediaFiltersProps
 
   return (
     <div className="flex gap-2 overflow-x-auto">
-      {filters.map((filter) => (
+      {filters.map(filter => (
         <button
           key={filter.value}
           onClick={() => onFilterChange(filter.value)}

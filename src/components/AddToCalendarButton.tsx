@@ -19,7 +19,7 @@ export const AddToCalendarButton = ({
   placeAddress,
   category = 'other',
   onEventAdded,
-  variant = 'default'
+  variant = 'default',
 }: AddToCalendarButtonProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -32,18 +32,13 @@ export const AddToCalendarButton = ({
     title: placeName,
     location: placeAddress || placeName,
     category: category,
-    include_in_itinerary: true
+    include_in_itinerary: true,
   };
 
   if (variant === 'icon') {
     return (
       <>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsModalOpen(true)}
-          className="p-2"
-        >
+        <Button variant="outline" size="sm" onClick={() => setIsModalOpen(true)} className="p-2">
           <Calendar size={16} />
         </Button>
         <CalendarEventModal
@@ -82,11 +77,7 @@ export const AddToCalendarButton = ({
 
   return (
     <>
-      <Button
-        variant="outline"
-        onClick={() => setIsModalOpen(true)}
-        className="w-full"
-      >
+      <Button variant="outline" onClick={() => setIsModalOpen(true)} className="w-full">
         <Plus size={16} className="mr-2" />
         Add to Calendar
       </Button>

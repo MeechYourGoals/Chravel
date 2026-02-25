@@ -459,7 +459,7 @@ async function streamGeminiToSSE(
     const functionCallResults: any[] = [];
 
     // Parallelize independent function calls (e.g. multiple getPlaceDetails)
-    const callTasks = state.functionCallParts.map(async (part) => {
+    const callTasks = state.functionCallParts.map(async part => {
       const fc = part.functionCall;
       let parsedArgs: Record<string, unknown> = {};
       if (typeof fc.args === 'string') {
@@ -1489,12 +1489,20 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             }
 
             if (!serverDemoMode && resolvedTripId !== 'unknown') {
-              await storeConversation(supabase, resolvedTripId, message, fullText, 'chat', {
-                grounding_sources: citations.length,
-                has_map_widget: !!googleMapsWidget,
-                function_calls: streamFnCalls,
-                streamed: true,
-              }, user?.id);
+              await storeConversation(
+                supabase,
+                resolvedTripId,
+                message,
+                fullText,
+                'chat',
+                {
+                  grounding_sources: citations.length,
+                  has_map_widget: !!googleMapsWidget,
+                  function_calls: streamFnCalls,
+                  streamed: true,
+                },
+                user?.id,
+              );
             }
 
             if (!serverDemoMode && user) {
@@ -1964,11 +1972,19 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       // Skip database storage in demo mode
       if (!serverDemoMode) {
         if (resolvedTripId !== 'unknown') {
-          await storeConversation(supabase, resolvedTripId, message, aiResponse, 'chat', {
-            grounding_sources: citations.length,
-            has_map_widget: !!googleMapsWidget,
-            function_calls: functionCallResults.map(r => r.name),
-          }, user?.id);
+          await storeConversation(
+            supabase,
+            resolvedTripId,
+            message,
+            aiResponse,
+            'chat',
+            {
+              grounding_sources: citations.length,
+              has_map_widget: !!googleMapsWidget,
+              function_calls: functionCallResults.map(r => r.name),
+            },
+            user?.id,
+          );
         }
 
         if (user) {

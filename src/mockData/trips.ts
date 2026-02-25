@@ -13,7 +13,7 @@ export const mockConsumerTrips: Trip[] = [
     created_at: '2024-01-15T10:00:00Z',
     updated_at: '2024-01-15T10:00:00Z',
     is_archived: false,
-    trip_type: 'consumer'
+    trip_type: 'consumer',
   },
   {
     id: '2',
@@ -27,7 +27,7 @@ export const mockConsumerTrips: Trip[] = [
     created_at: '2024-02-01T10:00:00Z',
     updated_at: '2024-02-01T10:00:00Z',
     is_archived: false,
-    trip_type: 'consumer'
+    trip_type: 'consumer',
   },
   {
     id: '3',
@@ -41,6 +41,6 @@ export const mockConsumerTrips: Trip[] = [
     created_at: '2024-01-20T10:00:00Z',
     updated_at: '2024-01-20T10:00:00Z',
     is_archived: false,
-    trip_type: 'consumer'
-  }
+    trip_type: 'consumer',
+  },
 ];

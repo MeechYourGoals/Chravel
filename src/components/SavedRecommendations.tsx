@@ -1,7 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Plus, BookmarkMinus } from 'lucide-react';
 import { useSavedRecommendations } from '@/hooks/useSavedRecommendations';
@@ -13,7 +20,10 @@ export const SavedRecommendations = () => {
   const { toast } = useToast();
   const [selectedTrip, setSelectedTrip] = useState<Record<string, string>>({});
 
-  const trips = useMemo(() => tripsData.map(t => ({ id: String(t.id), label: `${t.title} • ${t.location}` })), []);
+  const trips = useMemo(
+    () => tripsData.map(t => ({ id: String(t.id), label: `${t.title} • ${t.location}` })),
+    [],
+  );
 
   const handleAdd = async (savedId: string, tripId: string) => {
     const saved = items.find(i => i.id === savedId);
@@ -29,7 +39,9 @@ export const SavedRecommendations = () => {
   return (
     <div className="space-y-4">
       <h3 className="text-xl font-semibold text-foreground">Saved Recommendations</h3>
-      <p className="text-muted-foreground">Items you saved while browsing recommendations. Add any of these to a specific trip.</p>
+      <p className="text-muted-foreground">
+        Items you saved while browsing recommendations. Add any of these to a specific trip.
+      </p>
 
       {loading ? (
         <div className="text-muted-foreground">Loading…</div>
@@ -37,10 +49,14 @@ export const SavedRecommendations = () => {
         <Card className="p-6 text-center text-muted-foreground">No saved recommendations yet.</Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {items.map((item) => (
+          {items.map(item => (
             <Card key={item.id} className="p-4 flex gap-4">
               {item.image_url ? (
-                <img src={item.image_url} alt={item.title} className="w-24 h-24 rounded-md object-cover" />
+                <img
+                  src={item.image_url}
+                  alt={item.title}
+                  className="w-24 h-24 rounded-md object-cover"
+                />
               ) : (
                 <div className="w-24 h-24 rounded-md bg-muted flex items-center justify-center">
                   <BookmarkMinus className="w-5 h-5 text-muted-foreground" />
@@ -52,9 +68,14 @@ export const SavedRecommendations = () => {
                   <div className="min-w-0">
                     <h4 className="font-medium text-foreground truncate">{item.title}</h4>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                      <Badge variant="outline" className="text-xs capitalize">{item.rec_type}</Badge>
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {item.rec_type}
+                      </Badge>
                       {(item.location || item.city) && (
-                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{item.location || item.city}</span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {item.location || item.city}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -62,7 +83,7 @@ export const SavedRecommendations = () => {
 
                 <div className="mt-3 flex items-center gap-2">
                   <Select
-                    onValueChange={(val) => setSelectedTrip(prev => ({ ...prev, [item.id]: val }))}
+                    onValueChange={val => setSelectedTrip(prev => ({ ...prev, [item.id]: val }))}
                     value={selectedTrip[item.id]}
                   >
                     <SelectTrigger className="w-full">
@@ -71,7 +92,9 @@ export const SavedRecommendations = () => {
                     <SelectContent className="bg-background border border-border z-50">
                       <SelectGroup>
                         {trips.map(t => (
-                          <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.label}
+                          </SelectItem>
                         ))}
                       </SelectGroup>
                     </SelectContent>

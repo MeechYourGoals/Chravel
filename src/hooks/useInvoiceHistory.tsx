@@ -1,6 +1,6 @@
 /**
  * Invoice History Hook
- * 
+ *
  * Fetches and displays Stripe invoice history for the authenticated user.
  */
 
@@ -36,60 +36,60 @@ export function useInvoiceHistory() {
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  const fetchInvoices = useCallback(async (cursor?: string) => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
+  const fetchInvoices = useCallback(
+    async (cursor?: string) => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
 
-    try {
-      setIsLoading(true);
-      
-      const params = new URLSearchParams({
-        limit: '100',
-        ...(cursor && { starting_after: cursor })
-      });
+      try {
+        setIsLoading(true);
 
-      const { data, error } = await supabase.functions.invoke<InvoiceResponse>(
-        'fetch-invoices',
-        {
+        const params = new URLSearchParams({
+          limit: '100',
+          ...(cursor && { starting_after: cursor }),
+        });
+
+        const { data, error } = await supabase.functions.invoke<InvoiceResponse>('fetch-invoices', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
-        }
-      );
+        });
 
-      if (error) {
+        if (error) {
+          console.error('Failed to fetch invoices:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to load invoice history. Please try again.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        if (data) {
+          if (cursor) {
+            setInvoices(prev => [...prev, ...data.invoices]);
+          } else {
+            setInvoices(data.invoices);
+          }
+          setHasMore(data.hasMore);
+          setNextCursor(data.nextCursor);
+        }
+      } catch (error) {
         console.error('Failed to fetch invoices:', error);
         toast({
           title: 'Error',
           description: 'Failed to load invoice history. Please try again.',
-          variant: 'destructive'
+          variant: 'destructive',
         });
-        return;
+      } finally {
+        setIsLoading(false);
       }
-
-      if (data) {
-        if (cursor) {
-          setInvoices(prev => [...prev, ...data.invoices]);
-        } else {
-          setInvoices(data.invoices);
-        }
-        setHasMore(data.hasMore);
-        setNextCursor(data.nextCursor);
-      }
-    } catch (error) {
-      console.error('Failed to fetch invoices:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load invoice history. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, toast]);
+    },
+    [user, toast],
+  );
 
   const loadMore = useCallback(() => {
     if (hasMore && nextCursor && !isLoading) {
@@ -101,19 +101,22 @@ export function useInvoiceHistory() {
     fetchInvoices();
   }, [fetchInvoices]);
 
-  const downloadInvoice = useCallback((invoice: Invoice) => {
-    if (invoice.pdfUrl) {
-      window.open(invoice.pdfUrl, '_blank');
-    } else if (invoice.hostedUrl) {
-      window.open(invoice.hostedUrl, '_blank');
-    } else {
-      toast({
-        title: 'Error',
-        description: 'Invoice PDF not available',
-        variant: 'destructive'
-      });
-    }
-  }, [toast]);
+  const downloadInvoice = useCallback(
+    (invoice: Invoice) => {
+      if (invoice.pdfUrl) {
+        window.open(invoice.pdfUrl, '_blank');
+      } else if (invoice.hostedUrl) {
+        window.open(invoice.hostedUrl, '_blank');
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Invoice PDF not available',
+          variant: 'destructive',
+        });
+      }
+    },
+    [toast],
+  );
 
   useEffect(() => {
     fetchInvoices();
@@ -125,6 +128,6 @@ export function useInvoiceHistory() {
     hasMore,
     loadMore,
     refresh,
-    downloadInvoice
+    downloadInvoice,
   };
 }

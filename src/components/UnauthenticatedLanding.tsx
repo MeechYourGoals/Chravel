@@ -14,12 +14,15 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
       <div className="max-w-5xl mx-auto space-y-3 animate-fade-in">
         {/* Headline - Centered */}
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent leading-tight text-center">
-          Plan Together.<br />Travel Better.
+          Plan Together.
+          <br />
+          Travel Better.
         </h1>
 
         {/* Subheadline */}
         <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-foreground max-w-2xl mx-auto text-center break-words">
-          The AI-powered platform for collaborative trip planning, real-time coordination, and unforgettable group experiences.
+          The AI-powered platform for collaborative trip planning, real-time coordination, and
+          unforgettable group experiences.
         </p>
 
         {/* Feature Pills */}
@@ -44,8 +47,8 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
 
         {/* CTA Button */}
         <div className="flex justify-center pt-2">
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             onClick={onSignUp}
             className="text-base sm:text-lg md:text-xl px-6 py-4 md:px-8 md:py-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
           >
@@ -60,12 +63,17 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
       </div>
 
       {/* Feature Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto mt-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto mt-6 animate-fade-in"
+        style={{ animationDelay: '0.2s' }}
+      >
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 md:p-6 text-center hover:border-primary/50 transition-colors">
           <div className="bg-primary/10 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4">
             <Users className="text-primary" size={20} />
           </div>
-          <h3 className="font-semibold text-xl sm:text-2xl md:text-3xl mb-2 break-words">Collaborate in Real-Time</h3>
+          <h3 className="font-semibold text-xl sm:text-2xl md:text-3xl mb-2 break-words">
+            Collaborate in Real-Time
+          </h3>
           <p className="text-sm sm:text-base md:text-lg text-foreground break-words">
             Plan together with live updates, chat, and shared itineraries
           </p>
@@ -75,9 +83,12 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
           <div className="bg-accent/10 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4">
             <Sparkles className="text-accent" size={20} />
           </div>
-          <h3 className="font-semibold text-xl sm:text-2xl md:text-3xl mb-2 break-words">AI-Powered Assistance</h3>
+          <h3 className="font-semibold text-xl sm:text-2xl md:text-3xl mb-2 break-words">
+            AI-Powered Assistance
+          </h3>
           <p className="text-sm sm:text-base md:text-lg text-foreground break-words">
-            AI-powered assistance with verified data and real-world context — from venues and hotels to weather and routes.
+            AI-powered assistance with verified data and real-world context — from venues and hotels
+            to weather and routes.
           </p>
         </div>
 
@@ -85,7 +96,9 @@ export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLa
           <div className="bg-primary/10 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4">
             <MapPin className="text-primary" size={20} />
           </div>
-          <h3 className="font-semibold text-xl sm:text-2xl md:text-3xl mb-2 break-words">Everything in One Place</h3>
+          <h3 className="font-semibold text-xl sm:text-2xl md:text-3xl mb-2 break-words">
+            Everything in One Place
+          </h3>
           <p className="text-sm sm:text-base md:text-lg text-foreground break-words">
             Maps, schedules, expenses, and memories—all organized
           </p>

@@ -37,9 +37,7 @@ class WebSharing {
 
   async share(options: ShareOptions): Promise<ShareResult> {
     // Build share text for fallbacks
-    const shareText = [options.url, options.text, options.title]
-      .filter(Boolean)
-      .join('\n');
+    const shareText = [options.url, options.text, options.title].filter(Boolean).join('\n');
 
     // 1. Try native Web Share API
     if (navigator.share) {

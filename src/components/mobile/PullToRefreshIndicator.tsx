@@ -10,7 +10,7 @@ interface PullToRefreshIndicatorProps {
 export const PullToRefreshIndicator = ({
   isRefreshing,
   pullDistance,
-  threshold
+  threshold,
 }: PullToRefreshIndicatorProps) => {
   const progress = Math.min((pullDistance / threshold) * 100, 100);
   const opacity = Math.min(pullDistance / threshold, 1);
@@ -21,7 +21,7 @@ export const PullToRefreshIndicator = ({
       style={{
         transform: `translateY(${pullDistance}px)`,
         opacity: opacity,
-        pointerEvents: 'none'
+        pointerEvents: 'none',
       }}
     >
       <div className="bg-black/80 backdrop-blur-sm rounded-full p-3 shadow-lg border border-white/10">
@@ -29,7 +29,7 @@ export const PullToRefreshIndicator = ({
           size={20}
           className={`text-white ${isRefreshing ? 'animate-spin' : ''}`}
           style={{
-            transform: `rotate(${progress * 3.6}deg)`
+            transform: `rotate(${progress * 3.6}deg)`,
           }}
         />
       </div>

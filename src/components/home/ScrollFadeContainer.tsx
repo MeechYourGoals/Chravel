@@ -12,9 +12,9 @@ export const ScrollFadeContainer = ({ children, className = '' }: ScrollFadeCont
 
   const handleScroll = () => {
     if (!scrollRef.current) return;
-    
+
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-    
+
     setShowLeftFade(scrollLeft > 10);
     setShowRightFade(scrollLeft < scrollWidth - clientWidth - 10);
   };
@@ -27,7 +27,7 @@ export const ScrollFadeContainer = ({ children, className = '' }: ScrollFadeCont
       // Check on resize
       const resizeObserver = new ResizeObserver(handleScroll);
       resizeObserver.observe(el);
-      
+
       return () => {
         el.removeEventListener('scroll', handleScroll);
         resizeObserver.disconnect();
@@ -41,15 +41,12 @@ export const ScrollFadeContainer = ({ children, className = '' }: ScrollFadeCont
       {showLeftFade && (
         <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent pointer-events-none z-10 rounded-l-2xl" />
       )}
-      
+
       {/* Scrollable content */}
-      <div 
-        ref={scrollRef}
-        className="overflow-x-auto scrollbar-hide scroll-touch"
-      >
+      <div ref={scrollRef} className="overflow-x-auto scrollbar-hide scroll-touch">
         {children}
       </div>
-      
+
       {/* Right fade gradient */}
       {showRightFade && (
         <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none z-10 rounded-r-2xl" />

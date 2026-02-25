@@ -34,7 +34,7 @@ export default async function handler(request: Request): Promise<Response> {
       method: 'GET',
       headers: {
         'User-Agent': request.headers.get('user-agent') ?? 'chravel-preview-proxy',
-        'Accept': 'text/html,application/xhtml+xml',
+        Accept: 'text/html,application/xhtml+xml',
       },
     });
 
@@ -62,7 +62,7 @@ export default async function handler(request: Request): Promise<Response> {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[trip-preview] Error:', message);
-    
+
     return new Response(`Preview proxy error: ${message}`, {
       status: 500,
       headers: { 'Content-Type': 'text/plain' },

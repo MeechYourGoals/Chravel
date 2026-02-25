@@ -145,7 +145,8 @@ export const INVITE_ERROR_SPECS: Record<
   },
   INVITE_MAX_USES: {
     title: 'Invite limit reached',
-    message: 'This invite link has been used the maximum number of times. Ask the host for a new link.',
+    message:
+      'This invite link has been used the maximum number of times. Ask the host for a new link.',
     primaryCTA: 'request_new_invite',
     secondaryCTA: 'contact_host',
     icon: 'users',
@@ -181,7 +182,8 @@ export const INVITE_ERROR_SPECS: Record<
   // Access errors
   ACCESS_DENIED: {
     title: "You don't have access",
-    message: "You don't have permission to view this trip. If you should have access, contact the host.",
+    message:
+      "You don't have permission to view this trip. If you should have access, contact the host.",
     primaryCTA: 'contact_host',
     secondaryCTA: 'go_to_dashboard',
     icon: 'lock',

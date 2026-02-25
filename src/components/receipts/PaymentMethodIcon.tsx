@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { DollarSign, CreditCard, Smartphone, Zap } from 'lucide-react';
 import { PaymentMethod } from '../../types/receipts';

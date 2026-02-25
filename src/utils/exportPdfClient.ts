@@ -988,7 +988,7 @@ export async function generateClientPDF(
               2: { cellWidth: contentWidth * 0.22 },
               3: { cellWidth: contentWidth * 0.16 },
               4: { cellWidth: contentWidth * 0.12 },
-              5: { cellWidth: contentWidth * 0.20 },
+              5: { cellWidth: contentWidth * 0.2 },
             },
           });
 

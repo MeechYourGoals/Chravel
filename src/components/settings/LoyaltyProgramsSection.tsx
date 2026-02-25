@@ -123,7 +123,7 @@ export const LoyaltyProgramsSection: React.FC = () => {
                   <Label>Airline</Label>
                   <Input
                     value={airlineData.airline}
-                    onChange={(e) => setAirlineData({ ...airlineData, airline: e.target.value })}
+                    onChange={e => setAirlineData({ ...airlineData, airline: e.target.value })}
                     placeholder="e.g., United Airlines"
                   />
                 </div>
@@ -131,7 +131,7 @@ export const LoyaltyProgramsSection: React.FC = () => {
                   <Label>Program Name</Label>
                   <Input
                     value={airlineData.program}
-                    onChange={(e) => setAirlineData({ ...airlineData, program: e.target.value })}
+                    onChange={e => setAirlineData({ ...airlineData, program: e.target.value })}
                     placeholder="e.g., MileagePlus"
                   />
                 </div>
@@ -139,19 +139,21 @@ export const LoyaltyProgramsSection: React.FC = () => {
                   <Label>Membership Number</Label>
                   <Input
                     value={airlineData.number}
-                    onChange={(e) => setAirlineData({ ...airlineData, number: e.target.value })}
+                    onChange={e => setAirlineData({ ...airlineData, number: e.target.value })}
                     placeholder="Your membership number"
                   />
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleAddAirline}>Add</Button>
-                  <Button variant="outline" onClick={() => setIsAddingAirline(false)}>Cancel</Button>
+                  <Button variant="outline" onClick={() => setIsAddingAirline(false)}>
+                    Cancel
+                  </Button>
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              {airlines?.map((airline) => (
+              {airlines?.map(airline => (
                 <div
                   key={airline.id}
                   className="flex items-center justify-between p-3 border rounded-lg"
@@ -180,11 +182,7 @@ export const LoyaltyProgramsSection: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="hotels" className="space-y-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAddingHotel(!isAddingHotel)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setIsAddingHotel(!isAddingHotel)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Hotel
             </Button>
@@ -195,7 +193,7 @@ export const LoyaltyProgramsSection: React.FC = () => {
                   <Label>Hotel Chain</Label>
                   <Input
                     value={hotelData.chain}
-                    onChange={(e) => setHotelData({ ...hotelData, chain: e.target.value })}
+                    onChange={e => setHotelData({ ...hotelData, chain: e.target.value })}
                     placeholder="e.g., Marriott"
                   />
                 </div>
@@ -203,7 +201,7 @@ export const LoyaltyProgramsSection: React.FC = () => {
                   <Label>Program Name</Label>
                   <Input
                     value={hotelData.program}
-                    onChange={(e) => setHotelData({ ...hotelData, program: e.target.value })}
+                    onChange={e => setHotelData({ ...hotelData, program: e.target.value })}
                     placeholder="e.g., Bonvoy"
                   />
                 </div>
@@ -211,19 +209,21 @@ export const LoyaltyProgramsSection: React.FC = () => {
                   <Label>Membership Number</Label>
                   <Input
                     value={hotelData.number}
-                    onChange={(e) => setHotelData({ ...hotelData, number: e.target.value })}
+                    onChange={e => setHotelData({ ...hotelData, number: e.target.value })}
                     placeholder="Your membership number"
                   />
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleAddHotel}>Add</Button>
-                  <Button variant="outline" onClick={() => setIsAddingHotel(false)}>Cancel</Button>
+                  <Button variant="outline" onClick={() => setIsAddingHotel(false)}>
+                    Cancel
+                  </Button>
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              {hotels?.map((hotel) => (
+              {hotels?.map(hotel => (
                 <div
                   key={hotel.id}
                   className="flex items-center justify-between p-3 border rounded-lg"
@@ -234,11 +234,7 @@ export const LoyaltyProgramsSection: React.FC = () => {
                       {hotel.program_name} • {hotel.membership_number}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteHotel.mutate(hotel.id)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => deleteHotel.mutate(hotel.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -252,11 +248,7 @@ export const LoyaltyProgramsSection: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="rentals" className="space-y-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAddingRental(!isAddingRental)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setIsAddingRental(!isAddingRental)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Rental
             </Button>
@@ -267,7 +259,7 @@ export const LoyaltyProgramsSection: React.FC = () => {
                   <Label>Rental Company</Label>
                   <Input
                     value={rentalData.company}
-                    onChange={(e) => setRentalData({ ...rentalData, company: e.target.value })}
+                    onChange={e => setRentalData({ ...rentalData, company: e.target.value })}
                     placeholder="e.g., Hertz"
                   />
                 </div>
@@ -275,7 +267,7 @@ export const LoyaltyProgramsSection: React.FC = () => {
                   <Label>Program Name</Label>
                   <Input
                     value={rentalData.program}
-                    onChange={(e) => setRentalData({ ...rentalData, program: e.target.value })}
+                    onChange={e => setRentalData({ ...rentalData, program: e.target.value })}
                     placeholder="e.g., Gold Plus Rewards"
                   />
                 </div>
@@ -283,19 +275,21 @@ export const LoyaltyProgramsSection: React.FC = () => {
                   <Label>Membership Number</Label>
                   <Input
                     value={rentalData.number}
-                    onChange={(e) => setRentalData({ ...rentalData, number: e.target.value })}
+                    onChange={e => setRentalData({ ...rentalData, number: e.target.value })}
                     placeholder="Your membership number"
                   />
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleAddRental}>Add</Button>
-                  <Button variant="outline" onClick={() => setIsAddingRental(false)}>Cancel</Button>
+                  <Button variant="outline" onClick={() => setIsAddingRental(false)}>
+                    Cancel
+                  </Button>
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              {rentals?.map((rental) => (
+              {rentals?.map(rental => (
                 <div
                   key={rental.id}
                   className="flex items-center justify-between p-3 border rounded-lg"
@@ -306,11 +300,7 @@ export const LoyaltyProgramsSection: React.FC = () => {
                       {rental.program_name} • {rental.membership_number}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteRental.mutate(rental.id)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => deleteRental.mutate(rental.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>

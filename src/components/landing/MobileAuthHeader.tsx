@@ -27,10 +27,10 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) 
       {/* Fixed Header - visible on mobile and tablet, hidden on desktop (lg+) */}
       <div
         className={cn(
-          "fixed top-0 left-0 right-0 z-50",
-          "bg-background/95 backdrop-blur-md border-b border-border/50",
+          'fixed top-0 left-0 right-0 z-50',
+          'bg-background/95 backdrop-blur-md border-b border-border/50',
           // Show on mobile and tablet, hide on desktop where StickyLandingNav takes over
-          "lg:hidden"
+          'lg:hidden',
         )}
         style={{
           // Extend background through entire safe area

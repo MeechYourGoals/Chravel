@@ -12,12 +12,15 @@ export const CalendarEmptyState = ({ onCreateEvent }: CalendarEmptyStateProps) =
 
   return (
     <div className="text-center py-16 px-4">
-      <div className={`w-24 h-24 bg-gradient-to-br ${accentColors.gradient} opacity-20 rounded-full flex items-center justify-center mx-auto mb-6`}>
+      <div
+        className={`w-24 h-24 bg-gradient-to-br ${accentColors.gradient} opacity-20 rounded-full flex items-center justify-center mx-auto mb-6`}
+      >
         <Calendar size={40} className={`text-${accentColors.primary}`} />
       </div>
       <h3 className="text-2xl font-bold mb-3 text-white">No events scheduled</h3>
       <p className="text-gray-400 mb-8 max-w-md mx-auto">
-        Plan your trip schedule! Add events, activities, and important dates to keep everyone on the same page.
+        Plan your trip schedule! Add events, activities, and important dates to keep everyone on the
+        same page.
       </p>
       <Button
         onClick={onCreateEvent}
@@ -34,11 +37,15 @@ export const CalendarEmptyState = ({ onCreateEvent }: CalendarEmptyStateProps) =
         </div>
         <div className="p-4 bg-white/5 rounded-lg border border-white/10">
           <h4 className="font-semibold mb-2 text-white">Event Details</h4>
-          <p className="text-sm text-gray-400">Add times, locations, and descriptions for each event</p>
+          <p className="text-sm text-gray-400">
+            Add times, locations, and descriptions for each event
+          </p>
         </div>
         <div className="p-4 bg-white/5 rounded-lg border border-white/10">
           <h4 className="font-semibold mb-2 text-white">Itinerary View</h4>
-          <p className="text-sm text-gray-400">Switch to itinerary mode for a day-by-day overview</p>
+          <p className="text-sm text-gray-400">
+            Switch to itinerary mode for a day-by-day overview
+          </p>
         </div>
       </div>
     </div>

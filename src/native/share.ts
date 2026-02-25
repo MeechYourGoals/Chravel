@@ -15,7 +15,7 @@
  *   This file intentionally scaffolds the JS/TS side and a typed Capacitor
  *   plugin interface (`ChravelShare`) that the native side should implement.
  */
- 
+
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import type { PluginListenerHandle } from '@capacitor/core';
 import { App } from '@capacitor/app';
@@ -363,14 +363,20 @@ function bestEffortLinkTitle(url: string): string {
   }
 }
 
-function normalizeInboundFile(item: Extract<InboundSharedItem, { kind: 'image' | 'pdf' | 'file' }>): {
+function normalizeInboundFile(
+  item: Extract<InboundSharedItem, { kind: 'image' | 'pdf' | 'file' }>,
+): {
   mimeType: string;
   filename: string;
   file: File;
 } {
   const mimeType =
     item.mimeType ??
-    (item.kind === 'pdf' ? 'application/pdf' : item.kind === 'image' ? 'image/*' : 'application/octet-stream');
+    (item.kind === 'pdf'
+      ? 'application/pdf'
+      : item.kind === 'image'
+        ? 'image/*'
+        : 'application/octet-stream');
 
   const base =
     item.base64 && item.base64.length > 0
@@ -388,7 +394,9 @@ function normalizeInboundFile(item: Extract<InboundSharedItem, { kind: 'image' |
   const finalMime = base.mimeType ?? mimeType ?? 'application/octet-stream';
   const blob = base64ToBlob(base.base64, finalMime);
   const filename =
-    item.name && item.name.trim().length > 0 ? item.name.trim() : defaultFilenameForMime(finalMime, 'Shared');
+    item.name && item.name.trim().length > 0
+      ? item.name.trim()
+      : defaultFilenameForMime(finalMime, 'Shared');
 
   // File constructor is supported in modern browsers + WKWebView; this is used
   // only to pass into existing upload services.
@@ -483,4 +491,3 @@ export async function ingestInboundSharesToTrip(params: IngestInboundSharesParam
 
   return { consumedIds, created: { links, media }, errors };
 }
-

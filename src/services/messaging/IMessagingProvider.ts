@@ -35,28 +35,28 @@ export interface MessagingConfig {
 export interface IMessagingProvider {
   // Initialize connection
   connect(config: MessagingConfig): Promise<void>;
-  
+
   // Disconnect and cleanup
   disconnect(): Promise<void>;
-  
+
   // Send a message
   sendMessage(options: SendMessageOptions): Promise<Message>;
-  
+
   // Subscribe to new messages
   onMessage(callback: (message: Message) => void): () => void;
-  
+
   // Get message history
   getMessages(limit?: number, before?: Date): Promise<Message[]>;
-  
+
   // Get unread count
   getUnreadCount(): Promise<number>;
-  
+
   // Mark messages as read
   markAsRead(messageIds: string[]): Promise<void>;
-  
+
   // Delete a message
   deleteMessage(messageId: string): Promise<void>;
-  
+
   // Check if provider is connected
   isConnected(): boolean;
 }

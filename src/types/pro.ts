@@ -61,7 +61,16 @@ export interface TeamMember {
   name: string;
   email: string;
   avatar?: string;
-  role: 'artist' | 'manager' | 'assistant' | 'crew' | 'security' | 'photographer' | 'videographer' | 'label-rep' | 'venue-rep';
+  role:
+    | 'artist'
+    | 'manager'
+    | 'assistant'
+    | 'crew'
+    | 'security'
+    | 'photographer'
+    | 'videographer'
+    | 'label-rep'
+    | 'venue-rep';
   permissions: 'admin' | 'editor' | 'viewer';
   isActive: boolean;
   organizationId?: string;
@@ -112,7 +121,6 @@ export interface RoomAssignment {
   roomType: 'single' | 'double' | 'suite' | 'connecting';
   specialRequests?: string[];
 }
-
 
 export interface ProSchedule {
   id: string;
@@ -353,7 +361,7 @@ export interface ProTripData {
   // Privacy settings
   privacy_mode?: 'standard' | 'high';
   ai_access_enabled?: boolean;
-  
+
   // Media content for pro trips
   photos?: Array<{
     id: string;
@@ -397,7 +405,7 @@ export interface ProTripData {
     created_at: string;
     source: 'chat' | 'manual' | 'places';
   }>;
-  
+
   budget: {
     total: number;
     spent: number;
@@ -431,7 +439,7 @@ export interface ProTripData {
 }
 
 export const SUBSCRIPTION_TIERS = {
-  'starter': {
+  starter: {
     name: 'Starter Pro',
     price: 49,
     seatLimit: 50,
@@ -442,10 +450,10 @@ export const SUBSCRIPTION_TIERS = {
       'Basic integrations',
       'Email support',
       'Unlimited Events for your team',
-      'Your first Pro Trip + Event included free'
-    ]
+      'Your first Pro Trip + Event included free',
+    ],
   },
-  'growing': {
+  growing: {
     name: 'Growth Pro',
     price: 99,
     seatLimit: 100,
@@ -456,10 +464,10 @@ export const SUBSCRIPTION_TIERS = {
       'Advanced integrations',
       'Custom workflows',
       'Unlimited Events for your team',
-      'Your first Pro Trip + Event included free'
-    ]
+      'Your first Pro Trip + Event included free',
+    ],
   },
-  'enterprise': {
+  enterprise: {
     name: 'Enterprise',
     price: 199,
     seatLimit: 250,
@@ -469,7 +477,7 @@ export const SUBSCRIPTION_TIERS = {
       'Dedicated success manager',
       '24/7 premium support',
       'Unlimited Events for your team',
-      'Your first Pro Trip + Event included free'
-    ]
-  }
+      'Your first Pro Trip + Event included free',
+    ],
+  },
 } as const;

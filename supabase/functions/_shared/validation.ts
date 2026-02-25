@@ -346,7 +346,9 @@ export const CreateTripSchema = z.object({
   privacy_mode: z.enum(['standard', 'high']).optional(),
   ai_access_enabled: z.boolean().optional(),
   // Pro trip category (internal enum value)
-  category: z.enum(['touring', 'sports', 'work', 'school', 'productions', 'celebrations', 'other']).optional(),
+  category: z
+    .enum(['touring', 'sports', 'work', 'school', 'productions', 'celebrations', 'other'])
+    .optional(),
   enabled_features: z
     .array(
       z.enum([

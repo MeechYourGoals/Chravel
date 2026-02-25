@@ -6,7 +6,10 @@ interface EventInvitationsSectionProps {
   onEventDataChange?: (data: EventSetupData) => void;
 }
 
-export const EventInvitationsSection = ({ eventData = {}, onEventDataChange }: EventInvitationsSectionProps) => {
+export const EventInvitationsSection = ({
+  eventData = {},
+  onEventDataChange,
+}: EventInvitationsSectionProps) => {
   const [invitations, setInvitations] = useState<EventInvitation[]>(eventData.invitations || []);
 
   const handleInvitationsUpdate = (updatedInvitations: EventInvitation[]) => {

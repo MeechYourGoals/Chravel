@@ -83,4 +83,3 @@ export function useOfflineUiStatus(): {
 
   return { status, isOnline, pendingCount, failedCount, recentlySynced, syncNow };
 }
-

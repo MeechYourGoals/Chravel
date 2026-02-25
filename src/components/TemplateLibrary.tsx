@@ -3,7 +3,7 @@ import React from 'react';
 const templates = [
   { id: 'reminder', text: 'Reminder: ' },
   { id: 'update', text: 'Quick update: ' },
-  { id: 'announcement', text: 'Announcement: ' }
+  { id: 'announcement', text: 'Announcement: ' },
 ];
 
 export const TemplateLibrary = ({ onSelect }: { onSelect: (text: string) => void }) => (

@@ -33,10 +33,7 @@ class PaymentProcessorFactory {
   /**
    * Process payment with the appropriate processor
    */
-  async processPayment(
-    type: ProcessorType,
-    request: PaymentRequest
-  ): Promise<PaymentResponse> {
+  async processPayment(type: ProcessorType, request: PaymentRequest): Promise<PaymentResponse> {
     const processor = this.getProcessor(type);
 
     if (!processor) {
@@ -46,8 +43,8 @@ class PaymentProcessorFactory {
           code: 'PROCESSOR_NOT_FOUND',
           message: `Payment processor '${type}' is not available`,
           type: 'invalid_request',
-          retryable: false
-        }
+          retryable: false,
+        },
       };
     }
 
@@ -58,8 +55,8 @@ class PaymentProcessorFactory {
           code: 'PROCESSOR_NOT_CONFIGURED',
           message: `Payment processor '${type}' is not configured`,
           type: 'invalid_request',
-          retryable: false
-        }
+          retryable: false,
+        },
       };
     }
 
@@ -69,10 +66,7 @@ class PaymentProcessorFactory {
   /**
    * Validate payment method identifier
    */
-  async validatePaymentMethod(
-    type: ProcessorType,
-    identifier: string
-  ): Promise<boolean> {
+  async validatePaymentMethod(type: ProcessorType, identifier: string): Promise<boolean> {
     const processor = this.getProcessor(type);
     if (!processor) {
       return false;

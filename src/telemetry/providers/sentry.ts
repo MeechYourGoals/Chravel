@@ -142,10 +142,7 @@ export class SentryProvider implements TelemetryProvider {
     }
   }
 
-  track<E extends TelemetryEventName>(
-    event: E,
-    properties: TelemetryEventMap[E]
-  ): void {
+  track<E extends TelemetryEventName>(event: E, properties: TelemetryEventMap[E]): void {
     if (!this.enabled || !sentryInstance) return;
 
     // Add as breadcrumb for error context

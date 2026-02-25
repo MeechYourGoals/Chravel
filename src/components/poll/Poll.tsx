@@ -19,18 +19,18 @@ interface PollProps {
   isDeleting?: boolean;
 }
 
-export const Poll = ({ 
-  poll, 
-  onVote, 
+export const Poll = ({
+  poll,
+  onVote,
   onRemoveVote,
   onClose,
   onDelete,
-  onExport, 
-  disabled = false, 
-  isVoting = false, 
+  onExport,
+  disabled = false,
+  isVoting = false,
   isClosing = false,
   isRemovingVote = false,
-  isDeleting = false
+  isDeleting = false,
 }: PollProps) => {
   const { user } = useAuth();
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -70,7 +70,7 @@ export const Poll = ({
 
   const isDeadlinePassed = poll.deadline_at ? new Date(poll.deadline_at) < new Date() : false;
   const canVote = !disabled && !isVoting && poll.status === 'active' && !isDeadlinePassed;
-  const hasVoted = poll.allow_multiple 
+  const hasVoted = poll.allow_multiple
     ? Array.isArray(poll.userVote) && poll.userVote.length > 0
     : !!poll.userVote;
   const canChangeVote = hasVoted && poll.allow_vote_change && canVote;
@@ -121,9 +121,7 @@ export const Poll = ({
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold text-white">{poll.question}</h3>
         {poll.status === 'closed' && (
-          <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">
-            Closed
-          </span>
+          <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">Closed</span>
         )}
       </div>
 
@@ -137,7 +135,7 @@ export const Poll = ({
 
       {/* Options */}
       <div className="space-y-2">
-        {poll.options.map((option) => (
+        {poll.options.map(option => (
           <PollOption
             key={option.id}
             option={option}
@@ -158,7 +156,9 @@ export const Poll = ({
           disabled={selectedOptions.length === 0 || isVoting}
           className="w-full h-9 rounded-lg bg-primary hover:bg-primary/90 font-medium text-primary-foreground text-sm"
         >
-          {isVoting ? 'Submitting...' : `Submit ${selectedOptions.length} Vote${selectedOptions.length !== 1 ? 's' : ''}`}
+          {isVoting
+            ? 'Submitting...'
+            : `Submit ${selectedOptions.length} Vote${selectedOptions.length !== 1 ? 's' : ''}`}
         </Button>
       )}
 
@@ -167,7 +167,7 @@ export const Poll = ({
         <p className="text-xs text-muted-foreground">
           {poll.totalVotes} vote{poll.totalVotes !== 1 ? 's' : ''}
         </p>
-        
+
         <div className="flex items-center gap-2">
           {/* Remove vote button */}
           {hasVoted && poll.allow_vote_change && onRemoveVote && (
@@ -182,7 +182,7 @@ export const Poll = ({
               {isRemovingVote ? 'Removing...' : 'Remove Vote'}
             </Button>
           )}
-          
+
           {/* Close button (only for creator) */}
           {isCreator && poll.status === 'active' && onClose && (
             <Button
@@ -195,7 +195,7 @@ export const Poll = ({
               {isClosing ? 'Closing...' : 'Close Poll'}
             </Button>
           )}
-          
+
           {/* Delete button (only for creator) */}
           {isCreator && onDelete && (
             <Button

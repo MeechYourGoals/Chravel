@@ -278,10 +278,9 @@ class ChannelService {
       // Ensure the creator is added as a channel member (DB trigger handles this too,
       // but we add it here for immediate consistency on the client side)
       if (user) {
-        await supabase.from('channel_members').upsert(
-          { channel_id: data.id, user_id: user.id },
-          { onConflict: 'channel_id,user_id' },
-        );
+        await supabase
+          .from('channel_members')
+          .upsert({ channel_id: data.id, user_id: user.id }, { onConflict: 'channel_id,user_id' });
       }
 
       return {
@@ -609,7 +608,10 @@ class ChannelService {
 
     if (request.messageType === 'broadcast' && request.broadcastCategory) {
       insertData.broadcast_category = request.broadcastCategory;
-      insertData.metadata = { ...(insertData.metadata as Record<string, unknown>), category: request.broadcastCategory };
+      insertData.metadata = {
+        ...(insertData.metadata as Record<string, unknown>),
+        category: request.broadcastCategory,
+      };
     }
 
     const { data, error } = await supabase

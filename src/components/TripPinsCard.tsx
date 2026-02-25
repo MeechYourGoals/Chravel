@@ -17,15 +17,15 @@ interface TripPinsCardProps {
   preferredMode: string;
 }
 
-export const TripPinsCard = ({ 
+export const TripPinsCard = ({
   tripId,
-  places, 
-  basecamp, 
-  onPlaceAdded, 
-  onPlaceRemoved, 
+  places,
+  basecamp,
+  onPlaceAdded,
+  onPlaceRemoved,
   onEventAdded,
   distanceUnit,
-  preferredMode
+  preferredMode,
 }: TripPinsCardProps) => {
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
 
@@ -34,11 +34,13 @@ export const TripPinsCard = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-            places.length > 0 
-              ? 'bg-gradient-to-r from-red-600 to-red-700' 
-              : 'bg-gradient-to-r from-gray-600 to-gray-700'
-          }`}>
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              places.length > 0
+                ? 'bg-gradient-to-r from-red-600 to-red-700'
+                : 'bg-gradient-to-r from-gray-600 to-gray-700'
+            }`}
+          >
             <MapPin size={20} className="text-white" />
           </div>
           <div>
@@ -48,7 +50,7 @@ export const TripPinsCard = ({
             </p>
           </div>
         </div>
-        <button 
+        <button
           onClick={() => setIsAddPlaceModalOpen(true)}
           className="text-gray-400 hover:text-white transition-colors"
         >
@@ -62,19 +64,20 @@ export const TripPinsCard = ({
           <div className="w-20 h-20 bg-gradient-to-r from-gray-800 to-gray-900 rounded-full flex items-center justify-center border border-gray-700 mb-6">
             <MapPin size={32} className="text-gray-400" />
           </div>
-          
+
           <h4 className="text-xl font-bold text-white mb-3">Save Trip Pins</h4>
           <p className="text-gray-400 mb-6 max-w-sm mx-auto leading-relaxed">
-            Start saving locations you want to visit or remember for your trip. Explore the map above and add places that catch your eye.
+            Start saving locations you want to visit or remember for your trip. Explore the map
+            above and add places that catch your eye.
           </p>
-          
+
           <button
             onClick={() => setIsAddPlaceModalOpen(true)}
             className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-4 rounded-xl transition-all duration-300 hover:scale-105 shadow-xl shadow-green-500/25 font-semibold border border-green-500/50"
           >
             Save Pin
           </button>
-          
+
           <div className="mt-8 space-y-2 text-sm text-gray-500">
             <p>• Places you add will be saved to Links for easy access</p>
             <p>• View distances from your basecamp when set</p>
@@ -97,27 +100,31 @@ export const TripPinsCard = ({
 
           {/* Places List */}
           <div className="space-y-3 flex-1 overflow-y-auto">
-            {places.map((place) => (
+            {places.map(place => (
               <div key={place.id} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="text-white font-semibold text-sm">{place.name}</h4>
-                      <Badge variant="secondary" className="text-xs bg-blue-500/20 text-blue-300 border-blue-500/30">
+                      <Badge
+                        variant="secondary"
+                        className="text-xs bg-blue-500/20 text-blue-300 border-blue-500/30"
+                      >
                         Linked
                       </Badge>
                     </div>
                     <p className="text-gray-400 text-xs capitalize mb-2">{place.category}</p>
-                    
+
                     {place.distanceFromBasecamp && (
                       <div className="mb-3">
                         <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-300 px-2 py-1 rounded-lg text-xs">
                           <MapPin size={12} />
-                          {place.distanceFromBasecamp[preferredMode]?.toFixed(1)} {place.distanceFromBasecamp.unit} from basecamp
+                          {place.distanceFromBasecamp[preferredMode]?.toFixed(1)}{' '}
+                          {place.distanceFromBasecamp.unit} from basecamp
                         </span>
                       </div>
                     )}
-                    
+
                     <div className="flex gap-2">
                       <AddToCalendarButton
                         tripId={tripId}
@@ -127,7 +134,7 @@ export const TripPinsCard = ({
                         onEventAdded={onEventAdded}
                         variant="pill"
                       />
-                      <button 
+                      <button
                         onClick={() => onPlaceRemoved(place.id)}
                         className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors"
                       >
@@ -143,7 +150,7 @@ export const TripPinsCard = ({
         </div>
       )}
 
-      <AddPlaceModal 
+      <AddPlaceModal
         isOpen={isAddPlaceModalOpen}
         onClose={() => setIsAddPlaceModalOpen(false)}
         onPlaceAdded={onPlaceAdded}

@@ -39,17 +39,17 @@ class ErrorTrackingService {
       ...breadcrumb,
       timestamp: new Date().toISOString(),
     };
-    
+
     this.breadcrumbs.push(timestamped);
-    
+
     // Keep breadcrumb buffer bounded
     if (this.breadcrumbs.length > this.maxBreadcrumbs) {
       this.breadcrumbs.shift();
     }
-    
+
     // In production, send to Sentry
     // Sentry.addBreadcrumb({ category, message, level, data });
-    
+
     if (import.meta.env.DEV) {
       console.log(`[Breadcrumb] ${breadcrumb.category}: ${breadcrumb.message}`, breadcrumb.data);
     }
@@ -76,18 +76,21 @@ class ErrorTrackingService {
 
     // In production, send to Sentry
     // Sentry.captureException(error, { contexts: { custom: context } });
-    
+
     console.error('[ErrorTracking] Exception:', error.message, context);
   }
 
-  captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info', context?: ErrorContext) {
+  captureMessage(
+    message: string,
+    level: 'info' | 'warning' | 'error' = 'info',
+    context?: ErrorContext,
+  ) {
     if (!this.isInitialized) {
       console.warn('[ErrorTracking] Not initialized');
     }
 
     // In production, send to Sentry
     // Sentry.captureMessage(message, { level, contexts: { custom: context } });
-    
   }
 
   setUser(userId: string, userData?: Record<string, unknown>) {

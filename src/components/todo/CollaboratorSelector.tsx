@@ -2,7 +2,14 @@ import React from 'react';
 import { Check, ChevronDown, Users, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '../ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Badge } from '../ui/badge';
 import { useTripMembers } from '../../hooks/useTripMembers';
@@ -24,7 +31,7 @@ export const CollaboratorSelector = ({
   tripId,
   selectedMembers,
   onMembersChange,
-  isSingleTask
+  isSingleTask,
 }: CollaboratorSelectorProps) => {
   const { tripMembers: rawTripMembers, loading } = useTripMembers(tripId);
   const tripMembers = Array.isArray(rawTripMembers) ? rawTripMembers : [];
@@ -60,11 +67,14 @@ export const CollaboratorSelector = ({
     .map(m => m.name)
     .join(', ');
 
-  const displayText = selectedMembers.length === 0 
-    ? isSingleTask ? 'Assign to someone' : 'Assign to group'
-    : selectedMembers.length === tripMembers.length && !isSingleTask
-      ? 'Everyone'
-      : selectedMemberNames;
+  const displayText =
+    selectedMembers.length === 0
+      ? isSingleTask
+        ? 'Assign to someone'
+        : 'Assign to group'
+      : selectedMembers.length === tripMembers.length && !isSingleTask
+        ? 'Everyone'
+        : selectedMemberNames;
 
   if (loading) {
     return (
@@ -96,7 +106,7 @@ export const CollaboratorSelector = ({
           </Button>
         )}
       </div>
-      
+
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -111,23 +121,21 @@ export const CollaboratorSelector = ({
               ) : (
                 <Users size={16} className="text-gray-400 shrink-0" />
               )}
-              <span className="truncate">
-                {displayText}
-              </span>
+              <span className="truncate">{displayText}</span>
             </div>
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0 bg-gray-800 border-gray-600 z-50">
           <Command className="bg-gray-800">
-            <CommandInput 
-              placeholder="Search members..." 
+            <CommandInput
+              placeholder="Search members..."
               className="bg-gray-800 border-gray-600 text-white"
             />
             <CommandList>
               <CommandEmpty>No members found.</CommandEmpty>
               <CommandGroup>
-                {tripMembers.map((member) => (
+                {tripMembers.map(member => (
                   <CommandItem
                     key={member.id}
                     onSelect={() => handleMemberToggle(member.id)}

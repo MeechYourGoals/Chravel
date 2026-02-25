@@ -102,7 +102,7 @@ export function extractUploadPathFromMetadata(metadata: unknown): string | null 
 export async function uploadTripMedia(
   tripId: string,
   file: File,
-  userId: string
+  userId: string,
 ): Promise<TripMedia> {
   const mime = getUploadContentType(file);
 
@@ -114,9 +114,7 @@ export async function uploadTripMedia(
 
   // Warn on MOV (codec issues)
   if (mime === 'video/quicktime') {
-    console.warn(
-      '[mediaService] MOV uploaded. Ensure codec is H.264 for browser compatibility.'
-    );
+    console.warn('[mediaService] MOV uploaded. Ensure codec is H.264 for browser compatibility.');
   }
 
   // Determine media type from MIME (not extension)
@@ -184,9 +182,7 @@ export async function deleteTripMedia(media: TripMedia): Promise<void> {
 
   // Step 2: Delete from storage FIRST (rule: storage must succeed before DB)
   if (storagePath) {
-    const { error: storageError } = await supabase.storage
-      .from('trip-media')
-      .remove([storagePath]);
+    const { error: storageError } = await supabase.storage.from('trip-media').remove([storagePath]);
     if (storageError) throw storageError;
   }
 
@@ -211,7 +207,9 @@ export const mediaService = {
    * Upload a media file to Supabase Storage (authenticated mode)
    */
   async uploadMedia(request: UploadMediaRequest): Promise<MediaItem> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
     const result = await uploadTripMedia(request.tripId, request.file, user.id);
@@ -242,7 +240,7 @@ export const mediaService = {
 
     if (error) throw error;
 
-    return (data || []).map((item) => ({
+    return (data || []).map(item => ({
       id: item.id,
       trip_id: item.trip_id,
       media_url: item.media_url,
@@ -273,7 +271,7 @@ export const mediaService = {
 
     if (error) throw error;
 
-    return (data || []).map((item) => ({
+    return (data || []).map(item => ({
       id: item.id,
       trip_id: item.trip_id,
       media_url: item.media_url,
@@ -361,7 +359,7 @@ export const mediaService = {
       by_type: {} as Record<string, number>,
     };
 
-    data.forEach((item) => {
+    data.forEach(item => {
       stats.by_type[item.media_type] = (stats.by_type[item.media_type] || 0) + 1;
     });
 

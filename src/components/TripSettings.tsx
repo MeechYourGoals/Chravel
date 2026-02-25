@@ -28,11 +28,19 @@ const TRIP_CATEGORIES = [
   'Business Travel',
   'School Trip',
   'Content',
-  'Other'
+  'Other',
 ];
 
-export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId }: TripSettingsProps) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'general' | 'activity' | 'danger' | 'eventlog'>('users');
+export const TripSettings = ({
+  isOpen,
+  onClose,
+  tripId,
+  tripName,
+  currentUserId,
+}: TripSettingsProps) => {
+  const [activeTab, setActiveTab] = useState<
+    'users' | 'general' | 'activity' | 'danger' | 'eventlog'
+  >('users');
   const [tripCategory, setTripCategory] = useState('Business Travel');
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -46,29 +54,29 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
       name: 'Emma Wilson',
       avatar: getConsistentAvatar('Emma Wilson'),
       role: 'owner',
-      joinedAt: '2024-01-15'
+      joinedAt: '2024-01-15',
     },
     {
       id: '2',
       name: 'Jake Thompson',
       avatar: getConsistentAvatar('Jake Thompson'),
       role: 'admin',
-      joinedAt: '2024-01-16'
+      joinedAt: '2024-01-16',
     },
     {
       id: '3',
       name: 'Sarah Chen',
       avatar: getConsistentAvatar('Sarah Chen'),
       role: 'member',
-      joinedAt: '2024-01-18'
+      joinedAt: '2024-01-18',
     },
     {
       id: '4',
       name: 'You',
       avatar: getConsistentAvatar('You'),
       role: 'member',
-      joinedAt: '2024-01-20'
-    }
+      joinedAt: '2024-01-20',
+    },
   ]);
 
   if (!isOpen) return null;
@@ -103,7 +111,7 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
     { id: 'general', label: 'General', icon: Settings },
     ...(showEventLogTab ? [{ id: 'activity', label: 'Activity', icon: Activity }] : []),
     ...(showEventLogTab ? [{ id: 'eventlog', label: 'Event Log', icon: ScrollText }] : []),
-    { id: 'danger', label: 'Danger Zone', icon: Trash2 }
+    { id: 'danger', label: 'Danger Zone', icon: Trash2 },
   ];
 
   return (
@@ -122,7 +130,7 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
           </div>
 
           <div className="space-y-2">
-            {tabs.map((tab) => {
+            {tabs.map(tab => {
               const Icon = tab.icon;
               return (
                 <button
@@ -159,7 +167,7 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
             {activeTab === 'general' && (
               <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-6">General Settings</h3>
-                
+
                 {/* Trip Category Selection */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-300 mb-3">
@@ -167,28 +175,28 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
                   </label>
                   <select
                     value={showCustomInput ? 'Other' : tripCategory}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    onChange={e => handleCategoryChange(e.target.value)}
                     className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 focus:border-glass-orange/50"
                   >
-                    {TRIP_CATEGORIES.map((category) => (
+                    {TRIP_CATEGORIES.map(category => (
                       <option key={category} value={category}>
                         {category}
                       </option>
                     ))}
                   </select>
-                  
+
                   {showCustomInput && (
                     <div className="mt-3">
                       <input
                         type="text"
                         value={customCategory}
-                        onChange={(e) => setCustomCategory(e.target.value)}
+                        onChange={e => setCustomCategory(e.target.value)}
                         placeholder="Enter custom category..."
                         className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 focus:border-glass-orange/50"
                       />
                     </div>
                   )}
-                  
+
                   <button
                     onClick={handleSaveCategory}
                     className="mt-3 bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-2 rounded-xl transition-colors font-medium"
@@ -199,9 +207,7 @@ export const TripSettings = ({ isOpen, onClose, tripId, tripName, currentUserId 
 
                 {/* Trip Name */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-300 mb-3">
-                    Trip Name
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-3">Trip Name</label>
                   <input
                     type="text"
                     defaultValue={tripName}

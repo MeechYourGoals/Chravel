@@ -1,11 +1,11 @@
 /**
  * Event Check-In Component
- * 
+ *
  * Provides check-in functionality for event organizers:
  * - Manual check-in by attendee name/email
  * - Check-in status display
  * - Real-time check-in count
- * 
+ *
  * Used by: Event organizers/admins for attendee check-in
  */
 
@@ -68,7 +68,7 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
         userEmail: rsvp.user_email,
         status: rsvp.status,
         checkedIn: rsvp.checked_in || false,
-        checkedInAt: rsvp.checked_in_at
+        checkedInAt: rsvp.checked_in_at,
       }));
 
       setAttendees(attendeeList);
@@ -90,7 +90,7 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
 
       const { error } = await supabase.rpc('check_in_attendee' as any, {
         _rsvp_id: rsvpId,
-        _checked_in_by: user.id
+        _checked_in_by: user.id,
       });
 
       if (error) {
@@ -110,9 +110,10 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
   };
 
   // Filter attendees by search query
-  const filteredAttendees = attendees.filter(attendee =>
-    attendee.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    attendee.userEmail.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredAttendees = attendees.filter(
+    attendee =>
+      attendee.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      attendee.userEmail.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   React.useEffect(() => {
@@ -170,14 +171,14 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
           <Input
             placeholder="Search by name or email..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
           />
 
           {isLoading ? (
             <LoadingSpinner className="mx-auto my-8" />
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredAttendees.map((attendee) => (
+              {filteredAttendees.map(attendee => (
                 <div
                   key={attendee.id}
                   className="flex items-center justify-between p-3 bg-white/5 rounded-lg"

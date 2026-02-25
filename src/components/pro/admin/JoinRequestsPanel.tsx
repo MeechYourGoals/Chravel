@@ -22,7 +22,7 @@ interface JoinRequestsPanelProps {
 
 export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) => {
   const { requests, isLoading, isProcessing, approveRequest, rejectRequest } = useJoinRequests({
-    tripId
+    tripId,
   });
 
   const [pendingAction, setPendingAction] = useState<{
@@ -88,7 +88,7 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
       </div>
 
       <div className="space-y-3">
-        {requests.map((request) => (
+        {requests.map(request => (
           <div
             key={request.id}
             className="flex items-center justify-between p-4 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm"
@@ -106,7 +106,8 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
                   {request.profile?.display_name || 'Former Member'}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Requested {formatDistanceToNow(new Date(request.requested_at), { addSuffix: true })}
+                  Requested{' '}
+                  {formatDistanceToNow(new Date(request.requested_at), { addSuffix: true })}
                 </span>
               </div>
             </div>
@@ -116,10 +117,7 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
                 size="sm"
                 variant="default"
                 onClick={() =>
-                  handleApproveClick(
-                    request.id,
-                    request.profile?.display_name || 'this user'
-                  )
+                  handleApproveClick(request.id, request.profile?.display_name || 'this user')
                 }
                 disabled={isProcessing}
                 className="bg-green-500 hover:bg-green-600 text-white"
@@ -131,10 +129,7 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
                 size="sm"
                 variant="destructive"
                 onClick={() =>
-                  handleRejectClick(
-                    request.id,
-                    request.profile?.display_name || 'this user'
-                  )
+                  handleRejectClick(request.id, request.profile?.display_name || 'this user')
                 }
                 disabled={isProcessing}
               >
@@ -166,14 +161,14 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
             <AlertDialogDescription className="text-muted-foreground">
               {pendingAction?.type === 'approve' ? (
                 <>
-                  You're about to approve <strong>{pendingAction.userName}</strong> to join this trip.
-                  They will be added as a member and can access all trip content based on their assigned
-                  role.
+                  You're about to approve <strong>{pendingAction.userName}</strong> to join this
+                  trip. They will be added as a member and can access all trip content based on
+                  their assigned role.
                 </>
               ) : (
                 <>
-                  You're about to reject <strong>{pendingAction?.userName}</strong>'s request to join this
-                  trip. They will be notified that their request was not approved.
+                  You're about to reject <strong>{pendingAction?.userName}</strong>'s request to
+                  join this trip. They will be notified that their request was not approved.
                 </>
               )}
             </AlertDialogDescription>

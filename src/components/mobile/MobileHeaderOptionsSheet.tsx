@@ -1,12 +1,7 @@
 import React from 'react';
 import { Share2, FileDown, UserPlus, Trash2 } from 'lucide-react';
 import { hapticService } from '../../services/hapticService';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '../ui/drawer';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '../ui/drawer';
 
 interface MobileHeaderOptionsSheetProps {
   isOpen: boolean;
@@ -25,7 +20,7 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
   onExport,
   onInvite,
   onDelete,
-  tripTitle = 'Trip'
+  tripTitle = 'Trip',
 }) => {
   const handleAction = (action?: () => void) => {
     hapticService.light();
@@ -37,12 +32,12 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
   };
 
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Drawer open={isOpen} onOpenChange={open => !open && onClose()}>
       <DrawerContent className="bg-gray-900 border-gray-800">
         <DrawerHeader className="border-b border-gray-800 pb-4">
           <DrawerTitle className="text-white text-center">{tripTitle}</DrawerTitle>
         </DrawerHeader>
-        
+
         <div className="p-4 space-y-2">
           {onShare && (
             <button
@@ -58,7 +53,7 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
               </div>
             </button>
           )}
-          
+
           {onExport && (
             <button
               onClick={() => handleAction(onExport)}
@@ -73,7 +68,7 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
               </div>
             </button>
           )}
-          
+
           {onInvite && (
             <button
               onClick={() => handleAction(onInvite)}
@@ -104,7 +99,7 @@ export const MobileHeaderOptionsSheet: React.FC<MobileHeaderOptionsSheetProps> =
             </button>
           )}
         </div>
-        
+
         <div className="p-4 pt-0">
           <button
             onClick={() => handleAction()}

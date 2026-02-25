@@ -16,7 +16,10 @@ export interface SavedRecommendationRow {
   updated_at: string;
 }
 
-const mapRecommendationToRow = (rec: Recommendation, userId: string): Omit<SavedRecommendationRow, 'id' | 'created_at' | 'updated_at'> => ({
+const mapRecommendationToRow = (
+  rec: Recommendation,
+  userId: string,
+): Omit<SavedRecommendationRow, 'id' | 'created_at' | 'updated_at'> => ({
   user_id: userId,
   rec_id: rec.id,
   rec_type: rec.type,
@@ -25,7 +28,7 @@ const mapRecommendationToRow = (rec: Recommendation, userId: string): Omit<Saved
   city: rec.city,
   external_link: rec.externalLink,
   image_url: rec.images?.[0] || null,
-  data: rec
+  data: rec,
 });
 
 export const savedRecommendationsService = {
@@ -57,7 +60,8 @@ export const savedRecommendationsService = {
       .insert(payload)
       .select('*')
       .maybeSingle();
-    if (error && error.code !== '23505') { // unique violation => already saved
+    if (error && error.code !== '23505') {
+      // unique violation => already saved
       throw error;
     }
     return data || null;
@@ -82,17 +86,19 @@ export const savedRecommendationsService = {
     return 'saved';
   },
 
-  async addToTrip(userId: string, saved: SavedRecommendationRow, tripId: string | number): Promise<void> {
-    const { error } = await supabase
-      .from('trip_links')
-      .insert({
-        added_by: userId,
-        trip_id: String(tripId),
-        title: saved.title,
-        url: saved.external_link || (saved.data?.externalLink ?? ''),
-        description: saved.location || saved.city || null,
-        category: typeof saved.rec_type === 'string' ? saved.rec_type : 'recommendation'
-      });
+  async addToTrip(
+    userId: string,
+    saved: SavedRecommendationRow,
+    tripId: string | number,
+  ): Promise<void> {
+    const { error } = await supabase.from('trip_links').insert({
+      added_by: userId,
+      trip_id: String(tripId),
+      title: saved.title,
+      url: saved.external_link || (saved.data?.externalLink ?? ''),
+      description: saved.location || saved.city || null,
+      category: typeof saved.rec_type === 'string' ? saved.rec_type : 'recommendation',
+    });
     if (error) throw error;
-  }
+  },
 };

@@ -38,20 +38,20 @@ export const MessageTypeBar = ({
   // Measure pill bar width dynamically with ResizeObserver
   useEffect(() => {
     if (!pillBarRef.current) return;
-    
+
     const updateWidth = () => {
       if (pillBarRef.current) {
         setPillBarWidth(pillBarRef.current.offsetWidth);
       }
     };
-    
+
     // Initial measurement
     updateWidth();
-    
+
     // ResizeObserver for dynamic updates
     const resizeObserver = new ResizeObserver(updateWidth);
     resizeObserver.observe(pillBarRef.current);
-    
+
     return () => resizeObserver.disconnect();
   }, []);
 
@@ -73,20 +73,19 @@ export const MessageTypeBar = ({
     <div className="sticky top-0 z-10 backdrop-blur-lg px-2 py-1 rounded-t-2xl overflow-hidden">
       {/* Centered Segmented Control Container */}
       <div className="flex items-center justify-center">
-        <div 
+        <div
           ref={pillBarRef}
           className="inline-flex items-center bg-neutral-900/70 backdrop-blur-md border border-white/10 rounded-xl p-0.5 shadow-lg max-w-full sm:max-w-[450px] md:max-w-[520px] lg:max-w-[600px]"
         >
-          
           {/* Messages Segment */}
           <button
             onClick={() => onFilterChange('all')}
             className={cn(
-              "relative flex items-center gap-1.5 px-3 py-2 rounded-xl",
-              "text-sm font-medium transition-all duration-200",
+              'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+              'text-sm font-medium transition-all duration-200',
               activeFilter === 'all'
-                ? "bg-blue-600 text-white shadow-md"
-                : "text-white/70 hover:text-white hover:bg-white/5"
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-white/70 hover:text-white hover:bg-white/5',
             )}
             aria-pressed={activeFilter === 'all'}
           >
@@ -103,11 +102,11 @@ export const MessageTypeBar = ({
           <button
             onClick={() => onFilterChange('broadcasts')}
             className={cn(
-              "relative flex items-center gap-1.5 px-3 py-2 rounded-xl",
-              "text-sm font-medium transition-all duration-200",
+              'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+              'text-sm font-medium transition-all duration-200',
               activeFilter === 'broadcasts'
-                ? "bg-orange-500 text-white shadow-md"
-                : "text-orange-400/70 hover:text-orange-400 hover:bg-orange-500/10"
+                ? 'bg-orange-500 text-white shadow-md'
+                : 'text-orange-400/70 hover:text-orange-400 hover:bg-orange-500/10',
             )}
             aria-pressed={activeFilter === 'broadcasts'}
           >
@@ -132,26 +131,24 @@ export const MessageTypeBar = ({
                   }}
                   disabled={!hasChannels}
                   className={cn(
-                    "relative flex items-center gap-1.5 px-3 py-2 rounded-xl",
-                    "text-sm font-medium transition-all duration-200",
-                    !hasChannels && "opacity-40 cursor-not-allowed",
+                    'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+                    'text-sm font-medium transition-all duration-200',
+                    !hasChannels && 'opacity-40 cursor-not-allowed',
                     activeFilter === 'channels' && hasChannels
-                      ? "bg-purple-500 text-white shadow-md"
-                      : "text-purple-400/70 hover:text-purple-400 hover:bg-purple-500/10",
-                    !hasChannels && "hover:bg-transparent"
+                      ? 'bg-purple-500 text-white shadow-md'
+                      : 'text-purple-400/70 hover:text-purple-400 hover:bg-purple-500/10',
+                    !hasChannels && 'hover:bg-transparent',
                   )}
                   aria-pressed={activeFilter === 'channels'}
-                  title={!hasChannels ? "No role-based channels for this trip" : undefined}
+                  title={!hasChannels ? 'No role-based channels for this trip' : undefined}
                 >
                   <Hash className="w-4 h-4" />
                   <span>
-                    {activeChannel 
+                    {activeChannel
                       ? activeChannel.channelName.toLowerCase().replace(/\s+/g, '-')
                       : 'Channels'}
                   </span>
-                  {activeChannel && hasChannels && (
-                    <ChevronDown className="w-3 h-3 opacity-70" />
-                  )}
+                  {activeChannel && hasChannels && <ChevronDown className="w-3 h-3 opacity-70" />}
                 </button>
               </PopoverTrigger>
 
@@ -172,18 +169,18 @@ export const MessageTypeBar = ({
                         setChannelPopoverOpen(false);
                       }}
                       className={cn(
-                        "flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                        'flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
                         !activeChannel
-                          ? "bg-blue-500 text-white shadow-md"
-                          : "text-white/70 hover:text-white hover:bg-white/10"
+                          ? 'bg-blue-500 text-white shadow-md'
+                          : 'text-white/70 hover:text-white hover:bg-white/10',
                       )}
                     >
                       <MessageCircle className="w-3.5 h-3.5 flex-shrink-0" />
                       <span className="whitespace-nowrap">All Messages</span>
                     </button>
-                    
+
                     <div className="h-px bg-white/10 my-1" />
-                    
+
                     {availableChannels
                       .sort((a, b) => a.channelName.localeCompare(b.channelName))
                       .map(channel => (
@@ -191,14 +188,16 @@ export const MessageTypeBar = ({
                           key={channel.id}
                           onClick={() => handleChannelSelect(channel)}
                           className={cn(
-                            "flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                            'flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
                             activeChannel?.id === channel.id
-                              ? "bg-purple-500 text-white shadow-md"
-                              : "text-white/70 hover:text-white hover:bg-white/10"
+                              ? 'bg-purple-500 text-white shadow-md'
+                              : 'text-white/70 hover:text-white hover:bg-white/10',
                           )}
                         >
                           <Hash className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span className="whitespace-nowrap">{channel.channelName.toLowerCase().replace(/\s+/g, '-')}</span>
+                          <span className="whitespace-nowrap">
+                            {channel.channelName.toLowerCase().replace(/\s+/g, '-')}
+                          </span>
                           <span className="text-xs text-white/50 flex-shrink-0">
                             {channel.memberCount || 0}
                           </span>
@@ -214,9 +213,9 @@ export const MessageTypeBar = ({
           <button
             onClick={onSearchClick}
             className={cn(
-              "relative flex items-center gap-1.5 px-3 py-2 rounded-xl",
-              "text-sm font-medium transition-all duration-200",
-              "text-cyan-400/70 hover:text-cyan-400 hover:bg-cyan-500/10"
+              'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+              'text-sm font-medium transition-all duration-200',
+              'text-cyan-400/70 hover:text-cyan-400 hover:bg-cyan-500/10',
             )}
             title="Search messages and broadcasts"
           >

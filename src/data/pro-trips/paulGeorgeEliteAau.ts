@@ -19,7 +19,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       completed: true,
       due_at: '2026-07-07',
       assigned_to: 'team-manager',
-      created_at: new Date(Date.now() - 604800000).toISOString()
+      created_at: new Date(Date.now() - 604800000).toISOString(),
     },
     {
       id: 'task-pg-2',
@@ -28,8 +28,8 @@ export const paulGeorgeEliteAau: ProTripData = {
       completed: false,
       due_at: '2026-07-09',
       assigned_to: 'director',
-      created_at: new Date().toISOString()
-    }
+      created_at: new Date().toISOString(),
+    },
   ],
   polls: [
     {
@@ -38,12 +38,12 @@ export const paulGeorgeEliteAau: ProTripData = {
       options: [
         { id: 'opt1', text: 'Chipotle', votes: 28 },
         { id: 'opt2', text: 'Chick-fil-A', votes: 52 },
-        { id: 'opt3', text: 'Pizza Hut', votes: 15 }
+        { id: 'opt3', text: 'Pizza Hut', votes: 15 },
       ],
       total_votes: 95,
       status: 'closed',
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
   ],
   links: [
     {
@@ -53,7 +53,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       description: 'Official tournament schedule and bracket information',
       domain: 'espnwwos.com',
       created_at: new Date().toISOString(),
-      source: 'places'
+      source: 'places',
     },
     {
       id: 'link-pg-2',
@@ -62,18 +62,19 @@ export const paulGeorgeEliteAau: ProTripData = {
       description: 'Team accommodation and amenities',
       domain: 'disney.go.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
-      source: 'manual'
-    }
+      source: 'manual',
+    },
   ],
   broadcasts: [
     {
       id: 'bc-pg-1',
       senderId: '101',
-      message: 'Breakfast at 7 AM sharp tomorrow. Bus leaves hotel at 8:15 AM for tournament check-in.',
+      message:
+        'Breakfast at 7 AM sharp tomorrow. Bus leaves hotel at 8:15 AM for tournament check-in.',
       targetTrips: ['paul-george-elite-aau-nationals-2026'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['102', '103', '104']
+      readBy: ['102', '103', '104'],
     },
     {
       id: 'bc-pg-2',
@@ -82,23 +83,53 @@ export const paulGeorgeEliteAau: ProTripData = {
       targetTrips: ['paul-george-elite-aau-nationals-2026'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['101', '103']
-    }
+      readBy: ['101', '103'],
+    },
   ],
   participants: Array.from({ length: 27 }, (_, i) => {
     const id = String(101 + i);
-    
+
     if (i < 5) {
-      const coaches = ['Matt Barnes', 'Brandon Lincoln', 'Byron Joseph', 'Jerald Dickson', 'Dave McClure'];
+      const coaches = [
+        'Matt Barnes',
+        'Brandon Lincoln',
+        'Byron Joseph',
+        'Jerald Dickson',
+        'Dave McClure',
+      ];
       const name = coaches[i] || `Coach ${i + 1}`;
       return { id, name, avatar: getMockAvatar(name), role: 'Coaches' };
     } else if (i < 10) {
-      const staff = ['Team Manager', 'Team Doctor', 'Athletic Trainer', 'Video Coordinator', 'Transportation Coordinator'];
+      const staff = [
+        'Team Manager',
+        'Team Doctor',
+        'Athletic Trainer',
+        'Video Coordinator',
+        'Transportation Coordinator',
+      ];
       const name = staff[i - 5] || `Staff ${i - 4}`;
       return { id, name, avatar: getMockAvatar(name), role: 'Staff' };
     } else {
-      const playerNames = ['Carter Bryant', 'Jaden DePina', 'James Evans Jr.', 'Ifiok Peter', 'Michael Johnson', 'David Williams', 'Chris Brown', 'Kevin Davis', 'Anthony Miller', 'Brandon Wilson', 'Marcus Thompson', 'Jaylen Harris', 'Tyler Washington', 'Isaiah Robinson', 'Malik Jackson', 'Devon Sanders', 'Cameron White'];
-      const playerIndex = (i - 10);
+      const playerNames = [
+        'Carter Bryant',
+        'Jaden DePina',
+        'James Evans Jr.',
+        'Ifiok Peter',
+        'Michael Johnson',
+        'David Williams',
+        'Chris Brown',
+        'Kevin Davis',
+        'Anthony Miller',
+        'Brandon Wilson',
+        'Marcus Thompson',
+        'Jaylen Harris',
+        'Tyler Washington',
+        'Isaiah Robinson',
+        'Malik Jackson',
+        'Devon Sanders',
+        'Cameron White',
+      ];
+      const playerIndex = i - 10;
       const name = playerNames[playerIndex] || `Player ${playerIndex + 1}`;
       return { id, name, avatar: getMockAvatar(name), role: 'Players' };
     }
@@ -110,19 +141,34 @@ export const paulGeorgeEliteAau: ProTripData = {
       { name: 'Travel', budgeted: 15000, spent: 6500 },
       { name: 'Accommodation', budgeted: 18000, spent: 8000 },
       { name: 'Meals', budgeted: 8000, spent: 3000 },
-      { name: 'Tournament Fees', budgeted: 4000, spent: 1000 }
-    ]
+      { name: 'Tournament Fees', budgeted: 4000, spent: 1000 },
+    ],
   },
   itinerary: [
     {
       date: '2026-07-08',
       events: [
-        { time: '07:00', title: 'Team Bus Departure', location: 'PG Elite Training Facility', type: 'travel' },
-        { time: '18:00', title: 'Arrival Orlando', location: 'Disney World Resort', type: 'travel' },
-        { time: '19:30', title: 'Team Dinner & Meeting', location: 'Resort Conference Room', type: 'meeting' },
-        { time: '21:00', title: 'Room Check & Curfew', location: 'Hotel Rooms', type: 'meeting' }
-      ]
-    }
+        {
+          time: '07:00',
+          title: 'Team Bus Departure',
+          location: 'PG Elite Training Facility',
+          type: 'travel',
+        },
+        {
+          time: '18:00',
+          title: 'Arrival Orlando',
+          location: 'Disney World Resort',
+          type: 'travel',
+        },
+        {
+          time: '19:30',
+          title: 'Team Dinner & Meeting',
+          location: 'Resort Conference Room',
+          type: 'meeting',
+        },
+        { time: '21:00', title: 'Room Check & Curfew', location: 'Hotel Rooms', type: 'meeting' },
+      ],
+    },
   ],
   roster: [
     {
@@ -134,7 +180,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'medical-access', 'facility-access'],
       roomPreferences: ['single-room', 'near-team'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '102',
@@ -145,7 +191,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'facility-access', 'tournament-admin'],
       roomPreferences: ['single-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '103',
@@ -156,7 +202,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'facility-access'],
       roomPreferences: ['single-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '104',
@@ -167,7 +213,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['facility-access', 'operations'],
       roomPreferences: ['single-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '105',
@@ -178,7 +224,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'medical-access'],
       roomPreferences: ['single-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '106',
@@ -189,7 +235,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'youth-coordination'],
       roomPreferences: ['single-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '107',
@@ -200,7 +246,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'program-coaching'],
       roomPreferences: ['single-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '108',
@@ -211,7 +257,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['court-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '109',
@@ -222,7 +268,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['court-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '110',
@@ -233,7 +279,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['court-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: ['no-dairy']
+      dietaryRestrictions: ['no-dairy'],
     },
     {
       id: '111',
@@ -244,8 +290,8 @@ export const paulGeorgeEliteAau: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['court-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
-    }
+      dietaryRestrictions: [],
+    },
   ],
   roomAssignments: [
     {
@@ -256,7 +302,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       checkIn: '2026-07-08T18:00:00Z',
       checkOut: '2026-07-14T11:00:00Z',
       roomType: 'double',
-      specialRequests: ['connecting-rooms', 'ground-floor']
+      specialRequests: ['connecting-rooms', 'ground-floor'],
     },
     {
       id: 'room-pg2',
@@ -266,8 +312,8 @@ export const paulGeorgeEliteAau: ProTripData = {
       checkIn: '2026-07-08T18:00:00Z',
       checkOut: '2026-07-14T11:00:00Z',
       roomType: 'double',
-      specialRequests: ['connecting-rooms']
-    }
+      specialRequests: ['connecting-rooms'],
+    },
   ],
   schedule: [
     {
@@ -279,7 +325,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       location: 'ESPN Wide World of Sports',
       participants: ['102', '101'],
       priority: 'high',
-      notes: 'Bring all player AAU cards and documentation'
+      notes: 'Bring all player AAU cards and documentation',
     },
     {
       id: 'sched-pg2',
@@ -290,8 +336,8 @@ export const paulGeorgeEliteAau: ProTripData = {
       location: 'Court 3 - ESPN WWOS',
       participants: ['101', '102', '108', '109', '110', '111'],
       priority: 'high',
-      notes: 'RED jerseys - be at court 45 min early'
-    }
+      notes: 'RED jerseys - be at court 45 min early',
+    },
   ],
   perDiem: {
     dailyRate: 75,
@@ -302,8 +348,8 @@ export const paulGeorgeEliteAau: ProTripData = {
       { participantId: '108', customRate: 75, advances: 0, deductions: 0, balance: 525 },
       { participantId: '109', customRate: 75, advances: 0, deductions: 0, balance: 525 },
       { participantId: '110', customRate: 75, advances: 0, deductions: 0, balance: 525 },
-      { participantId: '111', customRate: 75, advances: 0, deductions: 0, balance: 525 }
-    ]
+      { participantId: '111', customRate: 75, advances: 0, deductions: 0, balance: 525 },
+    ],
   },
   settlement: [],
   medical: [],
@@ -316,7 +362,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       deadline: '2026-07-07',
       status: 'compliant',
       assignedTo: '102',
-      documents: ['aau-cards.pdf', 'eligibility-forms.pdf']
+      documents: ['aau-cards.pdf', 'eligibility-forms.pdf'],
     },
     {
       id: 'comp-pg2',
@@ -326,8 +372,8 @@ export const paulGeorgeEliteAau: ProTripData = {
       deadline: '2026-07-07',
       status: 'compliant',
       assignedTo: '104',
-      documents: ['physicals-2025.pdf']
-    }
+      documents: ['physicals-2025.pdf'],
+    },
   ],
   media: [],
   sponsors: [
@@ -339,7 +385,7 @@ export const paulGeorgeEliteAau: ProTripData = {
       assignedTo: '102',
       status: 'completed',
       deliverables: ['Team shoes', 'Practice gear', 'Tournament uniforms'],
-      notes: 'Official footwear and apparel sponsor'
-    }
-  ]
+      notes: 'Official footwear and apparel sponsor',
+    },
+  ],
 };

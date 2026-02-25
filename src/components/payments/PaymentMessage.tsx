@@ -15,19 +15,19 @@ interface PaymentMessageProps {
   onSettlePayment?: (paymentId: string, method: string) => void;
 }
 
-export const PaymentMessage = ({ 
-  payment, 
-  currentUserId, 
-  tripMembers, 
+export const PaymentMessage = ({
+  payment,
+  currentUserId,
+  tripMembers,
   userPaymentMethods,
-  onSettlePayment 
+  onSettlePayment,
 }: PaymentMessageProps) => {
   const [showDetails, setShowDetails] = useState(false);
-  
+
   const isPaidByCurrentUser = payment.createdBy === currentUserId;
   const amountPerPerson = payment.amount / payment.splitCount;
   const payer = tripMembers.find(member => member.id === payment.createdBy);
-  
+
   // Remove icon function - we'll just use text labels
 
   const getPrimaryPaymentMethod = (methods: string[]): string => {
@@ -45,15 +45,15 @@ export const PaymentMessage = ({
       cashapp: `$${payerName?.toLowerCase().replace(/\s+/g, '')}`,
       applepay: payerName || 'Apple Pay',
       cash: 'In person',
-      other: payerName || 'Contact directly'
+      other: payerName || 'Contact directly',
     };
     return identifiers[method] || payerName;
   };
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -64,18 +64,22 @@ export const PaymentMessage = ({
     <div className="space-y-2">
       {/* Payment Badge */}
       <div className="flex items-center gap-2">
-        <Badge variant="secondary" className="bg-payment-primary text-payment-primary-foreground text-xs">
+        <Badge
+          variant="secondary"
+          className="bg-payment-primary text-payment-primary-foreground text-xs"
+        >
           💳 PAYMENT
         </Badge>
-        <span className="text-xs text-muted-foreground">
-          {formatTime(payment.createdAt)}
-        </span>
+        <span className="text-xs text-muted-foreground">{formatTime(payment.createdAt)}</span>
       </div>
 
       {/* Main Payment Message - Green text for payment content */}
       <div className="text-payment-content">
         <span className="font-medium">
-          {payment.description} - {payment.currency} {payment.amount.toFixed(2)} (split {payment.splitCount} ways) • Pay me ${perPersonAmount} via {getPaymentMethodDisplayName(primaryPaymentMethod)}: {getPaymentIdentifier(primaryPaymentMethod, payer?.name || 'Unknown')}
+          {payment.description} - {payment.currency} {payment.amount.toFixed(2)} (split{' '}
+          {payment.splitCount} ways) • Pay me ${perPersonAmount} via{' '}
+          {getPaymentMethodDisplayName(primaryPaymentMethod)}:{' '}
+          {getPaymentIdentifier(primaryPaymentMethod, payer?.name || 'Unknown')}
         </span>
       </div>
 
@@ -87,7 +91,8 @@ export const PaymentMessage = ({
             variant="outline"
             className="text-xs"
             onClick={() => {
-              const preferredMethod = userPaymentMethods.find(m => m.isPreferred)?.type || primaryPaymentMethod;
+              const preferredMethod =
+                userPaymentMethods.find(m => m.isPreferred)?.type || primaryPaymentMethod;
               onSettlePayment?.(payment.id, preferredMethod);
             }}
           >
@@ -95,7 +100,7 @@ export const PaymentMessage = ({
             Mark Paid
           </Button>
         )}
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -117,13 +122,13 @@ export const PaymentMessage = ({
                 const participant = tripMembers.find(m => m.id === participantId);
                 const isCurrentUser = participantId === currentUserId;
                 const isPayer = participantId === payment.createdBy;
-                
+
                 return (
                   <div key={participantId} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       {participant?.avatar && (
-                        <img 
-                          src={participant.avatar} 
+                        <img
+                          src={participant.avatar}
                           alt={participant.name}
                           className="w-4 h-4 rounded-full"
                         />
@@ -134,7 +139,8 @@ export const PaymentMessage = ({
                       </span>
                     </div>
                     <span className={isPayer ? 'text-payment-primary' : 'text-orange-600'}>
-                      {isPayer ? '+' : '-'}{formatCurrency(amountPerPerson, payment.currency)}
+                      {isPayer ? '+' : '-'}
+                      {formatCurrency(amountPerPerson, payment.currency)}
                     </span>
                   </div>
                 );
@@ -149,7 +155,8 @@ export const PaymentMessage = ({
               <div className="space-y-1">
                 {payment.paymentMethods.slice(1).map(method => (
                   <div key={method} className="text-sm text-muted-foreground">
-                    {getPaymentMethodDisplayName(method)}: {getPaymentIdentifier(method, payer?.name || 'Unknown')}
+                    {getPaymentMethodDisplayName(method)}:{' '}
+                    {getPaymentIdentifier(method, payer?.name || 'Unknown')}
                   </div>
                 ))}
               </div>

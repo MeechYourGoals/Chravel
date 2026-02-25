@@ -25,17 +25,11 @@ export const authEvents = {
     telemetry.track('signup_started', { method });
   },
 
-  signupCompleted: (
-    method: AuthEvents['signup_completed']['method'],
-    userId: string
-  ) => {
+  signupCompleted: (method: AuthEvents['signup_completed']['method'], userId: string) => {
     telemetry.track('signup_completed', { method, user_id: userId });
   },
 
-  signupFailed: (
-    method: AuthEvents['signup_failed']['method'],
-    error: string
-  ) => {
+  signupFailed: (method: AuthEvents['signup_failed']['method'], error: string) => {
     telemetry.track('signup_failed', { method, error });
   },
 
@@ -43,10 +37,7 @@ export const authEvents = {
     telemetry.track('login_started', { method });
   },
 
-  loginCompleted: (
-    method: AuthEvents['login_completed']['method'],
-    userId: string
-  ) => {
+  loginCompleted: (method: AuthEvents['login_completed']['method'], userId: string) => {
     telemetry.track('login_completed', { method, user_id: userId });
   },
 
@@ -76,18 +67,11 @@ export const tripEvents = {
     telemetry.track('trip_create_failed', { error });
   },
 
-  joinStarted: (
-    tripId: string,
-    method: TripEvents['trip_join_started']['method']
-  ) => {
+  joinStarted: (tripId: string, method: TripEvents['trip_join_started']['method']) => {
     telemetry.track('trip_join_started', { trip_id: tripId, method });
   },
 
-  joined: (
-    tripId: string,
-    method: TripEvents['trip_joined']['method'],
-    userId: string
-  ) => {
+  joined: (tripId: string, method: TripEvents['trip_joined']['method'], userId: string) => {
     telemetry.track('trip_joined', {
       trip_id: tripId,
       method,
@@ -95,11 +79,7 @@ export const tripEvents = {
     });
   },
 
-  joinFailed: (
-    tripId: string,
-    method: TripEvents['trip_join_failed']['method'],
-    error: string
-  ) => {
+  joinFailed: (tripId: string, method: TripEvents['trip_join_failed']['method'], error: string) => {
     telemetry.track('trip_join_failed', { trip_id: tripId, method, error });
   },
 
@@ -231,7 +211,7 @@ export const exportEvents = {
 
 export const pageView = (
   pageName: string,
-  properties?: { trip_id?: string; load_time_ms?: number }
+  properties?: { trip_id?: string; load_time_ms?: number },
 ) => {
   telemetry.page(pageName, properties);
   telemetry.track('page_view', {
@@ -298,7 +278,7 @@ export const demoEvents = {
 
   actionPerformed: (
     action: 'message_sent' | 'task_created' | 'payment_added' | 'cover_changed' | 'poll_created',
-    tripId: string
+    tripId: string,
   ) => {
     telemetry.track('demo_action_performed', { action, trip_id: tripId });
     // Increment action counter

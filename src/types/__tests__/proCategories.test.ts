@@ -67,12 +67,42 @@ describe('PRO_CATEGORIES_ORDERED', () => {
 // ============= Search Synonym Tests =============
 describe('filterTrips category synonym search', () => {
   const mockTrips = [
-    { id: '1', title: 'Lakers Road Trip', dateRange: 'Jan 1 - Jan 5, 2025', proTripCategory: 'sports' },
-    { id: '2', title: 'Beyoncé Tour', dateRange: 'Mar 1 - Mar 5, 2025', proTripCategory: 'touring' },
-    { id: '3', title: 'Company Offsite', dateRange: 'Apr 1 - Apr 5, 2025', proTripCategory: 'work' },
-    { id: '4', title: 'DC Field Trip', dateRange: 'May 1 - May 5, 2025', proTripCategory: 'school' },
-    { id: '5', title: 'ATL Shoot', dateRange: 'Jun 1 - Jun 5, 2025', proTripCategory: 'productions' },
-    { id: '6', title: 'Beach Wedding', dateRange: 'Jul 1 - Jul 5, 2025', proTripCategory: 'celebrations' },
+    {
+      id: '1',
+      title: 'Lakers Road Trip',
+      dateRange: 'Jan 1 - Jan 5, 2025',
+      proTripCategory: 'sports',
+    },
+    {
+      id: '2',
+      title: 'Beyoncé Tour',
+      dateRange: 'Mar 1 - Mar 5, 2025',
+      proTripCategory: 'touring',
+    },
+    {
+      id: '3',
+      title: 'Company Offsite',
+      dateRange: 'Apr 1 - Apr 5, 2025',
+      proTripCategory: 'work',
+    },
+    {
+      id: '4',
+      title: 'DC Field Trip',
+      dateRange: 'May 1 - May 5, 2025',
+      proTripCategory: 'school',
+    },
+    {
+      id: '5',
+      title: 'ATL Shoot',
+      dateRange: 'Jun 1 - Jun 5, 2025',
+      proTripCategory: 'productions',
+    },
+    {
+      id: '6',
+      title: 'Beach Wedding',
+      dateRange: 'Jul 1 - Jul 5, 2025',
+      proTripCategory: 'celebrations',
+    },
   ];
 
   it('matches "wedding" to celebrations trips', () => {

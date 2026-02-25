@@ -24,9 +24,5 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ typingUsers })
     message = `${names[0]} and ${names.length - 1} others are typing...`;
   }
 
-  return (
-    <div className="px-4 py-2 text-sm text-gray-400 italic animate-pulse">
-      {message}
-    </div>
-  );
+  return <div className="px-4 py-2 text-sm text-gray-400 italic animate-pulse">{message}</div>;
 };

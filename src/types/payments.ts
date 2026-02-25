@@ -6,7 +6,16 @@ import { Receipt } from './receipts';
 // PaymentMethod structure used throughout the app
 export interface PaymentMethod {
   id: string;
-  type: PaymentMethodId | 'venmo' | 'zelle' | 'cashapp' | 'applepay' | 'paypal' | 'applecash' | 'cash' | 'other';
+  type:
+    | PaymentMethodId
+    | 'venmo'
+    | 'zelle'
+    | 'cashapp'
+    | 'applepay'
+    | 'paypal'
+    | 'applecash'
+    | 'cash'
+    | 'other';
   /** @deprecated Use `type` instead. Present for backward-compat with raw DB rows. */
   method_type?: string;
   identifier: string;
@@ -57,30 +66,30 @@ export interface PaymentSplit {
   currency: string;
   description: string;
   category?: string;
-  
+
   // Split details
   splitType: 'equal' | 'custom' | 'percentage';
   participants: PaymentParticipant[];
   totalParticipants: number;
-  
+
   // Settlement
   settled: boolean;
   settledAt?: string;
-  
+
   // Receipt
   receiptUrl?: string;
   receiptId?: string;
   receipt?: Receipt;
-  
+
   // Payment methods
   preferredMethods: PaymentMethod[];
-  
+
   // Metadata
   notes?: string;
   tags?: string[];
   location?: string;
   timestamp: string;
-  
+
   // Audit
   version: number;
   lastModified: string;
@@ -93,14 +102,14 @@ export interface PaymentSummary {
   totalOwedToYou: number;
   totalYouOwe: number;
   currency: string;
-  
+
   // Breakdown by user
   balances: Array<{
     userId: string;
     userName: string;
     balance: number; // positive = they owe you, negative = you owe them
   }>;
-  
+
   // Category breakdown
   categories: Array<{
     name: string;

@@ -436,15 +436,16 @@ export async function getExportData(
         .eq('event_id', tripId)
         .order('start_time', { ascending: true });
 
-      result.agenda = agendaItems?.map(item => ({
-        title: item.title,
-        session_date: (item as any).session_date || undefined,
-        start_time: item.start_time || undefined,
-        end_time: item.end_time || undefined,
-        location: item.location || undefined,
-        track: item.track || undefined,
-        speakers: item.speakers || undefined,
-      })) || [];
+      result.agenda =
+        agendaItems?.map(item => ({
+          title: item.title,
+          session_date: (item as any).session_date || undefined,
+          start_time: item.start_time || undefined,
+          end_time: item.end_time || undefined,
+          location: item.location || undefined,
+          track: item.track || undefined,
+          speakers: item.speakers || undefined,
+        })) || [];
     }
 
     // Fetch lineup if requested (event-specific — derived from agenda speakers)

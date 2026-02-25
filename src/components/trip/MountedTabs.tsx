@@ -1,9 +1,9 @@
 /**
  * MountedTabs - Performance-optimized tab container
- * 
+ *
  * Keeps all visited tabs mounted (hidden with CSS) for instant switching.
  * Uses display:none instead of unmounting to preserve state and avoid re-fetching.
- * 
+ *
  * This trades slightly higher memory usage for instant tab switching UX.
  */
 
@@ -58,17 +58,15 @@ export const MountedTabs = memo(({ activeTab, tabs, renderTab }: MountedTabsProp
           <div
             key={tabId}
             data-tab={tabId}
-            style={{ 
+            style={{
               display: isActive ? 'block' : 'none',
               // Prevent layout shifts
               minHeight: isActive ? undefined : 0,
-              overflow: isActive ? undefined : 'hidden'
+              overflow: isActive ? undefined : 'hidden',
             }}
             className={isActive ? 'h-full' : ''}
           >
-            <Suspense fallback={<TabSkeleton />}>
-              {renderTab(tabId)}
-            </Suspense>
+            <Suspense fallback={<TabSkeleton />}>{renderTab(tabId)}</Suspense>
           </div>
         );
       })}
@@ -82,15 +80,21 @@ MountedTabs.displayName = 'MountedTabs';
  * Hook to prefetch tab data on hover
  * Use with onMouseEnter on tab buttons
  */
-export const useTabPrefetch = (tripId: string, prefetchTab: (tripId: string, tabId: string) => void) => {
-  const handleTabHover = useCallback((tabId: string) => {
-    // Delay prefetch slightly to avoid unnecessary fetches on quick mouse moves
-    const timer = setTimeout(() => {
-      prefetchTab(tripId, tabId);
-    }, 150);
-    
-    return () => clearTimeout(timer);
-  }, [tripId, prefetchTab]);
+export const useTabPrefetch = (
+  tripId: string,
+  prefetchTab: (tripId: string, tabId: string) => void,
+) => {
+  const handleTabHover = useCallback(
+    (tabId: string) => {
+      // Delay prefetch slightly to avoid unnecessary fetches on quick mouse moves
+      const timer = setTimeout(() => {
+        prefetchTab(tripId, tabId);
+      }, 150);
+
+      return () => clearTimeout(timer);
+    },
+    [tripId, prefetchTab],
+  );
 
   return { handleTabHover };
 };

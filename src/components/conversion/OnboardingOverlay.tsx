@@ -16,7 +16,7 @@ const onboardingSteps: OnboardingStep[] = [
   {
     id: 'welcome',
     title: 'Welcome to Chravel!',
-    description: 'Let\'s take a quick tour to get you started with collaborative trip planning.',
+    description: "Let's take a quick tour to get you started with collaborative trip planning.",
     icon: <Sparkles size={24} />,
   },
   {
@@ -25,7 +25,7 @@ const onboardingSteps: OnboardingStep[] = [
     description: 'Click the + button to start planning your next adventure with friends.',
     icon: <Calendar size={24} />,
     targetElement: '[title="New Trip"]',
-    position: 'bottom'
+    position: 'bottom',
   },
   {
     id: 'invite-friends',
@@ -38,7 +38,7 @@ const onboardingSteps: OnboardingStep[] = [
     title: 'Meet Your AI Concierge',
     description: 'Get personalized recommendations based on your location and preferences.',
     icon: <MapPin size={24} />,
-  }
+  },
 ];
 
 interface OnboardingOverlayProps {
@@ -58,11 +58,11 @@ export const OnboardingOverlay = ({ isOpen, onClose, onComplete }: OnboardingOve
     if (step.targetElement) {
       const element = document.querySelector(step.targetElement);
       setHighlightElement(element);
-      
+
       if (element) {
-        element.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
         });
       }
     } else {
@@ -92,7 +92,7 @@ export const OnboardingOverlay = ({ isOpen, onClose, onComplete }: OnboardingOve
       return {
         top: '50%',
         left: '50%',
-        transform: 'translate(-50%, -50%)'
+        transform: 'translate(-50%, -50%)',
       };
     }
 
@@ -104,31 +104,31 @@ export const OnboardingOverlay = ({ isOpen, onClose, onComplete }: OnboardingOve
         return {
           top: rect.bottom + 20,
           left: rect.left + rect.width / 2,
-          transform: 'translateX(-50%)'
+          transform: 'translateX(-50%)',
         };
       case 'top':
         return {
           top: rect.top - 20,
           left: rect.left + rect.width / 2,
-          transform: 'translate(-50%, -100%)'
+          transform: 'translate(-50%, -100%)',
         };
       case 'left':
         return {
           top: rect.top + rect.height / 2,
           left: rect.left - 20,
-          transform: 'translate(-100%, -50%)'
+          transform: 'translate(-100%, -50%)',
         };
       case 'right':
         return {
           top: rect.top + rect.height / 2,
           left: rect.right + 20,
-          transform: 'translateY(-50%)'
+          transform: 'translateY(-50%)',
         };
       default:
         return {
           top: rect.bottom + 20,
           left: rect.left + rect.width / 2,
-          transform: 'translateX(-50%)'
+          transform: 'translateX(-50%)',
         };
     }
   };
@@ -151,10 +151,7 @@ export const OnboardingOverlay = ({ isOpen, onClose, onComplete }: OnboardingOve
       </div>
 
       {/* Onboarding Modal */}
-      <div
-        className="fixed z-50 max-w-sm"
-        style={getModalPosition()}
-      >
+      <div className="fixed z-50 max-w-sm" style={getModalPosition()}>
         <Card className="bg-card/95 backdrop-blur-md border border-border shadow-2xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -169,9 +166,7 @@ export const OnboardingOverlay = ({ isOpen, onClose, onComplete }: OnboardingOve
               </button>
             </div>
 
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              {currentStepData.title}
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">{currentStepData.title}</h3>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               {currentStepData.description}
             </p>
@@ -200,11 +195,7 @@ export const OnboardingOverlay = ({ isOpen, onClose, onComplete }: OnboardingOve
                 >
                   Skip tour
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleNext}
-                  className="flex items-center gap-2"
-                >
+                <Button size="sm" onClick={handleNext} className="flex items-center gap-2">
                   {isLastStep ? 'Get Started' : 'Next'}
                   <ArrowRight size={14} />
                 </Button>

@@ -95,7 +95,8 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
 
   const isPrivate = tripData?.privacy_mode === 'high';
   const chatMode: ChatMode = (tripData?.chat_mode as ChatMode) || 'broadcasts';
-  const mediaUploadMode: MediaUploadMode = (tripData?.media_upload_mode as MediaUploadMode) || 'admin_only';
+  const mediaUploadMode: MediaUploadMode =
+    (tripData?.media_upload_mode as MediaUploadMode) || 'admin_only';
 
   const toggleVisibility = useCallback(async () => {
     if (!eventId || isSaving) return;

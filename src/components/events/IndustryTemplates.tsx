@@ -14,7 +14,7 @@ export const IndustryTemplates = ({
   selectedIndustry,
   onIndustrySelect,
   selectedTemplate,
-  onTemplateSelect
+  onTemplateSelect,
 }: IndustryTemplatesProps) => {
   const industries = [
     { id: 'corporate', name: 'Corporate', icon: Building, color: 'text-blue-400' },
@@ -22,7 +22,7 @@ export const IndustryTemplates = ({
     { id: 'education', name: 'Education', icon: GraduationCap, color: 'text-purple-400' },
     { id: 'healthcare', name: 'Healthcare', icon: Heart, color: 'text-red-400' },
     { id: 'technology', name: 'Technology', icon: Cpu, color: 'text-cyan-400' },
-    { id: 'entertainment', name: 'Entertainment', icon: Music, color: 'text-pink-400' }
+    { id: 'entertainment', name: 'Entertainment', icon: Music, color: 'text-pink-400' },
   ];
 
   const templates: Record<string, IndustryTemplate[]> = {
@@ -32,15 +32,15 @@ export const IndustryTemplates = ({
         name: 'Corporate Retreat',
         description: 'Team building and strategic planning focused event',
         features: ['Team Activities', 'Meeting Rooms', 'Catering', 'Transportation'],
-        settings: { networking: true, broadcasts: true }
+        settings: { networking: true, broadcasts: true },
       },
       {
         id: 'board-meeting',
         name: 'Board Meeting',
         description: 'Executive level meeting with confidential sessions',
         features: ['Private Sessions', 'Document Sharing', 'Security', 'Recording'],
-        settings: { networking: false, broadcasts: false }
-      }
+        settings: { networking: false, broadcasts: false },
+      },
     ],
     conference: [
       {
@@ -48,15 +48,15 @@ export const IndustryTemplates = ({
         name: 'Technology Conference',
         description: 'Multi-track technology conference with speakers',
         features: ['Multiple Tracks', 'Speaker Directory', 'Live Q&A', 'Networking'],
-        settings: { networking: true, broadcasts: true, live_qa: true }
+        settings: { networking: true, broadcasts: true, live_qa: true },
       },
       {
         id: 'business-summit',
         name: 'Business Summit',
         description: 'Professional business networking and knowledge sharing',
         features: ['Keynotes', 'Breakout Sessions', 'Exhibitors', 'Analytics'],
-        settings: { networking: true, broadcasts: true, analytics: true }
-      }
+        settings: { networking: true, broadcasts: true, analytics: true },
+      },
     ],
     education: [
       {
@@ -64,8 +64,8 @@ export const IndustryTemplates = ({
         name: 'Academic Conference',
         description: 'Research presentation and academic networking',
         features: ['Paper Presentations', 'Poster Sessions', 'Academic Networking'],
-        settings: { networking: true, broadcasts: true }
-      }
+        settings: { networking: true, broadcasts: true },
+      },
     ],
     healthcare: [
       {
@@ -73,8 +73,8 @@ export const IndustryTemplates = ({
         name: 'Medical Symposium',
         description: 'Medical professionals continuing education',
         features: ['CME Credits', 'Medical Presentations', 'Case Studies'],
-        settings: { networking: true, broadcasts: false }
-      }
+        settings: { networking: true, broadcasts: false },
+      },
     ],
     technology: [
       {
@@ -82,8 +82,8 @@ export const IndustryTemplates = ({
         name: 'Developer Meetup',
         description: 'Technical presentations and networking for developers',
         features: ['Tech Talks', 'Code Reviews', 'Networking', 'Demos'],
-        settings: { networking: true, broadcasts: true }
-      }
+        settings: { networking: true, broadcasts: true },
+      },
     ],
     entertainment: [
       {
@@ -91,9 +91,9 @@ export const IndustryTemplates = ({
         name: 'Music Festival',
         description: 'Multi-day music and entertainment event',
         features: ['Multiple Stages', 'Artist Meet & Greet', 'Food Vendors'],
-        settings: { networking: false, broadcasts: true }
-      }
-    ]
+        settings: { networking: false, broadcasts: true },
+      },
+    ],
   };
 
   return (
@@ -101,7 +101,7 @@ export const IndustryTemplates = ({
       <div>
         <h4 className="text-lg font-semibold text-white mb-4">Select Industry</h4>
         <div className="grid grid-cols-3 gap-3">
-          {industries.map((industry) => {
+          {industries.map(industry => {
             const Icon = industry.icon;
             return (
               <button
@@ -125,7 +125,7 @@ export const IndustryTemplates = ({
         <div>
           <h4 className="text-lg font-semibold text-white mb-4">Choose Template</h4>
           <div className="space-y-3">
-            {templates[selectedIndustry].map((template) => (
+            {templates[selectedIndustry].map(template => (
               <div
                 key={template.id}
                 className={`p-4 rounded-lg border cursor-pointer transition-all ${

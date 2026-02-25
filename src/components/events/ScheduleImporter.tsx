@@ -30,71 +30,85 @@ export const ScheduleImporter = ({ onScheduleImport, currentSchedule }: Schedule
     startTime: '',
     endTime: '',
     location: '',
-    speaker: ''
+    speaker: '',
   });
   const { toast } = useToast();
 
-  const handleFileUpload = useCallback(async (file: File) => {
-    if (!file.name.endsWith('.csv')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a CSV file.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    try {
-      const text = await file.text();
-      const lines = text.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      
-      const sessions: Session[] = lines.slice(1)
-        .filter(line => line.trim())
-        .map((line, index) => {
-          const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-          
-          return {
-            id: `imported-${index}`,
-            title: values[headers.indexOf('title')] || values[headers.indexOf('session')] || `Session ${index + 1}`,
-            description: values[headers.indexOf('description')] || values[headers.indexOf('desc')] || '',
-            startTime: values[headers.indexOf('start_time')] || values[headers.indexOf('start')] || '',
-            endTime: values[headers.indexOf('end_time')] || values[headers.indexOf('end')] || '',
-            location: values[headers.indexOf('location')] || values[headers.indexOf('room')] || '',
-            speaker: values[headers.indexOf('speaker')] || values[headers.indexOf('presenter')] || '',
-            track: values[headers.indexOf('track')] || values[headers.indexOf('category')] || ''
-          };
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      if (!file.name.endsWith('.csv')) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please upload a CSV file.',
+          variant: 'destructive',
         });
+        return;
+      }
 
-      onScheduleImport([...currentSchedule, ...sessions]);
-      
-      toast({
-        title: "Schedule imported",
-        description: `Successfully imported ${sessions.length} sessions.`
-      });
-    } catch (error) {
-      console.error('Error parsing CSV:', error);
-      toast({
-        title: "Import failed",
-        description: "Failed to parse CSV file. Please check the format.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [currentSchedule, onScheduleImport, toast]);
+      setIsProcessing(true);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      handleFileUpload(files[0]);
-    }
-  }, [handleFileUpload]);
+      try {
+        const text = await file.text();
+        const lines = text.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+
+        const sessions: Session[] = lines
+          .slice(1)
+          .filter(line => line.trim())
+          .map((line, index) => {
+            const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+
+            return {
+              id: `imported-${index}`,
+              title:
+                values[headers.indexOf('title')] ||
+                values[headers.indexOf('session')] ||
+                `Session ${index + 1}`,
+              description:
+                values[headers.indexOf('description')] || values[headers.indexOf('desc')] || '',
+              startTime:
+                values[headers.indexOf('start_time')] || values[headers.indexOf('start')] || '',
+              endTime: values[headers.indexOf('end_time')] || values[headers.indexOf('end')] || '',
+              location:
+                values[headers.indexOf('location')] || values[headers.indexOf('room')] || '',
+              speaker:
+                values[headers.indexOf('speaker')] || values[headers.indexOf('presenter')] || '',
+              track: values[headers.indexOf('track')] || values[headers.indexOf('category')] || '',
+            };
+          });
+
+        onScheduleImport([...currentSchedule, ...sessions]);
+
+        toast({
+          title: 'Schedule imported',
+          description: `Successfully imported ${sessions.length} sessions.`,
+        });
+      } catch (error) {
+        console.error('Error parsing CSV:', error);
+        toast({
+          title: 'Import failed',
+          description: 'Failed to parse CSV file. Please check the format.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [currentSchedule, onScheduleImport, toast],
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        handleFileUpload(files[0]);
+      }
+    },
+    [handleFileUpload],
+  );
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -106,9 +120,9 @@ export const ScheduleImporter = ({ onScheduleImport, currentSchedule }: Schedule
   const addManualSession = () => {
     if (!newSession.title || !newSession.startTime || !newSession.endTime) {
       toast({
-        title: "Missing information",
-        description: "Please fill in at least title, start time, and end time.",
-        variant: "destructive"
+        title: 'Missing information',
+        description: 'Please fill in at least title, start time, and end time.',
+        variant: 'destructive',
       });
       return;
     }
@@ -120,7 +134,7 @@ export const ScheduleImporter = ({ onScheduleImport, currentSchedule }: Schedule
       startTime: newSession.startTime!,
       endTime: newSession.endTime!,
       location: newSession.location || '',
-      speaker: newSession.speaker || ''
+      speaker: newSession.speaker || '',
     };
 
     onScheduleImport([...currentSchedule, session]);
@@ -130,20 +144,21 @@ export const ScheduleImporter = ({ onScheduleImport, currentSchedule }: Schedule
       startTime: '',
       endTime: '',
       location: '',
-      speaker: ''
+      speaker: '',
     });
 
     toast({
-      title: "Session added",
-      description: "Session has been added to your schedule."
+      title: 'Session added',
+      description: 'Session has been added to your schedule.',
     });
   };
 
   const downloadTemplate = () => {
-    const csvContent = "title,description,start_time,end_time,location,speaker,track\n" +
-      "Opening Keynote,Welcome and introduction,09:00,10:00,Main Auditorium,John Doe,General\n" +
-      "Tech Panel,Discussion on future tech,10:30,11:30,Room A,Jane Smith,Technology\n";
-    
+    const csvContent =
+      'title,description,start_time,end_time,location,speaker,track\n' +
+      'Opening Keynote,Welcome and introduction,09:00,10:00,Main Auditorium,John Doe,General\n' +
+      'Tech Panel,Discussion on future tech,10:30,11:30,Room A,Jane Smith,Technology\n';
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -157,16 +172,14 @@ export const ScheduleImporter = ({ onScheduleImport, currentSchedule }: Schedule
     <div className="space-y-6">
       <div>
         <h4 className="text-lg font-semibold text-white mb-4">Import Schedule</h4>
-        
+
         {/* CSV Upload Area */}
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            dragOver
-              ? 'border-glass-orange bg-glass-orange/10'
-              : 'border-white/20 bg-white/5'
+            dragOver ? 'border-glass-orange bg-glass-orange/10' : 'border-white/20 bg-white/5'
           }`}
           onDrop={handleDrop}
-          onDragOver={(e) => {
+          onDragOver={e => {
             e.preventDefault();
             setDragOver(true);
           }}
@@ -175,7 +188,7 @@ export const ScheduleImporter = ({ onScheduleImport, currentSchedule }: Schedule
           <Upload size={32} className="text-gray-400 mx-auto mb-3" />
           <p className="text-gray-300 mb-2">Drop your CSV file here or click to browse</p>
           <p className="text-gray-500 text-sm mb-4">Supports CSV files with session data</p>
-          
+
           <div className="flex gap-3 justify-center">
             <label htmlFor="csv-upload">
               <Button variant="outline" className="cursor-pointer" disabled={isProcessing}>
@@ -189,7 +202,7 @@ export const ScheduleImporter = ({ onScheduleImport, currentSchedule }: Schedule
                 className="hidden"
               />
             </label>
-            
+
             <Button variant="ghost" onClick={downloadTemplate}>
               <Download size={16} className="mr-2" />
               Download Template
@@ -204,21 +217,25 @@ export const ScheduleImporter = ({ onScheduleImport, currentSchedule }: Schedule
         <div className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="session-title" className="text-white">Session Title</Label>
+              <Label htmlFor="session-title" className="text-white">
+                Session Title
+              </Label>
               <Input
                 id="session-title"
                 value={newSession.title}
-                onChange={(e) => setNewSession({ ...newSession, title: e.target.value })}
+                onChange={e => setNewSession({ ...newSession, title: e.target.value })}
                 className="bg-gray-800/50 border-gray-600 text-white mt-1"
                 placeholder="Enter session title"
               />
             </div>
             <div>
-              <Label htmlFor="session-speaker" className="text-white">Speaker</Label>
+              <Label htmlFor="session-speaker" className="text-white">
+                Speaker
+              </Label>
               <Input
                 id="session-speaker"
                 value={newSession.speaker}
-                onChange={(e) => setNewSession({ ...newSession, speaker: e.target.value })}
+                onChange={e => setNewSession({ ...newSession, speaker: e.target.value })}
                 className="bg-gray-800/50 border-gray-600 text-white mt-1"
                 placeholder="Speaker name"
               />
@@ -227,33 +244,39 @@ export const ScheduleImporter = ({ onScheduleImport, currentSchedule }: Schedule
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="start-time" className="text-white">Start Time</Label>
+              <Label htmlFor="start-time" className="text-white">
+                Start Time
+              </Label>
               <Input
                 id="start-time"
                 type="time"
                 value={newSession.startTime}
-                onChange={(e) => setNewSession({ ...newSession, startTime: e.target.value })}
+                onChange={e => setNewSession({ ...newSession, startTime: e.target.value })}
                 className="bg-gray-800/50 border-gray-600 text-white mt-1"
               />
             </div>
             <div>
-              <Label htmlFor="end-time" className="text-white">End Time</Label>
+              <Label htmlFor="end-time" className="text-white">
+                End Time
+              </Label>
               <Input
                 id="end-time"
                 type="time"
                 value={newSession.endTime}
-                onChange={(e) => setNewSession({ ...newSession, endTime: e.target.value })}
+                onChange={e => setNewSession({ ...newSession, endTime: e.target.value })}
                 className="bg-gray-800/50 border-gray-600 text-white mt-1"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="location" className="text-white">Location</Label>
+            <Label htmlFor="location" className="text-white">
+              Location
+            </Label>
             <Input
               id="location"
               value={newSession.location}
-              onChange={(e) => setNewSession({ ...newSession, location: e.target.value })}
+              onChange={e => setNewSession({ ...newSession, location: e.target.value })}
               className="bg-gray-800/50 border-gray-600 text-white mt-1"
               placeholder="Room or venue"
             />
@@ -269,9 +292,11 @@ export const ScheduleImporter = ({ onScheduleImport, currentSchedule }: Schedule
       {/* Current Schedule Preview */}
       {currentSchedule.length > 0 && (
         <div>
-          <h4 className="text-lg font-semibold text-white mb-4">Current Schedule ({currentSchedule.length} sessions)</h4>
+          <h4 className="text-lg font-semibold text-white mb-4">
+            Current Schedule ({currentSchedule.length} sessions)
+          </h4>
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {currentSchedule.map((session) => (
+            {currentSchedule.map(session => (
               <div key={session.id} className="bg-white/5 border border-white/10 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <h5 className="font-medium text-white">{session.title}</h5>

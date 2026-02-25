@@ -12,10 +12,10 @@ export const LoadMoreIndicator: React.FC<LoadMoreIndicatorProps> = ({
   isLoading,
   hasMore,
   localHasMore = false,
-  messageCount
+  messageCount,
 }) => {
   const hasMoreToLoad = hasMore || localHasMore;
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-4">
@@ -28,9 +28,7 @@ export const LoadMoreIndicator: React.FC<LoadMoreIndicatorProps> = ({
   if (hasMoreToLoad && messageCount > 0) {
     return (
       <div className="text-center py-3 px-4">
-        <div className="text-xs text-muted-foreground">
-          ↑ Scroll up to load older messages
-        </div>
+        <div className="text-xs text-muted-foreground">↑ Scroll up to load older messages</div>
       </div>
     );
   }

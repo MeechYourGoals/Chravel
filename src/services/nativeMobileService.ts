@@ -17,29 +17,33 @@ export class NativeMobileService {
   }
 
   // Location Services (web implementation)
-  static async getCurrentLocation(): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
-    return new Promise((resolve) => {
+  static async getCurrentLocation(): Promise<{
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+  } | null> {
+    return new Promise(resolve => {
       if (!navigator.geolocation) {
         resolve(null);
         return;
       }
       navigator.geolocation.getCurrentPosition(
-        (pos) =>
+        pos =>
           resolve({
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
             accuracy: pos.coords.accuracy,
           }),
-        () => resolve(null)
+        () => resolve(null),
       );
     });
   }
 
   static async watchLocation(
-    callback: (location: { latitude: number; longitude: number }) => void
+    callback: (location: { latitude: number; longitude: number }) => void,
   ): Promise<string | null> {
     if (!navigator.geolocation) return null;
-    const watchId = navigator.geolocation.watchPosition((pos) => {
+    const watchId = navigator.geolocation.watchPosition(pos => {
       callback({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
     });
     return String(watchId);

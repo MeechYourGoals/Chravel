@@ -31,22 +31,22 @@ export const parseDateRange = (dateRange: string): { start: string; end: string 
 
     const startPart = parts[0].trim();
     const endPartWithYear = parts[1].trim();
-    
+
     // Extract year from end part (e.g., "Mar 22, 2026" -> "2026")
     const yearMatch = endPartWithYear.match(/, (\d{4})$/);
     const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
-    
+
     // Remove year from end part (e.g., "Mar 22, 2026" -> "Mar 22")
     const endPart = endPartWithYear.replace(/, \d{4}$/, '').trim();
-    
+
     // Parse dates
     const startDate = parse(`${startPart}, ${year}`, 'MMM d, yyyy', new Date());
     const endDate = parse(`${endPart}, ${year}`, 'MMM d, yyyy', new Date());
-    
+
     // Format as ISO date strings (YYYY-MM-DD)
     return {
       start: format(startDate, 'yyyy-MM-dd'),
-      end: format(endDate, 'yyyy-MM-dd')
+      end: format(endDate, 'yyyy-MM-dd'),
     };
   } catch (error) {
     console.error('Error parsing date range:', error);
@@ -63,17 +63,20 @@ export const formatDateRange = (start: string, end: string): string => {
   try {
     const startDate = new Date(start);
     const endDate = new Date(end);
-    
+
     // Same month and year
-    if (startDate.getMonth() === endDate.getMonth() && startDate.getFullYear() === endDate.getFullYear()) {
+    if (
+      startDate.getMonth() === endDate.getMonth() &&
+      startDate.getFullYear() === endDate.getFullYear()
+    ) {
       return `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`;
     }
-    
+
     // Same year, different month
     if (startDate.getFullYear() === endDate.getFullYear()) {
       return `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`;
     }
-    
+
     // Different year
     return `${format(startDate, 'MMM d, yyyy')} - ${format(endDate, 'MMM d, yyyy')}`;
   } catch (error) {

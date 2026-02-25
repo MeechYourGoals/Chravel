@@ -28,26 +28,28 @@ export const TripHistoryTimeline = ({ className, maxItems = 5 }: TripHistoryTime
       location: 'Cancun, Mexico',
       date: '2024-03-15',
       participants: 8,
-      coverImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=100&fit=crop',
-      achievements: ['international_explorer']
+      coverImage:
+        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=100&fit=crop',
+      achievements: ['international_explorer'],
     },
     {
-      id: '2', 
+      id: '2',
       title: 'Nashville Bachelorette',
       location: 'Nashville, TN',
       date: '2023-11-20',
       participants: 12,
-      coverImage: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=100&fit=crop',
-      achievements: ['group_organizer']
+      coverImage:
+        'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=100&fit=crop',
+      achievements: ['group_organizer'],
     },
     {
       id: '3',
-      title: 'Family Mountain Getaway', 
+      title: 'Family Mountain Getaway',
       location: 'Aspen, CO',
       date: '2023-08-10',
       participants: 6,
-      coverImage: 'https://images.unsplash.com/photo-1551524164-687a55dd1126?w=200&h=100&fit=crop'
-    }
+      coverImage: 'https://images.unsplash.com/photo-1551524164-687a55dd1126?w=200&h=100&fit=crop',
+    },
   ];
 
   const displayTrips = tripHistory.slice(0, maxItems);
@@ -62,7 +64,7 @@ export const TripHistoryTimeline = ({ className, maxItems = 5 }: TripHistoryTime
           </Badge>
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent>
         <div className="space-y-4">
           {displayTrips.map((trip, index) => (
@@ -70,28 +72,24 @@ export const TripHistoryTimeline = ({ className, maxItems = 5 }: TripHistoryTime
               {/* Timeline indicator */}
               <div className="flex flex-col items-center">
                 <div className="w-3 h-3 bg-primary rounded-full flex-shrink-0" />
-                {index < displayTrips.length - 1 && (
-                  <div className="w-px h-16 bg-border mt-2" />
-                )}
+                {index < displayTrips.length - 1 && <div className="w-px h-16 bg-border mt-2" />}
               </div>
-              
+
               {/* Trip content */}
               <div className="flex-1 pb-4">
                 <div className="flex items-start gap-3">
                   {/* Trip image */}
-                  <div 
+                  <div
                     className="w-16 h-10 bg-cover bg-center rounded-md flex-shrink-0"
                     style={{
-                      backgroundImage: `url('${trip.coverImage || '/placeholder.svg'}')`
+                      backgroundImage: `url('${trip.coverImage || '/placeholder.svg'}')`,
                     }}
                   />
-                  
+
                   {/* Trip details */}
                   <div className="flex-1">
-                    <h4 className="font-semibold text-foreground text-sm">
-                      {trip.title}
-                    </h4>
-                    
+                    <h4 className="font-semibold text-foreground text-sm">{trip.title}</h4>
+
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                       <div className="flex items-center gap-1">
                         <MapPin size={12} />
@@ -106,14 +104,17 @@ export const TripHistoryTimeline = ({ className, maxItems = 5 }: TripHistoryTime
                         {trip.participants}
                       </div>
                     </div>
-                    
+
                     {/* Achievements earned */}
                     {trip.achievements && trip.achievements.length > 0 && (
                       <div className="flex items-center gap-2 mt-2">
                         <span className="text-xs text-muted-foreground">Earned:</span>
                         <div className="flex gap-1">
-                          {trip.achievements.map((achievementId) => (
-                            <div key={achievementId} className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                          {trip.achievements.map(achievementId => (
+                            <div
+                              key={achievementId}
+                              className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center"
+                            >
                               <span className="text-xs">🏆</span>
                             </div>
                           ))}
@@ -126,7 +127,7 @@ export const TripHistoryTimeline = ({ className, maxItems = 5 }: TripHistoryTime
             </div>
           ))}
         </div>
-        
+
         {tripHistory.length === 0 && (
           <div className="text-center py-6">
             <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">

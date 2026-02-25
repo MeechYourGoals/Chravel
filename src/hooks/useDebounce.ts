@@ -31,7 +31,7 @@ export function useDebounce<T>(value: T, delay: number = 300): T {
  */
 export function useDebouncedCallback<T extends (...args: any[]) => any>(
   callback: T,
-  delay: number = 300
+  delay: number = 300,
 ): T {
   const timeoutRef = useRef<NodeJS.Timeout>();
 
@@ -45,7 +45,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
         callback(...args);
       }, delay);
     }) as T,
-    [callback, delay]
+    [callback, delay],
   );
 
   useEffect(() => {

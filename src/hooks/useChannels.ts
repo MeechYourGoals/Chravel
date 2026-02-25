@@ -11,7 +11,7 @@ export const useChannels = (tripId: string) => {
     data: channels,
     isLoading,
     error,
-    refetch
+    refetch,
   } = useQuery({
     queryKey: ['channels', tripId],
     queryFn: async () => {
@@ -22,11 +22,8 @@ export const useChannels = (tripId: string) => {
         const channelIds = baseChannels.map(ch => ch.id);
         let memberCountMap = new Map<string, number>();
         if (channelIds.length > 0) {
-          const { data: memberData } = await import('../integrations/supabase/client').then(
-            m => m.supabase
-              .from('channel_members')
-              .select('channel_id')
-              .in('channel_id', channelIds)
+          const { data: memberData } = await import('../integrations/supabase/client').then(m =>
+            m.supabase.from('channel_members').select('channel_id').in('channel_id', channelIds),
           );
           if (memberData) {
             const counts = new Map<string, number>();
@@ -44,7 +41,7 @@ export const useChannels = (tripId: string) => {
             ...ch,
             stats: { channel_id: ch.id, member_count: count, message_count: 0 },
             member_count: count,
-            is_unread: false
+            is_unread: false,
           };
         }) as ChannelWithStats[];
       } catch (error) {
@@ -152,7 +149,7 @@ export const useChannelMessages = (channelId: string) => {
   useEffect(() => {
     if (channelId) {
       loadMessages();
-      
+
       // Poll for new messages every 5 seconds
       const interval = setInterval(loadMessages, 5000);
       return () => clearInterval(interval);
@@ -183,7 +180,11 @@ export const useChannelMessages = (channelId: string) => {
     setIsLoadingMore(true);
     try {
       const oldestMessage = messages[0];
-      const olderMessages = await eventChannelService.getChannelMessages(channelId, 20, oldestMessage.created_at);
+      const olderMessages = await eventChannelService.getChannelMessages(
+        channelId,
+        20,
+        oldestMessage.created_at,
+      );
       if (olderMessages.length > 0) {
         setMessages(prev => [...olderMessages, ...prev]);
         setHasMore(olderMessages.length === 20);

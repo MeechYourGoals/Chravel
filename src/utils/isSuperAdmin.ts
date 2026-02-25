@@ -1,6 +1,6 @@
 /**
  * Canonical Super Admin Check
- * 
+ *
  * Single source of truth for determining if a user is a super admin.
  * Super admins get unlimited access to all features.
  */
@@ -33,15 +33,15 @@ export const isSuperAdmin = (params: {
   appRole?: string | null;
 }): boolean => {
   const { email, roles, appRole } = params;
-  
+
   // Email allowlist is the failsafe (founder protection)
   if (isSuperAdminEmail(email)) return true;
-  
+
   // Role-based check from user_roles table
   if (hasSuperAdminRole(roles)) return true;
-  
+
   // Legacy app_role check (for backward compatibility)
   if (appRole === 'super_admin' || appRole === 'enterprise_admin') return true;
-  
+
   return false;
 };

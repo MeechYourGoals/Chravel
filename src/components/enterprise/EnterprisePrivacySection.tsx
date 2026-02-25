@@ -77,7 +77,9 @@ export const EnterprisePrivacySection = () => {
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div>
               <div className="text-white font-medium">Use Real Name</div>
-              <div className="text-sm text-gray-400">Show your real name to organization members</div>
+              <div className="text-sm text-gray-400">
+                Show your real name to organization members
+              </div>
             </div>
             <button
               type="button"
@@ -99,7 +101,9 @@ export const EnterprisePrivacySection = () => {
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div>
               <div className="text-white font-medium">Show Job Title</div>
-              <div className="text-sm text-gray-400">Display your job title in organization directory</div>
+              <div className="text-sm text-gray-400">
+                Display your job title in organization directory
+              </div>
             </div>
             <button
               type="button"
@@ -128,12 +132,17 @@ export const EnterprisePrivacySection = () => {
                 if (!user?.id || jobTitle === (user.jobTitle ?? '')) return;
                 const previousValue = user.jobTitle ?? '';
                 try {
-                  const { error } = await updateProfile({ job_title: jobTitle || null } as Parameters<typeof updateProfile>[0]);
+                  const { error } = await updateProfile({
+                    job_title: jobTitle || null,
+                  } as Parameters<typeof updateProfile>[0]);
                   if (error) {
                     setJobTitle(previousValue);
                     toast({
                       title: 'Error',
-                      description: typeof error === 'string' ? error : (error?.message ?? 'Failed to save job title. Please try again.'),
+                      description:
+                        typeof error === 'string'
+                          ? error
+                          : (error?.message ?? 'Failed to save job title. Please try again.'),
                       variant: 'destructive',
                     });
                   } else {
@@ -141,13 +150,19 @@ export const EnterprisePrivacySection = () => {
                   }
                 } catch {
                   setJobTitle(previousValue);
-                  toast({ title: 'Error', description: 'Failed to save job title.', variant: 'destructive' });
+                  toast({
+                    title: 'Error',
+                    description: 'Failed to save job title.',
+                    variant: 'destructive',
+                  });
                 }
               }}
               placeholder="e.g. Travel Coordinator"
               className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             />
-            <p className="text-xs text-gray-500 mt-1">Shown in organization directory when &quot;Show Job Title&quot; is on</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Shown in organization directory when &quot;Show Job Title&quot; is on
+            </p>
           </div>
         </div>
       </div>
@@ -159,7 +174,9 @@ export const EnterprisePrivacySection = () => {
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
             <div>
               <div className="text-white font-medium">Share Phone Number</div>
-              <div className="text-sm text-gray-400">Allow organization members to see your phone number</div>
+              <div className="text-sm text-gray-400">
+                Allow organization members to see your phone number
+              </div>
             </div>
             <button
               type="button"

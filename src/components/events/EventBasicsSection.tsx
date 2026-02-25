@@ -12,7 +12,10 @@ interface EventBasicsSectionProps {
   onEventDataChange?: (data: EventSetupData) => void;
 }
 
-export const EventBasicsSection = ({ eventData = {}, onEventDataChange }: EventBasicsSectionProps) => {
+export const EventBasicsSection = ({
+  eventData = {},
+  onEventDataChange,
+}: EventBasicsSectionProps) => {
   const [formData, setFormData] = useState({
     name: eventData.name || '',
     description: eventData.description || '',
@@ -21,19 +24,19 @@ export const EventBasicsSection = ({ eventData = {}, onEventDataChange }: EventB
     location: eventData.location || '',
     category: eventData.category || '',
     capacity: eventData.capacity?.toString() || '',
-    tags: eventData.tags?.join(', ') || ''
+    tags: eventData.tags?.join(', ') || '',
   });
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
     const updated = { ...formData, [field]: value };
     setFormData(updated);
-    
+
     // Convert tags back to array and capacity to number, then update parent
     const eventUpdate: EventSetupData = {
       ...updated,
       capacity: updated.capacity ? parseInt(updated.capacity) : undefined,
-      tags: updated.tags ? updated.tags.split(',').map(tag => tag.trim()) : []
+      tags: updated.tags ? updated.tags.split(',').map(tag => tag.trim()) : [],
     };
     onEventDataChange?.(eventUpdate);
   };
@@ -41,16 +44,16 @@ export const EventBasicsSection = ({ eventData = {}, onEventDataChange }: EventB
   const saveBasics = () => {
     if (!formData.name || !formData.startDate || !formData.endDate) {
       toast({
-        title: "Missing required fields",
-        description: "Please fill in event name, start date, and end date.",
-        variant: "destructive"
+        title: 'Missing required fields',
+        description: 'Please fill in event name, start date, and end date.',
+        variant: 'destructive',
       });
       return;
     }
 
     toast({
-      title: "Event basics saved",
-      description: "Your event information has been updated."
+      title: 'Event basics saved',
+      description: 'Your event information has been updated.',
     });
   };
 
@@ -64,18 +67,25 @@ export const EventBasicsSection = ({ eventData = {}, onEventDataChange }: EventB
       <div className="bg-white/5 border border-white/10 rounded-lg p-6 space-y-6">
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <Label htmlFor="event-name" className="text-white">Event Name *</Label>
+            <Label htmlFor="event-name" className="text-white">
+              Event Name *
+            </Label>
             <Input
               id="event-name"
               value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
+              onChange={e => handleInputChange('name', e.target.value)}
               className="bg-gray-800/50 border-gray-600 text-white mt-1"
               placeholder="Enter event name"
             />
           </div>
           <div>
-            <Label htmlFor="event-category" className="text-white">Category</Label>
-            <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
+            <Label htmlFor="event-category" className="text-white">
+              Category
+            </Label>
+            <Select
+              value={formData.category}
+              onValueChange={value => handleInputChange('category', value)}
+            >
               <SelectTrigger className="bg-gray-800/50 border-gray-600 text-white mt-1">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
@@ -92,11 +102,13 @@ export const EventBasicsSection = ({ eventData = {}, onEventDataChange }: EventB
         </div>
 
         <div>
-          <Label htmlFor="event-description" className="text-white">Description</Label>
+          <Label htmlFor="event-description" className="text-white">
+            Description
+          </Label>
           <Textarea
             id="event-description"
             value={formData.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
+            onChange={e => handleInputChange('description', e.target.value)}
             className="bg-gray-800/50 border-gray-600 text-white mt-1"
             rows={4}
             placeholder="Describe your event..."
@@ -105,32 +117,38 @@ export const EventBasicsSection = ({ eventData = {}, onEventDataChange }: EventB
 
         <div className="grid grid-cols-3 gap-6">
           <div>
-            <Label htmlFor="start-date" className="text-white">Start Date *</Label>
+            <Label htmlFor="start-date" className="text-white">
+              Start Date *
+            </Label>
             <Input
               id="start-date"
               type="date"
               value={formData.startDate}
-              onChange={(e) => handleInputChange('startDate', e.target.value)}
+              onChange={e => handleInputChange('startDate', e.target.value)}
               className="bg-gray-800/50 border-gray-600 text-white mt-1"
             />
           </div>
           <div>
-            <Label htmlFor="end-date" className="text-white">End Date *</Label>
+            <Label htmlFor="end-date" className="text-white">
+              End Date *
+            </Label>
             <Input
               id="end-date"
               type="date"
               value={formData.endDate}
-              onChange={(e) => handleInputChange('endDate', e.target.value)}
+              onChange={e => handleInputChange('endDate', e.target.value)}
               className="bg-gray-800/50 border-gray-600 text-white mt-1"
             />
           </div>
           <div>
-            <Label htmlFor="capacity" className="text-white">Expected Capacity</Label>
+            <Label htmlFor="capacity" className="text-white">
+              Expected Capacity
+            </Label>
             <Input
               id="capacity"
               type="number"
               value={formData.capacity}
-              onChange={(e) => handleInputChange('capacity', e.target.value)}
+              onChange={e => handleInputChange('capacity', e.target.value)}
               className="bg-gray-800/50 border-gray-600 text-white mt-1"
               placeholder="Number of attendees"
             />
@@ -139,21 +157,25 @@ export const EventBasicsSection = ({ eventData = {}, onEventDataChange }: EventB
 
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <Label htmlFor="location" className="text-white">Location</Label>
+            <Label htmlFor="location" className="text-white">
+              Location
+            </Label>
             <Input
               id="location"
               value={formData.location}
-              onChange={(e) => handleInputChange('location', e.target.value)}
+              onChange={e => handleInputChange('location', e.target.value)}
               className="bg-gray-800/50 border-gray-600 text-white mt-1"
               placeholder="Venue or address"
             />
           </div>
           <div>
-            <Label htmlFor="tags" className="text-white">Tags</Label>
+            <Label htmlFor="tags" className="text-white">
+              Tags
+            </Label>
             <Input
               id="tags"
               value={formData.tags}
-              onChange={(e) => handleInputChange('tags', e.target.value)}
+              onChange={e => handleInputChange('tags', e.target.value)}
               className="bg-gray-800/50 border-gray-600 text-white mt-1"
               placeholder="tech, conference, networking (comma separated)"
             />

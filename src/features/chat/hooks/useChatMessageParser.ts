@@ -8,8 +8,8 @@ export const useChatMessageParser = () => {
         body: {
           messageId,
           content,
-          tripId
-        }
+          tripId,
+        },
       });
 
       if (error) {

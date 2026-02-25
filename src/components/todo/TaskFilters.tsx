@@ -12,19 +12,19 @@ interface TaskFiltersProps {
   onClearFilters: () => void;
 }
 
-export const TaskFilters = ({ 
-  status, 
+export const TaskFilters = ({
+  status,
   sortBy,
-  onStatusChange, 
+  onStatusChange,
   onSortChange,
   hasActiveFilters,
-  onClearFilters 
+  onClearFilters,
 }: TaskFiltersProps) => {
   const statuses: TaskStatus[] = ['all', 'open', 'completed'];
   const sortOptions: { value: TaskSortBy; label: string }[] = [
     { value: 'dueDate', label: 'Due Date' },
     { value: 'created', label: 'Created' },
-    { value: 'priority', label: 'Priority' }
+    { value: 'priority', label: 'Priority' },
   ];
 
   return (
@@ -33,9 +33,9 @@ export const TaskFilters = ({
         <Filter size={16} />
         <span>Filter:</span>
       </div>
-      
+
       <div className="flex gap-2">
-        {statuses.map((s) => (
+        {statuses.map(s => (
           <button
             key={s}
             onClick={() => onStatusChange(s)}
@@ -54,10 +54,10 @@ export const TaskFilters = ({
         <span className="text-slate-400 text-sm">Sort by:</span>
         <select
           value={sortBy}
-          onChange={(e) => onSortChange(e.target.value as TaskSortBy)}
+          onChange={e => onSortChange(e.target.value as TaskSortBy)}
           className="bg-slate-700 text-white text-xs rounded px-2 py-1 border border-slate-600"
         >
-          {sortOptions.map((option) => (
+          {sortOptions.map(option => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>

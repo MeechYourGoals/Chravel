@@ -41,7 +41,7 @@ export function usePerformanceMonitor(componentName: string, enabled = import.me
       renderCount: renderCountRef.current,
       averageRenderTime: totalRenderTimeRef.current / renderCountRef.current,
       maxRenderTime: maxRenderTimeRef.current,
-      lastRenderTime: renderTime
+      lastRenderTime: renderTime,
     };
 
     metricsMap.set(componentName, metrics);
@@ -51,7 +51,7 @@ export function usePerformanceMonitor(componentName: string, enabled = import.me
       console.warn(
         `[Performance] Slow render detected in ${componentName}:`,
         `${renderTime.toFixed(2)}ms`,
-        `(render #${renderCountRef.current})`
+        `(render #${renderCountRef.current})`,
       );
     }
   });

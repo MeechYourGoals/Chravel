@@ -26,11 +26,11 @@ interface MobileTeamMemberCardProps {
   isOwner?: boolean;
 }
 
-export const MobileTeamMemberCard = ({ 
-  member, 
-  onChangeRole, 
+export const MobileTeamMemberCard = ({
+  member,
+  onChangeRole,
   onRemove,
-  isOwner 
+  isOwner,
 }: MobileTeamMemberCardProps) => {
   const isMobile = useIsMobile();
 
@@ -38,10 +38,14 @@ export const MobileTeamMemberCard = ({
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'owner': return 'text-purple-400 bg-purple-500/20';
-      case 'admin': return 'text-blue-400 bg-blue-500/20';
-      case 'member': return 'text-green-400 bg-green-500/20';
-      default: return 'text-gray-400 bg-gray-500/20';
+      case 'owner':
+        return 'text-purple-400 bg-purple-500/20';
+      case 'admin':
+        return 'text-blue-400 bg-blue-500/20';
+      case 'member':
+        return 'text-green-400 bg-green-500/20';
+      default:
+        return 'text-gray-400 bg-gray-500/20';
     }
   };
 
@@ -77,10 +81,12 @@ export const MobileTeamMemberCard = ({
       </div>
 
       <div className="flex items-center gap-2">
-        <div className={cn(
-          "px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1",
-          getRoleColor(member.role)
-        )}>
+        <div
+          className={cn(
+            'px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1',
+            getRoleColor(member.role),
+          )}
+        >
           {getRoleIcon(member.role)}
           {member.role}
         </div>
@@ -102,10 +108,7 @@ export const MobileTeamMemberCard = ({
                 </DropdownMenuItem>
               )}
               {onRemove && (
-                <DropdownMenuItem 
-                  onClick={onRemove}
-                  className="text-destructive"
-                >
+                <DropdownMenuItem onClick={onRemove} className="text-destructive">
                   Remove from Organization
                 </DropdownMenuItem>
               )}

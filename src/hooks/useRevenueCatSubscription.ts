@@ -22,7 +22,9 @@ interface UseRevenueCatSubscriptionReturn {
  * Hook to check and manage subscription status using RevenueCat.
  * @param entitlementId - Optional specific entitlement to check (defaults to 'pro')
  */
-export const useRevenueCatSubscription = (entitlementId = 'pro'): UseRevenueCatSubscriptionReturn => {
+export const useRevenueCatSubscription = (
+  entitlementId = 'pro',
+): UseRevenueCatSubscriptionReturn => {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export const useRevenueCatSubscription = (entitlementId = 'pro'): UseRevenueCatS
     try {
       setLoading(true);
       setError(null);
-      
+
       const purchases = Purchases.getSharedInstance();
       const info = await purchases.getCustomerInfo();
       setCustomerInfo(info);
@@ -52,12 +54,10 @@ export const useRevenueCatSubscription = (entitlementId = 'pro'): UseRevenueCatS
       if (!customerInfo) return false;
       return !!customerInfo.entitlements.active[id];
     },
-    [customerInfo]
+    [customerInfo],
   );
 
-  const isSubscribed = customerInfo 
-    ? !!customerInfo.entitlements.active[entitlementId] 
-    : false;
+  const isSubscribed = customerInfo ? !!customerInfo.entitlements.active[entitlementId] : false;
 
   const entitlements = customerInfo?.entitlements.active || {};
 

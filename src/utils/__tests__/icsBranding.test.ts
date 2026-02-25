@@ -29,7 +29,9 @@ describe('icsBranding', () => {
 
     it('should not prefix titles with Google Meet prefix', () => {
       expect(brandEventTitleForIcs('Google Meet: Interview')).toBe('Google Meet: Interview');
-      expect(brandEventTitleForIcs('google meet: Planning Session')).toBe('google meet: Planning Session');
+      expect(brandEventTitleForIcs('google meet: Planning Session')).toBe(
+        'google meet: Planning Session',
+      );
       expect(brandEventTitleForIcs('GOOGLE MEET: Review')).toBe('GOOGLE MEET: Review');
     });
 
@@ -37,7 +39,9 @@ describe('icsBranding', () => {
       expect(brandEventTitleForIcs('Teams: Sprint Planning')).toBe('Teams: Sprint Planning');
       expect(brandEventTitleForIcs('teams: Retrospective')).toBe('teams: Retrospective');
       expect(brandEventTitleForIcs('TEAMS: Standup')).toBe('TEAMS: Standup');
-      expect(brandEventTitleForIcs('Microsoft Teams: All Hands')).toBe('Microsoft Teams: All Hands');
+      expect(brandEventTitleForIcs('Microsoft Teams: All Hands')).toBe(
+        'Microsoft Teams: All Hands',
+      );
     });
 
     it('should not prefix titles with Webex prefix', () => {
@@ -56,7 +60,9 @@ describe('icsBranding', () => {
       expect(brandEventTitleForIcs('')).toBe('ChravelApp: ChravelApp Event');
       expect(brandEventTitleForIcs('   ')).toBe('ChravelApp: ChravelApp Event');
       expect(brandEventTitleForIcs(null as unknown as string)).toBe('ChravelApp: ChravelApp Event');
-      expect(brandEventTitleForIcs(undefined as unknown as string)).toBe('ChravelApp: ChravelApp Event');
+      expect(brandEventTitleForIcs(undefined as unknown as string)).toBe(
+        'ChravelApp: ChravelApp Event',
+      );
     });
 
     it('should handle titles with special characters', () => {
@@ -74,9 +80,15 @@ describe('icsBranding', () => {
     });
 
     it('should prefix titles that contain meeting platform names but not as prefix', () => {
-      expect(brandEventTitleForIcs('Discussion about ZOOM features')).toBe('ChravelApp: Discussion about ZOOM features');
-      expect(brandEventTitleForIcs('Comparing Teams vs Slack')).toBe('ChravelApp: Comparing Teams vs Slack');
-      expect(brandEventTitleForIcs('How to use Google Meet effectively')).toBe('ChravelApp: How to use Google Meet effectively');
+      expect(brandEventTitleForIcs('Discussion about ZOOM features')).toBe(
+        'ChravelApp: Discussion about ZOOM features',
+      );
+      expect(brandEventTitleForIcs('Comparing Teams vs Slack')).toBe(
+        'ChravelApp: Comparing Teams vs Slack',
+      );
+      expect(brandEventTitleForIcs('How to use Google Meet effectively')).toBe(
+        'ChravelApp: How to use Google Meet effectively',
+      );
     });
 
     it('should handle very long titles', () => {
@@ -128,18 +140,14 @@ describe('icsBranding', () => {
 
   describe('brandEventTitles', () => {
     it('should brand multiple titles correctly', () => {
-      const titles = [
-        'Team Meeting',
-        'Beach Day',
-        'ZOOM: Standup'
-      ];
+      const titles = ['Team Meeting', 'Beach Day', 'ZOOM: Standup'];
 
       const branded = brandEventTitles(titles);
 
       expect(branded).toEqual([
         'ChravelApp: Team Meeting',
         'ChravelApp: Beach Day',
-        'ZOOM: Standup'
+        'ZOOM: Standup',
       ]);
     });
 
@@ -156,7 +164,7 @@ describe('icsBranding', () => {
         'ChravelApp: Second',
         'ChravelApp: Third',
         'ChravelApp: Fourth',
-        'ChravelApp: Fifth'
+        'ChravelApp: Fifth',
       ]);
     });
 
@@ -167,7 +175,7 @@ describe('icsBranding', () => {
         'ZOOM: Call',
         'Google Meet: Interview',
         '',
-        'Teams: Meeting'
+        'Teams: Meeting',
       ];
 
       const branded = brandEventTitles(titles);
@@ -178,7 +186,7 @@ describe('icsBranding', () => {
         'ZOOM: Call',
         'Google Meet: Interview',
         'ChravelApp: ChravelApp Event',
-        'Teams: Meeting'
+        'Teams: Meeting',
       ]);
     });
   });
@@ -190,7 +198,7 @@ describe('icsBranding', () => {
         'Simple Meeting',
         'Meeting with: special, characters; and\\backslash',
         'Café Meeting',
-        'Multi\nLine\nTitle'
+        'Multi\nLine\nTitle',
       ];
 
       titles.forEach(title => {
@@ -216,11 +224,15 @@ describe('icsBranding', () => {
     });
 
     it('should handle title with multiple colons', () => {
-      expect(brandEventTitleForIcs('Event: Part 1: Introduction')).toBe('ChravelApp: Event: Part 1: Introduction');
+      expect(brandEventTitleForIcs('Event: Part 1: Introduction')).toBe(
+        'ChravelApp: Event: Part 1: Introduction',
+      );
     });
 
     it('should handle numeric titles', () => {
-      expect(brandEventTitleForIcs('2024 Annual Conference')).toBe('ChravelApp: 2024 Annual Conference');
+      expect(brandEventTitleForIcs('2024 Annual Conference')).toBe(
+        'ChravelApp: 2024 Annual Conference',
+      );
       expect(brandEventTitleForIcs('123')).toBe('ChravelApp: 123');
     });
 

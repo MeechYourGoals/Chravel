@@ -29,7 +29,7 @@ export function useUnreadCounts({
   tripId,
   messages,
   userId,
-  enabled = true
+  enabled = true,
 }: UseUnreadCountsOptions): UnreadCounts {
   const [unreadCount, setUnreadCount] = useState(0);
   const [broadcastCount, setBroadcastCount] = useState(0);
@@ -64,17 +64,15 @@ export function useUnreadCounts({
         );
 
         const unreadMessages = messages.filter(
-          (msg) => !readMessageIds.has(msg.id) && msg.user_id !== userId,
+          msg => !readMessageIds.has(msg.id) && msg.user_id !== userId,
         );
         const totalUnread = unreadMessages.length;
         const unreadBroadcasts = unreadMessages.filter(
-          (msg) =>
-            msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
+          msg => msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
         ).length;
 
         setUnreadCount(totalUnread);
         setBroadcastCount(unreadBroadcasts);
-
       } catch (error) {
         console.error('Error calculating unread counts:', error);
       }
@@ -91,12 +89,12 @@ export function useUnreadCounts({
           event: '*',
           schema: 'public',
           table: 'message_read_receipts',
-          filter: `user_id=eq.${userId}`
+          filter: `user_id=eq.${userId}`,
         },
         () => {
           // Recalculate when read status changes
           calculateUnreadCounts();
-        }
+        },
       )
       .subscribe();
 

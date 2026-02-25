@@ -93,37 +93,33 @@ describe('TripLinksDisplay', () => {
     );
   });
 
-  it(
-    'retry button refetches on error',
-    { timeout: 25000 },
-    async () => {
-      // First 2 calls fail (initial + auto-retry), 3rd (manual Retry) succeeds
-      const getTripLinksSpy = vi
-        .spyOn(tripLinksService, 'getTripLinks')
-        .mockRejectedValueOnce(new Error('First attempt failed'))
-        .mockRejectedValueOnce(new Error('Retry failed'))
-        .mockResolvedValueOnce([]);
+  it('retry button refetches on error', { timeout: 25000 }, async () => {
+    // First 2 calls fail (initial + auto-retry), 3rd (manual Retry) succeeds
+    const getTripLinksSpy = vi
+      .spyOn(tripLinksService, 'getTripLinks')
+      .mockRejectedValueOnce(new Error('First attempt failed'))
+      .mockRejectedValueOnce(new Error('Retry failed'))
+      .mockResolvedValueOnce([]);
 
-      render(<TripLinksDisplay tripId="trip-1" />, {
-        wrapper: createTestWrapper(),
-      });
+    render(<TripLinksDisplay tripId="trip-1" />, {
+      wrapper: createTestWrapper(),
+    });
 
-      await waitFor(
-        () => {
-          expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
-        },
-        { timeout: 10000 },
-      );
+    await waitFor(
+      () => {
+        expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
-      await userEvent.click(screen.getByRole('button', { name: /retry/i }));
+    await userEvent.click(screen.getByRole('button', { name: /retry/i }));
 
-      await waitFor(
-        () => {
-          expect(getTripLinksSpy).toHaveBeenCalledTimes(3);
-          expect(screen.getByText('Explore')).toBeInTheDocument();
-        },
-        { timeout: 5000 },
-      );
-    }
-  );
+    await waitFor(
+      () => {
+        expect(getTripLinksSpy).toHaveBeenCalledTimes(3);
+        expect(screen.getByText('Explore')).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+  });
 });

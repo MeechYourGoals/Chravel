@@ -25,7 +25,7 @@ export class PrivacyService {
         length: 256,
       },
       true, // extractable
-      ['encrypt', 'decrypt']
+      ['encrypt', 'decrypt'],
     );
 
     this.keyCache.set(tripId, key);
@@ -38,7 +38,7 @@ export class PrivacyService {
       const key = await this.generateTripKey(tripId);
       const encoder = new TextEncoder();
       const data = encoder.encode(content);
-      
+
       const iv = crypto.getRandomValues(new Uint8Array(12));
       const encrypted = await crypto.subtle.encrypt(
         {
@@ -46,7 +46,7 @@ export class PrivacyService {
           iv: iv,
         },
         key,
-        data
+        data,
       );
 
       // Combine IV and encrypted data
@@ -66,7 +66,9 @@ export class PrivacyService {
     try {
       const key = await this.generateTripKey(tripId);
       const combined = new Uint8Array(
-        atob(encryptedContent).split('').map(char => char.charCodeAt(0))
+        atob(encryptedContent)
+          .split('')
+          .map(char => char.charCodeAt(0)),
       );
 
       const iv = combined.slice(0, 12);
@@ -78,7 +80,7 @@ export class PrivacyService {
           iv: iv,
         },
         key,
-        encrypted
+        encrypted,
       );
 
       const decoder = new TextDecoder();
@@ -98,13 +100,13 @@ export class PrivacyService {
   async prepareMessageForSending(
     content: string,
     tripId: string,
-    privacyMode: PrivacyMode
+    privacyMode: PrivacyMode,
   ): Promise<{ content: string; encrypted: boolean }> {
     if (privacyMode === 'high') {
       const encryptedContent = await this.encryptMessage(content, tripId);
       return { content: encryptedContent, encrypted: true };
     }
-    
+
     return { content, encrypted: false };
   }
 
@@ -112,12 +114,12 @@ export class PrivacyService {
   async prepareMessageForDisplay(
     content: string,
     tripId: string,
-    isEncrypted: boolean
+    isEncrypted: boolean,
   ): Promise<string> {
     if (isEncrypted) {
       return await this.decryptMessage(content, tripId);
     }
-    
+
     return content;
   }
 
@@ -137,7 +139,7 @@ export class PrivacyService {
   canChangePrivacyMode(
     currentMode: PrivacyMode,
     newMode: PrivacyMode,
-    userRole: string
+    userRole: string,
   ): { allowed: boolean; reason?: string } {
     // Only trip organizers/admins can change privacy mode
     if (!['admin', 'organizer', 'owner'].includes(userRole)) {
@@ -146,10 +148,10 @@ export class PrivacyService {
 
     // Warn about data implications when switching from high to standard
     if (currentMode === 'high' && newMode === 'standard') {
-      return { 
-        allowed: true, 
+      return {
+        allowed: true,
         reason:
-          'Switching to Standard Privacy enables server-side encryption for new messages. Past encrypted messages remain encrypted.'
+          'Switching to Standard Privacy enables server-side encryption for new messages. Past encrypted messages remain encrypted.',
       };
     }
 

@@ -35,21 +35,17 @@ export const ChannelHeaderDropdown = ({
             ) : (
               <Hash size={16} className="text-gray-400" />
             )}
-            <span className="font-semibold text-white">
-              {currentChannel.channelSlug}
-            </span>
+            <span className="font-semibold text-white">{currentChannel.channelSlug}</span>
           </div>
           <ChevronDown size={16} className="text-gray-400" />
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="w-64 bg-gray-800 border-gray-700">
-        <DropdownMenuLabel className="text-gray-400 text-xs">
-          Switch Channel
-        </DropdownMenuLabel>
+        <DropdownMenuLabel className="text-gray-400 text-xs">Switch Channel</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-gray-700" />
-        
-        {availableChannels.map((channel) => (
+
+        {availableChannels.map(channel => (
           <DropdownMenuItem
             key={channel.id}
             onClick={() => onChannelChange(channel)}
@@ -66,9 +62,7 @@ export const ChannelHeaderDropdown = ({
             )}
             <div className="flex-1 min-w-0">
               <div className="font-medium truncate">#{channel.channelSlug}</div>
-              <div className="text-xs text-gray-500 truncate">
-                {channel.requiredRoleName}
-              </div>
+              <div className="text-xs text-gray-500 truncate">{channel.requiredRoleName}</div>
             </div>
             {channel.unreadCount && channel.unreadCount > 0 && (
               <span className="bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">

@@ -1,17 +1,17 @@
 /**
  * Centralized Error Tracking Service
- * 
+ *
  * Provides a unified interface for error tracking across the application.
  * Currently logs to console, but can be easily integrated with services like:
  * - Sentry
  * - DataDog
  * - LogRocket
  * - Rollbar
- * 
+ *
  * Usage:
  * ```ts
  * import { errorTracking } from '@/services/errorTracking';
- * 
+ *
  * try {
  *   // risky operation
  * } catch (error) {
@@ -51,7 +51,6 @@ class ErrorTrackingService {
   init(config?: { userId?: string; environment?: string }) {
     if (this.initialized) return;
 
-    
     if (config?.userId) {
       this.userId = config.userId;
     }
@@ -71,7 +70,7 @@ class ErrorTrackingService {
    */
   setUser(userId: string, userData?: Record<string, any>) {
     this.userId = userId;
-    
+
     // TODO: Set Sentry user context
     // Sentry.setUser({ id: userId, ...userData });
   }
@@ -81,7 +80,7 @@ class ErrorTrackingService {
    */
   clearUser() {
     this.userId = null;
-    
+
     // TODO: Clear Sentry user context
     // Sentry.setUser(null);
   }
@@ -91,13 +90,13 @@ class ErrorTrackingService {
    */
   captureException(error: Error | unknown, context?: ErrorContext) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
-    
+
     console.error('[ErrorTracking] Exception captured:', {
       error: errorObj,
       message: errorObj.message,
       stack: errorObj.stack,
       context,
-      breadcrumbs: this.breadcrumbs.slice(-10) // Last 10 breadcrumbs
+      breadcrumbs: this.breadcrumbs.slice(-10), // Last 10 breadcrumbs
     });
 
     // TODO: Send to Sentry
@@ -114,8 +113,11 @@ class ErrorTrackingService {
   /**
    * Capture a message (non-error log)
    */
-  captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info', context?: ErrorContext) {
-
+  captureMessage(
+    message: string,
+    level: 'info' | 'warning' | 'error' = 'info',
+    context?: ErrorContext,
+  ) {
     // TODO: Send to Sentry
     // Sentry.captureMessage(message, {
     //   level,
@@ -133,15 +135,14 @@ class ErrorTrackingService {
       ...breadcrumb,
       data: {
         ...breadcrumb.data,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     });
 
     // Keep only last N breadcrumbs
     if (this.breadcrumbs.length > this.maxBreadcrumbs) {
       this.breadcrumbs = this.breadcrumbs.slice(-this.maxBreadcrumbs);
     }
-
 
     // TODO: Send to Sentry
     // Sentry.addBreadcrumb({
@@ -162,19 +163,16 @@ class ErrorTrackingService {
   /**
    * Wrap an async function with error tracking
    */
-  wrapAsync<T extends (...args: any[]) => Promise<any>>(
-    fn: T,
-    context: ErrorContext
-  ): T {
+  wrapAsync<T extends (...args: any[]) => Promise<any>>(fn: T, context: ErrorContext): T {
     return (async (...args: any[]) => {
       try {
         this.addBreadcrumb({
           category: 'api-call',
           message: `Executing ${context.context || 'async operation'}`,
           level: 'info',
-          data: { args: args.slice(0, 3) } // Don't log all args for privacy
+          data: { args: args.slice(0, 3) }, // Don't log all args for privacy
         });
-        
+
         const result = await fn(...args);
         return result;
       } catch (error) {

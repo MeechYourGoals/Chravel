@@ -79,12 +79,14 @@ export async function renderTemplate(data: TripExportData): Promise<string> {
  */
 function renderHeader(data: TripExportData): string {
   const { tripTitle, subtitle, destination, startDate, endDate } = data;
-  
+
   const hasMeta = destination || (startDate && endDate);
   const metaText = [
     destination ? escapeHtml(destination) : null,
     startDate && endDate ? `${escapeHtml(startDate)} – ${escapeHtml(endDate)}` : null,
-  ].filter(Boolean).join(' &nbsp;•&nbsp; ');
+  ]
+    .filter(Boolean)
+    .join(' &nbsp;•&nbsp; ');
 
   return `
   <div class="header">
@@ -100,7 +102,9 @@ function renderMembersSection(roster: any[] | undefined): string {
   return `
   <section class="section">
     <h2>Trip Members</h2>
-    ${roster && roster.length > 0 ? `
+    ${
+      roster && roster.length > 0
+        ? `
     <table class="table">
       <thead>
         <tr>
@@ -112,7 +116,9 @@ function renderMembersSection(roster: any[] | undefined): string {
         </tr>
       </thead>
       <tbody>
-        ${roster.map(m => `
+        ${roster
+          .map(
+            m => `
           <tr>
             <td>${escapeHtml(m.name)}</td>
             <td>${m.role ? escapeHtml(m.role) : '—'}</td>
@@ -120,10 +126,14 @@ function renderMembersSection(roster: any[] | undefined): string {
             <td>${m.email ? escapeHtml(m.email) : '—'}</td>
             <td>${m.phone ? escapeHtml(m.phone) : '—'}</td>
           </tr>
-        `).join('')}
+        `,
+          )
+          .join('')}
       </tbody>
     </table>
-    ` : `<p class="empty-message">No members available</p>`}
+    `
+        : `<p class="empty-message">No members available</p>`
+    }
   </section>`;
 }
 
@@ -169,14 +179,16 @@ function renderPaymentsSection(payments: any[] | undefined, totals: any): string
   }
 
   const netSettlement = calculateNetSettlement(payments);
-  
+
   return `
   <section class="section">
     <h2>Payments</h2>
     ${totals?.paymentsTotal ? `<p class="small"><strong>Total:</strong> <span class="tt">${totals.currency || 'USD'} ${totals.paymentsTotal.toFixed(2)}</span></p>` : ''}
     ${netSettlement ? `<p class="small net-settlement"><strong>Net Settlement:</strong> ${escapeHtml(netSettlement)}</p>` : ''}
     
-    ${payments.map(p => `
+    ${payments
+      .map(
+        p => `
       <div class="card">
         <div class="payment-header">
           <strong>${escapeHtml(p.title)}</strong>
@@ -185,10 +197,12 @@ function renderPaymentsSection(payments: any[] | undefined, totals: any): string
         <div class="small">
           Payer: ${escapeHtml(p.payer)}
           &nbsp;•&nbsp;
-          Status: <span class="chip ${p.status === 'Paid' ? 'success' : (p.status === 'Overdue' ? 'danger' : 'warn')}">${p.status}</span>
+          Status: <span class="chip ${p.status === 'Paid' ? 'success' : p.status === 'Overdue' ? 'danger' : 'warn'}">${p.status}</span>
           ${p.due ? ` &nbsp;•&nbsp; Due: ${escapeHtml(p.due)}` : ''}
         </div>
-        ${p.split && p.split.length > 0 ? `
+        ${
+          p.split && p.split.length > 0
+            ? `
           <table class="table payment-split">
             <thead>
               <tr>
@@ -199,19 +213,27 @@ function renderPaymentsSection(payments: any[] | undefined, totals: any): string
               </tr>
             </thead>
             <tbody>
-              ${p.split.map((s: any) => `
+              ${p.split
+                .map(
+                  (s: any) => `
                 <tr>
                   <td>${escapeHtml(s.name)}</td>
                   <td class="money">${s.owes.toFixed(2)}</td>
                   <td><span class="chip ${s.paid ? 'success' : ''}">${s.paid ? 'Paid' : 'Unpaid'}</span></td>
                   <td>${s.paid_at ? escapeHtml(s.paid_at) : '—'}</td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join('')}
             </tbody>
           </table>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
-    `).join('')}
+    `,
+      )
+      .join('')}
   </section>`;
 }
 
@@ -227,7 +249,9 @@ function renderPollsSection(polls: any[] | undefined): string {
   return `
   <section class="section">
     <h2>Polls</h2>
-    ${polls.map(poll => `
+    ${polls
+      .map(
+        poll => `
       <div class="card">
         <strong>${escapeHtml(poll.question)}</strong>
         <table class="table poll-table">
@@ -239,17 +263,23 @@ function renderPollsSection(polls: any[] | undefined): string {
             </tr>
           </thead>
           <tbody>
-            ${poll.options.map((opt: any) => `
+            ${poll.options
+              .map(
+                (opt: any) => `
               <tr>
                 <td>${escapeHtml(opt.text)}</td>
                 <td class="money">${opt.votes}</td>
                 <td>${opt.winner ? '<strong>Winner</strong>' : ''}</td>
               </tr>
-            `).join('')}
+            `,
+              )
+              .join('')}
           </tbody>
         </table>
       </div>
-    `).join('')}
+    `,
+      )
+      .join('')}
   </section>`;
 }
 
@@ -275,14 +305,18 @@ function renderTasksSection(tasks: any[] | undefined): string {
         </tr>
       </thead>
       <tbody>
-        ${tasks.map(t => `
+        ${tasks
+          .map(
+            t => `
           <tr>
             <td>${escapeHtml(t.title)}</td>
             <td>${escapeHtml(t.owner || '—')}</td>
             <td>${escapeHtml(t.due || '—')}</td>
-            <td><span class="chip ${t.status === 'Done' ? 'success' : (t.status === 'Blocked' ? 'danger' : 'warn')}">${t.status}</span></td>
+            <td><span class="chip ${t.status === 'Done' ? 'success' : t.status === 'Blocked' ? 'danger' : 'warn'}">${t.status}</span></td>
           </tr>
-        `).join('')}
+        `,
+          )
+          .join('')}
       </tbody>
     </table>
   </section>`;
@@ -300,7 +334,9 @@ function renderPlacesSection(places: any[] | undefined): string {
   return `
   <section class="section">
     <h2>Places & Links</h2>
-    ${places.map(place => `
+    ${places
+      .map(
+        place => `
       <div class="card place-card">
         <div class="place-header">
           <div>
@@ -316,7 +352,9 @@ function renderPlacesSection(places: any[] | undefined): string {
           </a>
         </div>
       </div>
-    `).join('')}
+    `,
+      )
+      .join('')}
   </section>`;
 }
 
@@ -341,13 +379,17 @@ function renderBroadcastsSection(broadcasts: any[] | undefined): string {
         </tr>
       </thead>
       <tbody>
-        ${broadcasts.map(b => `
+        ${broadcasts
+          .map(
+            b => `
           <tr>
             <td>${escapeHtml(b.sender)}</td>
             <td>${escapeHtml(b.message)}</td>
             <td>${escapeHtml(b.ts)}</td>
           </tr>
-        `).join('')}
+        `,
+          )
+          .join('')}
       </tbody>
     </table>
   </section>`;
@@ -368,15 +410,19 @@ function renderAttachmentsSection(attachments: any[] | undefined): string {
   <section class="section">
     <h2>Attachments</h2>
     <ul class="bullet-list">
-      ${attachments.map(a => {
-        const meta = [a.type ? escapeHtml(a.type) : null, a.date ? escapeHtml(a.date) : null].filter(Boolean).join(' • ');
-        return `
+      ${attachments
+        .map(a => {
+          const meta = [a.type ? escapeHtml(a.type) : null, a.date ? escapeHtml(a.date) : null]
+            .filter(Boolean)
+            .join(' • ');
+          return `
           <li>
             <span class="file-name">${escapeHtml(a.name)}</span>
             ${meta ? `<span class="file-meta"> (${meta})</span>` : ''}
           </li>
         `;
-      }).join('')}
+        })
+        .join('')}
     </ul>
   </section>`;
 }

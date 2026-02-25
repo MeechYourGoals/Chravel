@@ -48,7 +48,8 @@ export function calculateNetSettlement(payments: PaymentItem[]): string {
 
   // Calculate optimal settlements
   const settlements: string[] = [];
-  let i = 0, j = 0;
+  let i = 0,
+    j = 0;
 
   while (i < debtors.length && j < creditors.length) {
     const [debtor, debtAmount] = debtors[i];
@@ -71,7 +72,10 @@ export function calculateNetSettlement(payments: PaymentItem[]): string {
  * Create URL-safe slug from string
  */
 export function slug(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 }
 
 /**

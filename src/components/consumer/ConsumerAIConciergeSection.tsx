@@ -28,7 +28,7 @@ export const ConsumerAIConciergeSection = () => {
         budgetMin: 50,
         budgetMax: 200,
         budgetUnit: 'experience',
-        timePreference: 'early-riser'
+        timePreference: 'early-riser',
       });
       setIsLoading(false);
     } else if (user) {
@@ -53,14 +53,14 @@ export const ConsumerAIConciergeSection = () => {
 
   const handlePreferencesChange = async (newPrefs: TripPreferencesType) => {
     setPreferences(newPrefs);
-    
+
     if (isDemoMode) {
       toast.success('Demo: Preferences preview updated');
       return;
     }
-    
+
     if (!user) return;
-    
+
     try {
       const success = await userPreferencesService.setAIPreferences(user.id, newPrefs);
       if (success) {
@@ -94,7 +94,8 @@ export const ConsumerAIConciergeSection = () => {
             <h2 className="text-2xl font-bold text-white">AI Concierge Settings</h2>
           </div>
           <p className="text-gray-400">
-            Configure your preferences once - AI uses them across all trips for personalized recommendations
+            Configure your preferences once - AI uses them across all trips for personalized
+            recommendations
           </p>
         </div>
         <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 px-4 py-2 rounded-full">
@@ -119,8 +120,8 @@ export const ConsumerAIConciergeSection = () => {
       </div>
 
       {/* Preferences Component */}
-      <TripPreferences 
-        tripId="global-user-preferences" 
+      <TripPreferences
+        tripId="global-user-preferences"
         onPreferencesChange={handlePreferencesChange}
         initialPreferences={preferences || undefined}
       />
@@ -133,24 +134,40 @@ export const ConsumerAIConciergeSection = () => {
             When you ask AI for recommendations, these filters are automatically applied:
           </p>
           <div className="flex flex-wrap gap-2">
-            {preferences.dietary.map((item) => (
-              <span key={item} className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm">
+            {preferences.dietary.map(item => (
+              <span
+                key={item}
+                className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm"
+              >
                 {item}
               </span>
             ))}
-            {preferences.vibe.map((item) => (
-              <span key={item} className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-sm">
+            {preferences.vibe.map(item => (
+              <span
+                key={item}
+                className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-sm"
+              >
                 {item}
               </span>
             ))}
-            {preferences.accessibility.map((item) => (
-              <span key={item} className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm">
+            {preferences.accessibility.map(item => (
+              <span
+                key={item}
+                className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm"
+              >
                 {item}
               </span>
             ))}
             {(() => {
               const unit = preferences.budgetUnit || 'experience';
-              const unitLabel = unit === 'experience' ? 'per experience' : unit === 'day' ? 'per day' : unit === 'person' ? 'per person' : 'per trip';
+              const unitLabel =
+                unit === 'experience'
+                  ? 'per experience'
+                  : unit === 'day'
+                    ? 'per day'
+                    : unit === 'person'
+                      ? 'per person'
+                      : 'per trip';
               const hasMin = preferences.budgetMin > 0;
               const hasMax = preferences.budgetMax > 0;
               if (hasMin && hasMax) {

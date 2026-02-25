@@ -31,7 +31,13 @@ import { MessageTypeBar } from './MessageTypeBar';
 import { ChatSearchOverlay } from './ChatSearchOverlay';
 import { useEffectiveSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
-import { toggleMessageReaction, getMessagesReactions, subscribeToReactions, type ReactionType, type ReactionCount } from '@/services/chatService';
+import {
+  toggleMessageReaction,
+  getMessagesReactions,
+  subscribeToReactions,
+  type ReactionType,
+  type ReactionCount,
+} from '@/services/chatService';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 
@@ -52,7 +58,7 @@ interface MockMessage {
   createdAt: string;
   isAiMessage?: boolean;
   isBroadcast?: boolean;
-  
+
   reactions?: { [key: string]: string[] };
   replyTo?: { id: string; text: string; sender: string };
   trip_type?: string;
@@ -90,10 +96,12 @@ export const TripChat = ({
   tripId: tripIdProp,
   isPro = false,
   userRole = 'member',
-  participants = []
+  participants = [],
 }: TripChatProps) => {
   const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
-  const [reactions, setReactions] = useState<Record<string, Record<string, { count: number; userReacted: boolean }>>>({});
+  const [reactions, setReactions] = useState<
+    Record<string, Record<string, { count: number; userReacted: boolean }>>
+  >({});
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
   const typingServiceRef = useRef<TypingIndicatorService | null>(null);
@@ -107,14 +115,16 @@ export const TripChat = ({
     createdAt: string;
     tripId: string;
   } | null>(null);
-  const [failedMessages, setFailedMessages] = useState<Array<{ id: string; text: string; authorName: string }>>([]);
+  const [failedMessages, setFailedMessages] = useState<
+    Array<{ id: string; text: string; authorName: string }>
+  >([]);
 
   const { isOffline } = useOfflineStatus();
   const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
   const resolvedTripId = useMemo(() => {
     return tripIdProp || params.tripId || params.proTripId || params.eventId || '';
   }, [tripIdProp, params.tripId, params.proTripId, params.eventId]);
-  
+
   const demoMode = useDemoMode();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -124,7 +134,7 @@ export const TripChat = ({
     (messageId: string, newContent: string) => {
       if (demoMode.isDemoMode || !resolvedTripId) return;
       queryClient.setQueryData(['tripChat', resolvedTripId], (old: TripChatMessage[] = []) =>
-        old.map((msg) =>
+        old.map(msg =>
           msg.id === messageId
             ? { ...msg, content: newContent, is_edited: true, edited_at: new Date().toISOString() }
             : msg,
@@ -138,7 +148,7 @@ export const TripChat = ({
     (messageId: string) => {
       if (demoMode.isDemoMode || !resolvedTripId) return;
       queryClient.setQueryData(['tripChat', resolvedTripId], (old: TripChatMessage[] = []) =>
-        old.filter((msg) => msg.id !== messageId),
+        old.filter(msg => msg.id !== messageId),
       );
     },
     [demoMode.isDemoMode, resolvedTripId, queryClient],
@@ -146,14 +156,18 @@ export const TripChat = ({
 
   // System message preferences - only for consumer trips
   const isConsumer = isConsumerTrip(resolvedTripId);
-  const { data: systemMessagePrefs } = useEffectiveSystemMessagePreferences(isConsumer ? resolvedTripId : '');
+  const { data: systemMessagePrefs } = useEffectiveSystemMessagePreferences(
+    isConsumer ? resolvedTripId : '',
+  );
 
   // ⚡ PERFORMANCE: Skip expensive hooks in demo mode for numeric trip IDs
   const shouldSkipLiveChat = demoMode.isDemoMode && /^\d+$/.test(resolvedTripId);
-  
+
   // Fetch privacy config for the trip (after shouldSkipLiveChat is defined)
-  const { data: privacyConfig } = useTripPrivacyConfig(shouldSkipLiveChat ? undefined : resolvedTripId);
-  
+  const { data: privacyConfig } = useTripPrivacyConfig(
+    shouldSkipLiveChat ? undefined : resolvedTripId,
+  );
+
   // Live chat hooks - only initialize for authenticated trips
   const { tripMembers } = useTripMembers(shouldSkipLiveChat ? undefined : resolvedTripId);
   const {
@@ -163,7 +177,7 @@ export const TripChat = ({
     isCreating: isSendingMessage,
     loadMore: loadMoreMessages,
     hasMore,
-    isLoadingMore
+    isLoadingMore,
   } = useTripChat(shouldSkipLiveChat ? undefined : resolvedTripId);
 
   const {
@@ -175,7 +189,7 @@ export const TripChat = ({
     setReply,
     clearReply,
     sendMessage,
-    filterMessages
+    filterMessages,
   } = useChatComposer({ tripId: resolvedTripId, demoMode: demoMode.isDemoMode, isEvent });
 
   // Extract unique roles from participants for channel generation
@@ -190,13 +204,13 @@ export const TripChat = ({
     activeChannel,
     messages: channelMessages,
     setActiveChannel,
-    sendMessage: sendChannelMessage
+    sendMessage: sendChannelMessage,
   } = useRoleChannels(resolvedTripId, userRole, participantRoles);
 
   // Mobile-specific hooks
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Handle keyboard visibility for better UX
   const { isKeyboardVisible } = useKeyboardHandler({
     preventZoom: true,
@@ -205,7 +219,7 @@ export const TripChat = ({
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 300);
-    }
+    },
   });
 
   // Swipe gestures for mobile navigation
@@ -219,7 +233,7 @@ export const TripChat = ({
       // Handle swipe right gesture
       hapticService.light();
     },
-    threshold: 50
+    threshold: 50,
   });
 
   // Track unread counts with real-time updates
@@ -227,7 +241,7 @@ export const TripChat = ({
     tripId: resolvedTripId,
     messages: liveMessages,
     userId: user?.id || null,
-    enabled: !demoMode.isDemoMode && !!user?.id
+    enabled: !demoMode.isDemoMode && !!user?.id,
   });
 
   // Initialize typing indicators
@@ -307,7 +321,7 @@ export const TripChat = ({
         // System messages should render without avatar in MessageItem.
         avatar: tripMembers.find(m => m.id === (message.user_id || ''))?.avatar || defaultAvatar,
         // Store original user_id separately for ownership checks
-        userId: message.user_id
+        userId: message.user_id,
       },
       createdAt: message.created_at,
       isBroadcast: message.message_type === 'broadcast',
@@ -316,7 +330,7 @@ export const TripChat = ({
       editedAt: message.edited_at,
       // Ensure system messages are never filtered out by dedupe/memoization layers
       // and can be rendered via the special system-message UI path.
-      tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[])
+      tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[]),
     }));
   }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 
@@ -328,7 +342,10 @@ export const TripChat = ({
       const messageIds = liveMessages.map(m => m.id);
       try {
         const data = await getMessagesReactions(messageIds, user.id);
-        const formatted: Record<string, Record<string, { count: number; userReacted: boolean }>> = {};
+        const formatted: Record<
+          string,
+          Record<string, { count: number; userReacted: boolean }>
+        > = {};
         for (const [msgId, typeMap] of Object.entries(data)) {
           formatted[msgId] = {};
           for (const [type, rData] of Object.entries(typeMap)) {
@@ -352,7 +369,7 @@ export const TripChat = ({
 
     const messageIdSet = new Set(liveMessages.map(m => m.id));
 
-    const channel = subscribeToReactions(resolvedTripId, (payload) => {
+    const channel = subscribeToReactions(resolvedTripId, payload => {
       // Only process reactions for messages we have loaded
       if (!messageIdSet.has(payload.messageId)) return;
 
@@ -362,7 +379,10 @@ export const TripChat = ({
           updated[payload.messageId] = {};
         }
 
-        const current = updated[payload.messageId][payload.reactionType] || { count: 0, userReacted: false };
+        const current = updated[payload.messageId][payload.reactionType] || {
+          count: 0,
+          userReacted: false,
+        };
 
         if (payload.eventType === 'INSERT') {
           updated[payload.messageId][payload.reactionType] = {
@@ -395,16 +415,16 @@ export const TripChat = ({
         description: paymentData.description,
         splitCount: paymentData.splitCount,
         splitParticipants: paymentData.splitParticipants || [],
-        paymentMethods: paymentData.paymentMethods || []
+        paymentMethods: paymentData.paymentMethods || [],
       };
     }
 
     const message = await sendMessage({
-      isBroadcast, 
-      isPayment, 
-      paymentData: transformedPaymentData 
+      isBroadcast,
+      isPayment,
+      paymentData: transformedPaymentData,
     });
-    
+
     if (!message) {
       return;
     }
@@ -424,7 +444,15 @@ export const TripChat = ({
       // Use actual privacy mode from trip config
       const effectivePrivacyMode = getEffectivePrivacyMode(privacyConfig);
 
-      await sendTripMessage(message.text, authorName, undefined, undefined, user?.id, effectivePrivacyMode, messageType);
+      await sendTripMessage(
+        message.text,
+        authorName,
+        undefined,
+        undefined,
+        user?.id,
+        effectivePrivacyMode,
+        messageType,
+      );
 
       // Auto-parse message for entities (dates, times, locations)
       if (message.text && message.text.trim().length > 10) {
@@ -437,7 +465,7 @@ export const TripChat = ({
         }
       }
     } catch (error) {
-      setFailedMessages((prev) => [
+      setFailedMessages(prev => [
         ...prev,
         { id: `failed-${Date.now()}`, text: message.text, authorName },
       ]);
@@ -449,15 +477,23 @@ export const TripChat = ({
 
   const handleRetryFailedMessage = useCallback(
     async (failedId: string) => {
-      const failed = failedMessages.find((m) => m.id === failedId);
+      const failed = failedMessages.find(m => m.id === failedId);
       if (!failed || !user?.id) return;
 
       const authorName = user.displayName || user.email?.split('@')[0] || 'You';
       const effectivePrivacyMode = getEffectivePrivacyMode(privacyConfig);
 
       try {
-        await sendTripMessage(failed.text, authorName, undefined, undefined, user.id, effectivePrivacyMode, 'text');
-        setFailedMessages((prev) => prev.filter((m) => m.id !== failedId));
+        await sendTripMessage(
+          failed.text,
+          authorName,
+          undefined,
+          undefined,
+          user.id,
+          effectivePrivacyMode,
+          'text',
+        );
+        setFailedMessages(prev => prev.filter(m => m.id !== failedId));
       } catch {
         // Keep in failed list; toast from useTripChat
       }
@@ -480,7 +516,10 @@ export const TripChat = ({
         updatedReactions[messageId] = {};
       }
 
-      const currentReaction = updatedReactions[messageId][reactionType] || { count: 0, userReacted: false };
+      const currentReaction = updatedReactions[messageId][reactionType] || {
+        count: 0,
+        userReacted: false,
+      };
       currentReaction.userReacted = !currentReaction.userReacted;
       currentReaction.count += currentReaction.userReacted ? 1 : -1;
 
@@ -525,7 +564,8 @@ export const TripChat = ({
 
   // Handle opening a thread
   const handleOpenThread = (messageId: string) => {
-    const message = liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
+    const message =
+      liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
     if (!message) return;
 
     const isDemo = demoMode.isDemoMode;
@@ -558,15 +598,19 @@ export const TripChat = ({
     // Detect if this is a Pro or Event trip
     const isProTripContext = isPro || params.proTripId;
     const isEventContext = isEvent || params.eventId;
-    
+
     let demoMessagesData;
-    
+
     if (isProTripContext) {
       demoMessagesData = demoModeService.getProMockMessages('pro', user?.id || 'demo-user');
     } else if (isEventContext) {
       demoMessagesData = demoModeService.getProMockMessages('event', user?.id || 'demo-user');
     } else {
-      demoMessagesData = demoModeService.getMockMessages('friends-trip', true, user?.id || 'demo-user');
+      demoMessagesData = demoModeService.getMockMessages(
+        'friends-trip',
+        true,
+        user?.id || 'demo-user',
+      );
     }
 
     const formattedMessages = demoMessagesData.map(msg => ({
@@ -575,16 +619,20 @@ export const TripChat = ({
       sender: {
         id: msg.sender_id || msg.sender_name || msg.id,
         name: msg.sender_name || 'Unknown',
-        avatar: getMockAvatar(msg.sender_name || 'Unknown')
+        avatar: getMockAvatar(msg.sender_name || 'Unknown'),
       },
       createdAt: new Date(Date.now() - (msg.timestamp_offset_days || 0) * 86400000).toISOString(),
-      isBroadcast: msg.tags?.includes('broadcast') || msg.tags?.includes('logistics') || msg.tags?.includes('urgent') || false,
+      isBroadcast:
+        msg.tags?.includes('broadcast') ||
+        msg.tags?.includes('logistics') ||
+        msg.tags?.includes('urgent') ||
+        false,
       trip_type: msg.trip_type,
       sender_name: msg.sender_name,
       message_content: msg.message_content,
       delay_seconds: msg.delay_seconds,
       timestamp_offset_days: msg.timestamp_offset_days,
-      tags: msg.tags
+      tags: msg.tags,
     }));
 
     setDemoMessages(formattedMessages);
@@ -594,8 +642,8 @@ export const TripChat = ({
   useEffect(() => {
     if (messageFilter === 'channels' && availableChannels.length > 0 && !activeChannel) {
       // Sort alphabetically and select first
-      const sortedChannels = [...availableChannels].sort((a, b) => 
-        a.channelName.localeCompare(b.channelName)
+      const sortedChannels = [...availableChannels].sort((a, b) =>
+        a.channelName.localeCompare(b.channelName),
       );
       setActiveChannel(sortedChannels[0]);
     }
@@ -608,7 +656,7 @@ export const TripChat = ({
 
   const messagesWithFailed = useMemo(() => {
     if (failedMessages.length === 0) return filteredMessages;
-    const failedFormatted = failedMessages.map((fm) => ({
+    const failedFormatted = failedMessages.map(fm => ({
       id: fm.id,
       text: fm.text,
       sender: { id: user?.id || 'unknown', name: fm.authorName, avatar: user?.avatar },
@@ -636,7 +684,7 @@ export const TripChat = ({
       const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
       if (messageElement) {
         messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
+
         // Add highlight animation
         messageElement.classList.add('search-highlight-flash');
         setTimeout(() => {
@@ -688,8 +736,10 @@ export const TripChat = ({
 
       {/* Chat Container - Messages with Integrated Filter Tabs */}
       <div className="flex-1 flex flex-col min-h-0" data-chat-container>
-        <div ref={messagesContainerRef} className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative min-h-0">
-          
+        <div
+          ref={messagesContainerRef}
+          className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative min-h-0"
+        >
           {/* Filter Tabs */}
           <MessageTypeBar
             activeFilter={messageFilter}
@@ -701,7 +751,7 @@ export const TripChat = ({
             unreadCount={unreadCount}
             availableChannels={availableChannels}
             activeChannel={activeChannel}
-            onChannelSelect={(channel) => {
+            onChannelSelect={channel => {
               setActiveChannel(channel);
               setMessageFilter('channels');
             }}
@@ -747,22 +797,22 @@ export const TripChat = ({
                   scrollKey={`chat-scroll-${resolvedTripId}`}
                 />
               )}
-              
+
               {/* Typing Indicator */}
               {!demoMode.isDemoMode && typingUsers.length > 0 && (
                 <TypingIndicator typingUsers={typingUsers} />
               )}
-              
+
               {/* Reply Bar */}
               {replyingTo && (
                 <div className="border-t border-white/10 bg-black/30 px-4 py-2">
-                  <InlineReplyComponent 
-                    replyTo={{ 
-                      id: replyingTo.id, 
+                  <InlineReplyComponent
+                    replyTo={{
+                      id: replyingTo.id,
                       text: replyingTo.text,
-                      senderName: replyingTo.senderName 
+                      senderName: replyingTo.senderName,
                     }}
-                    onCancel={clearReply} 
+                    onCancel={clearReply}
                   />
                 </div>
               )}
@@ -786,7 +836,7 @@ export const TripChat = ({
               hidePayments={true}
               isPro={isPro}
               tripId={resolvedTripId}
-              onTypingChange={(isTyping) => {
+              onTypingChange={isTyping => {
                 if (!demoMode.isDemoMode && typingServiceRef.current) {
                   if (isTyping) {
                     typingServiceRef.current.startTyping().catch(error => {

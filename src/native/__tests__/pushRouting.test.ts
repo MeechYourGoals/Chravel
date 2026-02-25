@@ -4,7 +4,11 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { buildRouteFromPayload, handleNotificationNavigation, getTripIdFromPayload } from '../pushRouting';
+import {
+  buildRouteFromPayload,
+  handleNotificationNavigation,
+  getTripIdFromPayload,
+} from '../pushRouting';
 import { ChravelPushPayload } from '../push';
 
 describe('buildRouteFromPayload', () => {
@@ -32,7 +36,9 @@ describe('buildRouteFromPayload', () => {
       threadId: 'thread-456',
       messageId: 'msg-789',
     };
-    expect(buildRouteFromPayload(payload)).toBe('/trip/trip-123?tab=chat&thread=thread-456&message=msg-789');
+    expect(buildRouteFromPayload(payload)).toBe(
+      '/trip/trip-123?tab=chat&thread=thread-456&message=msg-789',
+    );
   });
 
   it('routes poll_update to polls tab', () => {
@@ -111,7 +117,7 @@ describe('handleNotificationNavigation', () => {
       tripId: 'trip-123',
       taskId: 'task-abc',
     };
-    
+
     handleNotificationNavigation(payload, mockNavigate);
     expect(mockNavigate).toHaveBeenCalledWith('/trip/trip-123?tab=tasks&task=task-abc');
   });
@@ -123,7 +129,7 @@ describe('handleNotificationNavigation', () => {
       tripId: 'trip-456',
       threadId: 'thread-789',
     };
-    
+
     handleNotificationNavigation(payload, mockNavigate);
     expect(mockNavigate).toHaveBeenCalledWith('/trip/trip-456?tab=chat&thread=thread-789');
   });

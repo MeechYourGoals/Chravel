@@ -17,7 +17,7 @@ export const useNotifications = () => {
     token: null,
     isSupported: 'Notification' in window && 'serviceWorker' in navigator,
     isLoading: false,
-    error: null
+    error: null,
   });
 
   useEffect(() => {
@@ -41,9 +41,9 @@ export const useNotifications = () => {
         }
       } catch (error) {
         console.error('Error initializing notifications:', error);
-        setState(prev => ({ 
-          ...prev, 
-          error: error instanceof Error ? error.message : 'Failed to initialize notifications'
+        setState(prev => ({
+          ...prev,
+          error: error instanceof Error ? error.message : 'Failed to initialize notifications',
         }));
       } finally {
         setState(prev => ({ ...prev, isLoading: false }));
@@ -100,7 +100,7 @@ export const useNotifications = () => {
       await notificationService.sendLocalNotification({
         title,
         body,
-        icon: '/chravel-logo.png'
+        icon: '/chravel-logo.png',
       });
     } catch (error) {
       console.error('Error sending test notification:', error);
@@ -112,6 +112,6 @@ export const useNotifications = () => {
     ...state,
     requestPermission,
     unsubscribe,
-    sendTestNotification
+    sendTestNotification,
   };
 };

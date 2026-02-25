@@ -20,7 +20,7 @@ export const SimpleChatSection = () => {
       {/* Chat Toggle */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Chat Settings</h4>
-        
+
         <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
           <div>
             <Label className="text-white text-base">Enable Event Chat</Label>
@@ -39,7 +39,7 @@ export const SimpleChatSection = () => {
       {/* Chat Features */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">What's Included</h4>
-        
+
         <div className="space-y-3">
           <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
             <Users size={20} className="text-glass-orange mt-0.5" />
@@ -50,7 +50,7 @@ export const SimpleChatSection = () => {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
             <MessageSquare size={20} className="text-glass-orange mt-0.5" />
             <div>
@@ -66,36 +66,33 @@ export const SimpleChatSection = () => {
       {/* Status Display */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Current Status</h4>
-        
-        <div className={`p-4 rounded-lg border ${
-          chatEnabled 
-            ? 'bg-green-500/20 border-green-500/30' 
-            : 'bg-gray-500/20 border-gray-500/30'
-        }`}>
+
+        <div
+          className={`p-4 rounded-lg border ${
+            chatEnabled
+              ? 'bg-green-500/20 border-green-500/30'
+              : 'bg-gray-500/20 border-gray-500/30'
+          }`}
+        >
           <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${
-              chatEnabled ? 'bg-green-400' : 'bg-gray-400'
-            }`} />
-            <p className={`font-medium ${
-              chatEnabled ? 'text-green-300' : 'text-gray-300'
-            }`}>
+            <div
+              className={`w-3 h-3 rounded-full ${chatEnabled ? 'bg-green-400' : 'bg-gray-400'}`}
+            />
+            <p className={`font-medium ${chatEnabled ? 'text-green-300' : 'text-gray-300'}`}>
               Chat is {chatEnabled ? 'Enabled' : 'Disabled'}
             </p>
           </div>
           <p className="text-gray-400 text-sm mt-2">
-            {chatEnabled 
+            {chatEnabled
               ? 'Attendees will be able to chat during the event'
-              : 'Attendees will not have access to chat features'
-            }
+              : 'Attendees will not have access to chat features'}
           </p>
         </div>
       </div>
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button className="bg-glass-orange hover:bg-glass-orange/80">
-          Save Chat Settings
-        </Button>
+        <Button className="bg-glass-orange hover:bg-glass-orange/80">Save Chat Settings</Button>
       </div>
     </div>
   );

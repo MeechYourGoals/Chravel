@@ -1,4 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 
@@ -17,10 +23,10 @@ export const BasecampConflictDialog = ({
   onUseTheirs,
   onCancel,
   yourAddress,
-  theirAddress
+  theirAddress,
 }: BasecampConflictDialogProps) => {
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+    <Dialog open={isOpen} onOpenChange={open => !open && onCancel()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
@@ -29,7 +35,7 @@ export const BasecampConflictDialog = ({
           </div>
           <DialogDescription className="pt-4 space-y-3">
             <p>Another user updated the basecamp while you were editing.</p>
-            
+
             <div className="bg-muted p-3 rounded-lg space-y-2 text-sm">
               <div>
                 <strong className="text-amber-600">Your changes:</strong>
@@ -42,7 +48,7 @@ export const BasecampConflictDialog = ({
             </div>
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="flex flex-col gap-2 mt-4">
           <Button onClick={onKeepYours} variant="default">
             Keep My Changes

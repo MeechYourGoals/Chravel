@@ -53,9 +53,7 @@ export function SortableTripGrid<T>({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, {
-      activationConstraint: isMobile
-        ? { delay: 100, tolerance: 10 }
-        : { distance: 8 },
+      activationConstraint: isMobile ? { delay: 100, tolerance: 10 } : { distance: 8 },
     }),
   );
 

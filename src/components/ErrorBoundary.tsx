@@ -49,7 +49,7 @@ const isChunkError = (error: Error | undefined): boolean => {
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
-    hasError: false
+    hasError: false,
   };
 
   public static getDerivedStateFromError(error: Error): State {
@@ -65,7 +65,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (window.gtag) {
       window.gtag('event', 'exception', {
         description: error.message,
-        fatal: false
+        fatal: false,
       });
     }
   }
@@ -138,8 +138,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <p className="text-muted-foreground">
                 {isChunk
                   ? 'This usually happens after an app update. Clear your cache to load the latest version.'
-                  : "We're sorry, but something unexpected happened. Please try refreshing the page."
-                }
+                  : "We're sorry, but something unexpected happened. Please try refreshing the page."}
               </p>
             </div>
 
@@ -179,9 +178,7 @@ export class ErrorBoundary extends Component<Props, State> {
             {import.meta.env.DEV && this.state.error && (
               <details className="text-left text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg mt-4">
                 <summary className="cursor-pointer font-medium">Error Details</summary>
-                <pre className="mt-2 whitespace-pre-wrap break-words">
-                  {this.state.error.stack}
-                </pre>
+                <pre className="mt-2 whitespace-pre-wrap break-words">{this.state.error.stack}</pre>
               </details>
             )}
           </div>

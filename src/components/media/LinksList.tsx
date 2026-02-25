@@ -24,8 +24,11 @@ export const LinksList = ({ items, maxItems }: LinksListProps) => {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {displayItems.map((link) => (
-          <div key={link.id} className="group relative aspect-square rounded-lg overflow-hidden bg-muted border border-white/10 p-3 flex flex-col">
+        {displayItems.map(link => (
+          <div
+            key={link.id}
+            className="group relative aspect-square rounded-lg overflow-hidden bg-muted border border-white/10 p-3 flex flex-col"
+          >
             {link.image_url ? (
               <img
                 src={link.image_url}

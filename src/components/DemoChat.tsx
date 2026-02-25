@@ -7,7 +7,11 @@ import { ChatInput } from '@/features/chat/components/ChatInput';
 import { ChatMessage } from '@/features/chat/hooks/useChatComposer';
 import { useShareAsset } from '@/hooks/useShareAsset';
 import { useAuth } from '@/hooks/useAuth';
-import { toggleMessageReaction, getMessagesReactions, subscribeToReactions } from '@/services/chatService';
+import {
+  toggleMessageReaction,
+  getMessagesReactions,
+  subscribeToReactions,
+} from '@/services/chatService';
 import { supabase } from '@/integrations/supabase/client';
 import { useTripMembers } from '@/hooks/useTripMembers';
 import { defaultAvatar } from '@/utils/mockAvatars';
@@ -47,7 +51,15 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
       const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
       const messageType = isBroadcast ? 'broadcast' : 'text';
       try {
-        await sendTripMessage(inputValue, authorName, undefined, undefined, user?.id, 'standard', messageType);
+        await sendTripMessage(
+          inputValue,
+          authorName,
+          undefined,
+          undefined,
+          user?.id,
+          'standard',
+          messageType,
+        );
         setInputValue('');
       } catch {
         // Toast from useTripChat
@@ -79,7 +91,7 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
   const handleReaction = useCallback(
     async (messageId: string, reactionType: string) => {
       if (!user?.id) return;
-      setReactions((prev) => {
+      setReactions(prev => {
         const updated = { ...prev };
         if (!updated[messageId]) updated[messageId] = {};
         const current = updated[messageId][reactionType] || { count: 0, userReacted: false };
@@ -91,9 +103,12 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
       });
       const result = await toggleMessageReaction(messageId, user.id, reactionType as any);
       if (result.error) {
-        const messageIds = liveMessages.map((m) => m.id);
+        const messageIds = liveMessages.map(m => m.id);
         const fresh = await getMessagesReactions(messageIds, user.id);
-        const formatted: Record<string, Record<string, { count: number; userReacted: boolean }>> = {};
+        const formatted: Record<
+          string,
+          Record<string, { count: number; userReacted: boolean }>
+        > = {};
         for (const [msgId, typeMap] of Object.entries(fresh)) {
           formatted[msgId] = {};
           for (const [type, data] of Object.entries(typeMap)) {
@@ -109,7 +124,7 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
   React.useEffect(() => {
     if (!user?.id || liveMessages.length === 0) return;
     const fetchReactions = async () => {
-      const messageIds = liveMessages.map((m) => m.id);
+      const messageIds = liveMessages.map(m => m.id);
       const data = await getMessagesReactions(messageIds, user.id);
       const formatted: Record<string, Record<string, { count: number; userReacted: boolean }>> = {};
       for (const [msgId, typeMap] of Object.entries(data)) {
@@ -125,13 +140,16 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
 
   React.useEffect(() => {
     if (!tripId || !user?.id) return;
-    const messageIdSet = new Set(liveMessages.map((m) => m.id));
-    const channel = subscribeToReactions(tripId, (payload) => {
+    const messageIdSet = new Set(liveMessages.map(m => m.id));
+    const channel = subscribeToReactions(tripId, payload => {
       if (!messageIdSet.has(payload.messageId)) return;
-      setReactions((prev) => {
+      setReactions(prev => {
         const updated = { ...prev };
         if (!updated[payload.messageId]) updated[payload.messageId] = {};
-        const current = updated[payload.messageId][payload.reactionType] || { count: 0, userReacted: false };
+        const current = updated[payload.messageId][payload.reactionType] || {
+          count: 0,
+          userReacted: false,
+        };
         if (payload.eventType === 'INSERT') {
           updated[payload.messageId][payload.reactionType] = {
             count: current.count + 1,
@@ -152,8 +170,8 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
   }, [tripId, user?.id, liveMessages]);
 
   const transformedMessages = useMemo((): ChatMessage[] => {
-    return liveMessages.map((msg) => {
-      const member = tripMembers.find((m) => m.id === msg.user_id);
+    return liveMessages.map(msg => {
+      const member = tripMembers.find(m => m.id === msg.user_id);
       return {
         id: msg.id,
         text: msg.content,
@@ -180,13 +198,18 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
             <h3 className="text-lg font-semibold text-white">Trip Chat</h3>
             <p className="text-gray-400 text-sm">
               Demo mode - Mock conversation
-              <span className="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-md">DEMO</span>
+              <span className="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-md">
+                DEMO
+              </span>
             </p>
           </div>
         </div>
       </div>
 
-      <div className="bg-gray-900/50 rounded-xl overflow-hidden flex flex-col" style={{ height: '500px' }}>
+      <div
+        className="bg-gray-900/50 rounded-xl overflow-hidden flex flex-col"
+        style={{ height: '500px' }}
+      >
         {transformedMessages.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center py-8">

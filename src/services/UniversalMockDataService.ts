@@ -35,7 +35,7 @@ export class UniversalMockDataService {
       created_at: new Date(Date.now() - 3600000).toISOString(),
       source: 'chat',
       file_size: 2457600,
-      mime_type: 'image/jpeg'
+      mime_type: 'image/jpeg',
     },
     {
       id: 'fallback-photo-2',
@@ -46,7 +46,7 @@ export class UniversalMockDataService {
       created_at: new Date(Date.now() - 7200000).toISOString(),
       source: 'upload',
       file_size: 3145728,
-      mime_type: 'image/jpeg'
+      mime_type: 'image/jpeg',
     },
     {
       id: 'fallback-photo-3',
@@ -57,7 +57,7 @@ export class UniversalMockDataService {
       created_at: new Date(Date.now() - 10800000).toISOString(),
       source: 'chat',
       file_size: 1843200,
-      mime_type: 'image/jpeg'
+      mime_type: 'image/jpeg',
     },
     {
       id: 'fallback-photo-4',
@@ -68,8 +68,8 @@ export class UniversalMockDataService {
       created_at: new Date(Date.now() - 14400000).toISOString(),
       source: 'upload',
       file_size: 2621440,
-      mime_type: 'image/jpeg'
-    }
+      mime_type: 'image/jpeg',
+    },
   ];
 
   private static fallbackVideos: MediaItem[] = [
@@ -82,7 +82,7 @@ export class UniversalMockDataService {
       created_at: new Date(Date.now() - 5400000).toISOString(),
       source: 'chat',
       file_size: 15728640,
-      mime_type: 'video/mp4'
+      mime_type: 'video/mp4',
     },
     {
       id: 'fallback-video-2',
@@ -93,8 +93,8 @@ export class UniversalMockDataService {
       created_at: new Date(Date.now() - 9000000).toISOString(),
       source: 'upload',
       file_size: 45875200,
-      mime_type: 'video/mp4'
-    }
+      mime_type: 'video/mp4',
+    },
   ];
 
   private static fallbackFiles: MediaItem[] = [
@@ -108,12 +108,12 @@ export class UniversalMockDataService {
         totalAmount: 127.45,
         splitCount: 4,
         perPersonAmount: 31.86,
-        preferredMethod: 'venmo'
+        preferredMethod: 'venmo',
       },
       created_at: new Date(Date.now() - 1800000).toISOString(),
       source: 'upload',
       file_size: 2048000,
-      mime_type: 'image/jpeg'
+      mime_type: 'image/jpeg',
     },
     {
       id: 'fallback-file-2',
@@ -122,12 +122,12 @@ export class UniversalMockDataService {
       media_type: 'document',
       metadata: {
         isTicket: true,
-        extractedEvents: 1
+        extractedEvents: 1,
       },
       created_at: new Date(Date.now() - 5400000).toISOString(),
       source: 'upload',
       file_size: 512000,
-      mime_type: 'application/pdf'
+      mime_type: 'application/pdf',
     },
     {
       id: 'fallback-file-3',
@@ -136,12 +136,12 @@ export class UniversalMockDataService {
       media_type: 'document',
       metadata: {
         isSchedule: true,
-        extractedEvents: 12
+        extractedEvents: 12,
       },
       created_at: new Date(Date.now() - 9000000).toISOString(),
       source: 'chat',
       file_size: 1536000,
-      mime_type: 'image/jpeg'
+      mime_type: 'image/jpeg',
     },
     {
       id: 'fallback-file-4',
@@ -149,13 +149,13 @@ export class UniversalMockDataService {
       filename: 'Travel Itinerary.pdf',
       media_type: 'document',
       metadata: {
-        extractedEvents: 8
+        extractedEvents: 8,
       },
       created_at: new Date(Date.now() - 12600000).toISOString(),
       source: 'upload',
       file_size: 768000,
-      mime_type: 'application/pdf'
-    }
+      mime_type: 'application/pdf',
+    },
   ];
 
   private static fallbackLinks: LinkItem[] = [
@@ -163,21 +163,23 @@ export class UniversalMockDataService {
       id: 'fallback-link-1',
       url: 'https://airbnb.com/rooms/12345',
       title: 'Beautiful Downtown Loft - Perfect for Groups',
-      description: 'Spacious 3BR/2BA loft in the heart of downtown. Sleeps 8 comfortably with modern amenities.',
+      description:
+        'Spacious 3BR/2BA loft in the heart of downtown. Sleeps 8 comfortably with modern amenities.',
       domain: 'airbnb.com',
       image_url: '/mock/images/airbnb-home.png',
       created_at: new Date(Date.now() - 3600000).toISOString(),
-      source: 'places' as const
+      source: 'places' as const,
     },
     {
       id: 'fallback-link-2',
       url: 'https://opentable.com/restaurant/profile/54321',
       title: 'Sunset Rooftop Restaurant - Reservations Available',
-      description: 'Award-winning rooftop dining with panoramic city views. Perfect for group celebrations.',
+      description:
+        'Award-winning rooftop dining with panoramic city views. Perfect for group celebrations.',
       domain: 'opentable.com',
       image_url: '/mock/images/restaurant-rooftop.png',
       created_at: new Date(Date.now() - 7200000).toISOString(),
-      source: 'places' as const
+      source: 'places' as const,
     },
     {
       id: 'fallback-link-3',
@@ -187,17 +189,18 @@ export class UniversalMockDataService {
       domain: 'viator.com',
       image_url: '/mock/images/walking-tour.png',
       created_at: new Date(Date.now() - 10800000).toISOString(),
-      source: 'places' as const
+      source: 'places' as const,
     },
     {
       id: 'fallback-link-4',
       url: 'https://eventbrite.com/e/concert-tickets',
       title: 'Live Music Concert - Group Discount Available',
-      description: 'Don\'t miss this incredible live performance. Group rates available for 6+ people.',
+      description:
+        "Don't miss this incredible live performance. Group rates available for 6+ people.",
       domain: 'eventbrite.com',
       created_at: new Date(Date.now() - 14400000).toISOString(),
-      source: 'places' as const
-    }
+      source: 'places' as const,
+    },
   ];
 
   public static getUniversalMockData(tripId: string): {
@@ -207,26 +210,26 @@ export class UniversalMockDataService {
     links: LinkItem[];
   } {
     const tripTier = detectTripTier(tripId);
-    
+
     // Generate trip-specific IDs to avoid conflicts
     const photoData = this.fallbackPhotos.map((item, index) => ({
       ...item,
-      id: `${tripId}-photo-${index + 1}`
+      id: `${tripId}-photo-${index + 1}`,
     }));
 
     const videoData = this.fallbackVideos.map((item, index) => ({
       ...item,
-      id: `${tripId}-video-${index + 1}`
+      id: `${tripId}-video-${index + 1}`,
     }));
 
     const fileData = this.fallbackFiles.map((item, index) => ({
       ...item,
-      id: `${tripId}-file-${index + 1}`
+      id: `${tripId}-file-${index + 1}`,
     }));
 
     const linkData = this.fallbackLinks.map((item, index) => ({
       ...item,
-      id: `${tripId}-link-${index + 1}`
+      id: `${tripId}-link-${index + 1}`,
     }));
 
     // Customize based on trip tier
@@ -241,7 +244,7 @@ export class UniversalMockDataService {
         created_at: new Date(Date.now() - 1200000).toISOString(),
         source: 'upload',
         file_size: 1024000,
-        mime_type: 'application/pdf'
+        mime_type: 'application/pdf',
       });
     }
 
@@ -256,7 +259,7 @@ export class UniversalMockDataService {
         created_at: new Date(Date.now() - 1500000).toISOString(),
         source: 'upload',
         file_size: 896000,
-        mime_type: 'application/pdf'
+        mime_type: 'application/pdf',
       });
     }
 
@@ -264,7 +267,7 @@ export class UniversalMockDataService {
       photos: photoData,
       videos: videoData,
       files: fileData,
-      links: linkData
+      links: linkData,
     };
   }
 

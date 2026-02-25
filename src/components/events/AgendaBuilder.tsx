@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Calendar, Clock, Users, MapPin, Star, Sparkles, Brain } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -28,20 +27,19 @@ export const AgendaBuilder = ({ tracks, sessions, speakers, userRole }: AgendaBu
     setAddedSessions(newAdded);
   };
 
-  const filteredSessions = selectedTrack === 'all' 
-    ? sessions 
-    : sessions.filter(session => session.track === selectedTrack);
+  const filteredSessions =
+    selectedTrack === 'all'
+      ? sessions
+      : sessions.filter(session => session.track === selectedTrack);
 
-  const getSpeaker = (speakerId: string) => 
-    speakers.find(speaker => speaker.id === speakerId);
+  const getSpeaker = (speakerId: string) => speakers.find(speaker => speaker.id === speakerId);
 
-  const getTrack = (trackId: string) => 
-    tracks.find(track => track.id === trackId);
+  const getTrack = (trackId: string) => tracks.find(track => track.id === trackId);
 
   const formatTime = (timeString: string) => {
-    return new Date(`2024-01-01T${timeString}`).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(`2024-01-01T${timeString}`).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -73,7 +71,9 @@ export const AgendaBuilder = ({ tracks, sessions, speakers, userRole }: AgendaBu
               variant={selectedTrack === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedTrack('all')}
-              className={selectedTrack === 'all' ? 'bg-blue-600 text-white' : 'border-gray-600 text-gray-300'}
+              className={
+                selectedTrack === 'all' ? 'bg-blue-600 text-white' : 'border-gray-600 text-gray-300'
+              }
             >
               All Sessions
             </Button>
@@ -83,7 +83,11 @@ export const AgendaBuilder = ({ tracks, sessions, speakers, userRole }: AgendaBu
                 variant={selectedTrack === track.id ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedTrack(track.id)}
-                className={selectedTrack === track.id ? 'bg-blue-600 text-white' : 'border-gray-600 text-gray-300'}
+                className={
+                  selectedTrack === track.id
+                    ? 'bg-blue-600 text-white'
+                    : 'border-gray-600 text-gray-300'
+                }
                 style={selectedTrack === track.id ? { backgroundColor: track.color } : {}}
               >
                 {track.name}
@@ -104,8 +108,8 @@ export const AgendaBuilder = ({ tracks, sessions, speakers, userRole }: AgendaBu
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <Badge 
-                            className="text-xs px-2 py-1" 
+                          <Badge
+                            className="text-xs px-2 py-1"
                             style={{ backgroundColor: track?.color, color: 'white' }}
                           >
                             {track?.name}
@@ -118,7 +122,9 @@ export const AgendaBuilder = ({ tracks, sessions, speakers, userRole }: AgendaBu
                         size="sm"
                         variant={isAdded ? 'default' : 'outline'}
                         onClick={() => handleAddToAgenda(session.id)}
-                        className={isAdded ? 'bg-green-600 text-white' : 'border-gray-600 text-gray-300'}
+                        className={
+                          isAdded ? 'bg-green-600 text-white' : 'border-gray-600 text-gray-300'
+                        }
                       >
                         {isAdded ? '✓ Added' : '+ Add'}
                       </Button>
@@ -147,7 +153,9 @@ export const AgendaBuilder = ({ tracks, sessions, speakers, userRole }: AgendaBu
                         />
                         <div>
                           <div className="text-white font-medium">{speaker.name}</div>
-                          <div className="text-gray-400 text-sm">{speaker.title} at {speaker.company}</div>
+                          <div className="text-gray-400 text-sm">
+                            {speaker.title} at {speaker.company}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -163,7 +171,9 @@ export const AgendaBuilder = ({ tracks, sessions, speakers, userRole }: AgendaBu
             <Card className="bg-gray-800/50 border-gray-700">
               <CardContent className="p-8 text-center">
                 <Calendar size={48} className="text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-400 mb-2">No sessions in your schedule</h3>
+                <h3 className="text-lg font-medium text-gray-400 mb-2">
+                  No sessions in your schedule
+                </h3>
                 <p className="text-gray-500 text-sm">Add sessions to build your personal agenda</p>
               </CardContent>
             </Card>
@@ -174,10 +184,13 @@ export const AgendaBuilder = ({ tracks, sessions, speakers, userRole }: AgendaBu
                 .map(session => {
                   const speaker = getSpeaker(session.speaker);
                   const track = getTrack(session.track);
-                  
+
                   return (
-                    <Card key={session.id} className="bg-gray-800/50 border-gray-700 border-l-4" 
-                          style={{ borderLeftColor: track?.color }}>
+                    <Card
+                      key={session.id}
+                      className="bg-gray-800/50 border-gray-700 border-l-4"
+                      style={{ borderLeftColor: track?.color }}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="text-white font-semibold">{session.title}</h3>
@@ -188,7 +201,9 @@ export const AgendaBuilder = ({ tracks, sessions, speakers, userRole }: AgendaBu
                         <div className="grid grid-cols-2 gap-4 text-sm text-gray-300">
                           <div className="flex items-center gap-2">
                             <Clock size={14} />
-                            <span>{formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
+                            <span>
+                              {formatTime(session.startTime)} - {formatTime(session.endTime)}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin size={14} />

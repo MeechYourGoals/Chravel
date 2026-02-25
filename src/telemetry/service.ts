@@ -26,11 +26,12 @@ import { Capacitor } from '@capacitor/core';
 
 const defaultConfig: TelemetryConfig = {
   enabled: true,
-  environment: import.meta.env.MODE === 'production'
-    ? 'production'
-    : import.meta.env.MODE === 'staging'
-    ? 'staging'
-    : 'development',
+  environment:
+    import.meta.env.MODE === 'production'
+      ? 'production'
+      : import.meta.env.MODE === 'staging'
+        ? 'staging'
+        : 'development',
   debug: import.meta.env.DEV,
   performanceSampleRate: 0.1, // Sample 10% of performance events
   posthog: import.meta.env.VITE_POSTHOG_API_KEY
@@ -57,7 +58,10 @@ class TelemetryService {
   private config: TelemetryConfig = defaultConfig;
   private initialized = false;
   private currentUser: TelemetryUser | null = null;
-  private eventQueue: Array<{ event: TelemetryEventName; properties: TelemetryEventMap[TelemetryEventName] }> = [];
+  private eventQueue: Array<{
+    event: TelemetryEventName;
+    properties: TelemetryEventMap[TelemetryEventName];
+  }> = [];
   private demoMode = false;
 
   /**
@@ -114,7 +118,7 @@ class TelemetryService {
 
     if (this.config.debug) {
       console.log('[Telemetry] Initialized', {
-        providers: this.providers.map((p) => p.name),
+        providers: this.providers.map(p => p.name),
         environment: this.config.environment,
         demoMode: this.demoMode,
       });
@@ -159,10 +163,7 @@ class TelemetryService {
    * Track an analytics event.
    * Events are strongly typed for safety.
    */
-  track<E extends TelemetryEventName>(
-    event: E,
-    properties: TelemetryEventMap[E]
-  ): void {
+  track<E extends TelemetryEventName>(event: E, properties: TelemetryEventMap[E]): void {
     if (!this.config.enabled) return;
 
     // Queue events if not initialized
@@ -246,11 +247,11 @@ class TelemetryService {
    */
   async flush(): Promise<void> {
     await Promise.all(
-      this.providers.map((provider) =>
-        provider.flush().catch((error) => {
+      this.providers.map(provider =>
+        provider.flush().catch(error => {
           console.warn(`[Telemetry] ${provider.name} flush failed:`, error);
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -262,11 +263,11 @@ class TelemetryService {
     await this.flush();
 
     await Promise.all(
-      this.providers.map((provider) =>
-        provider.shutdown().catch((error) => {
+      this.providers.map(provider =>
+        provider.shutdown().catch(error => {
           console.warn(`[Telemetry] ${provider.name} shutdown failed:`, error);
-        })
-      )
+        }),
+      ),
     );
 
     this.providers = [];

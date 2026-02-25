@@ -24,29 +24,29 @@ export const ProfileCompletionCard = ({ className }: ProfileCompletionCardProps)
       title: 'Upload profile photo',
       completed: true,
       icon: <Camera size={16} />,
-      points: 10
+      points: 10,
     },
     {
       id: 'preferences',
       title: 'Set travel preferences',
       completed: false,
       icon: <Heart size={16} />,
-      points: 15
+      points: 15,
     },
     {
       id: 'location',
       title: 'Add home location',
       completed: true,
       icon: <MapPin size={16} />,
-      points: 10
+      points: 10,
     },
     {
       id: 'settings',
       title: 'Complete profile settings',
       completed: false,
       icon: <Settings size={16} />,
-      points: 15
-    }
+      points: 15,
+    },
   ];
 
   const completedSteps = steps.filter(step => step.completed);
@@ -58,11 +58,7 @@ export const ProfileCompletionCard = ({ className }: ProfileCompletionCardProps)
     <Card className={className}>
       <CardContent className="p-6">
         <div className="flex items-center gap-4 mb-4">
-          <ProgressRing 
-            progress={completionPercentage} 
-            size="md" 
-            showPercentage={true}
-          />
+          <ProgressRing progress={completionPercentage} size="md" showPercentage={true} />
           <div>
             <h3 className="font-semibold text-foreground">Complete Your Profile</h3>
             <p className="text-sm text-muted-foreground">
@@ -72,30 +68,34 @@ export const ProfileCompletionCard = ({ className }: ProfileCompletionCardProps)
         </div>
 
         <div className="space-y-2">
-          {steps.map((step) => (
-            <div 
+          {steps.map(step => (
+            <div
               key={step.id}
               className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                step.completed 
-                  ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800/30' 
+                step.completed
+                  ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800/30'
                   : 'bg-muted/50 border-border hover:bg-muted'
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-full ${
-                  step.completed 
-                    ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' 
-                    : 'bg-muted text-muted-foreground'
-                }`}>
+                <div
+                  className={`p-2 rounded-full ${
+                    step.completed
+                      ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
                   {step.icon}
                 </div>
-                <span className={`text-sm font-medium ${
-                  step.completed ? 'text-green-700 dark:text-green-300' : 'text-foreground'
-                }`}>
+                <span
+                  className={`text-sm font-medium ${
+                    step.completed ? 'text-green-700 dark:text-green-300' : 'text-foreground'
+                  }`}
+                >
                   {step.title}
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Badge variant={step.completed ? 'default' : 'secondary'} className="text-xs">
                   +{step.points} pts
@@ -109,7 +109,7 @@ export const ProfileCompletionCard = ({ className }: ProfileCompletionCardProps)
             </div>
           ))}
         </div>
-        
+
         {completionPercentage < 100 && (
           <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800/30">
             <p className="text-sm text-yellow-700 dark:text-yellow-300">

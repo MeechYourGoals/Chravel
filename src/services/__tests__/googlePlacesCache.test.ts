@@ -2,7 +2,7 @@
 // @ts-nocheck
 /**
  * Tests for Google Places Cache Service
- * 
+ *
  * Tests Supabase caching layer for Google Places API responses
  */
 
@@ -31,28 +31,28 @@ describe('googlePlacesCache', () => {
     it('should generate consistent cache keys for same inputs', () => {
       const key1 = generateCacheKey('text-search', 'coffee shop', { lat: 40.7128, lng: -74.006 });
       const key2 = generateCacheKey('text-search', 'coffee shop', { lat: 40.7128, lng: -74.006 });
-      
+
       expect(key1).toBe(key2);
     });
 
     it('should generate different keys for different queries', () => {
       const key1 = generateCacheKey('text-search', 'coffee shop', null);
       const key2 = generateCacheKey('text-search', 'restaurant', null);
-      
+
       expect(key1).not.toBe(key2);
     });
 
     it('should generate different keys for different origins', () => {
       const key1 = generateCacheKey('text-search', 'coffee', { lat: 40.7128, lng: -74.006 });
       const key2 = generateCacheKey('text-search', 'coffee', { lat: 34.0522, lng: -118.2437 });
-      
+
       expect(key1).not.toBe(key2);
     });
 
     it('should include additional params in cache key', () => {
       const key1 = generateCacheKey('text-search', 'coffee', null, { maxResults: 5 });
       const key2 = generateCacheKey('text-search', 'coffee', null, { maxResults: 10 });
-      
+
       expect(key1).not.toBe(key2);
     });
   });
@@ -109,7 +109,7 @@ describe('googlePlacesCache', () => {
       (supabase.rpc as any).mockResolvedValue({ error: { message: 'Error' } });
 
       await expect(
-        setCachedPlace('test-key', 'text-search', 'coffee', {}, undefined, null)
+        setCachedPlace('test-key', 'text-search', 'coffee', {}, undefined, null),
       ).resolves.not.toThrow();
     });
   });

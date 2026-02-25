@@ -14,11 +14,11 @@ export const WelcomeScreen = () => {
         <motion.div
           className="absolute inset-0 flex items-center justify-center"
           initial={{ opacity: 1, scale: 1 }}
-          animate={{ 
+          animate={{
             opacity: [1, 0, 0, 0, 1],
             scale: [1, 0.8, 0.8, 0.8, 1],
           }}
-          transition={{ 
+          transition={{
             duration: 4,
             repeat: Infinity,
             times: [0, 0.25, 0.5, 0.75, 1],
@@ -28,15 +28,15 @@ export const WelcomeScreen = () => {
             <Luggage className="w-10 h-10 text-primary" />
           </div>
         </motion.div>
-        
+
         <motion.div
           className="absolute inset-0 flex items-center justify-center"
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ 
+          animate={{
             opacity: [0, 1, 0, 0, 0],
             scale: [0.8, 1, 0.8, 0.8, 0.8],
           }}
-          transition={{ 
+          transition={{
             duration: 4,
             repeat: Infinity,
             times: [0, 0.25, 0.5, 0.75, 1],
@@ -46,15 +46,15 @@ export const WelcomeScreen = () => {
             <Map className="w-10 h-10 text-accent" />
           </div>
         </motion.div>
-        
+
         <motion.div
           className="absolute inset-0 flex items-center justify-center"
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ 
+          animate={{
             opacity: [0, 0, 1, 0, 0],
             scale: [0.8, 0.8, 1, 0.8, 0.8],
           }}
-          transition={{ 
+          transition={{
             duration: 4,
             repeat: Infinity,
             times: [0, 0.25, 0.5, 0.75, 1],

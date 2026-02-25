@@ -24,18 +24,16 @@ export const gameScheduleService = {
       .select('*')
       .eq('organization_id', organizationId)
       .order('game_date', { ascending: true });
-    
+
     if (error) throw error;
     return (data as GameSchedule[]) || [];
   },
 
-  async create(game: Omit<GameSchedule, 'id' | 'created_at' | 'updated_at'>): Promise<GameSchedule> {
-    const { data, error } = await supabase
-      .from('game_schedules')
-      .insert(game)
-      .select()
-      .single();
-    
+  async create(
+    game: Omit<GameSchedule, 'id' | 'created_at' | 'updated_at'>,
+  ): Promise<GameSchedule> {
+    const { data, error } = await supabase.from('game_schedules').insert(game).select().single();
+
     if (error) throw error;
     return data as GameSchedule;
   },
@@ -47,26 +45,22 @@ export const gameScheduleService = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data as GameSchedule;
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('game_schedules')
-      .delete()
-      .eq('id', id);
-    
+    const { error } = await supabase.from('game_schedules').delete().eq('id', id);
+
     if (error) throw error;
   },
 
-  async bulkCreate(games: Omit<GameSchedule, 'id' | 'created_at' | 'updated_at'>[]): Promise<GameSchedule[]> {
-    const { data, error } = await supabase
-      .from('game_schedules')
-      .insert(games)
-      .select();
-    
+  async bulkCreate(
+    games: Omit<GameSchedule, 'id' | 'created_at' | 'updated_at'>[],
+  ): Promise<GameSchedule[]> {
+    const { data, error } = await supabase.from('game_schedules').insert(games).select();
+
     if (error) throw error;
     return data as GameSchedule[];
   },

@@ -12,10 +12,11 @@ export const useLongPress = ({ onLongPress, threshold = 500 }: LongPressOptions)
 
   const start = useCallback(
     (e: React.TouchEvent | React.MouseEvent) => {
-      const pos = 'touches' in e 
-        ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
-        : { x: e.clientX, y: e.clientY };
-      
+      const pos =
+        'touches' in e
+          ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+          : { x: e.clientX, y: e.clientY };
+
       startPosRef.current = pos;
 
       timerRef.current = window.setTimeout(async () => {
@@ -23,20 +24,21 @@ export const useLongPress = ({ onLongPress, threshold = 500 }: LongPressOptions)
         onLongPress();
       }, threshold);
     },
-    [onLongPress, threshold]
+    [onLongPress, threshold],
   );
 
   const cancel = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     if (timerRef.current) {
       // Check if finger moved significantly
       if (startPosRef.current) {
-        const currentPos = 'touches' in e 
-          ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
-          : { x: e.clientX, y: e.clientY };
-        
+        const currentPos =
+          'touches' in e
+            ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+            : { x: e.clientX, y: e.clientY };
+
         const distance = Math.sqrt(
           Math.pow(currentPos.x - startPosRef.current.x, 2) +
-          Math.pow(currentPos.y - startPosRef.current.y, 2)
+            Math.pow(currentPos.y - startPosRef.current.y, 2),
         );
 
         if (distance > 10) {

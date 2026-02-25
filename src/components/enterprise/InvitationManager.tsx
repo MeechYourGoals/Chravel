@@ -16,19 +16,19 @@ interface InvitationManagerProps {
   onClearSelection: () => void;
 }
 
-export const InvitationManager = ({ 
-  selectedMembers, 
-  members, 
+export const InvitationManager = ({
+  selectedMembers,
+  members,
   onSendBatchInvitations,
-  onClearSelection 
+  onClearSelection,
 }: InvitationManagerProps) => {
   const [customMessage, setCustomMessage] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   const selectedMemberDetails = members.filter(m => selectedMembers.includes(m.id));
-  const canInviteMembers = selectedMemberDetails.filter(m => 
-    m.status === 'invited' || m.status === 'declined' || !m.invitationSent
+  const canInviteMembers = selectedMemberDetails.filter(
+    m => m.status === 'invited' || m.status === 'declined' || !m.invitationSent,
   );
 
   const generateInviteToken = () => {
@@ -37,11 +37,11 @@ export const InvitationManager = ({
 
   const handleSendInvitations = async () => {
     setIsSending(true);
-    
+
     const batch: InvitationBatch = {
       members: canInviteMembers.map(m => m.id),
       message: customMessage.trim() || undefined,
-      priority: isUrgent ? 'urgent' : 'normal'
+      priority: isUrgent ? 'urgent' : 'normal',
     };
 
     try {
@@ -56,8 +56,8 @@ export const InvitationManager = ({
             role: member.role,
             invite_token: generateInviteToken(),
             custom_message: batch.message,
-            priority: batch.priority
-          }
+            priority: batch.priority,
+          },
         });
 
         if (error) {
@@ -96,9 +96,7 @@ export const InvitationManager = ({
     <div className="bg-white/5 border border-white/10 rounded-xl p-6">
       <div className="flex items-center justify-between mb-6">
         <h4 className="text-lg font-semibold text-white">Batch Invitations</h4>
-        <Badge className="bg-primary/20 text-primary">
-          {selectedMembers.length} selected
-        </Badge>
+        <Badge className="bg-primary/20 text-primary">{selectedMembers.length} selected</Badge>
       </div>
 
       {/* Selected Members Summary */}
@@ -128,9 +126,7 @@ export const InvitationManager = ({
       {/* Invitation Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white/5 rounded-lg p-3 text-center">
-          <div className="text-lg font-semibold text-green-400">
-            {canInviteMembers.length}
-          </div>
+          <div className="text-lg font-semibold text-green-400">{canInviteMembers.length}</div>
           <div className="text-xs text-gray-400">Can Invite</div>
         </div>
         <div className="bg-white/5 rounded-lg p-3 text-center">
@@ -155,38 +151,34 @@ export const InvitationManager = ({
         <Textarea
           id="message"
           value={customMessage}
-          onChange={(e) => setCustomMessage(e.target.value)}
+          onChange={e => setCustomMessage(e.target.value)}
           placeholder="Add a personal message to the invitation..."
           className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 min-h-20"
           maxLength={500}
         />
-        <div className="text-xs text-gray-400 mt-1">
-          {customMessage.length}/500 characters
-        </div>
+        <div className="text-xs text-gray-400 mt-1">{customMessage.length}/500 characters</div>
       </div>
 
       {/* Priority Toggle */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="text-white font-medium">Urgent Priority</div>
-          <div className="text-sm text-gray-400">
-            Mark as urgent for immediate attention
-          </div>
+          <div className="text-sm text-gray-400">Mark as urgent for immediate attention</div>
         </div>
         <Switch checked={isUrgent} onCheckedChange={setIsUrgent} />
       </div>
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={onClearSelection}
           className="flex-1"
           disabled={isSending}
         >
           Clear Selection
         </Button>
-        <Button 
+        <Button
           onClick={handleSendInvitations}
           className="flex-1 bg-primary hover:bg-primary/80"
           disabled={canInviteMembers.length === 0 || isSending}
@@ -206,7 +198,8 @@ export const InvitationManager = ({
         <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
           <div className="flex items-center gap-2 text-yellow-400 text-sm">
             <AlertCircle size={16} />
-            {selectedMembers.length - canInviteMembers.length} members are already active and don't need invitations
+            {selectedMembers.length - canInviteMembers.length} members are already active and don't
+            need invitations
           </div>
         </div>
       )}

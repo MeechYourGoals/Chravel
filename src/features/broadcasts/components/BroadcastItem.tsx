@@ -21,10 +21,10 @@ interface BroadcastItemProps {
   onRespond: (broadcastId: string, response: 'coming' | 'wait' | 'cant') => void;
 }
 
-export const BroadcastItem = ({ 
-  id, 
-  sender, 
-  message, 
+export const BroadcastItem = ({
+  id,
+  sender,
+  message,
   timestamp,
   location,
   category,
@@ -33,7 +33,7 @@ export const BroadcastItem = ({
   userResponse,
   attachmentUrls = [],
   readCount: initialReadCount,
-  onRespond
+  onRespond,
 }: BroadcastItemProps) => {
   const [readCount, setReadCount] = useState(initialReadCount || 0);
   const [hasViewed, setHasViewed] = useState(false);
@@ -79,7 +79,7 @@ export const BroadcastItem = ({
   const formatTime = (date: Date) => {
     const now = new Date();
     const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffMinutes < 60) {
       return `${diffMinutes}m ago`;
     } else if (diffMinutes < 1440) {
@@ -106,9 +106,7 @@ export const BroadcastItem = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-xs font-medium text-white">
-              {sender.charAt(0).toUpperCase()}
-            </span>
+            <span className="text-xs font-medium text-white">{sender.charAt(0).toUpperCase()}</span>
           </div>
           <span className="font-medium text-white">{sender}</span>
           <span className="text-xs text-slate-400 capitalize">{category}</span>
@@ -171,7 +169,9 @@ export const BroadcastItem = ({
       {readCount > 0 && (
         <div className="flex items-center gap-2 text-slate-400 text-xs mb-3">
           <Eye size={12} />
-          <span>{readCount} {readCount === 1 ? 'view' : 'views'}</span>
+          <span>
+            {readCount} {readCount === 1 ? 'view' : 'views'}
+          </span>
           {hasViewed && (
             <CheckCircle2 size={12} className="text-green-500" aria-label="You've viewed this" />
           )}
@@ -184,8 +184,8 @@ export const BroadcastItem = ({
           <button
             onClick={() => handleResponse('coming')}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
-              userResponse === 'coming' 
-                ? 'bg-green-600 text-white' 
+              userResponse === 'coming'
+                ? 'bg-green-600 text-white'
                 : 'bg-slate-700 text-slate-300 hover:bg-green-600/50'
             }`}
           >
@@ -194,8 +194,8 @@ export const BroadcastItem = ({
           <button
             onClick={() => handleResponse('wait')}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
-              userResponse === 'wait' 
-                ? 'bg-yellow-600 text-white' 
+              userResponse === 'wait'
+                ? 'bg-yellow-600 text-white'
                 : 'bg-slate-700 text-slate-300 hover:bg-yellow-600/50'
             }`}
           >
@@ -204,8 +204,8 @@ export const BroadcastItem = ({
           <button
             onClick={() => handleResponse('cant')}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
-              userResponse === 'cant' 
-                ? 'bg-red-600 text-white' 
+              userResponse === 'cant'
+                ? 'bg-red-600 text-white'
                 : 'bg-slate-700 text-slate-300 hover:bg-red-600/50'
             }`}
           >

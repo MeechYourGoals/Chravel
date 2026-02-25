@@ -1,12 +1,12 @@
 /**
  * Feature Gating Utility
- * 
+ *
  * Controls which features are available in demo mode vs authenticated mode.
  * Controls feature availability in demo vs authenticated mode.
  */
 
-export type FeatureName = 
-  | 'chravel-recs' 
+export type FeatureName =
+  | 'chravel-recs'
   | 'events-module'
   | 'pro-trips'
   | 'ai-concierge'
@@ -23,28 +23,29 @@ const featureMatrix: Record<FeatureName, FeatureAvailability> = {
   'chravel-recs': {
     demoMode: true,
     authenticated: false,
-    comingSoonMessage: 'ChravelApp Recommendations are available in demo mode. Full access for authenticated users will be available in a future update.'
+    comingSoonMessage:
+      'ChravelApp Recommendations are available in demo mode. Full access for authenticated users will be available in a future update.',
   },
   'events-module': {
     demoMode: true,
-    authenticated: true,  // ✅ ENABLED for authenticated users
+    authenticated: true, // ✅ ENABLED for authenticated users
   },
   'pro-trips': {
     demoMode: true,
-    authenticated: true,  // ✅ ENABLED for authenticated users
+    authenticated: true, // ✅ ENABLED for authenticated users
   },
   'ai-concierge': {
     demoMode: true,
     authenticated: true, // AI Concierge works in both modes
   },
-  'payments': {
+  payments: {
     demoMode: true,
     authenticated: true, // Payments work in both modes
   },
   'stripe-billing': {
     demoMode: false, // Billing only for real users
     authenticated: true,
-  }
+  },
 };
 
 /**
@@ -57,10 +58,10 @@ const featureMatrix: Record<FeatureName, FeatureAvailability> = {
 export const isFeatureAvailable = (
   feature: FeatureName,
   isDemoMode: boolean,
-  user: any
+  user: any,
 ): boolean => {
   const availability = featureMatrix[feature];
-  
+
   if (!availability) {
     console.warn(`Unknown feature: ${feature}`);
     return false;
@@ -95,6 +96,6 @@ export const getComingSoonMessage = (feature: FeatureName): string | null => {
  */
 export const hasGatedFeatures = (isDemoMode: boolean, user: any): boolean => {
   const gatedFeatures: FeatureName[] = ['events-module', 'pro-trips', 'chravel-recs'];
-  
+
   return gatedFeatures.some(feature => !isFeatureAvailable(feature, isDemoMode, user));
 };

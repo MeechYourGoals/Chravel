@@ -10,11 +10,11 @@ interface BroadcastFiltersProps {
   onClearFilters: () => void;
 }
 
-export const BroadcastFilters = ({ 
-  priority, 
-  onPriorityChange, 
+export const BroadcastFilters = ({
+  priority,
+  onPriorityChange,
   hasActiveFilters,
-  onClearFilters 
+  onClearFilters,
 }: BroadcastFiltersProps) => {
   const priorities: BroadcastPriority[] = ['all', 'chill', 'logistics', 'urgent'];
 
@@ -24,9 +24,9 @@ export const BroadcastFilters = ({
         <Filter size={16} />
         <span>Filter:</span>
       </div>
-      
+
       <div className="flex gap-2">
-        {priorities.map((p) => (
+        {priorities.map(p => (
           <button
             key={p}
             onClick={() => onPriorityChange(p)}

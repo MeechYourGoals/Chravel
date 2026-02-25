@@ -243,10 +243,7 @@ serve(async req => {
 });
 
 // Batch ingestion helpers
-async function ingestTripMessages(
-  supabase: any,
-  tripId: string,
-): Promise<BatchIngestResult> {
+async function ingestTripMessages(supabase: any, tripId: string): Promise<BatchIngestResult> {
   const { data: messages, error: messagesError } = await supabase
     .from('trip_chat_messages')
     .select('*')
@@ -267,23 +264,14 @@ async function ingestTripMessages(
 
   const results: SingleIngestResult[] = await Promise.all(
     messages.map((msg: any) =>
-      ingestSingleItem(
-        supabase,
-        'message',
-        msg.id,
-        tripId,
-        `${msg.author_name}: ${msg.content}`,
-      ),
+      ingestSingleItem(supabase, 'message', msg.id, tripId, `${msg.author_name}: ${msg.content}`),
     ),
   );
 
   return summarizeBatchResults('messages', results);
 }
 
-async function ingestTripPolls(
-  supabase: any,
-  tripId: string,
-): Promise<BatchIngestResult> {
+async function ingestTripPolls(supabase: any, tripId: string): Promise<BatchIngestResult> {
   const { data: polls, error: pollsError } = await supabase
     .from('trip_polls')
     .select('*')
@@ -311,10 +299,7 @@ async function ingestTripPolls(
   return summarizeBatchResults('polls', results);
 }
 
-async function ingestTripFiles(
-  supabase: any,
-  tripId: string,
-): Promise<BatchIngestResult> {
+async function ingestTripFiles(supabase: any, tripId: string): Promise<BatchIngestResult> {
   const { data: files, error: filesError } = await supabase
     .from('trip_files')
     .select('*')
@@ -342,10 +327,7 @@ async function ingestTripFiles(
   return summarizeBatchResults('files', results);
 }
 
-async function ingestTripLinks(
-  supabase: any,
-  tripId: string,
-): Promise<BatchIngestResult> {
+async function ingestTripLinks(supabase: any, tripId: string): Promise<BatchIngestResult> {
   const { data: links, error: linksError } = await supabase
     .from('trip_links')
     .select('*')

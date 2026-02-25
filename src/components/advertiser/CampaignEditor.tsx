@@ -6,7 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { X, Upload } from 'lucide-react';
-import { CampaignWithTargeting, CampaignFormData, MAX_CAMPAIGN_TAGS, MAX_CAMPAIGN_IMAGES, CAMPAIGN_TAG_CATEGORIES } from '@/types/advertiser';
+import {
+  CampaignWithTargeting,
+  CampaignFormData,
+  MAX_CAMPAIGN_TAGS,
+  MAX_CAMPAIGN_IMAGES,
+  CAMPAIGN_TAG_CATEGORIES,
+} from '@/types/advertiser';
 import { AdvertiserService } from '@/services/advertiserService';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,7 +26,7 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  
+
   const [formData, setFormData] = useState<CampaignFormData>({
     name: campaign.name,
     description: campaign.description || '',
@@ -31,19 +37,21 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
     status: campaign.status === 'draft' ? 'draft' : 'active',
     start_date: campaign.start_date,
     end_date: campaign.end_date,
-    targeting: campaign.targeting ? {
-      age_min: campaign.targeting.age_min,
-      age_max: campaign.targeting.age_max,
-      genders: campaign.targeting.genders,
-      interests: campaign.targeting.interests,
-      locations: campaign.targeting.locations,
-      trip_types: campaign.targeting.trip_types
-    } : {
-      genders: ['all'],
-      interests: [],
-      locations: [],
-      trip_types: []
-    }
+    targeting: campaign.targeting
+      ? {
+          age_min: campaign.targeting.age_min,
+          age_max: campaign.targeting.age_max,
+          genders: campaign.targeting.genders,
+          interests: campaign.targeting.interests,
+          locations: campaign.targeting.locations,
+          trip_types: campaign.targeting.trip_types,
+        }
+      : {
+          genders: ['all'],
+          interests: [],
+          locations: [],
+          trip_types: [],
+        },
   });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,9 +61,9 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
     const remainingSlots = MAX_CAMPAIGN_IMAGES - formData.images.length;
     if (files.length > remainingSlots) {
       toast({
-        title: "Too Many Images",
+        title: 'Too Many Images',
         description: `You can only upload ${remainingSlots} more image(s). Maximum is ${MAX_CAMPAIGN_IMAGES}.`,
-        variant: "destructive"
+        variant: 'destructive',
       });
       return;
     }
@@ -66,19 +74,19 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const url = await AdvertiserService.uploadCampaignImage(file);
-      
+
       if (url) {
         newImages.push({
           url,
           alt: file.name,
-          order: formData.images.length + i
+          order: formData.images.length + i,
         });
       }
     }
 
     setFormData({
       ...formData,
-      images: [...formData.images, ...newImages]
+      images: [...formData.images, ...newImages],
     });
     setUploadingImage(false);
   };
@@ -92,18 +100,18 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
     try {
       setIsLoading(true);
       await AdvertiserService.updateCampaign(campaign.id, formData);
-      
+
       toast({
-        title: "Campaign Updated",
-        description: `"${formData.name}" has been updated successfully`
+        title: 'Campaign Updated',
+        description: `"${formData.name}" has been updated successfully`,
       });
       onSuccess();
     } catch (error) {
       console.error('Error updating campaign:', error);
       toast({
-        title: "Error",
-        description: "Failed to update campaign. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to update campaign. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -120,22 +128,26 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
         <div className="space-y-6">
           {/* Campaign Name */}
           <div>
-            <Label htmlFor="name" className="text-gray-300">Campaign Name</Label>
+            <Label htmlFor="name" className="text-gray-300">
+              Campaign Name
+            </Label>
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
               className="mt-1 bg-gray-800 border-gray-700 text-white"
             />
           </div>
 
           {/* Description */}
           <div>
-            <Label htmlFor="description" className="text-gray-300">Description</Label>
+            <Label htmlFor="description" className="text-gray-300">
+              Description
+            </Label>
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
               className="mt-1 bg-gray-800 border-gray-700 text-white"
               rows={3}
             />
@@ -143,11 +155,13 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
 
           {/* Discount Details */}
           <div>
-            <Label htmlFor="discount" className="text-gray-300">Discount Details</Label>
+            <Label htmlFor="discount" className="text-gray-300">
+              Discount Details
+            </Label>
             <Input
               id="discount"
               value={formData.discount_details || ''}
-              onChange={(e) => setFormData({ ...formData, discount_details: e.target.value })}
+              onChange={e => setFormData({ ...formData, discount_details: e.target.value })}
               className="mt-1 bg-gray-800 border-gray-700 text-white"
             />
           </div>
@@ -157,7 +171,7 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
             <Label className="text-gray-300">
               Campaign Images ({formData.images.length}/{MAX_CAMPAIGN_IMAGES})
             </Label>
-            
+
             <div className="grid grid-cols-3 gap-4 mt-2 mb-4">
               {formData.images.map((image, index) => (
                 <div key={index} className="relative group">
@@ -188,13 +202,12 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
                   onChange={handleImageUpload}
                   className="hidden"
                 />
-                <label
-                  htmlFor="image-upload"
-                  className="cursor-pointer flex flex-col items-center"
-                >
+                <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center">
                   <Upload className="h-8 w-8 text-gray-400 mb-2" />
                   <span className="text-sm text-gray-400">
-                    {uploadingImage ? 'Uploading...' : `Click to upload (${MAX_CAMPAIGN_IMAGES - formData.images.length} slots remaining)`}
+                    {uploadingImage
+                      ? 'Uploading...'
+                      : `Click to upload (${MAX_CAMPAIGN_IMAGES - formData.images.length} slots remaining)`}
                   </span>
                 </label>
               </div>
@@ -209,7 +222,7 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
             <p className="text-sm text-gray-400 mb-3">
               Choose tags that best describe your campaign
             </p>
-            
+
             <div className="space-y-4 max-h-80 overflow-y-auto p-4 bg-gray-800/30 rounded-lg">
               {Object.entries(CAMPAIGN_TAG_CATEGORIES).map(([categoryKey, tags]) => (
                 <div key={categoryKey}>
@@ -217,32 +230,32 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
                     {categoryKey.replace(/([A-Z])/g, ' $1').trim()}
                   </h4>
                   <div className="grid grid-cols-2 gap-2">
-                    {tags.map((tag) => {
+                    {tags.map(tag => {
                       const isSelected = formData.tags.includes(tag.value);
                       const isDisabled = !isSelected && formData.tags.length >= MAX_CAMPAIGN_TAGS;
-                      
+
                       return (
                         <label
                           key={tag.value}
                           className={cn(
-                            "flex items-center space-x-2 p-2 rounded border cursor-pointer transition-colors",
+                            'flex items-center space-x-2 p-2 rounded border cursor-pointer transition-colors',
                             isSelected
-                              ? "bg-yellow-600/20 border-yellow-500"
+                              ? 'bg-yellow-600/20 border-yellow-500'
                               : isDisabled
-                              ? "bg-gray-800/30 border-gray-700 opacity-50 cursor-not-allowed"
-                              : "bg-gray-800/50 border-gray-700 hover:bg-gray-800"
+                                ? 'bg-gray-800/30 border-gray-700 opacity-50 cursor-not-allowed'
+                                : 'bg-gray-800/50 border-gray-700 hover:bg-gray-800',
                           )}
                         >
                           <input
                             type="checkbox"
                             checked={isSelected}
                             disabled={isDisabled}
-                            onChange={(e) => {
+                            onChange={e => {
                               setFormData({
                                 ...formData,
                                 tags: e.target.checked
                                   ? [...formData.tags, tag.value]
-                                  : formData.tags.filter(t => t !== tag.value)
+                                  : formData.tags.filter(t => t !== tag.value),
                               });
                             }}
                             className="rounded border-gray-600"
@@ -255,7 +268,7 @@ export const CampaignEditor = ({ campaign, onClose, onSuccess }: CampaignEditorP
                 </div>
               ))}
             </div>
-            
+
             <div className="mt-2 text-sm text-gray-400">
               {formData.tags.length} / {MAX_CAMPAIGN_TAGS} tags selected
             </div>

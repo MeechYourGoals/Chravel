@@ -45,7 +45,7 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
 
       const currentHeight = window.visualViewport.height;
       const heightDifference = (initialViewportHeight.current || 0) - currentHeight;
-      
+
       // Keyboard is considered visible if viewport height decreased by more than 150px
       const nextVisible = heightDifference > 150;
 
@@ -56,18 +56,18 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
         if (nextVisible) {
           document.body.classList.add('keyboard-visible');
           options.onShow?.();
-          
+
           // Adjust viewport for iOS keyboard
           if (options.adjustViewport) {
             document.documentElement.style.setProperty(
-              '--keyboard-height', 
-              `${heightDifference}px`
+              '--keyboard-height',
+              `${heightDifference}px`,
             );
           }
         } else {
           document.body.classList.remove('keyboard-visible');
           options.onHide?.();
-          
+
           if (options.adjustViewport) {
             document.documentElement.style.removeProperty('--keyboard-height');
           }
@@ -77,13 +77,13 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
 
     const handleFocusIn = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
-      
+
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
         // Prevent zoom on iOS
         if (options.preventZoom && /iPad|iPhone|iPod/.test(navigator.userAgent)) {
           const originalFontSize = target.style.fontSize;
           target.style.fontSize = '16px';
-          
+
           // Restore original font size after blur
           const handleBlur = () => {
             target.style.fontSize = originalFontSize;
@@ -94,9 +94,9 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
 
         // Scroll input into view on iOS
         setTimeout(() => {
-          target.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
           });
         }, 300);
       }
@@ -113,7 +113,7 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
         window.visualViewport.removeEventListener('resize', handleViewportChange);
       }
       document.removeEventListener('focusin', handleFocusIn);
-      
+
       // Cleanup
       document.body.classList.remove('keyboard-visible');
       document.documentElement.style.removeProperty('--keyboard-height');
@@ -121,6 +121,6 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
   }, [isMobile, options.preventZoom, options.adjustViewport, options.onShow, options.onHide]);
 
   return {
-    isKeyboardVisible
+    isKeyboardVisible,
   };
 };

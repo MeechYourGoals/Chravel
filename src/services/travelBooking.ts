@@ -96,7 +96,7 @@ export class TravelBookingService {
     flights: '/api/flights',
     hotels: '/api/hotels',
     restaurants: '/api/restaurants',
-    transportation: '/api/transportation'
+    transportation: '/api/transportation',
   };
 
   async searchFlights(params: FlightSearchParams): Promise<FlightResult[]> {
@@ -110,18 +110,18 @@ export class TravelBookingService {
           departure: {
             airport: 'JFK',
             time: '08:00 AM',
-            date: params.departDate
+            date: params.departDate,
           },
           arrival: {
             airport: 'LAX',
             time: '11:30 AM',
-            date: params.departDate
+            date: params.departDate,
           },
           price: 299,
           currency: 'USD',
           duration: '5h 30m',
           stops: 0,
-          bookingUrl: 'https://united.com/booking'
+          bookingUrl: 'https://united.com/booking',
         },
         {
           id: 'flight-2',
@@ -130,19 +130,19 @@ export class TravelBookingService {
           departure: {
             airport: 'JFK',
             time: '02:15 PM',
-            date: params.departDate
+            date: params.departDate,
           },
           arrival: {
             airport: 'LAX',
             time: '05:45 PM',
-            date: params.departDate
+            date: params.departDate,
           },
           price: 349,
           currency: 'USD',
           duration: '5h 30m',
           stops: 0,
-          bookingUrl: 'https://delta.com/booking'
-        }
+          bookingUrl: 'https://delta.com/booking',
+        },
       ];
 
       return mockResults;
@@ -166,7 +166,7 @@ export class TravelBookingService {
           amenities: ['WiFi', 'Pool', 'Gym', 'Restaurant', 'Parking'],
           photos: ['/hotel1.jpg', '/hotel1-2.jpg'],
           bookingUrl: 'https://booking.com/hotel1',
-          availability: true
+          availability: true,
         },
         {
           id: 'hotel-2',
@@ -178,8 +178,8 @@ export class TravelBookingService {
           amenities: ['WiFi', 'Breakfast', 'Concierge', 'Pet-friendly'],
           photos: ['/hotel2.jpg', '/hotel2-2.jpg'],
           bookingUrl: 'https://booking.com/hotel2',
-          availability: true
-        }
+          availability: true,
+        },
       ];
 
       return mockResults;
@@ -202,7 +202,7 @@ export class TravelBookingService {
           cuisine: 'American',
           photos: ['/restaurant1.jpg'],
           availability: true,
-          reservationUrl: 'https://opentable.com/restaurant1'
+          reservationUrl: 'https://opentable.com/restaurant1',
         },
         {
           id: 'restaurant-2',
@@ -213,8 +213,8 @@ export class TravelBookingService {
           cuisine: 'Italian',
           photos: ['/restaurant2.jpg'],
           availability: true,
-          reservationUrl: 'https://resy.com/restaurant2'
-        }
+          reservationUrl: 'https://resy.com/restaurant2',
+        },
       ];
 
       return mockResults;
@@ -235,7 +235,7 @@ export class TravelBookingService {
           estimatedPrice: 15,
           estimatedTime: '5-8 min',
           vehicleType: 'Sedan',
-          bookingUrl: 'https://uber.com/book'
+          bookingUrl: 'https://uber.com/book',
         },
         {
           id: 'transport-2',
@@ -244,8 +244,8 @@ export class TravelBookingService {
           estimatedPrice: 13,
           estimatedTime: '6-9 min',
           vehicleType: 'Sedan',
-          bookingUrl: 'https://lyft.com/book'
-        }
+          bookingUrl: 'https://lyft.com/book',
+        },
       ];
 
       return mockResults;
@@ -256,7 +256,11 @@ export class TravelBookingService {
   }
 
   // Utility methods for booking management
-  async saveBooking(type: 'flight' | 'hotel' | 'restaurant' | 'transportation', booking: any, tripId: string) {
+  async saveBooking(
+    type: 'flight' | 'hotel' | 'restaurant' | 'transportation',
+    booking: any,
+    tripId: string,
+  ) {
     try {
       // This would save to Supabase
       return { success: true, bookingId: `booking-${Date.now()}` };
@@ -273,7 +277,7 @@ export class TravelBookingService {
         id: bookingId,
         status: 'confirmed',
         confirmationNumber: 'ABC123',
-        provider: 'United Airlines'
+        provider: 'United Airlines',
       };
     } catch (error) {
       console.error('Failed to get booking status:', error);

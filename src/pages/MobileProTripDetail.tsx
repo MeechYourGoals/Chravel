@@ -113,7 +113,7 @@ export const MobileProTripDetail = () => {
       ...convertedTrip,
       participants: proParticipants,
       roster: proParticipants,
-      
+
       enabled_features: supabaseTrip.enabled_features || defaultFeatures,
       createdBy: supabaseTrip.created_by,
       trip_type: 'pro' as const,

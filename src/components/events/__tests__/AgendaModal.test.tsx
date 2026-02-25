@@ -100,9 +100,7 @@ describe('AgendaModal', () => {
 
       expect(screen.getByText('No Agenda Files')).toBeInTheDocument();
       // Using a regex that is more tolerant to whitespace
-      expect(
-        screen.getByText(/Upload PDFs or images of your event agenda/i),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Upload PDFs or images of your event agenda/i)).toBeInTheDocument();
     });
 
     it('does not render redundant Upload Files button inside No Agenda Files box', () => {

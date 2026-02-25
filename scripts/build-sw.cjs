@@ -9,9 +9,7 @@ async function buildServiceWorker() {
     swSrc: path.join(rootDir, 'public', 'sw.js'),
     swDest: path.join(distDir, 'sw.js'),
     globDirectory: distDir,
-    globPatterns: [
-      '**/*.{html,js,css,woff2,woff,ttf,otf,eot,png,jpg,jpeg,svg,gif,webp,ico,json}',
-    ],
+    globPatterns: ['**/*.{html,js,css,woff2,woff,ttf,otf,eot,png,jpg,jpeg,svg,gif,webp,ico,json}'],
     maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
   });
 

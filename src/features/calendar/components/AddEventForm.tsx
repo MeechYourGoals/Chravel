@@ -3,7 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { AddToCalendarData } from '@/types/calendar';
 import { RecurrenceInput } from './RecurrenceInput';
@@ -17,7 +23,14 @@ interface AddEventFormProps {
   isEditing?: boolean;
 }
 
-export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSubmitting = false, isEditing = false }: AddEventFormProps) => {
+export const AddEventForm = ({
+  newEvent,
+  onUpdateField,
+  onSubmit,
+  onCancel,
+  isSubmitting = false,
+  isEditing = false,
+}: AddEventFormProps) => {
   return (
     <div className="space-y-3">
       <div>
@@ -25,7 +38,7 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
         <Input
           id="title"
           value={newEvent.title}
-          onChange={(e) => onUpdateField('title', e.target.value)}
+          onChange={e => onUpdateField('title', e.target.value)}
           placeholder="Event title"
         />
       </div>
@@ -36,7 +49,7 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
           id="time"
           type="time"
           value={newEvent.time}
-          onChange={(e) => onUpdateField('time', e.target.value)}
+          onChange={e => onUpdateField('time', e.target.value)}
         />
       </div>
 
@@ -46,7 +59,7 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
           id="endTime"
           type="time"
           value={newEvent.endTime || ''}
-          onChange={(e) => onUpdateField('endTime', e.target.value || undefined)}
+          onChange={e => onUpdateField('endTime', e.target.value || undefined)}
         />
       </div>
 
@@ -55,7 +68,7 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
         <Textarea
           id="description"
           value={newEvent.description}
-          onChange={(e) => onUpdateField('description', e.target.value)}
+          onChange={e => onUpdateField('description', e.target.value)}
           placeholder="Event details (optional)"
         />
       </div>
@@ -63,7 +76,7 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
       {/* Recurring Events */}
       <RecurrenceInput
         value={newEvent.recurrence_rule}
-        onChange={(rrule) => onUpdateField('recurrence_rule', rrule)}
+        onChange={rrule => onUpdateField('recurrence_rule', rrule)}
       />
 
       {/* Busy/Free Status */}
@@ -73,7 +86,7 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
           <Switch
             id="is-busy-switch"
             checked={newEvent.is_busy || false}
-            onCheckedChange={(checked) => onUpdateField('is_busy', checked)}
+            onCheckedChange={checked => onUpdateField('is_busy', checked)}
           />
         </div>
 
@@ -82,7 +95,7 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
             <Label htmlFor="availability-status">Availability Status</Label>
             <Select
               value={newEvent.availability_status || 'busy'}
-              onValueChange={(value) =>
+              onValueChange={value =>
                 onUpdateField('availability_status', value as 'busy' | 'free' | 'tentative')
               }
             >
@@ -103,7 +116,9 @@ export const AddEventForm = ({ newEvent, onUpdateField, onSubmit, onCancel, isSu
         <Button onClick={onSubmit} disabled={!newEvent.title || isSubmitting}>
           {isSubmitting ? 'Saving...' : isEditing ? 'Update Event' : 'Add Event'}
         </Button>
-        <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
+        <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </Button>
       </div>
     </div>
   );

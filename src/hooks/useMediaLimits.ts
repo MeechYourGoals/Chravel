@@ -1,6 +1,6 @@
 /**
  * useMediaLimits Hook
- * 
+ *
  * Tracks per-trip media upload limits for freemium model:
  * - Free: 5 photos, 5 videos, 5 files per trip
  * - Explorer/Frequent Chraveler: Unlimited per trip
@@ -37,7 +37,7 @@ export const useMediaLimits = (tripId: string): MediaLimits => {
       }
 
       const counts = { photos: 0, videos: 0, files: 0 };
-      data?.forEach((item) => {
+      data?.forEach(item => {
         if (item.media_type === 'image') counts.photos++;
         else if (item.media_type === 'video') counts.videos++;
         else if (item.media_type === 'document') counts.files++;

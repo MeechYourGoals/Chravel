@@ -14,7 +14,7 @@ export class VenmoProcessor implements PaymentProcessor {
   constructor(config: { clientId?: string; environment?: 'sandbox' | 'production' }) {
     this.config = {
       clientId: config.clientId || import.meta.env.VITE_VENMO_CLIENT_ID,
-      environment: config.environment || (import.meta.env.PROD ? 'production' : 'sandbox')
+      environment: config.environment || (import.meta.env.PROD ? 'production' : 'sandbox'),
     };
   }
 
@@ -47,8 +47,8 @@ export class VenmoProcessor implements PaymentProcessor {
         metadata: {
           venmoUrl,
           method: 'deeplink',
-          note: 'User will complete payment in Venmo app'
-        }
+          note: 'User will complete payment in Venmo app',
+        },
       };
     } catch (error) {
       return {
@@ -58,8 +58,8 @@ export class VenmoProcessor implements PaymentProcessor {
           message: error instanceof Error ? error.message : 'Venmo payment failed',
           type: 'unknown',
           retryable: true,
-          details: { originalError: String(error) }
-        }
+          details: { originalError: String(error) },
+        },
       };
     }
   }

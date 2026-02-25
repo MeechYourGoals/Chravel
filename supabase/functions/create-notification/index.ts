@@ -368,13 +368,16 @@ Deno.serve(async req => {
     if (insertedNotificationIds.length > 0) {
       try {
         const dispatchSecret = Deno.env.get('NOTIFICATION_DISPATCH_SECRET');
-        const { data, error } = await supabase.functions.invoke('dispatch-notification-deliveries', {
-          body: {
-            notificationIds: insertedNotificationIds,
-            limit: insertedNotificationIds.length * 3,
+        const { data, error } = await supabase.functions.invoke(
+          'dispatch-notification-deliveries',
+          {
+            body: {
+              notificationIds: insertedNotificationIds,
+              limit: insertedNotificationIds.length * 3,
+            },
+            headers: dispatchSecret ? { 'x-notification-secret': dispatchSecret } : undefined,
           },
-          headers: dispatchSecret ? { 'x-notification-secret': dispatchSecret } : undefined,
-        });
+        );
 
         if (error) {
           console.error('[create-notification] Error dispatching queued deliveries:', error);

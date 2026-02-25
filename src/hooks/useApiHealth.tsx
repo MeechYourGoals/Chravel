@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiHealthCheck, HealthStatus } from '@/services/apiHealthCheck';
 
-
 /**
  * Hook to monitor API health status and provide user notifications
  * @param enabled - Whether to actually run health checks (false in demo mode)
@@ -10,7 +9,6 @@ export const useApiHealth = (enabled: boolean = true) => {
   const [conciergeStatus, setConciergeStatus] = useState<HealthStatus | null>(null);
   const [mapsStatus, setMapsStatus] = useState<HealthStatus | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  
 
   useEffect(() => {
     // Skip health checks if disabled (demo mode or unauthenticated)
@@ -22,15 +20,14 @@ export const useApiHealth = (enabled: boolean = true) => {
     const initializeHealthChecks = async () => {
       try {
         await apiHealthCheck.initialize();
-        
+
         // Get initial statuses
         const concierge = apiHealthCheck.getHealth('concierge');
         const maps = apiHealthCheck.getHealth('google_maps');
-        
-      setConciergeStatus(concierge);
-      setMapsStatus(maps);
-      setIsInitialized(true);
 
+        setConciergeStatus(concierge);
+        setMapsStatus(maps);
+        setIsInitialized(true);
       } catch (error) {
         console.error('Failed to initialize health checks:', error);
       }
@@ -72,6 +69,6 @@ export const useApiHealth = (enabled: boolean = true) => {
     mapsStatus,
     isInitialized,
     isAllHealthy: conciergeStatus?.status === 'healthy' && mapsStatus?.status === 'healthy',
-    forceRecheck
+    forceRecheck,
   };
 };

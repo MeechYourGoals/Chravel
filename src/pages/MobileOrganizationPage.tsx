@@ -16,14 +16,8 @@ export const MobileOrganizationPage = () => {
   const { toast } = useToast();
   const [showInviteModal, setShowInviteModal] = useState(false);
 
-  const { 
-    organizations, 
-    members, 
-    loading,
-    fetchOrgMembers,
-    updateMemberRole,
-    removeMember 
-  } = useOrganization();
+  const { organizations, members, loading, fetchOrgMembers, updateMemberRole, removeMember } =
+    useOrganization();
 
   // Fetch members when orgId changes
   React.useEffect(() => {
@@ -43,16 +37,16 @@ export const MobileOrganizationPage = () => {
     try {
       const result = await updateMemberRole(memberId, newRole as 'admin' | 'member');
       if (result.error) throw result.error;
-      
+
       toast({
-        title: "Role updated",
-        description: "Team member role has been updated successfully"
+        title: 'Role updated',
+        description: 'Team member role has been updated successfully',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to update member role",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to update member role',
+        variant: 'destructive',
       });
     }
   };
@@ -61,16 +55,16 @@ export const MobileOrganizationPage = () => {
     try {
       const result = await removeMember(memberId);
       if (result.error) throw result.error;
-      
+
       toast({
-        title: "Member removed",
-        description: "Team member has been removed from the organization"
+        title: 'Member removed',
+        description: 'Team member has been removed from the organization',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to remove member",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to remove member',
+        variant: 'destructive',
       });
     }
   };
@@ -101,7 +95,8 @@ export const MobileOrganizationPage = () => {
   }
 
   const currentUserMember = members.find(m => m.role === 'owner' || m.role === 'admin');
-  const canManageMembers = currentUserMember?.role === 'owner' || currentUserMember?.role === 'admin';
+  const canManageMembers =
+    currentUserMember?.role === 'owner' || currentUserMember?.role === 'admin';
 
   return (
     <div className="min-h-screen bg-background">
@@ -123,9 +118,13 @@ export const MobileOrganizationPage = () => {
         <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl p-6 border border-primary/20">
           <h2 className="text-2xl font-bold text-foreground mb-2">{organization.name}</h2>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="uppercase font-medium text-primary">{organization.subscription_tier}</span>
+            <span className="uppercase font-medium text-primary">
+              {organization.subscription_tier}
+            </span>
             <span>•</span>
-            <span>{organization.seats_used} / {organization.seat_limit} seats</span>
+            <span>
+              {organization.seats_used} / {organization.seat_limit} seats
+            </span>
           </div>
         </div>
 
@@ -134,11 +133,7 @@ export const MobileOrganizationPage = () => {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-foreground">Team Members</h3>
             {canManageMembers && (
-              <Button 
-                size="sm" 
-                onClick={() => setShowInviteModal(true)}
-                className="gap-2"
-              >
+              <Button size="sm" onClick={() => setShowInviteModal(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
                 Invite
               </Button>
@@ -159,7 +154,9 @@ export const MobileOrganizationPage = () => {
                 <MobileTeamMemberCard
                   key={member.id}
                   member={member}
-                  onChangeRole={canManageMembers ? (userId) => handleChangeRole(member.id, userId) : undefined}
+                  onChangeRole={
+                    canManageMembers ? userId => handleChangeRole(member.id, userId) : undefined
+                  }
                   onRemove={canManageMembers ? () => handleRemove(member.id) : undefined}
                   isOwner={member.role === 'owner'}
                 />

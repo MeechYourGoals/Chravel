@@ -25,9 +25,12 @@ export const MobileOrganizationCard = ({ organization }: MobileOrganizationCardP
 
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case 'enterprise': return 'from-purple-500/20 to-pink-500/20';
-      case 'pro': return 'from-blue-500/20 to-cyan-500/20';
-      default: return 'from-gray-500/20 to-gray-600/20';
+      case 'enterprise':
+        return 'from-purple-500/20 to-pink-500/20';
+      case 'pro':
+        return 'from-blue-500/20 to-cyan-500/20';
+      default:
+        return 'from-gray-500/20 to-gray-600/20';
     }
   };
 
@@ -37,11 +40,11 @@ export const MobileOrganizationCard = ({ organization }: MobileOrganizationCardP
     <div
       onClick={() => navigate(`/organization/${organization.id}`)}
       className={cn(
-        "relative overflow-hidden rounded-2xl p-6 cursor-pointer",
-        "bg-gradient-to-br",
+        'relative overflow-hidden rounded-2xl p-6 cursor-pointer',
+        'bg-gradient-to-br',
         getTierColor(organization.subscription_tier),
-        "border border-white/10 backdrop-blur-sm",
-        "active:scale-98 transition-transform"
+        'border border-white/10 backdrop-blur-sm',
+        'active:scale-98 transition-transform',
       )}
     >
       {/* Header */}
@@ -52,7 +55,9 @@ export const MobileOrganizationCard = ({ organization }: MobileOrganizationCardP
           </div>
           <div>
             <h3 className="font-semibold text-lg text-foreground">{organization.name}</h3>
-            <p className="text-sm text-muted-foreground uppercase">{organization.subscription_tier}</p>
+            <p className="text-sm text-muted-foreground uppercase">
+              {organization.subscription_tier}
+            </p>
           </div>
         </div>
         <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -69,13 +74,13 @@ export const MobileOrganizationCard = ({ organization }: MobileOrganizationCardP
             {organization.seats_used} / {organization.seat_limit}
           </span>
         </div>
-        
+
         {/* Progress Bar */}
         <div className="w-full h-2 bg-black/20 rounded-full overflow-hidden">
-          <div 
+          <div
             className={cn(
-              "h-full transition-all duration-300",
-              seatUsagePercent > 90 ? "bg-red-500" : "bg-primary"
+              'h-full transition-all duration-300',
+              seatUsagePercent > 90 ? 'bg-red-500' : 'bg-primary',
             )}
             style={{ width: `${seatUsagePercent}%` }}
           />

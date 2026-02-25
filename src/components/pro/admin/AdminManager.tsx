@@ -29,8 +29,8 @@ interface AdminManagerProps {
 }
 
 export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorId }) => {
-  const { admins, isLoading, isProcessing, promoteToAdmin, demoteFromAdmin } = useTripAdmins({ 
-    tripId 
+  const { admins, isLoading, isProcessing, promoteToAdmin, demoteFromAdmin } = useTripAdmins({
+    tripId,
   });
   const [members, setMembers] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState<string>('');
@@ -51,17 +51,17 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
       try {
         const { data } = await supabase
           .from('trip_members')
-          .select(`
+          .select(
+            `
             user_id,
             profiles:user_id(display_name, avatar_url)
-          `)
+          `,
+          )
           .eq('trip_id', tripId);
 
         // Filter out users who are already admins
         const adminIds = admins.map(a => a.user_id);
-        const nonAdmins = (data || []).filter(
-          m => !adminIds.includes(m.user_id)
-        );
+        const nonAdmins = (data || []).filter(m => !adminIds.includes(m.user_id));
 
         setMembers(nonAdmins);
       } catch (error) {
@@ -120,9 +120,9 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
 
       {/* Current Admins List */}
       <div className="space-y-3 mb-6">
-        {admins.map((admin) => {
+        {admins.map(admin => {
           const isCreator = admin.user_id === tripCreatorId;
-          
+
           return (
             <div
               key={admin.id}
@@ -141,9 +141,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
                     <span className="font-medium text-foreground text-sm">
                       {admin.profile?.display_name || 'Former Member'}
                     </span>
-                    {isCreator && (
-                      <Crown className="w-4 h-4 text-yellow-500" />
-                    )}
+                    {isCreator && <Crown className="w-4 h-4 text-yellow-500" />}
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {isCreator ? 'Trip Creator' : 'Admin'}
@@ -159,7 +157,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
                     setConfirmDemote({
                       userId: admin.user_id,
                       userName: admin.profile?.display_name || 'Former Member',
-                      isCreator: false
+                      isCreator: false,
                     })
                   }
                   disabled={isProcessing}
@@ -184,14 +182,18 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
             disabled={loadingMembers || members.length === 0}
           >
             <SelectTrigger className="flex-1 rounded-full bg-white/5 border-white/10">
-              <SelectValue placeholder={
-                loadingMembers ? 'Loading members...' : 
-                members.length === 0 ? 'All members are admins' : 
-                'Select a member'
-              } />
+              <SelectValue
+                placeholder={
+                  loadingMembers
+                    ? 'Loading members...'
+                    : members.length === 0
+                      ? 'All members are admins'
+                      : 'Select a member'
+                }
+              />
             </SelectTrigger>
             <SelectContent>
-              {members.map((member) => (
+              {members.map(member => (
                 <SelectItem key={member.user_id} value={member.user_id}>
                   {member.profiles?.display_name || 'Former Member'}
                 </SelectItem>
@@ -205,7 +207,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
               if (member) {
                 setConfirmPromote({
                   userId: selectedMember,
-                  userName: member.profiles?.display_name || 'Former Member'
+                  userName: member.profiles?.display_name || 'Former Member',
                 });
               }
             }}
@@ -219,7 +221,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
       </div>
 
       {/* Promotion Confirmation Dialog */}
-      <AlertDialog open={!!confirmPromote} onOpenChange={(open) => !open && setConfirmPromote(null)}>
+      <AlertDialog open={!!confirmPromote} onOpenChange={open => !open && setConfirmPromote(null)}>
         <AlertDialogContent className="bg-background/95 backdrop-blur-xl border-white/10">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -228,7 +230,8 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p className="text-foreground">
-                You're about to promote <strong className="text-blue-500">{confirmPromote?.userName}</strong> to admin.
+                You're about to promote{' '}
+                <strong className="text-blue-500">{confirmPromote?.userName}</strong> to admin.
               </p>
               <div className="space-y-2">
                 <p className="text-sm font-medium">They will gain these privileges:</p>
@@ -242,7 +245,8 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
               <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
                 <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-yellow-500">
-                  <strong>Note:</strong> Admin permissions can only be revoked by the trip creator or other admins with designation rights.
+                  <strong>Note:</strong> Admin permissions can only be revoked by the trip creator
+                  or other admins with designation rights.
                 </p>
               </div>
             </AlertDialogDescription>
@@ -268,7 +272,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
       </AlertDialog>
 
       {/* Demotion Confirmation Dialog */}
-      <AlertDialog open={!!confirmDemote} onOpenChange={(open) => !open && setConfirmDemote(null)}>
+      <AlertDialog open={!!confirmDemote} onOpenChange={open => !open && setConfirmDemote(null)}>
         <AlertDialogContent className="bg-background/95 backdrop-blur-xl border-white/10">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -280,13 +284,15 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
                   <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-red-500">
-                    <strong>Cannot remove trip creator:</strong> The trip creator cannot be demoted from admin. This protection ensures the trip always has a primary administrator.
+                    <strong>Cannot remove trip creator:</strong> The trip creator cannot be demoted
+                    from admin. This protection ensures the trip always has a primary administrator.
                   </p>
                 </div>
               ) : (
                 <>
                   <p className="text-foreground">
-                    You're about to remove admin privileges from <strong className="text-destructive">{confirmDemote?.userName}</strong>.
+                    You're about to remove admin privileges from{' '}
+                    <strong className="text-destructive">{confirmDemote?.userName}</strong>.
                   </p>
                   <div className="space-y-2">
                     <p className="text-sm font-medium">They will lose access to:</p>

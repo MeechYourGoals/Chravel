@@ -19,7 +19,7 @@ export const PrivacySettingsSection: React.FC = () => {
   });
 
   const handleToggle = (key: keyof typeof settings) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
     toast({
       title: 'Privacy settings updated',
       description: 'Your changes have been saved',
@@ -40,9 +40,7 @@ export const PrivacySettingsSection: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Show Email Address</Label>
-              <p className="text-sm text-muted-foreground">
-                Allow trip members to see your email
-              </p>
+              <p className="text-sm text-muted-foreground">Allow trip members to see your email</p>
             </div>
             <Switch
               checked={settings.showEmail}
@@ -53,9 +51,7 @@ export const PrivacySettingsSection: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Show Phone Number</Label>
-              <p className="text-sm text-muted-foreground">
-                Allow trip members to see your phone
-              </p>
+              <p className="text-sm text-muted-foreground">Allow trip members to see your phone</p>
             </div>
             <Switch
               checked={settings.showPhone}
@@ -92,9 +88,7 @@ export const PrivacySettingsSection: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Trip Sharing</Label>
-              <p className="text-sm text-muted-foreground">
-                Allow others to invite you to trips
-              </p>
+              <p className="text-sm text-muted-foreground">Allow others to invite you to trips</p>
             </div>
             <Switch
               checked={settings.shareTrips}

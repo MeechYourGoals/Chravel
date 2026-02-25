@@ -50,29 +50,27 @@ export async function saveDeviceToken(userId: string, token: string): Promise<bo
   const platform = getPlatform();
   const deviceId = getDeviceId();
   const now = new Date().toISOString();
-  
+
   try {
-    const { error } = await supabase
-      .from('push_device_tokens')
-      .upsert(
-        {
-          user_id: userId,
-          token,
-          platform,
-          device_id: deviceId,
-          last_seen_at: now,
-          updated_at: now,
-        },
-        {
-          onConflict: 'user_id,token',
-        }
-      );
-    
+    const { error } = await supabase.from('push_device_tokens').upsert(
+      {
+        user_id: userId,
+        token,
+        platform,
+        device_id: deviceId,
+        last_seen_at: now,
+        updated_at: now,
+      },
+      {
+        onConflict: 'user_id,token',
+      },
+    );
+
     if (error) {
       console.error('[PushTokenService] Failed to save token:', error);
       return false;
     }
-    
+
     console.log('[PushTokenService] Token saved successfully');
     return true;
   } catch (err) {
@@ -92,12 +90,12 @@ export async function removeDeviceToken(userId: string, token: string): Promise<
       .delete()
       .eq('user_id', userId)
       .eq('token', token);
-    
+
     if (error) {
       console.error('[PushTokenService] Failed to remove token:', error);
       return false;
     }
-    
+
     console.log('[PushTokenService] Token removed successfully');
     return true;
   } catch (err) {
@@ -112,16 +110,13 @@ export async function removeDeviceToken(userId: string, token: string): Promise<
  */
 export async function removeAllUserTokens(userId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('push_device_tokens')
-      .delete()
-      .eq('user_id', userId);
-    
+    const { error } = await supabase.from('push_device_tokens').delete().eq('user_id', userId);
+
     if (error) {
       console.error('[PushTokenService] Failed to remove all tokens:', error);
       return false;
     }
-    
+
     return true;
   } catch (err) {
     console.error('[PushTokenService] Unexpected error removing all tokens:', err);
@@ -155,12 +150,12 @@ export async function getUserTokens(userId: string): Promise<DeviceToken[]> {
       .from('push_device_tokens')
       .select('*')
       .eq('user_id', userId);
-    
+
     if (error || !data) {
       return [];
     }
-    
-    return data.map((row) => ({
+
+    return data.map(row => ({
       id: row.id,
       userId: row.user_id,
       token: row.token,

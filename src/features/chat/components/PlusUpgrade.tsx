@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Crown, Sparkles, Send, MessageCircle } from 'lucide-react';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
@@ -27,13 +26,17 @@ export const PlusUpgrade = () => {
             <p className="text-gray-300 text-sm">Find vegetarian restaurants near our Airbnb</p>
           </div>
           <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-4 ml-8">
-            <p className="text-gray-300 text-sm">Here are 3 sushi spots near your Basecamp ranked by reviews...</p>
+            <p className="text-gray-300 text-sm">
+              Here are 3 sushi spots near your Basecamp ranked by reviews...
+            </p>
           </div>
           <div className="bg-gray-800 rounded-2xl p-4 max-w-xs">
             <p className="text-gray-300 text-sm">Suggest nightlife spots within walking distance</p>
           </div>
           <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-4 ml-8">
-            <p className="text-gray-300 text-sm">Looks like your group prefers day adventures. Want to add this kayaking trip?</p>
+            <p className="text-gray-300 text-sm">
+              Looks like your group prefers day adventures. Want to add this kayaking trip?
+            </p>
           </div>
         </div>
 
@@ -53,13 +56,19 @@ export const PlusUpgrade = () => {
       {/* Glassmorphism Overlay */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center">
         <div className="text-center max-w-md p-8">
-          <div className={`w-16 h-16 bg-gradient-to-r ${accentColors.gradient} rounded-full flex items-center justify-center mx-auto mb-6`}>
+          <div
+            className={`w-16 h-16 bg-gradient-to-r ${accentColors.gradient} rounded-full flex items-center justify-center mx-auto mb-6`}
+          >
             <Crown size={32} className="text-white" />
           </div>
-          
-          <h3 className="text-2xl font-bold text-white mb-3">✨ Unlock Smart Trip Planning with Plus</h3>
-          <p className="text-gray-300 mb-6">Your personal AI travel assistant is ready to build the perfect trip.</p>
-          
+
+          <h3 className="text-2xl font-bold text-white mb-3">
+            ✨ Unlock Smart Trip Planning with Plus
+          </h3>
+          <p className="text-gray-300 mb-6">
+            Your personal AI travel assistant is ready to build the perfect trip.
+          </p>
+
           <div className="space-y-2 text-left mb-8">
             <div className="flex items-center gap-2 text-gray-300">
               <span className="text-green-400">✅</span> AI Chatbot
@@ -71,7 +80,8 @@ export const PlusUpgrade = () => {
               <span className="text-green-400">✅</span> Tailored recs using group preferences
             </div>
             <div className="flex items-center gap-2 text-gray-300">
-              <span className="text-green-400">✅</span> Real-time help planning food, activities, and more
+              <span className="text-green-400">✅</span> Real-time help planning food, activities,
+              and more
             </div>
           </div>
 
@@ -86,9 +96,7 @@ export const PlusUpgrade = () => {
             >
               🔓 Unlock with Plus
             </button>
-            <button className="text-gray-400 hover:text-white text-sm">
-              No thanks
-            </button>
+            <button className="text-gray-400 hover:text-white text-sm">No thanks</button>
           </div>
         </div>
       </div>

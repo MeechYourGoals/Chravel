@@ -16,7 +16,7 @@ interface MediaTileProps {
  *
  * Single source of truth for rendering media tiles in grids.
  * Uses TripMediaRenderer for consistent iOS-safe rendering.
- * 
+ *
  * Features:
  * - MIME-based rendering via TripMediaRenderer
  * - iOS-safe video attributes (playsInline, muted, preload)
@@ -46,7 +46,7 @@ export function MediaTile({
     <div className="relative rounded-xl overflow-hidden bg-neutral-900 group">
       {/* DELETE BUTTON - Always visible, no hidden gestures */}
       <button
-        onClick={(e) => {
+        onClick={e => {
           e.stopPropagation();
           onDelete(id);
         }}

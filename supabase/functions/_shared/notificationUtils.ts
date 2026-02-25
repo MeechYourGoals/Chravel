@@ -62,15 +62,15 @@ export interface DeliveryDecision {
  * Only high-signal, important categories to avoid spam.
  */
 export const EMAIL_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
-  'broadcasts',          // Important announcements from trip organizers
-  'payments',            // Payment requests and settlements
-  'basecamp_updates',    // Location changes
-  'calendar_events',     // Calendar updates
+  'broadcasts', // Important announcements from trip organizers
+  'payments', // Payment requests and settlements
+  'basecamp_updates', // Location changes
+  'calendar_events', // Calendar updates
   'calendar_bulk_import', // Bulk import summaries
-  'join_requests',       // Join request alerts
-  'tasks',               // Task assignments
-  'polls',               // New polls
-  'trip_invites',        // Trip invitations
+  'join_requests', // Join request alerts
+  'tasks', // Task assignments
+  'polls', // New polls
+  'trip_invites', // Trip invitations
 ];
 
 /**
@@ -78,14 +78,14 @@ export const EMAIL_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
  * High-urgency categories only - these warrant a text message.
  */
 export const SMS_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
-  'broadcasts',          // Critical announcements from organizers
-  'payments',            // Payment requests and deadlines
-  'basecamp_updates',    // Location/basecamp changes
-  'calendar_events',     // Event updates and reminders
+  'broadcasts', // Critical announcements from organizers
+  'payments', // Payment requests and deadlines
+  'basecamp_updates', // Location/basecamp changes
+  'calendar_events', // Event updates and reminders
   'calendar_bulk_import', // Bulk import summaries
-  'join_requests',       // New member join requests (for organizers)
-  'tasks',               // Assigned tasks with actionable urgency
-  'polls',               // New polls needing input
+  'join_requests', // New member join requests (for organizers)
+  'tasks', // Assigned tasks with actionable urgency
+  'polls', // New polls needing input
 ];
 
 /**
@@ -94,48 +94,48 @@ export const SMS_ELIGIBLE_CATEGORIES: NotificationCategory[] = [
  */
 export const TYPE_TO_CATEGORY_MAP: Record<string, NotificationCategory> = {
   // Direct mappings
-  'chat_messages': 'chat_messages',
-  'chat_message': 'chat_messages',
-  'message': 'chat_messages',
-  'chat': 'chat_messages',
-  'mention': 'chat_messages',
+  chat_messages: 'chat_messages',
+  chat_message: 'chat_messages',
+  message: 'chat_messages',
+  chat: 'chat_messages',
+  mention: 'chat_messages',
 
-  'broadcasts': 'broadcasts',
-  'broadcast': 'broadcasts',
+  broadcasts: 'broadcasts',
+  broadcast: 'broadcasts',
 
-  'calendar_events': 'calendar_events',
-  'calendar': 'calendar_events',
-  'calendar_reminder': 'calendar_events',
-  'event': 'calendar_events',
-  'itinerary_update': 'calendar_events',
-  'calendar_bulk_import': 'calendar_bulk_import',
+  calendar_events: 'calendar_events',
+  calendar: 'calendar_events',
+  calendar_reminder: 'calendar_events',
+  event: 'calendar_events',
+  itinerary_update: 'calendar_events',
+  calendar_bulk_import: 'calendar_bulk_import',
 
-  'payments': 'payments',
-  'payment': 'payments',
-  'payment_request': 'payments',
-  'payment_split': 'payments',
-  'payment_alert': 'payments',
+  payments: 'payments',
+  payment: 'payments',
+  payment_request: 'payments',
+  payment_split: 'payments',
+  payment_alert: 'payments',
 
-  'tasks': 'tasks',
-  'task': 'tasks',
-  'task_assigned': 'tasks',
+  tasks: 'tasks',
+  task: 'tasks',
+  task_assigned: 'tasks',
 
-  'polls': 'polls',
-  'poll': 'polls',
-  'poll_vote': 'polls',
-  'poll_created': 'polls',
+  polls: 'polls',
+  poll: 'polls',
+  poll_vote: 'polls',
+  poll_created: 'polls',
 
-  'trip_invites': 'trip_invites',
-  'trip_invite': 'trip_invites',
-  'invite': 'trip_invites',
+  trip_invites: 'trip_invites',
+  trip_invite: 'trip_invites',
+  invite: 'trip_invites',
 
-  'join_requests': 'join_requests',
-  'join_request': 'join_requests',
-  'member_joined': 'join_requests',
+  join_requests: 'join_requests',
+  join_request: 'join_requests',
+  member_joined: 'join_requests',
 
-  'basecamp_updates': 'basecamp_updates',
-  'basecamp': 'basecamp_updates',
-  'trip_update': 'basecamp_updates',
+  basecamp_updates: 'basecamp_updates',
+  basecamp: 'basecamp_updates',
+  trip_update: 'basecamp_updates',
 };
 
 // ============================================================================
@@ -154,7 +154,10 @@ export function normalizeCategory(type: string): NotificationCategory | null {
  * Check if the current time is within quiet hours for a user.
  */
 export function isQuietHours(
-  prefs: Pick<NotificationPreferences, 'quiet_hours_enabled' | 'quiet_start' | 'quiet_end' | 'timezone'>
+  prefs: Pick<
+    NotificationPreferences,
+    'quiet_hours_enabled' | 'quiet_start' | 'quiet_end' | 'timezone'
+  >,
 ): boolean {
   if (!prefs.quiet_hours_enabled) return false;
 
@@ -200,7 +203,10 @@ export function isQuietHours(
  * Returns 0 if not currently in quiet hours.
  */
 export function getMinutesUntilQuietHoursEnd(
-  prefs: Pick<NotificationPreferences, 'quiet_hours_enabled' | 'quiet_start' | 'quiet_end' | 'timezone'>,
+  prefs: Pick<
+    NotificationPreferences,
+    'quiet_hours_enabled' | 'quiet_start' | 'quiet_end' | 'timezone'
+  >,
 ): number {
   if (!prefs.quiet_hours_enabled) return 0;
 
@@ -251,7 +257,7 @@ export function getMinutesUntilQuietHoursEnd(
  */
 export function isCategoryEnabled(
   category: NotificationCategory,
-  prefs: NotificationPreferences
+  prefs: NotificationPreferences,
 ): boolean {
   if (category === 'calendar_bulk_import') {
     return prefs.calendar_events === true;
@@ -293,7 +299,7 @@ export const SUPPRESSED_CATEGORIES: NotificationCategory[] = ['chat_messages'];
 
 export function getDeliveryDecision(
   category: NotificationCategory,
-  prefs: NotificationPreferences
+  prefs: NotificationPreferences,
 ): DeliveryDecision {
   if (SUPPRESSED_CATEGORIES.includes(category)) {
     return {
@@ -331,17 +337,17 @@ export function getDeliveryDecision(
   const sendEmail = prefs.email_enabled && isEmailEligible(category) && !inQuietHours;
 
   // SMS: enabled + eligible category + phone exists + not quiet hours
-  const sendSms = prefs.sms_enabled &&
-                  isSmsEligible(category) &&
-                  !!prefs.sms_phone_number &&
-                  !inQuietHours;
+  const sendSms =
+    prefs.sms_enabled && isSmsEligible(category) && !!prefs.sms_phone_number && !inQuietHours;
 
   return {
     createInApp,
     sendPush,
     sendEmail,
     sendSms,
-    reason: inQuietHours ? 'Delivery suppressed during quiet hours (in-app still created)' : undefined,
+    reason: inQuietHours
+      ? 'Delivery suppressed during quiet hours (in-app still created)'
+      : undefined,
   };
 }
 

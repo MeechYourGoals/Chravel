@@ -86,16 +86,19 @@ export const useProTripAdmin = (tripId: string) => {
   /**
    * Check if admin has a specific permission
    */
-  const hasPermission = useCallback((permission: keyof AdminPermissions): boolean => {
-    if (!isAdmin || !permissions) return false;
-    return permissions[permission] === true;
-  }, [isAdmin, permissions]);
+  const hasPermission = useCallback(
+    (permission: keyof AdminPermissions): boolean => {
+      if (!isAdmin || !permissions) return false;
+      return permissions[permission] === true;
+    },
+    [isAdmin, permissions],
+  );
 
   return {
     isAdmin,
     permissions,
     isLoading,
     hasPermission,
-    refreshAdminStatus: checkAdminStatus
+    refreshAdminStatus: checkAdminStatus,
   };
 };

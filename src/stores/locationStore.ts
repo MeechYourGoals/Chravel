@@ -31,33 +31,37 @@ export const useLocationStore = create<LocationState & LocationActions>((set, ge
   isSubscribed: false,
   lastUpdate: 0,
 
-  updateLocation: (location) => set((state) => ({
-    locations: {
-      ...state.locations,
-      [location.user_id]: location
-    },
-    lastUpdate: Date.now()
-  })),
+  updateLocation: location =>
+    set(state => ({
+      locations: {
+        ...state.locations,
+        [location.user_id]: location,
+      },
+      lastUpdate: Date.now(),
+    })),
 
-  removeLocation: (userId) => set((state) => {
-    const { [userId]: removed, ...remaining } = state.locations;
-    return {
-      locations: remaining,
-      lastUpdate: Date.now()
-    };
-  }),
+  removeLocation: userId =>
+    set(state => {
+      const { [userId]: removed, ...remaining } = state.locations;
+      return {
+        locations: remaining,
+        lastUpdate: Date.now(),
+      };
+    }),
 
-  clearLocations: () => set(() => ({
-    locations: {},
-    lastUpdate: Date.now()
-  })),
+  clearLocations: () =>
+    set(() => ({
+      locations: {},
+      lastUpdate: Date.now(),
+    })),
 
-  setSubscribed: (subscribed) => set(() => ({
-    isSubscribed: subscribed
-  })),
+  setSubscribed: subscribed =>
+    set(() => ({
+      isSubscribed: subscribed,
+    })),
 
-  getLocationsByTrip: (tripId) => {
+  getLocationsByTrip: tripId => {
     const { locations } = get();
     return Object.values(locations).filter((location: UserLocation) => location.trip_id === tripId);
-  }
+  },
 }));

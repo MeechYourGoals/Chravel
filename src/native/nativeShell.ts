@@ -89,4 +89,3 @@ export async function initializeNativeShell(): Promise<() => void> {
     hideSub.remove();
   };
 }
-

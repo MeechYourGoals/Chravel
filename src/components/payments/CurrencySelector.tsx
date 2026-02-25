@@ -18,15 +18,16 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator
+  CommandSeparator,
 } from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CURRENCIES, POPULAR_CURRENCIES, CURRENCY_REGIONS, getCurrency } from '@/constants/currencies';
+import {
+  CURRENCIES,
+  POPULAR_CURRENCIES,
+  CURRENCY_REGIONS,
+  getCurrency,
+} from '@/constants/currencies';
 import { cn } from '@/lib/utils';
 
 export interface CurrencySelectorProps {
@@ -38,7 +39,7 @@ export interface CurrencySelectorProps {
 export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
   value,
   onChange,
-  className
+  className,
 }) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,8 +54,8 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "w-full justify-between h-12 rounded-xl bg-gray-900/40 border-white/10 text-white hover:bg-gray-800/60",
-            className
+            'w-full justify-between h-12 rounded-xl bg-gray-900/40 border-white/10 text-white hover:bg-gray-800/60',
+            className,
           )}
         >
           {selectedCurrency ? (
@@ -86,7 +87,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
             {!searchQuery && (
               <>
                 <CommandGroup heading="Popular" className="text-gray-400">
-                  {POPULAR_CURRENCIES.map((code) => {
+                  {POPULAR_CURRENCIES.map(code => {
                     const currency = getCurrency(code);
                     if (!currency) return null;
                     return (
@@ -101,8 +102,8 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
                       >
                         <Check
                           className={cn(
-                            "mr-2 h-4 w-4",
-                            value === code ? "opacity-100" : "opacity-0"
+                            'mr-2 h-4 w-4',
+                            value === code ? 'opacity-100' : 'opacity-0',
                           )}
                         />
                         <span className="font-mono text-lg mr-2 w-8">{currency.symbol}</span>
@@ -118,15 +119,14 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
 
             {/* Grouped by Region */}
             {Object.entries(CURRENCY_REGIONS).map(([region, codes]) => {
-              const regionCurrencies = codes
-                .map(code => getCurrency(code))
-                .filter(Boolean);
+              const regionCurrencies = codes.map(code => getCurrency(code)).filter(Boolean);
 
               // Filter by search query if present
               const filteredCurrencies = searchQuery
-                ? regionCurrencies.filter(c =>
-                    c!.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    c!.name.toLowerCase().includes(searchQuery.toLowerCase())
+                ? regionCurrencies.filter(
+                    c =>
+                      c!.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      c!.name.toLowerCase().includes(searchQuery.toLowerCase()),
                   )
                 : regionCurrencies;
 
@@ -135,7 +135,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
               return (
                 <React.Fragment key={region}>
                   <CommandGroup heading={region} className="text-gray-400">
-                    {filteredCurrencies.map((currency) => {
+                    {filteredCurrencies.map(currency => {
                       if (!currency) return null;
                       return (
                         <CommandItem
@@ -149,8 +149,8 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
                         >
                           <Check
                             className={cn(
-                              "mr-2 h-4 w-4",
-                              value === currency.code ? "opacity-100" : "opacity-0"
+                              'mr-2 h-4 w-4',
+                              value === currency.code ? 'opacity-100' : 'opacity-0',
                             )}
                           />
                           <span className="font-mono text-lg mr-2 w-8">{currency.symbol}</span>

@@ -4,16 +4,22 @@
  */
 
 import { Capacitor } from '@capacitor/core';
-import { 
-  PushNotifications, 
-  Token, 
-  ActionPerformed, 
-  PushNotificationSchema 
+import {
+  PushNotifications,
+  Token,
+  ActionPerformed,
+  PushNotificationSchema,
 } from '@capacitor/push-notifications';
 
 // Typed payload format for Chravel notifications
 export interface ChravelPushPayload {
-  type: 'chat_message' | 'trip_update' | 'poll_update' | 'task_update' | 'calendar_event' | 'broadcast';
+  type:
+    | 'chat_message'
+    | 'trip_update'
+    | 'poll_update'
+    | 'task_update'
+    | 'calendar_event'
+    | 'broadcast';
   tripId: string;
   threadId?: string;
   messageId?: string;
@@ -51,7 +57,7 @@ export async function requestPermissions(): Promise<PermissionResult> {
   if (!isNativePush()) {
     return 'denied';
   }
-  
+
   try {
     const result = await PushNotifications.requestPermissions();
     return normalizePermission(result.receive);
@@ -68,7 +74,7 @@ export async function checkPermissions(): Promise<PermissionResult> {
   if (!isNativePush()) {
     return 'denied';
   }
-  
+
   try {
     const result = await PushNotifications.checkPermissions();
     return normalizePermission(result.receive);
@@ -94,11 +100,14 @@ export async function register(): Promise<PushNotificationResult> {
       let registrationListener: { remove: () => Promise<void> } | null = null;
       let errorListener: { remove: () => Promise<void> } | null = null;
 
-      registrationListener = await PushNotifications.addListener('registration', async (token: Token) => {
-        await registrationListener?.remove();
-        await errorListener?.remove();
-        resolve({ token: token.value });
-      });
+      registrationListener = await PushNotifications.addListener(
+        'registration',
+        async (token: Token) => {
+          await registrationListener?.remove();
+          await errorListener?.remove();
+          resolve({ token: token.value });
+        },
+      );
 
       errorListener = await PushNotifications.addListener('registrationError', async error => {
         await registrationListener?.remove();
@@ -126,7 +135,7 @@ export async function register(): Promise<PushNotificationResult> {
  */
 export async function unregister(): Promise<void> {
   if (!isNativePush()) return;
-  
+
   try {
     await PushNotifications.removeAllListeners();
   } catch (error) {
@@ -139,12 +148,12 @@ export async function unregister(): Promise<void> {
  * Returns cleanup function to remove listener
  */
 export function onNotificationReceived(
-  callback: (notification: PushNotificationSchema) => void
+  callback: (notification: PushNotificationSchema) => void,
 ): () => void {
   if (!isNativePush()) {
     return () => {};
   }
-  
+
   const listener = PushNotifications.addListener('pushNotificationReceived', callback);
   return () => {
     listener.then(l => l.remove()).catch(console.error);
@@ -156,12 +165,12 @@ export function onNotificationReceived(
  * Returns cleanup function to remove listener
  */
 export function onNotificationActionPerformed(
-  callback: (action: ActionPerformed) => void
+  callback: (action: ActionPerformed) => void,
 ): () => void {
   if (!isNativePush()) {
     return () => {};
   }
-  
+
   const listener = PushNotifications.addListener('pushNotificationActionPerformed', callback);
   return () => {
     listener.then(l => l.remove()).catch(console.error);
@@ -175,12 +184,19 @@ export function parsePayload(data: Record<string, unknown>): ChravelPushPayload 
   if (!data || typeof data.type !== 'string' || typeof data.tripId !== 'string') {
     return null;
   }
-  
-  const validTypes = ['chat_message', 'trip_update', 'poll_update', 'task_update', 'calendar_event', 'broadcast'];
+
+  const validTypes = [
+    'chat_message',
+    'trip_update',
+    'poll_update',
+    'task_update',
+    'calendar_event',
+    'broadcast',
+  ];
   if (!validTypes.includes(data.type)) {
     return null;
   }
-  
+
   return {
     type: data.type as ChravelPushPayload['type'],
     tripId: data.tripId as string,
@@ -199,7 +215,7 @@ export async function getDeliveredNotifications(): Promise<PushNotificationSchem
   if (!isNativePush()) {
     return [];
   }
-  
+
   try {
     const result = await PushNotifications.getDeliveredNotifications();
     return result.notifications;
@@ -214,7 +230,7 @@ export async function getDeliveredNotifications(): Promise<PushNotificationSchem
  */
 export async function removeAllDeliveredNotifications(): Promise<void> {
   if (!isNativePush()) return;
-  
+
   try {
     await PushNotifications.removeAllDeliveredNotifications();
   } catch (error) {

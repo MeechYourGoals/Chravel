@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Star, ExternalLink } from 'lucide-react';
+import { MapPin, Star, ExternalLink, UtensilsCrossed } from 'lucide-react';
 
 export interface PlaceResult {
   placeId?: string | null;
@@ -33,27 +33,33 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({ places, clas
     <div className={`flex flex-col gap-2.5 ${className ?? ''}`}>
       {places.slice(0, 3).map((place, idx) => {
         const photoSrc = place.previewPhotoUrl || place.photoUrls?.[0] || null;
-        const priceLabel = place.priceLevel ? PRICE_MAP[place.priceLevel] || place.priceLevel : null;
+        // Only render known price levels — silently drop PRICE_LEVEL_UNSPECIFIED and other unknowns
+        const priceLabel = place.priceLevel ? (PRICE_MAP[place.priceLevel] ?? null) : null;
 
         return (
           <div
             key={place.placeId || idx}
             className="flex gap-3 rounded-xl border border-border bg-card/80 p-2.5 backdrop-blur-sm overflow-hidden"
           >
-            {/* Thumbnail */}
-            {photoSrc && (
-              <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted">
+            {/* Thumbnail — always reserve the slot; show icon placeholder when no photo */}
+            <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+              {photoSrc ? (
                 <img
                   src={photoSrc}
                   alt={place.name}
                   className="w-full h-full object-cover"
                   loading="lazy"
-                  onError={(e) => {
+                  onError={e => {
                     (e.target as HTMLImageElement).style.display = 'none';
+                    // Show parent's placeholder icon when image fails
+                    const parent = (e.target as HTMLImageElement).parentElement;
+                    if (parent) parent.classList.add('items-center', 'justify-center');
                   }}
                 />
-              </div>
-            )}
+              ) : (
+                <UtensilsCrossed size={24} className="text-muted-foreground/40" />
+              )}
+            </div>
 
             {/* Details */}
             <div className="flex-1 min-w-0 flex flex-col justify-between">

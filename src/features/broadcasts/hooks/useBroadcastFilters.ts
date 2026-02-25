@@ -15,39 +15,46 @@ export const useBroadcastFilters = () => {
   const [sender, setSender] = useState<string | undefined>();
   const [recipients, setRecipients] = useState<string | undefined>();
 
-  const applyFilters = useCallback(<T extends { 
-    category: string; 
-    timestamp: Date; 
-    sender?: string; 
-    recipients?: string; 
-  }>(broadcasts: T[]): T[] => {
-    return broadcasts.filter(broadcast => {
-      // Priority filter
-      if (priority !== 'all' && broadcast.category !== priority) {
-        return false;
-      }
+  const applyFilters = useCallback(
+    <
+      T extends {
+        category: string;
+        timestamp: Date;
+        sender?: string;
+        recipients?: string;
+      },
+    >(
+      broadcasts: T[],
+    ): T[] => {
+      return broadcasts.filter(broadcast => {
+        // Priority filter
+        if (priority !== 'all' && broadcast.category !== priority) {
+          return false;
+        }
 
-      // Date range filter
-      if (dateRange.start && broadcast.timestamp < dateRange.start) {
-        return false;
-      }
-      if (dateRange.end && broadcast.timestamp > dateRange.end) {
-        return false;
-      }
+        // Date range filter
+        if (dateRange.start && broadcast.timestamp < dateRange.start) {
+          return false;
+        }
+        if (dateRange.end && broadcast.timestamp > dateRange.end) {
+          return false;
+        }
 
-      // Sender filter
-      if (sender && broadcast.sender !== sender) {
-        return false;
-      }
+        // Sender filter
+        if (sender && broadcast.sender !== sender) {
+          return false;
+        }
 
-      // Recipients filter
-      if (recipients && broadcast.recipients !== recipients) {
-        return false;
-      }
+        // Recipients filter
+        if (recipients && broadcast.recipients !== recipients) {
+          return false;
+        }
 
-      return true;
-    });
-  }, [priority, dateRange, sender, recipients]);
+        return true;
+      });
+    },
+    [priority, dateRange, sender, recipients],
+  );
 
   const clearFilters = useCallback(() => {
     setPriority('all');
@@ -57,11 +64,13 @@ export const useBroadcastFilters = () => {
   }, []);
 
   const hasActiveFilters = useMemo(() => {
-    return priority !== 'all' || 
-           dateRange.start !== undefined || 
-           dateRange.end !== undefined ||
-           sender !== undefined ||
-           recipients !== undefined;
+    return (
+      priority !== 'all' ||
+      dateRange.start !== undefined ||
+      dateRange.end !== undefined ||
+      sender !== undefined ||
+      recipients !== undefined
+    );
   }, [priority, dateRange, sender, recipients]);
 
   return {
@@ -70,16 +79,16 @@ export const useBroadcastFilters = () => {
     dateRange,
     sender,
     recipients,
-    
+
     // Computed
     hasActiveFilters,
-    
+
     // Actions
     setPriority,
     setDateRange,
     setSender,
     setRecipients,
     applyFilters,
-    clearFilters
+    clearFilters,
   };
 };

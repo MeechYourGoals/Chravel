@@ -1,6 +1,6 @@
 /**
  * Tests for OpenStreetMap Fallback Service
- * 
+ *
  * Tests OSM fallback when Google Maps API is unavailable
  */
 
@@ -49,7 +49,7 @@ describe('openStreetMapFallback', () => {
           headers: expect.objectContaining({
             'User-Agent': expect.any(String),
           }),
-        })
+        }),
       );
     });
 
@@ -119,7 +119,9 @@ describe('openStreetMapFallback', () => {
       global.google = {
         maps: {
           // Use standard function to support 'new'
-          LatLng: vi.fn(function(lat, lng) { return { lat, lng }; }),
+          LatLng: vi.fn(function (lat, lng) {
+            return { lat, lng };
+          }),
         } as any,
       };
 

@@ -11,17 +11,22 @@ type ReadStatusInsert = any;
 /**
  * Mark a message as read for the current user
  */
-export async function markMessageAsRead(messageId: string, tripId: string, userId: string): Promise<void> {
-  const { error } = await supabase
-    .from('message_read_receipts')
-    .upsert({
+export async function markMessageAsRead(
+  messageId: string,
+  tripId: string,
+  userId: string,
+): Promise<void> {
+  const { error } = await supabase.from('message_read_receipts').upsert(
+    {
       message_id: messageId,
       user_id: userId,
       message_type: 'trip',
       read_at: new Date().toISOString(),
-    }, {
-      onConflict: 'message_id,user_id'
-    });
+    },
+    {
+      onConflict: 'message_id,user_id',
+    },
+  );
 
   if (error) {
     console.error('Failed to mark message as read:', error);
@@ -32,7 +37,11 @@ export async function markMessageAsRead(messageId: string, tripId: string, userI
 /**
  * Mark multiple messages as read
  */
-export async function markMessagesAsRead(messageIds: string[], tripId: string, userId: string): Promise<void> {
+export async function markMessagesAsRead(
+  messageIds: string[],
+  tripId: string,
+  userId: string,
+): Promise<void> {
   const readStatuses: ReadStatusInsert[] = messageIds.map(messageId => ({
     message_id: messageId,
     user_id: userId,
@@ -40,11 +49,9 @@ export async function markMessagesAsRead(messageIds: string[], tripId: string, u
     read_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase
-    .from('message_read_receipts')
-    .upsert(readStatuses, {
-      onConflict: 'message_id,user_id'
-    });
+  const { error } = await supabase.from('message_read_receipts').upsert(readStatuses, {
+    onConflict: 'message_id,user_id',
+  });
 
   if (error) {
     console.error('Failed to mark messages as read:', error);
@@ -73,7 +80,9 @@ export async function getMessageReadStatus(messageId: string): Promise<ReadStatu
 /**
  * Get read status for multiple messages
  */
-export async function getMessagesReadStatus(messageIds: string[]): Promise<Record<string, ReadStatus[]>> {
+export async function getMessagesReadStatus(
+  messageIds: string[],
+): Promise<Record<string, ReadStatus[]>> {
   const { data, error } = await supabase
     .from('message_read_receipts')
     .select('*')
@@ -99,10 +108,7 @@ export async function getMessagesReadStatus(messageIds: string[]): Promise<Recor
 /**
  * Subscribe to read receipt updates for a trip
  */
-export function subscribeToReadReceipts(
-  tripId: string,
-  onRead: (status: ReadStatus) => void
-) {
+export function subscribeToReadReceipts(tripId: string, onRead: (status: ReadStatus) => void) {
   return supabase
     .channel(`read_receipts:${tripId}`)
     .on(
@@ -110,11 +116,11 @@ export function subscribeToReadReceipts(
       {
         event: 'INSERT',
         schema: 'public',
-        table: 'message_read_receipts'
+        table: 'message_read_receipts',
       },
-      (payload) => {
+      payload => {
         onRead(payload.new as ReadStatus);
-      }
+      },
     )
     .subscribe();
 }

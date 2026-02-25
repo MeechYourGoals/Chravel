@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Users, Search, Star } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -15,10 +14,11 @@ export const SpeakerDirectory = ({ speakers, userRole }: SpeakerDirectoryProps) 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpeaker, setSelectedSpeaker] = useState<Speaker | null>(null);
 
-  const filteredSpeakers = speakers.filter(speaker =>
-    speaker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    speaker.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    speaker.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredSpeakers = speakers.filter(
+    speaker =>
+      speaker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      speaker.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      speaker.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -34,12 +34,15 @@ export const SpeakerDirectory = ({ speakers, userRole }: SpeakerDirectoryProps) 
 
       {/* Search */}
       <div className="relative">
-        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <Search
+          size={18}
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+        />
         <Input
           type="text"
           placeholder="Search by name, role, or company..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
           className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-500"
         />
       </div>
@@ -47,7 +50,10 @@ export const SpeakerDirectory = ({ speakers, userRole }: SpeakerDirectoryProps) 
       {/* Speakers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredSpeakers.map(speaker => (
-          <Card key={speaker.id} className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors">
+          <Card
+            key={speaker.id}
+            className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors"
+          >
             <CardContent className="p-6">
               <div className="flex flex-col items-center text-center">
                 <img
@@ -62,13 +68,13 @@ export const SpeakerDirectory = ({ speakers, userRole }: SpeakerDirectoryProps) 
                   </span>
                 )}
                 <p className="text-gray-400 text-sm mb-1">{speaker.title}</p>
-                {speaker.company && (
-                  <p className="text-gray-500 text-sm mb-4">{speaker.company}</p>
-                )}
+                {speaker.company && <p className="text-gray-500 text-sm mb-4">{speaker.company}</p>}
 
                 <div className="flex items-center gap-1 text-yellow-400 mb-3">
                   <Star size={16} fill="currentColor" />
-                  <span className="text-sm font-medium">{speaker.sessions.length} session{speaker.sessions.length !== 1 ? 's' : ''}</span>
+                  <span className="text-sm font-medium">
+                    {speaker.sessions.length} session{speaker.sessions.length !== 1 ? 's' : ''}
+                  </span>
                 </div>
 
                 <p className="text-gray-300 text-sm mb-4 line-clamp-3">{speaker.bio}</p>
@@ -99,7 +105,9 @@ export const SpeakerDirectory = ({ speakers, userRole }: SpeakerDirectoryProps) 
                   />
                   <div>
                     <CardTitle className="text-white text-xl">{selectedSpeaker.name}</CardTitle>
-                    <p className="text-gray-400">{selectedSpeaker.title} at {selectedSpeaker.company}</p>
+                    <p className="text-gray-400">
+                      {selectedSpeaker.title} at {selectedSpeaker.company}
+                    </p>
                   </div>
                 </div>
                 <Button
@@ -126,7 +134,9 @@ export const SpeakerDirectory = ({ speakers, userRole }: SpeakerDirectoryProps) 
                   {selectedSpeaker.sessions.map((sessionId, index) => (
                     <div key={index} className="bg-gray-700/50 p-3 rounded-lg">
                       <div className="text-white font-medium">Session {sessionId}</div>
-                      <div className="text-gray-400 text-sm">Details would be populated from session data</div>
+                      <div className="text-gray-400 text-sm">
+                        Details would be populated from session data
+                      </div>
                     </div>
                   ))}
                 </div>

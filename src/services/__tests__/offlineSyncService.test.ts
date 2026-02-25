@@ -1,6 +1,6 @@
 /**
  * Tests for offlineSyncService
- * 
+ *
  * Critical test: Verify operations without handlers are NOT deleted
  */
 
@@ -19,19 +19,17 @@ describe('offlineSyncService - Data Loss Prevention', () => {
 
   it('should NOT delete operations without handlers', async () => {
     // Queue a task operation
-    const taskQueueId = await offlineSyncService.queueOperation(
-      'task',
-      'create',
-      'trip-123',
-      { title: 'Test Task', description: 'Test' }
-    );
+    const taskQueueId = await offlineSyncService.queueOperation('task', 'create', 'trip-123', {
+      title: 'Test Task',
+      description: 'Test',
+    });
 
     // Queue a calendar event operation
     const eventQueueId = await offlineSyncService.queueOperation(
       'calendar_event',
       'create',
       'trip-123',
-      { title: 'Test Event', start_time: new Date().toISOString() }
+      { title: 'Test Event', start_time: new Date().toISOString() },
     );
 
     // Process queue with ONLY chat message handler
@@ -47,7 +45,7 @@ describe('offlineSyncService - Data Loss Prevention', () => {
     // CRITICAL: Verify operations still exist in queue (NOT deleted)
     const remainingOps = await offlineSyncService.getQueuedOperations();
     const remainingIds = remainingOps.map(op => op.id);
-    
+
     expect(remainingIds).toContain(taskQueueId);
     expect(remainingIds).toContain(eventQueueId);
     expect(remainingOps.length).toBe(2);
@@ -55,7 +53,7 @@ describe('offlineSyncService - Data Loss Prevention', () => {
     // Verify operations are back to 'pending' status
     const taskOp = remainingOps.find(op => op.id === taskQueueId);
     const eventOp = remainingOps.find(op => op.id === eventQueueId);
-    
+
     expect(taskOp?.status).toBe('pending');
     expect(eventOp?.status).toBe('pending');
   });
@@ -66,7 +64,7 @@ describe('offlineSyncService - Data Loss Prevention', () => {
       'chat_message',
       'create',
       'trip-123',
-      { content: 'Test message', author_name: 'Test User' }
+      { content: 'Test message', author_name: 'Test User' },
     );
 
     // Process queue WITH chat message handler
@@ -82,7 +80,7 @@ describe('offlineSyncService - Data Loss Prevention', () => {
     // CRITICAL: Verify operation was REMOVED from queue
     const remainingOps = await offlineSyncService.getQueuedOperations();
     const remainingIds = remainingOps.map(op => op.id);
-    
+
     expect(remainingIds).not.toContain(chatQueueId);
   });
 
@@ -92,15 +90,12 @@ describe('offlineSyncService - Data Loss Prevention', () => {
       'chat_message',
       'create',
       'trip-123',
-      { content: 'Test', author_name: 'User' }
+      { content: 'Test', author_name: 'User' },
     );
 
-    const taskQueueId = await offlineSyncService.queueOperation(
-      'task',
-      'create',
-      'trip-123',
-      { title: 'Test Task' }
-    );
+    const taskQueueId = await offlineSyncService.queueOperation('task', 'create', 'trip-123', {
+      title: 'Test Task',
+    });
 
     // Process with only chat handler
     const mockChatHandler = vi.fn().mockResolvedValue({ id: 'msg-123' });
@@ -116,9 +111,9 @@ describe('offlineSyncService - Data Loss Prevention', () => {
     // Verify chat was removed
     const remainingOps = await offlineSyncService.getQueuedOperations();
     const remainingIds = remainingOps.map(op => op.id);
-    
+
     expect(remainingIds).not.toContain(chatQueueId);
-    
+
     // CRITICAL: Verify task was NOT removed (no handler)
     expect(remainingIds).toContain(taskQueueId);
     expect(remainingOps.length).toBe(1);
@@ -130,7 +125,7 @@ describe('offlineSyncService - Data Loss Prevention', () => {
       'chat_message',
       'create',
       'trip-123',
-      { content: 'Test', author_name: 'User' }
+      { content: 'Test', author_name: 'User' },
     );
 
     // Process with handler that throws error
@@ -146,9 +141,9 @@ describe('offlineSyncService - Data Loss Prevention', () => {
     // CRITICAL: Verify operation still exists (not deleted on error)
     const remainingOps = await offlineSyncService.getQueuedOperations();
     const remainingIds = remainingOps.map(op => op.id);
-    
+
     expect(remainingIds).toContain(chatQueueId);
-    
+
     // Verify retry count was incremented
     const op = remainingOps.find(o => o.id === chatQueueId);
     expect(op?.retryCount).toBe(1);
@@ -160,7 +155,7 @@ describe('offlineSyncService - Data Loss Prevention', () => {
       'create',
       'trip-123',
       { optionIds: ['option_1'] },
-      'poll-1'
+      'poll-1',
     );
 
     const mockVoteHandler = vi.fn().mockResolvedValue({ pollId: 'poll-1' });
@@ -181,7 +176,7 @@ describe('offlineSyncService - Data Loss Prevention', () => {
       'update',
       'trip-123',
       { completed: true },
-      'task-1'
+      'task-1',
     );
 
     const onTaskUpdate = vi.fn().mockResolvedValue({ id: 'task-1' });
@@ -202,7 +197,7 @@ describe('offlineSyncService - Data Loss Prevention', () => {
 
   it('should reject basecamp operations (guardrail)', async () => {
     await expect(
-      offlineSyncService.queueOperation('basecamp' as any, 'update', 'trip-123', { address: 'X' })
+      offlineSyncService.queueOperation('basecamp' as any, 'update', 'trip-123', { address: 'X' }),
     ).rejects.toThrow('Basecamp');
   });
 });

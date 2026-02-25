@@ -17,7 +17,7 @@ export class StripeProcessor implements PaymentProcessor {
   constructor(config: { publishableKey?: string; environment?: 'sandbox' | 'production' }) {
     this.config = {
       publishableKey: config.publishableKey || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
-      environment: config.environment || (import.meta.env.PROD ? 'production' : 'sandbox')
+      environment: config.environment || (import.meta.env.PROD ? 'production' : 'sandbox'),
     };
   }
 
@@ -47,8 +47,8 @@ export class StripeProcessor implements PaymentProcessor {
           code: 'NOT_CONFIGURED',
           message: 'Stripe is not configured',
           type: 'invalid_request',
-          retryable: false
-        }
+          retryable: false,
+        },
       };
     }
 
@@ -56,27 +56,27 @@ export class StripeProcessor implements PaymentProcessor {
       // In production, this would call your backend API endpoint
       // which then calls Stripe's API with the secret key
       // For MVP, we'll simulate the flow
-      
+
       const response = await fetch('/api/payments/stripe/process', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           amount: Math.round(request.amount * 100), // Convert to cents
           currency: request.currency.toLowerCase(),
           description: request.description,
           recipientId: request.recipientId,
-          metadata: request.metadata
-        })
+          metadata: request.metadata,
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        
+
         return {
           success: false,
-          error: this.mapStripeError(errorData)
+          error: this.mapStripeError(errorData),
         };
       }
 
@@ -85,7 +85,7 @@ export class StripeProcessor implements PaymentProcessor {
       return {
         success: true,
         transactionId: data.id || data.transactionId,
-        metadata: data.metadata
+        metadata: data.metadata,
       };
     } catch (error) {
       return {
@@ -95,23 +95,23 @@ export class StripeProcessor implements PaymentProcessor {
           message: error instanceof Error ? error.message : 'Network error occurred',
           type: 'network_error',
           retryable: true,
-          details: { originalError: String(error) }
-        }
+          details: { originalError: String(error) },
+        },
       };
     }
   }
 
   private mapStripeError(errorData: any): PaymentError {
     const stripeErrorCode = errorData.code || errorData.type || 'unknown';
-    
+
     // Map Stripe error codes to our error types
     const errorMap: Record<string, PaymentError['type']> = {
-      'card_declined': 'payment_method_failed',
-      'insufficient_funds': 'insufficient_funds',
-      'expired_card': 'payment_method_failed',
-      'incorrect_cvc': 'payment_method_failed',
-      'processing_error': 'network_error',
-      'rate_limit': 'rate_limit'
+      card_declined: 'payment_method_failed',
+      insufficient_funds: 'insufficient_funds',
+      expired_card: 'payment_method_failed',
+      incorrect_cvc: 'payment_method_failed',
+      processing_error: 'network_error',
+      rate_limit: 'rate_limit',
     };
 
     const errorType = errorMap[stripeErrorCode] || 'unknown';
@@ -122,7 +122,7 @@ export class StripeProcessor implements PaymentProcessor {
       message: errorData.message || 'Payment processing failed',
       type: errorType,
       retryable,
-      details: errorData
+      details: errorData,
     };
   }
 }

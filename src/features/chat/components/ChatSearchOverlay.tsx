@@ -102,7 +102,7 @@ export const ChatSearchOverlay = ({
           setBroadcasts(results.broadcasts);
         }
       } catch (error) {
-        console.error("Chat search failed:", error);
+        console.error('Chat search failed:', error);
       } finally {
         setIsSearching(false);
         setSelectedIndex(0);
@@ -183,20 +183,20 @@ export const ChatSearchOverlay = ({
           <Search className="w-5 h-5 text-white/50" />
           <div className="relative flex-1">
             <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Search messages and broadcasts..."
-                className="w-full bg-transparent text-white placeholder:text-white/50 outline-none text-base pr-8"
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search messages and broadcasts..."
+              className="w-full bg-transparent text-white placeholder:text-white/50 outline-none text-base pr-8"
             />
             {query && (
-                <button
+              <button
                 onClick={() => setQuery('')}
                 className="absolute right-0 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
-                >
+              >
                 <X className="w-4 h-4 text-white/70" />
-                </button>
+              </button>
             )}
           </div>
           <button

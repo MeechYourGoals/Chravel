@@ -12,23 +12,16 @@ interface RecommendationCardProps {
   onSaveToTrip?: (id: number) => void;
 }
 
-export const RecommendationCard = ({ 
-  recommendation, 
-  onSaveToTrip
-}: RecommendationCardProps) => {
+export const RecommendationCard = ({ recommendation, onSaveToTrip }: RecommendationCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const isMobile = useIsMobile();
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => 
-      prev === recommendation.images.length - 1 ? 0 : prev + 1
-    );
+    setCurrentImageIndex(prev => (prev === recommendation.images.length - 1 ? 0 : prev + 1));
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => 
-      prev === 0 ? recommendation.images.length - 1 : prev - 1
-    );
+    setCurrentImageIndex(prev => (prev === 0 ? recommendation.images.length - 1 : prev - 1));
   };
 
   const getPriceLevelText = (level: number) => {
@@ -51,15 +44,16 @@ export const RecommendationCard = ({
             <div className="flex items-center gap-2 mt-1">
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 fill-accent text-accent" />
-                <span className="text-sm font-medium text-foreground">
-                  {recommendation.rating}
-                </span>
+                <span className="text-sm font-medium text-foreground">{recommendation.rating}</span>
               </div>
               <span className="text-muted-foreground text-sm">
                 {getPriceLevelText(recommendation.priceLevel)}
               </span>
               {recommendation.isSponsored && (
-                <Badge variant="secondary" className="text-xs bg-accent/20 text-accent border-accent/30">
+                <Badge
+                  variant="secondary"
+                  className="text-xs bg-accent/20 text-accent border-accent/30"
+                >
                   {recommendation.sponsorBadge}
                 </Badge>
               )}
@@ -121,7 +115,7 @@ export const RecommendationCard = ({
             )}
           </>
         )}
-        
+
         {/* Promotion badge overlay */}
         {recommendation.promoText && (
           <div className="absolute top-2 left-2">
@@ -136,7 +130,7 @@ export const RecommendationCard = ({
       <div className="p-4 pt-3">
         {/* Tags */}
         <div className="flex flex-wrap gap-1 mb-3">
-          {recommendation.tags.slice(0, 3).map((tag) => (
+          {recommendation.tags.slice(0, 3).map(tag => (
             <Badge key={tag} variant="outline" className="text-xs">
               {tag}
             </Badge>
@@ -151,13 +145,9 @@ export const RecommendationCard = ({
         {/* Location and distance */}
         <div className="flex items-center gap-1 mb-3">
           <MapPin className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            {recommendation.location}
-          </span>
+          <span className="text-sm text-muted-foreground">{recommendation.location}</span>
           {recommendation.distance && (
-            <span className="text-xs text-muted-foreground ml-auto">
-              {recommendation.distance}
-            </span>
+            <span className="text-xs text-muted-foreground ml-auto">{recommendation.distance}</span>
           )}
         </div>
 
@@ -175,8 +165,8 @@ export const RecommendationCard = ({
         <div className="flex gap-2">
           <Button
             className={`flex-1 ${
-              recommendation.isSponsored 
-                ? 'bg-accent hover:bg-accent/90 text-accent-foreground' 
+              recommendation.isSponsored
+                ? 'bg-accent hover:bg-accent/90 text-accent-foreground'
                 : 'bg-primary hover:bg-primary/90 text-primary-foreground'
             }`}
             onClick={handleCTA}
@@ -194,9 +184,7 @@ export const RecommendationCard = ({
 
         {/* Sponsored disclosure */}
         {recommendation.isSponsored && (
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            Promoted
-          </p>
+          <p className="text-xs text-muted-foreground mt-2 text-center">Promoted</p>
         )}
       </div>
     </Card>

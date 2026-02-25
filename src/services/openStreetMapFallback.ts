@@ -1,23 +1,23 @@
 /**
  * OpenStreetMap Fallback Service
- * 
+ *
  * Provides fallback geocoding and place search when Google Maps API is unavailable:
  * - Quota exceeded
  * - API key invalid
  * - Network errors
  * - Service downtime
- * 
+ *
  * Uses Nominatim API (free, no API key required):
  * - Geocoding: address → coordinates
  * - Reverse geocoding: coordinates → address
  * - Place search: query → places
- * 
+ *
  * Limitations:
  * - Less accurate than Google Maps
  * - Rate limited (1 request/second, 1 request per IP)
  * - No autocomplete
  * - No place details (ratings, photos, etc.)
- * 
+ *
  * Created: 2025-02-01
  * Purpose: Ensure app continues working if Google Maps API fails
  */
@@ -51,10 +51,7 @@ export type OSMGeocodeResult = {
  * Search for places using OpenStreetMap Nominatim API
  * Fallback when Google Maps API is unavailable
  */
-export async function searchPlacesOSM(
-  query: string,
-  limit: number = 5
-): Promise<OSMPlace[]> {
+export async function searchPlacesOSM(query: string, limit: number = 5): Promise<OSMPlace[]> {
   try {
     const url = new URL('https://nominatim.openstreetmap.org/search');
     url.searchParams.set('q', query);
@@ -62,7 +59,7 @@ export async function searchPlacesOSM(
     url.searchParams.set('limit', limit.toString());
     url.searchParams.set('addressdetails', '1');
     url.searchParams.set('extratags', '1');
-    
+
     // Required: User-Agent header (Nominatim ToS requirement)
     const response = await fetch(url.toString(), {
       headers: {
@@ -86,9 +83,7 @@ export async function searchPlacesOSM(
  * Geocode an address using OpenStreetMap Nominatim API
  * Fallback when Google Maps Geocoding API is unavailable
  */
-export async function geocodeAddressOSM(
-  address: string
-): Promise<OSMGeocodeResult | null> {
+export async function geocodeAddressOSM(address: string): Promise<OSMGeocodeResult | null> {
   try {
     const url = new URL('https://nominatim.openstreetmap.org/search');
     url.searchParams.set('q', address);
@@ -131,7 +126,7 @@ export async function geocodeAddressOSM(
  */
 export async function reverseGeocodeOSM(
   lat: number,
-  lng: number
+  lng: number,
 ): Promise<OSMGeocodeResult | null> {
   try {
     const url = new URL('https://nominatim.openstreetmap.org/reverse');
@@ -185,10 +180,7 @@ export function convertOSMToGoogleFormat(osmPlace: OSMPlace): {
     name: osmPlace.name || osmPlace.display_name,
     formatted_address: osmPlace.display_name,
     geometry: {
-      location: new google.maps.LatLng(
-        parseFloat(osmPlace.lat),
-        parseFloat(osmPlace.lon)
-      ),
+      location: new google.maps.LatLng(parseFloat(osmPlace.lat), parseFloat(osmPlace.lon)),
     },
   };
 }
@@ -203,7 +195,7 @@ export function shouldUseOSMFallback(error: Error | unknown): boolean {
   }
 
   const errorMessage = error.message.toLowerCase();
-  
+
   // Quota exceeded
   if (errorMessage.includes('quota') || errorMessage.includes('over_query_limit')) {
     return true;
@@ -215,7 +207,11 @@ export function shouldUseOSMFallback(error: Error | unknown): boolean {
   }
 
   // Network/service errors
-  if (errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('service unavailable')) {
+  if (
+    errorMessage.includes('network') ||
+    errorMessage.includes('timeout') ||
+    errorMessage.includes('service unavailable')
+  ) {
     return true;
   }
 

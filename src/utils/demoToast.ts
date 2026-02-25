@@ -6,11 +6,11 @@ import { toast } from 'sonner';
 export const showDemoToast = (
   message: string,
   isDemoMode: boolean,
-  type: 'success' | 'error' | 'info' = 'success'
+  type: 'success' | 'error' | 'info' = 'success',
 ) => {
   const suffix = isDemoMode ? ' (demo mode)' : '';
   const fullMessage = `${message}${suffix}`;
-  
+
   switch (type) {
     case 'success':
       toast.success(fullMessage);

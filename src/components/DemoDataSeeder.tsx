@@ -17,13 +17,13 @@ export const DemoDataSeeder = ({ tripId, onSeeded }: DemoDataSeederProps) => {
     setIsSeeding(true);
     try {
       const { data, error } = await supabase.functions.invoke('seed-demo-data', {
-        body: { tripId }
+        body: { tripId },
       });
 
       if (error) throw error;
 
       toast({
-        title: "Demo data seeded successfully!",
+        title: 'Demo data seeded successfully!',
         description: `Added ${data.counts.messages} messages, ${data.counts.polls} polls, ${data.counts.files} files, and ${data.counts.links} links. AI knowledge graph updated.`,
       });
 
@@ -31,9 +31,9 @@ export const DemoDataSeeder = ({ tripId, onSeeded }: DemoDataSeederProps) => {
     } catch (error) {
       console.error('Error seeding demo data:', error);
       toast({
-        title: "Failed to seed demo data",
+        title: 'Failed to seed demo data',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setIsSeeding(false);
@@ -48,11 +48,7 @@ export const DemoDataSeeder = ({ tripId, onSeeded }: DemoDataSeederProps) => {
       size="sm"
       className="gap-2"
     >
-      {isSeeding ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Database className="h-4 w-4" />
-      )}
+      {isSeeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
       {isSeeding ? 'Seeding Demo Data...' : 'Seed Demo Data'}
     </Button>
   );

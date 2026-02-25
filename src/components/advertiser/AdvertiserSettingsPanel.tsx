@@ -49,7 +49,13 @@ export const AdvertiserSettingsPanel = ({ currentUserId }: AdvertiserSettingsPan
       name: 'Uber - Premium Airport Rides',
       description: 'Flat $10 off airport rides for Chravel users.',
       discount_details: '$10 off airport rides',
-      images: [{ url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800', alt: 'Airport terminal', order: 0 }],
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
+          alt: 'Airport terminal',
+          order: 0,
+        },
+      ],
       destination_info: { location: 'Miami, FL' },
       tags: ['rideshare', 'airport-transfer', 'premium-service'],
       status: 'active',
@@ -80,7 +86,13 @@ export const AdvertiserSettingsPanel = ({ currentUserId }: AdvertiserSettingsPan
       name: 'Hotels.com - Compare & Save',
       description: 'Compare hotel prices and earn rewards.',
       discount_details: 'Collect 10 nights, get 1 free',
-      images: [{ url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800', alt: 'Luxury hotel', order: 0 }],
+      images: [
+        {
+          url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
+          alt: 'Luxury hotel',
+          order: 0,
+        },
+      ],
       destination_info: { location: 'Global Hotel Network' },
       tags: ['lodging', 'price-comparison', 'rewards-program'],
       status: 'active',
@@ -228,15 +240,15 @@ export const AdvertiserSettingsPanel = ({ currentUserId }: AdvertiserSettingsPan
               {currentSection && <currentSection.icon size={20} className="text-primary" />}
               <span className="text-sm">{currentSection?.label}</span>
             </div>
-            <ChevronDown 
-              size={20} 
+            <ChevronDown
+              size={20}
               className={`text-gray-400 transform transition-transform ${showMobileMenu ? 'rotate-180' : ''}`}
             />
           </button>
-          
+
           {showMobileMenu && (
             <div className="mt-2 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-              {sections.map((section) => {
+              {sections.map(section => {
                 const Icon = section.icon;
                 return (
                   <button
@@ -262,9 +274,7 @@ export const AdvertiserSettingsPanel = ({ currentUserId }: AdvertiserSettingsPan
 
         {/* Mobile Content */}
         <div className="flex-1 min-w-0 overflow-y-auto">
-          <div className="p-4">
-            {renderSection()}
-          </div>
+          <div className="p-4">{renderSection()}</div>
         </div>
 
         {/* Campaign Creator Modal */}
@@ -299,7 +309,7 @@ export const AdvertiserSettingsPanel = ({ currentUserId }: AdvertiserSettingsPan
         )}
 
         <div className="space-y-1.5">
-          {sections.map((section) => {
+          {sections.map(section => {
             const Icon = section.icon;
             return (
               <button
@@ -321,9 +331,7 @@ export const AdvertiserSettingsPanel = ({ currentUserId }: AdvertiserSettingsPan
 
       {/* Desktop Main Content */}
       <div className="flex-1 min-w-0 overflow-y-auto">
-        <div className="p-6 pb-16">
-          {renderSection()}
-        </div>
+        <div className="p-6 pb-16">{renderSection()}</div>
       </div>
 
       {/* Campaign Creator Modal */}

@@ -49,9 +49,9 @@ export const PRIVACY_MODE_CONFIG: Record<PrivacyMode, PrivacyModeInfo> = {
       ai_concierge: true,
       smart_suggestions: true,
       message_encryption: 'server',
-      data_access: 'full'
+      data_access: 'full',
     },
-    compliance: ['SOC 2', 'GDPR Basic']
+    compliance: ['SOC 2', 'GDPR Basic'],
   },
   high: {
     mode: 'high',
@@ -62,10 +62,10 @@ export const PRIVACY_MODE_CONFIG: Record<PrivacyMode, PrivacyModeInfo> = {
       ai_concierge: true,
       smart_suggestions: true,
       message_encryption: 'e2ee',
-      data_access: 'limited'
+      data_access: 'limited',
     },
-    compliance: ['SOC 2', 'GDPR Enhanced', 'HIPAA Ready', 'Enterprise Grade']
-  }
+    compliance: ['SOC 2', 'GDPR Enhanced', 'HIPAA Ready', 'Enterprise Grade'],
+  },
 };
 
 export const getDefaultPrivacyMode = (tripType: 'consumer' | 'pro' | 'event'): PrivacyMode => {

@@ -19,7 +19,7 @@ export const OrgChartNodeComponent = ({
   category,
   onNodeClick,
   isExpanded = true,
-  onToggleExpand
+  onToggleExpand,
 }: OrgChartNodeProps) => {
   const hasChildren = node.children.length > 0;
 
@@ -39,13 +39,15 @@ export const OrgChartNodeComponent = ({
           </Avatar>
           <div className="flex-1 min-w-0">
             <h3 className="font-medium text-white text-sm truncate">{node.name}</h3>
-            <span className={`${getRoleColorClass(node.role, category)} px-2 py-0.5 rounded text-xs font-medium inline-block mt-1`}>
+            <span
+              className={`${getRoleColorClass(node.role, category)} px-2 py-0.5 rounded text-xs font-medium inline-block mt-1`}
+            >
               {node.role}
             </span>
           </div>
           {hasChildren && onToggleExpand && (
             <button
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 onToggleExpand();
               }}
@@ -63,7 +65,9 @@ export const OrgChartNodeComponent = ({
           <div className="mt-2 pt-2 border-t border-gray-700">
             <div className="flex items-center gap-1 text-xs text-gray-400">
               <Users size={12} />
-              <span>{node.directReportCount} direct report{node.directReportCount !== 1 ? 's' : ''}</span>
+              <span>
+                {node.directReportCount} direct report{node.directReportCount !== 1 ? 's' : ''}
+              </span>
             </div>
           </div>
         )}
@@ -74,7 +78,7 @@ export const OrgChartNodeComponent = ({
         <div className="relative mt-4">
           {/* Vertical line from parent */}
           <div className="absolute top-0 left-1/2 w-0.5 h-4 bg-gray-600 -translate-x-1/2 -translate-y-4" />
-          
+
           <div className="flex gap-4 relative">
             {/* Horizontal line connecting children */}
             {node.children.length > 1 && (
@@ -82,12 +86,12 @@ export const OrgChartNodeComponent = ({
                 className="absolute top-0 left-0 right-0 h-0.5 bg-gray-600"
                 style={{
                   top: '-16px',
-                  left: 'calc(50% - ' + (node.children.length * 100) + 'px)',
-                  right: 'calc(50% - ' + (node.children.length * 100) + 'px)'
+                  left: 'calc(50% - ' + node.children.length * 100 + 'px)',
+                  right: 'calc(50% - ' + node.children.length * 100 + 'px)',
                 }}
               />
             )}
-            
+
             {node.children.map(child => (
               <div key={child.id} className="flex flex-col items-center">
                 {/* Vertical line to child */}
@@ -106,4 +110,3 @@ export const OrgChartNodeComponent = ({
     </div>
   );
 };
-

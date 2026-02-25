@@ -1,24 +1,24 @@
 /**
  * Billing Module
- * 
+ *
  * Platform-agnostic billing abstraction for Chravel.
  * Supports Stripe (web), Apple IAP (iOS), and Google Play (Android).
- * 
+ *
  * Usage:
- * 
+ *
  * ```tsx
  * import { useBilling, useEntitlements, useFeatureAccess } from '@/billing';
- * 
+ *
  * // Full billing state and actions
  * const { tier, canUseFeature, purchase, openManagement } = useBilling();
- * 
+ *
  * // Lightweight entitlement checks
  * const { canUse, hasEntitlement } = useEntitlements();
- * 
+ *
  * // Single feature check
  * const { canAccess, limit } = useFeatureAccess('ai_concierge');
  * ```
- * 
+ *
  * @module billing
  */
 
@@ -74,9 +74,5 @@ export type { BillingProvider } from './providers/base';
 export { useBilling } from './hooks/useBilling';
 export type { UseBillingReturn } from './hooks/useBilling';
 
-export { 
-  useEntitlements,
-  useFeatureAccess,
-  useProAccess,
-} from './hooks/useEntitlements';
+export { useEntitlements, useFeatureAccess, useProAccess } from './hooks/useEntitlements';
 export type { UseEntitlementsReturn } from './hooks/useEntitlements';

@@ -22,7 +22,7 @@ export interface CalendarConnection {
 
 export class GoogleCalendarService {
   private static instance: GoogleCalendarService;
-  
+
   static getInstance(): GoogleCalendarService {
     if (!GoogleCalendarService.instance) {
       GoogleCalendarService.instance = new GoogleCalendarService();
@@ -33,16 +33,16 @@ export class GoogleCalendarService {
   async authenticateUser(): Promise<string> {
     throw new Error(
       'Google Calendar OAuth is not configured. ' +
-      'A Google Cloud client ID and redirect URI must be set up before calendar sync can work.',
+        'A Google Cloud client ID and redirect URI must be set up before calendar sync can work.',
     );
   }
 
   async handleAuthCallback(code: string): Promise<CalendarConnection> {
     try {
       const { data, error } = await supabase.functions.invoke('google-calendar-auth', {
-        body: { code }
+        body: { code },
       });
-      
+
       if (error) throw error;
       return data.connection;
     } catch (error) {
@@ -79,10 +79,10 @@ export class GoogleCalendarService {
           action: 'sync_to_google',
           eventData,
           accessToken: connection.access_token,
-          calendarId: connection.calendar_id
-        }
+          calendarId: connection.calendar_id,
+        },
       });
-      
+
       if (error) throw error;
       return data;
     } catch (error) {
@@ -103,10 +103,10 @@ export class GoogleCalendarService {
           action: 'import_from_google',
           userId,
           accessToken: connection.access_token,
-          calendarId: connection.calendar_id
-        }
+          calendarId: connection.calendar_id,
+        },
       });
-      
+
       if (error) throw error;
       return data.events || [];
     } catch (error) {
@@ -125,10 +125,10 @@ export class GoogleCalendarService {
       const { data, error } = await supabase.functions.invoke('google-calendar-sync', {
         body: {
           action: 'get_calendars',
-          accessToken: connection.access_token
-        }
+          accessToken: connection.access_token,
+        },
       });
-      
+
       if (error) throw error;
       return data.calendars || [];
     } catch (error) {

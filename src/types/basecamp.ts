@@ -1,4 +1,3 @@
-
 export interface BasecampLocation {
   address: string;
   coordinates?: { lat: number; lng: number };

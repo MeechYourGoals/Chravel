@@ -11,7 +11,7 @@ interface TeamOnboardingBannerProps {
 export const TeamOnboardingBanner = ({
   hasUnassignedRoles,
   onAssignRoles,
-  onDismiss
+  onDismiss,
 }: TeamOnboardingBannerProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -38,7 +38,7 @@ export const TeamOnboardingBanner = ({
     <div className="relative overflow-hidden bg-gradient-to-r from-red-500/10 via-orange-500/10 to-red-500/10 backdrop-blur-sm border border-red-500/20 rounded-xl p-6 mb-6 animate-in fade-in slide-in-from-top duration-500">
       {/* Animated background pattern */}
       <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
-      
+
       {/* Close button */}
       <button
         onClick={handleDismiss}
@@ -64,8 +64,8 @@ export const TeamOnboardingBanner = ({
               Assign Roles to Your Team
             </h3>
             <p className="text-gray-300 text-sm mt-1">
-              Help everyone know who's who by assigning roles to your team members. 
-              This makes it easier to coordinate and communicate effectively.
+              Help everyone know who's who by assigning roles to your team members. This makes it
+              easier to coordinate and communicate effectively.
             </p>
           </div>
 
@@ -110,10 +110,7 @@ export const TeamOnboardingBanner = ({
 
           {/* Actions */}
           <div className="flex items-center gap-3 pt-2">
-            <Button
-              onClick={onAssignRoles}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
+            <Button onClick={onAssignRoles} className="bg-red-600 hover:bg-red-700 text-white">
               <CheckCircle size={16} className="mr-2" />
               Start Assigning Roles
             </Button>
@@ -122,7 +119,7 @@ export const TeamOnboardingBanner = ({
               <input
                 type="checkbox"
                 checked={dontShowAgain}
-                onChange={(e) => setDontShowAgain(e.target.checked)}
+                onChange={e => setDontShowAgain(e.target.checked)}
                 className="rounded border-gray-600 bg-gray-800 text-red-600 focus:ring-red-500"
               />
               Don't show again
@@ -133,4 +130,3 @@ export const TeamOnboardingBanner = ({
     </div>
   );
 };
-

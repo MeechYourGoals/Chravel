@@ -12,10 +12,10 @@ interface PresenceUser {
 
 /**
  * useTripPresence Hook
- * 
+ *
  * Tracks real-time presence of users viewing/editing a trip.
  * Shows "who's viewing" indicators for collaboration awareness.
- * 
+ *
  * Features:
  * - Real-time presence updates via Supabase Realtime
  * - Automatic cleanup of stale presence (5 min timeout)
@@ -35,17 +35,18 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
 
     const sendHeartbeat = async () => {
       try {
-        const { error } = await (supabase as any)
-          .from('trip_presence')
-          .upsert({
+        const { error } = await (supabase as any).from('trip_presence').upsert(
+          {
             trip_id: tripId,
             user_id: userId,
             last_seen: new Date().toISOString(),
             current_page: currentPage || 'unknown',
-            is_active: true
-          }, {
-            onConflict: 'trip_id,user_id'
-          });
+            is_active: true,
+          },
+          {
+            onConflict: 'trip_id,user_id',
+          },
+        );
 
         if (!error) {
           lastHeartbeatRef.current = new Date();
@@ -87,7 +88,8 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
       try {
         const { data, error } = await (supabase as any)
           .from('trip_presence')
-          .select(`
+          .select(
+            `
             user_id,
             last_seen,
             current_page,
@@ -96,7 +98,8 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
               display_name,
               avatar_url
             )
-          `)
+          `,
+          )
           .eq('trip_id', tripId)
           .eq('is_active', true);
 
@@ -116,7 +119,7 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
             avatarUrl: presence.profiles?.avatar_url,
             lastSeen: new Date(presence.last_seen),
             isActive: presence.is_active,
-            currentPage: presence.current_page
+            currentPage: presence.current_page,
           }));
 
         setActiveUsers(activeUsersList);
@@ -136,12 +139,12 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
           event: '*',
           schema: 'public',
           table: 'trip_presence',
-          filter: `trip_id=eq.${tripId}`
+          filter: `trip_id=eq.${tripId}`,
         },
         () => {
           // Refetch presence on any change
           fetchPresence();
-        }
+        },
       )
       .subscribe();
 
@@ -177,20 +180,20 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
   /**
    * Get count of active users
    */
-  const activeUserCount = activeUsers.filter((u) => u.userId !== userId).length;
+  const activeUserCount = activeUsers.filter(u => u.userId !== userId).length;
 
   /**
    * Check if a specific user is active
    */
   const isUserActive = (targetUserId: string): boolean => {
-    return activeUsers.some((u) => u.userId === targetUserId && u.isActive);
+    return activeUsers.some(u => u.userId === targetUserId && u.isActive);
   };
 
   /**
    * Get users on a specific page
    */
   const getUsersOnPage = (page: string): PresenceUser[] => {
-    return activeUsers.filter((u) => u.currentPage === page && u.userId !== userId);
+    return activeUsers.filter(u => u.currentPage === page && u.userId !== userId);
   };
 
   return {
@@ -198,6 +201,6 @@ export const useTripPresence = (tripId: string, userId?: string, currentPage?: s
     activeUserCount,
     isOnline,
     isUserActive,
-    getUsersOnPage
+    getUsersOnPage,
   };
 };

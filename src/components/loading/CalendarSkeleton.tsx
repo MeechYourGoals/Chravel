@@ -13,21 +13,21 @@ export const CalendarSkeleton = () => (
         <div className="h-8 w-8 bg-muted rounded" />
       </div>
     </div>
-    
+
     {/* Day headers */}
     <div className="grid grid-cols-7 gap-1">
       {Array.from({ length: 7 }).map((_, i) => (
         <div key={`header-${i}`} className="h-6 bg-muted rounded text-center" />
       ))}
     </div>
-    
+
     {/* Calendar grid (5 weeks) */}
     <div className="grid grid-cols-7 gap-1">
       {Array.from({ length: 35 }).map((_, i) => (
         <div key={`cell-${i}`} className="h-12 md:h-16 bg-muted rounded" />
       ))}
     </div>
-    
+
     {/* Event list skeleton */}
     <div className="space-y-2 mt-4">
       <div className="h-4 bg-muted rounded w-1/4" />

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { MobileOptimizationService } from '../../services/mobileOptimizationService';
@@ -25,9 +24,11 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
 
         // Attach individual catch handlers to prevent unhandled promise rejections
         // if the timeout resolves first.
-        const mobileOptimizations = MobileOptimizationService.initializeMobileOptimizations().catch(err => {
-          console.warn('Failed to initialize mobile optimizations:', err);
-        });
+        const mobileOptimizations = MobileOptimizationService.initializeMobileOptimizations().catch(
+          err => {
+            console.warn('Failed to initialize mobile optimizations:', err);
+          },
+        );
 
         const nativeInitialization = NativeMobileService.initialize().catch(err => {
           console.warn('Failed to initialize native mobile services:', err);
@@ -35,7 +36,7 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
 
         await Promise.race([
           Promise.all([mobileOptimizations, nativeInitialization]),
-          new Promise((resolve) => setTimeout(resolve, 2000))
+          new Promise(resolve => setTimeout(resolve, 2000)),
         ]);
 
         // Start tracking after initialization
@@ -63,20 +64,24 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
   }, [isMobile]);
 
   return (
-    <div className={cn(
-      "flex flex-col min-h-screen",
-      isMobile ? "bg-gray-900" : "bg-background",
-      className
-    )}>
+    <div
+      className={cn(
+        'flex flex-col min-h-screen',
+        isMobile ? 'bg-gray-900' : 'bg-background',
+        className,
+      )}
+    >
       {/* Main Content Area - NO bottom padding, let individual pages handle safe-area */}
       <main
-        className={cn(
-          "flex-1 bg-background"
-        )}
-        style={isMobile ? {
-          WebkitOverflowScrolling: 'touch',
-          overscrollBehavior: 'contain'
-        } : undefined}
+        className={cn('flex-1 bg-background')}
+        style={
+          isMobile
+            ? {
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain',
+              }
+            : undefined
+        }
       >
         {children}
       </main>
@@ -85,4 +90,3 @@ export const MobileAppLayout = ({ children, className }: MobileAppLayoutProps) =
     </div>
   );
 };
-

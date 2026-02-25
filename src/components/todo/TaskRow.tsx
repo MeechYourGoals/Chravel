@@ -34,12 +34,12 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
   const [justCompleted, setJustCompleted] = useState(false);
   const { toggleTaskMutation, deleteTaskMutation } = useTripTasks(tripId);
 
-  const isCompleted = task.is_poll 
+  const isCompleted = task.is_poll
     ? (task.task_status?.filter(s => s.completed).length || 0) >= (task.task_status?.length || 1)
     : task.task_status?.[0]?.completed || false;
 
   const isOverdue = task.due_at && isAfter(new Date(), new Date(task.due_at)) && !isCompleted;
-  
+
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
 
@@ -49,7 +49,7 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
     }
     return user.id;
   };
-  
+
   const currentUserId = getCurrentUserId();
   const currentUserStatus = task.task_status?.find(s => s.user_id === currentUserId);
   const userCompleted = currentUserStatus?.completed || false;
@@ -60,7 +60,7 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
   const handleToggleComplete = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening detail modal
     const willBeCompleted = !userCompleted;
-    
+
     if (willBeCompleted) {
       hapticService.success();
       setJustCompleted(true);
@@ -68,10 +68,10 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
     } else {
       hapticService.light();
     }
-    
+
     toggleTaskMutation.mutate({
       taskId: task.id,
-      completed: willBeCompleted
+      completed: willBeCompleted,
     });
   };
 
@@ -86,7 +86,7 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
 
   return (
     <>
-      <div 
+      <div
         className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 transition-all hover:bg-white/10 cursor-pointer ${
           userCompleted ? 'opacity-75' : ''
         }`}
@@ -97,8 +97,8 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
           <button
             onClick={handleToggleComplete}
             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
-              userCompleted 
-                ? 'bg-green-500 border-green-500' 
+              userCompleted
+                ? 'bg-green-500 border-green-500'
                 : 'border-muted-foreground hover:border-foreground'
             } ${justCompleted ? 'scale-110' : ''}`}
           >
@@ -106,7 +106,9 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
           </button>
 
           {/* Title */}
-          <span className={`font-medium text-foreground ${userCompleted ? 'text-muted-foreground' : ''}`}>
+          <span
+            className={`font-medium text-foreground ${userCompleted ? 'text-muted-foreground' : ''}`}
+          >
             {task.title}
           </span>
 
@@ -124,11 +126,12 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
           {task.due_at && (
             <>
               <span className="text-muted-foreground hidden sm:inline">•</span>
-              <Badge 
+              <Badge
                 variant={isOverdue ? 'destructive' : 'secondary'}
                 className="text-xs flex-shrink-0"
               >
-                {isOverdue ? 'Overdue' : 'Due'} {formatDistanceToNow(new Date(task.due_at), { addSuffix: true })}
+                {isOverdue ? 'Overdue' : 'Due'}{' '}
+                {formatDistanceToNow(new Date(task.due_at), { addSuffix: true })}
               </Badge>
             </>
           )}
@@ -140,7 +143,7 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   setShowCompletionDrawer(true);
                 }}
@@ -159,7 +162,7 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 onEdit?.(task);
               }}
@@ -171,7 +174,7 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation();
                 setShowDeleteDialog(true);
               }}
@@ -195,10 +198,7 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
 
       {/* Completion Drawer for Group Tasks */}
       {showCompletionDrawer && (
-        <CompletionDrawer
-          task={task}
-          onClose={() => setShowCompletionDrawer(false)}
-        />
+        <CompletionDrawer task={task} onClose={() => setShowCompletionDrawer(false)} />
       )}
 
       {/* Delete Confirmation Dialog */}
@@ -212,7 +212,10 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

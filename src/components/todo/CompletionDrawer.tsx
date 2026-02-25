@@ -38,12 +38,12 @@ export const CompletionDrawer = ({ task, onClose }: CompletionDrawerProps) => {
                 {completedUsers.length}/{task.task_status?.length || 0}
               </Badge>
             </div>
-            
+
             <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
+              <div
                 className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all duration-300"
-                style={{ 
-                  width: `${((completedUsers.length / (task.task_status?.length || 1)) * 100)}%` 
+                style={{
+                  width: `${(completedUsers.length / (task.task_status?.length || 1)) * 100}%`,
                 }}
               />
             </div>
@@ -56,28 +56,32 @@ export const CompletionDrawer = ({ task, onClose }: CompletionDrawerProps) => {
                 <CheckCircle2 size={20} className="text-green-400" />
                 Completed ({completedUsers.length})
               </h3>
-              
+
               <div className="space-y-2">
-                {completedUsers.map((status) => (
-                  <div key={status.user_id} className="flex items-center gap-3 p-3 bg-green-400/10 rounded-lg border border-green-400/20">
+                {completedUsers.map(status => (
+                  <div
+                    key={status.user_id}
+                    className="flex items-center gap-3 p-3 bg-green-400/10 rounded-lg border border-green-400/20"
+                  >
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={status.user?.avatar} />
                       <AvatarFallback className="text-xs bg-green-400 text-white">
                         {status.user?.name?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                     <div className="flex-1">
                       <div className="text-white font-medium">
                         {status.user?.name || 'Former Member'}
                       </div>
                       {status.completed_at && (
                         <div className="text-gray-400 text-xs">
-                          Completed {formatDistanceToNow(new Date(status.completed_at), { addSuffix: true })}
+                          Completed{' '}
+                          {formatDistanceToNow(new Date(status.completed_at), { addSuffix: true })}
                         </div>
                       )}
                     </div>
-                    
+
                     <CheckCircle2 size={20} className="text-green-400" />
                   </div>
                 ))}
@@ -92,26 +96,27 @@ export const CompletionDrawer = ({ task, onClose }: CompletionDrawerProps) => {
                 <Circle size={20} className="text-yellow-400" />
                 Pending ({pendingUsers.length})
               </h3>
-              
+
               <div className="space-y-2">
-                {pendingUsers.map((status) => (
-                  <div key={status.user_id} className="flex items-center gap-3 p-3 bg-yellow-400/10 rounded-lg border border-yellow-400/20">
+                {pendingUsers.map(status => (
+                  <div
+                    key={status.user_id}
+                    className="flex items-center gap-3 p-3 bg-yellow-400/10 rounded-lg border border-yellow-400/20"
+                  >
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={status.user?.avatar} />
                       <AvatarFallback className="text-xs bg-yellow-400 text-white">
                         {status.user?.name?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                     <div className="flex-1">
                       <div className="text-white font-medium">
                         {status.user?.name || 'Former Member'}
                       </div>
-                      <div className="text-gray-400 text-xs">
-                        Not completed yet
-                      </div>
+                      <div className="text-gray-400 text-xs">Not completed yet</div>
                     </div>
-                    
+
                     <Circle size={20} className="text-yellow-400" />
                   </div>
                 ))}
@@ -123,9 +128,7 @@ export const CompletionDrawer = ({ task, onClose }: CompletionDrawerProps) => {
           {task.description && (
             <div className="space-y-2">
               <h3 className="text-lg font-medium text-white">Description</h3>
-              <p className="text-gray-300 bg-white/5 rounded-lg p-3">
-                {task.description}
-              </p>
+              <p className="text-gray-300 bg-white/5 rounded-lg p-3">{task.description}</p>
             </div>
           )}
 

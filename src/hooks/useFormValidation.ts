@@ -79,10 +79,10 @@ export const useFormValidation = (validationRules: FieldValidation) => {
     const newErrors: ValidationErrors = {};
     let isValid = true;
 
-    Object.keys(validationRules).forEach((fieldName) => {
+    Object.keys(validationRules).forEach(fieldName => {
       const value = formData[fieldName] || '';
       const error = validateField(fieldName, value);
-      
+
       if (error) {
         newErrors[fieldName] = error;
         isValid = false;
@@ -98,7 +98,7 @@ export const useFormValidation = (validationRules: FieldValidation) => {
 
     Object.entries(formData).forEach(([key, value]) => {
       const rules = validationRules[key];
-      
+
       if (rules?.url) {
         // Don't sanitize URLs, just validate them
         sanitized[key] = value;
@@ -119,7 +119,7 @@ export const useFormValidation = (validationRules: FieldValidation) => {
   };
 
   const clearFieldError = (fieldName: string) => {
-    setErrors((prev) => {
+    setErrors(prev => {
       const newErrors = { ...prev };
       delete newErrors[fieldName];
       return newErrors;
@@ -128,11 +128,11 @@ export const useFormValidation = (validationRules: FieldValidation) => {
 
   const checkRateLimit = (userId: string, maxRequests = 50, windowMs = 60000): boolean => {
     const allowed = InputValidator.checkRateLimit(userId, maxRequests, windowMs);
-    
+
     if (!allowed) {
       toast.error('Too many requests. Please slow down and try again in a minute.');
     }
-    
+
     return allowed;
   };
 

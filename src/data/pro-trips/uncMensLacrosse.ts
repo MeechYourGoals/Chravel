@@ -3,8 +3,9 @@ import { getMockAvatar } from '../../utils/mockAvatars';
 
 export const uncMensLacrosse: ProTripData = {
   id: 'unc-lax-2025',
-  title: 'UNC Men\'s Lacrosse 2025 Season',
-  description: 'University of North Carolina Tar Heels Men\'s Lacrosse 2025 season coordination and game travel.',
+  title: "UNC Men's Lacrosse 2025 Season",
+  description:
+    "University of North Carolina Tar Heels Men's Lacrosse 2025 season coordination and game travel.",
   location: 'Chapel Hill NC',
   dateRange: 'Feb 1 - May 31, 2025',
   proTripCategory: 'sports',
@@ -19,7 +20,7 @@ export const uncMensLacrosse: ProTripData = {
       completed: true,
       due_at: '2025-03-19',
       assigned_to: 'equipment-manager',
-      created_at: new Date(Date.now() - 604800000).toISOString()
+      created_at: new Date(Date.now() - 604800000).toISOString(),
     },
     {
       id: 'task-unc-2',
@@ -28,8 +29,8 @@ export const uncMensLacrosse: ProTripData = {
       completed: false,
       due_at: '2025-03-20',
       assigned_to: 'logistics-manager',
-      created_at: new Date().toISOString()
-    }
+      created_at: new Date().toISOString(),
+    },
   ],
   polls: [
     {
@@ -38,12 +39,12 @@ export const uncMensLacrosse: ProTripData = {
       options: [
         { id: 'opt1', text: 'Pasta & Chicken', votes: 22 },
         { id: 'opt2', text: 'Rice Bowls', votes: 18 },
-        { id: 'opt3', text: 'Sandwiches & Fruit', votes: 5 }
+        { id: 'opt3', text: 'Sandwiches & Fruit', votes: 5 },
       ],
       total_votes: 45,
       status: 'closed',
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
   ],
   links: [
     {
@@ -53,7 +54,7 @@ export const uncMensLacrosse: ProTripData = {
       description: 'Venue information and directions for away game',
       domain: 'goduke.com',
       created_at: new Date().toISOString(),
-      source: 'places'
+      source: 'places',
     },
     {
       id: 'link-unc-2',
@@ -62,8 +63,8 @@ export const uncMensLacrosse: ProTripData = {
       description: 'Team accommodation near Duke campus',
       domain: 'graduatehotels.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
-      source: 'manual'
-    }
+      source: 'manual',
+    },
   ],
   broadcasts: [
     {
@@ -73,7 +74,7 @@ export const uncMensLacrosse: ProTripData = {
       targetTrips: ['unc-lax-2025'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['202', '203', '204']
+      readBy: ['202', '203', '204'],
     },
     {
       id: 'bc-unc-2',
@@ -82,24 +83,55 @@ export const uncMensLacrosse: ProTripData = {
       targetTrips: ['unc-lax-2025'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['201', '203']
-    }
+      readBy: ['201', '203'],
+    },
   ],
   participants: Array.from({ length: 45 }, (_, i) => {
     const id = String(201 + i);
-    
+
     if (i < 6) {
-      const coaches = ['Joe Breschi', 'Jon Thompson', 'Dave Pietramala', 'Peter Murphy', 'Assistant Coach', 'Graduate Assistant'];
+      const coaches = [
+        'Joe Breschi',
+        'Jon Thompson',
+        'Dave Pietramala',
+        'Peter Murphy',
+        'Assistant Coach',
+        'Graduate Assistant',
+      ];
       const name = coaches[i] || `Coach ${i + 1}`;
       return { id, name, avatar: getMockAvatar(name), role: 'Coaches' };
     } else if (i < 35) {
-      const players = ['Michael Gianforcaro', 'James Matan', 'Owen Duffy', 'Antonio DeMarco', 'Cooper Frankenheimer', 'Dewey Egan', 'Tayden Bultman', 'Kai Prohaszka', 'Nick Pietramala', 'Dominic Pietramala', 'Hayden Downs', 'Colin Hannigan'];
+      const players = [
+        'Michael Gianforcaro',
+        'James Matan',
+        'Owen Duffy',
+        'Antonio DeMarco',
+        'Cooper Frankenheimer',
+        'Dewey Egan',
+        'Tayden Bultman',
+        'Kai Prohaszka',
+        'Nick Pietramala',
+        'Dominic Pietramala',
+        'Hayden Downs',
+        'Colin Hannigan',
+      ];
       const playerIndex = (i - 6) % players.length;
       const playerNumber = Math.floor((i - 6) / 12) + 1;
       const name = players[playerIndex] || `Player ${i - 5}`;
       return { id, name, avatar: getMockAvatar(name), role: 'Players' };
     } else {
-      const staff = ['Team Manager', 'Logistics Manager', 'Athletic Trainer', 'Academic Coordinator', 'Video Coordinator', 'Strength Coach', 'Team Doctor', 'Bus Driver', 'Administrative Assistant', 'Compliance Officer'];
+      const staff = [
+        'Team Manager',
+        'Logistics Manager',
+        'Athletic Trainer',
+        'Academic Coordinator',
+        'Video Coordinator',
+        'Strength Coach',
+        'Team Doctor',
+        'Bus Driver',
+        'Administrative Assistant',
+        'Compliance Officer',
+      ];
       const name = staff[i - 35] || `Staff ${i - 34}`;
       return { id, name, avatar: getMockAvatar(name), role: 'Staff' };
     }
@@ -111,8 +143,8 @@ export const uncMensLacrosse: ProTripData = {
       { name: 'Travel', budgeted: 45000, spent: 18000 },
       { name: 'Accommodation', budgeted: 35000, spent: 15000 },
       { name: 'Meals', budgeted: 25000, spent: 8000 },
-      { name: 'Logistics', budgeted: 20000, spent: 4000 }
-    ]
+      { name: 'Logistics', budgeted: 20000, spent: 4000 },
+    ],
   },
   itinerary: [
     {
@@ -122,9 +154,9 @@ export const uncMensLacrosse: ProTripData = {
         { time: '09:00', title: 'Bus Departure', location: 'Boshamer Stadium', type: 'travel' },
         { time: '11:30', title: 'Arrival at Duke', location: 'Duke University', type: 'travel' },
         { time: '13:00', title: 'Pre-Game Meal', location: 'Duke Facilities', type: 'meeting' },
-        { time: '15:00', title: 'UNC vs Duke', location: 'Koskinen Stadium', type: 'meeting' }
-      ]
-    }
+        { time: '15:00', title: 'UNC vs Duke', location: 'Koskinen Stadium', type: 'meeting' },
+      ],
+    },
   ],
   roster: [
     {
@@ -136,7 +168,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'facility-access', 'medical-access'],
       roomPreferences: ['single-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '202',
@@ -147,7 +179,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'offensive-coordination'],
       roomPreferences: ['single-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '203',
@@ -158,7 +190,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'defensive-coordination'],
       roomPreferences: ['single-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '204',
@@ -169,7 +201,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['team-management', 'assistant-coaching'],
       roomPreferences: ['single-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '205',
@@ -180,7 +212,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '206',
@@ -191,7 +223,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '207',
@@ -202,7 +234,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '208',
@@ -213,7 +245,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '209',
@@ -224,7 +256,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '210',
@@ -235,7 +267,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '211',
@@ -246,7 +278,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '212',
@@ -257,7 +289,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '213',
@@ -268,7 +300,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '214',
@@ -279,7 +311,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '215',
@@ -290,7 +322,7 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '216',
@@ -301,8 +333,8 @@ export const uncMensLacrosse: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'locker-room'],
       roomPreferences: ['shared-room'],
-      dietaryRestrictions: []
-    }
+      dietaryRestrictions: [],
+    },
   ],
   roomAssignments: [
     {
@@ -313,7 +345,7 @@ export const uncMensLacrosse: ProTripData = {
       checkIn: '2025-03-19T15:00:00Z',
       checkOut: '2025-03-21T11:00:00Z',
       roomType: 'connecting',
-      specialRequests: ['ground-floor', 'team-floor']
+      specialRequests: ['ground-floor', 'team-floor'],
     },
     {
       id: 'room-unc2',
@@ -323,8 +355,8 @@ export const uncMensLacrosse: ProTripData = {
       checkIn: '2025-03-19T15:00:00Z',
       checkOut: '2025-03-21T11:00:00Z',
       roomType: 'connecting',
-      specialRequests: ['team-floor']
-    }
+      specialRequests: ['team-floor'],
+    },
   ],
   schedule: [
     {
@@ -336,7 +368,7 @@ export const uncMensLacrosse: ProTripData = {
       location: 'Hotel Conference Room',
       participants: ['201', '202', '203', '204'],
       priority: 'high',
-      notes: 'Final game strategy and team prep meeting'
+      notes: 'Final game strategy and team prep meeting',
     },
     {
       id: 'sched-unc2',
@@ -345,10 +377,27 @@ export const uncMensLacrosse: ProTripData = {
       startTime: '2025-03-20T15:00:00Z',
       endTime: '2025-03-20T17:00:00Z',
       location: 'Koskinen Stadium, Duke University',
-      participants: ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '212', '213', '214', '215', '216'],
+      participants: [
+        '201',
+        '202',
+        '203',
+        '204',
+        '205',
+        '206',
+        '207',
+        '208',
+        '209',
+        '210',
+        '211',
+        '212',
+        '213',
+        '214',
+        '215',
+        '216',
+      ],
       priority: 'critical',
-      notes: 'ACC conference rivalry game - WHITE away jerseys'
-    }
+      notes: 'ACC conference rivalry game - WHITE away jerseys',
+    },
   ],
   perDiem: {
     dailyRate: 65,
@@ -359,8 +408,8 @@ export const uncMensLacrosse: ProTripData = {
       { participantId: '205', customRate: 65, advances: 0, deductions: 0, balance: 195 },
       { participantId: '206', customRate: 65, advances: 0, deductions: 0, balance: 195 },
       { participantId: '207', customRate: 65, advances: 0, deductions: 0, balance: 195 },
-      { participantId: '208', customRate: 65, advances: 0, deductions: 0, balance: 195 }
-    ]
+      { participantId: '208', customRate: 65, advances: 0, deductions: 0, balance: 195 },
+    ],
   },
   settlement: [],
   medical: [],
@@ -373,7 +422,7 @@ export const uncMensLacrosse: ProTripData = {
       deadline: '2025-03-18',
       status: 'compliant',
       assignedTo: '201',
-      documents: ['ncaa-eligibility.pdf', 'academic-standing.pdf']
+      documents: ['ncaa-eligibility.pdf', 'academic-standing.pdf'],
     },
     {
       id: 'comp-unc2',
@@ -383,8 +432,8 @@ export const uncMensLacrosse: ProTripData = {
       deadline: '2025-03-18',
       status: 'compliant',
       assignedTo: '204',
-      documents: ['medical-clearance-2025.pdf', 'insurance-docs.pdf']
-    }
+      documents: ['medical-clearance-2025.pdf', 'insurance-docs.pdf'],
+    },
   ],
   media: [],
   sponsors: [
@@ -396,7 +445,7 @@ export const uncMensLacrosse: ProTripData = {
       assignedTo: '202',
       status: 'completed',
       deliverables: ['Team uniforms', 'Practice gear', 'Equipment bags'],
-      notes: 'Official UNC Athletics Nike partnership'
-    }
-  ]
+      notes: 'Official UNC Athletics Nike partnership',
+    },
+  ],
 };

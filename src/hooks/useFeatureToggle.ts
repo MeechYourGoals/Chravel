@@ -10,7 +10,7 @@ export const PRO_FEATURES = [
   'places',
   'polls',
   'tasks',
-  'team'
+  'team',
 ] as const;
 
 // Event features (matching actual event tabs)
@@ -22,13 +22,13 @@ export const EVENT_FEATURES = [
   'lineup',
   'media',
   'polls',
-  'tasks'
+  'tasks',
 ] as const;
 
 // Default features (for backward compatibility)
 export const DEFAULT_FEATURES = PRO_FEATURES;
 
-export type FeatureType = typeof PRO_FEATURES[number] | typeof EVENT_FEATURES[number];
+export type FeatureType = (typeof PRO_FEATURES)[number] | (typeof EVENT_FEATURES)[number];
 
 interface FeatureConfig {
   enabled_features?: string[];
@@ -39,20 +39,20 @@ export const useFeatureToggle = (config: FeatureConfig) => {
   return useMemo(() => {
     // Consumer trips always have all features enabled
     if (config.trip_type === 'consumer') {
-    return {
-      showChat: true,
-      showCalendar: true,
-      showConcierge: true,
-      showMedia: true,
-      showPayments: true,
-      showPlaces: true,
-      showPolls: true,
-      showTasks: true,
-      showTeam: false, // Consumer trips don't have Team tab
-      showAgenda: false,
-      showLineup: false,
-      isFeatureEnabled: () => true
-    };
+      return {
+        showChat: true,
+        showCalendar: true,
+        showConcierge: true,
+        showMedia: true,
+        showPayments: true,
+        showPlaces: true,
+        showPolls: true,
+        showTasks: true,
+        showTeam: false, // Consumer trips don't have Team tab
+        showAgenda: false,
+        showLineup: false,
+        isFeatureEnabled: () => true,
+      };
     }
 
     // For Pro/Event trips, check enabled_features array
@@ -68,11 +68,11 @@ export const useFeatureToggle = (config: FeatureConfig) => {
       showPlaces: enabledFeatures.includes('places'),
       showPolls: enabledFeatures.includes('polls'),
       showTasks: enabledFeatures.includes('tasks'),
-      showTeam: config.trip_type === 'pro' ? (enabledFeatures.includes('team') || true) : false,
+      showTeam: config.trip_type === 'pro' ? enabledFeatures.includes('team') || true : false,
       showAdmin: enabledFeatures.includes('admin'),
       showAgenda: enabledFeatures.includes('agenda'),
       showLineup: enabledFeatures.includes('lineup'),
-      isFeatureEnabled: (feature: string) => enabledFeatures.includes(feature)
+      isFeatureEnabled: (feature: string) => enabledFeatures.includes(feature),
     };
   }, [config.enabled_features, config.trip_type]);
 };

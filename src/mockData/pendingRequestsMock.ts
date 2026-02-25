@@ -18,8 +18,8 @@ export const mockMyPendingRequests: PendingTripRequest[] = [
       name: 'Indiana University Alumni Rose Bowl Trip',
       destination: 'Pasadena, California',
       start_date: '2026-05-15',
-      cover_image_url: iuRoseBowlCover
-    }
+      cover_image_url: iuRoseBowlCover,
+    },
   },
   {
     id: 'mock-request-2',
@@ -30,8 +30,8 @@ export const mockMyPendingRequests: PendingTripRequest[] = [
       name: 'Drake - Anita Max Win Tour',
       destination: 'Toronto ON → Houston TX → Atlanta GA',
       start_date: '2026-06-20',
-      cover_image_url: undefined
-    }
+      cover_image_url: undefined,
+    },
   },
   {
     id: 'mock-request-3',
@@ -42,7 +42,7 @@ export const mockMyPendingRequests: PendingTripRequest[] = [
       name: 'Essence Festival 2026',
       destination: 'New Orleans, LA',
       start_date: '2026-07-03',
-      cover_image_url: undefined
-    }
-  }
+      cover_image_url: undefined,
+    },
+  },
 ];

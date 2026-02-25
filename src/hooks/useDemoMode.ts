@@ -16,17 +16,20 @@ export const useDemoMode = () => {
   // Check if any demo content should be shown (marketing or app-preview)
   const showDemoContent = demoView !== 'off';
 
-  const enhancedSetDemoView = useCallback(async (view: DemoView) => {
-    const wasAppPreview = demoView === 'app-preview';
-    // Get action from store state to avoid subscription
-    await useDemoModeStore.getState().setDemoView(view);
+  const enhancedSetDemoView = useCallback(
+    async (view: DemoView) => {
+      const wasAppPreview = demoView === 'app-preview';
+      // Get action from store state to avoid subscription
+      await useDemoModeStore.getState().setDemoView(view);
 
-    // Clear ALL session data when turning OFF app preview mode
-    // This ensures demo mutations don't persist across sessions
-    if (wasAppPreview && view !== 'app-preview') {
-      demoModeService.clearAllSessionState();
-    }
-  }, [demoView]);
+      // Clear ALL session data when turning OFF app preview mode
+      // This ensures demo mutations don't persist across sessions
+      if (wasAppPreview && view !== 'app-preview') {
+        demoModeService.clearAllSessionState();
+      }
+    },
+    [demoView],
+  );
 
   const enhancedToggle = useCallback(async () => {
     const wasEnabled = isDemoMode;
@@ -49,6 +52,6 @@ export const useDemoMode = () => {
     // Legacy methods - get from store state to avoid subscriptions
     enableDemoMode: useDemoModeStore.getState().enable,
     disableDemoMode: useDemoModeStore.getState().disable,
-    toggleDemoMode: enhancedToggle
+    toggleDemoMode: enhancedToggle,
   };
 };

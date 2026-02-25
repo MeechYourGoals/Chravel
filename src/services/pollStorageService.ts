@@ -68,7 +68,7 @@ class PollStorageService {
       id: `option_${index}`,
       text,
       votes: 0,
-      voters: []
+      voters: [],
     }));
 
     const newPoll: TripPoll = {
@@ -84,7 +84,7 @@ class PollStorageService {
       allow_multiple: pollData.settings?.allow_multiple || false,
       is_anonymous: pollData.settings?.is_anonymous || false,
       allow_vote_change: pollData.settings?.allow_vote_change !== false,
-      deadline_at: pollData.settings?.deadline_at
+      deadline_at: pollData.settings?.deadline_at,
     };
 
     polls.unshift(newPoll);
@@ -93,7 +93,12 @@ class PollStorageService {
   }
 
   // Vote on a poll (supports multiple choice)
-  async voteOnPoll(tripId: string, pollId: string, optionIds: string[], userId: string = 'demo-user'): Promise<TripPoll | null> {
+  async voteOnPoll(
+    tripId: string,
+    pollId: string,
+    optionIds: string[],
+    userId: string = 'demo-user',
+  ): Promise<TripPoll | null> {
     const polls = await this.getPolls(tripId);
     const pollIndex = polls.findIndex(p => p.id === pollId);
 
@@ -140,7 +145,11 @@ class PollStorageService {
   }
 
   // Remove vote from a poll
-  async removeVote(tripId: string, pollId: string, userId: string = 'demo-user'): Promise<TripPoll | null> {
+  async removeVote(
+    tripId: string,
+    pollId: string,
+    userId: string = 'demo-user',
+  ): Promise<TripPoll | null> {
     const polls = await this.getPolls(tripId);
     const pollIndex = polls.findIndex(p => p.id === pollId);
 

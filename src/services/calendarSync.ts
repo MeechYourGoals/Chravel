@@ -36,11 +36,12 @@ function eventToICal(event: CalendarEvent): ICalEvent {
     endDate.setHours(endDate.getHours() + 1);
   }
 
-  const status = event.availability_status === 'tentative'
-    ? 'TENTATIVE'
-    : event.availability_status === 'free'
-    ? 'TENTATIVE'
-    : 'CONFIRMED';
+  const status =
+    event.availability_status === 'tentative'
+      ? 'TENTATIVE'
+      : event.availability_status === 'free'
+        ? 'TENTATIVE'
+        : 'CONFIRMED';
 
   return {
     uid: `chravel-${event.id}@chravel.app`,
@@ -50,7 +51,7 @@ function eventToICal(event: CalendarEvent): ICalEvent {
     description: event.description || '',
     location: event.location || '',
     rrule: event.recurrence_rule,
-    status
+    status,
   };
 }
 
@@ -74,34 +75,34 @@ function generateICalContent(events: CalendarEvent[], tripName: string): string 
     ical += `BEGIN:VEVENT\r\n`;
     ical += `UID:${icalEvent.uid}\r\n`;
     ical += `DTSTAMP:${formattedNow}\r\n`;
-    
+
     // Format dates (YYYYMMDDTHHMMSSZ)
     const dtstart = icalEvent.dtstart.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     ical += `DTSTART:${dtstart}\r\n`;
-    
+
     if (icalEvent.dtend) {
       const dtend = icalEvent.dtend.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
       ical += `DTEND:${dtend}\r\n`;
     }
-    
+
     ical += `SUMMARY:${escapeICalText(icalEvent.summary)}\r\n`;
-    
+
     if (icalEvent.description) {
       ical += `DESCRIPTION:${escapeICalText(icalEvent.description)}\r\n`;
     }
-    
+
     if (icalEvent.location) {
       ical += `LOCATION:${escapeICalText(icalEvent.location)}\r\n`;
     }
-    
+
     if (icalEvent.rrule) {
       ical += `RRULE:${icalEvent.rrule}\r\n`;
     }
-    
+
     if (icalEvent.status) {
       ical += `STATUS:${icalEvent.status}\r\n`;
     }
-    
+
     ical += `END:VEVENT\r\n`;
   });
 
@@ -124,7 +125,11 @@ function escapeICalText(text: string): string {
 /**
  * Download iCal file
  */
-export function downloadICalFile(events: CalendarEvent[], tripName: string, filename?: string): void {
+export function downloadICalFile(
+  events: CalendarEvent[],
+  tripName: string,
+  filename?: string,
+): void {
   const icalContent = generateICalContent(events, tripName);
   const blob = new Blob([icalContent], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -163,17 +168,20 @@ export function generateICalString(events: CalendarEvent[], tripName: string): s
  */
 export function parseRRule(rrule: string): string {
   if (!rrule) return '';
-  
+
   const parts = rrule.split(';');
-  const freq = parts.find(p => p.startsWith('FREQ='))?.split('=')[1]?.toLowerCase();
+  const freq = parts
+    .find(p => p.startsWith('FREQ='))
+    ?.split('=')[1]
+    ?.toLowerCase();
   const interval = parts.find(p => p.startsWith('INTERVAL='))?.split('=')[1];
   const count = parts.find(p => p.startsWith('COUNT='))?.split('=')[1];
   const until = parts.find(p => p.startsWith('UNTIL='))?.split('=')[1];
-  
+
   if (!freq) return rrule;
-  
+
   let description = '';
-  
+
   switch (freq) {
     case 'daily':
       description = interval && interval !== '1' ? `Every ${interval} days` : 'Daily';
@@ -190,13 +198,13 @@ export function parseRRule(rrule: string): string {
     default:
       return rrule;
   }
-  
+
   if (count) {
     description += ` (${count} occurrences)`;
   } else if (until) {
     const untilDate = new Date(until);
     description += ` until ${untilDate.toLocaleDateString()}`;
   }
-  
+
   return description;
 }

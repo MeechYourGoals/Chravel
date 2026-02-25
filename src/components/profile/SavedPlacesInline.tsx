@@ -28,7 +28,10 @@ export const SavedPlacesInline: React.FC = () => {
   return (
     <section aria-labelledby="saved-places-heading" className="mb-8">
       <div className="flex items-center justify-between mb-3">
-        <h2 id="saved-places-heading" className="text-lg font-semibold text-foreground flex items-center gap-2">
+        <h2
+          id="saved-places-heading"
+          className="text-lg font-semibold text-foreground flex items-center gap-2"
+        >
           <Bookmark className="w-5 h-5 text-primary" aria-hidden="true" />
           Saved Places
         </h2>
@@ -91,7 +94,9 @@ export const SavedPlacesInline: React.FC = () => {
           <p className="text-sm text-muted-foreground mb-3">
             No saved places yet. Explore trips and tap Save to collect your favorites.
           </p>
-          <Button onClick={handleDiscover} className="mx-auto">Discover Places</Button>
+          <Button onClick={handleDiscover} className="mx-auto">
+            Discover Places
+          </Button>
         </div>
       ) : (
         <div
@@ -99,7 +104,7 @@ export const SavedPlacesInline: React.FC = () => {
           aria-label="Saved places list"
           className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4"
         >
-          {items.map((item) => {
+          {items.map(item => {
             const title: string = item.title;
             const img = item.image_url;
             const category = item.rec_type;
@@ -126,19 +131,27 @@ export const SavedPlacesInline: React.FC = () => {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="h-full w-full bg-muted flex items-center justify-center text-muted-foreground">No image</div>
+                      <div className="h-full w-full bg-muted flex items-center justify-center text-muted-foreground">
+                        No image
+                      </div>
                     )}
                   </div>
                   <div className="p-3 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <h3 className="text-sm font-medium text-foreground truncate" title={title}>{title}</h3>
+                        <h3 className="text-sm font-medium text-foreground truncate" title={title}>
+                          {title}
+                        </h3>
                         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <Badge variant="outline" className="capitalize text-xs">{category}</Badge>
+                          <Badge variant="outline" className="capitalize text-xs">
+                            {category}
+                          </Badge>
                           {city && (
                             <span className="inline-flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
-                              <span className="truncate max-w-[120px]" title={city}>{city}</span>
+                              <span className="truncate max-w-[120px]" title={city}>
+                                {city}
+                              </span>
                             </span>
                           )}
                         </div>
@@ -150,7 +163,7 @@ export const SavedPlacesInline: React.FC = () => {
                       )}
                     </div>
 
-                    {(distance) && (
+                    {distance && (
                       <div className="text-xs text-muted-foreground">{distance} away</div>
                     )}
 

@@ -99,40 +99,43 @@ export const EventCard = ({
     navigate(`/event/${event.id}`);
   };
 
-  const handleExportPdf = useCallback(async (sections: ExportSection[]) => {
-    const orderedSections = orderExportSections(sections);
-    const exportData = await getExportData(event.id.toString(), orderedSections);
+  const handleExportPdf = useCallback(
+    async (sections: ExportSection[]) => {
+      const orderedSections = orderExportSections(sections);
+      const exportData = await getExportData(event.id.toString(), orderedSections);
 
-    const blob = await generateClientPDF(
-      {
-        tripId: event.id.toString(),
-        tripTitle: exportData.trip.title,
-        destination: exportData.trip.destination,
-        dateRange: exportData.trip.dateRange,
-        description: exportData.trip.description,
-        calendar: exportData.calendar,
-        payments: exportData.payments,
-        polls: exportData.polls,
-        tasks: exportData.tasks,
-        places: exportData.places,
-        roster: exportData.roster,
-        broadcasts: exportData.broadcasts,
-        attachments: exportData.attachments,
-        agenda: exportData.agenda,
-        lineup: exportData.lineup,
-      },
-      orderedSections,
-    );
+      const blob = await generateClientPDF(
+        {
+          tripId: event.id.toString(),
+          tripTitle: exportData.trip.title,
+          destination: exportData.trip.destination,
+          dateRange: exportData.trip.dateRange,
+          description: exportData.trip.description,
+          calendar: exportData.calendar,
+          payments: exportData.payments,
+          polls: exportData.polls,
+          tasks: exportData.tasks,
+          places: exportData.places,
+          roster: exportData.roster,
+          broadcasts: exportData.broadcasts,
+          attachments: exportData.attachments,
+          agenda: exportData.agenda,
+          lineup: exportData.lineup,
+        },
+        orderedSections,
+      );
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${exportData.trip.title.replace(/[^a-zA-Z0-9]/g, '_')}_Recap.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [event.id]);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${exportData.trip.title.replace(/[^a-zA-Z0-9]/g, '_')}_Recap.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+    [event.id],
+  );
 
   const handleArchiveEvent = async () => {
     try {
@@ -302,7 +305,13 @@ export const EventCard = ({
               <MapPin size={14} className={`text-${accentColors.primary}`} />
               <span className="text-xs text-white/60 uppercase tracking-wide">Places</span>
             </div>
-            <div className="text-lg font-bold text-white">{event.placesCount != null ? (event.placesCount > 0 ? event.placesCount.toString() : '—') : calculateEventPlacesCount(event)}</div>
+            <div className="text-lg font-bold text-white">
+              {event.placesCount != null
+                ? event.placesCount > 0
+                  ? event.placesCount.toString()
+                  : '—'
+                : calculateEventPlacesCount(event)}
+            </div>
           </div>
         </div>
 

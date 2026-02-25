@@ -19,9 +19,7 @@ export interface PaymentSplitData {
 
 import { PAYMENT_METHOD_OPTIONS } from '@/types/paymentMethods';
 
-export const SUPPORTED_PAYMENT_METHODS: PaymentMethodType[] = PAYMENT_METHOD_OPTIONS.map(
-  (o) => o.id
-);
+export const SUPPORTED_PAYMENT_METHODS: PaymentMethodType[] = PAYMENT_METHOD_OPTIONS.map(o => o.id);
 
 export const usePaymentSplits = (tripMembers: TripMember[] = []) => {
   const [amount, setAmount] = useState<number>(0);
@@ -37,18 +35,16 @@ export const usePaymentSplits = (tripMembers: TripMember[] = []) => {
   }, [selectedParticipants]);
 
   const toggleParticipant = useCallback((participantId: string) => {
-    setSelectedParticipants(prev => 
+    setSelectedParticipants(prev =>
       prev.includes(participantId)
         ? prev.filter(id => id !== participantId)
-        : [...prev, participantId]
+        : [...prev, participantId],
     );
   }, []);
 
   const togglePaymentMethod = useCallback((method: PaymentMethodType) => {
     setSelectedPaymentMethods(prev =>
-      prev.includes(method)
-        ? prev.filter(m => m !== method)
-        : [...prev, method]
+      prev.includes(method) ? prev.filter(m => m !== method) : [...prev, method],
     );
   }, []);
 
@@ -99,9 +95,17 @@ export const usePaymentSplits = (tripMembers: TripMember[] = []) => {
       description: description.trim(),
       splitCount,
       splitParticipants: selectedParticipants,
-      paymentMethods: selectedPaymentMethods
+      paymentMethods: selectedPaymentMethods,
     };
-  }, [amount, currency, description, splitCount, selectedParticipants, selectedPaymentMethods, validatePayment]);
+  }, [
+    amount,
+    currency,
+    description,
+    splitCount,
+    selectedParticipants,
+    selectedPaymentMethods,
+    validatePayment,
+  ]);
 
   const resetForm = useCallback(() => {
     setAmount(0);
@@ -120,14 +124,14 @@ export const usePaymentSplits = (tripMembers: TripMember[] = []) => {
     selectedParticipants,
     selectedPaymentMethods,
     splitCount,
-    
+
     // Computed
     perPersonAmount: calculatePerPersonAmount(),
     isValid: validatePayment().isValid,
     validationError: validatePayment().error,
     allParticipantsSelected: selectedParticipants.length === tripMembers.length,
     allPaymentMethodsSelected: selectedPaymentMethods.length === SUPPORTED_PAYMENT_METHODS.length,
-    
+
     // Actions
     setAmount,
     setCurrency,
@@ -139,6 +143,6 @@ export const usePaymentSplits = (tripMembers: TripMember[] = []) => {
     selectAllPaymentMethods,
     getPaymentData,
     validatePayment,
-    resetForm
+    resetForm,
   };
 };

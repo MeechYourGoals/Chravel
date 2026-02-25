@@ -101,7 +101,9 @@ export const Broadcasts = () => {
         ...prev,
       ]);
     });
-    return () => { unsub(); };
+    return () => {
+      unsub();
+    };
   }, [currentTripId, isDemoMode, queryClient]);
 
   const broadcasts: BroadcastData[] = isDemoMode

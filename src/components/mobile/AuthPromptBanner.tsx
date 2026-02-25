@@ -65,7 +65,7 @@ export const AuthPromptBanner = ({ onSignIn, onSignUp }: AuthPromptBannerProps) 
                 <UserPlus size={16} />
                 <span className="hidden xs:inline">Sign Up</span>
               </button>
-              
+
               <button
                 onClick={handleSignIn}
                 className="flex items-center gap-1.5 px-4 py-2 bg-white/20 text-white border border-white/30 rounded-lg font-medium text-sm transition-all active:scale-95 min-h-[36px]"

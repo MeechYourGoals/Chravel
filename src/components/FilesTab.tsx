@@ -1,7 +1,21 @@
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, File, FileText, FileImage, FileVideo, Download, Trash2, Calendar, Sparkles, Crown, Search, Receipt, Users, DollarSign } from 'lucide-react';
+import {
+  Upload,
+  File,
+  FileText,
+  FileImage,
+  FileVideo,
+  Download,
+  Trash2,
+  Calendar,
+  Sparkles,
+  Crown,
+  Search,
+  Receipt,
+  Users,
+  DollarSign,
+} from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
@@ -48,7 +62,7 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
       url: '/files/dodgers-tickets.pdf',
       uploadedBy: 'John Smith',
       uploadedAt: '2025-01-15T10:30:00Z',
-      extractedEvents: 1
+      extractedEvents: 1,
     },
     {
       id: '2',
@@ -58,7 +72,7 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
       url: '/files/conference-schedule.jpg',
       uploadedBy: 'Sarah Wilson',
       uploadedAt: '2025-01-14T16:45:00Z',
-      extractedEvents: 3
+      extractedEvents: 3,
     },
     // Example receipt file
     {
@@ -70,12 +84,12 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
       uploadedBy: 'Emma',
       uploadedAt: '2025-01-15T19:30:00Z',
       isReceipt: true,
-      totalAmount: 156.80,
+      totalAmount: 156.8,
       currency: 'USD',
       preferredMethod: 'venmo',
       splitCount: 4,
-      perPersonAmount: 39.20
-    }
+      perPersonAmount: 39.2,
+    },
   ]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -89,65 +103,73 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
   const { toast } = useToast();
   const { isPlus } = useConsumerSubscription();
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    setIsUploading(true);
-    
-    for (const file of acceptedFiles) {
-      if (file.size > 50 * 1024 * 1024) { // 50MB limit
-        toast({
-          title: "File too large",
-          description: `${file.name} exceeds the 50MB limit.`,
-          variant: "destructive"
-        });
-        continue;
-      }
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      setIsUploading(true);
 
-      // Simulate file upload
-      const newFile: TripFile = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        url: URL.createObjectURL(file),
-        uploadedBy: 'You',
-        uploadedAt: new Date().toISOString()
-      };
-
-      setFiles(prev => [newFile, ...prev]);
-
-      // If user has Plus subscription, simulate AI parsing
-      if (isPlus && (file.type.includes('pdf') || file.type.includes('image'))) {
-        setTimeout(() => {
-          const mockEvents = [
-            {
-              title: file.name.includes('Dodgers') ? 'LA Dodgers vs SF Giants' : 'Conference Opening Keynote',
-              date: '2025-02-15',
-              startTime: '19:10',
-              endTime: '22:30',
-              location: file.name.includes('Dodgers') ? 'Dodger Stadium, Los Angeles, CA' : 'Convention Center, Hall A',
-              fileId: newFile.id
-            }
-          ];
-          
-          setPendingEvents(prev => [...prev, ...mockEvents]);
-          newFile.extractedEvents = mockEvents.length;
-          setFiles(prev => prev.map(f => f.id === newFile.id ? newFile : f));
-          
+      for (const file of acceptedFiles) {
+        if (file.size > 50 * 1024 * 1024) {
+          // 50MB limit
           toast({
-            title: "AI found events! ⚡",
-            description: `Found ${mockEvents.length} potential events in ${file.name}. Review them?`,
-            action: (
-              <Button variant="outline" size="sm" onClick={() => setShowEventModal(true)}>
-                Review
-              </Button>
-            )
+            title: 'File too large',
+            description: `${file.name} exceeds the 50MB limit.`,
+            variant: 'destructive',
           });
-        }, 2000);
-      }
-    }
+          continue;
+        }
 
-    setIsUploading(false);
-  }, [isPlus, toast]);
+        // Simulate file upload
+        const newFile: TripFile = {
+          id: Date.now().toString(),
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          url: URL.createObjectURL(file),
+          uploadedBy: 'You',
+          uploadedAt: new Date().toISOString(),
+        };
+
+        setFiles(prev => [newFile, ...prev]);
+
+        // If user has Plus subscription, simulate AI parsing
+        if (isPlus && (file.type.includes('pdf') || file.type.includes('image'))) {
+          setTimeout(() => {
+            const mockEvents = [
+              {
+                title: file.name.includes('Dodgers')
+                  ? 'LA Dodgers vs SF Giants'
+                  : 'Conference Opening Keynote',
+                date: '2025-02-15',
+                startTime: '19:10',
+                endTime: '22:30',
+                location: file.name.includes('Dodgers')
+                  ? 'Dodger Stadium, Los Angeles, CA'
+                  : 'Convention Center, Hall A',
+                fileId: newFile.id,
+              },
+            ];
+
+            setPendingEvents(prev => [...prev, ...mockEvents]);
+            newFile.extractedEvents = mockEvents.length;
+            setFiles(prev => prev.map(f => (f.id === newFile.id ? newFile : f)));
+
+            toast({
+              title: 'AI found events! ⚡',
+              description: `Found ${mockEvents.length} potential events in ${file.name}. Review them?`,
+              action: (
+                <Button variant="outline" size="sm" onClick={() => setShowEventModal(true)}>
+                  Review
+                </Button>
+              ),
+            });
+          }, 2000);
+        }
+      }
+
+      setIsUploading(false);
+    },
+    [isPlus, toast],
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -157,8 +179,8 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
       'text/plain': ['.txt'],
       'application/vnd.ms-excel': ['.xls'],
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'text/calendar': ['.ics']
-    }
+      'text/calendar': ['.ics'],
+    },
   });
 
   const getFileIcon = (type: string) => {
@@ -181,10 +203,10 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
-  
+
   const handleReceiptUploaded = (receiptData: any) => {
     // Convert receipt data to TripFile format
     const newFile: TripFile = {
@@ -200,15 +222,15 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
       currency: receiptData.currency,
       preferredMethod: receiptData.preferredMethod,
       splitCount: receiptData.splitCount,
-      perPersonAmount: receiptData.perPersonAmount
+      perPersonAmount: receiptData.perPersonAmount,
     };
-    
+
     setFiles(prev => [newFile, ...prev]);
     setShowReceiptUploadModal(false);
-    
+
     toast({
-      title: "Receipt uploaded",
-      description: "Receipt has been added to your trip files."
+      title: 'Receipt uploaded',
+      description: 'Receipt has been added to your trip files.',
     });
   };
 
@@ -217,15 +239,15 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
       const deeplink = generatePaymentDeeplink(
         file.preferredMethod,
         file.perPersonAmount,
-        file.uploadedBy
+        file.uploadedBy,
       );
-      
+
       if (deeplink) {
         window.open(deeplink, '_blank');
       }
     }
   };
-  
+
   const handleViewReceipt = (file: TripFile) => {
     setSelectedReceipt(file);
     setShowReceiptViewModal(true);
@@ -234,19 +256,19 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
   // Filter files based on search term and active filter
   const filteredFiles = files.filter(file => {
     const matchesSearch = file.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     if (activeFilter === 'all') return matchesSearch;
     if (activeFilter === 'receipts') return matchesSearch && file.isReceipt;
     if (activeFilter === 'documents') return matchesSearch && !file.isReceipt;
-    
+
     return matchesSearch;
   });
 
   const handleDeleteFile = (fileId: string) => {
     setFiles(prev => prev.filter(f => f.id !== fileId));
     toast({
-      title: "File deleted",
-      description: "File has been removed from the trip."
+      title: 'File deleted',
+      description: 'File has been removed from the trip.',
     });
   };
 
@@ -266,9 +288,7 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold text-white">Trip Files & Receipts</h3>
-          <p className="text-sm text-gray-400">
-            Share tickets, itineraries, receipts and more
-          </p>
+          <p className="text-sm text-gray-400">Share tickets, itineraries, receipts and more</p>
         </div>
         <div className="flex items-center gap-3">
           {isPlus && (
@@ -293,10 +313,10 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-2 mb-6">
-        {(['all', 'documents', 'receipts'] as const).map((filter) => (
+        {(['all', 'documents', 'receipts'] as const).map(filter => (
           <Button
             key={filter}
-            variant={activeFilter === filter ? "default" : "outline"}
+            variant={activeFilter === filter ? 'default' : 'outline'}
             size="sm"
             onClick={() => setActiveFilter(filter)}
             className="capitalize"
@@ -316,8 +336,8 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
         <div
           {...getRootProps()}
           className={`p-8 border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
-            isDragActive 
-              ? 'border-glass-orange bg-glass-orange/10' 
+            isDragActive
+              ? 'border-glass-orange bg-glass-orange/10'
               : 'border-gray-600 hover:border-gray-500'
           }`}
         >
@@ -348,7 +368,7 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
         <Input
           placeholder="Basic search or use Concierge for AI search..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={e => setSearchTerm(e.target.value)}
           className="pl-10 bg-white/5 border-white/10 text-white"
         />
       </div>
@@ -362,7 +382,7 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredFiles.map((file) => (
+          {filteredFiles.map(file => (
             <Card key={file.id} className="bg-white/5 border-white/10 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -376,8 +396,10 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
                           onClick={() => handleViewReceipt(file)}
                         />
                       ) : (
-                        <div className="w-12 h-12 bg-green-500/20 border border-green-500/30 rounded-lg flex items-center justify-center cursor-pointer"
-                             onClick={() => handleViewReceipt(file)}>
+                        <div
+                          className="w-12 h-12 bg-green-500/20 border border-green-500/30 rounded-lg flex items-center justify-center cursor-pointer"
+                          onClick={() => handleViewReceipt(file)}
+                        >
                           <Receipt size={20} className="text-green-400" />
                         </div>
                       )}
@@ -385,7 +407,7 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
                   ) : (
                     getFileIcon(file.type)
                   )}
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-white font-medium truncate">{file.name}</p>
@@ -395,13 +417,16 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
                         </Badge>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-4 text-xs text-gray-400 mb-1">
                       <span>{formatFileSize(file.size)}</span>
                       <span>by {file.uploadedBy}</span>
                       <span>{formatDate(file.uploadedAt)}</span>
                       {file.extractedEvents && isPlus && (
-                        <Badge variant="outline" className="text-glass-orange border-glass-orange/50">
+                        <Badge
+                          variant="outline"
+                          className="text-glass-orange border-glass-orange/50"
+                        >
                           <Calendar size={10} className="mr-1" />
                           {file.extractedEvents} events found
                         </Badge>
@@ -417,7 +442,7 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
                             ${file.totalAmount.toFixed(2)}
                           </span>
                         </div>
-                        
+
                         {file.splitCount && file.perPersonAmount && (
                           <div className="flex items-center gap-1">
                             <Users size={14} className="text-blue-400" />
@@ -426,7 +451,7 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
                             </span>
                           </div>
                         )}
-                        
+
                         {file.preferredMethod && (
                           <div className="flex items-center gap-2">
                             <PaymentMethodIcon method={file.preferredMethod} size={14} />
@@ -439,7 +464,7 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   {/* Receipt-specific payment button */}
                   {file.isReceipt && file.perPersonAmount && (
@@ -451,7 +476,7 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
                       Pay ${file.perPersonAmount.toFixed(2)}
                     </Button>
                   )}
-                  
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -485,7 +510,8 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
             <div className="flex-1">
               <h4 className="text-white font-semibold mb-1">Upgrade to Plus</h4>
               <p className="text-gray-300 text-sm">
-                Let AI automatically extract dates, times, and locations from your uploaded files and sync them to your trip calendar.
+                Let AI automatically extract dates, times, and locations from your uploaded files
+                and sync them to your trip calendar.
               </p>
             </div>
             <Button className="bg-gradient-to-r from-glass-orange to-glass-yellow text-white hover:opacity-90">
@@ -514,13 +540,13 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
             uploaderId: 'user1',
             uploaderName: selectedReceipt.uploadedBy,
             fileUrl: selectedReceipt.url,
-             
+
             totalAmount: selectedReceipt.totalAmount || 0,
             currency: selectedReceipt.currency || 'USD',
             preferredMethod: selectedReceipt.preferredMethod || 'venmo',
             splitCount: selectedReceipt.splitCount,
             perPersonAmount: selectedReceipt.perPersonAmount,
-            createdAt: selectedReceipt.uploadedAt
+            createdAt: selectedReceipt.uploadedAt,
           }}
         />
       )}

@@ -1,12 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '../ui/dialog';
 import { TripHeader } from '../TripHeader';
 import { hapticService } from '../../services/hapticService';
 import { ProTripCategory } from '../../types/proCategories';
@@ -31,16 +25,14 @@ export const MobileTripInfoDrawer = ({
   tags,
 }: MobileTripInfoDrawerProps) => {
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent 
-        showClose={false} 
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+      <DialogContent
+        showClose={false}
         className="!fixed !inset-x-0 !top-[env(safe-area-inset-top,3vh)] !bottom-0 !left-0 !right-0 !translate-x-0 !translate-y-0 bg-black border-t border-white/10 !max-w-full !w-full !rounded-t-2xl !rounded-b-none flex flex-col p-0 gap-0 animate-slide-in-from-bottom"
       >
         <DialogHeader className="border-b border-white/10 p-3 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-white text-lg font-semibold">
-              Trip Details
-            </DialogTitle>
+            <DialogTitle className="text-white text-lg font-semibold">Trip Details</DialogTitle>
             <DialogClose asChild>
               <button
                 onClick={() => {

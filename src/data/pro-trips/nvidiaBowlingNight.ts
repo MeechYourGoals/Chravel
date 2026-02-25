@@ -4,7 +4,8 @@ import { getMockAvatar } from '../../utils/mockAvatars';
 export const nvidiaBowlingNight: ProTripData = {
   id: 'la-tech-week-venture-2026',
   title: 'LA Tech Week Venture Team Trip',
-  description: 'Venture capital team attending LA Tech Week conferences, networking events, and startup showcases.',
+  description:
+    'Venture capital team attending LA Tech Week conferences, networking events, and startup showcases.',
   location: 'Los Angeles, CA',
   dateRange: 'October 20 - October 28, 2026',
   proTripCategory: 'work',
@@ -19,7 +20,7 @@ export const nvidiaBowlingNight: ProTripData = {
       completed: true,
       due_at: '2026-10-19',
       assigned_to: 'partner',
-      created_at: new Date(Date.now() - 604800000).toISOString()
+      created_at: new Date(Date.now() - 604800000).toISOString(),
     },
     {
       id: 'task-tech-2',
@@ -28,8 +29,8 @@ export const nvidiaBowlingNight: ProTripData = {
       completed: false,
       due_at: '2026-10-15',
       assigned_to: 'associate',
-      created_at: new Date().toISOString()
-    }
+      created_at: new Date().toISOString(),
+    },
   ],
   polls: [
     {
@@ -38,12 +39,12 @@ export const nvidiaBowlingNight: ProTripData = {
       options: [
         { id: 'opt1', text: 'AI/ML Companies', votes: 6 },
         { id: 'opt2', text: 'Web3/Crypto', votes: 3 },
-        { id: 'opt3', text: 'Climate Tech', votes: 2 }
+        { id: 'opt3', text: 'Climate Tech', votes: 2 },
       ],
       total_votes: 11,
       status: 'closed',
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
   ],
   links: [
     {
@@ -53,7 +54,7 @@ export const nvidiaBowlingNight: ProTripData = {
       description: 'Complete event calendar and venue information',
       domain: 'latechweek.com',
       created_at: new Date().toISOString(),
-      source: 'places'
+      source: 'places',
     },
     {
       id: 'link-tech-2',
@@ -62,8 +63,8 @@ export const nvidiaBowlingNight: ProTripData = {
       description: 'Team accommodation in Downtown LA',
       domain: 'hotelfigueroa.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
-      source: 'manual'
-    }
+      source: 'manual',
+    },
   ],
   broadcasts: [
     {
@@ -73,7 +74,7 @@ export const nvidiaBowlingNight: ProTripData = {
       targetTrips: ['la-tech-week-venture-2026'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['2', '3', '4']
+      readBy: ['2', '3', '4'],
     },
     {
       id: 'bc-tech-2',
@@ -82,37 +83,116 @@ export const nvidiaBowlingNight: ProTripData = {
       targetTrips: ['la-tech-week-venture-2026'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['1', '2']
-    }
+      readBy: ['1', '2'],
+    },
   ],
   participants: [
-    { id: '1', name: 'Managing Partner', avatar: getMockAvatar('Managing Partner'), role: 'Investment Team' },
-    { id: '2', name: 'Senior Partner', avatar: getMockAvatar('Senior Partner'), role: 'Investment Team' },
+    {
+      id: '1',
+      name: 'Managing Partner',
+      avatar: getMockAvatar('Managing Partner'),
+      role: 'Investment Team',
+    },
+    {
+      id: '2',
+      name: 'Senior Partner',
+      avatar: getMockAvatar('Senior Partner'),
+      role: 'Investment Team',
+    },
     { id: '3', name: 'Associate 1', avatar: getMockAvatar('Associate 1'), role: 'Investment Team' },
     { id: '4', name: 'Associate 2', avatar: getMockAvatar('Associate 2'), role: 'Investment Team' },
     { id: '5', name: 'Principal', avatar: getMockAvatar('Principal'), role: 'Investment Team' },
     { id: '6', name: 'Analyst 1', avatar: getMockAvatar('Analyst 1'), role: 'Investment Team' },
     { id: '7', name: 'Analyst 2', avatar: getMockAvatar('Analyst 2'), role: 'Investment Team' },
     { id: '8', name: 'Analyst 3', avatar: getMockAvatar('Analyst 3'), role: 'Investment Team' },
-    { id: '9', name: 'Venture Partner', avatar: getMockAvatar('Venture Partner'), role: 'Investment Team' },
-    { id: '10', name: 'Operations Lead', avatar: getMockAvatar('Operations Lead'), role: 'Support Staff' },
-    { id: '11', name: 'Fund Admin', avatar: getMockAvatar('Fund Admin'), role: 'Support Staff' }
+    {
+      id: '9',
+      name: 'Venture Partner',
+      avatar: getMockAvatar('Venture Partner'),
+      role: 'Investment Team',
+    },
+    {
+      id: '10',
+      name: 'Operations Lead',
+      avatar: getMockAvatar('Operations Lead'),
+      role: 'Support Staff',
+    },
+    { id: '11', name: 'Fund Admin', avatar: getMockAvatar('Fund Admin'), role: 'Support Staff' },
   ],
   roster: [
-    { id: '1', name: 'Managing Partner', role: 'Investment Team', email: 'mp@fundvc.com', avatar: getMockAvatar('Managing Partner'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '2', name: 'Senior Partner', role: 'Investment Team', email: 'sp@fundvc.com', avatar: getMockAvatar('Senior Partner'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '3', name: 'Associate 1', role: 'Investment Team', email: 'assoc1@fundvc.com', avatar: getMockAvatar('Associate 1'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '4', name: 'Associate 2', role: 'Investment Team', email: 'assoc2@fundvc.com', avatar: getMockAvatar('Associate 2'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
+    {
+      id: '1',
+      name: 'Managing Partner',
+      role: 'Investment Team',
+      email: 'mp@fundvc.com',
+      avatar: getMockAvatar('Managing Partner'),
+      credentialLevel: 'AllAccess',
+      permissions: ['admin'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
+    {
+      id: '2',
+      name: 'Senior Partner',
+      role: 'Investment Team',
+      email: 'sp@fundvc.com',
+      avatar: getMockAvatar('Senior Partner'),
+      credentialLevel: 'AllAccess',
+      permissions: ['admin'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
+    {
+      id: '3',
+      name: 'Associate 1',
+      role: 'Investment Team',
+      email: 'assoc1@fundvc.com',
+      avatar: getMockAvatar('Associate 1'),
+      credentialLevel: 'Backstage',
+      permissions: ['editor'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
+    {
+      id: '4',
+      name: 'Associate 2',
+      role: 'Investment Team',
+      email: 'assoc2@fundvc.com',
+      avatar: getMockAvatar('Associate 2'),
+      credentialLevel: 'Backstage',
+      permissions: ['editor'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
   ],
   itinerary: [
     {
       date: '2026-10-20',
       events: [
-        { title: 'LA Tech Week Kickoff Reception', location: 'Downtown LA Arts District', time: '18:00', type: 'event' },
-        { title: 'AI Summit Day 1', location: 'LA Convention Center', time: '09:00', type: 'event' },
-        { title: 'Portfolio Company Dinner', location: 'Bestia Restaurant', time: '19:00', type: 'event' }
-      ]
-    }
+        {
+          title: 'LA Tech Week Kickoff Reception',
+          location: 'Downtown LA Arts District',
+          time: '18:00',
+          type: 'event',
+        },
+        {
+          title: 'AI Summit Day 1',
+          location: 'LA Convention Center',
+          time: '09:00',
+          type: 'event',
+        },
+        {
+          title: 'Portfolio Company Dinner',
+          location: 'Bestia Restaurant',
+          time: '19:00',
+          type: 'event',
+        },
+      ],
+    },
   ],
   budget: {
     total: 55000,
@@ -121,8 +201,8 @@ export const nvidiaBowlingNight: ProTripData = {
       { name: 'Travel & Accommodation', budgeted: 25000, spent: 12000 },
       { name: 'Conference Passes', budgeted: 15000, spent: 5000 },
       { name: 'Meals & Entertainment', budgeted: 10000, spent: 3500 },
-      { name: 'Networking Events', budgeted: 5000, spent: 1500 }
-    ]
+      { name: 'Networking Events', budgeted: 5000, spent: 1500 },
+    ],
   },
   schedule: [
     {
@@ -133,14 +213,20 @@ export const nvidiaBowlingNight: ProTripData = {
       endTime: '2026-10-21T18:00:00Z',
       type: 'meeting',
       participants: ['1', '2', '3', '4'],
-      priority: 'high'
-    }
+      priority: 'high',
+    },
   ],
   roomAssignments: [],
-  perDiem: { dailyRate: 200, currency: 'USD', startDate: '2026-10-20', endDate: '2026-10-28', participants: [] },
+  perDiem: {
+    dailyRate: 200,
+    currency: 'USD',
+    startDate: '2026-10-20',
+    endDate: '2026-10-28',
+    participants: [],
+  },
   settlement: [],
   medical: [],
   compliance: [],
   media: [],
-  sponsors: []
+  sponsors: [],
 };

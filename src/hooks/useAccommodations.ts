@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PersonalAccommodationService, personalAccommodationService, PersonalAccommodation, CreateAccommodationRequest as ServiceCreateRequest, UpdateAccommodationRequest } from '@/services/personalAccommodationService';
+import {
+  PersonalAccommodationService,
+  personalAccommodationService,
+  PersonalAccommodation,
+  CreateAccommodationRequest as ServiceCreateRequest,
+  UpdateAccommodationRequest,
+} from '@/services/personalAccommodationService';
 import { useAuth } from './useAuth';
 
 export const useAccommodations = (tripId: string) => {
@@ -22,7 +28,7 @@ export const useAccommodations = (tripId: string) => {
 
   // Create/Update accommodation mutation
   const saveAccommodationMutation = useMutation({
-    mutationFn: (request: ServiceCreateRequest) => 
+    mutationFn: (request: ServiceCreateRequest) =>
       personalAccommodationService.setUserAccommodation(request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accommodation', tripId, user?.id] });
@@ -49,12 +55,18 @@ export const useAccommodations = (tripId: string) => {
 
   // Update trip basecamp mutation
   const updateBasecampMutation = useMutation({
-    mutationFn: ({ name, address, latitude, longitude }: {
+    mutationFn: ({
+      name,
+      address,
+      latitude,
+      longitude,
+    }: {
       name: string;
       address: string;
       latitude?: number;
       longitude?: number;
-    }) => PersonalAccommodationService.updateTripBasecamp(tripId, name, address, latitude, longitude),
+    }) =>
+      PersonalAccommodationService.updateTripBasecamp(tripId, name, address, latitude, longitude),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tripBasecamp', tripId] });
     },
@@ -64,24 +76,24 @@ export const useAccommodations = (tripId: string) => {
     // Data
     myAccommodation,
     tripBasecamp,
-    
+
     // Loading states
     isLoadingAccommodation,
     isLoadingBasecamp,
     isLoading: isLoadingAccommodation || isLoadingBasecamp,
-    
+
     // Mutations
     saveAccommodation: saveAccommodationMutation.mutate,
     updateAccommodation: updateAccommodationMutation.mutate,
     deleteAccommodation: deleteAccommodationMutation.mutate,
     updateBasecamp: updateBasecampMutation.mutate,
-    
+
     // Mutation states
     isSaving: saveAccommodationMutation.isPending,
     isUpdating: updateAccommodationMutation.isPending,
     isDeleting: deleteAccommodationMutation.isPending,
     isUpdatingBasecamp: updateBasecampMutation.isPending,
-    
+
     // Errors
     saveError: saveAccommodationMutation.error,
     updateError: updateAccommodationMutation.error,

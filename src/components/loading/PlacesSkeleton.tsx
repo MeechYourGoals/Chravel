@@ -11,12 +11,12 @@ export const PlacesSkeleton = () => (
         <div className="h-12 w-12 bg-muted-foreground/20 rounded-full" />
       </div>
     </div>
-    
+
     {/* Search bar skeleton */}
     <div className="p-4">
       <div className="h-10 bg-muted rounded-lg" />
     </div>
-    
+
     {/* Basecamp cards skeleton */}
     <div className="px-4 space-y-3">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -24,7 +24,7 @@ export const PlacesSkeleton = () => (
         <div className="h-24 bg-muted rounded-xl" />
       </div>
     </div>
-    
+
     {/* Places list skeleton */}
     <div className="p-4 space-y-3 flex-1">
       <div className="h-5 bg-muted rounded w-1/3" />

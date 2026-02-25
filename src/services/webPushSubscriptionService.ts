@@ -1,6 +1,6 @@
 /**
  * Web Push Subscription Service
- * 
+ *
  * Manages web push subscriptions in Supabase.
  * Used by the useWebPush hook and notification service.
  */
@@ -44,7 +44,7 @@ export interface CreateSubscriptionInput {
  */
 export async function saveWebPushSubscription(
   userId: string,
-  input: CreateSubscriptionInput
+  input: CreateSubscriptionInput,
 ): Promise<WebPushSubscription | null> {
   const { data, error } = await supabase
     .from('web_push_subscriptions')
@@ -62,7 +62,7 @@ export async function saveWebPushSubscription(
       },
       {
         onConflict: 'user_id,endpoint',
-      }
+      },
     )
     .select()
     .single();
@@ -78,9 +78,7 @@ export async function saveWebPushSubscription(
 /**
  * Get all active subscriptions for a user
  */
-export async function getUserSubscriptions(
-  userId: string
-): Promise<WebPushSubscription[]> {
+export async function getUserSubscriptions(userId: string): Promise<WebPushSubscription[]> {
   const { data, error } = await supabase
     .from('web_push_subscriptions')
     .select('*')
@@ -101,7 +99,7 @@ export async function getUserSubscriptions(
  */
 export async function getSubscriptionByEndpoint(
   userId: string,
-  endpoint: string
+  endpoint: string,
 ): Promise<WebPushSubscription | null> {
   const { data, error } = await supabase
     .from('web_push_subscriptions')
@@ -111,7 +109,8 @@ export async function getSubscriptionByEndpoint(
     .single();
 
   if (error) {
-    if (error.code !== 'PGRST116') { // Not found is ok
+    if (error.code !== 'PGRST116') {
+      // Not found is ok
       console.error('[WebPushSubscriptionService] Failed to get subscription:', error);
     }
     return null;
@@ -123,10 +122,7 @@ export async function getSubscriptionByEndpoint(
 /**
  * Delete a subscription by endpoint
  */
-export async function deleteSubscription(
-  userId: string,
-  endpoint: string
-): Promise<boolean> {
+export async function deleteSubscription(userId: string, endpoint: string): Promise<boolean> {
   const { error } = await supabase
     .from('web_push_subscriptions')
     .delete()
@@ -145,10 +141,7 @@ export async function deleteSubscription(
  * Delete all subscriptions for a user
  */
 export async function deleteAllUserSubscriptions(userId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('web_push_subscriptions')
-    .delete()
-    .eq('user_id', userId);
+  const { error } = await supabase.from('web_push_subscriptions').delete().eq('user_id', userId);
 
   if (error) {
     console.error('[WebPushSubscriptionService] Failed to delete all subscriptions:', error);
@@ -164,7 +157,7 @@ export async function deleteAllUserSubscriptions(userId: string): Promise<boolea
 export async function deactivateSubscription(
   userId: string,
   endpoint: string,
-  reason?: string
+  reason?: string,
 ): Promise<boolean> {
   const { error } = await supabase
     .from('web_push_subscriptions')
@@ -206,7 +199,7 @@ export async function updateLastUsed(subscriptionId: string): Promise<void> {
  */
 export async function incrementFailureCount(
   subscriptionId: string,
-  errorMessage?: string
+  errorMessage?: string,
 ): Promise<void> {
   // First get current count
   const { data: current } = await supabase

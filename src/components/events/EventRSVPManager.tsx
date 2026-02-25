@@ -1,11 +1,11 @@
 /**
  * Event RSVP Manager Component
- * 
+ *
  * Provides UI for attendees to RSVP to events with:
  * - RSVP status selection (going, maybe, not-going)
  * - Capacity limit display and enforcement
  * - Waitlist management
- * 
+ *
  * Used in: EventDetailContent for attendee registration flow
  */
 
@@ -29,7 +29,7 @@ export const EventRSVPManager: React.FC<EventRSVPManagerProps> = ({
   eventId,
   eventTitle,
   eventCapacity,
-  registrationStatus = 'open'
+  registrationStatus = 'open',
 }) => {
   const { rsvp, capacity, isLoading, isSubmitting, submitRSVP } = useEventRSVP(eventId);
 
@@ -50,7 +50,8 @@ export const EventRSVPManager: React.FC<EventRSVPManagerProps> = ({
 
   const currentStatus = rsvp?.status || 'not-answered';
   const isRegistrationClosed = registrationStatus === 'closed';
-  const isWaitlistOnly = registrationStatus === 'waitlist' || (capacity?.isFull && capacity.isWaitlistEnabled);
+  const isWaitlistOnly =
+    registrationStatus === 'waitlist' || (capacity?.isFull && capacity.isWaitlistEnabled);
 
   return (
     <div className="space-y-4">
@@ -75,7 +76,9 @@ export const EventRSVPManager: React.FC<EventRSVPManagerProps> = ({
                 <div className="w-full bg-white/10 rounded-full h-2">
                   <div
                     className="bg-green-500 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, (capacity.current / capacity.total) * 100)}%` }}
+                    style={{
+                      width: `${Math.min(100, (capacity.current / capacity.total) * 100)}%`,
+                    }}
                   />
                 </div>
               )}
@@ -103,8 +106,8 @@ export const EventRSVPManager: React.FC<EventRSVPManagerProps> = ({
             {isRegistrationClosed
               ? 'Registration is closed for this event.'
               : isWaitlistOnly
-              ? 'Event is full. Join the waitlist to be notified if spots become available.'
-              : 'Let us know if you\'ll be attending!'}
+                ? 'Event is full. Join the waitlist to be notified if spots become available.'
+                : "Let us know if you'll be attending!"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -115,7 +118,10 @@ export const EventRSVPManager: React.FC<EventRSVPManagerProps> = ({
               {currentStatus === 'maybe' && <Clock className="h-5 w-5 text-yellow-500" />}
               {currentStatus === 'not-going' && <XCircle className="h-5 w-5 text-red-500" />}
               <span className="text-sm text-gray-300">
-                Your RSVP: <span className="font-semibold text-white capitalize">{currentStatus.replace('-', ' ')}</span>
+                Your RSVP:{' '}
+                <span className="font-semibold text-white capitalize">
+                  {currentStatus.replace('-', ' ')}
+                </span>
                 {rsvp.waitlistPosition && (
                   <span className="ml-2 text-yellow-500">
                     (Waitlist position: #{rsvp.waitlistPosition})
@@ -157,7 +163,6 @@ export const EventRSVPManager: React.FC<EventRSVPManagerProps> = ({
               </Button>
             </div>
           )}
-
         </CardContent>
       </Card>
     </div>

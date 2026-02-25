@@ -29,19 +29,22 @@ export const loyaltyProgramService = {
     return programs.filter(p => p.program_type === type);
   },
 
-  async saveProgram(userId: string, program: Omit<LoyaltyProgram, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<LoyaltyProgram | null> {
+  async saveProgram(
+    userId: string,
+    program: Omit<LoyaltyProgram, 'id' | 'user_id' | 'created_at' | 'updated_at'>,
+  ): Promise<LoyaltyProgram | null> {
     const newProgram: LoyaltyProgram = {
       id: `lp-${Date.now()}-${Math.random().toString(36).substring(7)}`,
       user_id: userId,
       ...program,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
-    
+
     const userPrograms = loyaltyProgramsStorage.get(userId) || [];
     userPrograms.push(newProgram);
     loyaltyProgramsStorage.set(userId, userPrograms);
-    
+
     return newProgram;
   },
 
@@ -77,7 +80,7 @@ export const loyaltyProgramService = {
       programName: program.program_name,
       membershipNumber: program.membership_number,
       tier: program.tier,
-      isPreferred: program.is_preferred
+      isPreferred: program.is_preferred,
     };
   },
 
@@ -88,7 +91,7 @@ export const loyaltyProgramService = {
       programName: program.program_name,
       membershipNumber: program.membership_number,
       tier: program.tier,
-      isPreferred: program.is_preferred
+      isPreferred: program.is_preferred,
     };
   },
 
@@ -99,7 +102,7 @@ export const loyaltyProgramService = {
       programName: program.program_name,
       membershipNumber: program.membership_number,
       tier: program.tier,
-      isPreferred: program.is_preferred
+      isPreferred: program.is_preferred,
     };
-  }
+  },
 };

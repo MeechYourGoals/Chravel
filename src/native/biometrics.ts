@@ -94,13 +94,15 @@ export async function authenticateWithBiometrics(
       // despia('bioauth://') triggers native biometric prompt
       // Returns when authentication completes or fails
       // The despia function may return void in TS, but native bridge returns actual value
-      const result = await despia('bioauth://') as unknown;
+      const result = (await despia('bioauth://')) as unknown;
 
       // Despia returns success/failure indicator - cast to unknown first for type safety
-      const authenticated = 
-        result === true || 
-        result === 'success' || 
-        (typeof result === 'object' && result !== null && (result as { success?: boolean }).success === true);
+      const authenticated =
+        result === true ||
+        result === 'success' ||
+        (typeof result === 'object' &&
+          result !== null &&
+          (result as { success?: boolean }).success === true);
 
       return {
         success: true,

@@ -74,7 +74,9 @@ export async function getCachedEntity(params: {
   return cached;
 }
 
-export async function clearExpiredCache(maxAgeMs: number = DEFAULT_CACHE_EXPIRY_MS): Promise<number> {
+export async function clearExpiredCache(
+  maxAgeMs: number = DEFAULT_CACHE_EXPIRY_MS,
+): Promise<number> {
   const db = await getOfflineDb();
   const all = await db.getAll('cache');
   const now = Date.now();
@@ -93,8 +95,9 @@ export async function upsertTripOverviewSnapshot(snapshot: TripOverviewSnapshot)
   await db.put('tripOverview', snapshot);
 }
 
-export async function getTripOverviewSnapshot(tripId: string): Promise<TripOverviewSnapshot | null> {
+export async function getTripOverviewSnapshot(
+  tripId: string,
+): Promise<TripOverviewSnapshot | null> {
   const db = await getOfflineDb();
   return (await db.get('tripOverview', tripId)) ?? null;
 }
-

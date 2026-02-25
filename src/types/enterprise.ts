@@ -1,4 +1,3 @@
-
 export type TripCategory =
   | 'Sports – Pro, Collegiate, Youth'
   | 'Tour – Music, Comedy, etc.'
@@ -36,7 +35,6 @@ export interface ShowScheduleItem {
   loadInTime: string;
   status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
 }
-
 
 export interface CredentialZone {
   id: string;

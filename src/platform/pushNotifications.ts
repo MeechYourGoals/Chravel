@@ -48,13 +48,13 @@ class WebPushNotificationService implements PushNotificationService {
       const subscription = await (registration as any).pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(
-          import.meta.env.VITE_VAPID_PUBLIC_KEY || ''
-        )
+          import.meta.env.VITE_VAPID_PUBLIC_KEY || '',
+        ),
       });
 
       const token: PushNotificationToken = {
         value: JSON.stringify(subscription),
-        platform: 'web'
+        platform: 'web',
       };
 
       return token;
@@ -92,9 +92,7 @@ class WebPushNotificationService implements PushNotificationService {
 
   private urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
 
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);

@@ -1,9 +1,9 @@
 /**
  * Task Service - Authenticated Mode
- * 
+ *
  * Provides task CRUD operations for authenticated users.
  * Wraps taskStorageService and useTripTasks hook for easier consumption.
- * 
+ *
  * PHASE 2: Collaboration Features
  */
 
@@ -56,7 +56,7 @@ export const taskService = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       return (data || []).map(item => ({
         id: item.id,
         trip_id: item.trip_id,
@@ -67,7 +67,7 @@ export const taskService = {
         is_poll: item.is_poll,
         created_at: item.created_at,
         updated_at: item.updated_at,
-        version: item.version || undefined
+        version: item.version || undefined,
       }));
     } catch (error) {
       console.error('[taskService] Error fetching tasks:', error);
@@ -79,18 +79,18 @@ export const taskService = {
    * Create a new task (authenticated mode)
    */
   async createTask(
-    tripId: string, 
+    tripId: string,
     taskData: CreateTaskRequest,
-    isDemoMode: boolean = false
+    isDemoMode: boolean = false,
   ): Promise<Task> {
     if (isDemoMode) {
       // Demo mode uses taskStorageService - need to adapt types
       const result = await taskStorageService.createTask(tripId, {
         ...taskData,
         is_poll: taskData.is_poll || false,
-        assignedTo: taskData.assignedTo || []
+        assignedTo: taskData.assignedTo || [],
       });
-      
+
       return {
         id: result.id,
         trip_id: result.trip_id,
@@ -100,12 +100,14 @@ export const taskService = {
         due_at: result.due_at,
         is_poll: result.is_poll,
         created_at: result.created_at,
-        updated_at: result.updated_at
+        updated_at: result.updated_at,
       };
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -116,7 +118,7 @@ export const taskService = {
           description: taskData.description,
           due_at: taskData.due_at,
           creator_id: user.id,
-          is_poll: taskData.is_poll || false
+          is_poll: taskData.is_poll || false,
         })
         .select()
         .single();
@@ -138,7 +140,7 @@ export const taskService = {
         is_poll: data.is_poll,
         created_at: data.created_at,
         updated_at: data.updated_at,
-        version: data.version || undefined
+        version: data.version || undefined,
       };
     } catch (error) {
       console.error('[taskService] Error creating task:', error);
@@ -152,7 +154,7 @@ export const taskService = {
   async updateTask(
     taskId: string,
     updates: UpdateTaskRequest,
-    isDemoMode: boolean = false
+    isDemoMode: boolean = false,
   ): Promise<Task> {
     if (isDemoMode) {
       throw new Error('Update not supported in demo mode');
@@ -163,7 +165,7 @@ export const taskService = {
         .from('trip_tasks')
         .update({
           ...updates,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', taskId)
         .select()
@@ -181,23 +183,20 @@ export const taskService = {
    * Toggle task completion status
    * Uses task_status table for per-user completion tracking
    */
-  async toggleTask(
-    taskId: string, 
-    userId: string,
-    completed: boolean
-  ): Promise<void> {
+  async toggleTask(taskId: string, userId: string, completed: boolean): Promise<void> {
     try {
       // Upsert task_status for this user
-      const { error } = await supabase
-        .from('task_status')
-        .upsert({
+      const { error } = await supabase.from('task_status').upsert(
+        {
           task_id: taskId,
           user_id: userId,
           completed,
-          completed_at: completed ? new Date().toISOString() : null
-        }, {
-          onConflict: 'task_id,user_id'
-        });
+          completed_at: completed ? new Date().toISOString() : null,
+        },
+        {
+          onConflict: 'task_id,user_id',
+        },
+      );
 
       if (error) throw error;
     } catch (error) {
@@ -215,10 +214,7 @@ export const taskService = {
     }
 
     try {
-      const { error } = await supabase
-        .from('trip_tasks')
-        .delete()
-        .eq('id', taskId);
+      const { error } = await supabase.from('trip_tasks').delete().eq('id', taskId);
 
       if (error) throw error;
     } catch (error) {
@@ -232,18 +228,18 @@ export const taskService = {
    */
   async assignTask(taskId: string, userIds: string[]): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const assignments = userIds.map(userId => ({
         task_id: taskId,
         user_id: userId,
-        assigned_by: user.id
+        assigned_by: user.id,
       }));
 
-      const { error } = await supabase
-        .from('task_assignments')
-        .insert(assignments);
+      const { error } = await supabase.from('task_assignments').insert(assignments);
 
       if (error) throw error;
     } catch (error) {
@@ -268,5 +264,5 @@ export const taskService = {
       console.error('[taskService] Error fetching assignees:', error);
       return [];
     }
-  }
+  },
 };

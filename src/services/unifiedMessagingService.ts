@@ -86,7 +86,7 @@ class UnifiedMessagingService {
    */
   async subscribeToTrip(
     tripId: string,
-    onMessage: (message: Message) => void
+    onMessage: (message: Message) => void,
   ): Promise<() => void> {
     // Store callback
     if (!this.messageCallbacks.has(tripId)) {
@@ -106,9 +106,9 @@ class UnifiedMessagingService {
             table: 'trip_chat_messages',
             filter: `trip_id=eq.${tripId}`,
           },
-          (payload) => {
+          payload => {
             const message = this.transformMessage(payload.new);
-            this.messageCallbacks.get(tripId)?.forEach((cb) => cb(message));
+            this.messageCallbacks.get(tripId)?.forEach(cb => cb(message));
           },
         )
         .on(
@@ -119,9 +119,9 @@ class UnifiedMessagingService {
             table: 'trip_chat_messages',
             filter: `trip_id=eq.${tripId}`,
           },
-          (payload) => {
+          payload => {
             const updated = this.transformMessage(payload.new);
-            this.messageCallbacks.get(tripId)?.forEach((cb) => cb(updated));
+            this.messageCallbacks.get(tripId)?.forEach(cb => cb(updated));
           },
         )
         .subscribe();
@@ -134,7 +134,7 @@ class UnifiedMessagingService {
       const callbacks = this.messageCallbacks.get(tripId);
       if (callbacks) {
         callbacks.delete(onMessage);
-        
+
         // Clean up channel if no more callbacks
         if (callbacks.size === 0) {
           const channel = this.channels.get(tripId);
@@ -165,7 +165,7 @@ class UnifiedMessagingService {
             privacy_mode: options.privacyMode || 'standard',
             reply_to_id: options.replyToId,
             thread_id: options.threadId,
-            attachments: options.attachments || []
+            attachments: options.attachments || [],
           })
           .select()
           .single();
@@ -179,8 +179,8 @@ class UnifiedMessagingService {
           if (import.meta.env.DEV) {
             console.warn(`Retry attempt ${attempt}/3 for sending message:`, error.message);
           }
-        }
-      }
+        },
+      },
     );
   }
 
@@ -215,7 +215,7 @@ class UnifiedMessagingService {
       .update({
         content,
         is_edited: true,
-        edited_at: new Date().toISOString()
+        edited_at: new Date().toISOString(),
       })
       .eq('id', messageId);
 
@@ -230,7 +230,7 @@ class UnifiedMessagingService {
       .from('trip_chat_messages')
       .update({
         is_deleted: true,
-        deleted_at: new Date().toISOString()
+        deleted_at: new Date().toISOString(),
       })
       .eq('id', messageId);
 
@@ -255,7 +255,9 @@ class UnifiedMessagingService {
   /**
    * Schedule a message for later delivery
    */
-  async scheduleMessage(request: ScheduledMessageRequest): Promise<{ success: boolean; id?: string; error?: string }> {
+  async scheduleMessage(
+    request: ScheduledMessageRequest,
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
       const { data, error } = await supabase.functions.invoke('schedule-message', {
         body: {
@@ -269,16 +271,16 @@ class UnifiedMessagingService {
           recurrence_type: request.recurrenceType,
           recurrence_end: request.recurrenceEnd?.toISOString(),
           template_id: request.templateId,
-        }
+        },
       });
 
       if (error) throw error;
       return { success: true, id: data.id };
     } catch (error) {
       console.error('Failed to schedule message:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -289,7 +291,7 @@ class UnifiedMessagingService {
   async getMessageTemplates(tripType?: string, category?: string): Promise<MessageTemplate[]> {
     try {
       const { data, error } = await supabase.functions.invoke('get-message-templates', {
-        body: { tripType, category }
+        body: { tripType, category },
       });
 
       if (error) throw error;
@@ -305,13 +307,13 @@ class UnifiedMessagingService {
    */
   fillTemplate(template: string, context: Record<string, string>): string {
     let filledTemplate = template;
-    
+
     // Replace placeholders like {{placeholder}} with context values
     Object.entries(context).forEach(([key, value]) => {
       const placeholder = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
       filledTemplate = filledTemplate.replace(placeholder, value || `[${key}]`);
     });
-    
+
     return filledTemplate;
   }
 
@@ -347,14 +349,18 @@ class UnifiedMessagingService {
       link_preview: data.link_preview,
       privacy_mode: data.privacy_mode,
       privacy_encrypted: data.privacy_encrypted,
-      message_type: data.message_type
+      message_type: data.message_type,
     };
   }
 
   /**
    * Get scheduled messages for a user
    */
-  async getScheduledMessages(userId: string, tripId?: string, tourId?: string): Promise<ScheduledMessage[]> {
+  async getScheduledMessages(
+    userId: string,
+    tripId?: string,
+    tourId?: string,
+  ): Promise<ScheduledMessage[]> {
     try {
       const { data, error } = await (supabase as any)
         .from('scheduled_messages')
@@ -374,7 +380,10 @@ class UnifiedMessagingService {
   /**
    * Update a scheduled message
    */
-  async updateScheduledMessage(messageId: string, updates: Partial<ScheduledMessage>): Promise<{ success: boolean; error?: string }> {
+  async updateScheduledMessage(
+    messageId: string,
+    updates: Partial<ScheduledMessage>,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const { error } = await (supabase as any)
         .from('scheduled_messages')
@@ -385,9 +394,9 @@ class UnifiedMessagingService {
       return { success: true };
     } catch (error) {
       console.error('Failed to update scheduled message:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -406,9 +415,9 @@ class UnifiedMessagingService {
       return { success: true };
     } catch (error) {
       console.error('Failed to cancel scheduled message:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }

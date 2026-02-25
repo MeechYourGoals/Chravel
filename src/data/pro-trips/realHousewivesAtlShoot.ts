@@ -11,9 +11,19 @@ export const realHousewivesAtlShoot: ProTripData = {
   tags: [],
   participants: [
     { id: '27', name: 'Kenya Moore', avatar: getMockAvatar('Kenya Moore'), role: 'Cast' },
-    { id: '28', name: 'Executive Producer', avatar: getMockAvatar('Executive Producer'), role: 'Producers' },
+    {
+      id: '28',
+      name: 'Executive Producer',
+      avatar: getMockAvatar('Executive Producer'),
+      role: 'Producers',
+    },
     { id: '29', name: 'Camera Operator', avatar: getMockAvatar('Camera Operator'), role: 'Crew' },
-    { id: '30', name: 'Production Assistant', avatar: getMockAvatar('Production Assistant'), role: 'Crew' }
+    {
+      id: '30',
+      name: 'Production Assistant',
+      avatar: getMockAvatar('Production Assistant'),
+      role: 'Crew',
+    },
   ],
   budget: {
     total: 2500000,
@@ -22,8 +32,8 @@ export const realHousewivesAtlShoot: ProTripData = {
       { name: 'Cast Fees', budgeted: 1500000, spent: 500000 },
       { name: 'Crew Salaries', budgeted: 600000, spent: 200000 },
       { name: 'Production Costs', budgeted: 300000, spent: 100000 },
-      { name: 'Location Fees', budgeted: 100000, spent: 50000 }
-    ]
+      { name: 'Location Fees', budgeted: 100000, spent: 50000 },
+    ],
   },
   itinerary: [
     {
@@ -31,10 +41,15 @@ export const realHousewivesAtlShoot: ProTripData = {
       events: [
         { time: '08:00', title: 'Production Setup', location: 'Atlanta Studio', type: 'meeting' },
         { time: '10:00', title: 'Cast Interviews', location: 'Interview Room A', type: 'meeting' },
-        { time: '14:00', title: 'Group Scene Filming', location: 'Restaurant Location', type: 'meeting' },
-        { time: '18:00', title: 'Wrap and Review', location: 'Production Office', type: 'meeting' }
-      ]
-    }
+        {
+          time: '14:00',
+          title: 'Group Scene Filming',
+          location: 'Restaurant Location',
+          type: 'meeting',
+        },
+        { time: '18:00', title: 'Wrap and Review', location: 'Production Office', type: 'meeting' },
+      ],
+    },
   ],
   roster: [
     {
@@ -46,7 +61,7 @@ export const realHousewivesAtlShoot: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['cast-areas', 'media-access'],
       roomPreferences: ['luxury-suite', 'atlanta-downtown'],
-      dietaryRestrictions: ['organic-only']
+      dietaryRestrictions: ['organic-only'],
     },
     {
       id: '28',
@@ -57,7 +72,7 @@ export const realHousewivesAtlShoot: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'production-control'],
       roomPreferences: ['executive-suite', 'near-production'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '29',
@@ -68,7 +83,7 @@ export const realHousewivesAtlShoot: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['filming-areas', 'equipment-access'],
       roomPreferences: ['crew-housing'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '30',
@@ -79,8 +94,8 @@ export const realHousewivesAtlShoot: ProTripData = {
       credentialLevel: 'Guest',
       permissions: ['general-access'],
       roomPreferences: ['crew-housing'],
-      dietaryRestrictions: ['vegetarian']
-    }
+      dietaryRestrictions: ['vegetarian'],
+    },
   ],
   roomAssignments: [
     {
@@ -91,8 +106,8 @@ export const realHousewivesAtlShoot: ProTripData = {
       checkIn: '2025-08-01T14:00:00Z',
       checkOut: '2025-09-30T12:00:00Z',
       roomType: 'suite',
-      specialRequests: ['luxury-amenities', 'privacy', 'late-checkout']
-    }
+      specialRequests: ['luxury-amenities', 'privacy', 'late-checkout'],
+    },
   ],
   schedule: [
     {
@@ -104,8 +119,8 @@ export const realHousewivesAtlShoot: ProTripData = {
       location: 'Atlanta Event Venue',
       participants: ['27', '28', '29', '30'],
       priority: 'critical',
-      notes: 'Major season wrap-up scene'
-    }
+      notes: 'Major season wrap-up scene',
+    },
   ],
   perDiem: {
     dailyRate: 100,
@@ -114,8 +129,8 @@ export const realHousewivesAtlShoot: ProTripData = {
     endDate: '2025-09-30',
     participants: [
       { participantId: '27', customRate: 250, advances: 0, deductions: 0, balance: 15250 },
-      { participantId: '28', customRate: 150, advances: 0, deductions: 0, balance: 9150 }
-    ]
+      { participantId: '28', customRate: 150, advances: 0, deductions: 0, balance: 9150 },
+    ],
   },
   settlement: [
     {
@@ -128,8 +143,8 @@ export const realHousewivesAtlShoot: ProTripData = {
       netRevenue: 1650000,
       merchandiseRevenue: 0,
       finalPayout: 1650000,
-      status: 'pending'
-    }
+      status: 'pending',
+    },
   ],
   medical: [],
   compliance: [
@@ -141,8 +156,8 @@ export const realHousewivesAtlShoot: ProTripData = {
       deadline: '2025-07-25',
       status: 'compliant',
       assignedTo: '28',
-      documents: ['safety-training.pdf', 'background-checks.pdf']
-    }
+      documents: ['safety-training.pdf', 'background-checks.pdf'],
+    },
   ],
   media: [
     {
@@ -154,8 +169,8 @@ export const realHousewivesAtlShoot: ProTripData = {
       duration: 20,
       location: 'Atlanta Studio',
       participants: ['27'],
-      status: 'scheduled'
-    }
+      status: 'scheduled',
+    },
   ],
   sponsors: [
     {
@@ -166,7 +181,7 @@ export const realHousewivesAtlShoot: ProTripData = {
       assignedTo: '27',
       status: 'in-progress',
       deliverables: ['wardrobe-showcase', 'social-media-posts'],
-      notes: 'Season-long wardrobe partnership'
-    }
-  ]
+      notes: 'Season-long wardrobe partnership',
+    },
+  ],
 };

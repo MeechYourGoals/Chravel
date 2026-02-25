@@ -18,12 +18,12 @@ export const generateClientMessageId = (): string => crypto.randomUUID();
  * Get image dimensions from a File
  */
 async function getImageDimensions(file: File): Promise<{ width: number; height: number } | null> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (!file.type.startsWith('image/')) {
       resolve(null);
       return;
     }
-    
+
     const img = new Image();
     img.onload = () => {
       resolve({ width: img.width, height: img.height });
@@ -40,20 +40,22 @@ async function getImageDimensions(file: File): Promise<{ width: number; height: 
 /**
  * Get video dimensions and duration from a File
  */
-async function getVideoMetadata(file: File): Promise<{ width: number; height: number; durationMs: number } | null> {
-  return new Promise((resolve) => {
+async function getVideoMetadata(
+  file: File,
+): Promise<{ width: number; height: number; durationMs: number } | null> {
+  return new Promise(resolve => {
     if (!file.type.startsWith('video/')) {
       resolve(null);
       return;
     }
-    
+
     const video = document.createElement('video');
     video.preload = 'metadata';
     video.onloadedmetadata = () => {
       resolve({
         width: video.videoWidth,
         height: video.videoHeight,
-        durationMs: Math.round(video.duration * 1000)
+        durationMs: Math.round(video.duration * 1000),
       });
       URL.revokeObjectURL(video.src);
     };
@@ -72,7 +74,7 @@ async function compressImage(file: File): Promise<File | Blob> {
   if (!file.type.startsWith('image/') || file.type === 'image/gif') {
     return file;
   }
-  
+
   try {
     const options = {
       maxSizeMB: 2,
@@ -101,21 +103,21 @@ export async function uploadToChatMedia(
   tripId: string,
   userId: string,
   clientMessageId: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
 ): Promise<RichChatAttachment> {
   // Compress images
   let fileToUpload: File | Blob = file;
   if (file.type.startsWith('image/')) {
     fileToUpload = await compressImage(file);
   }
-  
+
   // Build storage path: <tripId>/<userId>/<clientMessageId>/<filename>
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const storagePath = `${tripId}/${userId}/${clientMessageId}/${sanitizedName}`;
-  
+
   // Get file metadata
   let dimensions: { width?: number; height?: number; durationMs?: number } = {};
-  
+
   if (file.type.startsWith('image/')) {
     const imgDims = await getImageDimensions(file);
     if (imgDims) {
@@ -127,7 +129,7 @@ export async function uploadToChatMedia(
       dimensions = videoMeta;
     }
   }
-  
+
   // Upload to private bucket
   const { data, error } = await supabase.storage
     .from(BUCKET_NAME)
@@ -135,15 +137,15 @@ export async function uploadToChatMedia(
       contentType: file.type,
       upsert: false,
     });
-  
+
   if (error) {
     console.error('[ChatMediaUpload] Upload failed:', error);
     throw error;
   }
-  
+
   // Call progress callback
   onProgress?.(100);
-  
+
   // Return attachment metadata (path only, NOT public URL)
   return {
     path: storagePath,
@@ -161,19 +163,14 @@ export async function uploadToChatMedia(
  * @param path Storage path from RichChatAttachment
  * @param expiresIn Expiration time in seconds (default 1 hour)
  */
-export async function getSignedUrl(
-  path: string,
-  expiresIn: number = 3600
-): Promise<string | null> {
-  const { data, error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .createSignedUrl(path, expiresIn);
-  
+export async function getSignedUrl(path: string, expiresIn: number = 3600): Promise<string | null> {
+  const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(path, expiresIn);
+
   if (error) {
     console.error('[ChatMediaUpload] Failed to create signed URL:', error);
     return null;
   }
-  
+
   return data.signedUrl;
 }
 
@@ -182,24 +179,24 @@ export async function getSignedUrl(
  */
 export async function getSignedUrls(
   paths: string[],
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
 ): Promise<Map<string, string>> {
   const urlMap = new Map<string, string>();
-  
+
   // Create signed URLs in parallel
   const results = await Promise.all(
-    paths.map(async (path) => {
+    paths.map(async path => {
       const url = await getSignedUrl(path, expiresIn);
       return { path, url };
-    })
+    }),
   );
-  
+
   for (const { path, url } of results) {
     if (url) {
       urlMap.set(path, url);
     }
   }
-  
+
   return urlMap;
 }
 
@@ -211,18 +208,14 @@ export async function uploadMultipleFiles(
   tripId: string,
   userId: string,
   clientMessageId: string,
-  onProgress?: (fileName: string, progress: number) => void
+  onProgress?: (fileName: string, progress: number) => void,
 ): Promise<RichChatAttachment[]> {
   const attachments: RichChatAttachment[] = [];
-  
+
   for (const file of files) {
     try {
-      const attachment = await uploadToChatMedia(
-        file,
-        tripId,
-        userId,
-        clientMessageId,
-        (progress) => onProgress?.(file.name, progress)
+      const attachment = await uploadToChatMedia(file, tripId, userId, clientMessageId, progress =>
+        onProgress?.(file.name, progress),
       );
       attachments.push(attachment);
     } catch (error) {
@@ -230,7 +223,7 @@ export async function uploadMultipleFiles(
       throw error;
     }
   }
-  
+
   return attachments;
 }
 

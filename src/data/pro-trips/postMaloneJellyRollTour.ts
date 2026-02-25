@@ -4,7 +4,8 @@ import { getMockAvatar } from '../../utils/mockAvatars';
 export const postMaloneJellyRollTour: ProTripData = {
   id: 'shane-gillis-comedy-tour-2026',
   title: 'Shane Gillis — Live Comedy Tour 2026',
-  description: 'Multi-city stand-up comedy tour covering major U.S. markets with full touring crew, production, merch, and talent operations.',
+  description:
+    'Multi-city stand-up comedy tour covering major U.S. markets with full touring crew, production, merch, and talent operations.',
   location: 'Chicago, Boston, New York, Philadelphia, Atlanta, Austin, Los Angeles',
   dateRange: 'May 8 - Jul 19, 2026',
   proTripCategory: 'touring',
@@ -19,7 +20,7 @@ export const postMaloneJellyRollTour: ProTripData = {
       completed: true,
       due_at: '2026-05-07',
       assigned_to: 'production-manager',
-      created_at: new Date(Date.now() - 604800000).toISOString()
+      created_at: new Date(Date.now() - 604800000).toISOString(),
     },
     {
       id: 'task-tour-2',
@@ -28,8 +29,8 @@ export const postMaloneJellyRollTour: ProTripData = {
       completed: false,
       due_at: '2026-05-15',
       assigned_to: 'merch-director',
-      created_at: new Date().toISOString()
-    }
+      created_at: new Date().toISOString(),
+    },
   ],
   polls: [
     {
@@ -38,12 +39,12 @@ export const postMaloneJellyRollTour: ProTripData = {
       options: [
         { id: 'opt1', text: '6:00 AM (Early Start)', votes: 8 },
         { id: 'opt2', text: '9:00 AM (Standard)', votes: 18 },
-        { id: 'opt3', text: '12:00 PM (Late Start)', votes: 2 }
+        { id: 'opt3', text: '12:00 PM (Late Start)', votes: 2 },
       ],
       total_votes: 28,
       status: 'closed',
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
   ],
   links: [
     {
@@ -53,7 +54,7 @@ export const postMaloneJellyRollTour: ProTripData = {
       description: 'Venue information and load-in procedures',
       domain: 'unitedcenter.com',
       created_at: new Date().toISOString(),
-      source: 'places'
+      source: 'places',
     },
     {
       id: 'link-tour-2',
@@ -62,8 +63,8 @@ export const postMaloneJellyRollTour: ProTripData = {
       description: 'Boston venue details and logistics',
       domain: 'tdgarden.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
-      source: 'manual'
-    }
+      source: 'manual',
+    },
   ],
   broadcasts: [
     {
@@ -73,7 +74,7 @@ export const postMaloneJellyRollTour: ProTripData = {
       targetTrips: ['shane-gillis-comedy-tour-2026'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['1', '3', '4']
+      readBy: ['1', '3', '4'],
     },
     {
       id: 'bc-tour-2',
@@ -82,35 +83,132 @@ export const postMaloneJellyRollTour: ProTripData = {
       targetTrips: ['shane-gillis-comedy-tour-2026'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['2', '3']
-    }
+      readBy: ['2', '3'],
+    },
   ],
   participants: [
     { id: '1', name: 'Shane Gillis', avatar: getMockAvatar('Shane Gillis'), role: 'Headliner' },
-    { id: '2', name: 'Logan Kimstein', avatar: getMockAvatar('Logan Kimstein'), role: 'Tour Manager' },
+    {
+      id: '2',
+      name: 'Logan Kimstein',
+      avatar: getMockAvatar('Logan Kimstein'),
+      role: 'Tour Manager',
+    },
     { id: '3', name: 'Erik Kennedy', avatar: getMockAvatar('Erik Kennedy'), role: 'Agent' },
-    { id: '4', name: 'Ryan O\'Connor', avatar: getMockAvatar('Ryan O\'Connor'), role: 'Production Manager' },
-    { id: '5', name: 'Lena Morales', avatar: getMockAvatar('Lena Morales'), role: 'Merch Director' },
+    {
+      id: '4',
+      name: "Ryan O'Connor",
+      avatar: getMockAvatar("Ryan O'Connor"),
+      role: 'Production Manager',
+    },
+    {
+      id: '5',
+      name: 'Lena Morales',
+      avatar: getMockAvatar('Lena Morales'),
+      role: 'Merch Director',
+    },
     { id: '6', name: 'Tom Reeves', avatar: getMockAvatar('Tom Reeves'), role: 'FOH Audio' },
-    { id: '7', name: 'Chris Dalton', avatar: getMockAvatar('Chris Dalton'), role: 'Security Lead' }
+    { id: '7', name: 'Chris Dalton', avatar: getMockAvatar('Chris Dalton'), role: 'Security Lead' },
   ],
   roster: [
-    { id: '1', name: 'Shane Gillis', role: 'Headliner', email: 'shane@gilliscomedy.com', avatar: getMockAvatar('Shane Gillis'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '2', name: 'Logan Kimstein', role: 'Tour Manager', email: 'logan@tourmanagement.com', avatar: getMockAvatar('Logan Kimstein'), credentialLevel: 'AllAccess', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '3', name: 'Erik Kennedy', role: 'Agent', email: 'erik@talentmanagement.com', avatar: getMockAvatar('Erik Kennedy'), credentialLevel: 'Backstage', permissions: ['admin'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '4', name: 'Ryan O\'Connor', role: 'Production Manager', email: 'ryan@production.com', avatar: getMockAvatar('Ryan O\'Connor'), credentialLevel: 'AllAccess', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '5', name: 'Lena Morales', role: 'Merch Director', email: 'lena@merch.com', avatar: getMockAvatar('Lena Morales'), credentialLevel: 'Backstage', permissions: ['editor'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '6', name: 'Tom Reeves', role: 'FOH Audio', email: 'tom@audio.com', avatar: getMockAvatar('Tom Reeves'), credentialLevel: 'Backstage', permissions: ['viewer'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' },
-    { id: '7', name: 'Chris Dalton', role: 'Security Lead', email: 'chris@security.com', avatar: getMockAvatar('Chris Dalton'), credentialLevel: 'Backstage', permissions: ['viewer'], roomPreferences: [], dietaryRestrictions: [], medicalNotes: '' }
+    {
+      id: '1',
+      name: 'Shane Gillis',
+      role: 'Headliner',
+      email: 'shane@gilliscomedy.com',
+      avatar: getMockAvatar('Shane Gillis'),
+      credentialLevel: 'AllAccess',
+      permissions: ['admin'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
+    {
+      id: '2',
+      name: 'Logan Kimstein',
+      role: 'Tour Manager',
+      email: 'logan@tourmanagement.com',
+      avatar: getMockAvatar('Logan Kimstein'),
+      credentialLevel: 'AllAccess',
+      permissions: ['admin'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
+    {
+      id: '3',
+      name: 'Erik Kennedy',
+      role: 'Agent',
+      email: 'erik@talentmanagement.com',
+      avatar: getMockAvatar('Erik Kennedy'),
+      credentialLevel: 'Backstage',
+      permissions: ['admin'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
+    {
+      id: '4',
+      name: "Ryan O'Connor",
+      role: 'Production Manager',
+      email: 'ryan@production.com',
+      avatar: getMockAvatar("Ryan O'Connor"),
+      credentialLevel: 'AllAccess',
+      permissions: ['editor'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
+    {
+      id: '5',
+      name: 'Lena Morales',
+      role: 'Merch Director',
+      email: 'lena@merch.com',
+      avatar: getMockAvatar('Lena Morales'),
+      credentialLevel: 'Backstage',
+      permissions: ['editor'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
+    {
+      id: '6',
+      name: 'Tom Reeves',
+      role: 'FOH Audio',
+      email: 'tom@audio.com',
+      avatar: getMockAvatar('Tom Reeves'),
+      credentialLevel: 'Backstage',
+      permissions: ['viewer'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
+    {
+      id: '7',
+      name: 'Chris Dalton',
+      role: 'Security Lead',
+      email: 'chris@security.com',
+      avatar: getMockAvatar('Chris Dalton'),
+      credentialLevel: 'Backstage',
+      permissions: ['viewer'],
+      roomPreferences: [],
+      dietaryRestrictions: [],
+      medicalNotes: '',
+    },
   ],
   itinerary: [
     {
       date: '2026-05-08',
       events: [
-        { title: 'Tour Kickoff - Chicago', location: 'United Center', time: '20:00', type: 'event' },
-        { title: 'Sound Check', location: 'United Center', time: '17:00', type: 'event' }
-      ]
-    }
+        {
+          title: 'Tour Kickoff - Chicago',
+          location: 'United Center',
+          time: '20:00',
+          type: 'event',
+        },
+        { title: 'Sound Check', location: 'United Center', time: '17:00', type: 'event' },
+      ],
+    },
   ],
   budget: {
     total: 3500000,
@@ -119,8 +217,8 @@ export const postMaloneJellyRollTour: ProTripData = {
       { name: 'Venues', budgeted: 1500000, spent: 750000 },
       { name: 'Production & Audio', budgeted: 800000, spent: 450000 },
       { name: 'Crew & Tour Staff', budgeted: 700000, spent: 350000 },
-      { name: 'Marketing & Merch', budgeted: 500000, spent: 250000 }
-    ]
+      { name: 'Marketing & Merch', budgeted: 500000, spent: 250000 },
+    ],
   },
   schedule: [
     {
@@ -131,14 +229,20 @@ export const postMaloneJellyRollTour: ProTripData = {
       endTime: '2026-05-08T22:30:00Z',
       type: 'show',
       participants: ['1', '2', '4', '6'],
-      priority: 'high'
-    }
+      priority: 'high',
+    },
   ],
   roomAssignments: [],
-  perDiem: { dailyRate: 125, currency: 'USD', startDate: '2026-05-08', endDate: '2026-07-19', participants: [] },
+  perDiem: {
+    dailyRate: 125,
+    currency: 'USD',
+    startDate: '2026-05-08',
+    endDate: '2026-07-19',
+    participants: [],
+  },
   settlement: [],
   medical: [],
   compliance: [],
   media: [],
-  sponsors: []
+  sponsors: [],
 };

@@ -30,14 +30,16 @@ function isSafariLike(): boolean {
 
 function isStandalonePWA(): boolean {
   // Detect if running as installed PWA (standalone mode)
-  return window.matchMedia('(display-mode: standalone)').matches ||
-         (window.navigator as any).standalone === true;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true
+  );
 }
 
 export async function openOrDownloadBlob(
   blob: Blob,
   filename: string,
-  options: DownloadOptions = {}
+  options: DownloadOptions = {},
 ): Promise<void> {
   const { preOpenedWindow, mimeType } = options;
   const type = blob.type || mimeType || 'application/octet-stream';
@@ -53,7 +55,7 @@ export async function openOrDownloadBlob(
       // Add timeout to prevent indefinite hanging (especially in PWA mode)
       const sharePromise = anyNavigator.share({ files: [file], title: filename });
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Share timeout')), 15000)
+        setTimeout(() => reject(new Error('Share timeout')), 15000),
       );
       await Promise.race([sharePromise, timeoutPromise]);
       return;

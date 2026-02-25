@@ -79,18 +79,9 @@ serve(async req => {
     const userIds = [...new Set(reminders.map(reminder => reminder.recipient_user_id))];
 
     const [{ data: eventRows }, { data: tripRows }, { data: timezoneRows }] = await Promise.all([
-      supabase
-        .from('trip_events')
-        .select('id, trip_id, title, start_time')
-        .in('id', eventIds),
-      supabase
-        .from('trips')
-        .select('id, name')
-        .in('id', tripIds),
-      supabase
-        .from('notification_preferences')
-        .select('user_id, timezone')
-        .in('user_id', userIds),
+      supabase.from('trip_events').select('id, trip_id, title, start_time').in('id', eventIds),
+      supabase.from('trips').select('id, name').in('id', tripIds),
+      supabase.from('notification_preferences').select('user_id, timezone').in('user_id', userIds),
     ]);
 
     const eventsById = new Map<string, TripEventRow>(

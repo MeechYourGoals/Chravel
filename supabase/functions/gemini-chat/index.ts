@@ -13,9 +13,9 @@ interface ChatMessage {
 }
 
 interface GeminiChatRequest {
-  message: string
-  tripContext?: any
-  chatHistory?: ChatMessage[]
+  message: string;
+  tripContext?: any;
+  chatHistory?: ChatMessage[];
   config?: {
     model?: string;
     temperature?: number;
@@ -50,8 +50,8 @@ serve(async req => {
       chatHistory = [],
       config = {},
       imageBase64,
-      analysisType = 'chat'
-    }: GeminiChatRequest = await req.json()
+      analysisType = 'chat',
+    }: GeminiChatRequest = await req.json();
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },

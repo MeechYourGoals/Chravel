@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 interface LoadingSkeletonProps {
   variant?: 'card' | 'list' | 'grid' | 'chat' | 'media';
@@ -8,7 +8,7 @@ interface LoadingSkeletonProps {
 
 /**
  * Reusable loading skeleton component for consistent loading states
- * 
+ *
  * Usage:
  * ```tsx
  * {isLoading ? <LoadingSkeleton variant="card" count={3} /> : <Content />}
@@ -21,7 +21,7 @@ export function LoadingSkeleton({ variant = 'card', count = 3 }: LoadingSkeleton
     case 'card':
       return (
         <div className="space-y-4">
-          {skeletons.map((i) => (
+          {skeletons.map(i => (
             <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-6 w-3/4" />
@@ -39,7 +39,7 @@ export function LoadingSkeleton({ variant = 'card', count = 3 }: LoadingSkeleton
     case 'list':
       return (
         <div className="space-y-3">
-          {skeletons.map((i) => (
+          {skeletons.map(i => (
             <div key={i} className="flex items-center gap-3">
               <Skeleton className="h-10 w-10 rounded-full" />
               <div className="flex-1 space-y-2">
@@ -54,7 +54,7 @@ export function LoadingSkeleton({ variant = 'card', count = 3 }: LoadingSkeleton
     case 'grid':
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {skeletons.map((i) => (
+          {skeletons.map(i => (
             <Card key={i}>
               <CardContent className="pt-6">
                 <Skeleton className="h-32 w-full mb-4" />
@@ -69,11 +69,8 @@ export function LoadingSkeleton({ variant = 'card', count = 3 }: LoadingSkeleton
     case 'chat':
       return (
         <div className="space-y-4">
-          {skeletons.map((i) => (
-            <div
-              key={i}
-              className={`flex gap-3 ${i % 2 === 0 ? '' : 'flex-row-reverse'}`}
-            >
+          {skeletons.map(i => (
+            <div key={i} className={`flex gap-3 ${i % 2 === 0 ? '' : 'flex-row-reverse'}`}>
               <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
               <div className="flex-1 space-y-2 max-w-[70%]">
                 <Skeleton className="h-16 w-full rounded-lg" />
@@ -87,7 +84,7 @@ export function LoadingSkeleton({ variant = 'card', count = 3 }: LoadingSkeleton
     case 'media':
       return (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {skeletons.map((i) => (
+          {skeletons.map(i => (
             <Skeleton key={i} className="aspect-square w-full" />
           ))}
         </div>

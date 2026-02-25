@@ -47,11 +47,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
     if (!balance.preferredPaymentMethod) return null;
     const method = balance.preferredPaymentMethod;
     if (!SUPPORTED_DEEPLINK_TYPES.includes(method.type as ReceiptPaymentMethod)) return null;
-    return generatePaymentDeeplink(
-      method.type as ReceiptPaymentMethod,
-      amount,
-      method.identifier
-    );
+    return generatePaymentDeeplink(method.type as ReceiptPaymentMethod, amount, method.identifier);
   })();
 
   return (
@@ -66,7 +62,7 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                 <AvatarImage src={balance.avatar} alt={balance.userName} />
                 <AvatarFallback>{balance.userName.charAt(0)}</AvatarFallback>
               </Avatar>
-              
+
               <div className="min-w-0">
                 <h4 className="font-semibold text-foreground truncate">{balance.userName}</h4>
                 <p className="text-xs text-muted-foreground truncate">
@@ -77,8 +73,8 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
 
             {/* Middle: Action Button */}
             {isPendingConfirmation && !youOweThem ? (
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 className="text-xs px-2 py-1 h-auto flex-shrink-0 bg-orange-600 hover:bg-orange-700"
                 onClick={() => setShowConfirmDialog(true)}
               >
@@ -88,8 +84,8 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
             ) : youOweThem ? (
               <div className="flex gap-2 flex-shrink-0">
                 {paymentLink && (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     className="text-xs px-2 py-1 h-auto"
                     onClick={() => window.open(paymentLink, '_blank')}
                   >
@@ -97,8 +93,8 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                     Pay Now
                   </Button>
                 )}
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="outline"
                   className="text-xs px-2 py-1 h-auto"
                   onClick={() => setShowSettleDialog(true)}
@@ -107,8 +103,8 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                 </Button>
               </div>
             ) : (
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="outline"
                 className="text-xs px-2 py-1 h-auto flex-shrink-0"
                 onClick={() => setShowSettleDialog(true)}
@@ -119,20 +115,26 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
 
             {/* Right: Amount */}
             <div className="text-right flex-shrink-0">
-              <p className={`text-sm font-semibold ${youOweThem ? 'text-orange-600' : 'text-green-600'}`}>
+              <p
+                className={`text-sm font-semibold ${youOweThem ? 'text-orange-600' : 'text-green-600'}`}
+              >
                 {youOweThem ? 'You owe' : 'Owes you'}
               </p>
               <p className="text-lg font-bold">{formatAmount(amount)}</p>
             </div>
-            
+
             {/* Chevron toggle */}
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="ghost"
               className="flex-shrink-0 h-auto p-1"
               onClick={() => setShowDetails(!showDetails)}
             >
-              {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {showDetails ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
             </Button>
           </div>
 

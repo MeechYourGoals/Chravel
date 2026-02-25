@@ -26,7 +26,7 @@ const preview: Preview = {
     layout: 'centered',
   },
   decorators: [
-    (Story) => (
+    Story => (
       <div style={{ padding: '2rem' }}>
         <Story />
       </div>

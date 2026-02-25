@@ -40,7 +40,7 @@ interface TripMember {
 export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> = ({
   open,
   onOpenChange,
-  tripId
+  tripId,
 }) => {
   const { roles, isLoading: loadingRoles } = useTripRoles({ tripId });
   const { assignRole, isProcessing } = useRoleAssignments({ tripId });
@@ -60,13 +60,15 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
     try {
       const { data, error } = await supabase
         .from('trip_members')
-        .select(`
+        .select(
+          `
           user_id,
           profile:profiles!inner(
             display_name,
             avatar_url
           )
-        `)
+        `,
+        )
         .eq('trip_id', tripId);
 
       if (error) throw error;
@@ -80,7 +82,7 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
   };
 
   const toggleMember = (userId: string) => {
-    setSelectedMembers((prev) => {
+    setSelectedMembers(prev => {
       const updated = new Set(prev);
       if (updated.has(userId)) {
         updated.delete(userId);
@@ -107,12 +109,14 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
 
     try {
       const assignmentPromises = Array.from(selectedMembers).map(userId =>
-        assignRole(userId, selectedRole)
+        assignRole(userId, selectedRole),
       );
 
       await Promise.all(assignmentPromises);
 
-      toast.success(`Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''}`);
+      toast.success(
+        `Assigned role to ${selectedMembers.size} member${selectedMembers.size > 1 ? 's' : ''}`,
+      );
       setSelectedMembers(new Set());
       setSelectedRole('');
       onOpenChange(false);
@@ -148,7 +152,7 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
                   <SelectValue placeholder="Choose a role..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => (
+                  {roles.map(role => (
                     <SelectItem key={role.id} value={role.id}>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{role.roleName}</span>
@@ -185,7 +189,7 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
                     <p className="text-sm text-muted-foreground">No team members found</p>
                   </div>
                 ) : (
-                  members.map((member) => {
+                  members.map(member => {
                     const profile = member.profile as any;
                     const isSelected = selectedMembers.has(member.user_id);
 

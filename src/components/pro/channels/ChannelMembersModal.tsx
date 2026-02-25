@@ -27,7 +27,7 @@ interface ChannelMembersModalProps {
 export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
   channel,
   onClose,
-  isAdmin
+  isAdmin,
 }) => {
   const [members, setMembers] = useState<ChannelMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +42,8 @@ export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
       setIsLoading(true);
       const { data, error } = await supabase
         .from('channel_members')
-        .select(`
+        .select(
+          `
           id,
           user_id,
           joined_at,
@@ -53,7 +54,8 @@ export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
             display_name,
             avatar_url
           )
-        `)
+        `,
+        )
         .eq('channel_id', channel.id)
         .order('joined_at', { ascending: true });
 
@@ -92,12 +94,16 @@ export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-card rounded-xl border border-border max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card rounded-xl border border-border max-w-md w-full p-6"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-white">
-            Channel Members ({members.length})
-          </h2>
+          <h2 className="text-xl font-semibold text-white">Channel Members ({members.length})</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X size={20} />
           </Button>
@@ -108,12 +114,10 @@ export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : members.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            No members in this channel yet
-          </div>
+          <div className="text-center py-8 text-gray-400">No members in this channel yet</div>
         ) : (
           <div className="space-y-2 mb-4 max-h-96 overflow-y-auto">
-            {members.map((member) => (
+            {members.map(member => (
               <div
                 key={member.id}
                 className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
@@ -161,7 +165,11 @@ export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
         )}
 
         {isAdmin && (
-          <Button className="w-full bg-primary hover:bg-primary/90" disabled title="Bulk member import will be available in a future update">
+          <Button
+            className="w-full bg-primary hover:bg-primary/90"
+            disabled
+            title="Bulk member import will be available in a future update"
+          >
             <UserPlus size={16} className="mr-2" />
             Add Members
           </Button>

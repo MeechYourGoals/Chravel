@@ -1,9 +1,9 @@
 /**
  * Chat URL Extractor Service
  * Normalizes URLs posted in trip chat for the Media > URLs tab.
- * 
+ *
  * ENHANCED: Now includes OG metadata fetching, categorization, and deduplication
- * 
+ *
  * @module services/chatUrlExtractor
  */
 
@@ -18,16 +18,16 @@ type ChatRow = Pick<
 >;
 
 export interface NormalizedUrl {
-  url: string;         // normalized URL
-  rawUrl: string;      // as typed in chat
-  domain: string;      // e.g., youtube.com
+  url: string; // normalized URL
+  rawUrl: string; // as typed in chat
+  domain: string; // e.g., youtube.com
   firstSeenAt: string; // oldest occurrence (ISO)
-  lastSeenAt: string;  // newest occurrence (ISO)
-  messageId: string;   // most recent message id containing this URL
+  lastSeenAt: string; // newest occurrence (ISO)
+  messageId: string; // most recent message id containing this URL
   postedBy?: { id: string; name?: string; avatar_url?: string };
-  title?: string;      // from link_preview or OG metadata
+  title?: string; // from link_preview or OG metadata
   description?: string; // from OG metadata
-  image?: string;      // OG image URL
+  image?: string; // OG image URL
   category?: 'receipt' | 'schedule' | 'booking' | 'general'; // auto-categorized
   ogMetadata?: OGMetadata; // full OG metadata
 }
@@ -36,7 +36,11 @@ function parsePreview(preview: ChatRow['link_preview']): Record<string, unknown>
   if (!preview) return undefined;
   if (typeof preview === 'object') return preview as Record<string, unknown>;
   if (typeof preview === 'string') {
-    try { return JSON.parse(preview) as Record<string, unknown>; } catch { return undefined; }
+    try {
+      return JSON.parse(preview) as Record<string, unknown>;
+    } catch {
+      return undefined;
+    }
   }
   return undefined;
 }
@@ -54,12 +58,12 @@ function extractTitleFromLinkPreview(preview: ChatRow['link_preview']): string |
 
 /**
  * Extract URLs from trip chat with enhanced metadata and categorization
- * 
+ *
  * ENHANCED FEATURES:
  * - Fetches OG metadata for URLs missing preview data
  * - Auto-categorizes URLs (receipt/schedule/booking/general)
  * - Deduplicates normalized URLs
- * 
+ *
  * @param tripId - Trip ID to extract URLs from
  * @param options - Configuration options
  * @param options.fetchMetadata - Whether to fetch OG metadata for URLs (default: true)
@@ -68,10 +72,10 @@ function extractTitleFromLinkPreview(preview: ChatRow['link_preview']): string |
  */
 export async function extractUrlsFromTripChat(
   tripId: string,
-  options: { fetchMetadata?: boolean; isDemoMode?: boolean } = {}
+  options: { fetchMetadata?: boolean; isDemoMode?: boolean } = {},
 ): Promise<NormalizedUrl[]> {
   const { fetchMetadata = true, isDemoMode = false } = options;
-  
+
   try {
     // Only show mock data when explicitly in demo mode
     if (isDemoMode) return getMockUrls(tripId);
@@ -93,7 +97,7 @@ export async function extractUrlsFromTripChat(
 
     for (const link of data) {
       const normalizedUrl = normalizeUrl(link.url || '');
-      
+
       if (urlMap.has(normalizedUrl)) {
         // Update existing entry with latest timestamp
         const existing = urlMap.get(normalizedUrl)!;
@@ -122,7 +126,8 @@ export async function extractUrlsFromTripChat(
         try {
           const ogMetadata = await fetchOGMetadata(normalizedUrl);
           if (ogMetadata.title && !urlData.title) urlData.title = ogMetadata.title;
-          if (ogMetadata.description && !urlData.description) urlData.description = ogMetadata.description;
+          if (ogMetadata.description && !urlData.description)
+            urlData.description = ogMetadata.description;
           if (ogMetadata.image && !urlData.image) urlData.image = ogMetadata.image;
           urlData.ogMetadata = ogMetadata;
         } catch (err) {

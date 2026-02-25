@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ExternalLink, MessageCircle, ThumbsUp, MoreHorizontal, User } from 'lucide-react';
 
@@ -25,9 +24,9 @@ export const LinkCard = ({ link }: LinkCardProps) => {
 
   const getSourceBadge = (source: 'chat' | 'manual' | 'places') => {
     const sourceMap = {
-      'chat': { label: 'From chat', color: 'bg-blue-600' },
-      'places': { label: 'From Places', color: 'bg-green-600' },
-      'manual': { label: 'Manual', color: 'bg-gray-600' }
+      chat: { label: 'From chat', color: 'bg-blue-600' },
+      places: { label: 'From Places', color: 'bg-green-600' },
+      manual: { label: 'Manual', color: 'bg-gray-600' },
     };
     return sourceMap[source];
   };
@@ -40,17 +39,15 @@ export const LinkCard = ({ link }: LinkCardProps) => {
       <div className="flex">
         {link.imageUrl && (
           <div className="w-24 h-24 sm:w-32 sm:h-24 flex-shrink-0">
-            <img 
-              src={link.imageUrl} 
-              alt={link.title}
-              className="w-full h-full object-cover"
-            />
+            <img src={link.imageUrl} alt={link.title} className="w-full h-full object-cover" />
           </div>
         )}
         <div className="flex-1 p-4">
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-2 mb-2">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${sourceBadge.color}`}>
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-medium text-white ${sourceBadge.color}`}
+              >
                 {sourceBadge.label}
               </span>
             </div>
@@ -58,10 +55,10 @@ export const LinkCard = ({ link }: LinkCardProps) => {
               <MoreHorizontal size={16} />
             </button>
           </div>
-          
+
           <h3 className="text-white font-medium mb-1 line-clamp-2">{link.title}</h3>
           <p className="text-slate-400 text-sm mb-3 line-clamp-2">{link.description}</p>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4 text-sm text-slate-400">
               <div className="flex items-center gap-1">
@@ -70,10 +67,10 @@ export const LinkCard = ({ link }: LinkCardProps) => {
               </div>
               <span>{link.postedAt}</span>
             </div>
-            
-            <a 
-              href={link.url} 
-              target="_blank" 
+
+            <a
+              href={link.url}
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-sm"
             >
@@ -88,7 +85,7 @@ export const LinkCard = ({ link }: LinkCardProps) => {
       <div className="px-4 py-3 bg-slate-900/30 border-t border-slate-700/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setIsUpvoted(!isUpvoted)}
               className={`flex items-center gap-2 text-sm transition-colors ${
                 isUpvoted ? 'text-blue-400' : 'text-slate-400 hover:text-white'
@@ -97,8 +94,8 @@ export const LinkCard = ({ link }: LinkCardProps) => {
               <ThumbsUp size={16} className={isUpvoted ? 'fill-current' : ''} />
               {link.upvotes + (isUpvoted ? 1 : 0)}
             </button>
-            
-            <button 
+
+            <button
               onClick={() => setShowComments(!showComments)}
               className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
             >

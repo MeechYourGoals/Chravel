@@ -11,19 +11,17 @@ interface PollOptionProps {
   isMultiple?: boolean;
 }
 
-export const PollOption = ({ 
-  option, 
-  totalVotes, 
-  userVote, 
+export const PollOption = ({
+  option,
+  totalVotes,
+  userVote,
   selectedOptions = [],
-  onVote, 
+  onVote,
   disabled = false,
-  isMultiple = false
+  isMultiple = false,
 }: PollOptionProps) => {
   const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-  const isVoted = Array.isArray(userVote) 
-    ? userVote.includes(option.id) 
-    : userVote === option.id;
+  const isVoted = Array.isArray(userVote) ? userVote.includes(option.id) : userVote === option.id;
   const isSelected = selectedOptions.includes(option.id);
 
   return (
@@ -43,7 +41,7 @@ export const PollOption = ({
           {option.votes} vote{option.votes !== 1 ? 's' : ''} ({percentage.toFixed(0)}%)
         </span>
       </div>
-      
+
       {/* Progress bar - always visible with blue-to-orange gradient */}
       <div className="w-full bg-muted/30 rounded-full h-2">
         <div

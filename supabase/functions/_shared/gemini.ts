@@ -134,7 +134,12 @@ function normalizeLovableEmbeddingModel(model?: string): string {
   return normalized.startsWith('google/') ? normalized : `google/${normalized}`;
 }
 
-function flattenContentToText(content: string | ContentPart[] | Array<{ type: string; text?: string; image_url?: { url: string } }>): string {
+function flattenContentToText(
+  content:
+    | string
+    | ContentPart[]
+    | Array<{ type: string; text?: string; image_url?: { url: string } }>,
+): string {
   if (typeof content === 'string') return content;
 
   return content
@@ -205,7 +210,10 @@ async function fetchUrlAsInlineData(
 }
 
 async function toGeminiParts(
-  content: string | ContentPart[] | Array<{ type: string; text?: string; image_url?: { url: string } }>,
+  content:
+    | string
+    | ContentPart[]
+    | Array<{ type: string; text?: string; image_url?: { url: string } }>,
   timeoutMs: number,
 ): Promise<any[]> {
   if (typeof content === 'string') {
@@ -294,9 +302,7 @@ async function callGeminiChat(request: ChatModelRequest): Promise<ChatModelRespo
 
   if (systemMessages.length > 0) {
     payload.systemInstruction = {
-      parts: [
-        { text: systemMessages.map(m => flattenContentToText(m.content)).join('\n\n') },
-      ],
+      parts: [{ text: systemMessages.map(m => flattenContentToText(m.content)).join('\n\n') }],
     };
   }
 

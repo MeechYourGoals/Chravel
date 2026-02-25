@@ -42,9 +42,7 @@ export const CATEGORY_ALIAS_MAP: Record<string, CalendarCategory> = {
  * Normalizes any category string to a canonical CalendarCategory.
  * Unknown values default to 'other'.
  */
-export function normalizeCalendarCategory(
-  raw: string | null | undefined,
-): CalendarCategory {
+export function normalizeCalendarCategory(raw: string | null | undefined): CalendarCategory {
   if (!raw) return 'other';
   return CATEGORY_ALIAS_MAP[raw] ?? 'other';
 }

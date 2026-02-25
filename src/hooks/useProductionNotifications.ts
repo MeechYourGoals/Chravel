@@ -1,7 +1,9 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
-import { productionNotificationService, NotificationPreference } from '../services/productionNotificationService';
+import {
+  productionNotificationService,
+  NotificationPreference,
+} from '../services/productionNotificationService';
 
 export interface ProductionNotificationState {
   permission: NotificationPermission;
@@ -20,7 +22,7 @@ export const useProductionNotifications = () => {
     isSupported: 'Notification' in window && 'serviceWorker' in navigator,
     isLoading: false,
     error: null,
-    preferences: null
+    preferences: null,
   });
 
   useEffect(() => {
@@ -48,9 +50,9 @@ export const useProductionNotifications = () => {
         }
       } catch (error) {
         console.error('Error initializing notifications:', error);
-        setState(prev => ({ 
-          ...prev, 
-          error: error instanceof Error ? error.message : 'Failed to initialize notifications'
+        setState(prev => ({
+          ...prev,
+          error: error instanceof Error ? error.message : 'Failed to initialize notifications',
         }));
       } finally {
         setState(prev => ({ ...prev, isLoading: false }));
@@ -90,11 +92,14 @@ export const useProductionNotifications = () => {
     if (!user) return;
 
     try {
-      const success = await productionNotificationService.updateNotificationPreferences(user.id, updates);
+      const success = await productionNotificationService.updateNotificationPreferences(
+        user.id,
+        updates,
+      );
       if (success) {
         setState(prev => ({
           ...prev,
-          preferences: prev.preferences ? { ...prev.preferences, ...updates } : null
+          preferences: prev.preferences ? { ...prev.preferences, ...updates } : null,
         }));
       }
     } catch (error) {
@@ -112,7 +117,7 @@ export const useProductionNotifications = () => {
       await productionNotificationService.sendLocalNotification({
         title,
         body,
-        icon: '/chravel-logo.png'
+        icon: '/chravel-logo.png',
       });
     } catch (error) {
       console.error('Error sending test notification:', error);
@@ -137,6 +142,6 @@ export const useProductionNotifications = () => {
     requestPermission,
     updatePreferences,
     sendTestNotification,
-    unsubscribe
+    unsubscribe,
   };
 };

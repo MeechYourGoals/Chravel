@@ -65,7 +65,7 @@ export class MobileLocationService {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 60000,
-        ...options
+        ...options,
       };
 
       navigator.geolocation.getCurrentPosition(resolve, reject, defaultOptions);
@@ -91,10 +91,10 @@ export class MobileLocationService {
 
       // Start watching position
       this.watchId = navigator.geolocation.watchPosition(
-        (position) => {
+        position => {
           this.updateUserLocation(userId, tripId, position);
         },
-        (error) => {
+        error => {
           if (import.meta.env.DEV) {
             console.error('Location watch error:', error);
           }
@@ -102,8 +102,8 @@ export class MobileLocationService {
         {
           enableHighAccuracy: true,
           timeout: 30000,
-          maximumAge: 30000
-        }
+          maximumAge: 30000,
+        },
       );
 
       this.isWatching = true;
@@ -125,7 +125,11 @@ export class MobileLocationService {
     this.currentTripId = null;
   }
 
-  private async updateUserLocation(userId: string, tripId: string, position: GeolocationPosition): Promise<void> {
+  private async updateUserLocation(
+    userId: string,
+    tripId: string,
+    position: GeolocationPosition,
+  ): Promise<void> {
     try {
       const locationData = {
         user_id: userId,
@@ -135,15 +139,13 @@ export class MobileLocationService {
         accuracy: position.coords.accuracy,
         heading: position.coords.heading,
         battery_level: await this.getBatteryLevel(),
-        is_moving: await this.getMovementStatus(position)
+        is_moving: await this.getMovementStatus(position),
       };
 
       // Use a generic table approach until migrations are applied
-      const { error } = await (supabase as any)
-        .from('user_locations')
-        .upsert(locationData, {
-          onConflict: 'user_id,trip_id'
-        });
+      const { error } = await (supabase as any).from('user_locations').upsert(locationData, {
+        onConflict: 'user_id,trip_id',
+      });
 
       if (error) {
         if (import.meta.env.DEV) {
@@ -161,10 +163,12 @@ export class MobileLocationService {
     try {
       const { data, error } = await (supabase as any)
         .from('user_locations')
-        .select(`
+        .select(
+          `
           *,
           profiles!user_locations_user_id_fkey(display_name, avatar_url)
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .gte('updated_at', new Date(Date.now() - 1000 * 60 * 60).toISOString()); // Last hour
 
@@ -175,18 +179,20 @@ export class MobileLocationService {
         return [];
       }
 
-      return data?.map((location: any) => ({
-        id: location.id,
-        userId: location.user_id,
-        tripId: location.trip_id,
-        lat: location.lat,
-        lng: location.lng,
-        accuracy: location.accuracy,
-        heading: location.heading,
-        batteryLevel: location.battery_level,
-        isMoving: location.is_moving,
-        updatedAt: new Date(location.updated_at)
-      })) || [];
+      return (
+        data?.map((location: any) => ({
+          id: location.id,
+          userId: location.user_id,
+          tripId: location.trip_id,
+          lat: location.lat,
+          lng: location.lng,
+          accuracy: location.accuracy,
+          heading: location.heading,
+          batteryLevel: location.battery_level,
+          isMoving: location.is_moving,
+          updatedAt: new Date(location.updated_at),
+        })) || []
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching user locations:', error);
@@ -217,7 +223,9 @@ export class MobileLocationService {
 
   private async getBatteryLevel(): Promise<number | undefined> {
     try {
-      const navigatorAny = navigator as unknown as { getBattery?: () => Promise<{ level: number }> };
+      const navigatorAny = navigator as unknown as {
+        getBattery?: () => Promise<{ level: number }>;
+      };
       if (typeof navigatorAny.getBattery === 'function') {
         const battery = await navigatorAny.getBattery();
         return Math.round(battery.level * 100);

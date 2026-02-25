@@ -10,7 +10,8 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2')
+    format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -18,7 +19,8 @@
 
 @font-face {
   font-family: 'Source Sans 3';
-  src: url('https://fonts.gstatic.com/s/sourcesans3/v15/nwpBtKy2OAdR1K-IwhWudF-R9QMylBJAV3Bo8Kw461EN_io6npfB.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/sourcesans3/v15/nwpBtKy2OAdR1K-IwhWudF-R9QMylBJAV3Bo8Kw461EN_io6npfB.woff2')
+    format('woff2');
   font-weight: 200 900;
   font-style: normal;
   font-display: swap;
@@ -26,7 +28,8 @@
 
 @font-face {
   font-family: 'Roboto Mono';
-  src: url('https://fonts.gstatic.com/s/robotomono/v23/L0x5DF4xlVMF-BfR8bXMIjhGq3-cXbKDO1w.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/robotomono/v23/L0x5DF4xlVMF-BfR8bXMIjhGq3-cXbKDO1w.woff2')
+    format('woff2');
   font-weight: 100 700;
   font-style: normal;
   font-display: swap;
@@ -37,15 +40,15 @@
    ============================================ */
 
 :root {
-  --primary: #1E3A8A;
-  --accent: #2563EB;
-  --muted: #6B7280;
+  --primary: #1e3a8a;
+  --accent: #2563eb;
+  --muted: #6b7280;
   --success: #059669;
-  --warning: #D97706;
-  --danger: #DC2626;
-  --hair: #E5E7EB;
-  --bg: #FFFFFF;
-  --ink: #0F172A;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --hair: #e5e7eb;
+  --bg: #ffffff;
+  --ink: #0f172a;
 }
 
 /* ============================================
@@ -59,7 +62,12 @@
 }
 
 html {
-  font-family: 'Source Sans 3', 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Source Sans 3',
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 10.5pt;
   line-height: 1.5;
   color: var(--ink);
@@ -79,7 +87,9 @@ body {
    TYPOGRAPHY HIERARCHY
    ============================================ */
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-family: 'Inter', system-ui, sans-serif;
   font-weight: 700;
   page-break-after: avoid;
@@ -232,7 +242,7 @@ p {
 }
 
 .table th {
-  background-color: #F7F7F7;
+  background-color: #f7f7f7;
   color: var(--ink);
   font-weight: 600;
   font-size: 9.5pt;
@@ -243,7 +253,7 @@ p {
 }
 
 .table tbody tr:nth-child(even) {
-  background-color: #FAFAFA;
+  background-color: #fafafa;
 }
 
 /* Tabular Numbers for Financial Data */
@@ -312,7 +322,7 @@ p {
 
 .net-settlement {
   padding: 8pt 12pt;
-  background: #F0F9FF;
+  background: #f0f9ff;
   border-left: 3pt solid var(--accent);
   margin: 10pt 0;
   font-size: 10pt;
@@ -331,26 +341,26 @@ p {
   font-weight: 500;
   border: 0.4pt solid var(--hair);
   color: var(--muted);
-  background: #FAFAFB;
+  background: #fafafb;
   line-height: 1.2;
 }
 
 .chip.success {
-  color: #065F46;
-  border-color: #A7F3D0;
-  background: #ECFDF5;
+  color: #065f46;
+  border-color: #a7f3d0;
+  background: #ecfdf5;
 }
 
 .chip.warn {
-  color: #7C2D12;
-  border-color: #FDE68A;
-  background: #FFFBEB;
+  color: #7c2d12;
+  border-color: #fde68a;
+  background: #fffbeb;
 }
 
 .chip.danger {
-  color: #991B1B;
-  border-color: #FCA5A5;
-  background: #FEF2F2;
+  color: #991b1b;
+  border-color: #fca5a5;
+  background: #fef2f2;
 }
 
 /* ============================================
@@ -466,7 +476,9 @@ p {
     page-break-after: avoid;
   }
 
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     page-break-after: avoid;
   }
 
@@ -499,7 +511,7 @@ hr.hair {
   font-style: italic;
   padding: 12pt 0;
   text-align: center;
-  background: #FAFAFB;
+  background: #fafafb;
   border-radius: 4pt;
   margin: 8pt 0;
 }

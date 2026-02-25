@@ -17,25 +17,21 @@ export const PaymentLocked = ({ className = '' }: PaymentLockedProps) => {
           <Lock className="w-8 h-8 text-primary" />
         </div>
       </div>
-      
+
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold text-foreground">
-          Split Expenses with Friends
-        </h3>
+        <h3 className="text-lg font-semibold text-foreground">Split Expenses with Friends</h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Create payment requests, track who owes what, and settle up seamlessly with Explorer or Frequent Chraveler plans.
+          Create payment requests, track who owes what, and settle up seamlessly with Explorer or
+          Frequent Chraveler plans.
         </p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
-        <Button 
-          onClick={() => upgradeToTier('explorer', 'monthly')}
-          className="gap-2"
-        >
+        <Button onClick={() => upgradeToTier('explorer', 'monthly')} className="gap-2">
           <Sparkles className="w-4 h-4" />
           Upgrade to Explorer - $9.99/mo
         </Button>
-        <Button 
+        <Button
           onClick={() => upgradeToTier('frequent-chraveler', 'monthly')}
           variant="outline"
           className="gap-2"

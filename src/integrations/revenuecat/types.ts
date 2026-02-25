@@ -1,6 +1,6 @@
 /**
  * RevenueCat TypeScript Types
- * 
+ *
  * Simplified types for RevenueCat Capacitor plugin responses
  */
 

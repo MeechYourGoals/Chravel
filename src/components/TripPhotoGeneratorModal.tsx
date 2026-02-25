@@ -28,13 +28,13 @@ export const TripPhotoGeneratorModal = ({ isOpen, onClose }: TripPhotoGeneratorM
     setIsGenerating(true);
     setProgress(0);
     setShowResults(false);
-    
+
     try {
       const generator = new TripPhotoGenerator(apiKey);
       const results = await generator.generateAllTripPhotos((completed, total) => {
         setProgress((completed / total) * 100);
       });
-      
+
       setGeneratedPhotos(results);
       setShowResults(true);
     } catch (error) {
@@ -68,8 +68,17 @@ export const TripPhotoGeneratorModal = ({ isOpen, onClose }: TripPhotoGeneratorM
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              This will generate custom cover photos for all {TRIP_PHOTO_PROMPTS.length} consumer trips using Runware AI.
-              You need a Runware API key from <a href="https://runware.ai/" target="_blank" rel="noopener noreferrer" className="underline">runware.ai</a>.
+              This will generate custom cover photos for all {TRIP_PHOTO_PROMPTS.length} consumer
+              trips using Runware AI. You need a Runware API key from{' '}
+              <a
+                href="https://runware.ai/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                runware.ai
+              </a>
+              .
             </AlertDescription>
           </Alert>
 
@@ -80,7 +89,7 @@ export const TripPhotoGeneratorModal = ({ isOpen, onClose }: TripPhotoGeneratorM
               type="password"
               placeholder="Enter your Runware API key..."
               value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              onChange={e => setApiKey(e.target.value)}
               disabled={isGenerating}
             />
           </div>
@@ -104,16 +113,16 @@ export const TripPhotoGeneratorModal = ({ isOpen, onClose }: TripPhotoGeneratorM
                   Download Results
                 </Button>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4 max-h-64 overflow-y-auto">
-                {TRIP_PHOTO_PROMPTS.map((prompt) => {
+                {TRIP_PHOTO_PROMPTS.map(prompt => {
                   const photoUrl = generatedPhotos[prompt.tripId];
                   return (
                     <div key={prompt.tripId} className="space-y-2">
                       <div className="text-sm font-medium">{prompt.tripTitle}</div>
                       {photoUrl ? (
-                        <img 
-                          src={photoUrl} 
+                        <img
+                          src={photoUrl}
                           alt={prompt.tripTitle}
                           className="w-full h-24 object-cover rounded border"
                         />
@@ -129,7 +138,8 @@ export const TripPhotoGeneratorModal = ({ isOpen, onClose }: TripPhotoGeneratorM
 
               <Alert>
                 <AlertDescription>
-                  Copy the generated URLs from the downloaded JSON file and update your tripsData.ts file manually.
+                  Copy the generated URLs from the downloaded JSON file and update your tripsData.ts
+                  file manually.
                 </AlertDescription>
               </Alert>
             </div>
@@ -139,10 +149,7 @@ export const TripPhotoGeneratorModal = ({ isOpen, onClose }: TripPhotoGeneratorM
             <Button variant="outline" onClick={onClose} disabled={isGenerating}>
               Close
             </Button>
-            <Button 
-              onClick={handleGenerate} 
-              disabled={!apiKey.trim() || isGenerating}
-            >
+            <Button onClick={handleGenerate} disabled={!apiKey.trim() || isGenerating}>
               {isGenerating ? 'Generating...' : 'Generate Photos'}
             </Button>
           </div>

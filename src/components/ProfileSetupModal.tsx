@@ -43,7 +43,7 @@ export const ProfileSetupModal = ({ isOpen, onComplete }: ProfileSetupModalProps
             <input
               type="text"
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              onChange={e => setDisplayName(e.target.value)}
               placeholder="Enter your name"
               required
               autoFocus

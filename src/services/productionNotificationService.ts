@@ -1,4 +1,3 @@
-
 import { supabase } from '../integrations/supabase/client';
 
 export interface NotificationPreference {
@@ -93,7 +92,7 @@ export class ProductionNotificationService {
     try {
       const subscription = await (this.serviceWorker as any).pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(this.fcmVapidKey)
+        applicationServerKey: this.urlBase64ToUint8Array(this.fcmVapidKey),
       });
 
       const token = JSON.stringify(subscription);
@@ -108,7 +107,12 @@ export class ProductionNotificationService {
     }
   }
 
-  async savePushToken(userId: string, token: string, platform: 'ios' | 'android' | 'web', deviceId?: string): Promise<boolean> {
+  async savePushToken(
+    userId: string,
+    token: string,
+    platform: 'ios' | 'android' | 'web',
+    deviceId?: string,
+  ): Promise<boolean> {
     try {
       const { data, error } = await supabase.functions.invoke('push-notifications', {
         body: {
@@ -116,8 +120,8 @@ export class ProductionNotificationService {
           userId,
           token,
           platform,
-          deviceId
-        }
+          deviceId,
+        },
       });
 
       if (error) {
@@ -157,13 +161,13 @@ export class ProductionNotificationService {
           paymentAlerts: true,
           quietHoursEnabled: false,
           quietStart: '22:00',
-          quietEnd: '08:00'
+          quietEnd: '08:00',
         };
 
         await this.updateNotificationPreferences(userId, defaultPrefs);
         return {
           userId,
-          ...defaultPrefs
+          ...defaultPrefs,
         } as NotificationPreference;
       }
 
@@ -178,7 +182,7 @@ export class ProductionNotificationService {
         paymentAlerts: (data as any).payment_alerts,
         quietHoursEnabled: (data as any).quiet_hours_enabled,
         quietStart: (data as any).quiet_start,
-        quietEnd: (data as any).quiet_end
+        quietEnd: (data as any).quiet_end,
       };
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error getting notification preferences:', error);
@@ -186,23 +190,24 @@ export class ProductionNotificationService {
     }
   }
 
-  async updateNotificationPreferences(userId: string, preferences: Partial<NotificationPreference>): Promise<boolean> {
+  async updateNotificationPreferences(
+    userId: string,
+    preferences: Partial<NotificationPreference>,
+  ): Promise<boolean> {
     try {
-      const { error } = await (supabase as any)
-        .from('notification_preferences')
-        .upsert({
-          user_id: userId,
-          push_enabled: preferences.pushEnabled,
-          email_enabled: preferences.emailEnabled,
-          sms_enabled: preferences.smsEnabled,
-          trip_updates: preferences.tripUpdates,
-          chat_messages: preferences.chatMessages,
-          calendar_reminders: preferences.calendarReminders,
-          payment_alerts: preferences.paymentAlerts,
-          quiet_hours_enabled: preferences.quietHoursEnabled,
-          quiet_start: preferences.quietStart,
-          quiet_end: preferences.quietEnd
-        });
+      const { error } = await (supabase as any).from('notification_preferences').upsert({
+        user_id: userId,
+        push_enabled: preferences.pushEnabled,
+        email_enabled: preferences.emailEnabled,
+        sms_enabled: preferences.smsEnabled,
+        trip_updates: preferences.tripUpdates,
+        chat_messages: preferences.chatMessages,
+        calendar_reminders: preferences.calendarReminders,
+        payment_alerts: preferences.paymentAlerts,
+        quiet_hours_enabled: preferences.quietHoursEnabled,
+        quiet_start: preferences.quietStart,
+        quiet_end: preferences.quietEnd,
+      });
 
       if (error) {
         if (import.meta.env.DEV) console.error('Error updating notification preferences:', error);
@@ -226,8 +231,8 @@ export class ProductionNotificationService {
           body: payload.body,
           data: payload.data,
           icon: payload.icon,
-          badge: payload.badge
-        }
+          badge: payload.badge,
+        },
       });
 
       if (error) {
@@ -249,8 +254,8 @@ export class ProductionNotificationService {
           action: 'send_email',
           userId,
           subject,
-          content
-        }
+          content,
+        },
       });
 
       if (error) {
@@ -271,8 +276,8 @@ export class ProductionNotificationService {
         body: {
           action: 'send_sms',
           userId,
-          message
-        }
+          message,
+        },
       });
 
       if (error) {
@@ -299,10 +304,10 @@ export class ProductionNotificationService {
         icon: payload.icon || '/chravel-logo.png',
         badge: payload.badge || '/chravel-logo.png',
         data: payload.data,
-        requireInteraction: true
+        requireInteraction: true,
       });
 
-      notification.onclick = (event) => {
+      notification.onclick = event => {
         event.preventDefault();
         window.focus();
         if (payload.data?.url) {
@@ -330,8 +335,8 @@ export class ProductionNotificationService {
             body: {
               action: 'remove_token',
               userId,
-              token: JSON.stringify(subscription)
-            }
+              token: JSON.stringify(subscription),
+            },
           });
         }
       }
@@ -345,10 +350,8 @@ export class ProductionNotificationService {
   }
 
   private urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
 
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
@@ -364,7 +367,7 @@ export class ProductionNotificationService {
 
     const now = new Date();
     const currentTime = now.getHours() * 100 + now.getMinutes();
-    
+
     const startTime = parseInt(preferences.quietStart.replace(':', ''));
     const endTime = parseInt(preferences.quietEnd.replace(':', ''));
 

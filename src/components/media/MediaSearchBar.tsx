@@ -1,9 +1,9 @@
 /**
  * Media Search Bar Component
- * 
+ *
  * Provides search functionality for media items
  * Supports full-text search and AI tag filtering
- * 
+ *
  * @module components/media/MediaSearchBar
  */
 
@@ -30,49 +30,52 @@ export const MediaSearchBar = ({
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
-  const handleSearch = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
-      onSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      // Check if query looks like tags (comma-separated or #hashtags)
-      const tagPattern = /^[#\w\s,]+$/;
-      const isTagSearch = tagPattern.test(searchQuery) && (
-        searchQuery.includes(',') || 
-        searchQuery.includes('#') ||
-        searchQuery.split(/\s+/).length <= 3
-      );
-
-      let results: MediaSearchResult[];
-      
-      if (isTagSearch) {
-        // Extract tags from query
-        const tags = searchQuery
-          .split(/[,#\s]+/)
-          .map(t => t.trim())
-          .filter(t => t.length > 0);
-        
-        results = await searchMediaByTags(tripId, tags);
-      } else {
-        // Full-text search
-        results = await searchMedia({
-          tripId,
-          query: searchQuery,
-          limit: 50,
-        });
+  const handleSearch = useCallback(
+    async (searchQuery: string) => {
+      if (!searchQuery.trim()) {
+        onSearchResults([]);
+        return;
       }
 
-      onSearchResults(results);
-    } catch (error) {
-      console.error('[MediaSearchBar] Search error:', error);
-      onSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [tripId, onSearchResults]);
+      setIsSearching(true);
+      try {
+        // Check if query looks like tags (comma-separated or #hashtags)
+        const tagPattern = /^[#\w\s,]+$/;
+        const isTagSearch =
+          tagPattern.test(searchQuery) &&
+          (searchQuery.includes(',') ||
+            searchQuery.includes('#') ||
+            searchQuery.split(/\s+/).length <= 3);
+
+        let results: MediaSearchResult[];
+
+        if (isTagSearch) {
+          // Extract tags from query
+          const tags = searchQuery
+            .split(/[,#\s]+/)
+            .map(t => t.trim())
+            .filter(t => t.length > 0);
+
+          results = await searchMediaByTags(tripId, tags);
+        } else {
+          // Full-text search
+          results = await searchMedia({
+            tripId,
+            query: searchQuery,
+            limit: 50,
+          });
+        }
+
+        onSearchResults(results);
+      } catch (error) {
+        console.error('[MediaSearchBar] Search error:', error);
+        onSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [tripId, onSearchResults],
+  );
 
   // Debounced search effect
   useEffect(() => {
@@ -101,7 +104,7 @@ export const MediaSearchBar = ({
         <Input
           type="text"
           value={query}
-          onChange={(e) => {
+          onChange={e => {
             const value = e.target.value;
             setQuery(value);
             onSearchChange?.(value);

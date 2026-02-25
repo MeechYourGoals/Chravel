@@ -45,9 +45,9 @@ export const useTripPreferences = (tripId: string) => {
         .maybeSingle();
 
       if (error) throw error;
-      
+
       if (!data) return null;
-      
+
       // Transform JSON arrays to string arrays
       return {
         ...data,
@@ -56,10 +56,10 @@ export const useTripPreferences = (tripId: string) => {
         accessibility: Array.isArray(data.accessibility) ? data.accessibility : [],
         business: Array.isArray(data.business) ? data.business : [],
         entertainment: Array.isArray(data.entertainment) ? data.entertainment : [],
-        lifestyle: Array.isArray(data.lifestyle) ? data.lifestyle : []
+        lifestyle: Array.isArray(data.lifestyle) ? data.lifestyle : [],
       } as TripPreferences;
     },
-    enabled: !!tripId
+    enabled: !!tripId,
   });
 
   // Create/update preferences mutation
@@ -69,7 +69,7 @@ export const useTripPreferences = (tripId: string) => {
         .from('trip_preferences')
         .upsert({
           trip_id: tripId,
-          ...updates
+          ...updates,
         })
         .select()
         .single();
@@ -81,22 +81,22 @@ export const useTripPreferences = (tripId: string) => {
       queryClient.invalidateQueries({ queryKey: ['tripPreferences', tripId] });
       toast({
         title: 'Preferences updated',
-        description: 'Your trip preferences have been saved.'
+        description: 'Your trip preferences have been saved.',
       });
     },
     onError: () => {
       toast({
         title: 'Error',
         description: 'Failed to update preferences. Please try again.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   return {
     preferences,
     isLoading,
     updatePreferences: updatePreferencesMutation.mutate,
-    isUpdating: updatePreferencesMutation.isPending
+    isUpdating: updatePreferencesMutation.isPending,
   };
 };

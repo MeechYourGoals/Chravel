@@ -15,18 +15,18 @@ export const TaskAssignmentModal = ({ taskId, tripId, onClose }: TaskAssignmentM
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [assignmentMode, setAssignmentMode] = useState<'individual' | 'role'>('individual');
   const [selectedRole, setSelectedRole] = useState<string>('');
-  
+
   const { bulkAssign, autoAssignByRole } = useTripTasks(tripId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (assignmentMode === 'individual') {
       await bulkAssign({ taskId, userIds: selectedUsers });
     } else {
       await autoAssignByRole(taskId, selectedRole);
     }
-    
+
     onClose();
   };
 
@@ -72,16 +72,14 @@ export const TaskAssignmentModal = ({ taskId, tripId, onClose }: TaskAssignmentM
           {assignmentMode === 'individual' ? (
             <div className="space-y-2">
               <Label className="text-gray-300">Select Members</Label>
-              <div className="text-gray-400 text-sm">
-                Member selection would appear here
-              </div>
+              <div className="text-gray-400 text-sm">Member selection would appear here</div>
             </div>
           ) : (
             <div className="space-y-2">
               <Label className="text-gray-300">Select Role</Label>
               <select
                 value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
+                onChange={e => setSelectedRole(e.target.value)}
                 className="w-full bg-gray-800 border-gray-600 text-white rounded-lg px-3 py-2"
               >
                 <option value="">Choose a role...</option>
@@ -102,10 +100,7 @@ export const TaskAssignmentModal = ({ taskId, tripId, onClose }: TaskAssignmentM
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-            >
+            <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
               Assign Task
             </Button>
           </div>

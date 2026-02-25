@@ -28,9 +28,10 @@ export const TripTasksUpdated = ({ tripId }: TripTasksUpdatedProps) => {
 
   // Helper function to check if current user has completed a task
   const isTaskCompleted = (task: any) => {
-    return task.task_status?.some((status: any) => 
-      status.user_id === user?.id && status.completed
-    ) || false;
+    return (
+      task.task_status?.some((status: any) => status.user_id === user?.id && status.completed) ||
+      false
+    );
   };
 
   const openTasks = tasks.filter(task => !isTaskCompleted(task));
@@ -56,13 +57,7 @@ export const TripTasksUpdated = ({ tripId }: TripTasksUpdatedProps) => {
               No open tasks. Add a task to get started!
             </p>
           ) : (
-            openTasks.map(task => (
-              <TaskRow 
-                key={task.id}
-                task={task}
-                tripId={tripId}
-              />
-            ))
+            openTasks.map(task => <TaskRow key={task.id} task={task} tripId={tripId} />)
           )}
         </CardContent>
       </Card>
@@ -74,21 +69,14 @@ export const TripTasksUpdated = ({ tripId }: TripTasksUpdatedProps) => {
           </CardHeader>
           <CardContent className="space-y-2">
             {completedTasks.map(task => (
-              <TaskRow 
-                key={task.id}
-                task={task}
-                tripId={tripId}
-              />
+              <TaskRow key={task.id} task={task} tripId={tripId} />
             ))}
           </CardContent>
         </Card>
       )}
 
       {showCreateModal && (
-        <TaskCreateModal
-          tripId={tripId}
-          onClose={() => setShowCreateModal(false)}
-        />
+        <TaskCreateModal tripId={tripId} onClose={() => setShowCreateModal(false)} />
       )}
     </div>
   );

@@ -21,7 +21,8 @@ interface MemberWithProfile {
 }
 
 export const SeatManagement = () => {
-  const { currentOrg, members, fetchOrgMembers, removeMember, updateMemberRole } = useOrganization();
+  const { currentOrg, members, fetchOrgMembers, removeMember, updateMemberRole } =
+    useOrganization();
   const { user } = useAuth();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [membersWithProfiles, setMembersWithProfiles] = useState<MemberWithProfile[]>([]);
@@ -51,7 +52,9 @@ export const SeatManagement = () => {
         const displayName = profile?.resolved_display_name || profile?.display_name || 'Unknown';
         return {
           ...member,
-          profile: profile ? { display_name: displayName, avatar_url: profile.avatar_url ?? undefined } : undefined,
+          profile: profile
+            ? { display_name: displayName, avatar_url: profile.avatar_url ?? undefined }
+            : undefined,
         };
       });
 
@@ -69,9 +72,12 @@ export const SeatManagement = () => {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'owner': return <Shield size={14} className="text-yellow-500" />;
-      case 'admin': return <Shield size={14} className="text-blue-500" />;
-      default: return <UserIcon size={14} className="text-gray-400" />;
+      case 'owner':
+        return <Shield size={14} className="text-yellow-500" />;
+      case 'admin':
+        return <Shield size={14} className="text-blue-500" />;
+      default:
+        return <UserIcon size={14} className="text-gray-400" />;
     }
   };
 
@@ -111,23 +117,25 @@ export const SeatManagement = () => {
       {/* Members List */}
       <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
         <div className="p-4 border-b border-white/10">
-          <h4 className="text-lg font-semibold text-white">Team Members ({membersWithProfiles.length})</h4>
+          <h4 className="text-lg font-semibold text-white">
+            Team Members ({membersWithProfiles.length})
+          </h4>
         </div>
-        
+
         <div className="divide-y divide-white/10">
           {loading ? (
             <div className="p-8 text-center text-gray-400">Loading members...</div>
           ) : membersWithProfiles.length === 0 ? (
             <div className="p-8 text-center text-gray-400">No members yet</div>
           ) : (
-            membersWithProfiles.map((member) => (
+            membersWithProfiles.map(member => (
               <div key={member.id} className="p-4 hover:bg-white/5 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {member.profile?.avatar_url ? (
-                      <img 
-                        src={member.profile.avatar_url} 
-                        alt="" 
+                      <img
+                        src={member.profile.avatar_url}
+                        alt=""
                         className="w-10 h-10 rounded-full"
                       />
                     ) : (
@@ -140,7 +148,10 @@ export const SeatManagement = () => {
                         <span className="text-white font-medium">
                           {member.profile?.display_name || 'Unknown'}
                         </span>
-                        <Badge variant="outline" className="flex items-center gap-1 border-white/20">
+                        <Badge
+                          variant="outline"
+                          className="flex items-center gap-1 border-white/20"
+                        >
                           {getRoleIcon(member.role)}
                           {member.role}
                         </Badge>

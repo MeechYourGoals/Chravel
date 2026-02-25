@@ -23,7 +23,9 @@ export const TripCreationDemo = () => {
         <motion.div
           className="bg-background border border-border rounded-lg px-3 py-2 mb-3 text-left"
           initial={{ borderColor: 'hsl(var(--border))' }}
-          animate={{ borderColor: ['hsl(var(--border))', 'hsl(var(--primary))', 'hsl(var(--border))'] }}
+          animate={{
+            borderColor: ['hsl(var(--border))', 'hsl(var(--primary))', 'hsl(var(--border))'],
+          }}
           transition={{ duration: 2, delay: 0.5, times: [0, 0.3, 1] }}
         >
           <span className="text-xs text-muted-foreground">Trip Name</span>
@@ -41,7 +43,9 @@ export const TripCreationDemo = () => {
         <motion.div
           className="bg-background border border-border rounded-lg px-3 py-2 mb-3 text-left flex items-center gap-2"
           initial={{ borderColor: 'hsl(var(--border))' }}
-          animate={{ borderColor: ['hsl(var(--border))', 'hsl(var(--primary))', 'hsl(var(--border))'] }}
+          animate={{
+            borderColor: ['hsl(var(--border))', 'hsl(var(--primary))', 'hsl(var(--border))'],
+          }}
           transition={{ duration: 2, delay: 1.5, times: [0, 0.3, 1] }}
         >
           <MapPin className="w-4 h-4 text-muted-foreground" />
@@ -63,7 +67,9 @@ export const TripCreationDemo = () => {
           <motion.div
             className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-left flex items-center gap-2"
             initial={{ borderColor: 'hsl(var(--border))' }}
-            animate={{ borderColor: ['hsl(var(--border))', 'hsl(var(--primary))', 'hsl(var(--border))'] }}
+            animate={{
+              borderColor: ['hsl(var(--border))', 'hsl(var(--primary))', 'hsl(var(--border))'],
+            }}
             transition={{ duration: 2, delay: 2.5, times: [0, 0.3, 1] }}
           >
             <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -80,7 +86,9 @@ export const TripCreationDemo = () => {
           <motion.div
             className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-left flex items-center gap-2"
             initial={{ borderColor: 'hsl(var(--border))' }}
-            animate={{ borderColor: ['hsl(var(--border))', 'hsl(var(--primary))', 'hsl(var(--border))'] }}
+            animate={{
+              borderColor: ['hsl(var(--border))', 'hsl(var(--primary))', 'hsl(var(--border))'],
+            }}
             transition={{ duration: 2, delay: 3.5, times: [0, 0.3, 1] }}
           >
             <Users className="w-4 h-4 text-muted-foreground" />

@@ -1,6 +1,6 @@
 /**
  * Centralized environment detection utilities
- * 
+ *
  * CRITICAL: This determines whether we're in Lovable's preview environment.
  * Used to prevent service worker registration and handle Supabase fallbacks.
  */
@@ -11,9 +11,9 @@
  */
 export function isLovablePreview(): boolean {
   if (typeof window === 'undefined') return false;
-  
+
   const hostname = window.location.hostname;
-  
+
   return (
     hostname.endsWith('lovable.app') ||
     hostname.endsWith('lovableproject.com') ||

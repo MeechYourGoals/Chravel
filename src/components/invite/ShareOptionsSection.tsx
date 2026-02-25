@@ -9,12 +9,12 @@ interface ShareOptionsSectionProps {
   onSMSInvite: () => void;
 }
 
-export const ShareOptionsSection = ({ 
-  loading, 
-  inviteLink, 
-  onShare, 
-  onEmailInvite, 
-  onSMSInvite 
+export const ShareOptionsSection = ({
+  loading,
+  inviteLink,
+  onShare,
+  onEmailInvite,
+  onSMSInvite,
 }: ShareOptionsSectionProps) => {
   return (
     <>
@@ -28,7 +28,7 @@ export const ShareOptionsSection = ({
           <Share size={20} />
           <span>Share</span>
         </button>
-        
+
         <button
           onClick={onEmailInvite}
           disabled={loading || !inviteLink}

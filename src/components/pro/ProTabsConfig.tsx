@@ -1,5 +1,18 @@
 import React from 'react';
-import { Crown, Users, Calendar as CalendarIcon, DollarSign, Shield, Award, FileCheck, ClipboardList, BarChart3, Camera, Sparkles, MapPin } from 'lucide-react';
+import {
+  Crown,
+  Users,
+  Calendar as CalendarIcon,
+  DollarSign,
+  Shield,
+  Award,
+  FileCheck,
+  ClipboardList,
+  BarChart3,
+  Camera,
+  Sparkles,
+  MapPin,
+} from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 import { ProTripCategory, getCategoryConfig } from '../../types/proCategories';
 
@@ -22,79 +35,97 @@ export const proTabs: ProTab[] = [
   { id: 'places', label: 'Places', icon: MapPin },
   { id: 'polls', label: 'Polls', icon: BarChart3 },
   { id: 'tasks', label: 'Tasks', icon: ClipboardList },
-  { id: 'team', label: 'Team', icon: Users, proOnly: true, requiredPermissions: ['read'] }
+  { id: 'team', label: 'Team', icon: Users, proOnly: true, requiredPermissions: ['read'] },
 ];
 
-export const getVisibleTabs = (userRole: string, userPermissions: string[], category?: ProTripCategory): ProTab[] => {
+export const getVisibleTabs = (
+  userRole: string,
+  userPermissions: string[],
+  category?: ProTripCategory,
+): ProTab[] => {
   let availableTabs = proTabs;
-  
+
   // Filter tabs based on category if provided
   if (category) {
     const categoryConfig = getCategoryConfig(category);
-    
+
     // Defensive check: if category is invalid, log error and show all tabs
     if (!categoryConfig) {
       console.error(`Invalid ProTripCategory: "${category}". Showing all tabs.`);
       return proTabs;
     }
-    
+
     // 🆕 Media and Payments are now always available for enterprise trips
-    availableTabs = proTabs.filter(tab => 
-      !tab.proOnly || categoryConfig.availableTabs.includes(tab.id) || ['chat', 'places', 'ai-chat', 'media', 'payments'].includes(tab.id)
+    availableTabs = proTabs.filter(
+      tab =>
+        !tab.proOnly ||
+        categoryConfig.availableTabs.includes(tab.id) ||
+        ['chat', 'places', 'ai-chat', 'media', 'payments'].includes(tab.id),
     );
   }
-  
+
   return availableTabs.filter(tab => {
     // Check role-based restrictions
     if (tab.restrictedRoles && tab.restrictedRoles.includes(userRole.toLowerCase())) {
       return false;
     }
-    
+
     // Check permission requirements
     if (tab.requiredPermissions && tab.requiredPermissions.length > 0) {
-      const hasRequiredPermission = tab.requiredPermissions.some(permission => 
-        userPermissions.includes(permission)
+      const hasRequiredPermission = tab.requiredPermissions.some(permission =>
+        userPermissions.includes(permission),
       );
       if (!hasRequiredPermission) {
         return false;
       }
     }
-    
+
     return true;
   });
 };
 
-export const isReadOnlyTab = (tabId: string, userRole: string, userPermissions: string[], isDemoMode?: boolean): boolean => {
+export const isReadOnlyTab = (
+  tabId: string,
+  userRole: string,
+  userPermissions: string[],
+  isDemoMode?: boolean,
+): boolean => {
   // Demo mode overrides all read-only restrictions
   if (isDemoMode) return false;
-  
+
   // Finance and compliance tabs are read-only for certain roles
-  if ((tabId === 'finance' || tabId === 'compliance') && 
-      ['talent', 'cast', 'student', 'artist'].includes(userRole.toLowerCase())) {
+  if (
+    (tabId === 'finance' || tabId === 'compliance') &&
+    ['talent', 'cast', 'student', 'artist'].includes(userRole.toLowerCase())
+  ) {
     return true;
   }
-  
+
   // Check if user has write permissions
   if (!userPermissions.includes('write') && !userPermissions.includes('admin')) {
     return true;
   }
-  
+
   return false;
 };
 
-export const hasTabAccess = (tabId: string, userRole: string, userPermissions: string[]): boolean => {
+export const hasTabAccess = (
+  tabId: string,
+  userRole: string,
+  userPermissions: string[],
+): boolean => {
   const tab = proTabs.find(t => t.id === tabId);
   if (!tab) return false;
-  
+
   // Check role restrictions
   if (tab.restrictedRoles && tab.restrictedRoles.includes(userRole.toLowerCase())) {
     return false;
   }
-  
+
   // Check permission requirements
   if (tab.requiredPermissions && tab.requiredPermissions.length > 0) {
     return tab.requiredPermissions.some(permission => userPermissions.includes(permission));
   }
-  
+
   return true;
 };

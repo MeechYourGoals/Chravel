@@ -15,7 +15,7 @@ import {
   getMessageReadReceipts,
   getUnreadMessageCount,
   markAllAsRead,
-  subscribeToReadReceipts
+  subscribeToReadReceipts,
 } from '@/services/readReceiptsService';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
@@ -58,10 +58,7 @@ export const useReadReceipts = (options: UseReadReceiptsOptions) => {
 
     setLoading(true);
     try {
-      const fetchedReceipts = await getMessageReadReceipts(
-        { messageId, messageType },
-        isDemoMode
-      );
+      const fetchedReceipts = await getMessageReadReceipts({ messageId, messageType }, isDemoMode);
       setReceipts(fetchedReceipts);
     } catch (error) {
       console.error('[useReadReceipts] Failed to load receipts:', error);
@@ -77,12 +74,7 @@ export const useReadReceipts = (options: UseReadReceiptsOptions) => {
     if (!tripId || !effectiveUserId) return;
 
     try {
-      const count = await getUnreadMessageCount(
-        tripId,
-        effectiveUserId,
-        channelId,
-        isDemoMode
-      );
+      const count = await getUnreadMessageCount(tripId, effectiveUserId, channelId, isDemoMode);
       setUnreadCount(count);
     } catch (error) {
       console.error('[useReadReceipts] Failed to load unread count:', error);
@@ -92,40 +84,43 @@ export const useReadReceipts = (options: UseReadReceiptsOptions) => {
   /**
    * Mark message as read
    */
-  const markAsRead = useCallback(async (msgId?: string) => {
-    const targetMessageId = msgId || messageId;
-    if (!targetMessageId || !effectiveUserId) return false;
+  const markAsRead = useCallback(
+    async (msgId?: string) => {
+      const targetMessageId = msgId || messageId;
+      if (!targetMessageId || !effectiveUserId) return false;
 
-    setMarking(true);
-    try {
-      const success = await markMessageAsRead(
-        {
-          messageId: targetMessageId,
-          userId: effectiveUserId,
-          messageType
-        },
-        isDemoMode
-      );
+      setMarking(true);
+      try {
+        const success = await markMessageAsRead(
+          {
+            messageId: targetMessageId,
+            userId: effectiveUserId,
+            messageType,
+          },
+          isDemoMode,
+        );
 
-      if (success) {
-        // Reload receipts to reflect the change
-        if (msgId === messageId) {
-          await loadReceipts();
+        if (success) {
+          // Reload receipts to reflect the change
+          if (msgId === messageId) {
+            await loadReceipts();
+          }
+          // Update unread count
+          if (tripId) {
+            await loadUnreadCount();
+          }
         }
-        // Update unread count
-        if (tripId) {
-          await loadUnreadCount();
-        }
+
+        return success;
+      } catch (error) {
+        console.error('[useReadReceipts] Failed to mark as read:', error);
+        return false;
+      } finally {
+        setMarking(false);
       }
-
-      return success;
-    } catch (error) {
-      console.error('[useReadReceipts] Failed to mark as read:', error);
-      return false;
-    } finally {
-      setMarking(false);
-    }
-  }, [messageId, effectiveUserId, messageType, isDemoMode, loadReceipts, tripId, loadUnreadCount]);
+    },
+    [messageId, effectiveUserId, messageType, isDemoMode, loadReceipts, tripId, loadUnreadCount],
+  );
 
   /**
    * Mark all messages in channel as read
@@ -135,12 +130,7 @@ export const useReadReceipts = (options: UseReadReceiptsOptions) => {
 
     setMarking(true);
     try {
-      const success = await markAllAsRead(
-        channelId,
-        effectiveUserId,
-        messageType,
-        isDemoMode
-      );
+      const success = await markAllAsRead(channelId, effectiveUserId, messageType, isDemoMode);
 
       if (success && tripId) {
         await loadUnreadCount();
@@ -158,10 +148,13 @@ export const useReadReceipts = (options: UseReadReceiptsOptions) => {
   /**
    * Check if current user has read the message
    */
-  const hasRead = useCallback((userId?: string): boolean => {
-    const targetUserId = userId || effectiveUserId;
-    return receipts.some(r => r.userId === targetUserId);
-  }, [receipts, effectiveUserId]);
+  const hasRead = useCallback(
+    (userId?: string): boolean => {
+      const targetUserId = userId || effectiveUserId;
+      return receipts.some(r => r.userId === targetUserId);
+    },
+    [receipts, effectiveUserId],
+  );
 
   /**
    * Get read count
@@ -202,13 +195,9 @@ export const useReadReceipts = (options: UseReadReceiptsOptions) => {
   useEffect(() => {
     if (!messageId || isDemoMode) return;
 
-    const unsubscribe = subscribeToReadReceipts(
-      messageId,
-      messageType,
-      (updatedReceipts) => {
-        setReceipts(updatedReceipts);
-      }
-    );
+    const unsubscribe = subscribeToReadReceipts(messageId, messageType, updatedReceipts => {
+      setReceipts(updatedReceipts);
+    });
 
     return unsubscribe;
   }, [messageId, messageType, isDemoMode]);
@@ -224,6 +213,6 @@ export const useReadReceipts = (options: UseReadReceiptsOptions) => {
     markAsRead,
     markAllChannelAsRead,
     refresh: loadReceipts,
-    refreshUnreadCount: loadUnreadCount
+    refreshUnreadCount: loadUnreadCount,
   };
 };

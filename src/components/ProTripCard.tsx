@@ -1,6 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, MoreHorizontal, Archive, EyeOff, UserPlus, Trash2, FileDown, Share2 } from 'lucide-react';
+import {
+  Calendar,
+  MapPin,
+  Users,
+  MoreHorizontal,
+  Archive,
+  EyeOff,
+  UserPlus,
+  Trash2,
+  FileDown,
+  Share2,
+} from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from './ui/button';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
@@ -12,7 +23,12 @@ import { ProTripData } from '../types/pro';
 import { useProTrips } from '../hooks/useProTrips';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../hooks/useAuth';
-import { getPeopleCountValue, formatPeopleCount, calculateDaysCount, calculateProTripPlacesCount } from '../utils/tripStatsUtils';
+import {
+  getPeopleCountValue,
+  formatPeopleCount,
+  calculateDaysCount,
+  calculateProTripPlacesCount,
+} from '../utils/tripStatsUtils';
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { getProTripColor } from '../utils/proTripColors';
@@ -28,7 +44,7 @@ import {
 } from './ui/dropdown-menu';
 
 // Stable empty array reference - prevents infinite re-renders from Zustand selector
-const EMPTY_PARTICIPANTS: Array<{id: number | string; name: string; avatar?: string}> = [];
+const EMPTY_PARTICIPANTS: Array<{ id: number | string; name: string; avatar?: string }> = [];
 
 interface ProTripCardProps {
   trip: ProTripData;
@@ -37,7 +53,12 @@ interface ProTripCardProps {
   onDeleteSuccess?: () => void;
 }
 
-export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuccess }: ProTripCardProps) => {
+export const ProTripCard = ({
+  trip,
+  onArchiveSuccess,
+  onHideSuccess,
+  onDeleteSuccess,
+}: ProTripCardProps) => {
   const navigate = useNavigate();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -49,18 +70,20 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const { archiveTrip, hideTrip, deleteTripForMe } = useProTrips();
-  
+
   // Get color for this trip - uses saved color if available, otherwise deterministic fallback
   const tripColor = getProTripColor(trip.id, (trip as any).card_color);
-  
+
   // Get added members from the demo store
   const tripIdStr = trip.id.toString();
   const addedDemoMembers = useDemoTripMembersStore(
-    useShallow((state) => isDemoMode && state.addedMembers[tripIdStr] 
-      ? state.addedMembers[tripIdStr] 
-      : EMPTY_PARTICIPANTS)
+    useShallow(state =>
+      isDemoMode && state.addedMembers[tripIdStr]
+        ? state.addedMembers[tripIdStr]
+        : EMPTY_PARTICIPANTS,
+    ),
   );
-  
+
   // Calculate updated people count including added members
   const totalPeopleCount = React.useMemo(() => {
     let baseCount = getPeopleCountValue(trip);
@@ -76,16 +99,16 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
     try {
       await archiveTrip(trip.id);
       toast({
-        title: "Professional trip archived",
+        title: 'Professional trip archived',
         description: `"${trip.title}" has been archived.`,
       });
       setShowArchiveDialog(false);
       onArchiveSuccess?.();
     } catch (error) {
       toast({
-        title: "Failed to archive trip",
-        description: "There was an error archiving your trip.",
-        variant: "destructive",
+        title: 'Failed to archive trip',
+        description: 'There was an error archiving your trip.',
+        variant: 'destructive',
       });
     }
   };
@@ -94,15 +117,15 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
     try {
       await hideTrip(trip.id);
       toast({
-        title: "Trip hidden",
+        title: 'Trip hidden',
         description: `"${trip.title}" is now hidden.`,
       });
       onHideSuccess?.();
     } catch (error) {
       toast({
-        title: "Failed to hide trip",
-        description: "There was an error hiding your trip.",
-        variant: "destructive",
+        title: 'Failed to hide trip',
+        description: 'There was an error hiding your trip.',
+        variant: 'destructive',
       });
     }
   };
@@ -110,9 +133,9 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
   const handleDeleteTripForMe = async () => {
     if (!user?.id) {
       toast({
-        title: "Not logged in",
-        description: "You must be logged in to manage trips.",
-        variant: "destructive",
+        title: 'Not logged in',
+        description: 'You must be logged in to manage trips.',
+        variant: 'destructive',
       });
       return;
     }
@@ -121,16 +144,16 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
     try {
       await deleteTripForMe({ tripId: trip.id.toString(), userId: user.id });
       toast({
-        title: "Trip removed",
+        title: 'Trip removed',
         description: `"${trip.title}" has been removed.`,
       });
       setShowDeleteDialog(false);
       onDeleteSuccess?.();
     } catch (error) {
       toast({
-        title: "Failed to remove trip",
-        description: "There was an error removing the trip.",
-        variant: "destructive",
+        title: 'Failed to remove trip',
+        description: 'There was an error removing the trip.',
+        variant: 'destructive',
       });
     } finally {
       setIsDeleting(false);
@@ -139,103 +162,112 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
 
   // Export handler for Recap - matches TripCard pattern
   // TripExportModal passes only sections, we capture tripId from closure
-  const handleExportPdf = useCallback(async (sections: ExportSection[]) => {
-    const orderedSections = orderExportSections(sections);
-    const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
-    
-    toast({
-      title: "Creating Recap",
-      description: `Building your trip memories for "${trip.title}"...`,
-    });
+  const handleExportPdf = useCallback(
+    async (sections: ExportSection[]) => {
+      const orderedSections = orderExportSections(sections);
+      const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
 
-    try {
-      let blob: Blob;
-      
-      if (isDemoMode || isNumericId) {
-        // Demo mode - use mock data from services
-        const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
-        const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
-        const mockPayments = demoModeService.getMockPayments(tripIdStr);
-        const mockPolls = demoModeService.getMockPolls(tripIdStr);
-        const mockTasks = demoModeService.getMockTasks(tripIdStr);
-        const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
-        
-        const { generateClientPDF } = await import('../utils/exportPdfClient');
-        blob = await generateClientPDF(
-          {
-            tripId: tripIdStr,
-            tripTitle: trip.title,
-            destination: trip.location,
-            dateRange: trip.dateRange,
-            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
-            payments: orderedSections.includes('payments') && mockPayments.length > 0 ? {
-              items: mockPayments,
-              total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
-              currency: mockPayments[0]?.currency || 'USD'
-            } : undefined,
-            polls: orderedSections.includes('polls') ? mockPolls : undefined,
-            tasks: orderedSections.includes('tasks') ? mockTasks.map(task => ({
-              title: task.title,
-              description: task.description,
-              completed: task.completed
-            })) : undefined,
-            places: orderedSections.includes('places') ? mockPlaces : undefined,
-            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
-          },
-          orderedSections,
-          { customization: { compress: true, maxItemsPerSection: 100 } }
-        );
-      } else {
-        // Authenticated mode - fetch real data from Supabase
-        const { getExportData } = await import('../services/tripExportDataService');
-        const realData = await getExportData(tripIdStr, orderedSections);
-        
-        if (!realData) {
-          throw new Error('Could not fetch trip data for export');
+      toast({
+        title: 'Creating Recap',
+        description: `Building your trip memories for "${trip.title}"...`,
+      });
+
+      try {
+        let blob: Blob;
+
+        if (isDemoMode || isNumericId) {
+          // Demo mode - use mock data from services
+          const mockCalendar = demoModeService.getMockCalendarEvents(tripIdStr);
+          const mockAttachments = demoModeService.getMockAttachments(tripIdStr);
+          const mockPayments = demoModeService.getMockPayments(tripIdStr);
+          const mockPolls = demoModeService.getMockPolls(tripIdStr);
+          const mockTasks = demoModeService.getMockTasks(tripIdStr);
+          const mockPlaces = demoModeService.getMockPlaces(tripIdStr);
+
+          const { generateClientPDF } = await import('../utils/exportPdfClient');
+          blob = await generateClientPDF(
+            {
+              tripId: tripIdStr,
+              tripTitle: trip.title,
+              destination: trip.location,
+              dateRange: trip.dateRange,
+              calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
+              payments:
+                orderedSections.includes('payments') && mockPayments.length > 0
+                  ? {
+                      items: mockPayments,
+                      total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+                      currency: mockPayments[0]?.currency || 'USD',
+                    }
+                  : undefined,
+              polls: orderedSections.includes('polls') ? mockPolls : undefined,
+              tasks: orderedSections.includes('tasks')
+                ? mockTasks.map(task => ({
+                    title: task.title,
+                    description: task.description,
+                    completed: task.completed,
+                  }))
+                : undefined,
+              places: orderedSections.includes('places') ? mockPlaces : undefined,
+              attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
+            },
+            orderedSections,
+            { customization: { compress: true, maxItemsPerSection: 100 } },
+          );
+        } else {
+          // Authenticated mode - fetch real data from Supabase
+          const { getExportData } = await import('../services/tripExportDataService');
+          const realData = await getExportData(tripIdStr, orderedSections);
+
+          if (!realData) {
+            throw new Error('Could not fetch trip data for export');
+          }
+
+          const { generateClientPDF } = await import('../utils/exportPdfClient');
+          blob = await generateClientPDF(
+            {
+              tripId: tripIdStr,
+              tripTitle: realData.trip.title,
+              destination: realData.trip.destination,
+              dateRange: realData.trip.dateRange,
+              description: realData.trip.description,
+              calendar: realData.calendar,
+              payments: realData.payments,
+              polls: realData.polls,
+              tasks: realData.tasks,
+              places: realData.places,
+              roster: realData.roster,
+              attachments: realData.attachments,
+            },
+            orderedSections,
+            { customization: { compress: true, maxItemsPerSection: 100 } },
+          );
         }
-        
-        const { generateClientPDF } = await import('../utils/exportPdfClient');
-        blob = await generateClientPDF(
-          {
-            tripId: tripIdStr,
-            tripTitle: realData.trip.title,
-            destination: realData.trip.destination,
-            dateRange: realData.trip.dateRange,
-            description: realData.trip.description,
-            calendar: realData.calendar,
-            payments: realData.payments,
-            polls: realData.polls,
-            tasks: realData.tasks,
-            places: realData.places,
-            roster: realData.roster,
-            attachments: realData.attachments,
-          },
-          orderedSections,
-          { customization: { compress: true, maxItemsPerSection: 100 } }
-        );
+
+        // Generate filename
+        const sanitizedTitle = trip.title.replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `ProTrip_${sanitizedTitle}_${Date.now()}.pdf`;
+
+        // Download the blob
+        await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
+
+        toast({
+          title: 'Recap ready',
+          description: `PDF downloaded: ${filename}`,
+        });
+      } catch (error) {
+        console.error('[ProTripCard Export] Error:', error);
+        toast({
+          title: 'Recap failed',
+          description:
+            error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.',
+          variant: 'destructive',
+        });
+        throw error;
       }
-
-      // Generate filename
-      const sanitizedTitle = trip.title.replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `ProTrip_${sanitizedTitle}_${Date.now()}.pdf`;
-
-      // Download the blob
-      await openOrDownloadBlob(blob, filename, { mimeType: 'application/pdf' });
-
-      toast({
-        title: "Recap ready",
-        description: `PDF downloaded: ${filename}`,
-      });
-    } catch (error) {
-      console.error('[ProTripCard Export] Error:', error);
-      toast({
-        title: "Recap failed",
-        description: error instanceof Error ? error.message : "Failed to generate PDF. Please try again.",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  }, [trip, isDemoMode, toast, tripIdStr]);
+    },
+    [trip, isDemoMode, toast, tripIdStr],
+  );
 
   // Share trip data structure
   const shareTrip = {
@@ -245,46 +277,47 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
     dateRange: trip.dateRange,
     participants: trip.participants || [],
     coverPhoto: undefined,
-    peopleCount: totalPeopleCount
+    peopleCount: totalPeopleCount,
   };
 
   return (
-    <div className={`group bg-gradient-to-br ${tripColor.cardGradient} backdrop-blur-xl border border-white/20 hover:border-white/40 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg relative`}>
-      
+    <div
+      className={`group bg-gradient-to-br ${tripColor.cardGradient} backdrop-blur-xl border border-white/20 hover:border-white/40 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg relative`}
+    >
       {/* Hero Section - Dark overlay for text readability */}
       <div className="relative h-32 md:h-48 bg-black/40">
         {/* Cover photo overlay if available */}
         {(trip as any).coverPhoto && (
-          <div 
+          <div
             className="absolute inset-0 bg-cover bg-center opacity-25"
             style={{ backgroundImage: `url(${(trip as any).coverPhoto})` }}
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-        
+
         <div className="relative z-10 flex justify-between items-start h-full p-4 md:p-6">
           {/* Trip Info - Inside Hero */}
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end">
             <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-white/90 transition-colors line-clamp-2 mb-2">
               {trip.title}
             </h3>
-            
+
             <div className="flex items-center gap-2 text-white/80 mb-1 md:mb-2 text-sm md:text-base">
               <MapPin size={14} className="text-white/60 shrink-0" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
-            
+
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
               <Calendar size={14} className="text-white/60 shrink-0" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
-          
+
           {/* Menu Button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 className="text-white/60 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 h-8 w-8"
               >
@@ -326,21 +359,31 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
             <div className="flex items-center justify-center gap-1 mb-0.5">
               <Users size={12} className="text-white/50" />
             </div>
-            <div className="text-xl md:text-2xl font-bold text-white">{formatPeopleCount(totalPeopleCount)}</div>
+            <div className="text-xl md:text-2xl font-bold text-white">
+              {formatPeopleCount(totalPeopleCount)}
+            </div>
             <div className="text-xs md:text-sm text-white/60">People</div>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-0.5">
               <Calendar size={12} className="text-white/50" />
             </div>
-            <div className="text-xl md:text-2xl font-bold text-white">{calculateDaysCount(trip.dateRange)}</div>
+            <div className="text-xl md:text-2xl font-bold text-white">
+              {calculateDaysCount(trip.dateRange)}
+            </div>
             <div className="text-xs md:text-sm text-white/60">Days</div>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-0.5">
               <MapPin size={12} className="text-white/50" />
             </div>
-            <div className="text-xl md:text-2xl font-bold text-white">{trip.placesCount != null ? (trip.placesCount > 0 ? trip.placesCount.toString() : '—') : calculateProTripPlacesCount(trip)}</div>
+            <div className="text-xl md:text-2xl font-bold text-white">
+              {trip.placesCount != null
+                ? trip.placesCount > 0
+                  ? trip.placesCount.toString()
+                  : '—'
+                : calculateProTripPlacesCount(trip)}
+            </div>
             <div className="text-xs md:text-sm text-white/60">Places</div>
           </div>
         </div>
@@ -364,7 +407,7 @@ export const ProTripCard = ({ trip, onArchiveSuccess, onHideSuccess, onDeleteSuc
             <UserPlus size={14} className="mr-1.5" />
             Invite
           </Button>
-          
+
           {/* Bottom Row: View + Share */}
           {/* View button uses neutral dark style (NOT yellow like Regular TripCard) */}
           <Button

@@ -62,7 +62,10 @@ export default function PrivacyPolicy() {
               <li>Send administrative messages and updates</li>
               <li>Respond to your comments and questions</li>
               <li>Provide customer support</li>
-              <li>Personalize your experience with AI-powered features (see Section 3A below for details)</li>
+              <li>
+                Personalize your experience with AI-powered features (see Section 3A below for
+                details)
+              </li>
               <li>Monitor and analyze usage patterns</li>
               <li>Detect, prevent, and address technical issues and fraud</li>
             </ul>
@@ -73,10 +76,10 @@ export default function PrivacyPolicy() {
 
             <h3 className="text-xl font-medium mb-3">AI-Powered Features</h3>
             <p className="text-foreground/90 mb-4">
-              Chravel uses artificial intelligence to power several features in the app, including the
-              AI Concierge (text and voice), smart search, document and receipt parsing, trip planning
-              suggestions, and agenda extraction. These features are powered by Google's Gemini AI
-              models, accessed through Google's Generative Language API.
+              Chravel uses artificial intelligence to power several features in the app, including
+              the AI Concierge (text and voice), smart search, document and receipt parsing, trip
+              planning suggestions, and agenda extraction. These features are powered by Google's
+              Gemini AI models, accessed through Google's Generative Language API.
             </p>
 
             <h3 className="text-xl font-medium mb-3">Data Sent to AI Services</h3>
@@ -90,17 +93,17 @@ export default function PrivacyPolicy() {
                 input you provide to the AI Concierge.
               </li>
               <li>
-                <strong>Trip context:</strong> Information from your trip, including calendar events,
-                task lists, group messages, polls, saved places, shared links, and payment summaries.
-                This context helps the AI provide relevant, trip-specific responses.
+                <strong>Trip context:</strong> Information from your trip, including calendar
+                events, task lists, group messages, polls, saved places, shared links, and payment
+                summaries. This context helps the AI provide relevant, trip-specific responses.
               </li>
               <li>
                 <strong>Uploaded files:</strong> Documents, images, and receipts you submit for
                 AI-powered parsing or attach to concierge conversations.
               </li>
               <li>
-                <strong>Voice audio:</strong> When using the voice concierge feature, real-time audio
-                from your microphone is streamed directly to Google's Gemini Live API for
+                <strong>Voice audio:</strong> When using the voice concierge feature, real-time
+                audio from your microphone is streamed directly to Google's Gemini Live API for
                 speech-to-text and response generation.
               </li>
               <li>
@@ -127,14 +130,24 @@ export default function PrivacyPolicy() {
             <p className="text-foreground/90 mb-4">
               AI features are powered by Google's Gemini models, accessed via the Google Generative
               Language API. Data shared with Google is processed in accordance with{' '}
-              <a href="https://ai.google.dev/gemini-api/terms" className="text-primary hover:underline"
-                target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://ai.google.dev/gemini-api/terms"
+                className="text-primary hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Google's Gemini API Terms of Service
-              </a>{' '}and{' '}
-              <a href="https://policies.google.com/privacy" className="text-primary hover:underline"
-                target="_blank" rel="noopener noreferrer">
-                Google's Privacy Policy</a>.
-              Under Google's API terms, data submitted through the API is not used by Google to
+              </a>{' '}
+              and{' '}
+              <a
+                href="https://policies.google.com/privacy"
+                className="text-primary hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Google's Privacy Policy
+              </a>
+              . Under Google's API terms, data submitted through the API is not used by Google to
               train its foundation models for other customers.
             </p>
 
@@ -174,9 +187,10 @@ export default function PrivacyPolicy() {
               </li>
             </ul>
             <p className="text-foreground/90">
-              AI features are an integral part of the Chravel experience. While you can choose not to
-              use the AI Concierge or voice features, some AI processing (such as document parsing
-              and smart search) is part of core functionality and cannot be individually disabled.
+              AI features are an integral part of the Chravel experience. While you can choose not
+              to use the AI Concierge or voice features, some AI processing (such as document
+              parsing and smart search) is part of core functionality and cannot be individually
+              disabled.
             </p>
           </section>
 
@@ -197,7 +211,8 @@ export default function PrivacyPolicy() {
               <li>
                 <strong>With AI Service Providers:</strong> Certain data is shared with Google's
                 Gemini AI services to power AI features as described in Section 3A. Google processes
-                this data under its API terms and does not use it to train models for other customers.
+                this data under its API terms and does not use it to train models for other
+                customers.
               </li>
               <li>
                 <strong>For Legal Reasons:</strong> When required by law or to protect our rights

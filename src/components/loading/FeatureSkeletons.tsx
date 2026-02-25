@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
  */
 export const EventListSkeleton = () => (
   <div className="space-y-3">
-    {[1, 2, 3, 4].map((i) => (
+    {[1, 2, 3, 4].map(i => (
       <div key={i} className="bg-card border border-border rounded-lg p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 space-y-2">
@@ -34,7 +34,7 @@ export const EventListSkeleton = () => (
  */
 export const PaymentHistorySkeleton = () => (
   <div className="space-y-3">
-    {[1, 2, 3, 4, 5].map((i) => (
+    {[1, 2, 3, 4, 5].map(i => (
       <div key={i} className="bg-card border border-border rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -60,7 +60,7 @@ export const PaymentHistorySkeleton = () => (
  */
 export const BroadcastListSkeleton = () => (
   <div className="space-y-4">
-    {[1, 2, 3].map((i) => (
+    {[1, 2, 3].map(i => (
       <div key={i} className="bg-card border border-border rounded-lg p-6">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -94,7 +94,7 @@ export const BroadcastListSkeleton = () => (
  */
 export const ChannelListSkeleton = () => (
   <div className="space-y-2">
-    {[1, 2, 3, 4].map((i) => (
+    {[1, 2, 3, 4].map(i => (
       <div key={i} className="bg-card border border-border rounded-lg p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -117,7 +117,7 @@ export const ChannelListSkeleton = () => (
  */
 export const BalanceCardSkeleton = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    {[1, 2, 3].map((i) => (
+    {[1, 2, 3].map(i => (
       <div key={i} className="bg-card border border-border rounded-lg p-6">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
@@ -144,7 +144,7 @@ export const BalanceCardSkeleton = () => (
  */
 export const TaskListSkeleton = () => (
   <div className="space-y-3">
-    {[1, 2, 3, 4].map((i) => (
+    {[1, 2, 3, 4].map(i => (
       <div key={i} className="bg-card border border-border rounded-lg p-4">
         <div className="flex items-start gap-3">
           <Skeleton className="h-5 w-5 rounded" />
@@ -169,7 +169,7 @@ export const TaskListSkeleton = () => (
  */
 export const ChatMessagesSkeleton = () => (
   <div className="space-y-4">
-    {[1, 2, 3, 4, 5].map((i) => (
+    {[1, 2, 3, 4, 5].map(i => (
       <div key={i} className={`flex gap-3 ${i % 3 === 0 ? 'flex-row-reverse' : ''}`}>
         <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
         <div className="flex-1 space-y-2 max-w-[70%]">
@@ -187,7 +187,7 @@ export const ChatMessagesSkeleton = () => (
  */
 export const MediaGallerySkeleton = () => (
   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
       <div key={i} className="aspect-square relative">
         <Skeleton className="absolute inset-0 rounded-lg" />
       </div>

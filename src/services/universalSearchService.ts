@@ -1,6 +1,16 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type ContentType = 'trips' | 'messages' | 'concierge' | 'calendar' | 'task' | 'poll' | 'payment' | 'place' | 'link' | 'media';
+export type ContentType =
+  | 'trips'
+  | 'messages'
+  | 'concierge'
+  | 'calendar'
+  | 'task'
+  | 'poll'
+  | 'payment'
+  | 'place'
+  | 'link'
+  | 'media';
 export type SearchMode = 'keyword' | 'semantic' | 'hybrid';
 
 /** Escape SQL LIKE/ILIKE wildcards so user input is treated as literal text. */
@@ -40,7 +50,7 @@ export interface UniversalSearchResult {
 async function searchTrips(
   query: string,
   isDemoMode: boolean,
-  tripIds?: string[]
+  tripIds?: string[],
 ): Promise<UniversalSearchResult[]> {
   const queryLower = query.toLowerCase();
 
@@ -48,7 +58,7 @@ async function searchTrips(
     const mockTrips = (await import('@/data/tripsData')).tripsData;
     return mockTrips
       .filter(trip => {
-        const matchesQuery = 
+        const matchesQuery =
           trip.title.toLowerCase().includes(queryLower) ||
           trip.location.toLowerCase().includes(queryLower);
         const matchesFilter = !tripIds || tripIds.includes(trip.id.toString());
@@ -64,7 +74,7 @@ async function searchTrips(
         matchScore: 0.9,
         deepLink: `/trip/${trip.id}`,
         thumbnailUrl: trip.coverPhoto,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }));
   }
 
@@ -80,7 +90,7 @@ async function searchTrips(
   }
 
   const { data, error } = await tripQuery.limit(5);
-  
+
   if (error) {
     console.error('Trip search error:', error);
     return [];
@@ -96,7 +106,7 @@ async function searchTrips(
     matchScore: 0.9,
     deepLink: `/trip/${trip.id}`,
     thumbnailUrl: trip.header_image_url,
-    timestamp: trip.start_date
+    timestamp: trip.start_date,
   }));
 }
 
@@ -106,7 +116,7 @@ async function searchTrips(
 async function searchMessagesAcrossTrips(
   query: string,
   isDemoMode: boolean,
-  tripIds?: string[]
+  tripIds?: string[],
 ): Promise<UniversalSearchResult[]> {
   const queryLower = query.toLowerCase();
 
@@ -128,7 +138,7 @@ async function searchMessagesAcrossTrips(
         matchScore: 0.85,
         deepLink: `/trip/${msg.tripId}#chat-message-${msg.id}`,
         metadata: { authorName: msg.authorName },
-        timestamp: msg.createdAt
+        timestamp: msg.createdAt,
       }));
   }
 
@@ -156,7 +166,7 @@ async function searchMessagesAcrossTrips(
     matchScore: 0.85,
     deepLink: `/trip/${msg.trip_id}#chat-message-${msg.id}`,
     metadata: { authorName: msg.author_name },
-    timestamp: msg.created_at
+    timestamp: msg.created_at,
   }));
 }
 
@@ -166,7 +176,7 @@ async function searchMessagesAcrossTrips(
 async function searchConciergeMessages(
   query: string,
   isDemoMode: boolean,
-  tripIds?: string[]
+  tripIds?: string[],
 ): Promise<UniversalSearchResult[]> {
   if (isDemoMode) {
     // In demo mode, we could return some mock concierge results if needed
@@ -207,7 +217,7 @@ async function searchConciergeMessages(
       snippet: prefix + (text?.slice(0, 150) || ''),
       matchScore: 0.88,
       deepLink: `/trip/${msg.trip_id}#concierge-message-${msg.id}`,
-      timestamp: msg.created_at
+      timestamp: msg.created_at,
     };
   });
 }
@@ -218,7 +228,7 @@ async function searchConciergeMessages(
 async function searchCalendarEvents(
   query: string,
   isDemoMode: boolean,
-  tripIds?: string[]
+  tripIds?: string[],
 ): Promise<UniversalSearchResult[]> {
   const queryLower = query.toLowerCase();
 
@@ -226,7 +236,7 @@ async function searchCalendarEvents(
     const mockEvents = (await import('@/data/mockSearchData')).mockCalendarEvents;
     return mockEvents
       .filter(event => {
-        const matchesQuery = 
+        const matchesQuery =
           event.title.toLowerCase().includes(queryLower) ||
           event.location?.toLowerCase().includes(queryLower);
         const matchesTripFilter = !tripIds || tripIds.includes(event.tripId);
@@ -242,7 +252,7 @@ async function searchCalendarEvents(
         matchScore: 0.88,
         deepLink: `/trip/${event.tripId}#calendar-event-${event.id}`,
         metadata: { location: event.location, startTime: event.startTime },
-        timestamp: event.startTime
+        timestamp: event.startTime,
       }));
   }
 
@@ -251,7 +261,9 @@ async function searchCalendarEvents(
   const eventQuery = supabase
     .from('trip_events')
     .select('id, title, description, location, start_time, trip_id, event_category, trips(name)')
-    .or(`title.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%,event_category.ilike.%${safeQuery}%`)
+    .or(
+      `title.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%,event_category.ilike.%${safeQuery}%`,
+    )
     .order('start_time', { ascending: false });
 
   if (tripIds && tripIds.length > 0) {
@@ -259,7 +271,7 @@ async function searchCalendarEvents(
   }
 
   const { data, error } = await eventQuery.limit(20); // Reduced from 30 to 20
-  
+
   if (error) {
     console.error('Calendar search error:', error);
     return [];
@@ -275,7 +287,7 @@ async function searchCalendarEvents(
     matchScore: 0.88,
     deepLink: `/trip/${event.trip_id}#calendar-event-${event.id}`,
     metadata: { location: event.location, startTime: event.start_time },
-    timestamp: event.start_time
+    timestamp: event.start_time,
   }));
 }
 
@@ -285,7 +297,7 @@ async function searchCalendarEvents(
 async function searchTasks(
   query: string,
   isDemoMode: boolean,
-  tripIds?: string[]
+  tripIds?: string[],
 ): Promise<UniversalSearchResult[]> {
   const queryLower = query.toLowerCase();
 
@@ -293,7 +305,7 @@ async function searchTasks(
     const mockTasks = (await import('@/data/mockSearchData')).mockTasks;
     return mockTasks
       .filter(task => {
-        const matchesQuery = 
+        const matchesQuery =
           task.title.toLowerCase().includes(queryLower) ||
           task.description?.toLowerCase().includes(queryLower);
         const matchesTripFilter = !tripIds || tripIds.includes(task.tripId);
@@ -309,7 +321,7 @@ async function searchTasks(
         matchScore: 0.86,
         deepLink: `/trip/${task.tripId}#task-${task.id}`,
         metadata: { priority: task.priority, status: task.status },
-        timestamp: task.createdAt
+        timestamp: task.createdAt,
       }));
   }
 
@@ -326,7 +338,7 @@ async function searchTasks(
   }
 
   const { data, error } = await taskQuery.limit(20); // Reduced from 30 to 20
-  
+
   if (error) {
     console.error('Task search error:', error);
     return [];
@@ -342,7 +354,7 @@ async function searchTasks(
     matchScore: 0.86,
     deepLink: `/trip/${task.trip_id}#task-${task.id}`,
     metadata: { priority: task.priority, status: task.status },
-    timestamp: task.created_at
+    timestamp: task.created_at,
   }));
 }
 
@@ -352,7 +364,7 @@ async function searchTasks(
 async function searchPolls(
   query: string,
   isDemoMode: boolean,
-  tripIds?: string[]
+  tripIds?: string[],
 ): Promise<UniversalSearchResult[]> {
   const queryLower = query.toLowerCase();
 
@@ -374,7 +386,7 @@ async function searchPolls(
         matchScore: 0.84,
         deepLink: `/trip/${poll.tripId}#poll-${poll.id}`,
         metadata: { totalVotes: poll.totalVotes },
-        timestamp: poll.createdAt
+        timestamp: poll.createdAt,
       }));
   }
 
@@ -391,7 +403,7 @@ async function searchPolls(
   }
 
   const { data, error } = await pollQuery.limit(20);
-  
+
   if (error) {
     console.error('Poll search error:', error);
     return [];
@@ -407,7 +419,7 @@ async function searchPolls(
     matchScore: 0.84,
     deepLink: `/trip/${poll.trip_id}#poll-${poll.id}`,
     metadata: { totalVotes: poll.total_votes },
-    timestamp: poll.created_at
+    timestamp: poll.created_at,
   }));
 }
 
@@ -417,7 +429,7 @@ async function searchPolls(
 async function searchPayments(
   query: string,
   isDemoMode: boolean,
-  tripIds?: string[]
+  tripIds?: string[],
 ): Promise<UniversalSearchResult[]> {
   if (isDemoMode) {
     // Return empty for now or add mock payments
@@ -453,7 +465,7 @@ async function searchPayments(
     matchScore: 0.86,
     deepLink: `/trip/${payment.trip_id}#payment-${payment.id}`,
     metadata: { amount: payment.amount, currency: payment.currency },
-    timestamp: payment.created_at
+    timestamp: payment.created_at,
   }));
 }
 
@@ -463,7 +475,7 @@ async function searchPayments(
 async function searchPlaces(
   query: string,
   isDemoMode: boolean,
-  tripIds?: string[]
+  tripIds?: string[],
 ): Promise<UniversalSearchResult[]> {
   if (isDemoMode) {
     return [];
@@ -497,7 +509,7 @@ async function searchPlaces(
     snippet: place.og_description || '',
     matchScore: 0.84,
     deepLink: `/trip/${place.trip_id}#place-${place.id}`,
-    timestamp: place.created_at
+    timestamp: place.created_at,
   }));
 }
 
@@ -507,7 +519,7 @@ async function searchPlaces(
 async function searchLinks(
   query: string,
   isDemoMode: boolean,
-  tripIds?: string[]
+  tripIds?: string[],
 ): Promise<UniversalSearchResult[]> {
   if (isDemoMode) {
     return [];
@@ -542,7 +554,7 @@ async function searchLinks(
     matchScore: 0.82,
     deepLink: `/trip/${link.trip_id}#link-${link.id}`,
     metadata: { url: link.url },
-    timestamp: link.created_at
+    timestamp: link.created_at,
   }));
 }
 
@@ -552,7 +564,7 @@ async function searchLinks(
 async function searchMedia(
   query: string,
   isDemoMode: boolean,
-  tripIds?: string[]
+  tripIds?: string[],
 ): Promise<UniversalSearchResult[]> {
   const queryLower = query.toLowerCase();
 
@@ -560,7 +572,7 @@ async function searchMedia(
     const mockMedia = (await import('@/data/mockSearchData')).mockMedia;
     return mockMedia
       .filter(media => {
-        const matchesQuery = 
+        const matchesQuery =
           media.filename.toLowerCase().includes(queryLower) ||
           media.tags?.some(tag => tag.toLowerCase().includes(queryLower));
         const matchesTripFilter = !tripIds || tripIds.includes(media.tripId);
@@ -576,7 +588,7 @@ async function searchMedia(
         matchScore: 0.82,
         deepLink: `/trip/${media.tripId}#media-${media.id}`,
         metadata: { type: media.type, tags: media.tags },
-        timestamp: media.createdAt
+        timestamp: media.createdAt,
       }));
   }
 
@@ -593,7 +605,7 @@ async function searchMedia(
   }
 
   const { data, error } = await mediaQuery.limit(20); // Reduced from 30 to 20
-  
+
   if (error) {
     console.error('Media search error:', error);
     return [];
@@ -609,7 +621,7 @@ async function searchMedia(
     matchScore: 0.82,
     deepLink: `/trip/${media.trip_id}#media-${media.id}`,
     metadata: { type: media.file_type },
-    timestamp: media.created_at
+    timestamp: media.created_at,
   }));
 }
 
@@ -617,7 +629,7 @@ async function searchMedia(
  * Main universal search function
  */
 export async function performUniversalSearch(
-  params: UniversalSearchParams
+  params: UniversalSearchParams,
 ): Promise<UniversalSearchResult[]> {
   const { query, contentTypes, filters, isDemoMode } = params;
 
@@ -663,9 +675,7 @@ export async function performUniversalSearch(
   const results = await Promise.allSettled(searchPromises);
 
   // Flatten and sort by match score
-  const allResults = results
-    .map(r => (r.status === 'fulfilled' ? r.value : []))
-    .flat();
+  const allResults = results.map(r => (r.status === 'fulfilled' ? r.value : [])).flat();
 
   return allResults.sort((a, b) => b.matchScore - a.matchScore);
 }

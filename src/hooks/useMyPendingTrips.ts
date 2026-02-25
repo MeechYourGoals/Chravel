@@ -30,11 +30,12 @@ export const useMyPendingTrips = () => {
 
     try {
       setIsLoading(true);
-      
+
       // Fetch pending join requests for current user
       const { data: requests, error } = await supabase
         .from('trip_join_requests')
-        .select(`
+        .select(
+          `
           id,
           trip_id,
           requested_at,
@@ -45,7 +46,8 @@ export const useMyPendingTrips = () => {
             start_date,
             cover_image_url
           )
-        `)
+        `,
+        )
         .eq('user_id', user.id)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
@@ -61,13 +63,15 @@ export const useMyPendingTrips = () => {
         id: req.id,
         trip_id: req.trip_id,
         requested_at: req.requested_at,
-        trip: req.trips ? {
-          id: req.trips.id,
-          name: req.trips.name,
-          destination: req.trips.destination,
-          start_date: req.trips.start_date,
-          cover_image_url: req.trips.cover_image_url
-        } : undefined
+        trip: req.trips
+          ? {
+              id: req.trips.id,
+              name: req.trips.name,
+              destination: req.trips.destination,
+              start_date: req.trips.start_date,
+              cover_image_url: req.trips.cover_image_url,
+            }
+          : undefined,
       }));
 
       setPendingTrips(transformedRequests);
@@ -95,11 +99,11 @@ export const useMyPendingTrips = () => {
           event: '*',
           schema: 'public',
           table: 'trip_join_requests',
-          filter: `user_id=eq.${user.id}`
+          filter: `user_id=eq.${user.id}`,
         },
         () => {
           fetchPendingTrips();
-        }
+        },
       )
       .subscribe();
 
@@ -111,6 +115,6 @@ export const useMyPendingTrips = () => {
   return {
     pendingTrips,
     isLoading,
-    refetch: fetchPendingTrips
+    refetch: fetchPendingTrips,
   };
 };

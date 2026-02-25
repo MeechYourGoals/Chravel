@@ -24,7 +24,7 @@ export const ArchiveConfirmDialog = ({
   onClose,
   onConfirm,
   tripTitle,
-  isArchiving
+  isArchiving,
 }: ArchiveConfirmDialogProps) => {
   const handleConfirm = () => {
     onConfirm();
@@ -41,9 +41,7 @@ export const ArchiveConfirmDialog = ({
             ) : (
               <ArchiveRestore className="h-5 w-5 text-primary" />
             )}
-            <AlertDialogTitle>
-              {isArchiving ? 'Archive Trip' : 'Restore Trip'}
-            </AlertDialogTitle>
+            <AlertDialogTitle>{isArchiving ? 'Archive Trip' : 'Restore Trip'}</AlertDialogTitle>
           </div>
           <AlertDialogDescription className="text-muted-foreground">
             {isArchiving ? (
@@ -51,7 +49,8 @@ export const ArchiveConfirmDialog = ({
                 Are you sure you want to archive "<strong>{tripTitle}</strong>"?
                 <br />
                 <br />
-                This will hide the trip from your main list, but you can restore it anytime from Settings → Archived Trips.
+                This will hide the trip from your main list, but you can restore it anytime from
+                Settings → Archived Trips.
               </>
             ) : (
               <>
@@ -64,12 +63,14 @@ export const ArchiveConfirmDialog = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>
-            Cancel
-          </AlertDialogCancel>
+          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            className={isArchiving ? 'bg-muted-foreground hover:bg-muted-foreground/80' : 'bg-primary hover:bg-primary/80'}
+            className={
+              isArchiving
+                ? 'bg-muted-foreground hover:bg-muted-foreground/80'
+                : 'bg-primary hover:bg-primary/80'
+            }
           >
             {isArchiving ? 'Archive Trip' : 'Restore Trip'}
           </AlertDialogAction>

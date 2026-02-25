@@ -15,28 +15,112 @@ const DEVICES: DeviceConfig[] = [
   // Phones - Portrait
   { name: 'iPhone SE', width: 375, height: 667, category: 'phone', orientation: 'portrait' },
   { name: 'iPhone 14', width: 390, height: 844, category: 'phone', orientation: 'portrait' },
-  { name: 'iPhone 15 Pro Max', width: 430, height: 932, category: 'phone', orientation: 'portrait' },
+  {
+    name: 'iPhone 15 Pro Max',
+    width: 430,
+    height: 932,
+    category: 'phone',
+    orientation: 'portrait',
+  },
   { name: 'Pixel 8', width: 411, height: 915, category: 'phone', orientation: 'portrait' },
   { name: 'Galaxy S24', width: 412, height: 915, category: 'phone', orientation: 'portrait' },
-  
+
   // Foldables
-  { name: 'Galaxy Fold (Folded)', width: 375, height: 800, category: 'foldable', orientation: 'portrait' },
-  { name: 'Galaxy Fold (Unfolded)', width: 900, height: 1176, category: 'foldable', orientation: 'portrait' },
-  { name: 'iPhone Fold (Rumored)', width: 900, height: 1200, category: 'foldable', orientation: 'portrait' },
-  
+  {
+    name: 'Galaxy Fold (Folded)',
+    width: 375,
+    height: 800,
+    category: 'foldable',
+    orientation: 'portrait',
+  },
+  {
+    name: 'Galaxy Fold (Unfolded)',
+    width: 900,
+    height: 1176,
+    category: 'foldable',
+    orientation: 'portrait',
+  },
+  {
+    name: 'iPhone Fold (Rumored)',
+    width: 900,
+    height: 1200,
+    category: 'foldable',
+    orientation: 'portrait',
+  },
+
   // Tablets - Portrait
-  { name: 'iPad Mini Portrait', width: 744, height: 1133, category: 'tablet', orientation: 'portrait' },
-  { name: 'iPad Mini Landscape', width: 1133, height: 744, category: 'tablet', orientation: 'landscape' },
-  { name: 'iPad 10.9" Portrait', width: 820, height: 1180, category: 'tablet', orientation: 'portrait' },
-  { name: 'iPad 10.9" Landscape', width: 1180, height: 820, category: 'tablet', orientation: 'landscape' },
-  { name: 'iPad Pro 11" Portrait', width: 834, height: 1194, category: 'tablet', orientation: 'portrait' },
-  { name: 'iPad Pro 11" Landscape', width: 1194, height: 834, category: 'tablet', orientation: 'landscape' },
-  { name: 'iPad Pro 12.9" Portrait', width: 1024, height: 1366, category: 'tablet', orientation: 'portrait' },
-  { name: 'iPad Pro 12.9" Landscape', width: 1366, height: 1024, category: 'tablet', orientation: 'landscape' },
-  
+  {
+    name: 'iPad Mini Portrait',
+    width: 744,
+    height: 1133,
+    category: 'tablet',
+    orientation: 'portrait',
+  },
+  {
+    name: 'iPad Mini Landscape',
+    width: 1133,
+    height: 744,
+    category: 'tablet',
+    orientation: 'landscape',
+  },
+  {
+    name: 'iPad 10.9" Portrait',
+    width: 820,
+    height: 1180,
+    category: 'tablet',
+    orientation: 'portrait',
+  },
+  {
+    name: 'iPad 10.9" Landscape',
+    width: 1180,
+    height: 820,
+    category: 'tablet',
+    orientation: 'landscape',
+  },
+  {
+    name: 'iPad Pro 11" Portrait',
+    width: 834,
+    height: 1194,
+    category: 'tablet',
+    orientation: 'portrait',
+  },
+  {
+    name: 'iPad Pro 11" Landscape',
+    width: 1194,
+    height: 834,
+    category: 'tablet',
+    orientation: 'landscape',
+  },
+  {
+    name: 'iPad Pro 12.9" Portrait',
+    width: 1024,
+    height: 1366,
+    category: 'tablet',
+    orientation: 'portrait',
+  },
+  {
+    name: 'iPad Pro 12.9" Landscape',
+    width: 1366,
+    height: 1024,
+    category: 'tablet',
+    orientation: 'landscape',
+  },
+
   // Desktop
-  { name: 'MacBook Air 13"', width: 1440, height: 900, category: 'desktop', orientation: 'landscape' },
-  { name: 'MacBook Pro 16"', width: 1728, height: 1117, category: 'desktop', orientation: 'landscape' },
+  {
+    name: 'MacBook Air 13"',
+    width: 1440,
+    height: 900,
+    category: 'desktop',
+    orientation: 'landscape',
+  },
+  {
+    name: 'MacBook Pro 16"',
+    width: 1728,
+    height: 1117,
+    category: 'desktop',
+    orientation: 'landscape',
+  },
   { name: 'iMac 24"', width: 2560, height: 1440, category: 'desktop', orientation: 'landscape' },
 ];
 
@@ -60,9 +144,8 @@ const DeviceTestMatrix = () => {
   const [selectedCategory, setSelectedCategory] = useState<DeviceConfig['category'] | 'all'>('all');
   const [scale, setScale] = useState(0.2);
 
-  const filteredDevices = selectedCategory === 'all' 
-    ? DEVICES 
-    : DEVICES.filter(d => d.category === selectedCategory);
+  const filteredDevices =
+    selectedCategory === 'all' ? DEVICES : DEVICES.filter(d => d.category === selectedCategory);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -78,7 +161,8 @@ const DeviceTestMatrix = () => {
             </button>
             <h1 className="text-xl font-bold">Device Testing Matrix</h1>
             <span className="text-sm text-muted-foreground">
-              Mobile breakpoint: {`<`}{MOBILE_BREAKPOINT}px
+              Mobile breakpoint: {`<`}
+              {MOBILE_BREAKPOINT}px
             </span>
           </div>
 
@@ -89,7 +173,7 @@ const DeviceTestMatrix = () => {
               <input
                 type="text"
                 value={testPath}
-                onChange={(e) => setTestPath(e.target.value)}
+                onChange={e => setTestPath(e.target.value)}
                 className="px-3 py-1.5 bg-muted rounded-lg text-sm w-48 border border-border focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="/"
               />
@@ -99,7 +183,7 @@ const DeviceTestMatrix = () => {
             <div className="flex items-center gap-2">
               <label className="text-sm text-muted-foreground">Category:</label>
               <div className="flex gap-1">
-                {(['all', 'phone', 'foldable', 'tablet', 'desktop'] as const).map((cat) => (
+                {(['all', 'phone', 'foldable', 'tablet', 'desktop'] as const).map(cat => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
@@ -107,7 +191,7 @@ const DeviceTestMatrix = () => {
                       'px-3 py-1.5 rounded-lg text-sm capitalize transition-colors',
                       selectedCategory === cat
                         ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted hover:bg-muted/80'
+                        : 'bg-muted hover:bg-muted/80',
                     )}
                   >
                     {cat}
@@ -125,7 +209,7 @@ const DeviceTestMatrix = () => {
                 max="0.5"
                 step="0.05"
                 value={scale}
-                onChange={(e) => setScale(parseFloat(e.target.value))}
+                onChange={e => setScale(parseFloat(e.target.value))}
                 className="w-24"
               />
               <span className="text-sm text-muted-foreground w-12">{Math.round(scale * 100)}%</span>
@@ -144,10 +228,15 @@ const DeviceTestMatrix = () => {
 
       {/* Device Grid */}
       <div className="p-6 max-w-[1800px] mx-auto">
-        <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${Math.max(200, DEVICES[0].width * scale + 40)}px, 1fr))` }}>
-          {filteredDevices.map((device) => {
+        <div
+          className="grid gap-6"
+          style={{
+            gridTemplateColumns: `repeat(auto-fill, minmax(${Math.max(200, DEVICES[0].width * scale + 40)}px, 1fr))`,
+          }}
+        >
+          {filteredDevices.map(device => {
             const isMobileLayout = device.width < MOBILE_BREAKPOINT;
-            
+
             return (
               <div
                 key={`${device.name}-${device.width}x${device.height}`}
@@ -160,14 +249,16 @@ const DeviceTestMatrix = () => {
                     <span className="font-medium text-sm">{device.name}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{device.width} × {device.height}</span>
+                    <span>
+                      {device.width} × {device.height}
+                    </span>
                     <span className="text-muted-foreground/50">•</span>
                     <span
                       className={cn(
                         'px-1.5 py-0.5 rounded text-[10px] font-medium',
                         isMobileLayout
                           ? 'bg-blue-500/20 text-blue-400'
-                          : 'bg-green-500/20 text-green-400'
+                          : 'bg-green-500/20 text-green-400',
                       )}
                     >
                       {isMobileLayout ? 'Mobile Nav' : 'Desktop Nav'}
@@ -218,7 +309,8 @@ const DeviceTestMatrix = () => {
                 Mobile Nav
               </span>
               <span className="text-muted-foreground">
-                Width {`<`} {MOBILE_BREAKPOINT}px → Bottom tab bar, swipe gestures, iOS-style navigation
+                Width {`<`} {MOBILE_BREAKPOINT}px → Bottom tab bar, swipe gestures, iOS-style
+                navigation
               </span>
             </div>
             <div className="flex items-start gap-3">
@@ -226,7 +318,8 @@ const DeviceTestMatrix = () => {
                 Desktop Nav
               </span>
               <span className="text-muted-foreground">
-                Width ≥ {MOBILE_BREAKPOINT}px → Sidebar navigation, larger touch targets, extended layouts
+                Width ≥ {MOBILE_BREAKPOINT}px → Sidebar navigation, larger touch targets, extended
+                layouts
               </span>
             </div>
           </div>

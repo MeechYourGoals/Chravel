@@ -51,7 +51,7 @@ test.describe('Smoke Tests — App Shell', () => {
         !e.includes('favicon') &&
         !e.includes('manifest') &&
         !e.includes('service-worker') &&
-        !e.includes('sw.js')
+        !e.includes('sw.js'),
     );
 
     expect(criticalErrors).toEqual([]);

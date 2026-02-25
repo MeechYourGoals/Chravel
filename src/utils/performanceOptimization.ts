@@ -9,10 +9,7 @@ import { useRef, useCallback, useEffect } from 'react';
  * Debounce hook for expensive operations
  * Delays execution until after wait time has elapsed since last call
  */
-export function useDebounce<T extends (...args: any[]) => any>(
-  callback: T,
-  delay: number
-): T {
+export function useDebounce<T extends (...args: any[]) => any>(callback: T, delay: number): T {
   const timeoutRef = useRef<NodeJS.Timeout>();
   const callbackRef = useRef(callback);
 
@@ -21,25 +18,25 @@ export function useDebounce<T extends (...args: any[]) => any>(
     callbackRef.current = callback;
   }, [callback]);
 
-  return useCallback((...args: Parameters<T>) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+  return useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
 
-    timeoutRef.current = setTimeout(() => {
-      callbackRef.current(...args);
-    }, delay);
-  }, [delay]) as T;
+      timeoutRef.current = setTimeout(() => {
+        callbackRef.current(...args);
+      }, delay);
+    },
+    [delay],
+  ) as T;
 }
 
 /**
  * Throttle hook for rate-limiting frequent operations
  * Ensures callback executes at most once per wait period
  */
-export function useThrottle<T extends (...args: any[]) => any>(
-  callback: T,
-  delay: number
-): T {
+export function useThrottle<T extends (...args: any[]) => any>(callback: T, delay: number): T {
   const lastRunRef = useRef(0);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const callbackRef = useRef(callback);
@@ -48,23 +45,29 @@ export function useThrottle<T extends (...args: any[]) => any>(
     callbackRef.current = callback;
   }, [callback]);
 
-  return useCallback((...args: Parameters<T>) => {
-    const now = Date.now();
+  return useCallback(
+    (...args: Parameters<T>) => {
+      const now = Date.now();
 
-    if (now - lastRunRef.current >= delay) {
-      lastRunRef.current = now;
-      callbackRef.current(...args);
-    } else {
-      // Schedule for end of throttle period
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = setTimeout(() => {
-        lastRunRef.current = Date.now();
+      if (now - lastRunRef.current >= delay) {
+        lastRunRef.current = now;
         callbackRef.current(...args);
-      }, delay - (now - lastRunRef.current));
-    }
-  }, [delay]) as T;
+      } else {
+        // Schedule for end of throttle period
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(
+          () => {
+            lastRunRef.current = Date.now();
+            callbackRef.current(...args);
+          },
+          delay - (now - lastRunRef.current),
+        );
+      }
+    },
+    [delay],
+  ) as T;
 }
 
 /**
@@ -73,7 +76,7 @@ export function useThrottle<T extends (...args: any[]) => any>(
  */
 export function useIntersectionObserver(
   ref: React.RefObject<Element>,
-  options?: IntersectionObserverInit
+  options?: IntersectionObserverInit,
 ) {
   const [isIntersecting, setIsIntersecting] = useState(false);
   const [hasIntersected, setHasIntersected] = useState(false);
@@ -103,10 +106,7 @@ export function useIntersectionObserver(
  * Memoization helper for expensive computations
  * Caches result until dependencies change
  */
-export function useComputedValue<T>(
-  compute: () => T,
-  deps: React.DependencyList
-): T {
+export function useComputedValue<T>(compute: () => T, deps: React.DependencyList): T {
   return React.useMemo(compute, deps);
 }
 
@@ -157,7 +157,7 @@ export function useLazyImage(src: string, threshold = 0.1) {
           observer.disconnect();
         }
       },
-      { threshold }
+      { threshold },
     );
 
     observer.observe(imgRef.current);

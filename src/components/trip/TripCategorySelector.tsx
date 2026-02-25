@@ -16,27 +16,27 @@ export const TripCategorySelector = ({
   tripId,
   selectedCategories,
   onCategoriesChange,
-  isPro = false
+  isPro = false,
 }: TripCategorySelectorProps) => {
   const { tier } = useConsumerSubscription();
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Check if user can edit categories (Explorer+ for consumer, any authenticated for Pro trips)
   const canEdit = tier === 'explorer' || tier === 'frequent-chraveler' || isPro;
-  
+
   const availableCategories = isPro ? PRO_TRIP_CATEGORIES : CONSUMER_TRIP_CATEGORIES;
-  
+
   const toggleCategory = async (categoryId: string) => {
     if (!canEdit) {
       toast.error('Upgrade to Explorer to add trip categories');
       return;
     }
-    
+
     const newCategories = selectedCategories.includes(categoryId)
       ? selectedCategories.filter(id => id !== categoryId)
       : [...selectedCategories, categoryId];
-    
+
     setIsSaving(true);
     try {
       // Persist categories to database
@@ -44,9 +44,9 @@ export const TripCategorySelector = ({
         .from('trips')
         .update({ categories: newCategories })
         .eq('id', tripId);
-      
+
       if (error) throw error;
-      
+
       onCategoriesChange(newCategories);
       toast.success('Categories updated');
     } catch (error) {
@@ -56,7 +56,7 @@ export const TripCategorySelector = ({
       setIsSaving(false);
     }
   };
-  
+
   const getColorClasses = (color: string) => {
     const colorMap: Record<string, string> = {
       blue: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -77,29 +77,27 @@ export const TripCategorySelector = ({
       slate: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
       sky: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
       lime: 'bg-lime-500/20 text-lime-300 border-lime-500/30',
-      coral: 'bg-orange-400/20 text-orange-200 border-orange-400/30'
+      coral: 'bg-orange-400/20 text-orange-200 border-orange-400/30',
     };
     return colorMap[color] || 'bg-gray-500/20 text-gray-300 border-gray-500/30';
   };
-  
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-gray-300">
           Trip Categories
-          {!canEdit && (
-            <span className="ml-2 text-xs text-gray-500">(Upgrade to edit)</span>
-          )}
+          {!canEdit && <span className="ml-2 text-xs text-gray-500">(Upgrade to edit)</span>}
         </label>
       </div>
-      
+
       {/* Selected Categories Display */}
       {selectedCategories.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {selectedCategories.map(catId => {
             const category = availableCategories.find(c => c.id === catId);
             if (!category) return null;
-            
+
             return (
               <div
                 key={catId}
@@ -120,7 +118,7 @@ export const TripCategorySelector = ({
           })}
         </div>
       )}
-      
+
       {/* Category Selector Dropdown */}
       {canEdit && (
         <div className="relative">
@@ -128,17 +126,14 @@ export const TripCategorySelector = ({
             onClick={() => setIsOpen(!isOpen)}
             className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-left text-sm text-gray-300 hover:bg-white/10 transition-colors"
           >
-            {selectedCategories.length === 0 
-              ? 'Select trip categories...' 
+            {selectedCategories.length === 0
+              ? 'Select trip categories...'
               : 'Add more categories...'}
           </button>
-          
+
           {isOpen && (
             <>
-              <div 
-                className="fixed inset-0 z-40" 
-                onClick={() => setIsOpen(false)}
-              />
+              <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
               <div className="absolute z-50 w-full mt-1 bg-gray-900 border border-white/10 rounded-lg shadow-xl max-h-64 overflow-auto">
                 <div className="p-2 space-y-1">
                   {availableCategories.map(category => {
@@ -157,8 +152,10 @@ export const TripCategorySelector = ({
                         }`}
                       >
                         <span className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${isSelected ? 'opacity-100' : 'opacity-50'}`} 
-                                style={{ backgroundColor: `var(--${category.color}-500)` }} />
+                          <span
+                            className={`w-2 h-2 rounded-full ${isSelected ? 'opacity-100' : 'opacity-50'}`}
+                            style={{ backgroundColor: `var(--${category.color}-500)` }}
+                          />
                           {category.label}
                         </span>
                       </button>
@@ -170,7 +167,7 @@ export const TripCategorySelector = ({
           )}
         </div>
       )}
-      
+
       {!canEdit && selectedCategories.length === 0 && (
         <p className="text-xs text-gray-500">No categories added yet</p>
       )}

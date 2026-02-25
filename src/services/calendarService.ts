@@ -902,7 +902,10 @@ export const calendarService = {
       recurrence_exceptions: tripEvent.recurrence_exceptions,
       parent_event_id: tripEvent.parent_event_id,
       is_busy: tripEvent.is_busy ?? true,
-      availability_status: (tripEvent.availability_status || 'busy') as 'busy' | 'free' | 'tentative',
+      availability_status: (tripEvent.availability_status || 'busy') as
+        | 'busy'
+        | 'free'
+        | 'tentative',
       end_time: tripEvent.end_time ? new Date(tripEvent.end_time) : undefined,
     };
   },

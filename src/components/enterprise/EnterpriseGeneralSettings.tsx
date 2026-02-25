@@ -1,17 +1,16 @@
-
 import React from 'react';
 
 export const EnterpriseGeneralSettings = () => (
   <div className="space-y-3">
     <h3 className="text-2xl font-bold text-white">General Settings</h3>
-    
+
     {/* Organization Preferences */}
     <div className="bg-white/5 border border-white/10 rounded-xl p-4">
       <h4 className="text-base font-semibold text-white mb-3">Organization Preferences</h4>
       <div className="space-y-3">
         <div>
           <label className="block text-sm text-gray-300 mb-2">Default Trip Visibility</label>
-            <select className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50">
+          <select className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50">
             <option>Organization Members Only</option>
             <option>Public</option>
             <option>Private</option>
@@ -36,7 +35,9 @@ export const EnterpriseGeneralSettings = () => (
         <button className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
           <div className="text-left">
             <div className="text-white font-medium">Export Organization Data</div>
-            <div className="text-sm text-gray-400">Download all organization trip data and settings</div>
+            <div className="text-sm text-gray-400">
+              Download all organization trip data and settings
+            </div>
           </div>
           <div className="text-glass-orange">Export</div>
         </button>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Upload, Receipt as ReceiptIcon, Plus } from 'lucide-react';
 import { ReceiptUploadModal } from './ReceiptUploadModal';
@@ -35,7 +34,7 @@ export const ReceiptsTab = ({ tripId }: ReceiptsTabProps) => {
           currency: null,
           parsedData: undefined,
           preferredMethod: 'venmo',
-          createdAt: r.created_at
+          createdAt: r.created_at,
         })) as Receipt[];
         setReceipts(mapped);
       }
@@ -64,7 +63,7 @@ export const ReceiptsTab = ({ tripId }: ReceiptsTabProps) => {
             <p className="text-gray-400 text-sm">Upload and split expenses with your group</p>
           </div>
         </div>
-        
+
         {user && (
           <button
             onClick={() => setShowUploadModal(true)}
@@ -79,7 +78,7 @@ export const ReceiptsTab = ({ tripId }: ReceiptsTabProps) => {
       {/* Receipts List */}
       {displayReceipts.length > 0 ? (
         <div className="grid gap-4">
-          {displayReceipts.map((receipt) => (
+          {displayReceipts.map(receipt => (
             <ReceiptCard key={receipt.id} receipt={receipt} />
           ))}
         </div>

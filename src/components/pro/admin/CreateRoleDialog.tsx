@@ -1,11 +1,29 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -31,20 +49,20 @@ const getFeaturePermissions = (level: PermissionLevel, hasChannel: boolean) => {
       can_view: true,
       can_upload: !isViewOnly,
       can_delete_own: !isViewOnly,
-      can_delete_any: isAdmin
+      can_delete_any: isAdmin,
     },
     tasks: {
       can_view: true,
       can_create: !isViewOnly,
       can_assign: isAdmin,
       can_complete: !isViewOnly,
-      can_delete: isAdmin
+      can_delete: isAdmin,
     },
     calendar: {
       can_view: true,
       can_create_events: !isViewOnly,
       can_edit_events: isAdmin,
-      can_delete_events: isAdmin
+      can_delete_events: isAdmin,
     },
     channels: {
       can_view: true,
@@ -52,13 +70,13 @@ const getFeaturePermissions = (level: PermissionLevel, hasChannel: boolean) => {
       can_edit_messages: isAdmin,
       can_delete_messages: isAdmin,
       can_manage_members: isAdmin,
-      has_channel: hasChannel
+      has_channel: hasChannel,
     },
     payments: {
       can_view: true,
       can_create: isAdmin,
-      can_approve: isAdmin
-    }
+      can_approve: isAdmin,
+    },
   };
 };
 
@@ -67,7 +85,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
   onOpenChange,
   tripId,
   currentRoleCount,
-  onRoleCreated
+  onRoleCreated,
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -85,7 +103,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
       toast({
         title: 'Role Limit Reached',
         description: `Maximum ${MAX_ROLES_PER_TRIP} roles allowed per trip for MVP`,
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -93,12 +111,12 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
     // Validate role name
     const normalized = normalizeRole(roleName);
     const validation = validateRole(normalized);
-    
+
     if (!validation.isValid) {
       toast({
         title: 'Invalid Role Name',
         description: validation.error,
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -109,7 +127,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
 
       toast({
         title: 'Role Created',
-        description: `Successfully created "${normalized}" role`
+        description: `Successfully created "${normalized}" role`,
       });
 
       // Reset form
@@ -124,7 +142,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
       toast({
         title: 'Failed to Create Role',
         description: error instanceof Error ? error.message : 'An error occurred',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
@@ -136,7 +154,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
         <Input
           id="roleName"
           value={roleName}
-          onChange={(e) => setRoleName(e.target.value)}
+          onChange={e => setRoleName(e.target.value)}
           placeholder="e.g., Assistant Coach, Tour Manager"
           maxLength={50}
           required
@@ -149,7 +167,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
         <Textarea
           id="description"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={e => setDescription(e.target.value)}
           placeholder="Describe the responsibilities of this role..."
           rows={3}
         />
@@ -157,7 +175,10 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
 
       <div className="space-y-2">
         <Label htmlFor="permissionLevel">Permission Level *</Label>
-        <Select value={permissionLevel} onValueChange={(value) => setPermissionLevel(value as PermissionLevel)}>
+        <Select
+          value={permissionLevel}
+          onValueChange={value => setPermissionLevel(value as PermissionLevel)}
+        >
           <SelectTrigger id="permissionLevel" className={isMobile ? 'min-h-[44px]' : ''}>
             <SelectValue />
           </SelectTrigger>
@@ -167,7 +188,9 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
                 <Shield className="w-4 h-4 text-red-500" />
                 <div>
                   <div className="font-medium">Admin</div>
-                  <div className="text-xs text-muted-foreground">Full control over all features</div>
+                  <div className="text-xs text-muted-foreground">
+                    Full control over all features
+                  </div>
                 </div>
               </div>
             </SelectItem>
@@ -197,7 +220,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
         <Checkbox
           id="createChannel"
           checked={createChannel}
-          onCheckedChange={(checked) => setCreateChannel(checked as boolean)}
+          onCheckedChange={checked => setCreateChannel(checked as boolean)}
         />
         <Label htmlFor="createChannel" className="text-sm font-normal cursor-pointer">
           Create a dedicated channel for this role
@@ -214,8 +237,8 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
         >
           Cancel
         </Button>
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={isProcessing}
           className={isMobile ? 'min-h-[44px] order-1' : ''}
         >
@@ -232,7 +255,8 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
           <SheetHeader className="pb-4">
             <SheetTitle>Create New Role</SheetTitle>
             <SheetDescription>
-              Create a custom role for this trip ({currentRoleCount} / {MAX_ROLES_PER_TRIP} roles used)
+              Create a custom role for this trip ({currentRoleCount} / {MAX_ROLES_PER_TRIP} roles
+              used)
             </SheetDescription>
           </SheetHeader>
           {formContent}
@@ -247,7 +271,8 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Create New Role</DialogTitle>
           <DialogDescription>
-            Create a custom role for this trip ({currentRoleCount} / {MAX_ROLES_PER_TRIP} roles used)
+            Create a custom role for this trip ({currentRoleCount} / {MAX_ROLES_PER_TRIP} roles
+            used)
           </DialogDescription>
         </DialogHeader>
         {formContent}

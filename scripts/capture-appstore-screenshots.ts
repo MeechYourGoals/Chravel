@@ -50,7 +50,9 @@ async function enableDemoAndNavigate(page: any, targetPath: string, isFirstNav: 
   if (isFirstNav) {
     // First navigation: go to /demo to enable demo mode, then we'll be redirected to /
     await page.goto(`${BASE_URL}/demo`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForURL(u => u.pathname === '/' || u.pathname.includes('from=demo'), { timeout: 15000 });
+    await page.waitForURL(u => u.pathname === '/' || u.pathname.includes('from=demo'), {
+      timeout: 15000,
+    });
     await page.waitForTimeout(1500);
   }
 
@@ -106,7 +108,9 @@ async function captureScreenshots() {
       if (shot.tab) {
         const clicked = await clickTab(iphonePage, shot.tab);
         if (!clicked) {
-          console.warn(`  ⚠ ${shot.name}: Could not find tab "${shot.tab}", capturing current view`);
+          console.warn(
+            `  ⚠ ${shot.name}: Could not find tab "${shot.tab}", capturing current view`,
+          );
         }
       }
 
@@ -151,7 +155,9 @@ async function captureScreenshots() {
       if (shot.tab) {
         const clicked = await clickTab(ipadPage, shot.tab);
         if (!clicked) {
-          console.warn(`  ⚠ ${shot.name}: Could not find tab "${shot.tab}", capturing current view`);
+          console.warn(
+            `  ⚠ ${shot.name}: Could not find tab "${shot.tab}", capturing current view`,
+          );
         }
       }
 

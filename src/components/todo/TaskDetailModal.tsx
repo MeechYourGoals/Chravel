@@ -4,12 +4,7 @@ import { format } from 'date-fns';
 import { TripTask } from '../../types/tasks';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 
 interface TaskDetailModalProps {
   task: TripTask;
@@ -19,12 +14,12 @@ interface TaskDetailModalProps {
   userCompleted?: boolean;
 }
 
-export const TaskDetailModal = ({ 
-  task, 
-  isOpen, 
-  onClose, 
+export const TaskDetailModal = ({
+  task,
+  isOpen,
+  onClose,
   onEdit,
-  userCompleted 
+  userCompleted,
 }: TaskDetailModalProps) => {
   const completionCount = task.task_status?.filter(s => s.completed).length || 0;
   const totalUsers = task.task_status?.length || 1;
@@ -39,9 +34,7 @@ export const TaskDetailModal = ({
                 <Check size={12} className="text-white" />
               </div>
             )}
-            <span className={userCompleted ? 'text-muted-foreground' : ''}>
-              {task.title}
-            </span>
+            <span className={userCompleted ? 'text-muted-foreground' : ''}>{task.title}</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -58,9 +51,7 @@ export const TaskDetailModal = ({
           {task.due_at && (
             <div className="flex items-center gap-2">
               <Calendar size={16} className="text-muted-foreground" />
-              <span className="text-sm">
-                Due: {format(new Date(task.due_at), 'PPP')}
-              </span>
+              <span className="text-sm">Due: {format(new Date(task.due_at), 'PPP')}</span>
             </div>
           )}
 
@@ -68,16 +59,16 @@ export const TaskDetailModal = ({
           {task.creator && (
             <div className="flex items-center gap-2">
               <User size={16} className="text-muted-foreground" />
-              <span className="text-sm">
-                Created by: {task.creator.name || 'Unknown'}
-              </span>
+              <span className="text-sm">Created by: {task.creator.name || 'Unknown'}</span>
             </div>
           )}
 
           {/* Group Task Progress */}
           {task.is_poll && (
             <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Completion Progress</h4>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                Completion Progress
+              </h4>
               <Badge variant="secondary">
                 {completionCount}/{totalUsers} completed
               </Badge>

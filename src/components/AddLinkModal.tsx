@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Link as LinkIcon, AlertTriangle, MapPin, ExternalLink, Star } from 'lucide-react';
 import { Button } from './ui/button';
@@ -47,21 +46,20 @@ interface ResolvedPlace {
   website?: string;
 }
 
-
 // Mock existing links for duplicate detection
 const existingLinks = [
   {
     id: '1',
     title: 'Charming 3BR Apartment in Montmartre',
     url: 'https://airbnb.com/rooms/123',
-    postedBy: 'Emma'
+    postedBy: 'Emma',
   },
   {
     id: '2',
     title: "L'Ami Jean - Traditional Bistro",
     url: 'https://example.com/restaurant',
-    postedBy: 'Jake'
-  }
+    postedBy: 'Jake',
+  },
 ];
 
 export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) => {
@@ -98,10 +96,10 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
 
   const checkForDuplicates = (inputUrl: string, inputTitle: string) => {
     const matches: DuplicateMatch[] = [];
-    
+
     existingLinks.forEach(link => {
       let similarity = 0;
-      
+
       // Check URL similarity (exact match or similar domain)
       if (link.url === inputUrl) {
         similarity = 1.0;
@@ -116,31 +114,31 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
           // Invalid URL format
         }
       }
-      
+
       // Check title similarity (simple word matching)
       if (inputTitle && link.title) {
         const inputWords = inputTitle.toLowerCase().split(' ');
         const linkWords = link.title.toLowerCase().split(' ');
-        const commonWords = inputWords.filter(word => 
-          word.length > 3 && linkWords.some(linkWord => 
-            linkWord.includes(word) || word.includes(linkWord)
-          )
+        const commonWords = inputWords.filter(
+          word =>
+            word.length > 3 &&
+            linkWords.some(linkWord => linkWord.includes(word) || word.includes(linkWord)),
         );
         const titleSimilarity = commonWords.length / Math.max(inputWords.length, linkWords.length);
         similarity = Math.max(similarity, titleSimilarity);
       }
-      
+
       if (similarity > 0.6) {
         matches.push({
           id: link.id,
           title: link.title,
           url: link.url,
           postedBy: link.postedBy,
-          similarity
+          similarity,
         });
       }
     });
-    
+
     return matches.sort((a, b) => b.similarity - a.similarity);
   };
 
@@ -166,15 +164,15 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
     if (!placeName.trim()) return;
 
     const result = await resolvePlaceName(placeName);
-    
+
     if (result.success && result.place && result.linkOptions) {
       setResolvedPlace(result.place);
       setLinkOptions(result.linkOptions);
       setTitle(result.place.name);
       setDescription(result.place.formatted_address);
-      
+
       setShowPlacePreview(true);
-      
+
       // Auto-select primary link option
       const primaryOption = result.linkOptions.find(opt => opt.isPrimary) || result.linkOptions[0];
       setSelectedLinkOption(primaryOption);
@@ -189,8 +187,9 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
     try {
       // Link data preparation for future API integration
       const linkUrl = inputMode === 'place' && selectedLinkOption ? selectedLinkOption.url : url;
-      const linkTitle = inputMode === 'place' && selectedLinkOption ? (title || resolvedPlace?.name || '') : title;
-      
+      const linkTitle =
+        inputMode === 'place' && selectedLinkOption ? title || resolvedPlace?.name || '' : title;
+
       // TODO: Send linkUrl and linkTitle to API when backend is ready
       void linkUrl;
       void linkTitle;
@@ -203,7 +202,6 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
       setIsLoading(false);
     }
   };
-
 
   const resetForm = () => {
     setInputMode('place');
@@ -229,10 +227,7 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
           <h2 className="text-lg font-semibold text-white">
             {prefill ? 'Save to Trip Links' : 'Add Link'}
           </h2>
-          <button 
-            onClick={onClose}
-            className="text-slate-400 hover:text-white"
-          >
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
             <X size={20} />
           </button>
         </div>
@@ -268,29 +263,28 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
               </button>
             </div>
           )}
-          
+
           {/* Prefill indicator */}
           {prefill?.url && (
             <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-              <p className="text-sm text-purple-200">
-                📌 Promoting URL from Media to Trip Links
-              </p>
+              <p className="text-sm text-purple-200">📌 Promoting URL from Media to Trip Links</p>
             </div>
           )}
 
           {/* Place Name Input */}
           {inputMode === 'place' && !prefill?.url && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Place Name *
-              </label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Place Name *</label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <MapPin size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                  <MapPin
+                    size={18}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+                  />
                   <input
                     type="text"
                     value={placeName}
-                    onChange={(e) => setPlaceName(e.target.value)}
+                    onChange={e => setPlaceName(e.target.value)}
                     placeholder="e.g., Gotham Hotel New York"
                     required={inputMode === 'place'}
                     className="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
@@ -311,15 +305,16 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
           {/* URL Input */}
           {(inputMode === 'url' || prefill?.url) && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Link URL *
-              </label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Link URL *</label>
               <div className="relative">
-                <LinkIcon size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                <LinkIcon
+                  size={18}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+                />
                 <input
                   type="url"
                   value={url}
-                  onChange={(e) => handleUrlChange(e.target.value)}
+                  onChange={e => handleUrlChange(e.target.value)}
                   placeholder="https://..."
                   required={inputMode === 'url' || !!prefill?.url}
                   disabled={!!prefill?.url}
@@ -344,12 +339,12 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
                   )}
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-300">
                   Choose Link Type:
                 </label>
-                {linkOptions.map((option) => (
+                {linkOptions.map(option => (
                   <button
                     key={option.type}
                     type="button"
@@ -378,13 +373,11 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
 
           {/* Title Input */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Title *
-            </label>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Title *</label>
             <input
               type="text"
               value={title}
-              onChange={(e) => handleTitleChange(e.target.value)}
+              onChange={e => handleTitleChange(e.target.value)}
               placeholder="Give this link a title..."
               required
               className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
@@ -398,9 +391,10 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
                 <AlertTriangle size={16} className="text-amber-400" />
                 <span className="text-sm font-medium text-amber-300">Similar links found</span>
               </div>
-              {duplicateMatches.slice(0, 2).map((match) => (
+              {duplicateMatches.slice(0, 2).map(match => (
                 <div key={match.id} className="text-xs text-amber-200 mb-1">
-                  "{match.title}" by {match.postedBy} {match.similarity > 0.9 ? '(exact match)' : '(similar)'}
+                  "{match.title}" by {match.postedBy}{' '}
+                  {match.similarity > 0.9 ? '(exact match)' : '(similar)'}
                 </div>
               ))}
               <div className="text-xs text-amber-300 mt-2">
@@ -411,12 +405,10 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
 
           {/* Description Input */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Description
-            </label>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={e => setDescription(e.target.value)}
               placeholder="Add some context or notes..."
               rows={3}
               className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 resize-none"
@@ -425,17 +417,14 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
 
           {/* Submit Button */}
           <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
-            >
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || (inputMode === 'place' && !selectedLinkOption && !prefill?.url)}
+              disabled={
+                isLoading || (inputMode === 'place' && !selectedLinkOption && !prefill?.url)
+              }
               className="flex-1 bg-blue-600 hover:bg-blue-700"
             >
               {isLoading ? 'Saving...' : prefill ? 'Save to Trip Links' : 'Add Link'}

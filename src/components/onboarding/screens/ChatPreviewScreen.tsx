@@ -10,7 +10,14 @@ const messages = [
   { id: 1, author: 'Sarah', content: 'Found an amazing campsite! 🏕️', delay: 0.5 },
   { id: 2, author: 'Mike', content: '@Sarah that looks perfect!', delay: 1.5, hasMention: true },
   { id: 3, author: 'You', content: "I'll book it now", delay: 2.5, isOwn: true },
-  { id: 4, author: 'You', content: 'Dinner at 7pm tonight! 🍽️', delay: 3.5, isOwn: true, isBroadcast: true },
+  {
+    id: 4,
+    author: 'You',
+    content: 'Dinner at 7pm tonight! 🍽️',
+    delay: 3.5,
+    isOwn: true,
+    isBroadcast: true,
+  },
 ];
 
 const TypingIndicator = () => (
@@ -22,7 +29,7 @@ const TypingIndicator = () => (
   >
     <span className="text-xs text-muted-foreground">Sarah is typing</span>
     <div className="flex gap-0.5">
-      {[0, 1, 2].map((i) => (
+      {[0, 1, 2].map(i => (
         <motion.div
           key={i}
           className="w-1.5 h-1.5 bg-muted-foreground rounded-full"
@@ -52,7 +59,7 @@ export const ChatPreviewScreen = () => {
         </h3>
 
         <div className="space-y-3">
-          {messages.map((msg) => (
+          {messages.map(msg => (
             <motion.div
               key={msg.id}
               className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}
@@ -86,15 +93,15 @@ export const ChatPreviewScreen = () => {
                     )}
                   </p>
                 </div>
-                
+
                 {/* Broadcast badge */}
                 {msg.isBroadcast && (
                   <motion.div
                     className="absolute -top-2 -left-2 flex items-center gap-1 px-2 py-0.5 bg-orange-600 text-white text-xs rounded-full shadow-lg"
                     initial={{ opacity: 0, scale: 0.5, y: 5 }}
-                    animate={{ 
-                      opacity: 1, 
-                      scale: 1, 
+                    animate={{
+                      opacity: 1,
+                      scale: 1,
                       y: 0,
                     }}
                     transition={{ delay: 4.2, type: 'spring', stiffness: 400, damping: 15 }}
@@ -114,9 +121,7 @@ export const ChatPreviewScreen = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 4.8 }}
           >
-            <span className="text-xs text-orange-400/80 mr-1">
-              📢 Sent to everyone
-            </span>
+            <span className="text-xs text-orange-400/80 mr-1">📢 Sent to everyone</span>
           </motion.div>
 
           <TypingIndicator />

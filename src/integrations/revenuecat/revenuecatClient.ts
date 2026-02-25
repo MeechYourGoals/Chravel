@@ -1,22 +1,22 @@
 /**
  * RevenueCat Client Wrapper
- * 
+ *
  * Platform-aware wrapper for RevenueCat Capacitor plugin.
  * Handles demo mode, web fallbacks, and graceful degradation.
  */
 
 import { Capacitor } from '@capacitor/core';
-import { 
-  REVENUECAT_ENABLED, 
-  getRevenueCatApiKey, 
+import {
+  REVENUECAT_ENABLED,
+  getRevenueCatApiKey,
   isRevenueCatConfigured,
   ENTITLEMENT_TO_TIER,
   REVENUECAT_ENTITLEMENTS,
 } from '@/constants/revenuecat';
-import type { 
-  RevenueCatPlatform, 
-  RevenueCatResult, 
-  RevenueCatCustomerInfo, 
+import type {
+  RevenueCatPlatform,
+  RevenueCatResult,
+  RevenueCatCustomerInfo,
   RevenueCatOfferings,
   RevenueCatPurchaseResult,
   DerivedPlan,
@@ -54,9 +54,11 @@ export function isRevenueCatAvailable(): boolean {
 /**
  * Load the RevenueCat plugin dynamically
  */
-async function loadPurchasesPlugin(): Promise<typeof import('@revenuecat/purchases-capacitor').Purchases | null> {
+async function loadPurchasesPlugin(): Promise<
+  typeof import('@revenuecat/purchases-capacitor').Purchases | null
+> {
   if (Purchases) return Purchases;
-  
+
   try {
     const module = await import('@revenuecat/purchases-capacitor');
     Purchases = module.Purchases;
@@ -69,13 +71,13 @@ async function loadPurchasesPlugin(): Promise<typeof import('@revenuecat/purchas
 
 /**
  * Configure RevenueCat for the current user
- * 
+ *
  * @param userId - User ID to associate with RevenueCat
  * @param isDemoMode - If true, skip configuration
  */
 export async function configureRevenueCat(
-  userId: string, 
-  isDemoMode: boolean = false
+  userId: string,
+  isDemoMode: boolean = false,
 ): Promise<RevenueCatResult> {
   // Demo mode: no-op
   if (isDemoMode) {
@@ -90,7 +92,7 @@ export async function configureRevenueCat(
   }
 
   const platform = getPlatform();
-  
+
   // Web: not supported
   if (platform === 'web') {
     console.log('[RevenueCat] Web platform detected, IAP not supported');
@@ -101,13 +103,23 @@ export async function configureRevenueCat(
   const apiKey = getRevenueCatApiKey(platform);
   if (!apiKey) {
     console.warn('[RevenueCat] No API key configured for platform:', platform);
-    return { success: false, supported: true, errorCode: 'NOT_CONFIGURED', error: 'API key not configured' };
+    return {
+      success: false,
+      supported: true,
+      errorCode: 'NOT_CONFIGURED',
+      error: 'API key not configured',
+    };
   }
 
   // Load plugin
   const purchases = await loadPurchasesPlugin();
   if (!purchases) {
-    return { success: false, supported: true, errorCode: 'NOT_SUPPORTED', error: 'Failed to load RevenueCat plugin' };
+    return {
+      success: false,
+      supported: true,
+      errorCode: 'NOT_SUPPORTED',
+      error: 'Failed to load RevenueCat plugin',
+    };
   }
 
   try {
@@ -116,16 +128,16 @@ export async function configureRevenueCat(
       apiKey,
       appUserID: userId,
     });
-    
+
     console.log('[RevenueCat] Configured successfully for user:', userId);
     return { success: true, supported: true };
   } catch (error) {
     console.error('[RevenueCat] Configuration failed:', error);
-    return { 
-      success: false, 
-      supported: true, 
-      errorCode: 'UNKNOWN', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return {
+      success: false,
+      supported: true,
+      errorCode: 'UNKNOWN',
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -134,7 +146,7 @@ export async function configureRevenueCat(
  * Get customer info from RevenueCat
  */
 export async function getCustomerInfo(
-  isDemoMode: boolean = false
+  isDemoMode: boolean = false,
 ): Promise<RevenueCatResult<RevenueCatCustomerInfo>> {
   if (isDemoMode) {
     return { success: false, supported: false, error: 'Demo mode active' };
@@ -151,18 +163,18 @@ export async function getCustomerInfo(
 
   try {
     const { customerInfo } = await purchases.getCustomerInfo();
-    return { 
-      success: true, 
-      supported: true, 
-      data: customerInfo as unknown as RevenueCatCustomerInfo 
+    return {
+      success: true,
+      supported: true,
+      data: customerInfo as unknown as RevenueCatCustomerInfo,
     };
   } catch (error) {
     console.error('[RevenueCat] Failed to get customer info:', error);
-    return { 
-      success: false, 
-      supported: true, 
-      errorCode: 'NETWORK_ERROR', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return {
+      success: false,
+      supported: true,
+      errorCode: 'NETWORK_ERROR',
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -171,7 +183,7 @@ export async function getCustomerInfo(
  * Get available offerings
  */
 export async function getOfferings(
-  isDemoMode: boolean = false
+  isDemoMode: boolean = false,
 ): Promise<RevenueCatResult<RevenueCatOfferings>> {
   if (isDemoMode) {
     return { success: false, supported: false, error: 'Demo mode active' };
@@ -189,18 +201,18 @@ export async function getOfferings(
   try {
     // getOfferings returns PurchasesOfferings directly
     const offerings = await purchases.getOfferings();
-    return { 
-      success: true, 
-      supported: true, 
-      data: offerings as unknown as RevenueCatOfferings 
+    return {
+      success: true,
+      supported: true,
+      data: offerings as unknown as RevenueCatOfferings,
     };
   } catch (error) {
     console.error('[RevenueCat] Failed to get offerings:', error);
-    return { 
-      success: false, 
-      supported: true, 
-      errorCode: 'NETWORK_ERROR', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return {
+      success: false,
+      supported: true,
+      errorCode: 'NETWORK_ERROR',
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -211,7 +223,7 @@ export async function getOfferings(
 export async function purchasePackage(
   packageIdentifier: string,
   offeringIdentifier: string = 'default',
-  isDemoMode: boolean = false
+  isDemoMode: boolean = false,
 ): Promise<RevenueCatPurchaseResult> {
   if (isDemoMode) {
     return { success: false, supported: false, error: 'Demo mode active' };
@@ -230,7 +242,7 @@ export async function purchasePackage(
     // Get offerings first to find the package
     const offerings = await purchases.getOfferings();
     const offering = offerings?.all?.[offeringIdentifier] || offerings?.current;
-    
+
     if (!offering) {
       return { success: false, supported: true, errorCode: 'UNKNOWN', error: 'No offering found' };
     }
@@ -241,27 +253,32 @@ export async function purchasePackage(
     }
 
     const { customerInfo } = await purchases.purchasePackage({ aPackage: pkg });
-    
+
     console.log('[RevenueCat] Purchase successful');
-    return { 
-      success: true, 
-      supported: true, 
-      data: customerInfo as unknown as RevenueCatCustomerInfo 
+    return {
+      success: true,
+      supported: true,
+      data: customerInfo as unknown as RevenueCatCustomerInfo,
     };
   } catch (error: unknown) {
     console.error('[RevenueCat] Purchase failed:', error);
-    
+
     // Check for user cancellation
     const errorObj = error as { userCancelled?: boolean; message?: string };
     if (errorObj?.userCancelled) {
-      return { success: false, supported: true, errorCode: 'CANCELLED', error: 'Purchase cancelled' };
+      return {
+        success: false,
+        supported: true,
+        errorCode: 'CANCELLED',
+        error: 'Purchase cancelled',
+      };
     }
-    
-    return { 
-      success: false, 
-      supported: true, 
-      errorCode: 'UNKNOWN', 
-      error: errorObj?.message || 'Unknown error' 
+
+    return {
+      success: false,
+      supported: true,
+      errorCode: 'UNKNOWN',
+      error: errorObj?.message || 'Unknown error',
     };
   }
 }
@@ -270,7 +287,7 @@ export async function purchasePackage(
  * Restore purchases (required for Apple compliance)
  */
 export async function restorePurchases(
-  isDemoMode: boolean = false
+  isDemoMode: boolean = false,
 ): Promise<RevenueCatResult<RevenueCatCustomerInfo>> {
   if (isDemoMode) {
     return { success: false, supported: false, error: 'Demo mode active' };
@@ -288,18 +305,18 @@ export async function restorePurchases(
   try {
     const { customerInfo } = await purchases.restorePurchases();
     console.log('[RevenueCat] Restore successful');
-    return { 
-      success: true, 
-      supported: true, 
-      data: customerInfo as unknown as RevenueCatCustomerInfo 
+    return {
+      success: true,
+      supported: true,
+      data: customerInfo as unknown as RevenueCatCustomerInfo,
     };
   } catch (error) {
     console.error('[RevenueCat] Restore failed:', error);
-    return { 
-      success: false, 
-      supported: true, 
-      errorCode: 'NETWORK_ERROR', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return {
+      success: false,
+      supported: true,
+      errorCode: 'NETWORK_ERROR',
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -323,7 +340,11 @@ export async function logoutRevenueCat(): Promise<RevenueCatResult> {
     return { success: true, supported: true };
   } catch (error) {
     console.error('[RevenueCat] Logout failed:', error);
-    return { success: false, supported: true, error: error instanceof Error ? error.message : 'Unknown error' };
+    return {
+      success: false,
+      supported: true,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 }
 
@@ -333,7 +354,7 @@ export async function logoutRevenueCat(): Promise<RevenueCatResult> {
 export function derivePlanFromCustomerInfo(customerInfo: RevenueCatCustomerInfo): DerivedPlan {
   const activeEntitlements = customerInfo.entitlements?.active || {};
   const entitlementIds = Object.keys(activeEntitlements);
-  
+
   // Default to free
   let tier: SubscriptionTier = 'free';
   let status: 'active' | 'trialing' | 'expired' | 'canceled' = 'active';

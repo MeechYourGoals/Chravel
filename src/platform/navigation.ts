@@ -45,6 +45,6 @@ export const platformNavigation: NavigationService = new WebNavigation();
  * - useNavigate() hook
  * - Link component
  * - Navigate component
- * 
+ *
  * This service is for platform-level navigation utilities (external URLs, back button)
  */

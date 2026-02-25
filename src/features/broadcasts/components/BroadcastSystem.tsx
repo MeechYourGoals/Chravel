@@ -11,18 +11,13 @@ interface BroadcastSystemProps {
   tripTier?: 'consumer' | 'pro' | 'event';
 }
 
-export const BroadcastSystem = ({ 
-  tourId: _tourId, 
-  tripId = '1', 
-  tripTier = 'pro'
+export const BroadcastSystem = ({
+  tourId: _tourId,
+  tripId = '1',
+  tripTier = 'pro',
 }: BroadcastSystemProps) => {
-  const {
-    priority,
-    setPriority,
-    hasActiveFilters,
-    clearFilters,
-    applyFilters
-  } = useBroadcastFilters();
+  const { priority, setPriority, hasActiveFilters, clearFilters, applyFilters } =
+    useBroadcastFilters();
 
   // Mock broadcast data - Replace with real data from API
   const mockBroadcasts = [
@@ -34,7 +29,7 @@ export const BroadcastSystem = ({
       location: 'Madison Square Garden',
       category: 'urgent' as const,
       recipients: 'everyone',
-      responses: { coming: 12, wait: 3, cant: 1 }
+      responses: { coming: 12, wait: 3, cant: 1 },
     },
     {
       id: '2',
@@ -43,12 +38,14 @@ export const BroadcastSystem = ({
       timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
       category: 'logistics' as const,
       recipients: 'role:crew',
-      responses: { coming: 8, wait: 0, cant: 2 }
-    }
+      responses: { coming: 8, wait: 0, cant: 2 },
+    },
   ];
 
   const filteredBroadcasts = applyFilters(mockBroadcasts);
-  const [userResponses, setUserResponses] = React.useState<Record<string, 'coming' | 'wait' | 'cant'>>({});
+  const [userResponses, setUserResponses] = React.useState<
+    Record<string, 'coming' | 'wait' | 'cant'>
+  >({});
 
   const handleRespond = (broadcastId: string, response: 'coming' | 'wait' | 'cant') => {
     setUserResponses(prev => ({ ...prev, [broadcastId]: response }));
@@ -68,11 +65,7 @@ export const BroadcastSystem = ({
       </div>
 
       {/* Composer */}
-      <BroadcastComposer
-        tripId={tripId}
-        tripTier={tripTier}
-        participants={[]}
-      />
+      <BroadcastComposer tripId={tripId} tripTier={tripTier} participants={[]} />
 
       {/* Filters */}
       <BroadcastFilters

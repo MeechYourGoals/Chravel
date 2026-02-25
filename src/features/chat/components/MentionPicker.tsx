@@ -30,7 +30,7 @@ export const MentionPicker: React.FC<MentionPickerProps> = ({
 
   // Filter members based on search query
   const filteredMembers = members.filter(member =>
-    member.name.toLowerCase().includes(searchQuery.toLowerCase())
+    member.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Scroll selected item into view
@@ -62,9 +62,7 @@ export const MentionPicker: React.FC<MentionPickerProps> = ({
       className="absolute bottom-full left-0 mb-2 w-72 max-h-48 overflow-y-auto bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-lg z-50"
     >
       <div className="p-1">
-        <p className="px-3 py-1.5 text-xs text-muted-foreground font-medium">
-          Mention a member
-        </p>
+        <p className="px-3 py-1.5 text-xs text-muted-foreground font-medium">Mention a member</p>
         {filteredMembers.map((member, index) => (
           <button
             key={member.id}
@@ -74,7 +72,7 @@ export const MentionPicker: React.FC<MentionPickerProps> = ({
               'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left',
               index === selectedIndex
                 ? 'bg-primary/20 text-foreground'
-                : 'hover:bg-muted/50 text-foreground'
+                : 'hover:bg-muted/50 text-foreground',
             )}
           >
             <Avatar className="w-7 h-7">

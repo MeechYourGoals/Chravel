@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserMinus, LogOut, MoreVertical, AlertTriangle, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -20,13 +19,13 @@ interface TripUserManagementProps {
   onLeaveTrip: () => void;
 }
 
-export const TripUserManagement = ({ 
-  tripId, 
-  tripName, 
-  users, 
-  currentUserId, 
-  onUserRemoved, 
-  onLeaveTrip 
+export const TripUserManagement = ({
+  tripId,
+  tripName,
+  users,
+  currentUserId,
+  onUserRemoved,
+  onLeaveTrip,
 }: TripUserManagementProps) => {
   const { user } = useAuth();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -58,9 +57,12 @@ export const TripUserManagement = ({
 
   const getRoleColor = (role?: string) => {
     switch (role) {
-      case 'owner': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
-      case 'admin': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+      case 'owner':
+        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+      case 'admin':
+        return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
     }
   };
 
@@ -72,7 +74,7 @@ export const TripUserManagement = ({
             <h3 className="text-lg font-semibold text-white">Trip Members</h3>
             <p className="text-gray-400 text-sm">{users.length} people in this trip</p>
           </div>
-          
+
           <button
             onClick={() => setShowLeaveConfirm(true)}
             className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 px-4 py-2 rounded-xl transition-colors"
@@ -83,8 +85,11 @@ export const TripUserManagement = ({
         </div>
 
         <div className="space-y-3">
-          {users.map((tripUser) => (
-            <div key={tripUser.id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-4">
+          {users.map(tripUser => (
+            <div
+              key={tripUser.id}
+              className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-4"
+            >
               <div className="flex items-center gap-3">
                 <img
                   src={tripUser.avatar}
@@ -95,12 +100,16 @@ export const TripUserManagement = ({
                   <div className="flex items-center gap-2">
                     <span className="text-white font-medium">{tripUser.name}</span>
                     {tripUser.id === currentUserId && (
-                      <span className="text-xs bg-glass-orange/20 text-glass-orange px-2 py-1 rounded">You</span>
+                      <span className="text-xs bg-glass-orange/20 text-glass-orange px-2 py-1 rounded">
+                        You
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     {tripUser.role && (
-                      <span className={`text-xs px-2 py-1 rounded border ${getRoleColor(tripUser.role)}`}>
+                      <span
+                        className={`text-xs px-2 py-1 rounded border ${getRoleColor(tripUser.role)}`}
+                      >
                         {tripUser.role}
                       </span>
                     )}
@@ -114,12 +123,14 @@ export const TripUserManagement = ({
               {canRemoveUser(tripUser) && (
                 <div className="relative">
                   <button
-                    onClick={() => setShowUserActions(showUserActions === tripUser.id ? null : tripUser.id)}
+                    onClick={() =>
+                      setShowUserActions(showUserActions === tripUser.id ? null : tripUser.id)
+                    }
                     className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
                   >
                     <MoreVertical size={16} />
                   </button>
-                  
+
                   {showUserActions === tripUser.id && (
                     <div className="absolute right-0 top-full mt-2 bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-xl shadow-xl z-10 min-w-[180px]">
                       <button
@@ -146,11 +157,12 @@ export const TripUserManagement = ({
               <AlertTriangle size={24} />
               <h3 className="text-xl font-bold text-white">Leave Trip?</h3>
             </div>
-            
+
             <p className="text-gray-300 mb-6">
-              Are you sure you want to leave "{tripName}"? You'll lose access to all trip information and won't receive updates.
+              Are you sure you want to leave "{tripName}"? You'll lose access to all trip
+              information and won't receive updates.
             </p>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowLeaveConfirm(false)}
@@ -185,7 +197,7 @@ export const TripUserManagement = ({
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
               <img
                 src={userToRemove.avatar}
@@ -195,17 +207,20 @@ export const TripUserManagement = ({
               <div>
                 <span className="text-white font-medium">{userToRemove.name}</span>
                 {userToRemove.role && (
-                  <div className={`text-xs px-2 py-1 rounded border mt-1 inline-block ${getRoleColor(userToRemove.role)}`}>
+                  <div
+                    className={`text-xs px-2 py-1 rounded border mt-1 inline-block ${getRoleColor(userToRemove.role)}`}
+                  >
                     {userToRemove.role}
                   </div>
                 )}
               </div>
             </div>
-            
+
             <p className="text-gray-300 mb-6">
-              Are you sure you want to remove {userToRemove.name} from "{tripName}"? They'll lose access to all trip information.
+              Are you sure you want to remove {userToRemove.name} from "{tripName}"? They'll lose
+              access to all trip information.
             </p>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => setUserToRemove(null)}
@@ -226,10 +241,7 @@ export const TripUserManagement = ({
 
       {/* Click outside to close user actions */}
       {showUserActions && (
-        <div 
-          className="fixed inset-0 z-5" 
-          onClick={() => setShowUserActions(null)}
-        />
+        <div className="fixed inset-0 z-5" onClick={() => setShowUserActions(null)} />
       )}
     </>
   );

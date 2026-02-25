@@ -79,27 +79,33 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
               .in('user_id', userIds)
           : Promise.resolve({ data: [] as unknown[], error: null }),
         roleIds.length > 0
-          ? supabase
-              .from('trip_roles')
-              .select('id, role_name, permission_level')
-              .in('id', roleIds)
+          ? supabase.from('trip_roles').select('id, role_name, permission_level').in('id', roleIds)
           : Promise.resolve({ data: [] as unknown[], error: null }),
       ]);
 
       const profilesMap = new Map(
-        (profilesResult.data || []).map((p: { user_id: string; display_name?: string; resolved_display_name?: string; avatar_url?: string }) => [
-          p.user_id,
-          {
-            display_name: p.resolved_display_name || p.display_name,
-            avatar_url: p.avatar_url,
-          },
-        ]),
+        (profilesResult.data || []).map(
+          (p: {
+            user_id: string;
+            display_name?: string;
+            resolved_display_name?: string;
+            avatar_url?: string;
+          }) => [
+            p.user_id,
+            {
+              display_name: p.resolved_display_name || p.display_name,
+              avatar_url: p.avatar_url,
+            },
+          ],
+        ),
       );
       const rolesMap = new Map(
-        (rolesResult.data || []).map((r: { id: string; role_name: string; permission_level: string }) => [
-          r.id,
-          { id: r.id, roleName: r.role_name, permissionLevel: r.permission_level },
-        ]),
+        (rolesResult.data || []).map(
+          (r: { id: string; role_name: string; permission_level: string }) => [
+            r.id,
+            { id: r.id, roleName: r.role_name, permissionLevel: r.permission_level },
+          ],
+        ),
       );
 
       const assignmentsWithDetails: RoleAssignment[] = rawAssignments.map(assignment => ({

@@ -25,11 +25,11 @@ interface AIRecommendationsProps {
   userSchedule?: string[]; // session IDs already in user's schedule
 }
 
-export const AIRecommendations = ({ 
-  sessions, 
-  speakers, 
-  userInterests = [], 
-  userSchedule = [] 
+export const AIRecommendations = ({
+  sessions,
+  speakers,
+  userInterests = [],
+  userSchedule = [],
 }: AIRecommendationsProps) => {
   const [recommendations, setRecommendations] = useState<SessionRecommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +41,7 @@ export const AIRecommendations = ({
 
   const generateRecommendations = async () => {
     setIsLoading(true);
-    
+
     // Simulate AI processing delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -54,16 +54,16 @@ export const AIRecommendations = ({
 
         // Interest matching
         const sessionKeywords = `${session.title} ${session.description}`.toLowerCase();
-        const interestMatches = userInterests.filter(interest => 
-          sessionKeywords.includes(interest.toLowerCase())
+        const interestMatches = userInterests.filter(interest =>
+          sessionKeywords.includes(interest.toLowerCase()),
         ).length;
-        
+
         if (interestMatches > 0) {
           const score = Math.min(interestMatches * 0.3, 0.9);
           reasons.push({
             type: 'interest_match',
             label: `Matches ${interestMatches} of your interests`,
-            score
+            score,
           });
           totalScore += score;
         }
@@ -74,7 +74,7 @@ export const AIRecommendations = ({
           reasons.push({
             type: 'speaker_rating',
             label: 'Highly rated speaker',
-            score: speakerScore
+            score: speakerScore,
           });
           totalScore += speakerScore;
         }
@@ -86,23 +86,21 @@ export const AIRecommendations = ({
           reasons.push({
             type: 'time_fit',
             label: 'Optimal time slot',
-            score
+            score,
           });
           totalScore += score;
         }
 
         // Trending topics (simulate based on keywords)
         const trendingTopics = ['ai', 'blockchain', 'sustainability', 'innovation'];
-        const hasTrendingTopic = trendingTopics.some(topic => 
-          sessionKeywords.includes(topic)
-        );
-        
+        const hasTrendingTopic = trendingTopics.some(topic => sessionKeywords.includes(topic));
+
         if (hasTrendingTopic) {
           const score = 0.5;
           reasons.push({
             type: 'trending',
             label: 'Trending topic',
-            score
+            score,
           });
           totalScore += score;
         }
@@ -111,7 +109,7 @@ export const AIRecommendations = ({
           session,
           speaker,
           reasons,
-          overallScore: Math.min(totalScore, 1.0)
+          overallScore: Math.min(totalScore, 1.0),
         };
       })
       .filter(rec => rec.overallScore > 0.3)
@@ -124,12 +122,18 @@ export const AIRecommendations = ({
 
   const getReasonIcon = (type: RecommendationReason['type']) => {
     switch (type) {
-      case 'interest_match': return <Star size={12} className="text-yellow-400" />;
-      case 'popular': return <Users size={12} className="text-blue-400" />;
-      case 'trending': return <TrendingUp size={12} className="text-green-400" />;
-      case 'time_fit': return <Clock size={12} className="text-purple-400" />;
-      case 'speaker_rating': return <Sparkles size={12} className="text-glass-orange" />;
-      default: return null;
+      case 'interest_match':
+        return <Star size={12} className="text-yellow-400" />;
+      case 'popular':
+        return <Users size={12} className="text-blue-400" />;
+      case 'trending':
+        return <TrendingUp size={12} className="text-green-400" />;
+      case 'time_fit':
+        return <Clock size={12} className="text-purple-400" />;
+      case 'speaker_rating':
+        return <Sparkles size={12} className="text-glass-orange" />;
+      default:
+        return null;
     }
   };
 
@@ -160,7 +164,7 @@ export const AIRecommendations = ({
 
       {isLoading ? (
         <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-6 animate-pulse">
               <div className="h-4 bg-gray-600 rounded mb-2 w-3/4"></div>
               <div className="h-3 bg-gray-700 rounded mb-2 w-1/2"></div>
@@ -172,12 +176,17 @@ export const AIRecommendations = ({
         <div className="text-center py-8">
           <Sparkles size={48} className="text-gray-500 mx-auto mb-4" />
           <p className="text-gray-400 mb-2">No recommendations available.</p>
-          <p className="text-gray-500 text-sm">Update your interests in settings to get better recommendations.</p>
+          <p className="text-gray-500 text-sm">
+            Update your interests in settings to get better recommendations.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
-          {recommendations.map((rec) => (
-            <div key={rec.session.id} className="bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-colors">
+          {recommendations.map(rec => (
+            <div
+              key={rec.session.id}
+              className="bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-colors"
+            >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -186,18 +195,18 @@ export const AIRecommendations = ({
                       {Math.round(rec.overallScore * 100)}% match
                     </div>
                   </div>
-                  
-                  <p className="text-gray-400 text-sm mb-3 line-clamp-2">{rec.session.description}</p>
-                  
+
+                  <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                    {rec.session.description}
+                  </p>
+
                   <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
                     <div className="flex items-center gap-1">
                       <Clock size={14} />
                       {rec.session.startTime} - {rec.session.endTime}
                     </div>
                     <div>{rec.session.location}</div>
-                    {rec.speaker && (
-                      <div>Speaker: {rec.speaker.name}</div>
-                    )}
+                    {rec.speaker && <div>Speaker: {rec.speaker.name}</div>}
                   </div>
 
                   <div className="flex flex-wrap gap-2">

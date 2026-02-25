@@ -12,7 +12,7 @@ export type FileUpload = File & { mime?: string };
 export async function uploadToStorage(
   file: FileUpload,
   tripId: string,
-  subdir: 'images' | 'videos' | 'files'
+  subdir: 'images' | 'videos' | 'files',
 ) {
   let fileToUpload: File | Blob = file;
 
@@ -42,12 +42,10 @@ export async function uploadToStorage(
 
   const contentType = getUploadContentType(file);
 
-  const { data, error } = await supabase.storage
-    .from('trip-media')
-    .upload(key, fileToUpload, {
-      contentType,
-      upsert: false,
-    });
+  const { data, error } = await supabase.storage.from('trip-media').upload(key, fileToUpload, {
+    contentType,
+    upsert: false,
+  });
 
   if (error) throw error;
   const { data: pub } = supabase.storage.from('trip-media').getPublicUrl(key);
@@ -65,7 +63,8 @@ export async function insertMediaIndex(params: {
   messageId?: string;
   uploadedBy?: string;
 }) {
-  const normalizedMimeType = params.mimeType && params.mimeType.length > 0 ? params.mimeType : undefined;
+  const normalizedMimeType =
+    params.mimeType && params.mimeType.length > 0 ? params.mimeType : undefined;
   const { data, error } = await supabase
     .from('trip_media_index')
     .insert({

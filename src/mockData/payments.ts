@@ -12,6 +12,6 @@ export const mockPayments = [
     is_settled: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    version: 1
-  }
+    version: 1,
+  },
 ];

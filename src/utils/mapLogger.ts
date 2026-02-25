@@ -39,9 +39,8 @@ class MapLogger {
     // Console output in dev mode
     if (this.isDev) {
       const prefix = `[GoogleMaps:${context.component || 'Unknown'}]`;
-      const formattedContext = Object.keys(context).length > 0 
-        ? `\n${JSON.stringify(context, null, 2)}` 
-        : '';
+      const formattedContext =
+        Object.keys(context).length > 0 ? `\n${JSON.stringify(context, null, 2)}` : '';
 
       switch (level) {
         case 'error':
@@ -166,7 +165,7 @@ export async function checkMapsApiHealth(): Promise<{
     // Check API key
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     apiKeyPresent = Boolean(apiKey && apiKey !== 'placeholder');
-    
+
     if (!apiKeyPresent) {
       issues.push('Google Maps API key not configured or is placeholder');
     }
@@ -185,7 +184,6 @@ export async function checkMapsApiHealth(): Promise<{
         issues.push('Google Maps error overlay detected (likely billing or API key issue)');
       }
     }
-
   } catch (error) {
     issues.push(`Health check error: ${error instanceof Error ? error.message : 'Unknown'}`);
   }
@@ -205,7 +203,7 @@ export async function checkMapsApiHealth(): Promise<{
  */
 export function validateCoordinates(
   coords: { lat: number; lng: number } | null | undefined,
-  context: string
+  context: string,
 ): boolean {
   if (!coords) {
     mapLogger.warn('Coordinates are null or undefined', {

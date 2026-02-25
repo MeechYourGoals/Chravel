@@ -52,9 +52,7 @@ function safeParseJSON(raw: string): any {
 async function runParserModel(
   messages: Array<{
     role: string;
-    content:
-      | string
-      | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+    content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
   }>,
   options?: { maxTokens?: number; temperature?: number; timeoutMs?: number },
 ): Promise<string> {

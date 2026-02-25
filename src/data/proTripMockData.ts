@@ -1,4 +1,3 @@
-
 import { ProTripData } from '../types/pro';
 import { lakersRoadTrip } from './pro-trips/lakersRoadTrip';
 import { beyonceCowboyCarterTour } from './pro-trips/beyonceCowboyCarterTour';
@@ -25,5 +24,5 @@ export const proTripMockData: Record<string, ProTripData> = {
   'chravel-first-company-offsite-2026': teslaCybertruckRoadshow,
   'shane-gillis-comedy-tour-2026': postMaloneJellyRollTour,
   'gs-campus-gt-2025': goldmanSachsRecruiting,
-  'la-tech-week-venture-2026': nvidiaBowlingNight
+  'la-tech-week-venture-2026': nvidiaBowlingNight,
 };

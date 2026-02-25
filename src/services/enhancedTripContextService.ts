@@ -1,23 +1,30 @@
-
 import { Trip, getTripById, generateTripMockData } from '../data/tripsData';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripData } from '../types/pro';
-import { TripContext, TripFile, TripPhoto, TripLink, TripPoll, ChatMessage, TripReceipt } from '../types/tripContext';
+import {
+  TripContext,
+  TripFile,
+  TripPhoto,
+  TripLink,
+  TripPoll,
+  ChatMessage,
+  TripReceipt,
+} from '../types/tripContext';
 import { supabase } from '@/integrations/supabase/client';
 
 export class EnhancedTripContextService {
   static async getEnhancedTripContext(
-    tripId: string, 
-    isProTrip = false, 
-    isDemoMode = false
+    tripId: string,
+    isProTrip = false,
+    isDemoMode = false,
   ): Promise<TripContext> {
     try {
       let baseContext: TripContext;
-      
+
       // 🔐 AUTHENTICATED MODE: Fetch from database
       if (!isDemoMode) {
         baseContext = await this.getAuthenticatedTripContext(tripId);
-      } 
+      }
       // 🔐 DEMO MODE: Use mock data
       else {
         if (isProTrip) {
@@ -63,10 +70,12 @@ export class EnhancedTripContextService {
       upcomingEvents: [],
       recentUpdates: [],
       confirmationNumbers: {},
-      basecamp: trip.basecamp_name ? {
-        name: trip.basecamp_name,
-        address: trip.basecamp_address || ''
-      } : null
+      basecamp: trip.basecamp_name
+        ? {
+            name: trip.basecamp_name,
+            address: trip.basecamp_address || '',
+          }
+        : null,
     };
   }
 
@@ -84,30 +93,40 @@ export class EnhancedTripContextService {
       title: trip.title,
       location: trip.location,
       dateRange: trip.dateRange,
-      participants: trip.participants.map(p => ({ id: p.id.toString(), name: p.name, role: 'participant' })),
+      participants: trip.participants.map(p => ({
+        id: p.id.toString(),
+        name: p.name,
+        role: 'participant',
+      })),
       itinerary: mockData.itinerary.map((day, index) => ({
         id: index.toString(),
         title: `Day ${index + 1}`,
         date: day.date,
-        events: day.events
+        events: day.events,
       })),
-      accommodation: typeof mockData.basecamp === 'object' 
-        ? { name: mockData.basecamp.name, address: mockData.basecamp.address, checkIn: '', checkOut: '' }
-        : mockData.basecamp,
+      accommodation:
+        typeof mockData.basecamp === 'object'
+          ? {
+              name: mockData.basecamp.name,
+              address: mockData.basecamp.address,
+              checkIn: '',
+              checkOut: '',
+            }
+          : mockData.basecamp,
       currentDate: today,
       upcomingEvents: this.getUpcomingEvents(mockData.itinerary, today),
       recentUpdates: mockData.broadcasts.map((b, i) => ({
         id: i.toString(),
         type: 'broadcast',
         message: b.content,
-        timestamp: b.timestamp
+        timestamp: b.timestamp,
       })),
       confirmationNumbers: {
         hotel: 'HTL-' + Math.random().toString(36).substr(2, 9),
         rental_car: 'CAR-' + Math.random().toString(36).substr(2, 9),
         flight: 'FLT-' + Math.random().toString(36).substr(2, 9),
       },
-      basecamp: mockData.basecamp
+      basecamp: mockData.basecamp,
     };
   }
 
@@ -124,30 +143,36 @@ export class EnhancedTripContextService {
       title: proTrip.title,
       location: proTrip.location,
       dateRange: proTrip.dateRange,
-      participants: proTrip.participants.map(p => ({ id: p.id.toString(), name: p.name, role: p.role })),
+      participants: proTrip.participants.map(p => ({
+        id: p.id.toString(),
+        name: p.name,
+        role: p.role,
+      })),
       itinerary: (proTrip.itinerary || []).map((day, index) => ({
         id: index.toString(),
         title: `Day ${index + 1}`,
         date: day.date,
-        events: day.events as any // Mock data - type assertion for simplified event structure
+        events: day.events as any, // Mock data - type assertion for simplified event structure
       })),
       accommodation: `${proTrip.location} Accommodation`,
       currentDate: today,
       upcomingEvents: this.getUpcomingEvents(proTrip.itinerary || [], today),
-      recentUpdates: [{
-        id: '1',
-        type: 'description',
-        message: proTrip.description,
-        timestamp: today
-      }],
+      recentUpdates: [
+        {
+          id: '1',
+          type: 'description',
+          message: proTrip.description,
+          timestamp: today,
+        },
+      ],
       confirmationNumbers: {
         venue: 'VEN-' + Math.random().toString(36).substr(2, 9),
-        transportation: 'TRN-' + Math.random().toString(36).substr(2, 9)
+        transportation: 'TRN-' + Math.random().toString(36).substr(2, 9),
       },
       isPro: true,
       proData: {
-        category: proTrip.category || 'professional'
-      }
+        category: proTrip.category || 'professional',
+      },
     };
   }
 
@@ -160,12 +185,12 @@ export class EnhancedTripContextService {
     const chatHistory = await this.getChatHistory(context.tripId);
     const receipts = await this.getTripReceipts(context.tripId);
     const preferences = await this.getTripPreferences(context.tripId);
-    
+
     // 🆕 Enhanced contextual data for AI Concierge
     const tasks = await this.getTripTasks(context.tripId);
     const payments = await this.getTripPayments(context.tripId);
     const calendar = await this.getTripCalendar(context.tripId);
-    
+
     // 🆕 Geocode basecamp if it doesn't have coordinates
     if (context.basecamp && typeof context.basecamp === 'object') {
       const basecamp = context.basecamp as any;
@@ -202,18 +227,20 @@ export class EnhancedTripContextService {
       visitedPlaces,
       weatherContext,
       // 🆕 Enhanced context for AI Concierge
-      tasks
+      tasks,
     };
   }
 
   // 🆕 Geocoding helper method
-  private static async geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  private static async geocodeAddress(
+    address: string,
+  ): Promise<{ lat: number; lng: number } | null> {
     try {
       const { data, error } = await supabase.functions.invoke('google-maps-proxy', {
         body: {
           action: 'geocode',
-          address
-        }
+          address,
+        },
       });
 
       if (error || !data?.results?.[0]) {
@@ -224,7 +251,7 @@ export class EnhancedTripContextService {
       const location = data.results[0].geometry.location;
       return {
         lat: location.lat,
-        lng: location.lng
+        lng: location.lng,
       };
     } catch (error) {
       if (import.meta.env.DEV) console.warn('Geocoding error:', error);
@@ -237,7 +264,8 @@ export class EnhancedTripContextService {
       // Use untyped supabase to avoid TS errors until types are regenerated
       const { data, error } = await (supabase as any)
         .from('trip_files')
-        .select(`
+        .select(
+          `
           id,
           name,
           file_type,
@@ -246,7 +274,8 @@ export class EnhancedTripContextService {
           extracted_events,
           uploaded_by,
           created_at
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false });
 
@@ -263,7 +292,7 @@ export class EnhancedTripContextService {
         extractedEvents: file.extracted_events || 0,
         aiSummary: file.ai_summary,
         uploadedBy: 'Unknown',
-        uploadedAt: file.created_at
+        uploadedAt: file.created_at,
       }));
     } catch (error) {
       if (import.meta.env.DEV) console.warn('Error fetching trip files:', error);
@@ -280,17 +309,17 @@ export class EnhancedTripContextService {
         location: 'Santa Monica Beach',
         timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
         uploadedBy: 'Marcus',
-        aiTags: ['beach', 'group', 'outdoor', 'sunny', 'recreational']
+        aiTags: ['beach', 'group', 'outdoor', 'sunny', 'recreational'],
       },
       {
         id: 'photo-2',
-        url: '/src/assets/vacation-landmark-selfie.jpg', 
+        url: '/src/assets/vacation-landmark-selfie.jpg',
         caption: 'Epic group selfie at the landmark!',
         location: 'Hollywood Sign Viewpoint',
         timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
         uploadedBy: 'Sarah',
-        aiTags: ['landmark', 'selfie', 'group', 'tourist', 'scenic']
-      }
+        aiTags: ['landmark', 'selfie', 'group', 'tourist', 'scenic'],
+      },
     ];
   }
 
@@ -298,7 +327,8 @@ export class EnhancedTripContextService {
     try {
       const { data, error } = await (supabase as any)
         .from('trip_links')
-        .select(`
+        .select(
+          `
           id,
           url,
           title,
@@ -307,7 +337,8 @@ export class EnhancedTripContextService {
           votes,
           added_by,
           created_at
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .order('votes', { ascending: false });
 
@@ -324,7 +355,7 @@ export class EnhancedTripContextService {
         category: link.category,
         votes: link.votes || 0,
         addedBy: 'Unknown',
-        addedAt: link.created_at
+        addedAt: link.created_at,
       }));
     } catch (error) {
       if (import.meta.env.DEV) console.warn('Error fetching trip links:', error);
@@ -336,7 +367,8 @@ export class EnhancedTripContextService {
     try {
       const { data, error } = await (supabase as any)
         .from('trip_polls')
-        .select(`
+        .select(
+          `
           id,
           question,
           options,
@@ -344,7 +376,8 @@ export class EnhancedTripContextService {
           status,
           created_by,
           created_at
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false });
 
@@ -360,7 +393,7 @@ export class EnhancedTripContextService {
         totalVotes: poll.total_votes || 0,
         createdBy: 'Unknown',
         createdAt: poll.created_at,
-        status: (poll.status as 'active' | 'closed') || 'active'
+        status: (poll.status as 'active' | 'closed') || 'active',
       }));
     } catch (error) {
       if (import.meta.env.DEV) console.warn('Error fetching trip polls:', error);
@@ -372,13 +405,15 @@ export class EnhancedTripContextService {
     try {
       const { data, error } = await (supabase as any)
         .from('trip_chat_messages')
-        .select(`
+        .select(
+          `
           id,
           content,
           author_name,
           sentiment,
           created_at
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -393,7 +428,7 @@ export class EnhancedTripContextService {
         content: message.content,
         author: message.author_name,
         timestamp: message.created_at,
-        sentiment: message.sentiment as 'positive' | 'neutral' | 'negative' | undefined
+        sentiment: message.sentiment as 'positive' | 'neutral' | 'negative' | undefined,
       }));
     } catch (error) {
       if (import.meta.env.DEV) console.warn('Error fetching chat history:', error);
@@ -405,24 +440,24 @@ export class EnhancedTripContextService {
     return [
       {
         id: 'receipt-1',
-        amount: 156.80,
+        amount: 156.8,
         currency: 'USD',
         description: 'Dinner at Le Comptoir',
         category: 'food',
         splitBetween: 4,
         uploadedBy: 'Emma',
-        uploadedAt: '2025-01-15T19:30:00Z'
+        uploadedAt: '2025-01-15T19:30:00Z',
       },
       {
         id: 'receipt-2',
-        amount: 89.50,
-        currency: 'USD', 
+        amount: 89.5,
+        currency: 'USD',
         description: 'Uber to airport',
         category: 'transport',
         splitBetween: 3,
         uploadedBy: 'Alex',
-        uploadedAt: '2025-01-15T08:15:00Z'
-      }
+        uploadedAt: '2025-01-15T08:15:00Z',
+      },
     ];
   }
 
@@ -445,7 +480,7 @@ export class EnhancedTripContextService {
           lifestyle: [],
           budgetMin: 0,
           budgetMax: 1000,
-          timePreference: 'flexible'
+          timePreference: 'flexible',
         };
       }
 
@@ -458,7 +493,7 @@ export class EnhancedTripContextService {
         lifestyle: data.lifestyle || [],
         budgetMin: data.budget_min || 0,
         budgetMax: data.budget_max || 1000,
-        timePreference: data.time_preference || 'flexible'
+        timePreference: data.time_preference || 'flexible',
       };
     } catch (error) {
       if (import.meta.env.DEV) console.warn('Error fetching trip preferences:', error);
@@ -471,51 +506,58 @@ export class EnhancedTripContextService {
         lifestyle: [],
         budgetMin: 0,
         budgetMax: 1000,
-        timePreference: 'flexible'
+        timePreference: 'flexible',
       };
     }
   }
 
   private static analyzeSpendingPatterns(receipts: TripReceipt[]) {
     const totalSpent = receipts.reduce((sum, r) => sum + r.amount, 0);
-    const categories = receipts.reduce((acc, r) => {
-      acc[r.category] = (acc[r.category] || 0) + r.amount;
-      return acc;
-    }, {} as { [category: string]: number });
-    
-    const avgPerPerson = receipts.reduce((sum, r) => sum + (r.amount / r.splitBetween), 0);
+    const categories = receipts.reduce(
+      (acc, r) => {
+        acc[r.category] = (acc[r.category] || 0) + r.amount;
+        return acc;
+      },
+      {} as { [category: string]: number },
+    );
+
+    const avgPerPerson = receipts.reduce((sum, r) => sum + r.amount / r.splitBetween, 0);
 
     return { totalSpent, categories, avgPerPerson };
   }
 
   private static analyzeGroupDynamics(chatHistory: ChatMessage[], polls: TripPoll[]) {
-    const messageCount = chatHistory.reduce((acc, msg) => {
-      acc[msg.author] = (acc[msg.author] || 0) + 1;
-      return acc;
-    }, {} as { [author: string]: number });
+    const messageCount = chatHistory.reduce(
+      (acc, msg) => {
+        acc[msg.author] = (acc[msg.author] || 0) + 1;
+        return acc;
+      },
+      {} as { [author: string]: number },
+    );
 
     const mostActiveParticipants = Object.entries(messageCount)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 3)
       .map(([name]) => name);
 
     const recentDecisions = polls
       .filter(p => p.status === 'closed')
       .map(p => {
-        const winner = p.options.reduce((max, opt) => opt.votes > max.votes ? opt : max);
+        const winner = p.options.reduce((max, opt) => (opt.votes > max.votes ? opt : max));
         return `${p.question}: ${winner.text}`;
       });
 
     const positiveMessages = chatHistory.filter(m => m.sentiment === 'positive').length;
-    const ratio = chatHistory.length ? (positiveMessages / chatHistory.length) : 0;
-    const consensusLevel: 'high' | 'medium' | 'low' = ratio > 0.7 ? 'high' : ratio > 0.4 ? 'medium' : 'low';
+    const ratio = chatHistory.length ? positiveMessages / chatHistory.length : 0;
+    const consensusLevel: 'high' | 'medium' | 'low' =
+      ratio > 0.7 ? 'high' : ratio > 0.4 ? 'medium' : 'low';
 
     return { mostActiveParticipants, recentDecisions, consensusLevel };
   }
 
   private static extractVisitedPlaces(itinerary: any[], photos: TripPhoto[]): string[] {
     const places = new Set<string>();
-    
+
     // From itinerary
     itinerary.forEach(day => {
       day.events?.forEach((event: any) => {
@@ -535,18 +577,19 @@ export class EnhancedTripContextService {
     // Mock weather data
     return {
       current: 'Sunny, 72°F',
-      forecast: ['Sunny, 75°F', 'Partly cloudy, 70°F', 'Sunny, 78°F']
+      forecast: ['Sunny, 75°F', 'Partly cloudy, 70°F', 'Sunny, 78°F'],
     };
   }
 
   private static getUpcomingEvents(itinerary: any[], currentDate: string): any[] {
     return itinerary
       .filter(day => day.date >= currentDate)
-      .flatMap(day => 
-        day.events?.map((event: any) => ({
-          ...event,
-          date: day.date
-        })) || []
+      .flatMap(
+        day =>
+          day.events?.map((event: any) => ({
+            ...event,
+            date: day.date,
+          })) || [],
       )
       .slice(0, 5);
   }

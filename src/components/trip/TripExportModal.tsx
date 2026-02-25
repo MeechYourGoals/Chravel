@@ -124,7 +124,11 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
         {/* Content */}
         <div
           className="p-3 overflow-y-auto flex-1"
-          style={!hasAccess ? { paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px))' } : undefined}
+          style={
+            !hasAccess
+              ? { paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }
+              : undefined
+          }
         >
           {/* Upgrade prompt when free export is used */}
           {showUpgradePrompt ? (

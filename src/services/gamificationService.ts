@@ -27,57 +27,57 @@ export const ACHIEVEMENTS: Achievement[] = [
     title: 'First Adventure',
     description: 'Created your first trip',
     icon: '✈️',
-    rarity: 'common'
+    rarity: 'common',
   },
   {
     id: 'group_organizer',
-    title: 'Group Leader', 
+    title: 'Group Leader',
     description: 'Organized a trip with 5+ people',
     icon: '👥',
-    rarity: 'rare'
+    rarity: 'rare',
   },
   {
     id: 'international_explorer',
     title: 'International Explorer',
     description: 'Planned your first international trip',
     icon: '🌍',
-    rarity: 'rare'
+    rarity: 'rare',
   },
   {
     id: 'budget_master',
     title: 'Budget Master',
     description: 'Stayed within budget on 3 trips',
     icon: '💰',
-    rarity: 'epic'
+    rarity: 'epic',
   },
   {
     id: 'adventure_seeker',
     title: 'Adventure Seeker',
     description: 'Planned 5+ adventure activities',
     icon: '🏔️',
-    rarity: 'rare'
+    rarity: 'rare',
   },
   {
     id: 'luxury_lover',
     title: 'Luxury Lover',
     description: 'Booked premium accommodations',
     icon: '🏖️',
-    rarity: 'epic'
+    rarity: 'epic',
   },
   {
     id: 'trip_veteran',
     title: 'Trip Veteran',
     description: 'Completed 10 trips',
     icon: '🏆',
-    rarity: 'legendary'
+    rarity: 'legendary',
   },
   {
     id: 'master_organizer',
     title: 'Master Organizer',
     description: 'Reached organizer level 5',
     icon: '⭐',
-    rarity: 'legendary'
-  }
+    rarity: 'legendary',
+  },
 ];
 
 class GamificationService {
@@ -91,7 +91,7 @@ class GamificationService {
         tasksCompleted: 1,
         totalTasks: 2,
         budgetSet: true,
-        participantsInvited: 4
+        participantsInvited: 4,
       },
       '4': {
         accommodationBooked: true,
@@ -100,45 +100,47 @@ class GamificationService {
         tasksCompleted: 0,
         totalTasks: 1,
         budgetSet: true,
-        participantsInvited: 8
-      }
+        participantsInvited: 8,
+      },
     };
 
-    return mockProgress[tripId] || {
-      accommodationBooked: false,
-      flightsBooked: false,
-      activitiesPlanned: 0,
-      tasksCompleted: 0,
-      totalTasks: 0,
-      budgetSet: false,
-      participantsInvited: 0
-    };
+    return (
+      mockProgress[tripId] || {
+        accommodationBooked: false,
+        flightsBooked: false,
+        activitiesPlanned: 0,
+        tasksCompleted: 0,
+        totalTasks: 0,
+        budgetSet: false,
+        participantsInvited: 0,
+      }
+    );
   }
 
   calculateProgressPercentage(progress: TripProgress): number {
     const weights = {
       accommodationBooked: 25,
-      flightsBooked: 25, 
+      flightsBooked: 25,
       budgetSet: 15,
       activitiesPlanned: 15, // max 3 activities = 15%
       tasksCompleted: 15, // based on completion ratio
-      participantsInvited: 5 // max 2 people = 5%
+      participantsInvited: 5, // max 2 people = 5%
     };
 
     let totalProgress = 0;
-    
+
     if (progress.accommodationBooked) totalProgress += weights.accommodationBooked;
     if (progress.flightsBooked) totalProgress += weights.flightsBooked;
     if (progress.budgetSet) totalProgress += weights.budgetSet;
-    
+
     // Activities (up to 3 for full points)
     totalProgress += Math.min(progress.activitiesPlanned / 3, 1) * weights.activitiesPlanned;
-    
+
     // Tasks completion ratio
     if (progress.totalTasks > 0) {
       totalProgress += (progress.tasksCompleted / progress.totalTasks) * weights.tasksCompleted;
     }
-    
+
     // Participants (up to 2 additional for full points)
     totalProgress += Math.min(progress.participantsInvited / 2, 1) * weights.participantsInvited;
 
@@ -151,7 +153,7 @@ class GamificationService {
       '1': '2024-03-15',
       '4': '2024-02-20',
       '6': '2024-04-01',
-      '7': '2024-03-08'
+      '7': '2024-03-08',
     };
 
     const tripDate = mockDates[tripId];
@@ -161,7 +163,7 @@ class GamificationService {
     const trip = new Date(tripDate);
     const diffTime = trip.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     return Math.max(diffDays, 0);
   }
 
@@ -171,13 +173,13 @@ class GamificationService {
       '1': 5, // 5 activities in last 24h
       '4': 12, // High activity
       '6': 2,
-      '7': 1
+      '7': 1,
     };
 
     const activity = recentActivity[tripId] || 0;
-    
+
     if (activity >= 8) return 'hot';
-    if (activity >= 3) return 'warm'; 
+    if (activity >= 3) return 'warm';
     return 'cold';
   }
 
@@ -185,7 +187,7 @@ class GamificationService {
     // Mock implementation - replace with real user data
     return ACHIEVEMENTS.slice(0, 3).map(achievement => ({
       ...achievement,
-      unlockedAt: new Date().toISOString()
+      unlockedAt: new Date().toISOString(),
     }));
   }
 
@@ -198,7 +200,7 @@ class GamificationService {
       groupTripsOrganized: 3,
       tasksCompleted: 24,
       planningStreak: 5,
-      lastActivityDate: new Date().toISOString()
+      lastActivityDate: new Date().toISOString(),
     };
   }
 
@@ -208,7 +210,7 @@ class GamificationService {
       { level: 2, title: 'Weekend Warrior', required: 2 },
       { level: 3, title: 'Travel Coordinator', required: 5 },
       { level: 4, title: 'Master Organizer', required: 10 },
-      { level: 5, title: 'Travel Guru', required: 20 }
+      { level: 5, title: 'Travel Guru', required: 20 },
     ];
 
     let currentLevel = levels[0];
@@ -221,14 +223,17 @@ class GamificationService {
       }
     }
 
-    const progress = nextLevel.level > currentLevel.level 
-      ? ((stats.totalTrips - currentLevel.required) / (nextLevel.required - currentLevel.required)) * 100
-      : 100;
+    const progress =
+      nextLevel.level > currentLevel.level
+        ? ((stats.totalTrips - currentLevel.required) /
+            (nextLevel.required - currentLevel.required)) *
+          100
+        : 100;
 
     return {
       level: currentLevel.level,
       title: currentLevel.title,
-      nextLevelProgress: Math.min(progress, 100)
+      nextLevelProgress: Math.min(progress, 100),
     };
   }
 }

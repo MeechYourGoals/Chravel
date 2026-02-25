@@ -64,11 +64,7 @@ export const VirtualizedRosterGrid: React.FC<VirtualizedRosterGridProps> = ({
   };
 
   return (
-    <div
-      ref={parentRef}
-      className="h-[500px] overflow-auto"
-      style={{ contain: 'strict' }}
-    >
+    <div ref={parentRef} className="h-[500px] overflow-auto" style={{ contain: 'strict' }}>
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -111,9 +107,13 @@ export const VirtualizedRosterGrid: React.FC<VirtualizedRosterGridProps> = ({
                             {member.name}
                           </h3>
                         </QuickContactMenu>
-                        <p className="text-gray-400 text-xs truncate leading-tight">{member.email}</p>
+                        <p className="text-gray-400 text-xs truncate leading-tight">
+                          {member.email}
+                        </p>
                         {member.phone && (
-                          <p className="text-gray-500 text-xs truncate leading-tight">{member.phone}</p>
+                          <p className="text-gray-500 text-xs truncate leading-tight">
+                            {member.phone}
+                          </p>
                         )}
                         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                           {allRolePills.map((pill, index) => (

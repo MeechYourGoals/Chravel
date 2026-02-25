@@ -7,13 +7,13 @@
  * - Quiet hours respect
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { corsHeaders } from '../_shared/cors.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '' // Use service role for admin operations
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // Use service role for admin operations
 );
 
 interface TripNotificationPayload {
@@ -21,14 +21,21 @@ interface TripNotificationPayload {
   eventId?: string;
   title: string;
   body: string;
-  type: 'chat_message' | 'trip_update' | 'calendar_reminder' | 'payment_alert' | 'member_joined' | 'poll_created';
+  type:
+    | 'chat_message'
+    | 'trip_update'
+    | 'calendar_reminder'
+    | 'payment_alert'
+    | 'member_joined'
+    | 'poll_created';
   data?: Record<string, any>;
   excludeUserIds?: string[]; // Don't send to these users (e.g., message sender)
   incrementBadge?: boolean; // Default true
 }
 
-serve(async (req) => {
-  const { createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
+serve(async req => {
+  const { createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
 
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -41,9 +48,10 @@ serve(async (req) => {
     }
 
     // Verify user is authenticated
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (userError || !user) {
       return createErrorResponse('Unauthorized', 401);
@@ -60,7 +68,8 @@ serve(async (req) => {
     // Use correct column names from notification_preferences table
     const { data: members, error: membersError } = await supabase
       .from('trip_members')
-      .select(`
+      .select(
+        `
         user_id,
         profiles!inner(user_id, full_name, timezone),
         notification_preferences(
@@ -82,7 +91,8 @@ serve(async (req) => {
           quiet_end,
           timezone
         )
-      `)
+      `,
+      )
       .eq('trip_id', payload.tripId);
 
     if (membersError) {
@@ -151,7 +161,7 @@ serve(async (req) => {
           p_user_id: member.user_id,
           p_trip_id: payload.tripId,
           p_event_id: payload.eventId || null,
-          p_increment: 1
+          p_increment: 1,
         });
         badgeCount = badgeData || 0;
       }
@@ -169,14 +179,23 @@ serve(async (req) => {
               ...payload.data,
               tripId: payload.tripId,
               eventId: payload.eventId,
-              notificationType: payload.type
-            }
+              notificationType: payload.type,
+            },
           );
-          results.push({ userId: member.user_id, platform: tokenInfo.platform, success: result.success });
+          results.push({
+            userId: member.user_id,
+            platform: tokenInfo.platform,
+            success: result.success,
+          });
         } catch (error) {
           console.error(`Failed to send to user ${member.user_id}:`, error);
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          results.push({ userId: member.user_id, platform: tokenInfo.platform, success: false, error: errorMessage });
+          results.push({
+            userId: member.user_id,
+            platform: tokenInfo.platform,
+            success: false,
+            error: errorMessage,
+          });
         }
       }
 
@@ -188,7 +207,7 @@ serve(async (req) => {
         body: payload.body,
         data: payload.data,
         success: tokens.length,
-        failure: 0
+        failure: 0,
       });
     }
 
@@ -197,12 +216,11 @@ serve(async (req) => {
         success: true,
         notificationsSent: results.filter(r => r.success).length,
         totalRecipients: results.length,
-        results
+        results,
       }),
       200,
-      { 'Content-Type': 'application/json' }
+      { 'Content-Type': 'application/json' },
     );
-
   } catch (error) {
     console.error('Trip notification error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -214,10 +232,7 @@ serve(async (req) => {
  * Map notification types to their corresponding preference column names.
  * This uses the actual database column names from notification_preferences table.
  */
-function checkNotificationTypeEnabled(
-  type: string,
-  prefs: any
-): boolean {
+function checkNotificationTypeEnabled(type: string, prefs: any): boolean {
   // Handle array vs single object (join can return either)
   const p = Array.isArray(prefs) ? prefs[0] : prefs;
   if (!p) return true;
@@ -272,14 +287,16 @@ function checkNotificationTypeEnabled(
 
     // Default: allow unknown types (safer for future expansion)
     default:
-      console.log(`[send-trip-notification] Unknown notification type: ${type}, allowing by default`);
+      console.log(
+        `[send-trip-notification] Unknown notification type: ${type}, allowing by default`,
+      );
       return true;
   }
 }
 
 function isQuietHours(
   prefs: { quiet_hours_enabled?: boolean; quiet_start?: string; quiet_end?: string },
-  timezone: string
+  timezone: string,
 ): boolean {
   if (!prefs?.quiet_hours_enabled) return false;
 
@@ -315,7 +332,7 @@ async function sendPushToToken(
   title: string,
   body: string,
   badge: number,
-  data: Record<string, any>
+  data: Record<string, any>,
 ): Promise<{ success: boolean; messageId?: string }> {
   const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
 
@@ -333,8 +350,8 @@ async function sendPushToToken(
     },
     data: {
       ...data,
-      badge: badge.toString()
-    }
+      badge: badge.toString(),
+    },
   };
 
   // Platform-specific configurations
@@ -344,9 +361,9 @@ async function sendPushToToken(
         aps: {
           badge,
           sound: 'default',
-          'content-available': 1
-        }
-      }
+          'content-available': 1,
+        },
+      },
     };
   } else if (platform === 'android') {
     fcmPayload.android = {
@@ -354,36 +371,39 @@ async function sendPushToToken(
       notification: {
         badge,
         sound: 'default',
-        channel_id: 'trip_notifications'
-      }
+        channel_id: 'trip_notifications',
+      },
     };
   } else {
     // Web
     fcmPayload.webpush = {
       headers: {
-        TTL: '86400' // 24 hours
+        TTL: '86400', // 24 hours
       },
       notification: {
         badge: '/chravel-badge.png',
-        icon: '/chravel-icon.png'
+        icon: '/chravel-icon.png',
       },
       fcm_options: {
-        link: data.url || '/'
-      }
+        link: data.url || '/',
+      },
     };
   }
 
   // Add the token
   fcmPayload.token = token;
 
-  const response = await fetch('https://fcm.googleapis.com/v1/projects/YOUR_PROJECT_ID/messages:send', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${fcmServerKey}`,
-      'Content-Type': 'application/json',
+  const response = await fetch(
+    'https://fcm.googleapis.com/v1/projects/YOUR_PROJECT_ID/messages:send',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${fcmServerKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: fcmPayload }),
     },
-    body: JSON.stringify({ message: fcmPayload }),
-  });
+  );
 
   if (!response.ok) {
     const error = await response.text();
@@ -402,14 +422,14 @@ async function sendPushLegacy(
   title: string,
   body: string,
   badge: number,
-  data: Record<string, any>
+  data: Record<string, any>,
 ): Promise<{ success: boolean }> {
   const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
 
   const response = await fetch('https://fcm.googleapis.com/fcm/send', {
     method: 'POST',
     headers: {
-      'Authorization': `key=${fcmServerKey}`,
+      Authorization: `key=${fcmServerKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -418,12 +438,12 @@ async function sendPushLegacy(
         title,
         body,
         icon: '/chravel-icon.png',
-        badge: badge.toString()
+        badge: badge.toString(),
       },
       data: {
         ...data,
-        badge: badge.toString()
-      }
+        badge: badge.toString(),
+      },
     }),
   });
 

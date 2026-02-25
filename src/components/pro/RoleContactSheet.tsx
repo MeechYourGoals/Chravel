@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
-import { 
-  Users, MessageCircle, Phone, Mail, Send, AlertTriangle, X 
-} from 'lucide-react';
+import { Users, MessageCircle, Phone, Mail, Send, AlertTriangle, X } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { getRoleColorClass } from '../../utils/roleUtils';
 import { ProTripCategory } from '../../types/proCategories';
@@ -26,7 +24,7 @@ export const RoleContactSheet = ({
   role,
   members,
   category,
-  onSendGroupMessage
+  onSendGroupMessage,
 }: RoleContactSheetProps) => {
   const [message, setMessage] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
@@ -42,7 +40,7 @@ export const RoleContactSheet = ({
       await onSendGroupMessage(
         members.map(m => m.id),
         message.trim(),
-        isUrgent
+        isUrgent,
       );
       setMessage('');
       setIsUrgent(false);
@@ -77,30 +75,18 @@ export const RoleContactSheet = ({
         {/* Quick Actions */}
         <div className="flex gap-2 flex-wrap">
           {onSendGroupMessage && (
-            <Button
-              variant="outline"
-              className="flex-1"
-              disabled={!members.length}
-            >
+            <Button variant="outline" className="flex-1" disabled={!members.length}>
               <MessageCircle size={16} className="mr-2 text-blue-400" />
               Group Message
             </Button>
           )}
           {membersWithPhone.length > 0 && (
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={handleCallAll}
-            >
+            <Button variant="outline" className="flex-1" onClick={handleCallAll}>
               <Phone size={16} className="mr-2 text-green-400" />
               Call All ({membersWithPhone.length})
             </Button>
           )}
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={handleEmailAll}
-          >
+          <Button variant="outline" className="flex-1" onClick={handleEmailAll}>
             <Mail size={16} className="mr-2 text-purple-400" />
             Email All
           </Button>
@@ -115,7 +101,7 @@ export const RoleContactSheet = ({
                 <input
                   type="checkbox"
                   checked={isUrgent}
-                  onChange={(e) => setIsUrgent(e.target.checked)}
+                  onChange={e => setIsUrgent(e.target.checked)}
                   className="rounded border-gray-600 bg-gray-800 text-red-600 focus:ring-red-500"
                 />
                 <AlertTriangle size={14} className={isUrgent ? 'text-red-400' : 'text-gray-400'} />
@@ -125,7 +111,7 @@ export const RoleContactSheet = ({
 
             <Textarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={e => setMessage(e.target.value)}
               placeholder={`Message for all ${role} members...${isUrgent ? '\n\n⚠️ This will be marked as URGENT' : ''}`}
               className="bg-gray-800 border-gray-600 text-white min-h-[120px]"
               disabled={isSending}
@@ -188,9 +174,7 @@ export const RoleContactSheet = ({
                   <div>
                     <p className="font-medium">{member.name}</p>
                     <p className="text-sm text-gray-400">{member.email}</p>
-                    {member.phone && (
-                      <p className="text-xs text-gray-500">{member.phone}</p>
-                    )}
+                    {member.phone && <p className="text-xs text-gray-500">{member.phone}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -227,4 +211,3 @@ export const RoleContactSheet = ({
     </Dialog>
   );
 };
-

@@ -12,9 +12,7 @@ interface ArchiveStats {
  * Archive trips that haven't been accessed in the specified number of days
  * This moves trip data to an archived state without deletion
  */
-export async function archiveInactiveTrips(
-  inactiveDays: number = 365
-): Promise<ArchiveStats> {
+export async function archiveInactiveTrips(inactiveDays: number = 365): Promise<ArchiveStats> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - inactiveDays);
 
@@ -41,7 +39,7 @@ export async function archiveInactiveTrips(
       return stats;
     }
 
-    const tripIds = inactiveTrips.map((t) => t.id);
+    const tripIds = inactiveTrips.map(t => t.id);
     console.log(`Found ${tripIds.length} inactive trips to archive`);
 
     // Archive media (move to cold storage metadata, but keep records)
@@ -51,10 +49,7 @@ export async function archiveInactiveTrips(
       .in('trip_id', tripIds);
 
     if (mediaToArchive) {
-      const totalMediaSize = mediaToArchive.reduce(
-        (sum, m) => sum + (m.file_size || 0),
-        0
-      );
+      const totalMediaSize = mediaToArchive.reduce((sum, m) => sum + (m.file_size || 0), 0);
       stats.mediaArchived = mediaToArchive.length;
       stats.storageFreedMB = totalMediaSize / (1024 * 1024);
 
@@ -159,9 +154,7 @@ export async function getArchivedTripsSummary() {
  * Delete permanently archived trips older than specified days
  * WARNING: This is permanent deletion, use with caution
  */
-export async function deleteOldArchivedTrips(
-  archiveAgeDays: number = 730
-): Promise<number> {
+export async function deleteOldArchivedTrips(archiveAgeDays: number = 730): Promise<number> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - archiveAgeDays);
 
@@ -175,7 +168,7 @@ export async function deleteOldArchivedTrips(
 
     if (!oldTrips || oldTrips.length === 0) return 0;
 
-    const tripIds = oldTrips.map((t) => t.id);
+    const tripIds = oldTrips.map(t => t.id);
 
     // Delete associated data (cascading deletes should handle most)
     await supabase.from('trip_media_index').delete().in('trip_id', tripIds);

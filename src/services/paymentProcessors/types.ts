@@ -29,7 +29,13 @@ export interface PaymentResponse {
 export interface PaymentError {
   code: string;
   message: string;
-  type: 'insufficient_funds' | 'payment_method_failed' | 'network_error' | 'invalid_request' | 'rate_limit' | 'unknown';
+  type:
+    | 'insufficient_funds'
+    | 'payment_method_failed'
+    | 'network_error'
+    | 'invalid_request'
+    | 'rate_limit'
+    | 'unknown';
   retryable: boolean;
   details?: Record<string, unknown>;
 }

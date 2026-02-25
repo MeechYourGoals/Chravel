@@ -36,7 +36,9 @@ export interface CreateBroadcastData {
 export const broadcastService = {
   async createBroadcast(broadcastData: CreateBroadcastData): Promise<Broadcast | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const insertData: any = {
@@ -44,7 +46,7 @@ export const broadcastService = {
         created_by: user.id,
         priority: broadcastData.priority || 'fyi',
         metadata: broadcastData.metadata || {},
-        is_sent: !broadcastData.scheduled_for // If not scheduled, mark as sent immediately
+        is_sent: !broadcastData.scheduled_for, // If not scheduled, mark as sent immediately
       };
 
       // Add attachment_urls if provided
@@ -88,10 +90,7 @@ export const broadcastService = {
 
   async updateBroadcast(broadcastId: string, updates: Partial<Broadcast>): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('broadcasts')
-        .update(updates)
-        .eq('id', broadcastId);
+      const { error } = await supabase.from('broadcasts').update(updates).eq('id', broadcastId);
 
       return !error;
     } catch (error) {
@@ -104,18 +103,21 @@ export const broadcastService = {
 
   async addReaction(broadcastId: string, reactionType: string): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
-        .from('broadcast_reactions')
-        .upsert({
+      const { error } = await supabase.from('broadcast_reactions').upsert(
+        {
           broadcast_id: broadcastId,
           user_id: user.id,
-          reaction_type: reactionType
-        }, {
-          onConflict: 'broadcast_id,user_id'
-        });
+          reaction_type: reactionType,
+        },
+        {
+          onConflict: 'broadcast_id,user_id',
+        },
+      );
 
       return !error;
     } catch (error) {
@@ -128,7 +130,9 @@ export const broadcastService = {
 
   async removeReaction(broadcastId: string): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const { error } = await supabase
@@ -173,9 +177,9 @@ export const broadcastService = {
           event: 'INSERT',
           schema: 'public',
           table: 'broadcasts',
-          filter: `trip_id=eq.${tripId}`
+          filter: `trip_id=eq.${tripId}`,
         },
-        (payload) => callback(payload.new as Broadcast)
+        payload => callback(payload.new as Broadcast),
       )
       .subscribe();
 
@@ -192,13 +196,13 @@ export const broadcastService = {
           event: '*',
           schema: 'public',
           table: 'broadcast_reactions',
-          filter: `broadcast_id=eq.${broadcastId}`
+          filter: `broadcast_id=eq.${broadcastId}`,
         },
-        (payload) => {
+        payload => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             callback(payload.new as BroadcastReaction);
           }
-        }
+        },
       )
       .subscribe();
 
@@ -208,12 +212,14 @@ export const broadcastService = {
   // Mark broadcast as viewed (read receipt)
   async markBroadcastViewed(broadcastId: string): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // @ts-ignore - Edge function not in generated types yet
       const { error } = await supabase.rpc('mark_broadcast_viewed', {
-        broadcast_uuid: broadcastId
+        broadcast_uuid: broadcastId,
       });
 
       return !error;
@@ -230,7 +236,7 @@ export const broadcastService = {
     try {
       // @ts-ignore - Edge function not in generated types yet
       const { data, error } = await supabase.rpc('get_broadcast_read_count', {
-        broadcast_uuid: broadcastId
+        broadcast_uuid: broadcastId,
       });
 
       if (error) throw error;
@@ -246,7 +252,9 @@ export const broadcastService = {
   // Send push notification for high-priority broadcasts
   async sendPushNotification(broadcastId: string, tripId: string): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // Get broadcast details
@@ -312,9 +320,9 @@ export const broadcastService = {
             type: 'broadcast',
             broadcastId,
             tripId,
-            url: `/trips/${tripId}/broadcasts`
-          }
-        }
+            url: `/trips/${tripId}/broadcasts`,
+          },
+        },
       });
 
       if (pushError) {
@@ -331,5 +339,5 @@ export const broadcastService = {
       }
       return false;
     }
-  }
+  },
 };

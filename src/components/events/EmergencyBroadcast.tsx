@@ -28,33 +28,38 @@ export const EmergencyBroadcast = () => {
     {
       id: 'medical',
       title: 'Medical Emergency',
-      message: 'Medical assistance is needed. Please remain calm and follow staff instructions. Do not block emergency exits.',
-      urgency: 'critical'
+      message:
+        'Medical assistance is needed. Please remain calm and follow staff instructions. Do not block emergency exits.',
+      urgency: 'critical',
     },
     {
       id: 'evacuation',
       title: 'Evacuation Notice',
-      message: 'Please evacuate the building immediately via the nearest exit. Follow evacuation procedures and assembly points.',
-      urgency: 'critical'
+      message:
+        'Please evacuate the building immediately via the nearest exit. Follow evacuation procedures and assembly points.',
+      urgency: 'critical',
     },
     {
       id: 'schedule-change',
       title: 'Schedule Change',
-      message: 'Important schedule update: [SESSION NAME] has been moved to [NEW LOCATION] at [NEW TIME].',
-      urgency: 'medium'
+      message:
+        'Important schedule update: [SESSION NAME] has been moved to [NEW LOCATION] at [NEW TIME].',
+      urgency: 'medium',
     },
     {
       id: 'weather',
       title: 'Weather Alert',
-      message: 'Weather advisory: Due to severe weather conditions, please remain indoors and await further instructions.',
-      urgency: 'high'
+      message:
+        'Weather advisory: Due to severe weather conditions, please remain indoors and await further instructions.',
+      urgency: 'high',
     },
     {
       id: 'technical',
       title: 'Technical Issue',
-      message: 'We are experiencing technical difficulties. Our team is working to resolve the issue quickly.',
-      urgency: 'low'
-    }
+      message:
+        'We are experiencing technical difficulties. Our team is working to resolve the issue quickly.',
+      urgency: 'low',
+    },
   ];
 
   const audienceOptions = [
@@ -63,14 +68,14 @@ export const EmergencyBroadcast = () => {
     { value: 'speakers', label: 'Speakers Only', count: 45 },
     { value: 'organizers', label: 'Organizers & Staff', count: 28 },
     { value: 'exhibitors', label: 'Exhibitors', count: 85 },
-    { value: 'vip', label: 'VIP Attendees', count: 156 }
+    { value: 'vip', label: 'VIP Attendees', count: 156 },
   ];
 
   const urgencyConfig = {
     low: { color: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500/30' },
     medium: { color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
     high: { color: 'text-orange-400', bg: 'bg-orange-500/20', border: 'border-orange-500/30' },
-    critical: { color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' }
+    critical: { color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' },
   };
 
   const handleTemplateSelect = (templateId: string) => {
@@ -78,7 +83,7 @@ export const EmergencyBroadcast = () => {
     if (template) {
       setMessage(template.message);
       setUrgency(template.urgency);
-      
+
       // Auto-enable notifications for high urgency
       if (template.urgency === 'critical' || template.urgency === 'high') {
         setPushNotification(true);
@@ -93,26 +98,26 @@ export const EmergencyBroadcast = () => {
   const handleSendBroadcast = async () => {
     if (!message.trim()) {
       toast({
-        title: "Missing message",
-        description: "Please enter a broadcast message.",
-        variant: "destructive"
+        title: 'Missing message',
+        description: 'Please enter a broadcast message.',
+        variant: 'destructive',
       });
       return;
     }
 
     setIsSending(true);
-    
+
     try {
       // Mock sending process
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       const selectedAudience = audienceOptions.find(opt => opt.value === audience);
-      
+
       toast({
-        title: "Emergency broadcast sent",
-        description: `Message sent to ${selectedAudience?.count} recipients with ${urgency} priority.`
+        title: 'Emergency broadcast sent',
+        description: `Message sent to ${selectedAudience?.count} recipients with ${urgency} priority.`,
       });
-      
+
       // Reset form
       setMessage('');
       setUrgency('medium');
@@ -120,13 +125,12 @@ export const EmergencyBroadcast = () => {
       setPushNotification(true);
       setEmailNotification(false);
       setSmsNotification(false);
-      
     } catch (error) {
       console.error('Error sending broadcast:', error);
       toast({
-        title: "Broadcast failed",
-        description: "Failed to send emergency broadcast. Please try again.",
-        variant: "destructive"
+        title: 'Broadcast failed',
+        description: 'Failed to send emergency broadcast. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsSending(false);
@@ -157,7 +161,7 @@ export const EmergencyBroadcast = () => {
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h4 className="text-lg font-semibold text-white mb-4">Quick Templates</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {emergencyTemplates.map((template) => {
+          {emergencyTemplates.map(template => {
             const config = urgencyConfig[template.urgency];
             return (
               <button
@@ -179,20 +183,18 @@ export const EmergencyBroadcast = () => {
       {/* Broadcast Composer */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h4 className="text-lg font-semibold text-white mb-4">Compose Emergency Broadcast</h4>
-        
+
         <div className="space-y-4">
           {/* Message */}
           <div>
             <Label className="text-white mb-2 block">Emergency Message</Label>
             <Textarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={e => setMessage(e.target.value)}
               className="bg-gray-800/50 border-gray-600 text-white min-h-[120px]"
               placeholder="Enter your emergency broadcast message..."
             />
-            <div className="text-sm text-gray-400 mt-1">
-              {message.length}/500 characters
-            </div>
+            <div className="text-sm text-gray-400 mt-1">{message.length}/500 characters</div>
           </div>
 
           {/* Settings Grid */}
@@ -200,7 +202,10 @@ export const EmergencyBroadcast = () => {
             {/* Urgency Level */}
             <div>
               <Label className="text-white mb-2 block">Urgency Level</Label>
-              <Select value={urgency} onValueChange={(value: 'low' | 'medium' | 'high' | 'critical') => setUrgency(value)}>
+              <Select
+                value={urgency}
+                onValueChange={(value: 'low' | 'medium' | 'high' | 'critical') => setUrgency(value)}
+              >
                 <SelectTrigger className="bg-gray-800/50 border-gray-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
@@ -241,7 +246,7 @@ export const EmergencyBroadcast = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {audienceOptions.map((option) => (
+                  {audienceOptions.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       <div className="flex items-center justify-between w-full">
                         <span>{option.label}</span>
@@ -264,10 +269,7 @@ export const EmergencyBroadcast = () => {
                   <span className="text-white">Push Notifications</span>
                   <span className="text-gray-500 text-sm">(Instant delivery)</span>
                 </div>
-                <Switch
-                  checked={pushNotification}
-                  onCheckedChange={setPushNotification}
-                />
+                <Switch checked={pushNotification} onCheckedChange={setPushNotification} />
               </div>
 
               <div className="flex items-center justify-between">
@@ -276,10 +278,7 @@ export const EmergencyBroadcast = () => {
                   <span className="text-white">Email Notifications</span>
                   <span className="text-gray-500 text-sm">(1-2 min delay)</span>
                 </div>
-                <Switch
-                  checked={emailNotification}
-                  onCheckedChange={setEmailNotification}
-                />
+                <Switch checked={emailNotification} onCheckedChange={setEmailNotification} />
               </div>
 
               <div className="flex items-center justify-between">
@@ -288,10 +287,7 @@ export const EmergencyBroadcast = () => {
                   <span className="text-white">SMS Notifications</span>
                   <span className="text-gray-500 text-sm">(Critical only)</span>
                 </div>
-                <Switch
-                  checked={smsNotification}
-                  onCheckedChange={setSmsNotification}
-                />
+                <Switch checked={smsNotification} onCheckedChange={setSmsNotification} />
               </div>
             </div>
           </div>
@@ -302,14 +298,13 @@ export const EmergencyBroadcast = () => {
               <div className="flex items-center gap-2">
                 <Users size={16} className="text-blue-400" />
                 <span className="text-white">
-                  Will be sent to {audienceOptions.find(opt => opt.value === audience)?.count} recipients
+                  Will be sent to {audienceOptions.find(opt => opt.value === audience)?.count}{' '}
+                  recipients
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock size={16} className="text-green-400" />
-                <span className="text-gray-300">
-                  Est. delivery: {getEstimatedDelivery()}
-                </span>
+                <span className="text-gray-300">Est. delivery: {getEstimatedDelivery()}</span>
               </div>
             </div>
           </div>

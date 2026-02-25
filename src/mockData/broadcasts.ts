@@ -7,6 +7,6 @@ export const mockBroadcasts = [
     created_by: 'mock-user-2',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    is_sent: true
-  }
+    is_sent: true,
+  },
 ];

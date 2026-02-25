@@ -66,7 +66,7 @@ export function FileRow({ id, name, url, onDelete }: FileRowProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-400 text-sm hover:text-blue-300 ml-3"
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
         >
           Open
         </a>

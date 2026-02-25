@@ -27,19 +27,16 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
     deleteFile,
     deleteLink,
   } = useMediaSync(tripId);
-  const [activeTab, setActiveTab] = React.useState<
-    'all' | 'photos' | 'videos' | 'files' | 'links'
-  >('all');
+  const [activeTab, setActiveTab] = React.useState<'all' | 'photos' | 'videos' | 'files' | 'links'>(
+    'all',
+  );
   const [filterQuery, setFilterQuery] = React.useState('');
 
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
         <p className="text-red-500 mb-4">Failed to load media: {error}</p>
-        <button
-          onClick={refreshMedia}
-          className="text-blue-500 hover:text-blue-400 underline"
-        >
+        <button onClick={refreshMedia} className="text-blue-500 hover:text-blue-400 underline">
           Try again
         </button>
       </div>
@@ -58,7 +55,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
   const filterItems = <T extends Record<string, unknown>>(items: T[]): T[] => {
     if (!filterQuery) return items;
     const query = filterQuery.toLowerCase();
-    return items.filter((item) => {
+    return items.filter(item => {
       const filename = (item.filename as string)?.toLowerCase() || '';
       const name = (item.name as string)?.toLowerCase() || '';
       const title = (item.title as string)?.toLowerCase() || '';
@@ -82,18 +79,13 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
       {/* Header with filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <h2 className="text-2xl font-semibold">Media Gallery</h2>
-        <MediaFilters
-          activeFilter={activeTab}
-          onFilterChange={(filter) => setActiveTab(filter)}
-        />
+        <MediaFilters activeFilter={activeTab} onFilterChange={filter => setActiveTab(filter)} />
       </div>
 
       {/* Tabs */}
       <Tabs
         value={activeTab}
-        onValueChange={(v) =>
-          setActiveTab(v as 'all' | 'photos' | 'videos' | 'files' | 'links')
-        }
+        onValueChange={v => setActiveTab(v as 'all' | 'photos' | 'videos' | 'files' | 'links')}
         className="w-full"
       >
         <TabsList className="w-full justify-start overflow-x-auto">
@@ -152,7 +144,14 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   <Camera size={20} />
                   Photos ({filteredImages.length})
                 </h3>
-                <MediaGrid items={filteredImages.map(item => ({ ...item, media_type: item.media_type as "document" | "image" | "video", metadata: (item.metadata ?? {}) as Record<string, unknown> }))} onDeleteItem={deleteMedia} />
+                <MediaGrid
+                  items={filteredImages.map(item => ({
+                    ...item,
+                    media_type: item.media_type as 'document' | 'image' | 'video',
+                    metadata: (item.metadata ?? {}) as Record<string, unknown>,
+                  }))}
+                  onDeleteItem={deleteMedia}
+                />
               </section>
             )}
 
@@ -162,7 +161,14 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   <Video size={20} />
                   Videos ({filteredVideos.length})
                 </h3>
-                <MediaGrid items={filteredVideos.map(item => ({ ...item, media_type: item.media_type as "document" | "image" | "video", metadata: (item.metadata ?? {}) as Record<string, unknown> }))} onDeleteItem={deleteMedia} />
+                <MediaGrid
+                  items={filteredVideos.map(item => ({
+                    ...item,
+                    media_type: item.media_type as 'document' | 'image' | 'video',
+                    metadata: (item.metadata ?? {}) as Record<string, unknown>,
+                  }))}
+                  onDeleteItem={deleteMedia}
+                />
               </section>
             )}
 
@@ -173,7 +179,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   Files ({filteredFiles.length})
                 </h3>
                 <div className="space-y-2">
-                  {filteredFiles.map((file) => (
+                  {filteredFiles.map(file => (
                     <FileRow
                       key={file.id}
                       id={file.id}
@@ -193,7 +199,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
                   Links ({filteredLinks.length})
                 </h3>
                 <div className="space-y-2">
-                  {filteredLinks.map((link) => (
+                  {filteredLinks.map(link => (
                     <LinkItem key={link.id} link={link} onDelete={deleteLink} />
                   ))}
                 </div>
@@ -207,7 +213,14 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         {/* Photos only */}
         <TabsContent value="photos" className="mt-6">
           {filteredImages.length > 0 ? (
-            <MediaGrid items={filteredImages.map(item => ({ ...item, media_type: item.media_type as "document" | "image" | "video", metadata: (item.metadata ?? {}) as Record<string, unknown> }))} onDeleteItem={deleteMedia} />
+            <MediaGrid
+              items={filteredImages.map(item => ({
+                ...item,
+                media_type: item.media_type as 'document' | 'image' | 'video',
+                metadata: (item.metadata ?? {}) as Record<string, unknown>,
+              }))}
+              onDeleteItem={deleteMedia}
+            />
           ) : (
             <EmptyState type="photos" onAddMedia={onAddMedia} />
           )}
@@ -216,7 +229,14 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         {/* Videos only */}
         <TabsContent value="videos" className="mt-6">
           {filteredVideos.length > 0 ? (
-            <MediaGrid items={filteredVideos.map(item => ({ ...item, media_type: item.media_type as "document" | "image" | "video", metadata: (item.metadata ?? {}) as Record<string, unknown> }))} onDeleteItem={deleteMedia} />
+            <MediaGrid
+              items={filteredVideos.map(item => ({
+                ...item,
+                media_type: item.media_type as 'document' | 'image' | 'video',
+                metadata: (item.metadata ?? {}) as Record<string, unknown>,
+              }))}
+              onDeleteItem={deleteMedia}
+            />
           ) : (
             <EmptyState type="videos" onAddMedia={onAddMedia} />
           )}
@@ -226,7 +246,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         <TabsContent value="files" className="mt-6">
           {filteredFiles.length > 0 ? (
             <div className="space-y-2">
-              {filteredFiles.map((file) => (
+              {filteredFiles.map(file => (
                 <FileRow
                   key={file.id}
                   id={file.id}
@@ -245,7 +265,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
         <TabsContent value="links" className="mt-6">
           {filteredLinks.length > 0 ? (
             <div className="space-y-3">
-              {filteredLinks.map((link) => (
+              {filteredLinks.map(link => (
                 <LinkItem key={link.id} link={link} onDelete={deleteLink} />
               ))}
             </div>
@@ -276,8 +296,7 @@ function LinkItem({
   const getDomainIcon = (domain: string) => {
     if (domain?.includes('youtube')) return '🎬';
     if (domain?.includes('instagram')) return '📸';
-    if (domain?.includes('maps.google') || domain?.includes('googlemaps'))
-      return '📍';
+    if (domain?.includes('maps.google') || domain?.includes('googlemaps')) return '📍';
     if (domain?.includes('booking') || domain?.includes('airbnb')) return '🏨';
     return null;
   };
@@ -307,9 +326,7 @@ function LinkItem({
         <div className="flex-1 min-w-0">
           <p className="font-medium truncate">{displayTitle}</p>
           {link.og_description && (
-            <p className="text-sm text-gray-400 line-clamp-2 mt-1">
-              {link.og_description}
-            </p>
+            <p className="text-sm text-gray-400 line-clamp-2 mt-1">{link.og_description}</p>
           )}
           <p className="text-xs text-gray-500 mt-1 truncate">
             {link.domain} • {new Date(link.created_at).toLocaleDateString()}

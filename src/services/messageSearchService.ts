@@ -19,7 +19,7 @@ export interface SearchResult {
 export async function searchMessages(
   tripId: string,
   query: string,
-  limit: number = 50
+  limit: number = 50,
 ): Promise<SearchResult[]> {
   if (!query.trim()) {
     return [];
@@ -54,7 +54,7 @@ export async function searchMessages(
 export async function searchMessagesByAuthor(
   tripId: string,
   authorName: string,
-  limit: number = 50
+  limit: number = 50,
 ): Promise<SearchResult[]> {
   const { data, error } = await supabase
     .from('trip_chat_messages')
@@ -79,7 +79,7 @@ export async function searchMessagesByDateRange(
   tripId: string,
   startDate: string,
   endDate: string,
-  limit: number = 100
+  limit: number = 100,
 ): Promise<SearchResult[]> {
   const { data, error } = await supabase
     .from('trip_chat_messages')

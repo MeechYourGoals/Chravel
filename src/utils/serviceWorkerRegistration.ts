@@ -21,17 +21,18 @@ export const registerServiceWorker = async () => {
     }
     return;
   }
-  
+
   // Production SW registration
   if ('serviceWorker' in navigator) {
     try {
       // Derive buildId from env (Render's git commit or VITE_BUILD_ID)
-      const buildId = import.meta.env.VITE_BUILD_ID || 
-                      import.meta.env.RENDER_GIT_COMMIT || 
-                      import.meta.env.RENDER_GIT_COMMIT_SHA || 
-                      'static';
+      const buildId =
+        import.meta.env.VITE_BUILD_ID ||
+        import.meta.env.RENDER_GIT_COMMIT ||
+        import.meta.env.RENDER_GIT_COMMIT_SHA ||
+        'static';
       const swUrl = `/sw.js?v=${buildId}`;
-      
+
       // One-time production cleanup migration (v1)
       const PROD_MIGRATION_KEY = 'prod_sw_migration_v1';
       if (!localStorage.getItem(PROD_MIGRATION_KEY)) {
@@ -48,9 +49,9 @@ export const registerServiceWorker = async () => {
       }
 
       const registration = await navigator.serviceWorker.register(swUrl, {
-        updateViaCache: 'none'
+        updateViaCache: 'none',
       });
-      
+
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
 
@@ -65,7 +66,7 @@ export const registerServiceWorker = async () => {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         // New service worker activated
       });
-      
+
       // Check for updates every 5 minutes
       setInterval(() => {
         registration.update().catch(err => {
@@ -74,7 +75,6 @@ export const registerServiceWorker = async () => {
           }
         });
       }, 300000);
-
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[SW] Service Worker registration failed:', error);

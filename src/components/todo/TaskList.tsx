@@ -13,14 +13,14 @@ interface TaskListProps {
   onEditTask?: (task: TripTask) => void;
 }
 
-export const TaskList = ({ 
-  tasks, 
-  tripId, 
-  title, 
+export const TaskList = ({
+  tasks,
+  tripId,
+  title,
   emptyMessage,
   showCompleted,
   onToggleCompleted,
-  onEditTask 
+  onEditTask,
 }: TaskListProps) => {
   const isCompletedSection = title.toLowerCase().includes('completed');
 
@@ -33,19 +33,21 @@ export const TaskList = ({
             className="flex items-center gap-2 text-gray-300 hover:text-white font-medium transition-colors"
           >
             <CheckCircle2 size={18} />
-            <span>{title} ({tasks.length})</span>
-            <span className="text-xs">
-              {showCompleted ? '▼' : '▶'}
+            <span>
+              {title} ({tasks.length})
             </span>
+            <span className="text-xs">{showCompleted ? '▼' : '▶'}</span>
           </button>
         ) : (
           <div className="flex items-center gap-2 text-white font-medium">
             <Clock size={18} />
-            <span>{title} ({tasks.length})</span>
+            <span>
+              {title} ({tasks.length})
+            </span>
           </div>
         )}
       </div>
-      
+
       {tasks.length === 0 ? (
         <div className="text-center py-8 text-gray-400">
           <CheckCircle2 size={48} className="mx-auto mb-3 opacity-50" />
@@ -54,7 +56,7 @@ export const TaskList = ({
       ) : (
         (!isCompletedSection || showCompleted) && (
           <div className="space-y-2">
-            {tasks.map((task) => (
+            {tasks.map(task => (
               <TaskRow key={task.id} task={task} tripId={tripId} onEdit={onEditTask} />
             ))}
           </div>

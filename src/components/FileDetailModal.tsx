@@ -19,11 +19,7 @@ interface FileDetailModalProps {
   } | null;
 }
 
-export const FileDetailModal: React.FC<FileDetailModalProps> = ({
-  isOpen,
-  onClose,
-  file
-}) => {
+export const FileDetailModal: React.FC<FileDetailModalProps> = ({ isOpen, onClose, file }) => {
   if (!file) return null;
 
   const formatFileSize = (bytes?: number) => {
@@ -37,7 +33,7 @@ export const FileDetailModal: React.FC<FileDetailModalProps> = ({
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -59,15 +55,21 @@ export const FileDetailModal: React.FC<FileDetailModalProps> = ({
   };
 
   const renderPreview = () => {
-    if (file.media_type === 'image' || file.filename.endsWith('.jpg') || file.filename.endsWith('.jpeg') || file.filename.endsWith('.png')) {
+    if (
+      file.media_type === 'image' ||
+      file.filename.endsWith('.jpg') ||
+      file.filename.endsWith('.jpeg') ||
+      file.filename.endsWith('.png')
+    ) {
       return (
         <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-          <img 
-            src={file.media_url} 
+          <img
+            src={file.media_url}
             alt={file.filename}
             className="w-full h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEwIDEySDMuNUw2IDkuNUw5IDEyLjVMMTUgNi41TDIwLjUgMTJIMTQiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+';
+            onError={e => {
+              (e.target as HTMLImageElement).src =
+                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEwIDEySDMuNUw2IDkuNUw5IDEyLjVMMTUgNi41TDIwLjUgMTJIMTQiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+';
             }}
           />
         </div>

@@ -42,9 +42,7 @@ export class MobileErrorBoundary extends Component<Props, State> {
         <div className="flex flex-col items-center justify-center min-h-screen bg-black p-6">
           <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 max-w-md">
             <AlertTriangle className="text-red-400 mx-auto mb-4" size={48} />
-            <h2 className="text-xl font-bold text-white text-center mb-2">
-              Something went wrong
-            </h2>
+            <h2 className="text-xl font-bold text-white text-center mb-2">Something went wrong</h2>
             <p className="text-gray-400 text-center mb-6 text-sm">
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>

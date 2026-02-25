@@ -12,11 +12,11 @@ export const generateStaticMapUrl = (
   coordinates: { lat: number; lng: number },
   width: number = 120,
   height: number = 80,
-  zoom: number = 15
+  zoom: number = 15,
 ): string => {
   const apiKey = getGoogleMapsApiKey();
   if (!apiKey) return ''; // Fallback: no thumbnail
-  
+
   return `https://maps.googleapis.com/maps/api/staticmap?center=${coordinates.lat},${coordinates.lng}&zoom=${zoom}&size=${width}x${height}&markers=color:red%7C${coordinates.lat},${coordinates.lng}&key=${apiKey}&style=feature:poi|visibility:off`;
 };
 

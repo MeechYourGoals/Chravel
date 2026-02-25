@@ -10,7 +10,15 @@ interface InlineChannelListProps {
   userRole: string;
 }
 
-const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15', '16'];
+const DEMO_TRIP_IDS = [
+  'lakers-road-trip',
+  'beyonce-cowboy-carter-tour',
+  'eli-lilly-c-suite-retreat-2026',
+  '13',
+  '14',
+  '15',
+  '16',
+];
 
 export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) => {
   const [channels, setChannels] = useState<TripChannel[]>([]);
@@ -24,7 +32,7 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
 
   const loadChannels = async () => {
     setLoading(true);
-    
+
     if (isDemoTrip) {
       const { channels } = getDemoChannelsForTrip(tripId);
       setChannels(channels);
@@ -32,7 +40,7 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
       const accessibleChannels = await channelService.getAccessibleChannels(tripId);
       setChannels(accessibleChannels);
     }
-    
+
     setLoading(false);
   };
 
@@ -63,7 +71,7 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
             channel={selectedChannel}
             availableChannels={channels}
             onBack={() => setSelectedChannel(null)}
-            onChannelChange={(newChannel) => setSelectedChannel(newChannel)}
+            onChannelChange={newChannel => setSelectedChannel(newChannel)}
           />
         </div>
       </div>
@@ -73,7 +81,7 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
   // Channel list view
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {channels.map((channel) => (
+      {channels.map(channel => (
         <button
           key={channel.id}
           onClick={() => setSelectedChannel(channel)}
@@ -98,13 +106,9 @@ export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) 
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-400 truncate mb-2">
-                {channel.requiredRoleName}
-              </p>
+              <p className="text-sm text-gray-400 truncate mb-2">{channel.requiredRoleName}</p>
               {channel.description && (
-                <p className="text-xs text-gray-500 truncate">
-                  {channel.description}
-                </p>
+                <p className="text-xs text-gray-500 truncate">{channel.description}</p>
               )}
               <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                 <div className="flex items-center gap-1">

@@ -1,6 +1,6 @@
 /**
  * Enable Notifications Button
- * 
+ *
  * Platform-aware button for enabling push notifications.
  * Shows iOS instructions when needed.
  */
@@ -23,16 +23,16 @@ export const EnableNotificationsButton: React.FC<EnableNotificationsButtonProps>
   className,
   ...props
 }) => {
-  const { 
-    isSupported, 
-    isSubscribed, 
-    isLoading, 
+  const {
+    isSupported,
+    isSubscribed,
+    isLoading,
     permission,
     requiresHomeScreen,
     iosUnsupported,
-    subscribe 
+    subscribe,
   } = useWebPush();
-  
+
   const [showIOSDialog, setShowIOSDialog] = useState(false);
 
   const handleClick = useCallback(async () => {
@@ -41,19 +41,19 @@ export const EnableNotificationsButton: React.FC<EnableNotificationsButtonProps>
       setShowIOSDialog(true);
       return;
     }
-    
+
     // iOS too old
     if (iosUnsupported) {
       toast.error('Push notifications require iOS 16.4 or later');
       return;
     }
-    
+
     // Not supported
     if (!isSupported) {
       toast.error('Push notifications are not supported in this browser');
       return;
     }
-    
+
     const success = await subscribe();
     if (success) {
       toast.success('Notifications enabled!');
@@ -83,24 +83,12 @@ export const EnableNotificationsButton: React.FC<EnableNotificationsButtonProps>
 
   return (
     <>
-      <Button
-        onClick={handleClick}
-        disabled={isLoading}
-        className={className}
-        {...props}
-      >
-        {isLoading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Bell className="w-4 h-4" />
-        )}
+      <Button onClick={handleClick} disabled={isLoading} className={className} {...props}>
+        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
         {!compact && <span className="ml-2">Enable Notifications</span>}
       </Button>
-      
-      <IOSPushInstructions 
-        open={showIOSDialog} 
-        onClose={() => setShowIOSDialog(false)} 
-      />
+
+      <IOSPushInstructions open={showIOSDialog} onClose={() => setShowIOSDialog(false)} />
     </>
   );
 };

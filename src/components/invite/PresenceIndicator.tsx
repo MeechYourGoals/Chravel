@@ -12,10 +12,10 @@ interface PresenceIndicatorProps {
 
 /**
  * PresenceIndicator Component
- * 
+ *
  * Displays real-time presence of users viewing/editing a trip.
  * Shows avatars and count of active users.
- * 
+ *
  * Features:
  * - Real-time updates via useTripPresence hook
  * - Avatar display with overflow count
@@ -27,16 +27,12 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
   userId,
   currentPage,
   showAvatars = true,
-  maxAvatars = 3
+  maxAvatars = 3,
 }) => {
-  const { activeUsers, activeUserCount, isOnline } = useTripPresence(
-    tripId,
-    userId,
-    currentPage
-  );
+  const { activeUsers, activeUserCount, isOnline } = useTripPresence(tripId, userId, currentPage);
 
   // Filter out current user
-  const otherUsers = activeUsers.filter((u) => u.userId !== userId);
+  const otherUsers = activeUsers.filter(u => u.userId !== userId);
 
   if (!isOnline || otherUsers.length === 0) {
     return null;
@@ -49,7 +45,7 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
     <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/50 border border-gray-600 rounded-lg">
       {showAvatars && (
         <div className="flex -space-x-2">
-          {displayUsers.map((user) => (
+          {displayUsers.map(user => (
             <div key={user.userId} className="relative">
               {user.avatarUrl ? (
                 <img
@@ -79,9 +75,7 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
       <div className="flex items-center gap-1.5 text-gray-300 text-sm">
         <Users className="h-4 w-4" />
         <span>
-          {activeUserCount === 1
-            ? '1 person viewing'
-            : `${activeUserCount} people viewing`}
+          {activeUserCount === 1 ? '1 person viewing' : `${activeUserCount} people viewing`}
         </span>
       </div>
     </div>

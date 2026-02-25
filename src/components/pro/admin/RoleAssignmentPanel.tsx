@@ -20,13 +20,25 @@ interface RoleAssignmentPanelProps {
   tripCreatorId?: string;
 }
 
-export const RoleAssignmentPanel: React.FC<RoleAssignmentPanelProps> = ({ 
+export const RoleAssignmentPanel: React.FC<RoleAssignmentPanelProps> = ({
   tripId,
-  tripCreatorId 
+  tripCreatorId,
 }) => {
-  const { assignments, isLoading: loadingAssignments, isProcessing, assignRole, removeRole } = useRoleAssignments({ tripId });
+  const {
+    assignments,
+    isLoading: loadingAssignments,
+    isProcessing,
+    assignRole,
+    removeRole,
+  } = useRoleAssignments({ tripId });
   const { roles, isLoading: loadingRoles } = useTripRoles({ tripId });
-  const { admins, isLoading: loadingAdmins, isProcessing: adminProcessing, promoteToAdmin, demoteFromAdmin } = useTripAdmins({ tripId });
+  const {
+    admins,
+    isLoading: loadingAdmins,
+    isProcessing: adminProcessing,
+    promoteToAdmin,
+    demoteFromAdmin,
+  } = useTripAdmins({ tripId });
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
 
   // Create a set of admin user IDs for quick lookup
@@ -45,7 +57,7 @@ export const RoleAssignmentPanel: React.FC<RoleAssignmentPanelProps> = ({
   const handleToggleAdmin = async (userId: string) => {
     // Don't allow demoting the trip creator
     if (userId === tripCreatorId) return;
-    
+
     if (adminUserIds.has(userId)) {
       await demoteFromAdmin(userId);
     } else {
@@ -79,16 +91,19 @@ export const RoleAssignmentPanel: React.FC<RoleAssignmentPanelProps> = ({
   }
 
   // Group assignments by user
-  const userAssignments = assignments.reduce((acc, assignment) => {
-    if (!acc[assignment.user_id]) {
-      acc[assignment.user_id] = {
-        profile: assignment.user_profile,
-        roles: []
-      };
-    }
-    acc[assignment.user_id].roles.push(assignment);
-    return acc;
-  }, {} as Record<string, { profile?: any; roles: typeof assignments }>);
+  const userAssignments = assignments.reduce(
+    (acc, assignment) => {
+      if (!acc[assignment.user_id]) {
+        acc[assignment.user_id] = {
+          profile: assignment.user_profile,
+          roles: [],
+        };
+      }
+      acc[assignment.user_id].roles.push(assignment);
+      return acc;
+    },
+    {} as Record<string, { profile?: any; roles: typeof assignments }>,
+  );
 
   return (
     <Card className="p-6 bg-background/40 backdrop-blur-sm border-white/10">
@@ -148,7 +163,7 @@ export const RoleAssignmentPanel: React.FC<RoleAssignmentPanelProps> = ({
                 <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
                   <Select
                     value={selectedRoles[userId] || ''}
-                    onValueChange={(value) => 
+                    onValueChange={value =>
                       setSelectedRoles(prev => ({ ...prev, [userId]: value }))
                     }
                   >
@@ -156,7 +171,7 @@ export const RoleAssignmentPanel: React.FC<RoleAssignmentPanelProps> = ({
                       <SelectValue placeholder="Change role" />
                     </SelectTrigger>
                     <SelectContent>
-                      {roles.map((role) => (
+                      {roles.map(role => (
                         <SelectItem key={role.id} value={role.id}>
                           {role.roleName}
                         </SelectItem>
@@ -167,16 +182,22 @@ export const RoleAssignmentPanel: React.FC<RoleAssignmentPanelProps> = ({
                   {/* Admin toggle button */}
                   <Button
                     size="sm"
-                    variant={isUserAdmin ? "default" : "outline"}
+                    variant={isUserAdmin ? 'default' : 'outline'}
                     onClick={() => handleToggleAdmin(userId)}
                     disabled={adminProcessing || isTripCreator}
                     className={cn(
-                      "rounded-full h-8 px-2.5 shrink-0",
-                      isUserAdmin 
-                        ? "bg-blue-600 hover:bg-blue-700 text-white" 
-                        : "border-white/20 hover:bg-blue-500/10 hover:border-blue-500/50"
+                      'rounded-full h-8 px-2.5 shrink-0',
+                      isUserAdmin
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'border-white/20 hover:bg-blue-500/10 hover:border-blue-500/50',
                     )}
-                    title={isTripCreator ? "Trip creator is always admin" : isUserAdmin ? "Remove admin privileges" : "Make admin"}
+                    title={
+                      isTripCreator
+                        ? 'Trip creator is always admin'
+                        : isUserAdmin
+                          ? 'Remove admin privileges'
+                          : 'Make admin'
+                    }
                   >
                     <Shield className="w-3.5 h-3.5" />
                     {isUserAdmin && <span className="ml-1 text-xs hidden sm:inline">Admin</span>}

@@ -1,6 +1,6 @@
-import { toast } from "sonner";
+import { toast } from 'sonner';
 
-const API_ENDPOINT = "wss://ws-api.runware.ai/v1";
+const API_ENDPOINT = 'wss://ws-api.runware.ai/v1';
 
 export interface GenerateImageParams {
   positivePrompt: string;
@@ -10,7 +10,7 @@ export interface GenerateImageParams {
   CFGScale?: number;
   scheduler?: string;
   strength?: number;
-  promptWeighting?: "compel" | "sdEmbeds";
+  promptWeighting?: 'compel' | 'sdEmbeds';
   seed?: number | null;
   lora?: string[];
 }
@@ -43,31 +43,32 @@ export class RunwareService {
         this.authenticate().then(resolve).catch(reject);
       };
 
-      this.ws.onmessage = (event) => {
+      this.ws.onmessage = event => {
         // PHASE 1 BUG FIX #1: Add try-catch around JSON.parse to prevent crashes
         let response;
         try {
           response = JSON.parse(event.data);
         } catch (error) {
           if (import.meta.env.DEV) {
-            console.error("Invalid JSON received from WebSocket:", error, "Data:", event.data);
+            console.error('Invalid JSON received from WebSocket:', error, 'Data:', event.data);
           }
-          toast.error("Received invalid data from image service");
+          toast.error('Received invalid data from image service');
           return;
         }
 
         if (response.error || response.errors) {
           if (import.meta.env.DEV) {
-            console.error("WebSocket error response:", response);
+            console.error('WebSocket error response:', response);
           }
-          const errorMessage = response.errorMessage || response.errors?.[0]?.message || "An error occurred";
+          const errorMessage =
+            response.errorMessage || response.errors?.[0]?.message || 'An error occurred';
           toast.error(errorMessage);
           return;
         }
 
         if (response.data) {
           response.data.forEach((item: any) => {
-            if (item.taskType === "authentication") {
+            if (item.taskType === 'authentication') {
               this.connectionSessionUUID = item.connectionSessionUUID;
               this.isAuthenticated = true;
             } else {
@@ -81,11 +82,11 @@ export class RunwareService {
         }
       };
 
-      this.ws.onerror = (error) => {
+      this.ws.onerror = error => {
         if (import.meta.env.DEV) {
-          console.error("WebSocket error:", error);
+          console.error('WebSocket error:', error);
         }
-        toast.error("Connection error. Please try again.");
+        toast.error('Connection error. Please try again.');
         reject(error);
       };
 
@@ -101,35 +102,37 @@ export class RunwareService {
   private authenticate(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-        reject(new Error("WebSocket not ready for authentication"));
+        reject(new Error('WebSocket not ready for authentication'));
         return;
       }
-      
-      const authMessage = [{
-        taskType: "authentication",
-        apiKey: this.apiKey,
-        ...(this.connectionSessionUUID && { connectionSessionUUID: this.connectionSessionUUID }),
-      }];
+
+      const authMessage = [
+        {
+          taskType: 'authentication',
+          apiKey: this.apiKey,
+          ...(this.connectionSessionUUID && { connectionSessionUUID: this.connectionSessionUUID }),
+        },
+      ];
 
       // Set up a one-time authentication callback
       const authCallback = (event: MessageEvent) => {
         // PHASE 1 BUG FIX #1: Add try-catch around JSON.parse
         try {
           const response = JSON.parse(event.data);
-          if (response.data?.[0]?.taskType === "authentication") {
-            this.ws?.removeEventListener("message", authCallback);
+          if (response.data?.[0]?.taskType === 'authentication') {
+            this.ws?.removeEventListener('message', authCallback);
             resolve();
           }
         } catch (error) {
           if (import.meta.env.DEV) {
-            console.error("Invalid JSON during authentication:", error);
+            console.error('Invalid JSON during authentication:', error);
           }
-          this.ws?.removeEventListener("message", authCallback);
-          reject(new Error("Invalid authentication response"));
+          this.ws?.removeEventListener('message', authCallback);
+          reject(new Error('Invalid authentication response'));
         }
       };
-      
-      this.ws.addEventListener("message", authCallback);
+
+      this.ws.addEventListener('message', authCallback);
       this.ws.send(JSON.stringify(authMessage));
     });
   }
@@ -144,33 +147,35 @@ export class RunwareService {
     }
 
     const taskUUID = crypto.randomUUID();
-    
+
     return new Promise((resolve, reject) => {
-      const message = [{
-        taskType: "imageInference",
-        taskUUID,
-        model: params.model || "runware:100@1",
-        width: 1024,
-        height: 768,
-        numberResults: params.numberResults || 1,
-        outputFormat: params.outputFormat || "WEBP",
-        steps: 4,
-        CFGScale: params.CFGScale || 1,
-        scheduler: params.scheduler || "FlowMatchEulerDiscreteScheduler",
-        strength: params.strength || 0.8,
-        lora: params.lora || [],
-        ...params,
-      }];
+      const message = [
+        {
+          taskType: 'imageInference',
+          taskUUID,
+          model: params.model || 'runware:100@1',
+          width: 1024,
+          height: 768,
+          numberResults: params.numberResults || 1,
+          outputFormat: params.outputFormat || 'WEBP',
+          steps: 4,
+          CFGScale: params.CFGScale || 1,
+          scheduler: params.scheduler || 'FlowMatchEulerDiscreteScheduler',
+          strength: params.strength || 0.8,
+          lora: params.lora || [],
+          ...params,
+        },
+      ];
 
       if (!params.seed) {
         delete message[0].seed;
       }
 
-      if (message[0].model === "runware:100@1") {
+      if (message[0].model === 'runware:100@1') {
         delete message[0].promptWeighting;
       }
 
-      this.messageCallbacks.set(taskUUID, (data) => {
+      this.messageCallbacks.set(taskUUID, data => {
         if (data.error) {
           reject(new Error(data.errorMessage));
         } else {

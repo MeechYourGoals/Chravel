@@ -10,15 +10,16 @@ export const mockMessages = [
     tripName: 'Spring Break Cancun 2026',
     content: 'Who wants to grab dinner at La Habichuela tonight? I heard their lobster is amazing!',
     authorName: 'Marcus Johnson',
-    createdAt: '2026-03-16T19:30:00Z'
+    createdAt: '2026-03-16T19:30:00Z',
   },
   {
     id: 'msg-2',
     tripId: '2',
     tripName: 'Tokyo Adventure 2026',
-    content: 'Just booked tickets for teamLab Borderless! Meeting at Shibuya station at 10am tomorrow',
+    content:
+      'Just booked tickets for teamLab Borderless! Meeting at Shibuya station at 10am tomorrow',
     authorName: 'Sarah Chen',
-    createdAt: '2026-04-10T22:15:00Z'
+    createdAt: '2026-04-10T22:15:00Z',
   },
   {
     id: 'msg-3',
@@ -26,15 +27,16 @@ export const mockMessages = [
     tripName: 'Spring Break Cancun 2026',
     content: "Pool party starts at 2pm! Don't forget sunscreen and your swim trunks",
     authorName: 'DeAndre Williams',
-    createdAt: '2026-03-17T13:00:00Z'
+    createdAt: '2026-03-17T13:00:00Z',
   },
   {
     id: 'msg-4',
     tripId: '3',
     tripName: 'Bali Destination Wedding',
-    content: 'Final headcount for the rehearsal dinner - please confirm if you are bringing a plus one',
+    content:
+      'Final headcount for the rehearsal dinner - please confirm if you are bringing a plus one',
     authorName: 'Emily Rodriguez',
-    createdAt: '2026-05-20T16:45:00Z'
+    createdAt: '2026-05-20T16:45:00Z',
   },
   {
     id: 'msg-5',
@@ -42,7 +44,7 @@ export const mockMessages = [
     tripName: 'Tokyo Adventure 2026',
     content: 'Ramen recommendations: Ichiran for classic tonkotsu, Tsuta for michelin-starred soba',
     authorName: 'David Park',
-    createdAt: '2026-04-11T11:30:00Z'
+    createdAt: '2026-04-11T11:30:00Z',
   },
   {
     id: 'msg-6',
@@ -50,8 +52,8 @@ export const mockMessages = [
     tripName: 'Lakers Road Trip',
     content: "Bus leaves hotel lobby at 5pm sharp for the arena. Don't be late!",
     authorName: 'Coach Stevens',
-    createdAt: '2026-02-15T16:00:00Z'
-  }
+    createdAt: '2026-02-15T16:00:00Z',
+  },
 ];
 
 export const mockCalendarEvents = [
@@ -62,7 +64,7 @@ export const mockCalendarEvents = [
     title: 'Cenote Snorkeling Tour',
     location: 'Cenote Dos Ojos',
     startTime: '2026-03-18T09:00:00Z',
-    description: 'Guided snorkeling tour of underwater caves'
+    description: 'Guided snorkeling tour of underwater caves',
   },
   {
     id: 'event-2',
@@ -71,7 +73,7 @@ export const mockCalendarEvents = [
     title: 'Sushi Making Class',
     location: 'Tokyo Sushi Academy, Shinjuku',
     startTime: '2026-04-12T14:00:00Z',
-    description: 'Learn to make nigiri and maki rolls from a master chef'
+    description: 'Learn to make nigiri and maki rolls from a master chef',
   },
   {
     id: 'event-3',
@@ -80,7 +82,7 @@ export const mockCalendarEvents = [
     title: 'Wedding Ceremony',
     location: 'Tirtha Uluwatu Cliffside Villa',
     startTime: '2026-05-22T17:00:00Z',
-    description: 'Sunset ceremony overlooking the Indian Ocean'
+    description: 'Sunset ceremony overlooking the Indian Ocean',
   },
   {
     id: 'event-4',
@@ -89,7 +91,7 @@ export const mockCalendarEvents = [
     title: 'Beach Volleyball Tournament',
     location: 'Resort Beach',
     startTime: '2026-03-19T15:00:00Z',
-    description: 'Brotherhood tournament with prizes'
+    description: 'Brotherhood tournament with prizes',
   },
   {
     id: 'event-5',
@@ -98,8 +100,8 @@ export const mockCalendarEvents = [
     title: 'Soundcheck',
     location: 'AT&T Stadium',
     startTime: '2026-06-15T14:00:00Z',
-    description: 'Pre-show soundcheck and tech rehearsal'
-  }
+    description: 'Pre-show soundcheck and tech rehearsal',
+  },
 ];
 
 export const mockTasks = [
@@ -111,7 +113,7 @@ export const mockTasks = [
     description: 'Arrange group transportation from airport to resort',
     priority: 'high',
     status: 'pending',
-    createdAt: '2026-03-10T10:00:00Z'
+    createdAt: '2026-03-10T10:00:00Z',
   },
   {
     id: 'task-2',
@@ -121,7 +123,7 @@ export const mockTasks = [
     description: 'Buy 7-day JR pass for unlimited train travel',
     priority: 'high',
     status: 'completed',
-    createdAt: '2026-04-01T09:00:00Z'
+    createdAt: '2026-04-01T09:00:00Z',
   },
   {
     id: 'task-3',
@@ -131,7 +133,7 @@ export const mockTasks = [
     description: "Follow up with guests who haven't confirmed",
     priority: 'medium',
     status: 'pending',
-    createdAt: '2026-05-15T12:00:00Z'
+    createdAt: '2026-05-15T12:00:00Z',
   },
   {
     id: 'task-4',
@@ -141,7 +143,7 @@ export const mockTasks = [
     description: 'Bring underwater camera and GoPro',
     priority: 'low',
     status: 'pending',
-    createdAt: '2026-03-12T14:00:00Z'
+    createdAt: '2026-03-12T14:00:00Z',
   },
   {
     id: 'task-5',
@@ -151,8 +153,8 @@ export const mockTasks = [
     description: 'All gear must be packed by 4:30pm',
     priority: 'high',
     status: 'pending',
-    createdAt: '2026-02-15T08:00:00Z'
-  }
+    createdAt: '2026-02-15T08:00:00Z',
+  },
 ];
 
 export const mockPolls = [
@@ -162,7 +164,7 @@ export const mockPolls = [
     tripName: 'Spring Break Cancun 2026',
     question: 'What time should we leave for the club tonight?',
     totalVotes: 12,
-    createdAt: '2026-03-16T18:00:00Z'
+    createdAt: '2026-03-16T18:00:00Z',
   },
   {
     id: 'poll-2',
@@ -170,7 +172,7 @@ export const mockPolls = [
     tripName: 'Tokyo Adventure 2026',
     question: 'Which district should we explore tomorrow?',
     totalVotes: 8,
-    createdAt: '2026-04-10T20:00:00Z'
+    createdAt: '2026-04-10T20:00:00Z',
   },
   {
     id: 'poll-3',
@@ -178,7 +180,7 @@ export const mockPolls = [
     tripName: 'Bali Destination Wedding',
     question: 'Preferred entrée for reception dinner?',
     totalVotes: 45,
-    createdAt: '2026-05-18T15:00:00Z'
+    createdAt: '2026-05-18T15:00:00Z',
   },
   {
     id: 'poll-4',
@@ -186,8 +188,8 @@ export const mockPolls = [
     tripName: 'Nashville Bachelorette',
     question: 'Vote on which honky tonk for Saturday night',
     totalVotes: 7,
-    createdAt: '2026-06-20T19:00:00Z'
-  }
+    createdAt: '2026-06-20T19:00:00Z',
+  },
 ];
 
 export const mockMedia = [
@@ -198,7 +200,7 @@ export const mockMedia = [
     filename: 'beach-sunset.jpg',
     type: 'image',
     tags: ['beach', 'sunset', 'ocean'],
-    createdAt: '2026-03-17T19:30:00Z'
+    createdAt: '2026-03-17T19:30:00Z',
   },
   {
     id: 'media-2',
@@ -207,7 +209,7 @@ export const mockMedia = [
     filename: 'shibuya-crossing.mp4',
     type: 'video',
     tags: ['shibuya', 'tokyo', 'crossing'],
-    createdAt: '2026-04-11T15:00:00Z'
+    createdAt: '2026-04-11T15:00:00Z',
   },
   {
     id: 'media-3',
@@ -216,7 +218,7 @@ export const mockMedia = [
     filename: 'ceremony-photos.jpg',
     type: 'image',
     tags: ['wedding', 'ceremony', 'couple'],
-    createdAt: '2026-05-22T18:00:00Z'
+    createdAt: '2026-05-22T18:00:00Z',
   },
   {
     id: 'media-4',
@@ -225,7 +227,7 @@ export const mockMedia = [
     filename: 'cenote-gopro.mp4',
     type: 'video',
     tags: ['cenote', 'snorkeling', 'underwater'],
-    createdAt: '2026-03-18T11:00:00Z'
+    createdAt: '2026-03-18T11:00:00Z',
   },
   {
     id: 'media-5',
@@ -234,7 +236,7 @@ export const mockMedia = [
     filename: 'sushi-class.jpg',
     type: 'image',
     tags: ['sushi', 'food', 'cooking'],
-    createdAt: '2026-04-12T16:00:00Z'
+    createdAt: '2026-04-12T16:00:00Z',
   },
   {
     id: 'media-6',
@@ -243,6 +245,6 @@ export const mockMedia = [
     filename: 'stage-setup.jpg',
     type: 'image',
     tags: ['stage', 'concert', 'setup'],
-    createdAt: '2026-06-15T10:00:00Z'
-  }
+    createdAt: '2026-06-15T10:00:00Z',
+  },
 ];

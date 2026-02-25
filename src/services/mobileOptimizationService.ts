@@ -1,8 +1,9 @@
 // Mobile optimization service for the web/PWA (native shell optimizations may be added separately)
 
 export class MobileOptimizationService {
-  private static isMobile =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  private static isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent,
+  );
   private static isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   private static isAndroid = /Android/i.test(navigator.userAgent);
 
@@ -28,7 +29,7 @@ export class MobileOptimizationService {
     }
     viewport.setAttribute(
       'content',
-      'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
+      'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover',
     );
   }
 

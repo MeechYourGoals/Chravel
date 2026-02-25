@@ -23,13 +23,15 @@ export interface CreateTripData {
 
 export const useTripForm = () => {
   const [tripType, setTripType] = useState<'consumer' | 'pro' | 'event'>('consumer');
-  const [privacyMode, setPrivacyMode] = useState<PrivacyMode>(() => getDefaultPrivacyMode('consumer'));
+  const [privacyMode, setPrivacyMode] = useState<PrivacyMode>(() =>
+    getDefaultPrivacyMode('consumer'),
+  );
   const [formData, setFormData] = useState<TripFormData>({
     title: '',
     location: '',
     startDate: '',
     endDate: '',
-    description: ''
+    description: '',
   });
 
   const handleTripTypeChange = useCallback((newTripType: 'consumer' | 'pro' | 'event') => {
@@ -37,12 +39,12 @@ export const useTripForm = () => {
     setPrivacyMode(getDefaultPrivacyMode(newTripType));
   }, []);
 
-  const updateField = useCallback(<K extends keyof TripFormData>(
-    field: K,
-    value: TripFormData[K]
-  ) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  }, []);
+  const updateField = useCallback(
+    <K extends keyof TripFormData>(field: K, value: TripFormData[K]) => {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    },
+    [],
+  );
 
   const validateTrip = useCallback((): { isValid: boolean; error?: string } => {
     if (!formData.title.trim()) {
@@ -63,7 +65,7 @@ export const useTripForm = () => {
 
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
-    
+
     if (end < start) {
       return { isValid: false, error: 'End date must be after start date' };
     }
@@ -88,7 +90,7 @@ export const useTripForm = () => {
       destination: formData.location || undefined,
       trip_type: tripType,
       privacy_mode: privacyMode,
-      ai_access_enabled: true
+      ai_access_enabled: true,
     };
   }, [formData, tripType, privacyMode, validateTrip]);
 
@@ -98,7 +100,7 @@ export const useTripForm = () => {
       location: '',
       startDate: '',
       endDate: '',
-      description: ''
+      description: '',
     });
     setTripType('consumer');
     setPrivacyMode(getDefaultPrivacyMode('consumer'));
@@ -109,16 +111,16 @@ export const useTripForm = () => {
     tripType,
     privacyMode,
     formData,
-    
+
     // Computed
     isValid: validateTrip().isValid,
-    
+
     // Actions
     setTripType: handleTripTypeChange,
     setPrivacyMode,
     updateField,
     validateTrip,
     getTripData,
-    resetForm
+    resetForm,
   };
 };

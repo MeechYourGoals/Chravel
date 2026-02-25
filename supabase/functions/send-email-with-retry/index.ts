@@ -8,13 +8,13 @@
  * - DMARC/SPF compliance (configuration guidance)
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { corsHeaders } from '../_shared/cors.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 );
 
 interface EmailRequest {
@@ -31,8 +31,9 @@ interface EmailRequest {
 const MAX_RETRIES = 4;
 const RETRY_DELAYS = [2000, 4000, 8000, 16000]; // milliseconds
 
-serve(async (req) => {
-  const { createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
+serve(async req => {
+  const { createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
 
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -44,9 +45,10 @@ serve(async (req) => {
       return createErrorResponse('No authorization header', 401);
     }
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (userError || !user) {
       return createErrorResponse('Unauthorized', 401);
@@ -56,7 +58,10 @@ serve(async (req) => {
 
     // Validate required fields
     if (!payload.to || !payload.subject || (!payload.content && !payload.template)) {
-      return createErrorResponse('Missing required fields: to, subject, and (content or template)', 400);
+      return createErrorResponse(
+        'Missing required fields: to, subject, and (content or template)',
+        400,
+      );
     }
 
     // Normalize recipients to array
@@ -73,7 +78,7 @@ serve(async (req) => {
       if (suppressed) {
         return createErrorResponse(
           `Email address ${email} is suppressed due to previous bounces`,
-          400
+          400,
         );
       }
     }
@@ -98,7 +103,7 @@ serve(async (req) => {
           recipients,
           payload.subject,
           htmlContent,
-          user.id
+          user.id,
         );
 
         // Log successful send
@@ -109,7 +114,7 @@ serve(async (req) => {
           htmlContent,
           'sent',
           null,
-          attempt
+          attempt,
         );
 
         return createSecureResponse(
@@ -117,12 +122,11 @@ serve(async (req) => {
             success: true,
             messageId: result.messageId,
             recipients: recipients.length,
-            attempts: attempt + 1
+            attempts: attempt + 1,
           }),
           200,
-          { 'Content-Type': 'application/json' }
+          { 'Content-Type': 'application/json' },
         );
-
       } catch (error) {
         lastError = error as Error;
         console.error(`Email send attempt ${attempt + 1} failed:`, error);
@@ -149,14 +153,13 @@ serve(async (req) => {
       htmlContent,
       'failed',
       lastError?.message || null,
-      maxRetries + 1
+      maxRetries + 1,
     );
 
     return createErrorResponse(
       `Failed to send email after ${maxRetries + 1} attempts: ${lastError?.message || 'Unknown error'}`,
-      500
+      500,
     );
-
   } catch (error) {
     console.error('Email send error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -168,7 +171,7 @@ async function sendEmailViaProvider(
   recipients: string[],
   subject: string,
   htmlContent: string,
-  fromUserId: string
+  fromUserId: string,
 ): Promise<{ messageId: string }> {
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
   const sendgridApiKey = Deno.env.get('SENDGRID_API_KEY');
@@ -190,14 +193,14 @@ async function sendViaResend(
   recipients: string[],
   subject: string,
   html: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<{ messageId: string }> {
   const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@chravel.app';
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -207,7 +210,7 @@ async function sendViaResend(
       html,
       headers: {
         'X-Entity-Ref-ID': crypto.randomUUID(), // For tracking
-      }
+      },
     }),
   });
 
@@ -224,29 +227,33 @@ async function sendViaSendGrid(
   recipients: string[],
   subject: string,
   html: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<{ messageId: string }> {
   const fromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') || 'noreply@chravel.app';
 
   const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      personalizations: [{
-        to: recipients.map(email => ({ email })),
-        subject
-      }],
+      personalizations: [
+        {
+          to: recipients.map(email => ({ email })),
+          subject,
+        },
+      ],
       from: {
         email: fromEmail,
-        name: 'ChravelApp'
+        name: 'ChravelApp',
       },
-      content: [{
-        type: 'text/html',
-        value: html
-      }]
+      content: [
+        {
+          type: 'text/html',
+          value: html,
+        },
+      ],
     }),
   });
 
@@ -262,25 +269,30 @@ async function sendViaSendGrid(
 
 async function shouldSuppressEmail(email: string): Promise<boolean> {
   const { data } = await supabase.rpc('should_suppress_email', {
-    p_email: email
+    p_email: email,
   });
 
   return data || false;
 }
 
-async function handleBounce(email: string, bounceType: 'hard' | 'soft' | 'complaint', reason: string) {
-  await supabase
-    .from('email_bounces')
-    .upsert({
+async function handleBounce(
+  email: string,
+  bounceType: 'hard' | 'soft' | 'complaint',
+  reason: string,
+) {
+  await supabase.from('email_bounces').upsert(
+    {
       email,
       bounce_type: bounceType,
       bounce_count: 1,
       last_bounce_at: new Date().toISOString(),
-      suppressed: bounceType === 'hard' || bounceType === 'complaint'
-    }, {
+      suppressed: bounceType === 'hard' || bounceType === 'complaint',
+    },
+    {
       onConflict: 'email,bounce_type',
-      ignoreDuplicates: false
-    });
+      ignoreDuplicates: false,
+    },
+  );
 
   console.log(`Bounce recorded: ${email} (${bounceType})`);
 }
@@ -292,22 +304,20 @@ async function logNotification(
   content: string,
   status: string,
   error: string | null,
-  retryCount: number
+  retryCount: number,
 ) {
-  await supabase
-    .from('notification_logs')
-    .insert({
-      user_id: userId,
-      type: 'email',
-      title: subject,
-      body: content.substring(0, 500), // Truncate for storage
-      recipient: recipients.join(', '),
-      success: status === 'sent' ? recipients.length : 0,
-      failure: status === 'failed' ? recipients.length : 0,
-      delivery_status: status,
-      retry_count: retryCount,
-      sent_at: new Date().toISOString()
-    });
+  await supabase.from('notification_logs').insert({
+    user_id: userId,
+    type: 'email',
+    title: subject,
+    body: content.substring(0, 500), // Truncate for storage
+    recipient: recipients.join(', '),
+    success: status === 'sent' ? recipients.length : 0,
+    failure: status === 'failed' ? recipients.length : 0,
+    delivery_status: status,
+    retry_count: retryCount,
+    sent_at: new Date().toISOString(),
+  });
 }
 
 function isValidEmail(email: string): boolean {
@@ -333,20 +343,20 @@ function sleep(ms: number): Promise<void> {
 function renderTemplate(templateName: string, data: Record<string, any>): string {
   // Simple template rendering - in production, use a proper template engine
   const templates: Record<string, string> = {
-    'trip_invite': `
+    trip_invite: `
       <h2>You're invited to join a trip!</h2>
       <p>Hi ${data.recipientName || 'there'},</p>
       <p>${data.inviterName} has invited you to join the trip: <strong>${data.tripName}</strong></p>
       <p><a href="${data.inviteLink}" style="background: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Join Trip</a></p>
       <p>This invitation expires in 7 days.</p>
     `,
-    'payment_reminder': `
+    payment_reminder: `
       <h2>Payment Reminder</h2>
       <p>Hi ${data.recipientName},</p>
       <p>You have a pending payment of <strong>${data.amount} ${data.currency}</strong> for ${data.description}.</p>
       <p><a href="${data.paymentLink}">View Details</a></p>
     `,
-    'trip_summary': `
+    trip_summary: `
       <h2>Trip Summary: ${data.tripName}</h2>
       <p>Here's a summary of your trip:</p>
       <ul>
@@ -355,7 +365,7 @@ function renderTemplate(templateName: string, data: Record<string, any>): string
         <li>Total Expenses: ${data.totalExpenses}</li>
       </ul>
       <p><a href="${data.tripLink}">View Full Trip</a></p>
-    `
+    `,
   };
 
   return templates[templateName] || `<p>${data.content}</p>`;

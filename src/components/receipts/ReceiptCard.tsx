@@ -16,39 +16,40 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const fetchSignedUrl = async () => {
       // If it looks like a path (no http scheme), it's a relative storage path
       if (receipt.fileUrl && !receipt.fileUrl.startsWith('http')) {
         const { data } = await supabase.storage
           .from('trip-files')
           .createSignedUrl(receipt.fileUrl, 3600); // 1 hour expiry
-        
+
         if (isMounted && data?.signedUrl) {
           setImageUrl(data.signedUrl);
         }
-      } 
+      }
       // Handle legacy public Supabase URLs - extract path and sign it
-      else if (receipt.fileUrl && receipt.fileUrl.includes('/storage/v1/object/public/trip-files/')) {
+      else if (
+        receipt.fileUrl &&
+        receipt.fileUrl.includes('/storage/v1/object/public/trip-files/')
+      ) {
         try {
-           const path = receipt.fileUrl.split('/storage/v1/object/public/trip-files/')[1];
-           if (path) {
-             const { data } = await supabase.storage
-               .from('trip-files')
-               .createSignedUrl(path, 3600);
-             
-             if (isMounted && data?.signedUrl) {
-               setImageUrl(data.signedUrl);
-             }
-           }
+          const path = receipt.fileUrl.split('/storage/v1/object/public/trip-files/')[1];
+          if (path) {
+            const { data } = await supabase.storage.from('trip-files').createSignedUrl(path, 3600);
+
+            if (isMounted && data?.signedUrl) {
+              setImageUrl(data.signedUrl);
+            }
+          }
         } catch (e) {
           console.error('Error parsing legacy URL', e);
         }
       }
     };
-    
+
     fetchSignedUrl();
-    
+
     return () => {
       isMounted = false;
     };
@@ -58,9 +59,9 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
     const deeplink = generatePaymentDeeplink(
       receipt.preferredMethod,
       receipt.perPersonAmount || receipt.totalAmount,
-      receipt.uploaderName
+      receipt.uploaderName,
     );
-    
+
     if (deeplink) {
       window.open(deeplink, '_blank');
     }
@@ -71,7 +72,7 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -93,8 +94,10 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
                 onClick={() => setShowViewModal(true)}
               />
             ) : (
-              <div className="w-16 h-16 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-center cursor-pointer"
-                   onClick={() => setShowViewModal(true)}>
+              <div
+                className="w-16 h-16 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-center cursor-pointer"
+                onClick={() => setShowViewModal(true)}
+              >
                 <FileText size={24} className="text-red-400" />
               </div>
             )}
@@ -125,7 +128,7 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
                   ${receipt.totalAmount ? receipt.totalAmount.toFixed(2) : '0.00'}
                 </span>
               </div>
-              
+
               {receipt.splitCount && receipt.perPersonAmount && (
                 <div className="flex items-center gap-1">
                   <Users size={16} className="text-blue-400" />
@@ -140,13 +143,9 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <PaymentMethodIcon method={receipt.preferredMethod} size={16} />
-                <span className="text-gray-300 text-sm capitalize">
-                  {receipt.preferredMethod}
-                </span>
+                <span className="text-gray-300 text-sm capitalize">{receipt.preferredMethod}</span>
                 <span className="text-gray-500 text-sm">•</span>
-                <span className="text-gray-500 text-sm">
-                  {formatDate(receipt.createdAt)}
-                </span>
+                <span className="text-gray-500 text-sm">{formatDate(receipt.createdAt)}</span>
               </div>
 
               {receipt.perPersonAmount && (
@@ -166,7 +165,7 @@ export const ReceiptCard = ({ receipt }: ReceiptCardProps) => {
       <ReceiptViewModal
         isOpen={showViewModal}
         onClose={() => setShowViewModal(false)}
-        receipt={{...receipt, fileUrl: imageUrl}}
+        receipt={{ ...receipt, fileUrl: imageUrl }}
       />
     </>
   );

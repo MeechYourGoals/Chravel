@@ -2,12 +2,12 @@
 // @ts-nocheck - Temporary until trip_files columns added to generated types
 /**
  * Media Duplicate Detection Service
- * 
+ *
  * Detects duplicate media files using:
  * - File hash comparison (most accurate)
  * - Filename similarity
  * - Image similarity (for photos)
- * 
+ *
  * @module services/mediaDuplicateDetection
  */
 
@@ -34,19 +34,14 @@ export interface DuplicateDetectionOptions {
 
 /**
  * Detect duplicate media files in a trip
- * 
+ *
  * @param options - Detection options
  * @returns Array of duplicate groups
  */
 export async function detectDuplicates(
-  options: DuplicateDetectionOptions
+  options: DuplicateDetectionOptions,
 ): Promise<DuplicateGroup[]> {
-  const {
-    tripId,
-    useHash = true,
-    useFilename = true,
-    similarityThreshold = 0.8,
-  } = options;
+  const { tripId, useHash = true, useFilename = true, similarityThreshold = 0.8 } = options;
 
   try {
     // Fetch all media items
@@ -56,7 +51,7 @@ export async function detectDuplicates(
         .select('id, media_url, filename, created_at, metadata')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false }),
-      
+
       supabase
         .from('trip_files')
         .select('id, name, created_at, file_hash')
@@ -89,7 +84,7 @@ export async function detectDuplicates(
     // Group by hash (most accurate)
     if (useHash) {
       const hashGroups = new Map<string, typeof allItems>();
-      
+
       for (const item of allItems) {
         if (item.hash) {
           if (!hashGroups.has(item.hash)) {
@@ -104,7 +99,7 @@ export async function detectDuplicates(
         if (items.length >= 2) {
           // Mark all items in this group as already processed
           items.forEach(item => itemsGroupedByHash.add(item.id));
-          
+
           duplicateGroups.set(`hash-${hash}`, {
             hash,
             files: items.map(item => ({
@@ -124,26 +119,26 @@ export async function detectDuplicates(
     if (useFilename) {
       // Filter to items that weren't already grouped by hash
       const unhashedItems = allItems.filter(item => !itemsGroupedByHash.has(item.id));
-      
+
       if (unhashedItems.length > 0) {
         const filenameGroups = new Map<string, typeof allItems>();
-        
+
         for (let i = 0; i < unhashedItems.length; i++) {
           const item1 = unhashedItems[i];
           const normalizedName1 = normalizeFilename(item1.filename);
-          
+
           let added = false;
           for (const [key, group] of filenameGroups.entries()) {
             const normalizedName2 = normalizeFilename(key);
             const similarity = calculateSimilarity(normalizedName1, normalizedName2);
-            
+
             if (similarity >= similarityThreshold) {
               group.push(item1);
               added = true;
               break;
             }
           }
-          
+
           if (!added) {
             filenameGroups.set(item1.filename, [item1]);
           }
@@ -193,9 +188,9 @@ function normalizeFilename(filename: string): string {
 function calculateSimilarity(str1: string, str2: string): number {
   const longer = str1.length > str2.length ? str1 : str2;
   const shorter = str1.length > str2.length ? str2 : str1;
-  
+
   if (longer.length === 0) return 1.0;
-  
+
   const distance = levenshteinDistance(longer, shorter);
   return (longer.length - distance) / longer.length;
 }
@@ -205,15 +200,15 @@ function calculateSimilarity(str1: string, str2: string): number {
  */
 function levenshteinDistance(str1: string, str2: string): number {
   const matrix: number[][] = [];
-  
+
   for (let i = 0; i <= str2.length; i++) {
     matrix[i] = [i];
   }
-  
+
   for (let j = 0; j <= str1.length; j++) {
     matrix[0][j] = j;
   }
-  
+
   for (let i = 1; i <= str2.length; i++) {
     for (let j = 1; j <= str1.length; j++) {
       if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
@@ -221,26 +216,26 @@ function levenshteinDistance(str1: string, str2: string): number {
       } else {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1, // substitution
-          matrix[i][j - 1] + 1,     // insertion
-          matrix[i - 1][j] + 1      // deletion
+          matrix[i][j - 1] + 1, // insertion
+          matrix[i - 1][j] + 1, // deletion
         );
       }
     }
   }
-  
+
   return matrix[str2.length][str1.length];
 }
 
 /**
  * Remove duplicate media files, keeping the oldest one
- * 
+ *
  * @param tripId - Trip ID
  * @param duplicateGroups - Groups of duplicates from detectDuplicates
  * @returns Number of files removed
  */
 export async function removeDuplicates(
   tripId: string,
-  duplicateGroups: DuplicateGroup[]
+  duplicateGroups: DuplicateGroup[],
 ): Promise<number> {
   let removedCount = 0;
 
@@ -250,7 +245,7 @@ export async function removeDuplicates(
 
       // Sort by created_at, keep oldest
       const sorted = [...group.files].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       );
       const keep = sorted[0];
       const remove = sorted.slice(1);

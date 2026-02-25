@@ -26,65 +26,69 @@ export function useBackgroundAgendaImport() {
   const toastIdRef = useRef<string | number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const startImport = useCallback((url: string, onComplete?: () => void) => {
-    if (state.isImporting) {
-      toast.warning('An import is already in progress');
-      return;
-    }
+  const startImport = useCallback(
+    (url: string, onComplete?: () => void) => {
+      if (state.isImporting) {
+        toast.warning('An import is already in progress');
+        return;
+      }
 
-    let domain = url;
-    try {
-      domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
-    } catch {
-      // Use raw URL as fallback
-    }
+      let domain = url;
+      try {
+        domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
+      } catch {
+        // Use raw URL as fallback
+      }
 
-    setState({ isImporting: true, pendingResult: null, sourceUrl: url });
+      setState({ isImporting: true, pendingResult: null, sourceUrl: url });
 
-    const abortController = new AbortController();
-    abortRef.current = abortController;
+      const abortController = new AbortController();
+      abortRef.current = abortController;
 
-    toastIdRef.current = toast.loading(`Scanning ${domain} for agenda sessions...`, {
-      duration: Infinity,
-      description: 'You can navigate away — we\'ll notify you when it\'s done.',
-    });
+      toastIdRef.current = toast.loading(`Scanning ${domain} for agenda sessions...`, {
+        duration: Infinity,
+        description: "You can navigate away — we'll notify you when it's done.",
+      });
 
-    parseAgendaURL(url)
-      .then((result) => {
-        if (abortController.signal.aborted) return;
+      parseAgendaURL(url)
+        .then(result => {
+          if (abortController.signal.aborted) return;
 
-        setState({ isImporting: false, pendingResult: result, sourceUrl: url });
+          setState({ isImporting: false, pendingResult: result, sourceUrl: url });
 
-        if (toastIdRef.current) toast.dismiss(toastIdRef.current);
+          if (toastIdRef.current) toast.dismiss(toastIdRef.current);
 
-        if (result.isValid && result.sessions.length > 0) {
-          toast.success(`Found ${result.sessions.length} session${result.sessions.length !== 1 ? 's' : ''} from ${domain}`, {
-            description: 'Review and import them into your agenda.',
-            duration: Infinity,
-            action: onComplete
-              ? { label: 'Review Sessions', onClick: onComplete }
-              : undefined,
-          });
-        } else {
+          if (result.isValid && result.sessions.length > 0) {
+            toast.success(
+              `Found ${result.sessions.length} session${result.sessions.length !== 1 ? 's' : ''} from ${domain}`,
+              {
+                description: 'Review and import them into your agenda.',
+                duration: Infinity,
+                action: onComplete ? { label: 'Review Sessions', onClick: onComplete } : undefined,
+              },
+            );
+          } else {
+            toast.error('Import failed', {
+              description: result.errors[0] || 'No agenda sessions found on this page',
+              duration: 8000,
+            });
+          }
+        })
+        .catch(err => {
+          if (abortController.signal.aborted) return;
+
+          setState({ isImporting: false, pendingResult: null, sourceUrl: null });
+
+          if (toastIdRef.current) toast.dismiss(toastIdRef.current);
+
           toast.error('Import failed', {
-            description: result.errors[0] || 'No agenda sessions found on this page',
+            description: err instanceof Error ? err.message : 'Unknown error occurred',
             duration: 8000,
           });
-        }
-      })
-      .catch((err) => {
-        if (abortController.signal.aborted) return;
-
-        setState({ isImporting: false, pendingResult: null, sourceUrl: null });
-
-        if (toastIdRef.current) toast.dismiss(toastIdRef.current);
-
-        toast.error('Import failed', {
-          description: err instanceof Error ? err.message : 'Unknown error occurred',
-          duration: 8000,
         });
-      });
-  }, [state.isImporting]);
+    },
+    [state.isImporting],
+  );
 
   const clearResult = useCallback(() => {
     setState({ isImporting: false, pendingResult: null, sourceUrl: null });

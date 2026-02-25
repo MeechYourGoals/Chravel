@@ -4,9 +4,7 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
-import { 
-  Megaphone, Send, AlertTriangle, Users, CheckCircle2, X 
-} from 'lucide-react';
+import { Megaphone, Send, AlertTriangle, Users, CheckCircle2, X } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { roleBroadcastService } from '../../services/roleBroadcastService';
@@ -31,11 +29,11 @@ export const RoleBroadcastModal = ({
   roster,
   category,
   availableRoles,
-  preselectedRole
+  preselectedRole,
 }: RoleBroadcastModalProps) => {
   const [message, setMessage] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<string[]>(
-    preselectedRole ? [preselectedRole] : []
+    preselectedRole ? [preselectedRole] : [],
   );
   const [priority, setPriority] = useState<'normal' | 'urgent'>('normal');
   const [isSending, setIsSending] = useState(false);
@@ -43,9 +41,7 @@ export const RoleBroadcastModal = ({
 
   const toggleRole = (role: string) => {
     setSelectedRoles(prev =>
-      prev.includes(role)
-        ? prev.filter(r => r !== role)
-        : [...prev, role]
+      prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role],
     );
   };
 
@@ -69,7 +65,7 @@ export const RoleBroadcastModal = ({
         tripId,
         selectedRoles,
         message.trim(),
-        priority
+        priority,
       );
 
       if (success) {
@@ -110,12 +106,7 @@ export const RoleBroadcastModal = ({
               <div className="flex items-center justify-between">
                 <Label>Target Roles</Label>
                 <div className="flex gap-2">
-                  <Button
-                    onClick={selectAllRoles}
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs"
-                  >
+                  <Button onClick={selectAllRoles} variant="ghost" size="sm" className="text-xs">
                     Select All
                   </Button>
                   <Button
@@ -149,9 +140,7 @@ export const RoleBroadcastModal = ({
                       />
                       <div className="flex-1">
                         <span className="text-sm font-medium">{role}</span>
-                        <span className="text-xs text-gray-400 ml-2">
-                          ({roleMembers.length})
-                        </span>
+                        <span className="text-xs text-gray-400 ml-2">({roleMembers.length})</span>
                       </div>
                     </label>
                   );
@@ -205,16 +194,14 @@ export const RoleBroadcastModal = ({
               <Textarea
                 id="broadcast-message"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={e => setMessage(e.target.value)}
                 placeholder={`Announcement for ${selectedRoles.join(', ') || 'selected roles'}...${
                   priority === 'urgent' ? '\n\n⚠️ This will send push notifications' : ''
                 }`}
                 className="bg-gray-800 border-gray-600 text-white min-h-[150px]"
                 disabled={isSending}
               />
-              <p className="text-xs text-gray-400">
-                {message.length} / 500 characters
-              </p>
+              <p className="text-xs text-gray-400">{message.length} / 500 characters</p>
             </div>
 
             {/* Urgent Warning */}
@@ -225,8 +212,9 @@ export const RoleBroadcastModal = ({
                   <div>
                     <p className="font-medium text-red-400">Urgent Broadcast</p>
                     <p className="text-sm text-gray-300 mt-1">
-                      This will send immediate push notifications to all {recipientCount} recipients 
-                      and appear at the top of their chat. Use sparingly for time-sensitive information.
+                      This will send immediate push notifications to all {recipientCount} recipients
+                      and appear at the top of their chat. Use sparingly for time-sensitive
+                      information.
                     </p>
                   </div>
                 </div>
@@ -292,7 +280,8 @@ export const RoleBroadcastModal = ({
             <CheckCircle2 size={64} className="text-green-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">Broadcast Sent!</h3>
             <p className="text-gray-400">
-              Your announcement has been delivered to {recipientCount} team member{recipientCount !== 1 ? 's' : ''}.
+              Your announcement has been delivered to {recipientCount} team member
+              {recipientCount !== 1 ? 's' : ''}.
             </p>
           </div>
         )}
@@ -300,4 +289,3 @@ export const RoleBroadcastModal = ({
     </Dialog>
   );
 };
-

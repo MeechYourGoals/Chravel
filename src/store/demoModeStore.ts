@@ -27,10 +27,10 @@ export const useDemoModeStore = create<DemoModeState>((set, get) => ({
 
       if (cachedValue !== null && ['off', 'marketing', 'app-preview'].includes(cachedValue)) {
         const demoView = cachedValue as DemoView;
-        set({ 
-          demoView, 
+        set({
+          demoView,
           isDemoMode: demoView === 'app-preview',
-          isLoading: false 
+          isLoading: false,
         });
         return;
       }
@@ -41,10 +41,10 @@ export const useDemoModeStore = create<DemoModeState>((set, get) => ({
         const demoView: DemoView = oldValue === 'true' ? 'app-preview' : 'off';
         localStorage.setItem('TRIPS_DEMO_VIEW', demoView);
         localStorage.removeItem('TRIPS_DEMO_MODE');
-        set({ 
-          demoView, 
+        set({
+          demoView,
           isDemoMode: demoView === 'app-preview',
-          isLoading: false 
+          isLoading: false,
         });
         return;
       }
@@ -59,9 +59,9 @@ export const useDemoModeStore = create<DemoModeState>((set, get) => ({
   setDemoView: async (view: DemoView) => {
     try {
       localStorage.setItem('TRIPS_DEMO_VIEW', view);
-      set({ 
+      set({
         demoView: view,
-        isDemoMode: view === 'app-preview'
+        isDemoMode: view === 'app-preview',
       });
     } catch (error) {
       // Silent fail - non-critical

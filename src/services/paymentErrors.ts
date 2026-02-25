@@ -7,42 +7,48 @@ export enum PaymentErrorCode {
   // Insufficient Funds
   INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',
   ACCOUNT_BALANCE_LOW = 'ACCOUNT_BALANCE_LOW',
-  
+
   // Payment Method Failures
   PAYMENT_METHOD_DECLINED = 'PAYMENT_METHOD_DECLINED',
   PAYMENT_METHOD_EXPIRED = 'PAYMENT_METHOD_EXPIRED',
   PAYMENT_METHOD_INVALID = 'PAYMENT_METHOD_INVALID',
   PAYMENT_METHOD_NOT_FOUND = 'PAYMENT_METHOD_NOT_FOUND',
-  
+
   // Network Errors
   NETWORK_ERROR = 'NETWORK_ERROR',
   TIMEOUT = 'TIMEOUT',
   SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
-  
+
   // Validation Errors
   INVALID_REQUEST = 'INVALID_REQUEST',
   INVALID_AMOUNT = 'INVALID_AMOUNT',
   INVALID_CURRENCY = 'INVALID_CURRENCY',
   INVALID_RECIPIENT = 'INVALID_RECIPIENT',
   MISSING_REQUIRED_FIELD = 'MISSING_REQUIRED_FIELD',
-  
+
   // Rate Limiting
   RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
   TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
-  
+
   // Configuration Errors
   PROCESSOR_NOT_CONFIGURED = 'PROCESSOR_NOT_CONFIGURED',
   API_KEY_INVALID = 'API_KEY_INVALID',
-  
+
   // Unknown Errors
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-  PROCESSING_FAILED = 'PROCESSING_FAILED'
+  PROCESSING_FAILED = 'PROCESSING_FAILED',
 }
 
 export interface PaymentErrorDetails {
   code: PaymentErrorCode | string;
   message: string;
-  type: 'insufficient_funds' | 'payment_method_failed' | 'network_error' | 'invalid_request' | 'rate_limit' | 'unknown';
+  type:
+    | 'insufficient_funds'
+    | 'payment_method_failed'
+    | 'network_error'
+    | 'invalid_request'
+    | 'rate_limit'
+    | 'unknown';
   retryable: boolean;
   originalError?: unknown;
   metadata?: Record<string, unknown>;
@@ -66,7 +72,7 @@ export class PaymentError extends Error {
     this.originalError = details.originalError;
     this.metadata = details.metadata;
     this.timestamp = details.timestamp;
-    
+
     // Maintain proper stack trace
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, PaymentError);
@@ -76,14 +82,18 @@ export class PaymentError extends Error {
   /**
    * Create an insufficient funds error
    */
-  static insufficientFunds(amount: number, available: number, metadata?: Record<string, unknown>): PaymentError {
+  static insufficientFunds(
+    amount: number,
+    available: number,
+    metadata?: Record<string, unknown>,
+  ): PaymentError {
     return new PaymentError({
       code: PaymentErrorCode.INSUFFICIENT_FUNDS,
       message: `Insufficient funds. Required: ${amount}, Available: ${available}`,
       type: 'insufficient_funds',
       retryable: false,
       metadata: { amount, available, ...metadata },
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -97,21 +107,25 @@ export class PaymentError extends Error {
       type: 'payment_method_failed',
       retryable: false,
       metadata,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
   /**
    * Create a network error
    */
-  static networkError(message: string, originalError?: unknown, retryable: boolean = true): PaymentError {
+  static networkError(
+    message: string,
+    originalError?: unknown,
+    retryable: boolean = true,
+  ): PaymentError {
     return new PaymentError({
       code: PaymentErrorCode.NETWORK_ERROR,
       message,
       type: 'network_error',
       retryable,
       originalError,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -125,7 +139,7 @@ export class PaymentError extends Error {
       type: 'invalid_request',
       retryable: false,
       metadata,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -139,7 +153,7 @@ export class PaymentError extends Error {
       type: 'rate_limit',
       retryable: true,
       metadata: { retryAfter },
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -154,7 +168,7 @@ export class PaymentError extends Error {
       retryable: this.retryable,
       originalError: this.originalError,
       metadata: this.metadata,
-      timestamp: this.timestamp
+      timestamp: this.timestamp,
     };
   }
 }
@@ -174,19 +188,23 @@ export class PaymentErrorHandler {
     if (error instanceof Error) {
       // Try to classify the error
       const message = error.message.toLowerCase();
-      
+
       if (message.includes('insufficient') || message.includes('balance')) {
         return PaymentError.insufficientFunds(0, 0, { originalError: error });
       }
-      
+
       if (message.includes('declined') || message.includes('failed')) {
         return PaymentError.paymentMethodFailed(error.message);
       }
-      
-      if (message.includes('network') || message.includes('timeout') || message.includes('connection')) {
+
+      if (
+        message.includes('network') ||
+        message.includes('timeout') ||
+        message.includes('connection')
+      ) {
         return PaymentError.networkError(error.message, error);
       }
-      
+
       if (message.includes('rate limit') || message.includes('too many')) {
         return PaymentError.rateLimitExceeded();
       }
@@ -199,7 +217,7 @@ export class PaymentErrorHandler {
       type: 'unknown',
       retryable: false,
       originalError: error,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -216,13 +234,18 @@ export class PaymentErrorHandler {
    */
   static getUserMessage(error: unknown): string {
     const paymentError = this.handleError(error);
-    
+
     const userMessages: Record<PaymentErrorCode, string> = {
-      [PaymentErrorCode.INSUFFICIENT_FUNDS]: 'You don\'t have enough funds to complete this payment.',
-      [PaymentErrorCode.PAYMENT_METHOD_DECLINED]: 'Your payment method was declined. Please try a different method.',
-      [PaymentErrorCode.PAYMENT_METHOD_EXPIRED]: 'Your payment method has expired. Please update it.',
-      [PaymentErrorCode.NETWORK_ERROR]: 'Network error occurred. Please check your connection and try again.',
-      [PaymentErrorCode.RATE_LIMIT_EXCEEDED]: 'Too many requests. Please wait a moment and try again.',
+      [PaymentErrorCode.INSUFFICIENT_FUNDS]:
+        "You don't have enough funds to complete this payment.",
+      [PaymentErrorCode.PAYMENT_METHOD_DECLINED]:
+        'Your payment method was declined. Please try a different method.',
+      [PaymentErrorCode.PAYMENT_METHOD_EXPIRED]:
+        'Your payment method has expired. Please update it.',
+      [PaymentErrorCode.NETWORK_ERROR]:
+        'Network error occurred. Please check your connection and try again.',
+      [PaymentErrorCode.RATE_LIMIT_EXCEEDED]:
+        'Too many requests. Please wait a moment and try again.',
       [PaymentErrorCode.INVALID_AMOUNT]: 'Invalid payment amount.',
       [PaymentErrorCode.INVALID_RECIPIENT]: 'Invalid recipient information.',
       [PaymentErrorCode.INVALID_REQUEST]: 'Invalid request. Please check your payment details.',
@@ -237,7 +260,7 @@ export class PaymentErrorHandler {
       [PaymentErrorCode.INVALID_CURRENCY]: 'Invalid currency.',
       [PaymentErrorCode.MISSING_REQUIRED_FIELD]: 'Missing required payment information.',
       [PaymentErrorCode.TOO_MANY_REQUESTS]: 'Too many requests. Please wait.',
-      [PaymentErrorCode.API_KEY_INVALID]: 'Invalid API configuration.'
+      [PaymentErrorCode.API_KEY_INVALID]: 'Invalid API configuration.',
     };
 
     return userMessages[paymentError.code as PaymentErrorCode] || paymentError.message;

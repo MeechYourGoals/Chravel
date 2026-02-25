@@ -53,19 +53,19 @@ function derivePageName(path: string): string {
 
   // Handle common patterns
   const pagePatterns: Record<string, string> = {
-    'trip': 'Trip Detail',
-    'trips': 'Trips List',
-    'settings': 'Settings',
-    'profile': 'Profile',
-    'auth': 'Auth',
-    'login': 'Login',
-    'signup': 'Signup',
-    'join': 'Join Trip',
-    'invite': 'Invite',
-    'pricing': 'Pricing',
-    'onboarding': 'Onboarding',
-    'admin': 'Admin',
-    'organization': 'Organization',
+    trip: 'Trip Detail',
+    trips: 'Trips List',
+    settings: 'Settings',
+    profile: 'Profile',
+    auth: 'Auth',
+    login: 'Login',
+    signup: 'Signup',
+    join: 'Join Trip',
+    invite: 'Invite',
+    pricing: 'Pricing',
+    onboarding: 'Onboarding',
+    admin: 'Admin',
+    organization: 'Organization',
   };
 
   const firstSegment = segments[0];
@@ -120,7 +120,7 @@ export function useTelemetryIdentify(user: TelemetryUser | null): void {
 export function useChatPerformance(
   tripId: string | undefined,
   messages: unknown[],
-  isLoading: boolean
+  isLoading: boolean,
 ): void {
   const timerStarted = useRef(false);
   const reported = useRef(false);
@@ -135,13 +135,7 @@ export function useChatPerformance(
 
   // Report when messages are loaded
   useEffect(() => {
-    if (
-      tripId &&
-      timerStarted.current &&
-      !reported.current &&
-      !isLoading &&
-      messages.length > 0
-    ) {
+    if (tripId && timerStarted.current && !reported.current && !isLoading && messages.length > 0) {
       reportChatRendered(tripId, messages.length);
       reported.current = true;
     }
@@ -167,15 +161,12 @@ export function useChatPerformance(
 export function useTelemetryError(): {
   captureError: (error: Error, errorInfo?: { componentStack?: string }) => void;
 } {
-  const captureError = useCallback(
-    (error: Error, errorInfo?: { componentStack?: string }) => {
-      telemetry.captureError(error, {
-        component_stack: errorInfo?.componentStack,
-        url: window.location.href,
-      });
-    },
-    []
-  );
+  const captureError = useCallback((error: Error, errorInfo?: { componentStack?: string }) => {
+    telemetry.captureError(error, {
+      component_stack: errorInfo?.componentStack,
+      url: window.location.href,
+    });
+  }, []);
 
   return { captureError };
 }

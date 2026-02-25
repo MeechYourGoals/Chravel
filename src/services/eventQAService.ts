@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 
 export interface QAQuestion {
   id: string;
@@ -31,7 +31,7 @@ class EventQAService {
     sessionId: string,
     question: string,
     userId?: string,
-    userName?: string
+    userName?: string,
   ): Promise<QAQuestion> {
     const { data, error } = await supabase
       .from('event_qa_questions')
@@ -52,10 +52,7 @@ class EventQAService {
   /**
    * Get all questions for a session
    */
-  async getQuestions(
-    eventId: string,
-    sessionId: string
-  ): Promise<QAQuestion[]> {
+  async getQuestions(eventId: string, sessionId: string): Promise<QAQuestion[]> {
     const { data, error } = await supabase
       .from('event_qa_questions')
       .select('*')
@@ -71,17 +68,12 @@ class EventQAService {
   /**
    * Upvote a question
    */
-  async upvoteQuestion(
-    questionId: string,
-    userId: string
-  ): Promise<void> {
+  async upvoteQuestion(questionId: string, userId: string): Promise<void> {
     // First, add the upvote record
-    const { error: upvoteError } = await supabase
-      .from('event_qa_upvotes')
-      .insert({
-        question_id: questionId,
-        user_id: userId,
-      });
+    const { error: upvoteError } = await supabase.from('event_qa_upvotes').insert({
+      question_id: questionId,
+      user_id: userId,
+    });
 
     if (upvoteError) throw upvoteError;
 
@@ -103,10 +95,7 @@ class EventQAService {
   /**
    * Check if user has upvoted a question
    */
-  async hasUserUpvoted(
-    questionId: string,
-    userId: string
-  ): Promise<boolean> {
+  async hasUserUpvoted(questionId: string, userId: string): Promise<boolean> {
     const { data, error } = await supabase
       .from('event_qa_upvotes')
       .select('question_id')
@@ -121,10 +110,7 @@ class EventQAService {
   /**
    * Get all user's upvoted questions for a session
    */
-  async getUserUpvotedQuestions(
-    userId: string,
-    questionIds: string[]
-  ): Promise<string[]> {
+  async getUserUpvotedQuestions(userId: string, questionIds: string[]): Promise<string[]> {
     const { data, error } = await supabase
       .from('event_qa_upvotes')
       .select('question_id')
@@ -142,7 +128,7 @@ class EventQAService {
     questionId: string,
     answer: string,
     answeredBy: string,
-    answeredByUserId?: string
+    answeredByUserId?: string,
   ): Promise<void> {
     const { error } = await supabase
       .from('event_qa_questions')
@@ -164,7 +150,7 @@ class EventQAService {
   subscribeToQuestions(
     eventId: string,
     sessionId: string,
-    onQuestion: (question: QAQuestion) => void
+    onQuestion: (question: QAQuestion) => void,
   ): () => void {
     const channel = supabase
       .channel(`qa-${eventId}-${sessionId}`)
@@ -176,12 +162,12 @@ class EventQAService {
           table: 'event_qa_questions',
           filter: `event_id=eq.${eventId}`,
         },
-        (payload) => {
+        payload => {
           const newQuestion = payload.new as QAQuestion;
           if (newQuestion.session_id === sessionId) {
             onQuestion(newQuestion);
           }
-        }
+        },
       )
       .on(
         'postgres_changes',
@@ -191,12 +177,12 @@ class EventQAService {
           table: 'event_qa_questions',
           filter: `event_id=eq.${eventId}`,
         },
-        (payload) => {
+        payload => {
           const updatedQuestion = payload.new as QAQuestion;
           if (updatedQuestion.session_id === sessionId) {
             onQuestion(updatedQuestion);
           }
-        }
+        },
       )
       .subscribe();
 
@@ -209,10 +195,7 @@ class EventQAService {
    * Delete a question (moderator only)
    */
   async deleteQuestion(questionId: string): Promise<void> {
-    const { error } = await supabase
-      .from('event_qa_questions')
-      .delete()
-      .eq('id', questionId);
+    const { error } = await supabase.from('event_qa_questions').delete().eq('id', questionId);
 
     if (error) throw error;
   }

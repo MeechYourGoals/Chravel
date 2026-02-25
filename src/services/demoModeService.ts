@@ -763,9 +763,7 @@ class DemoModeService {
     ];
   }
 
-  getMockTasks(
-    tripId: string,
-  ): Array<{
+  getMockTasks(tripId: string): Array<{
     id: string;
     trip_id: string;
     title: string;

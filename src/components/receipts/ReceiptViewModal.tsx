@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { X, Download, ExternalLink } from 'lucide-react';
 import { Receipt } from '../../types/receipts';
@@ -18,9 +17,9 @@ export const ReceiptViewModal = ({ isOpen, onClose, receipt }: ReceiptViewModalP
     const deeplink = generatePaymentDeeplink(
       receipt.preferredMethod,
       receipt.perPersonAmount || receipt.totalAmount,
-      receipt.uploaderName
+      receipt.uploaderName,
     );
-    
+
     if (deeplink) {
       window.open(deeplink, '_blank');
     }
@@ -100,10 +99,11 @@ export const ReceiptViewModal = ({ isOpen, onClose, receipt }: ReceiptViewModalP
               <div>
                 <label className="text-gray-400 text-sm">Total Amount</label>
                 <div className="text-white font-semibold text-lg">
-                  ${receipt.totalAmount ? receipt.totalAmount.toFixed(2) : '0.00'} {receipt.currency || ''}
+                  ${receipt.totalAmount ? receipt.totalAmount.toFixed(2) : '0.00'}{' '}
+                  {receipt.currency || ''}
                 </div>
               </div>
-              
+
               <div>
                 <label className="text-gray-400 text-sm">Payment Method</label>
                 <div className="flex items-center gap-2 mt-1">
@@ -124,7 +124,7 @@ export const ReceiptViewModal = ({ isOpen, onClose, receipt }: ReceiptViewModalP
                       ${receipt.perPersonAmount.toFixed(2)} each ({receipt.splitCount} people)
                     </div>
                   </div>
-                  
+
                   <button
                     onClick={handlePaymentClick}
                     className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-2 rounded-xl transition-colors flex items-center gap-2 hover:from-green-600 hover:to-emerald-600"

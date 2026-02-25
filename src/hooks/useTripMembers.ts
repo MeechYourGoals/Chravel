@@ -6,7 +6,11 @@ import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { useDemoTripMembersStore } from '@/store/demoTripMembersStore';
-import { resolveDisplayName, UNRESOLVED_NAME_SENTINEL, FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
+import {
+  resolveDisplayName,
+  UNRESOLVED_NAME_SENTINEL,
+  FORMER_MEMBER_LABEL,
+} from '@/lib/resolveDisplayName';
 
 export interface TripMember {
   id: string;
@@ -23,7 +27,10 @@ export const useTripMembers = (tripId?: string) => {
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
 
-  const formatTripMembers = (dbMembers: Array<{ user_id: string; role?: string; profiles?: unknown }>, creatorId?: string): TripMember[] => {
+  const formatTripMembers = (
+    dbMembers: Array<{ user_id: string; role?: string; profiles?: unknown }>,
+    creatorId?: string,
+  ): TripMember[] => {
     return dbMembers.map(member => ({
       id: member.user_id,
       name: (() => {
@@ -122,7 +129,9 @@ export const useTripMembers = (tripId?: string) => {
           // 2. Fetch profile for local display (use fallback if profile missing)
           const { data: creatorProfile } = await supabase
             .from('profiles_public')
-            .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
+            .select(
+              'user_id, display_name, first_name, last_name, resolved_display_name, avatar_url',
+            )
             .eq('user_id', tripData.created_by)
             .maybeSingle();
 
@@ -131,7 +140,8 @@ export const useTripMembers = (tripId?: string) => {
           if (!creatorProfileData && user && user.id === tripData.created_by) {
             // Use auth user metadata as fallback when profiles_public query returns null
             const meta = (user as any).user_metadata || {};
-            const authName = meta.display_name || meta.full_name || meta.name || user.email?.split('@')[0] || null;
+            const authName =
+              meta.display_name || meta.full_name || meta.name || user.email?.split('@')[0] || null;
             creatorProfileData = {
               user_id: tripData.created_by,
               display_name: authName,
@@ -265,7 +275,11 @@ export const useTripMembers = (tripId?: string) => {
           return false;
         }
 
-        const result = data as { success?: boolean; message?: string; notify_user_id?: string } | null;
+        const result = data as {
+          success?: boolean;
+          message?: string;
+          notify_user_id?: string;
+        } | null;
         if (!result?.success) {
           toast.error(result?.message || 'Failed to leave trip');
           return false;

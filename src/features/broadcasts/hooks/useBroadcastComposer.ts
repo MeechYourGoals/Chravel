@@ -47,7 +47,7 @@ export const useBroadcastComposer = () => {
       location: location.trim() || undefined,
       category,
       recipients: recipient,
-      translateTo: translateTo !== 'none' ? translateTo : undefined
+      translateTo: translateTo !== 'none' ? translateTo : undefined,
     };
   }, [message, location, category, recipient, translateTo, validateBroadcast]);
 
@@ -62,10 +62,14 @@ export const useBroadcastComposer = () => {
 
   const getCategoryColor = useCallback((cat: string) => {
     switch (cat) {
-      case 'chill': return 'bg-blue-600';
-      case 'logistics': return 'bg-yellow-600';
-      case 'urgent': return 'bg-red-600';
-      default: return 'bg-slate-600';
+      case 'chill':
+        return 'bg-blue-600';
+      case 'logistics':
+        return 'bg-yellow-600';
+      case 'urgent':
+        return 'bg-red-600';
+      default:
+        return 'bg-slate-600';
     }
   }, []);
 
@@ -77,12 +81,12 @@ export const useBroadcastComposer = () => {
     recipient,
     translateTo,
     showDetails,
-    
+
     // Computed
     isValid: validateBroadcast().isValid,
     characterCount: message.length,
     maxCharacters: 140,
-    
+
     // Actions
     setMessage,
     setLocation,
@@ -93,6 +97,6 @@ export const useBroadcastComposer = () => {
     validateBroadcast,
     getBroadcastData,
     resetForm,
-    getCategoryColor
+    getCategoryColor,
   };
 };

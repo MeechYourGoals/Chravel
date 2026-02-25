@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AiFeatureHeader } from './ai/AiFeatureHeader';
@@ -26,7 +25,7 @@ export const AiFeatureCard = ({ feature }: AiFeatureCardProps) => {
   const Icon = currentConfig.icon;
 
   return (
-    <div 
+    <div
       onClick={handleClick}
       className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 shadow-xl hover:bg-white/15 transition-all duration-300 cursor-pointer group"
     >

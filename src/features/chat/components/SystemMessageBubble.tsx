@@ -20,7 +20,7 @@ export const SystemMessageBubble: React.FC<SystemMessageBubbleProps> = ({
 
   const formatTimestamp = (ts: string | Date): string => {
     const date = typeof ts === 'string' ? new Date(ts) : ts;
-    
+
     if (isToday(date)) {
       return format(date, 'h:mm a');
     } else if (isYesterday(date)) {

@@ -306,5 +306,5 @@ export const demoTripEventsByTripId: Record<string, TripEvent[]> = Object.fromEn
   Object.entries(demoTripEventSeeds).map(([tripId, seeds]) => [
     String(tripId),
     seeds.map((seed, index) => buildEvent(Number(tripId), index + 1, seed)),
-  ])
+  ]),
 );

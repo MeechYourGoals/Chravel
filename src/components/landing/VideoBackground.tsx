@@ -14,7 +14,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
   imageFallback,
   opacity = 0.4,
   className,
-  imagePosition = 'center'
+  imagePosition = 'center',
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isInView, setIsInView] = useState(false);
@@ -22,16 +22,18 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
 
   useEffect(() => {
     // Check if device should use video (desktop only)
-    const shouldUseVideo = videoSrc && window.innerWidth >= 768 && 
+    const shouldUseVideo =
+      videoSrc &&
+      window.innerWidth >= 768 &&
       !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     setUseVideo(!!shouldUseVideo);
 
     // Intersection Observer for lazy loading
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
+      entries => {
+        entries.forEach(entry => {
           setIsInView(entry.isIntersecting);
-          
+
           if (videoRef.current) {
             if (entry.isIntersecting) {
               videoRef.current.play().catch(() => {
@@ -44,7 +46,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     const currentRef = videoRef.current?.parentElement;
@@ -60,7 +62,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
   }, [videoSrc]);
 
   return (
-    <div className={cn("absolute inset-0 overflow-hidden", className)}>
+    <div className={cn('absolute inset-0 overflow-hidden', className)}>
       {useVideo && videoSrc ? (
         <>
           <video
@@ -75,7 +77,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
           >
             <source src={videoSrc} type="video/mp4" />
           </video>
-          <div 
+          <div
             className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background/80"
             style={{ opacity }}
           />
@@ -89,7 +91,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
             style={{ objectPosition: imagePosition }}
             loading="lazy"
           />
-          <div 
+          <div
             className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/70 to-background/85"
             style={{ opacity }}
           />

@@ -2,21 +2,34 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
-  "hooks": [
-    {
-      "matcher": "Edit|Write",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "prettier --write \"$CLAUDE_FILE_PATHS\""
-        },
-        {
-          "type": "command",
-          "command": "npm run typecheck --if-present"
-        }
-      ]
-    }
-  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh",
+            "background": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "prettier --write \"$CLAUDE_FILE_PATHS\""
+          },
+          {
+            "type": "command",
+            "command": "npm run typecheck --if-present"
+          }
+        ]
+      }
+    ]
+  },
   "pluginMarketplaces": [
     {
       "name": "superpowers-marketplace",

@@ -8,7 +8,7 @@ interface SwipeGestureOptions {
 
 export const useSwipeGesture = (
   elementRef: React.RefObject<HTMLElement>,
-  options?: SwipeGestureOptions
+  options?: SwipeGestureOptions,
 ) => {
   const startX = useRef(0);
   const startY = useRef(0);

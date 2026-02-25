@@ -17,7 +17,7 @@ interface NewChannelModalProps {
 export const NewChannelModal: React.FC<NewChannelModalProps> = ({
   tripId,
   onClose,
-  onChannelCreated
+  onChannelCreated,
 }) => {
   const { createChannel, isCreating: loading } = useChannels(tripId);
   const [formData, setFormData] = useState({
@@ -26,8 +26,8 @@ export const NewChannelModal: React.FC<NewChannelModalProps> = ({
     channel_type: 'custom' as 'role' | 'custom',
     role_filter: {
       role: '',
-      department: ''
-    }
+      department: '',
+    },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +40,7 @@ export const NewChannelModal: React.FC<NewChannelModalProps> = ({
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         channel_type: formData.channel_type,
-        role_filter: formData.channel_type === 'role' ? formData.role_filter : undefined
+        role_filter: formData.channel_type === 'role' ? formData.role_filter : undefined,
       });
 
       if (channel) {
@@ -50,11 +50,11 @@ export const NewChannelModal: React.FC<NewChannelModalProps> = ({
             channel_id: channel.id,
             member_count: 0,
             message_count: 0,
-            unread_count: 0
+            unread_count: 0,
           },
           member_count: 0,
           last_message: undefined,
-          is_unread: false
+          is_unread: false,
         };
 
         onChannelCreated(channelWithStats);
@@ -76,11 +76,13 @@ export const NewChannelModal: React.FC<NewChannelModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name" className="text-white">Channel Name</Label>
+            <Label htmlFor="name" className="text-white">
+              Channel Name
+            </Label>
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
               placeholder="general-chat"
               className="bg-card/50 border-border"
               required
@@ -88,11 +90,13 @@ export const NewChannelModal: React.FC<NewChannelModalProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="description" className="text-white">Description (optional)</Label>
+            <Label htmlFor="description" className="text-white">
+              Description (optional)
+            </Label>
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
               placeholder="What's this channel about?"
               className="bg-card/50 border-border"
               rows={3}
@@ -103,7 +107,9 @@ export const NewChannelModal: React.FC<NewChannelModalProps> = ({
             <Label className="text-white mb-2 block">Channel Type</Label>
             <RadioGroup
               value={formData.channel_type}
-              onValueChange={(value) => setFormData({ ...formData, channel_type: value as 'role' | 'custom' })}
+              onValueChange={value =>
+                setFormData({ ...formData, channel_type: value as 'role' | 'custom' })
+              }
             >
               <div className="flex items-center space-x-2 p-3 rounded-lg border border-border bg-card/50">
                 <RadioGroupItem value="custom" id="custom" />

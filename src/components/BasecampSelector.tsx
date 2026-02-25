@@ -12,15 +12,23 @@ interface BasecampSelectorProps {
   currentBasecamp?: BasecampLocation;
 }
 
-export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampClear, currentBasecamp }: BasecampSelectorProps) => {
+export const BasecampSelector = ({
+  isOpen,
+  onClose,
+  onBasecampSet,
+  onBasecampClear,
+  currentBasecamp,
+}: BasecampSelectorProps) => {
   const [address, setAddress] = useState(currentBasecamp?.address || '');
   const [name, setName] = useState(currentBasecamp?.name || '');
-  const [type, setType] = useState<'hotel' | 'short-term' | 'other'>(currentBasecamp?.type || 'hotel');
+  const [type, setType] = useState<'hotel' | 'short-term' | 'other'>(
+    currentBasecamp?.type || 'hotel',
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // If address is empty, treat as a clear request
     if (!address.trim()) {
       if (currentBasecamp && onBasecampClear) {
@@ -44,21 +52,21 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
       toast.error('Cannot clear basecamp');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     // Safety timeout - reset loading state after 15 seconds if save hangs
     const safetyTimeout = setTimeout(() => {
       setIsLoading(false);
       toast.error('Save timed out. Please try again.');
     }, 15000);
-    
+
     try {
       // Simple text save - no geocoding, no Google Places API validation
       // Users can enter any text: "Grandma's house", "Hotel lobby", etc.
       const trimmedAddress = address.trim();
       const resolvedName = name.trim() || undefined;
-      
+
       const basecamp: BasecampLocation = {
         address: trimmedAddress,
         name: resolvedName,
@@ -66,7 +74,7 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
         // No coordinates - basecamp is just a text reference now
         coordinates: undefined,
       };
-      
+
       await Promise.resolve(onBasecampSet(basecamp));
       clearTimeout(safetyTimeout);
       // Success toast is handled by the caller (mutation hook or BasecampsPanel)
@@ -96,7 +104,7 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
               {currentBasecamp ? 'Update Basecamp' : 'Set Basecamp'}
             </h2>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors border border-gray-700"
           >
@@ -111,11 +119,14 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
               Basecamp Location *
             </label>
             <div className="relative">
-              <MapPin size={18} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" />
+              <MapPin
+                size={18}
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 z-10"
+              />
               <input
                 type="text"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={e => setAddress(e.target.value)}
                 placeholder="e.g., Grandma's house, Hotel lobby, 123 Main St"
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-12 pr-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
               />
@@ -132,19 +143,17 @@ export const BasecampSelector = ({ isOpen, onClose, onBasecampSet, onBasecampCle
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={e => setName(e.target.value)}
               placeholder="e.g., 'The Beach House' or 'Mom's Place'"
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-white mb-2">
-              Type
-            </label>
+            <label className="block text-sm font-semibold text-white mb-2">Type</label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value as 'hotel' | 'short-term' | 'other')}
+              onChange={e => setType(e.target.value as 'hotel' | 'short-term' | 'other')}
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
             >
               <option value="hotel">Hotel</option>

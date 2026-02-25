@@ -1,9 +1,9 @@
 /**
  * useEntitlements Hook
- * 
+ *
  * Lightweight hook for checking feature access without full billing state.
  * Use this in components that only need to check if a feature is available.
- * 
+ *
  * NOTE: This is maintained for backward compatibility.
  * New code should use useUnifiedEntitlements from @/hooks/useUnifiedEntitlements
  */
@@ -19,7 +19,7 @@ export interface UseEntitlementsReturn {
   canUse: (feature: FeatureName, context?: FeatureContext) => boolean;
   hasEntitlement: (entitlement: EntitlementId) => boolean;
   getLimit: (feature: FeatureName) => number;
-  
+
   // State
   isLoading: boolean;
   tier: string;
@@ -33,7 +33,7 @@ export function useEntitlements(): UseEntitlementsReturn {
   const { entitlements, isLoading, tier, isSubscribed, canUseFeature, getLimit } = useBilling();
   const store = useEntitlementsStore();
   const { isDemoMode } = useDemoMode();
-  
+
   /**
    * Check if user has a specific entitlement
    */
@@ -47,16 +47,12 @@ export function useEntitlements(): UseEntitlementsReturn {
       return entitlements.entitlements.has(entitlement);
     };
   }, [entitlements, store.entitlements, isDemoMode]);
-  
+
   // Use unified store if it has data, otherwise fall back to billing hook
-  const effectiveTier = store.plan !== 'free' || store.source !== 'none' 
-    ? store.plan 
-    : tier;
-  
-  const effectiveIsSubscribed = store.source !== 'none'
-    ? store.isSubscribed
-    : isSubscribed;
-  
+  const effectiveTier = store.plan !== 'free' || store.source !== 'none' ? store.plan : tier;
+
+  const effectiveIsSubscribed = store.source !== 'none' ? store.isSubscribed : isSubscribed;
+
   return {
     canUse: canUseFeature,
     hasEntitlement,
@@ -71,24 +67,27 @@ export function useEntitlements(): UseEntitlementsReturn {
  * Hook for checking a single feature
  * Useful for simple gating scenarios
  */
-export function useFeatureAccess(feature: FeatureName, context?: FeatureContext): {
+export function useFeatureAccess(
+  feature: FeatureName,
+  context?: FeatureContext,
+): {
   canAccess: boolean;
   limit: number;
   isLoading: boolean;
 } {
   const { canUseFeature, getLimit, isLoading } = useBilling();
   const { isDemoMode } = useDemoMode();
-  
+
   const canAccess = useMemo(() => {
     if (isDemoMode) return true;
     return canUseFeature(feature, context);
   }, [canUseFeature, feature, context, isDemoMode]);
-  
+
   const limit = useMemo(() => {
     if (isDemoMode) return -1;
     return getLimit(feature);
   }, [getLimit, feature, isDemoMode]);
-  
+
   return {
     canAccess,
     limit,
@@ -108,18 +107,18 @@ export function useProAccess(): {
   const { tier, canUseFeature, isLoading } = useBilling();
   const store = useEntitlementsStore();
   const { isDemoMode } = useDemoMode();
-  
+
   const isPro = useMemo(() => {
     if (isDemoMode) return true;
     if (store.isPro) return true;
     return tier.startsWith('pro-') || tier === 'frequent-chraveler';
   }, [tier, store.isPro, isDemoMode]);
-  
+
   const canCreateProTrip = useMemo(() => {
     if (isDemoMode) return true;
     return canUseFeature('pro_trip_creation');
   }, [canUseFeature, isDemoMode]);
-  
+
   return {
     isPro,
     canCreateProTrip,

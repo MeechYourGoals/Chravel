@@ -38,7 +38,11 @@ export class MockRolesService {
     return [];
   }
 
-  static seedChannelsForRoles(tripId: string, roles: TripRole[], currentUserId: string): TripChannel[] {
+  static seedChannelsForRoles(
+    tripId: string,
+    roles: TripRole[],
+    currentUserId: string,
+  ): TripChannel[] {
     const channels: TripChannel[] = roles.map((role, index) => ({
       id: `mock-channel-${tripId}-${index}`,
       tripId,
@@ -77,7 +81,7 @@ export class MockRolesService {
     roleName: string,
     description: string,
     permissionLevel: 'admin' | 'edit' | 'view',
-    currentUserId: string
+    currentUserId: string,
   ): TripRole {
     const allRoles = this.getAllRoles();
     const tripRoles = allRoles[tripId] || [];
@@ -137,19 +141,53 @@ export class MockRolesService {
   private static getDefaultFeaturePermissions(level: string): FeaturePermissions {
     if (level === 'admin') {
       return {
-        channels: { can_view: true, can_post: true, can_edit_messages: true, can_delete_messages: true, can_manage_members: true },
-        calendar: { can_view: true, can_create_events: true, can_edit_events: true, can_delete_events: true },
-        tasks: { can_view: true, can_create: true, can_assign: true, can_complete: true, can_delete: true },
+        channels: {
+          can_view: true,
+          can_post: true,
+          can_edit_messages: true,
+          can_delete_messages: true,
+          can_manage_members: true,
+        },
+        calendar: {
+          can_view: true,
+          can_create_events: true,
+          can_edit_events: true,
+          can_delete_events: true,
+        },
+        tasks: {
+          can_view: true,
+          can_create: true,
+          can_assign: true,
+          can_complete: true,
+          can_delete: true,
+        },
         media: { can_view: true, can_upload: true, can_delete_own: true, can_delete_any: true },
         payments: { can_view: true, can_create: true, can_approve: true },
       };
     }
-    
+
     if (level === 'edit') {
       return {
-        channels: { can_view: true, can_post: true, can_edit_messages: false, can_delete_messages: false, can_manage_members: false },
-        calendar: { can_view: true, can_create_events: true, can_edit_events: false, can_delete_events: false },
-        tasks: { can_view: true, can_create: true, can_assign: false, can_complete: true, can_delete: false },
+        channels: {
+          can_view: true,
+          can_post: true,
+          can_edit_messages: false,
+          can_delete_messages: false,
+          can_manage_members: false,
+        },
+        calendar: {
+          can_view: true,
+          can_create_events: true,
+          can_edit_events: false,
+          can_delete_events: false,
+        },
+        tasks: {
+          can_view: true,
+          can_create: true,
+          can_assign: false,
+          can_complete: true,
+          can_delete: false,
+        },
         media: { can_view: true, can_upload: true, can_delete_own: true, can_delete_any: false },
         payments: { can_view: true, can_create: false, can_approve: false },
       };
@@ -157,9 +195,26 @@ export class MockRolesService {
 
     // view level
     return {
-      channels: { can_view: true, can_post: false, can_edit_messages: false, can_delete_messages: false, can_manage_members: false },
-      calendar: { can_view: true, can_create_events: false, can_edit_events: false, can_delete_events: false },
-      tasks: { can_view: true, can_create: false, can_assign: false, can_complete: true, can_delete: false },
+      channels: {
+        can_view: true,
+        can_post: false,
+        can_edit_messages: false,
+        can_delete_messages: false,
+        can_manage_members: false,
+      },
+      calendar: {
+        can_view: true,
+        can_create_events: false,
+        can_edit_events: false,
+        can_delete_events: false,
+      },
+      tasks: {
+        can_view: true,
+        can_create: false,
+        can_assign: false,
+        can_complete: true,
+        can_delete: false,
+      },
       media: { can_view: true, can_upload: false, can_delete_own: false, can_delete_any: false },
       payments: { can_view: true, can_create: false, can_approve: false },
     };

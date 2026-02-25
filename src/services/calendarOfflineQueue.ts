@@ -23,12 +23,7 @@ class CalendarOfflineQueue {
    * Queue a calendar event creation
    */
   async queueCreate(tripId: string, eventData: CreateEventData): Promise<string> {
-    return offlineSyncService.queueOperation(
-      'calendar_event',
-      'create',
-      tripId,
-      eventData
-    );
+    return offlineSyncService.queueOperation('calendar_event', 'create', tripId, eventData);
   }
 
   /**
@@ -38,7 +33,7 @@ class CalendarOfflineQueue {
     tripId: string,
     eventId: string,
     updates: Partial<TripEvent>,
-    version?: number
+    version?: number,
   ): Promise<string> {
     return offlineSyncService.queueOperation(
       'calendar_event',
@@ -46,7 +41,7 @@ class CalendarOfflineQueue {
       tripId,
       updates,
       eventId,
-      version
+      version,
     );
   }
 
@@ -54,13 +49,7 @@ class CalendarOfflineQueue {
    * Queue a calendar event deletion
    */
   async queueDelete(tripId: string, eventId: string): Promise<string> {
-    return offlineSyncService.queueOperation(
-      'calendar_event',
-      'delete',
-      tripId,
-      {},
-      eventId
-    );
+    return offlineSyncService.queueOperation('calendar_event', 'delete', tripId, {}, eventId);
   }
 
   /**

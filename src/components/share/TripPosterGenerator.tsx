@@ -29,46 +29,47 @@ interface TripPosterGeneratorProps {
 export const TripPosterGenerator = ({ trip, colorTheme }: TripPosterGeneratorProps) => {
   const taglines = [
     "Let's make memories!",
-    "Adventure awaits!",
-    "Ready for an epic trip?",
-    "Join the adventure!"
+    'Adventure awaits!',
+    'Ready for an epic trip?',
+    'Join the adventure!',
   ];
-  
+
   const randomTagline = taglines[Math.floor(Math.random() * taglines.length)];
 
   // Default theme if none provided
   const defaultTheme: ColorTheme = {
     name: 'gold',
-    background: 'linear-gradient(135deg, hsl(45 93% 58%) 0%, hsl(43 89% 38%) 50%, hsl(41 85% 28%) 100%)',
-    overlay: 'bg-gradient-to-b from-black/20 via-black/30 to-black/40'
+    background:
+      'linear-gradient(135deg, hsl(45 93% 58%) 0%, hsl(43 89% 38%) 50%, hsl(41 85% 28%) 100%)',
+    overlay: 'bg-gradient-to-b from-black/20 via-black/30 to-black/40',
   };
 
   const theme = colorTheme || defaultTheme;
 
   return (
-    <div 
+    <div
       id="trip-poster"
       className="relative w-[540px] h-[675px] rounded-3xl p-8 overflow-hidden animate-scale-in"
       style={{
         background: theme.background,
-        boxShadow: '0px 8px 32px rgba(0,0,0,0.25)'
+        boxShadow: '0px 8px 32px rgba(0,0,0,0.25)',
       }}
     >
       {/* Background overlay for text readability */}
       <div className={`absolute inset-0 ${theme.overlay} rounded-3xl`} />
-      
+
       {/* Content */}
       <div className="relative z-10 h-full flex flex-col justify-between text-white">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold mb-4 leading-tight">{trip.title}</h1>
-          
+
           {/* Location */}
           <div className="flex items-center justify-center gap-3 mb-4">
             <MapPin size={24} className="text-primary-foreground" />
             <span className="text-2xl text-white/90">{trip.location}</span>
           </div>
-          
+
           {/* Date */}
           <div className="flex items-center justify-center gap-3 mb-6">
             <Calendar size={24} className="text-primary-foreground" />
@@ -84,7 +85,7 @@ export const TripPosterGenerator = ({ trip, colorTheme }: TripPosterGeneratorPro
               {trip.participants.length} Chraveler{trip.participants.length !== 1 ? 's' : ''}
             </span>
           </div>
-          
+
           {/* Avatars */}
           {trip.participants.length > 0 && (
             <div className="flex justify-center -space-x-4 mb-8">

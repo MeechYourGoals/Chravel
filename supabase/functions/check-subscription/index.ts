@@ -114,8 +114,8 @@ serve(async req => {
     });
 
     if (subscriptions.data.length === 0) {
-      logStep("No active subscription, checking for Trip Pass");
-      
+      logStep('No active subscription, checking for Trip Pass');
+
       // Check for active Trip Pass in user_entitlements
       const { data: passData } = await supabaseClient
         .from('user_entitlements')
@@ -124,11 +124,15 @@ serve(async req => {
         .eq('purchase_type', 'pass')
         .eq('status', 'active')
         .maybeSingle();
-      
-      if (passData && passData.current_period_end && new Date(passData.current_period_end) > new Date()) {
+
+      if (
+        passData &&
+        passData.current_period_end &&
+        new Date(passData.current_period_end) > new Date()
+      ) {
         const passTier = passData.plan || 'explorer';
-        logStep("Active Trip Pass found", { tier: passTier, expires: passData.current_period_end });
-        
+        logStep('Active Trip Pass found', { tier: passTier, expires: passData.current_period_end });
+
         return createSecureResponse({
           subscribed: true,
           tier: passTier,

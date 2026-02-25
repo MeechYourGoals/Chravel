@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Purchases, type Offering, type Package, type CustomerInfo, ErrorCode, PurchasesError } from '@revenuecat/purchases-js';
+import {
+  Purchases,
+  type Offering,
+  type Package,
+  type CustomerInfo,
+  ErrorCode,
+  PurchasesError,
+} from '@revenuecat/purchases-js';
 import { Check, Loader2, Crown, Sparkles, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -47,7 +54,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [isEntitled, setIsEntitled] = useState(false);
-  
+
   const purchaseContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch offerings on mount
@@ -58,11 +65,11 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
         setError(null);
 
         const purchases = Purchases.getSharedInstance();
-        
+
         // Get customer info to check entitlements
         const info = await purchases.getCustomerInfo();
         setCustomerInfo(info);
-        
+
         // Check if user already has access
         if (entitlementId && info.entitlements.active[entitlementId]) {
           setIsEntitled(true);
@@ -73,9 +80,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
           offeringIdentifier: offeringId,
         });
 
-        const offering = offeringId 
-          ? offeringsResult.all[offeringId] 
-          : offeringsResult.current;
+        const offering = offeringId ? offeringsResult.all[offeringId] : offeringsResult.current;
 
         if (offering) {
           setOfferings(offering);
@@ -107,7 +112,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
       setError(null);
 
       const purchases = Purchases.getSharedInstance();
-      
+
       const result = await purchases.purchase({
         rcPackage: selectedPackage,
         customerEmail,
@@ -118,7 +123,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
       if (entitlementId && result.customerInfo.entitlements.active[entitlementId]) {
         setIsEntitled(true);
       }
-      
+
       setCustomerInfo(result.customerInfo);
       onPurchaseComplete?.(result.customerInfo);
     } catch (err) {
@@ -142,10 +147,10 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
   const formatPackage = (pkg: Package): PackageDisplayInfo => {
     const product = pkg.webBillingProduct;
     const price = product.price;
-    
+
     let period = '';
     let savings: string | undefined;
-    
+
     switch (pkg.packageType) {
       case '$rc_annual':
         period = '/year';
@@ -194,11 +199,17 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
   };
 
   // Get available packages
-  const packages: PackageDisplayInfo[] = offerings?.availablePackages
-    .map(formatPackage)
-    .sort((a, b) => {
+  const packages: PackageDisplayInfo[] =
+    offerings?.availablePackages.map(formatPackage).sort((a, b) => {
       // Sort: annual first, then by period length
-      const order = ['$rc_annual', '$rc_six_month', '$rc_three_month', '$rc_monthly', '$rc_weekly', '$rc_lifetime'];
+      const order = [
+        '$rc_annual',
+        '$rc_six_month',
+        '$rc_three_month',
+        '$rc_monthly',
+        '$rc_weekly',
+        '$rc_lifetime',
+      ];
       return order.indexOf(a.pkg.packageType) - order.indexOf(b.pkg.packageType);
     }) || [];
 
@@ -241,9 +252,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
           <div className="w-16 h-16 mx-auto mb-4 bg-primary/20 rounded-full flex items-center justify-center">
             <Crown className="w-8 h-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">
-            Unlock Premium
-          </h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Unlock Premium</h2>
           <p className="text-muted-foreground">
             Get access to all premium features and enhance your travel experience.
           </p>
@@ -278,7 +287,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
                     'Advanced budget tracking',
                     'Priority support',
                     'No ads',
-                  ].map((feature) => (
+                  ].map(feature => (
                     <li key={feature} className="flex items-center gap-2 text-sm text-foreground">
                       <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                         <Check className="w-3 h-3 text-primary" />
@@ -291,7 +300,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
 
               {/* Package selection */}
               <div className="space-y-3 mb-6">
-                {packages.map((packageInfo) => (
+                {packages.map(packageInfo => (
                   <button
                     key={packageInfo.pkg.identifier}
                     onClick={() => setSelectedPackage(packageInfo.pkg)}
@@ -301,7 +310,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
                       selectedPackage?.identifier === packageInfo.pkg.identifier
                         ? 'border-primary bg-primary/10'
                         : 'border-border hover:border-primary/50 bg-card',
-                      purchasing && 'opacity-50 cursor-not-allowed'
+                      purchasing && 'opacity-50 cursor-not-allowed',
                     )}
                   >
                     {packageInfo.isBestValue && (
@@ -312,9 +321,7 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
                     )}
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-semibold text-foreground">
-                          {packageInfo.title}
-                        </div>
+                        <div className="font-semibold text-foreground">{packageInfo.title}</div>
                         {packageInfo.description && (
                           <div className="text-sm text-muted-foreground">
                             {packageInfo.description}
@@ -336,12 +343,14 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
                       </div>
                     </div>
                     {/* Selection indicator */}
-                    <div className={cn(
-                      'absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center',
-                      selectedPackage?.identifier === packageInfo.pkg.identifier
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground'
-                    )}>
+                    <div
+                      className={cn(
+                        'absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center',
+                        selectedPackage?.identifier === packageInfo.pkg.identifier
+                          ? 'border-primary bg-primary'
+                          : 'border-muted-foreground',
+                      )}
+                    >
                       {selectedPackage?.identifier === packageInfo.pkg.identifier && (
                         <Check className="w-3 h-3 text-primary-foreground" />
                       )}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Heart, Plus, Lock, AlertTriangle, Activity } from 'lucide-react';
 
@@ -13,7 +12,7 @@ export const WellnessLog = () => {
       description: 'Minor ankle sprain during practice',
       severity: 'minor' as const,
       status: 'active' as const,
-      private: false
+      private: false,
     },
     {
       id: '2',
@@ -24,7 +23,7 @@ export const WellnessLog = () => {
       description: 'Physical therapy session for shoulder',
       severity: 'moderate' as const,
       status: 'resolved' as const,
-      private: true
+      private: true,
     },
     {
       id: '3',
@@ -35,25 +34,33 @@ export const WellnessLog = () => {
       description: 'Routine medical examination',
       severity: 'minor' as const,
       status: 'resolved' as const,
-      private: false
-    }
+      private: false,
+    },
   ]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'injury': return <AlertTriangle size={16} className="text-red-400" />;
-      case 'treatment': return <Activity size={16} className="text-blue-400" />;
-      case 'checkup': return <Heart size={16} className="text-green-400" />;
-      default: return <Heart size={16} className="text-gray-400" />;
+      case 'injury':
+        return <AlertTriangle size={16} className="text-red-400" />;
+      case 'treatment':
+        return <Activity size={16} className="text-blue-400" />;
+      case 'checkup':
+        return <Heart size={16} className="text-green-400" />;
+      default:
+        return <Heart size={16} className="text-gray-400" />;
     }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'minor': return 'bg-green-500/20 text-green-400';
-      case 'moderate': return 'bg-yellow-500/20 text-yellow-400';
-      case 'severe': return 'bg-red-500/20 text-red-400';
-      default: return 'bg-gray-500/20 text-gray-400';
+      case 'minor':
+        return 'bg-green-500/20 text-green-400';
+      case 'moderate':
+        return 'bg-yellow-500/20 text-yellow-400';
+      case 'severe':
+        return 'bg-red-500/20 text-red-400';
+      default:
+        return 'bg-gray-500/20 text-gray-400';
     }
   };
 
@@ -103,9 +110,9 @@ export const WellnessLog = () => {
           <span className="font-medium">Privacy & Compliance</span>
         </div>
         <p className="text-sm text-gray-300">
-          All medical information is encrypted and access-controlled. Only authorized medical staff 
-          and designated team personnel can view sensitive health data. HIPAA compliance is maintained 
-          for all entries marked as private.
+          All medical information is encrypted and access-controlled. Only authorized medical staff
+          and designated team personnel can view sensitive health data. HIPAA compliance is
+          maintained for all entries marked as private.
         </p>
       </div>
 
@@ -113,7 +120,7 @@ export const WellnessLog = () => {
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h4 className="text-lg font-semibold text-white mb-4">Recent Entries</h4>
         <div className="space-y-4">
-          {entries.map((entry) => (
+          {entries.map(entry => (
             <div key={entry.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -127,18 +134,26 @@ export const WellnessLog = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getSeverityColor(entry.severity)}`}>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${getSeverityColor(entry.severity)}`}
+                  >
                     {entry.severity.toUpperCase()}
                   </span>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    entry.status === 'active' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
-                  }`}>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      entry.status === 'active'
+                        ? 'bg-red-500/20 text-red-400'
+                        : 'bg-green-500/20 text-green-400'
+                    }`}
+                  >
                     {entry.status.toUpperCase()}
                   </span>
-                  <button className="text-glass-orange hover:text-glass-orange/80 text-sm">Edit</button>
+                  <button className="text-glass-orange hover:text-glass-orange/80 text-sm">
+                    Edit
+                  </button>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="text-gray-400">
                   <span className="text-white">Date:</span> {entry.date}
@@ -147,7 +162,8 @@ export const WellnessLog = () => {
                   <span className="text-white">Type:</span> {entry.type}
                 </div>
                 <div className="text-gray-400">
-                  <span className="text-white">Access:</span> {entry.private ? 'Private' : 'Team Visible'}
+                  <span className="text-white">Access:</span>{' '}
+                  {entry.private ? 'Private' : 'Team Visible'}
                 </div>
               </div>
             </div>

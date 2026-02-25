@@ -23,10 +23,9 @@ class AnalyticsService {
 
   identify(userId: string, traits?: Record<string, any>) {
     this.userId = userId;
-    
+
     // In production, send to Segment
     // analytics.identify(userId, traits);
-    
   }
 
   track(eventName: string, properties?: Record<string, any>) {
@@ -39,14 +38,13 @@ class AnalyticsService {
       properties: {
         ...properties,
         demo_mode: localStorage.getItem('TRIPS_DEMO_MODE') === 'true',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      userId: this.userId || undefined
+      userId: this.userId || undefined,
     };
 
     // In production, send to Segment
     // analytics.track(eventName, event.properties);
-    
   }
 
   page(name: string, properties?: Record<string, any>) {
@@ -56,15 +54,13 @@ class AnalyticsService {
 
     // In production, send to Segment
     // analytics.page(name, properties);
-    
   }
 
   reset() {
     this.userId = null;
-    
+
     // In production, reset Segment
     // analytics.reset();
-    
   }
 }
 

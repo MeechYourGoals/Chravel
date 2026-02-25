@@ -37,4 +37,3 @@ export function useResolvedTripMediaUrl(params: {
 
   return resolvedUrl;
 }
-

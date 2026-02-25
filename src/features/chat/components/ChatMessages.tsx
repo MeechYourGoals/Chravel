@@ -13,7 +13,12 @@ interface ChatMessagesProps {
   onDeleteMessage?: (messageId: string) => void;
 }
 
-export const ChatMessages = ({ messages, isTyping, showMapWidgets = false, onDeleteMessage }: ChatMessagesProps) => {
+export const ChatMessages = ({
+  messages,
+  isTyping,
+  showMapWidgets = false,
+  onDeleteMessage,
+}: ChatMessagesProps) => {
   if (messages.length === 0) {
     return (
       <div className="text-center py-8">
@@ -26,20 +31,28 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false, onDel
 
   return (
     <>
-      {messages.map((message) => {
+      {messages.map(message => {
         const messageWithGrounding = message as ChatMessageWithGrounding;
         return (
           <div key={message.id} id={`msg-${message.id}`} className="space-y-2 group/msg relative">
             <MessageRenderer message={message} showMapWidgets={showMapWidgets} />
-            
+
             {/* Rich place cards from function_call results (searchPlaces / getPlaceDetails) */}
-            {(message as any).functionCallPlaces && (message as any).functionCallPlaces.length > 0 && (
-              <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}>
-                <PlaceResultCards places={(message as any).functionCallPlaces} className="max-w-xs lg:max-w-md" />
-              </div>
-            )}
+            {(message as any).functionCallPlaces &&
+              (message as any).functionCallPlaces.length > 0 && (
+                <div
+                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+                >
+                  <PlaceResultCards
+                    places={(message as any).functionCallPlaces}
+                    className="max-w-xs lg:max-w-md"
+                  />
+                </div>
+              )}
             {onDeleteMessage && (
-              <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}>
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
                 <button
                   type="button"
                   onClick={() => onDeleteMessage(message.id)}
@@ -51,22 +64,27 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false, onDel
                 </button>
               </div>
             )}
-            
+
             {/* Render Maps widget for gmp-place-contextual context tokens */}
-            {showMapWidgets && messageWithGrounding.googleMapsWidget &&
+            {showMapWidgets &&
+              messageWithGrounding.googleMapsWidget &&
               !messageWithGrounding.googleMapsWidget.trimStart().startsWith('<') && (
-              <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <GoogleMapsWidget widgetToken={messageWithGrounding.googleMapsWidget} />
-              </div>
-            )}
-            
+                <div
+                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <GoogleMapsWidget widgetToken={messageWithGrounding.googleMapsWidget} />
+                </div>
+              )}
+
             {/* 🆕 Enhanced: Show grounding sources with badge */}
             {messageWithGrounding.sources && messageWithGrounding.sources.length > 0 && (
               <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className="space-y-1 px-2 max-w-xs lg:max-w-md">
                   <div className="text-xs font-medium text-gray-400 flex items-center gap-2">
                     <span>Sources:</span>
-                    {messageWithGrounding.sources.some(s => s.source === 'google_maps_grounding') && (
+                    {messageWithGrounding.sources.some(
+                      s => s.source === 'google_maps_grounding',
+                    ) && (
                       <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px]">
                         Verified by Google Maps
                       </span>
@@ -94,8 +112,14 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false, onDel
           <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-4 border border-blue-500/20">
             <div className="flex space-x-1">
               <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+              <div
+                className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                style={{ animationDelay: '0.1s' }}
+              ></div>
+              <div
+                className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                style={{ animationDelay: '0.2s' }}
+              ></div>
             </div>
           </div>
         </div>

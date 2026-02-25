@@ -19,10 +19,10 @@ export const AcceptOrganizationInvite = () => {
   const [searchParams] = useSearchParams();
   const tokenFromQuery = searchParams.get('token');
   const inviteToken = token || tokenFromQuery;
-  
+
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [inviteDetails, setInviteDetails] = useState<InviteDetails | null>(null);
@@ -50,11 +50,12 @@ export const AcceptOrganizationInvite = () => {
   const fetchInviteDetails = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch invite details
       const { data: invite, error: inviteError } = await supabase
         .from('organization_invites')
-        .select(`
+        .select(
+          `
           organization_id,
           email,
           role,
@@ -66,7 +67,8 @@ export const AcceptOrganizationInvite = () => {
           invited_by_profile:invited_by (
             id
           )
-        `)
+        `,
+        )
         .eq('token', inviteToken)
         .single();
 
@@ -91,7 +93,9 @@ export const AcceptOrganizationInvite = () => {
 
       // Check if user's email matches invite
       if (user?.email !== invite.email) {
-        setError(`This invitation was sent to ${invite.email}. Please log in with that email address.`);
+        setError(
+          `This invitation was sent to ${invite.email}. Please log in with that email address.`,
+        );
         setLoading(false);
         return;
       }
@@ -118,7 +122,7 @@ export const AcceptOrganizationInvite = () => {
         organization_name: (invite.organizations as any)?.display_name || 'Unknown Organization',
         invited_by_name: 'Team Admin',
         role: invite.role,
-        email: invite.email
+        email: invite.email,
       });
     } catch (error) {
       console.error('Error fetching invite details:', error);
@@ -133,10 +137,10 @@ export const AcceptOrganizationInvite = () => {
 
     try {
       setAccepting(true);
-      
+
       // Call accept-organization-invite edge function
       const { data, error } = await supabase.functions.invoke('accept-organization-invite', {
-        body: { token: inviteToken }
+        body: { token: inviteToken },
       });
 
       if (error) throw error;
@@ -147,12 +151,11 @@ export const AcceptOrganizationInvite = () => {
       }
 
       setSuccess(true);
-      
+
       // Redirect to organization dashboard after 2 seconds
       setTimeout(() => {
         navigate(`/organization/${inviteDetails?.organization_id}`);
       }, 2000);
-      
     } catch (error) {
       console.error('Error accepting invite:', error);
       setError('Failed to accept invitation. Please try again.');
@@ -180,9 +183,7 @@ export const AcceptOrganizationInvite = () => {
             <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Invalid Invitation</h2>
             <p className="text-gray-400 mb-6">{error}</p>
-            <Button onClick={() => navigate('/organizations')}>
-              View My Organizations
-            </Button>
+            <Button onClick={() => navigate('/organizations')}>View My Organizations</Button>
           </CardContent>
         </Card>
       </div>
