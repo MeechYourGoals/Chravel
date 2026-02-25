@@ -21,6 +21,10 @@
     {
       "name": "superpowers-marketplace",
       "source": "obra/superpowers-marketplace"
+    },
+    {
+      "name": "agent-browser-marketplace",
+      "source": "vercel-labs/agent-browser"
     }
   ],
   "plugins": [
@@ -28,6 +32,11 @@
       "name": "superpowers",
       "marketplace": "superpowers-marketplace",
       "version": "4.3.1"
+    },
+    {
+      "name": "agent-browser",
+      "marketplace": "agent-browser-marketplace",
+      "version": "latest"
     }
   ]
 }

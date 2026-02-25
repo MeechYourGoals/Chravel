@@ -1,0 +1,20 @@
+{
+  "name": "agent-browser-marketplace",
+  "description": "Marketplace for Vercel Labs agent-browser skills",
+  "source": "vercel-labs/agent-browser",
+  "owner": {
+    "name": "Vercel Labs",
+    "url": "https://github.com/vercel-labs"
+  },
+  "plugins": [
+    {
+      "name": "agent-browser",
+      "description": "Browser automation skills for AI agents, including dogfood QA testing",
+      "version": "latest",
+      "repository": "https://github.com/vercel-labs/agent-browser",
+      "author": {
+        "name": "Vercel Labs"
+      }
+    }
+  ]
+}

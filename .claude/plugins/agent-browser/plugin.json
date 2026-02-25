@@ -1,0 +1,15 @@
+{
+  "name": "agent-browser",
+  "description": "Browser automation skills for AI agents, including dogfood QA testing",
+  "version": "latest",
+  "author": {
+    "name": "Vercel Labs"
+  },
+  "homepage": "https://github.com/vercel-labs/agent-browser",
+  "repository": "https://github.com/vercel-labs/agent-browser",
+  "license": "MIT",
+  "keywords": ["browser", "automation", "qa", "testing", "dogfood"],
+  "skills": [
+    "dogfood"
+  ]
+}
