@@ -6,6 +6,17 @@
  *   place it in the same parity column using these constants.
  */
 
+/**
+ * Trip card action button styles - ensures visual parity across Recap, Invite, View, Share.
+ * Used by TripCard, ProTripCard, EventCard, MobileEventCard for both demo and authenticated modes.
+ * Do NOT add gold/yellow/gradient to View or Recap - all four buttons must match.
+ */
+export const TRIP_CARD_ACTION_BUTTON_CONSUMER =
+  'bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm flex items-center justify-center gap-1.5';
+
+export const TRIP_CARD_ACTION_BUTTON_PRO_EVENT =
+  'bg-black/30 hover:bg-black/40 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-xs md:text-sm flex items-center justify-center gap-2';
+
 export const PARITY_ACTION_BUTTON_CLASS =
   'w-full min-h-[42px] px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200';
 

@@ -41,6 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { TRIP_CARD_ACTION_BUTTON_PRO_EVENT } from '../lib/tabParity';
 
 interface MobileEventCardProps {
   event: EventData;
@@ -322,31 +323,31 @@ export const MobileEventCard = ({
           </span>
         </div>
 
-        {/* Action Buttons - 2x2 Grid matching TripCard/ProTripCard */}
+        {/* Action Buttons - 2x2 Grid. All four match for demo + auth parity. */}
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => setShowExportModal(true)}
-            className="bg-black/30 hover:bg-black/40 text-white py-3 rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-sm flex items-center justify-center gap-2"
+            className={`${TRIP_CARD_ACTION_BUTTON_PRO_EVENT} py-3 text-sm`}
           >
             <FileDown size={16} />
             Recap
           </button>
           <button
             onClick={() => setShowInviteModal(true)}
-            className="bg-black/30 hover:bg-black/40 text-white py-3 rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-sm flex items-center justify-center gap-2"
+            className={`${TRIP_CARD_ACTION_BUTTON_PRO_EVENT} py-3 text-sm`}
           >
             <UserPlus size={16} />
             Invite
           </button>
           <button
             onClick={handleViewEvent}
-            className="bg-black/30 hover:bg-black/40 text-white font-medium py-3 rounded-xl transition-all duration-200 text-sm border border-white/20 hover:border-white/30 flex items-center justify-center gap-2"
+            className={`${TRIP_CARD_ACTION_BUTTON_PRO_EVENT} py-3 text-sm`}
           >
             View Event
           </button>
           <button
             onClick={() => setShowShareModal(true)}
-            className="bg-black/30 hover:bg-black/40 text-white py-3 rounded-xl transition-all duration-200 font-medium border border-white/20 hover:border-white/30 text-sm flex items-center justify-center gap-2"
+            className={`${TRIP_CARD_ACTION_BUTTON_PRO_EVENT} py-3 text-sm`}
           >
             <Share2 size={16} />
             Share
