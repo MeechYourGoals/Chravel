@@ -604,27 +604,58 @@ export const AIConciergeChat = ({
               if (!receivedAnyChunk) {
                 receivedAnyChunk = true;
                 setIsTyping(false);
-                setMessages(prev => [
-                  ...prev,
-                  {
-                    id: streamingMessageId,
-                    type: 'assistant' as const,
-                    content: text,
-                    timestamp: new Date().toISOString(),
-                  },
-                ]);
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === streamingMessageId);
+                  if (idx !== -1) {
+                    // Message already created by onFunctionCall (place cards) — append text to it
+                    const updated = [...prev];
+                    updated[idx] = { ...updated[idx], content: text };
+                    return updated;
+                  }
+                  return [
+                    ...prev,
+                    {
+                      id: streamingMessageId,
+                      type: 'assistant' as const,
+                      content: text,
+                      timestamp: new Date().toISOString(),
+                    },
+                  ];
+                });
                 return;
               }
               updateStreamMsg(msg => ({ content: msg.content + text }));
             },
             onFunctionCall: (name: string, result: Record<string, unknown>) => {
               if (!isMounted.current) return;
-              // Render place results immediately from searchPlaces or getPlaceDetails
+              // Ensure the streaming message exists so place cards render immediately,
+              // even before the first text chunk arrives (tools run before LLM response).
+              const ensureAndPatch = (patch: Partial<ChatMessage>) => {
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === streamingMessageId);
+                  if (idx !== -1) {
+                    const updated = [...prev];
+                    updated[idx] = { ...updated[idx], ...patch };
+                    return updated;
+                  }
+                  // Create placeholder message so place cards appear immediately
+                  return [
+                    ...prev,
+                    {
+                      id: streamingMessageId,
+                      type: 'assistant' as const,
+                      content: '',
+                      timestamp: new Date().toISOString(),
+                      ...patch,
+                    },
+                  ];
+                });
+              };
+
               if (name === 'searchPlaces' && result.places && Array.isArray(result.places)) {
-                updateStreamMsg(() => ({ functionCallPlaces: result.places as ChatMessage['functionCallPlaces'] }));
+                ensureAndPatch({ functionCallPlaces: result.places as ChatMessage['functionCallPlaces'] });
               }
               if (name === 'getPlaceDetails' && result.success) {
-                // Merge single place detail into existing places or create new entry
                 const detailPlace = {
                   placeId: result.placeId as string,
                   name: result.name as string,
@@ -638,11 +669,23 @@ export const AIConciergeChat = ({
                 };
                 setMessages(prev => {
                   const idx = prev.findIndex(m => m.id === streamingMessageId);
-                  if (idx === -1) return prev;
-                  const existing = prev[idx].functionCallPlaces || [];
-                  const updated = [...prev];
-                  updated[idx] = { ...updated[idx], functionCallPlaces: [...existing, detailPlace] };
-                  return updated;
+                  if (idx !== -1) {
+                    const existing = prev[idx].functionCallPlaces || [];
+                    const updated = [...prev];
+                    updated[idx] = { ...updated[idx], functionCallPlaces: [...existing, detailPlace] };
+                    return updated;
+                  }
+                  // Create placeholder with this first place detail
+                  return [
+                    ...prev,
+                    {
+                      id: streamingMessageId,
+                      type: 'assistant' as const,
+                      content: '',
+                      timestamp: new Date().toISOString(),
+                      functionCallPlaces: [detailPlace],
+                    },
+                  ];
                 });
               }
             },
