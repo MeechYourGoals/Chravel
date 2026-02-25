@@ -16,7 +16,10 @@ export interface RoleOption {
 /**
  * Get available role options for a category, combining predefined and existing custom roles
  */
-export const getRoleOptions = (category: ProTripCategory, existingRoles: string[]): RoleOption[] => {
+export const getRoleOptions = (
+  category: ProTripCategory,
+  existingRoles: string[],
+): RoleOption[] => {
   const categoryConfig = getCategoryConfig(category);
   const options: RoleOption[] = [];
 
@@ -25,20 +28,18 @@ export const getRoleOptions = (category: ProTripCategory, existingRoles: string[
     options.push({
       value: role,
       label: role,
-      isCustom: false
+      isCustom: false,
     });
   });
 
   // Add existing custom roles (roles not in predefined list)
-  const customRoles = existingRoles.filter(role => 
-    !categoryConfig.roles.includes(role)
-  );
+  const customRoles = existingRoles.filter(role => !categoryConfig.roles.includes(role));
 
   customRoles.forEach(role => {
     options.push({
       value: role,
       label: role,
-      isCustom: true
+      isCustom: true,
     });
   });
 
@@ -56,11 +57,13 @@ export const extractUniqueRoles = (participants: Array<{ role: string }>): strin
 /**
  * Validate role count against MVP limit
  */
-export const validateRoleCount = (currentRoleCount: number): { isValid: boolean; error?: string } => {
+export const validateRoleCount = (
+  currentRoleCount: number,
+): { isValid: boolean; error?: string } => {
   if (currentRoleCount >= MAX_ROLES_PER_TRIP) {
-    return { 
-      isValid: false, 
-      error: `Maximum ${MAX_ROLES_PER_TRIP} roles allowed per trip for MVP` 
+    return {
+      isValid: false,
+      error: `Maximum ${MAX_ROLES_PER_TRIP} roles allowed per trip for MVP`,
     };
   }
   return { isValid: true };
@@ -97,7 +100,7 @@ export const normalizeRole = (role: string): string => {
  */
 export const getRoleColorClass = (role: string, category: ProTripCategory): string => {
   const categoryConfig = getCategoryConfig(category);
-  
+
   // Use different colors for predefined vs custom roles
   if (categoryConfig.roles.includes(role)) {
     // Predefined roles get the primary red color
@@ -112,17 +115,15 @@ export const getRoleColorClass = (role: string, category: ProTripCategory): stri
  * Get role suggestions based on partial input
  */
 export const getRoleSuggestions = (
-  input: string, 
-  existingRoles: string[], 
+  input: string,
+  existingRoles: string[],
   category: ProTripCategory,
-  limit: number = 5
+  limit: number = 5,
 ): string[] => {
   const categoryConfig = getCategoryConfig(category);
   const allRoles = [...categoryConfig.roles, ...existingRoles];
-  
-  const filtered = allRoles.filter(role =>
-    role.toLowerCase().includes(input.toLowerCase())
-  );
+
+  const filtered = allRoles.filter(role => role.toLowerCase().includes(input.toLowerCase()));
 
   return [...new Set(filtered)].slice(0, limit);
 };

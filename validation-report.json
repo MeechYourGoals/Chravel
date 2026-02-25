@@ -157,10 +157,7 @@
       "pattern": "'consumer-pro'",
       "count": 3,
       "files_affected": 2,
-      "locations": [
-        "src/constants/stripe.ts:12",
-        "src/hooks/useConsumerSubscription.tsx:54"
-      ],
+      "locations": ["src/constants/stripe.ts:12", "src/hooks/useConsumerSubscription.tsx:54"],
       "requires_action": true,
       "blocking": true
     }
@@ -199,15 +196,33 @@
       "Product IDs are placeholders (prod_TBD_*) - need real Stripe products created"
     ],
     "webhook_function": "supabase/functions/check-subscription/index.ts",
-    "webhook_issues": [
-      "Maps to 'pro' tier instead of 'frequent-chraveler'"
-    ]
+    "webhook_issues": ["Maps to 'pro' tier instead of 'frequent-chraveler'"]
   },
 
   "tailwind_color_tokens": {
     "status": "✅ COMPLETE",
     "note": "TripCategorySelector defines all color mappings inline. No missing Tailwind tokens detected.",
-    "colors_used": ["blue", "green", "purple", "pink", "orange", "teal", "yellow", "red", "emerald", "indigo", "rose", "fuchsia", "cyan", "violet", "amber", "slate", "sky", "lime", "coral"]
+    "colors_used": [
+      "blue",
+      "green",
+      "purple",
+      "pink",
+      "orange",
+      "teal",
+      "yellow",
+      "red",
+      "emerald",
+      "indigo",
+      "rose",
+      "fuchsia",
+      "cyan",
+      "violet",
+      "amber",
+      "slate",
+      "sky",
+      "lime",
+      "coral"
+    ]
   },
 
   "recommended_actions_before_cursor": [

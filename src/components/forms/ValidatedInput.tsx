@@ -19,24 +19,21 @@ export const ValidatedInput = React.forwardRef<HTMLInputElement, ValidatedInputP
             {props.required && <span className="text-destructive ml-1">*</span>}
           </Label>
         )}
-        
+
         <Input
           ref={ref}
-          className={cn(
-            error && 'border-destructive focus-visible:ring-destructive',
-            className
-          )}
+          className={cn(error && 'border-destructive focus-visible:ring-destructive', className)}
           aria-invalid={!!error}
           aria-describedby={error ? `${props.id}-error` : hint ? `${props.id}-hint` : undefined}
           {...props}
         />
-        
+
         {hint && !error && (
           <p id={`${props.id}-hint`} className="text-sm text-muted-foreground">
             {hint}
           </p>
         )}
-        
+
         {error && (
           <p id={`${props.id}-error`} className="text-sm text-destructive" role="alert">
             {error}
@@ -44,7 +41,7 @@ export const ValidatedInput = React.forwardRef<HTMLInputElement, ValidatedInputP
         )}
       </div>
     );
-  }
+  },
 );
 
 ValidatedInput.displayName = 'ValidatedInput';

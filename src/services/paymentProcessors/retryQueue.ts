@@ -30,10 +30,10 @@ export class PaymentRetryQueue {
     processorType: ProcessorType,
     request: PaymentRequest,
     error: PaymentError,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Promise<string> {
     const paymentId = `retry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const queuedPayment: QueuedPayment = {
       id: paymentId,
       processorType,
@@ -42,11 +42,11 @@ export class PaymentRetryQueue {
       maxAttempts: this.maxRetries,
       lastError: error,
       scheduledAt: new Date(),
-      metadata
+      metadata,
     };
 
     this.queue.push(queuedPayment);
-    
+
     // Try to process immediately if retryable
     if (error.retryable) {
       this.processQueue();
@@ -61,10 +61,10 @@ export class PaymentRetryQueue {
   private async processQueue(): Promise<void> {
     const now = new Date();
     const readyPayments = this.queue.filter(
-      payment => 
+      payment =>
         !this.processing.has(payment.id) &&
         payment.attempts < payment.maxAttempts &&
-        payment.scheduledAt <= now
+        payment.scheduledAt <= now,
     );
 
     for (const payment of readyPayments) {
@@ -84,14 +84,18 @@ export class PaymentRetryQueue {
     try {
       const response = await paymentProcessorFactory.processPayment(
         payment.processorType,
-        payment.request
+        payment.request,
       );
 
       if (response.success) {
         // Success - remove from queue
         this.removeFromQueue(payment.id);
         this.onPaymentSuccess(payment, response);
-      } else if (response.error && response.error.retryable && payment.attempts < payment.maxAttempts) {
+      } else if (
+        response.error &&
+        response.error.retryable &&
+        payment.attempts < payment.maxAttempts
+      ) {
         // Retry again
         payment.lastError = response.error;
         payment.scheduledAt = new Date(Date.now() + this.getRetryDelay(payment.attempts));
@@ -108,7 +112,7 @@ export class PaymentRetryQueue {
           code: 'RETRY_ERROR',
           message: error instanceof Error ? error.message : 'Unknown error',
           type: 'network_error',
-          retryable: true
+          retryable: true,
         };
         payment.scheduledAt = new Date(Date.now() + this.getRetryDelay(payment.attempts));
         this.onPaymentRetry(payment, payment.lastError);
@@ -118,7 +122,7 @@ export class PaymentRetryQueue {
           code: 'MAX_RETRIES_EXCEEDED',
           message: 'Maximum retry attempts exceeded',
           type: 'unknown',
-          retryable: false
+          retryable: false,
         });
       }
     }
@@ -159,7 +163,7 @@ export class PaymentRetryQueue {
   private onPaymentFailed(payment: QueuedPayment, error: PaymentError): void {
     console.error(`Payment retry failed permanently: ${payment.id}`, {
       attempts: payment.attempts,
-      error
+      error,
     });
     // In production, emit event or call callback
   }
@@ -175,7 +179,7 @@ export class PaymentRetryQueue {
     return {
       total: this.queue.length,
       processing: this.processing.size,
-      pending: this.queue.length - this.processing.size
+      pending: this.queue.length - this.processing.size,
     };
   }
 

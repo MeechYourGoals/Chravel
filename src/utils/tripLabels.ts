@@ -1,4 +1,3 @@
-
 export const getTripLabels = (category: string) => {
   switch (category) {
     case 'Sports – Team Trip':

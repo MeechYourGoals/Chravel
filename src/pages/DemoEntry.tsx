@@ -5,11 +5,11 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * DemoEntry - Deep link entry point for demo mode
- * 
+ *
  * Routes:
  * - /demo → enables demo mode and redirects to /
  * - /demo?off=1 → disables demo mode and redirects to /
- * 
+ *
  * Features:
  * - Idempotent: if already in app-preview mode, redirects immediately
  * - Preserves query params (except ?off) for tracking

@@ -70,7 +70,7 @@ export const MessageEditDialog: React.FC<MessageEditDialogProps> = ({
         </DialogHeader>
         <Textarea
           value={editedContent}
-          onChange={(e) => setEditedContent(e.target.value)}
+          onChange={e => setEditedContent(e.target.value)}
           className="min-h-[100px]"
           placeholder="Edit your message..."
         />

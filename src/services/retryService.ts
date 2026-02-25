@@ -13,7 +13,7 @@ const defaultOptions: Required<RetryOptions> = {
   delayMs: 1000,
   backoff: true,
   onRetry: () => {},
-  shouldRetry: (error) => {
+  shouldRetry: error => {
     // Don't retry on validation errors or auth errors
     if (error?.code === 'VALIDATION_ERROR' || error?.code === 'AUTH_ERROR') {
       return false;
@@ -29,7 +29,7 @@ const defaultOptions: Required<RetryOptions> = {
 export async function withRetry<T>(
   fn: () => Promise<T>,
   context?: ErrorContext,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
   const opts = { ...defaultOptions, ...options };
   let lastError: any;
@@ -53,14 +53,15 @@ export async function withRetry<T>(
       }
 
       // Calculate delay with exponential backoff
-      const delay = opts.backoff 
-        ? opts.delayMs * Math.pow(2, attempt)
-        : opts.delayMs;
+      const delay = opts.backoff ? opts.delayMs * Math.pow(2, attempt) : opts.delayMs;
 
-      console.log(`[Retry] Attempt ${attempt + 1}/${opts.maxRetries + 1} failed, retrying in ${delay}ms`, {
-        error: error?.message || String(error),
-        context,
-      });
+      console.log(
+        `[Retry] Attempt ${attempt + 1}/${opts.maxRetries + 1} failed, retrying in ${delay}ms`,
+        {
+          error: error?.message || String(error),
+          context,
+        },
+      );
 
       opts.onRetry(attempt + 1, error);
 
@@ -80,7 +81,7 @@ export async function withRetry<T>(
 export function withRetryWrapper<TArgs extends any[], TReturn>(
   fn: (...args: TArgs) => Promise<TReturn>,
   context: ErrorContext,
-  options?: RetryOptions
+  options?: RetryOptions,
 ): (...args: TArgs) => Promise<TReturn> {
   return async (...args: TArgs): Promise<TReturn> => {
     return withRetry(() => fn(...args), context, options);

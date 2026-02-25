@@ -12,12 +12,15 @@ interface AdminManagerDialogProps {
   tripCreatorId: string;
 }
 
-export const AdminManagerDialog = ({ open, onOpenChange, tripId, tripCreatorId }: AdminManagerDialogProps) => {
+export const AdminManagerDialog = ({
+  open,
+  onOpenChange,
+  tripId,
+  tripCreatorId,
+}: AdminManagerDialogProps) => {
   const isMobile = useIsMobile();
 
-  const content = (
-    <AdminManager tripId={tripId} tripCreatorId={tripCreatorId} />
-  );
+  const content = <AdminManager tripId={tripId} tripCreatorId={tripCreatorId} />;
 
   if (isMobile) {
     return (

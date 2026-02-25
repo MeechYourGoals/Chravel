@@ -30,17 +30,19 @@ export const AdminRoleManager = ({
   onClose,
   tripId,
   roster,
-  onRolesUpdated
+  onRolesUpdated,
 }: AdminRoleManagerProps) => {
   const [roles, setRoles] = useState<TripRole[]>([]);
   const [assignments, setAssignments] = useState<UserRoleAssignment[]>([]);
   const [channels, setChannels] = useState<TripChannel[]>([]);
-  const [admins, setAdmins] = useState<Array<{
-    userId: string;
-    permissions: AdminPermissions;
-    grantedBy?: string;
-    grantedAt: string;
-  }>>([]);
+  const [admins, setAdmins] = useState<
+    Array<{
+      userId: string;
+      permissions: AdminPermissions;
+      grantedBy?: string;
+      grantedAt: string;
+    }>
+  >([]);
   const [loading, setLoading] = useState(false);
 
   // Section 1: Role Management State
@@ -60,7 +62,7 @@ export const AdminRoleManager = ({
   const [adminPermissions, setAdminPermissions] = useState<AdminPermissions>({
     can_manage_roles: true,
     can_manage_channels: true,
-    can_designate_admins: false
+    can_designate_admins: false,
   });
 
   const { toast } = useToast();
@@ -77,7 +79,7 @@ export const AdminRoleManager = ({
       channelService.getRoles(tripId),
       channelService.getRoleAssignments(tripId),
       channelService.getAdmins(tripId),
-      channelService.getAllChannelsForAdmin(tripId)
+      channelService.getAllChannelsForAdmin(tripId),
     ]);
     setRoles(rolesData);
     setAssignments(assignmentsData);
@@ -95,7 +97,7 @@ export const AdminRoleManager = ({
     if (!newRoleName.trim()) {
       toast({
         title: 'Role name required',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -106,7 +108,7 @@ export const AdminRoleManager = ({
       toast({
         title: 'Role limit reached',
         description: roleCountValidation.error,
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -114,13 +116,13 @@ export const AdminRoleManager = ({
     const role = await channelService.createRole({
       tripId,
       roleName: newRoleName.trim(),
-      description: newRoleDesc.trim() || undefined
+      description: newRoleDesc.trim() || undefined,
     });
 
     if (role) {
       toast({
         title: 'Role created',
-        description: `${role.roleName} role has been created`
+        description: `${role.roleName} role has been created`,
       });
       setNewRoleName('');
       setNewRoleDesc('');
@@ -129,13 +131,15 @@ export const AdminRoleManager = ({
     } else {
       toast({
         title: 'Failed to create role',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
 
   const handleDeleteRole = async (role: TripRole) => {
-    if (!confirm(`Delete "${role.roleName}" role? This will also remove associated channel access.`)) {
+    if (
+      !confirm(`Delete "${role.roleName}" role? This will also remove associated channel access.`)
+    ) {
       return;
     }
 
@@ -143,14 +147,14 @@ export const AdminRoleManager = ({
     if (success) {
       toast({
         title: 'Role deleted',
-        description: `${role.roleName} role has been removed`
+        description: `${role.roleName} role has been removed`,
       });
       await loadData();
       onRolesUpdated?.();
     } else {
       toast({
         title: 'Failed to delete role',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
@@ -160,12 +164,12 @@ export const AdminRoleManager = ({
       tripId,
       userId,
       roleId,
-      isPrimary: true // Always assign as primary role
+      isPrimary: true, // Always assign as primary role
     });
 
     if (success) {
       toast({
-        title: 'Role assigned'
+        title: 'Role assigned',
       });
       await loadData();
       onRolesUpdated?.();
@@ -173,7 +177,7 @@ export const AdminRoleManager = ({
       toast({
         title: 'Failed to assign role',
         description: 'User may already have a primary role',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
@@ -183,14 +187,14 @@ export const AdminRoleManager = ({
 
     if (success) {
       toast({
-        title: 'Role revoked'
+        title: 'Role revoked',
       });
       await loadData();
       onRolesUpdated?.();
     } else {
       toast({
         title: 'Failed to revoke role',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
@@ -203,7 +207,7 @@ export const AdminRoleManager = ({
     if (!newChannelName.trim()) {
       toast({
         title: 'Channel name required',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -212,7 +216,7 @@ export const AdminRoleManager = ({
       toast({
         title: 'Select at least one role',
         description: 'Channels must grant access to at least one role',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -225,13 +229,13 @@ export const AdminRoleManager = ({
       newChannelName.trim(),
       channelSlug,
       roleIds,
-      newChannelDesc.trim() || undefined
+      newChannelDesc.trim() || undefined,
     );
 
     if (channel) {
       toast({
         title: 'Channel created',
-        description: `#${channelSlug} channel has been created with ${roleIds.length} role(s)`
+        description: `#${channelSlug} channel has been created with ${roleIds.length} role(s)`,
       });
       setNewChannelName('');
       setNewChannelDesc('');
@@ -241,7 +245,7 @@ export const AdminRoleManager = ({
     } else {
       toast({
         title: 'Failed to create channel',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
@@ -264,7 +268,7 @@ export const AdminRoleManager = ({
     if (!selectedAdminUser) {
       toast({
         title: 'Select a user',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -272,13 +276,13 @@ export const AdminRoleManager = ({
     const success = await channelService.designateAdmin(
       tripId,
       selectedAdminUser,
-      adminPermissions
+      adminPermissions,
     );
 
     if (success) {
       toast({
         title: 'Admin designated',
-        description: 'User has been granted admin permissions'
+        description: 'User has been granted admin permissions',
       });
       setSelectedAdminUser(null);
       setShowAdminDesignator(false);
@@ -287,7 +291,7 @@ export const AdminRoleManager = ({
       toast({
         title: 'Failed to designate admin',
         description: 'You may not have permission to designate admins',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
@@ -301,24 +305,20 @@ export const AdminRoleManager = ({
 
     if (success) {
       toast({
-        title: 'Admin access revoked'
+        title: 'Admin access revoked',
       });
       await loadData();
     } else {
       toast({
         title: 'Failed to revoke admin access',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
 
   // Helper functions
   const getUserRoleIds = (userId: string): Set<string> => {
-    return new Set(
-      assignments
-        .filter(a => a.userId === userId)
-        .map(a => a.roleId)
-    );
+    return new Set(assignments.filter(a => a.userId === userId).map(a => a.roleId));
   };
 
   const getRoleMemberCount = (roleId: string): number => {
@@ -348,7 +348,8 @@ export const AdminRoleManager = ({
           {/* Info Banner */}
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
             <p className="text-red-400 text-sm">
-              <strong>Admin Only:</strong> Manage roles, channels, and admin permissions for your team.
+              <strong>Admin Only:</strong> Manage roles, channels, and admin permissions for your
+              team.
             </p>
           </div>
 
@@ -361,12 +362,14 @@ export const AdminRoleManager = ({
                 <Users size={18} className="text-blue-400" />
                 Manage Roles (Job Titles)
               </h3>
-              <span className={cn(
-                "text-sm font-medium px-3 py-1 rounded-lg",
-                roles.length >= MAX_ROLES_PER_TRIP 
-                  ? "bg-red-500/20 text-red-400" 
-                  : "bg-gray-700 text-gray-300"
-              )}>
+              <span
+                className={cn(
+                  'text-sm font-medium px-3 py-1 rounded-lg',
+                  roles.length >= MAX_ROLES_PER_TRIP
+                    ? 'bg-red-500/20 text-red-400'
+                    : 'bg-gray-700 text-gray-300',
+                )}
+              >
                 {roles.length} / {MAX_ROLES_PER_TRIP} roles
               </span>
             </div>
@@ -433,7 +436,7 @@ export const AdminRoleManager = ({
                   <Label className="text-sm">Role Name *</Label>
                   <Input
                     value={newRoleName}
-                    onChange={(e) => setNewRoleName(e.target.value)}
+                    onChange={e => setNewRoleName(e.target.value)}
                     placeholder="e.g., Player, Coach, Medical Staff"
                     className="bg-gray-800 border-gray-600 text-white mt-1"
                   />
@@ -442,7 +445,7 @@ export const AdminRoleManager = ({
                   <Label className="text-sm">Description (optional)</Label>
                   <Input
                     value={newRoleDesc}
-                    onChange={(e) => setNewRoleDesc(e.target.value)}
+                    onChange={e => setNewRoleDesc(e.target.value)}
                     placeholder="Brief description"
                     className="bg-gray-800 border-gray-600 text-white mt-1"
                   />
@@ -454,7 +457,9 @@ export const AdminRoleManager = ({
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus size={16} className="mr-2" />
-                {roles.length >= MAX_ROLES_PER_TRIP ? `Max ${MAX_ROLES_PER_TRIP} Roles Reached` : 'Create Role'}
+                {roles.length >= MAX_ROLES_PER_TRIP
+                  ? `Max ${MAX_ROLES_PER_TRIP} Roles Reached`
+                  : 'Create Role'}
               </Button>
             </div>
           </div>
@@ -487,7 +492,7 @@ export const AdminRoleManager = ({
                   <Label className="text-sm">Channel Name *</Label>
                   <Input
                     value={newChannelName}
-                    onChange={(e) => setNewChannelName(e.target.value)}
+                    onChange={e => setNewChannelName(e.target.value)}
                     placeholder="e.g., Game Day, Team Leadership"
                     className="bg-gray-800 border-gray-600 text-white mt-1"
                   />
@@ -497,7 +502,7 @@ export const AdminRoleManager = ({
                   <Label className="text-sm">Description (optional)</Label>
                   <Input
                     value={newChannelDesc}
-                    onChange={(e) => setNewChannelDesc(e.target.value)}
+                    onChange={e => setNewChannelDesc(e.target.value)}
                     placeholder="Channel purpose"
                     className="bg-gray-800 border-gray-600 text-white mt-1"
                   />
@@ -520,9 +525,11 @@ export const AdminRoleManager = ({
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                              isSelected ? 'bg-purple-600 border-purple-600' : 'border-gray-500'
-                            }`}>
+                            <div
+                              className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                isSelected ? 'bg-purple-600 border-purple-600' : 'border-gray-500'
+                              }`}
+                            >
                               {isSelected && <div className="w-2 h-2 bg-white rounded-sm" />}
                             </div>
                             <div className="flex-1">
@@ -573,7 +580,9 @@ export const AdminRoleManager = ({
                 <div className="text-center py-6 bg-white/5 rounded-lg border border-gray-700">
                   <MessageSquare size={32} className="text-gray-600 mx-auto mb-2" />
                   <p className="text-gray-400 text-sm">No channels created yet</p>
-                  <p className="text-gray-500 text-xs mt-1">Create roles first, then create channels with role-based access</p>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Create roles first, then create channels with role-based access
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -645,7 +654,9 @@ export const AdminRoleManager = ({
                         className="flex items-center justify-between p-3 bg-white/5 border border-gray-700 rounded-lg"
                       >
                         <div className="flex-1">
-                          <h4 className="font-medium text-white">{member?.name || 'Former Member'}</h4>
+                          <h4 className="font-medium text-white">
+                            {member?.name || 'Former Member'}
+                          </h4>
                           <div className="flex gap-2 mt-1">
                             {admin.permissions.can_manage_roles && (
                               <span className="text-xs bg-blue-600/20 text-blue-300 px-2 py-0.5 rounded">
@@ -689,7 +700,7 @@ export const AdminRoleManager = ({
                   <Label className="text-sm">Select User *</Label>
                   <select
                     value={selectedAdminUser || ''}
-                    onChange={(e) => setSelectedAdminUser(e.target.value)}
+                    onChange={e => setSelectedAdminUser(e.target.value)}
                     className="w-full mt-1 bg-gray-800 border border-gray-600 text-white rounded px-3 py-2"
                   >
                     <option value="">-- Select a user --</option>
@@ -710,10 +721,12 @@ export const AdminRoleManager = ({
                       <input
                         type="checkbox"
                         checked={adminPermissions.can_manage_roles}
-                        onChange={(e) => setAdminPermissions({
-                          ...adminPermissions,
-                          can_manage_roles: e.target.checked
-                        })}
+                        onChange={e =>
+                          setAdminPermissions({
+                            ...adminPermissions,
+                            can_manage_roles: e.target.checked,
+                          })
+                        }
                         className="w-4 h-4"
                       />
                       <span className="text-sm">Can manage roles</span>
@@ -722,10 +735,12 @@ export const AdminRoleManager = ({
                       <input
                         type="checkbox"
                         checked={adminPermissions.can_manage_channels}
-                        onChange={(e) => setAdminPermissions({
-                          ...adminPermissions,
-                          can_manage_channels: e.target.checked
-                        })}
+                        onChange={e =>
+                          setAdminPermissions({
+                            ...adminPermissions,
+                            can_manage_channels: e.target.checked,
+                          })
+                        }
                         className="w-4 h-4"
                       />
                       <span className="text-sm">Can manage channels</span>
@@ -734,13 +749,17 @@ export const AdminRoleManager = ({
                       <input
                         type="checkbox"
                         checked={adminPermissions.can_designate_admins}
-                        onChange={(e) => setAdminPermissions({
-                          ...adminPermissions,
-                          can_designate_admins: e.target.checked
-                        })}
+                        onChange={e =>
+                          setAdminPermissions({
+                            ...adminPermissions,
+                            can_designate_admins: e.target.checked,
+                          })
+                        }
                         className="w-4 h-4"
                       />
-                      <span className="text-sm text-orange-300">Can designate other admins (Full Access)</span>
+                      <span className="text-sm text-orange-300">
+                        Can designate other admins (Full Access)
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -797,8 +816,8 @@ export const AdminRoleManager = ({
                           {hasRole
                             ? `Current role: ${assigningRole.roleName}`
                             : hasOtherRole
-                            ? `Current role: ${getRoleName(member.id)}`
-                            : 'No role assigned'}
+                              ? `Current role: ${getRoleName(member.id)}`
+                              : 'No role assigned'}
                         </p>
                       </div>
                       {hasRole ? (

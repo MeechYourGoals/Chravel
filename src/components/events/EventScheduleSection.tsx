@@ -6,11 +6,14 @@ interface EventScheduleSectionProps {
   onEventDataChange?: (data: EventSetupData) => void;
 }
 
-export const EventScheduleSection = ({ eventData = {}, onEventDataChange }: EventScheduleSectionProps) => {
+export const EventScheduleSection = ({
+  eventData = {},
+  onEventDataChange,
+}: EventScheduleSectionProps) => {
   const [scheduleData, setScheduleData] = useState({
     industry: eventData.industry || '',
     template: eventData.template || null,
-    scheduleData: eventData.schedule || {}
+    scheduleData: eventData.schedule || {},
   });
 
   const handleIndustrySelect = (industry: string) => {
@@ -35,15 +38,19 @@ export const EventScheduleSection = ({ eventData = {}, onEventDataChange }: Even
     <div className="space-y-8">
       <div>
         <h3 className="text-2xl font-bold text-white mb-2">Setup & Schedule</h3>
-        <p className="text-gray-300">Configure your event schedule and choose from industry templates.</p>
+        <p className="text-gray-300">
+          Configure your event schedule and choose from industry templates.
+        </p>
       </div>
 
       <div className="space-y-8">
         <div className="bg-white/5 border border-white/10 rounded-lg p-6">
           <h4 className="text-lg font-semibold text-white mb-4">Industry & Template</h4>
-          <p className="text-gray-300">Select your industry and template to get started with pre-configured settings.</p>
+          <p className="text-gray-300">
+            Select your industry and template to get started with pre-configured settings.
+          </p>
         </div>
-        
+
         <div className="bg-white/5 border border-white/10 rounded-lg p-6">
           <h4 className="text-lg font-semibold text-white mb-4">Schedule Configuration</h4>
           <p className="text-gray-300">Configure your event schedule and sessions.</p>

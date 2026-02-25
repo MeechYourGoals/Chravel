@@ -2,7 +2,12 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { supabase } from '@/integrations/supabase/client';
-import { clearQueue, getQueuedMessages, processQueue, queueMessage } from '@/services/offlineMessageQueue';
+import {
+  clearQueue,
+  getQueuedMessages,
+  processQueue,
+  queueMessage,
+} from '@/services/offlineMessageQueue';
 
 vi.mock('@/integrations/supabase/client', () => {
   return {
@@ -51,4 +56,3 @@ describe('offlineMessageQueue', () => {
     expect(insert).toHaveBeenCalledTimes(1);
   });
 });
-

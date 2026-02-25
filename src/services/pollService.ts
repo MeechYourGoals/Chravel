@@ -1,9 +1,9 @@
 /**
  * Poll Service - Authenticated Mode
- * 
+ *
  * Provides poll CRUD operations for authenticated users.
  * Wraps pollStorageService and useTripPolls hook for easier consumption.
- * 
+ *
  * PHASE 2: Collaboration Features
  */
 
@@ -51,7 +51,7 @@ export const pollService = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       // Map database rows to Poll type
       return (data || []).map(item => ({
         id: item.id,
@@ -62,7 +62,7 @@ export const pollService = {
         created_by: item.created_by,
         created_at: item.created_at,
         updated_at: item.updated_at,
-        status: item.status as 'active' | 'closed'
+        status: item.status as 'active' | 'closed',
       }));
     } catch (error) {
       console.error('[pollService] Error fetching polls:', error);
@@ -76,7 +76,7 @@ export const pollService = {
   async createPoll(
     tripId: string,
     pollData: CreatePollRequest,
-    isDemoMode: boolean = false
+    isDemoMode: boolean = false,
   ): Promise<Poll> {
     if (isDemoMode) {
       // Demo mode uses pollStorageService
@@ -90,19 +90,21 @@ export const pollService = {
         created_by: result.created_by,
         created_at: result.created_at,
         updated_at: result.updated_at,
-        status: result.status
+        status: result.status,
       };
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       // Format options for database
       const formattedOptions = pollData.options.map((text, index) => ({
         id: `opt-${index}`,
         text,
-        votes: 0
+        votes: 0,
       }));
 
       const { data, error } = await supabase
@@ -113,13 +115,13 @@ export const pollService = {
           options: formattedOptions as any,
           total_votes: 0,
           created_by: user.id,
-          status: 'active'
+          status: 'active',
         })
         .select()
         .single();
 
       if (error) throw error;
-      
+
       return {
         id: data.id,
         trip_id: data.trip_id,
@@ -129,7 +131,7 @@ export const pollService = {
         created_by: data.created_by,
         created_at: data.created_at,
         updated_at: data.updated_at,
-        status: data.status as 'active' | 'closed'
+        status: data.status as 'active' | 'closed',
       };
     } catch (error) {
       console.error('[pollService] Error creating poll:', error);
@@ -142,15 +144,15 @@ export const pollService = {
    */
   async vote(
     tripId: string,
-    pollId: string, 
+    pollId: string,
     optionId: string,
-    isDemoMode: boolean = false
+    isDemoMode: boolean = false,
   ): Promise<Poll> {
     if (isDemoMode) {
       // Demo mode uses localStorage with userId parameter
       const result = await pollStorageService.voteOnPoll(tripId, pollId, [optionId], 'demo-user');
       if (!result) throw new Error('Poll not found');
-      
+
       return {
         id: result.id,
         trip_id: result.trip_id,
@@ -160,12 +162,14 @@ export const pollService = {
         created_by: result.created_by,
         created_at: result.created_at,
         updated_at: result.updated_at,
-        status: result.status
+        status: result.status,
       };
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       // Get current poll
@@ -192,14 +196,14 @@ export const pollService = {
         .update({
           options: updatedOptions as any,
           total_votes: poll.total_votes + 1,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', pollId)
         .select()
         .single();
 
       if (updateError) throw updateError;
-      
+
       return {
         id: updatedPoll.id,
         trip_id: updatedPoll.trip_id,
@@ -209,7 +213,7 @@ export const pollService = {
         created_by: updatedPoll.created_by,
         created_at: updatedPoll.created_at,
         updated_at: updatedPoll.updated_at,
-        status: updatedPoll.status as 'active' | 'closed'
+        status: updatedPoll.status as 'active' | 'closed',
       };
     } catch (error) {
       console.error('[pollService] Error voting on poll:', error);
@@ -226,14 +230,14 @@ export const pollService = {
         .from('trip_polls')
         .update({
           status: 'closed',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', pollId)
         .select()
         .single();
 
       if (error) throw error;
-      
+
       return {
         id: data.id,
         trip_id: data.trip_id,
@@ -243,7 +247,7 @@ export const pollService = {
         created_by: data.created_by,
         created_at: data.created_at,
         updated_at: data.updated_at,
-        status: data.status as 'active' | 'closed'
+        status: data.status as 'active' | 'closed',
       };
     } catch (error) {
       console.error('[pollService] Error closing poll:', error);
@@ -260,10 +264,7 @@ export const pollService = {
     }
 
     try {
-      const { error } = await supabase
-        .from('trip_polls')
-        .delete()
-        .eq('id', pollId);
+      const { error } = await supabase.from('trip_polls').delete().eq('id', pollId);
 
       if (error) throw error;
     } catch (error) {
@@ -278,9 +279,7 @@ export const pollService = {
   getPollResults(poll: Poll): Array<PollOption & { percentage: number }> {
     return (poll.options as PollOption[]).map(option => ({
       ...option,
-      percentage: poll.total_votes > 0 
-        ? Math.round((option.votes / poll.total_votes) * 100)
-        : 0
+      percentage: poll.total_votes > 0 ? Math.round((option.votes / poll.total_votes) * 100) : 0,
     }));
-  }
+  },
 };

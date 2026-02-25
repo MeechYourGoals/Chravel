@@ -1,4 +1,3 @@
-
 // ============= Pro Trip Category Enum System =============
 // Stable internal enum values stored in DB; display labels mapped in UI
 
@@ -31,30 +30,71 @@ export const PRO_CATEGORIES_ORDERED: ProCategoryConfig[] = [
   {
     id: 'touring',
     label: 'Touring',
-    description: 'Music tours, comedy shows, podcast tours, creator events, and entertainment productions',
+    description:
+      'Music tours, comedy shows, podcast tours, creator events, and entertainment productions',
     searchSynonyms: ['tour', 'touring', 'music', 'comedy', 'concert', 'band', 'show'],
     roles: ['Artist Team', 'Tour Manager', 'Crew', 'VIP', 'Security'],
-    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+    availableTabs: [
+      'chat',
+      'calendar',
+      'ai-chat',
+      'media',
+      'payments',
+      'places',
+      'polls',
+      'tasks',
+      'team',
+    ],
     requiredTabs: ['team'],
-    terminology: { teamLabel: 'Tour Crew', memberLabel: 'Crew Member', leaderLabel: 'Tour Manager' },
+    terminology: {
+      teamLabel: 'Tour Crew',
+      memberLabel: 'Crew Member',
+      leaderLabel: 'Tour Manager',
+    },
   },
   {
     id: 'sports',
     label: 'Sports',
-    description: 'Professional, collegiate, and youth sports teams, tournaments, and athletic events',
+    description:
+      'Professional, collegiate, and youth sports teams, tournaments, and athletic events',
     searchSynonyms: ['sport', 'sports', 'athletic', 'game', 'team', 'tournament', 'league'],
     roles: ['Player', 'Coach', 'Crew', 'Medical', 'Security'],
-    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+    availableTabs: [
+      'chat',
+      'calendar',
+      'ai-chat',
+      'media',
+      'payments',
+      'places',
+      'polls',
+      'tasks',
+      'team',
+    ],
     requiredTabs: ['team'],
-    terminology: { teamLabel: 'Team Roster', memberLabel: 'Team Member', leaderLabel: 'Team Captain' },
+    terminology: {
+      teamLabel: 'Team Roster',
+      memberLabel: 'Team Member',
+      leaderLabel: 'Team Captain',
+    },
   },
   {
     id: 'work',
     label: 'Work',
-    description: 'Corporate retreats, executive meetings, sales trips, recruiting events, and business travel',
+    description:
+      'Corporate retreats, executive meetings, sales trips, recruiting events, and business travel',
     searchSynonyms: ['work', 'business', 'corporate', 'retreat', 'office', 'meeting', 'conference'],
     roles: [],
-    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+    availableTabs: [
+      'chat',
+      'calendar',
+      'ai-chat',
+      'media',
+      'payments',
+      'places',
+      'polls',
+      'tasks',
+      'team',
+    ],
     requiredTabs: ['team'],
     terminology: { teamLabel: 'Attendees', memberLabel: 'Participant', leaderLabel: 'Event Lead' },
   },
@@ -64,7 +104,17 @@ export const PRO_CATEGORIES_ORDERED: ProCategoryConfig[] = [
     description: 'Educational trips, academic competitions, and school-related events',
     searchSynonyms: ['school', 'education', 'student', 'academic', 'campus', 'field trip'],
     roles: ['Student', 'Chaperone', 'Teacher'],
-    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+    availableTabs: [
+      'chat',
+      'calendar',
+      'ai-chat',
+      'media',
+      'payments',
+      'places',
+      'polls',
+      'tasks',
+      'team',
+    ],
     requiredTabs: ['team'],
     terminology: { teamLabel: 'Group', memberLabel: 'Participant', leaderLabel: 'Lead Teacher' },
   },
@@ -72,29 +122,83 @@ export const PRO_CATEGORIES_ORDERED: ProCategoryConfig[] = [
     id: 'productions',
     label: 'Productions',
     description: 'Television shows, film productions, content shoots, and media projects',
-    searchSynonyms: ['production', 'productions', 'content', 'shoot', 'film', 'tv', 'media', 'creator'],
+    searchSynonyms: [
+      'production',
+      'productions',
+      'content',
+      'shoot',
+      'film',
+      'tv',
+      'media',
+      'creator',
+    ],
     roles: ['Talent', 'Crew', 'Security'],
-    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+    availableTabs: [
+      'chat',
+      'calendar',
+      'ai-chat',
+      'media',
+      'payments',
+      'places',
+      'polls',
+      'tasks',
+      'team',
+    ],
     requiredTabs: ['team'],
-    terminology: { teamLabel: 'Cast & Crew', memberLabel: 'Production Member', leaderLabel: 'Producer' },
+    terminology: {
+      teamLabel: 'Cast & Crew',
+      memberLabel: 'Production Member',
+      leaderLabel: 'Producer',
+    },
   },
   {
     id: 'celebrations',
     label: 'Celebrations',
-    description: 'Weddings, bachelor/bachelorette trips, anniversaries, reunions, and milestone celebrations',
-    searchSynonyms: ['celebration', 'celebrations', 'wedding', 'bachelor', 'bachelorette', 'party', 'anniversary', 'reunion'],
+    description:
+      'Weddings, bachelor/bachelorette trips, anniversaries, reunions, and milestone celebrations',
+    searchSynonyms: [
+      'celebration',
+      'celebrations',
+      'wedding',
+      'bachelor',
+      'bachelorette',
+      'party',
+      'anniversary',
+      'reunion',
+    ],
     roles: [],
-    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+    availableTabs: [
+      'chat',
+      'calendar',
+      'ai-chat',
+      'media',
+      'payments',
+      'places',
+      'polls',
+      'tasks',
+      'team',
+    ],
     requiredTabs: ['team'],
     terminology: { teamLabel: 'Guest List', memberLabel: 'Guest', leaderLabel: 'Host' },
   },
   {
     id: 'other',
     label: 'Other',
-    description: 'All other types of professional trips and events not covered by the above categories',
+    description:
+      'All other types of professional trips and events not covered by the above categories',
     searchSynonyms: ['other'],
     roles: [],
-    availableTabs: ['chat', 'calendar', 'ai-chat', 'media', 'payments', 'places', 'polls', 'tasks', 'team'],
+    availableTabs: [
+      'chat',
+      'calendar',
+      'ai-chat',
+      'media',
+      'payments',
+      'places',
+      'polls',
+      'tasks',
+      'team',
+    ],
     requiredTabs: ['team'],
     terminology: { teamLabel: 'Team', memberLabel: 'Team Member', leaderLabel: 'Team Lead' },
   },
@@ -118,8 +222,8 @@ const LEGACY_TO_ENUM: Record<string, ProCategoryEnum> = {
   'Business Travel': 'work',
   'Business Trips': 'work',
   'School Trip': 'school',
-  'Content': 'productions',
-  'Other': 'other',
+  Content: 'productions',
+  Other: 'other',
 };
 
 /**
@@ -137,10 +241,18 @@ export function normalizeLegacyCategory(raw?: string | null): ProCategoryEnum {
   const lower = raw.toLowerCase();
   if (lower.includes('tour')) return 'touring';
   if (lower.includes('sport') || lower.includes('athletic')) return 'sports';
-  if (lower.includes('business') || lower.includes('work') || lower.includes('corporate')) return 'work';
+  if (lower.includes('business') || lower.includes('work') || lower.includes('corporate'))
+    return 'work';
   if (lower.includes('school') || lower.includes('education')) return 'school';
-  if (lower.includes('content') || lower.includes('production') || lower.includes('film') || lower.includes('tv')) return 'productions';
-  if (lower.includes('celebrat') || lower.includes('wedding') || lower.includes('party')) return 'celebrations';
+  if (
+    lower.includes('content') ||
+    lower.includes('production') ||
+    lower.includes('film') ||
+    lower.includes('tv')
+  )
+    return 'productions';
+  if (lower.includes('celebrat') || lower.includes('wedding') || lower.includes('party'))
+    return 'celebrations';
 
   return 'other';
 }

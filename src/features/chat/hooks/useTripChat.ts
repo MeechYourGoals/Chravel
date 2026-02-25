@@ -61,13 +61,17 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
   };
 
   // Fetch initial messages (last 10) with offline cache support and decryption
-  const { data: messages = [], isLoading, error } = useQuery({
+  const {
+    data: messages = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['tripChat', tripId],
     queryFn: async (): Promise<TripChatMessage[]> => {
       if (!tripId) return [];
       // Try to load from cache first for instant display
       const cachedMessages = await loadMessagesFromCache(tripId);
-      
+
       try {
         const { data, error } = await supabase
           .from('trip_chat_messages')
@@ -81,13 +85,13 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
 
         // Decrypt messages if they are encrypted
         const decryptedData = await Promise.all(
-          (data || []).map(async (msg) => {
+          (data || []).map(async msg => {
             if (msg.privacy_encrypted && msg.content) {
               try {
                 const decrypted = await privacyService.prepareMessageForDisplay(
                   msg.content,
                   tripId,
-                  true
+                  true,
                 );
                 return { ...msg, content: decrypted };
               } catch (decryptError) {
@@ -96,17 +100,17 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
               }
             }
             return msg;
-          })
+          }),
         );
 
         const reversed = decryptedData.reverse();
         setHasMore(data && data.length === 15);
-        
+
         // Cache messages for offline access (store decrypted versions)
         if (decryptedData && decryptedData.length > 0) {
           await saveMessagesToCache(tripId, decryptedData);
         }
-        
+
         return reversed as TripChatMessage[];
       } catch (err) {
         // If online fetch fails, return cached messages
@@ -114,7 +118,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           console.warn('Using cached messages due to fetch error:', err);
           const messagesWithTimestamp = cachedMessages.slice(-15).map(msg => ({
             ...msg,
-            updated_at: msg.updated_at || msg.created_at
+            updated_at: msg.updated_at || msg.created_at,
           })) as TripChatMessage[];
           return messagesWithTimestamp;
         }
@@ -151,29 +155,45 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         let result = old;
         for (const payload of toInsert) {
           const newMessage = payload as unknown as TripChatMessage & { client_message_id?: string };
-          const isDuplicate = result.some((msg) => {
+          const isDuplicate = result.some(msg => {
             if (msg.id === newMessage.id) return true;
-            const existingClientId = (msg as TripChatMessage & { client_message_id?: string }).client_message_id;
-            return existingClientId && newMessage.client_message_id && existingClientId === newMessage.client_message_id;
+            const existingClientId = (msg as TripChatMessage & { client_message_id?: string })
+              .client_message_id;
+            return (
+              existingClientId &&
+              newMessage.client_message_id &&
+              existingClientId === newMessage.client_message_id
+            );
           });
           if (!isDuplicate) {
             result = [...result, newMessage];
             if (newMessage.privacy_encrypted && newMessage.content) {
-              privacyService.prepareMessageForDisplay(newMessage.content, tripId!, true)
-                .then((decrypted) => {
-                  queryClient.setQueryData(['tripChat', tripId], (current: TripChatMessage[] = []) =>
-                    current.map((m) => (m.id === newMessage.id ? { ...m, content: decrypted } : m)),
+              privacyService
+                .prepareMessageForDisplay(newMessage.content, tripId!, true)
+                .then(decrypted => {
+                  queryClient.setQueryData(
+                    ['tripChat', tripId],
+                    (current: TripChatMessage[] = []) =>
+                      current.map(m => (m.id === newMessage.id ? { ...m, content: decrypted } : m)),
                   );
                 })
                 .catch(() => {
-                  queryClient.setQueryData(['tripChat', tripId], (current: TripChatMessage[] = []) =>
-                    current.map((m) => (m.id === newMessage.id ? { ...m, content: '[Unable to decrypt message]' } : m)),
+                  queryClient.setQueryData(
+                    ['tripChat', tripId],
+                    (current: TripChatMessage[] = []) =>
+                      current.map(m =>
+                        m.id === newMessage.id
+                          ? { ...m, content: '[Unable to decrypt message]' }
+                          : m,
+                      ),
                   );
                 });
             }
           }
         }
-        return result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        return result.sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        );
       });
     };
 
@@ -198,12 +218,15 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           table: 'trip_chat_messages',
           filter: `trip_id=eq.${tripId}`,
         },
-        (payload) => {
+        payload => {
           if (import.meta.env.DEV) {
             console.log('[CHAT REALTIME] INSERT received:', {
               messageId: payload.new?.id,
               author: (payload.new as Record<string, unknown>)?.author_name,
-              content: String((payload.new as Record<string, unknown>)?.content ?? '').substring(0, 50),
+              content: String((payload.new as Record<string, unknown>)?.content ?? '').substring(
+                0,
+                50,
+              ),
               timestamp: new Date().toISOString(),
             });
           }
@@ -231,10 +254,10 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           event: 'UPDATE',
           schema: 'public',
           table: 'trip_chat_messages',
-          filter: `trip_id=eq.${tripId}`
+          filter: `trip_id=eq.${tripId}`,
         },
-        (payload) => {
-          const updatedMessage = payload.new as TripChatMessage & { 
+        payload => {
+          const updatedMessage = payload.new as TripChatMessage & {
             is_deleted?: boolean;
             client_message_id?: string;
           };
@@ -260,14 +283,12 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           // Handle message edits and link_preview updates in real-time
           queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => {
             return old.map(msg =>
-              msg.id === payload.new.id
-                ? { ...msg, ...payload.new as TripChatMessage }
-                : msg
+              msg.id === payload.new.id ? { ...msg, ...(payload.new as TripChatMessage) } : msg,
             );
           });
-        }
+        },
       )
-      .subscribe((status) => {
+      .subscribe(status => {
         if (import.meta.env.DEV) {
           console.log('[CHAT REALTIME] Subscription status:', status);
         }
@@ -300,7 +321,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
   useEffect(() => {
     if (!isOffline && tripId) {
       // Process old queue (backward compatibility)
-      processQueue().then((oldResult) => {
+      processQueue().then(oldResult => {
         if (oldResult.success > 0) {
           toast({
             title: 'Messages sent',
@@ -352,7 +373,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         privacy_mode: message.privacyMode || 'standard',
         message_type: message.messageType || 'text',
         media_type: message.media_type,
-        media_url: message.media_url
+        media_url: message.media_url,
       };
 
       // If offline, queue the message using unified sync service
@@ -365,17 +386,17 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           'chat_message',
           'create',
           tripId,
-          messageData
+          messageData,
         );
-        
+
         // Do NOT enqueue into the legacy queue. That queue will also attempt to send and can
         // produce duplicate-key failures due to the unique `(trip_id, client_message_id)` index.
-        
+
         toast({
           title: 'Message queued',
           description: 'Your message will be sent when connection is restored.',
         });
-        
+
         // Cache the optimistic message locally
         const optimisticMessage: TripChatMessage = {
           id: queueId,
@@ -383,19 +404,19 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        
+
         // Save to cache for immediate display
         await saveMessagesToCache(tripId, [optimisticMessage]);
-        
+
         return optimisticMessage;
       }
 
       // Online - send immediately
       const data = await sendChatMessage(messageData);
-      
+
       // Cache the new message
       await saveMessagesToCache(tripId, [data]);
-      
+
       return data;
     },
     onError: (error: unknown) => {
@@ -406,12 +427,20 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       toast({
         title: 'Error',
         description: errorMessage,
-        variant: 'destructive'
+        variant: 'destructive',
       });
-    }
+    },
   });
 
-  const sendMessage = (content: string, authorName: string, mediaType?: string, mediaUrl?: string, userId?: string, privacyMode?: string, messageType?: 'text' | 'broadcast' | 'payment' | 'system') => {
+  const sendMessage = (
+    content: string,
+    authorName: string,
+    mediaType?: string,
+    mediaUrl?: string,
+    userId?: string,
+    privacyMode?: string,
+    messageType?: 'text' | 'broadcast' | 'payment' | 'system',
+  ) => {
     createMessageMutation.mutate({
       content,
       author_name: authorName,
@@ -419,11 +448,19 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       media_url: mediaUrl,
       userId,
       privacyMode,
-      messageType
+      messageType,
     });
   };
 
-  const sendMessageAsync = (content: string, authorName: string, mediaType?: string, mediaUrl?: string, userId?: string, privacyMode?: string, messageType?: 'text' | 'broadcast' | 'payment' | 'system') => {
+  const sendMessageAsync = (
+    content: string,
+    authorName: string,
+    mediaType?: string,
+    mediaUrl?: string,
+    userId?: string,
+    privacyMode?: string,
+    messageType?: 'text' | 'broadcast' | 'payment' | 'system',
+  ) => {
     return createMessageMutation.mutateAsync({
       content,
       author_name: authorName,
@@ -431,7 +468,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       media_url: mediaUrl,
       userId,
       privacyMode,
-      messageType
+      messageType,
     });
   };
 
@@ -457,7 +494,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         const olderMessages = data.reverse();
         queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => [
           ...olderMessages,
-          ...old
+          ...old,
         ]);
         setHasMore(data.length === 20);
       } else {

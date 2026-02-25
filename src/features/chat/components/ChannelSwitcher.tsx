@@ -4,7 +4,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from '@/components/ui/select';
 import { Hash, Lock, Users, MessageSquare } from 'lucide-react';
 import { RoleChannel } from '@/services/roleChannelService';
@@ -20,11 +20,13 @@ export const ChannelSwitcher = ({
   activeChannel,
   roleChannels,
   onChannelChange,
-  className
+  className,
 }: ChannelSwitcherProps) => {
   return (
     <Select value={activeChannel} onValueChange={onChannelChange}>
-      <SelectTrigger className={`w-full max-w-[420px] mx-auto bg-gray-800/50 border-gray-700/50 hover:bg-gray-800 hover:border-gray-600 transition-colors duration-200 md:max-w-[420px] sm:max-w-[380px] ${className}`}>
+      <SelectTrigger
+        className={`w-full max-w-[420px] mx-auto bg-gray-800/50 border-gray-700/50 hover:bg-gray-800 hover:border-gray-600 transition-colors duration-200 md:max-w-[420px] sm:max-w-[380px] ${className}`}
+      >
         <SelectValue>
           {activeChannel === 'main' ? (
             <div className="flex items-center gap-2">
@@ -35,7 +37,11 @@ export const ChannelSwitcher = ({
             <div className="flex items-center gap-2">
               <Lock size={14} className="text-purple-400" />
               <span className="text-sm truncate">
-                #{roleChannels.find(ch => ch.id === activeChannel)?.roleName.toLowerCase().replace(/\s+/g, '-')}
+                #
+                {roleChannels
+                  .find(ch => ch.id === activeChannel)
+                  ?.roleName.toLowerCase()
+                  .replace(/\s+/g, '-')}
               </span>
             </div>
           )}
@@ -54,17 +60,19 @@ export const ChannelSwitcher = ({
         {/* Role Channels */}
         {roleChannels.length > 0 && (
           <>
-            <div className="px-2 py-1.5 text-xs text-gray-500 font-medium">
-              ROLE CHANNELS
-            </div>
+            <div className="px-2 py-1.5 text-xs text-gray-500 font-medium">ROLE CHANNELS</div>
             {roleChannels.map(channel => (
-              <SelectItem key={channel.id} value={channel.id} className="text-white hover:bg-gray-700">
+              <SelectItem
+                key={channel.id}
+                value={channel.id}
+                className="text-white hover:bg-gray-700"
+              >
                 <div className="flex items-center gap-2">
                   <Lock size={14} className="text-purple-400" />
-                  <span className="text-sm truncate">#{channel.roleName.toLowerCase().replace(/\s+/g, '-')}</span>
-                  <span className="text-xs text-gray-500 ml-auto">
-                    Private
+                  <span className="text-sm truncate">
+                    #{channel.roleName.toLowerCase().replace(/\s+/g, '-')}
                   </span>
+                  <span className="text-xs text-gray-500 ml-auto">Private</span>
                 </div>
               </SelectItem>
             ))}
@@ -74,4 +82,3 @@ export const ChannelSwitcher = ({
     </Select>
   );
 };
-

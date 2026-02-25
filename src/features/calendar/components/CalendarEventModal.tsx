@@ -29,7 +29,7 @@ export const CalendarEventModal = ({
   tripId,
   onEventAdded,
   prefilledData,
-  editEvent
+  editEvent,
 }: CalendarEventModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<AddToCalendarData>({
@@ -39,7 +39,8 @@ export const CalendarEventModal = ({
     location: prefilledData?.location || editEvent?.location || '',
     description: prefilledData?.description || editEvent?.description || '',
     category: prefilledData?.category || editEvent?.event_category || 'other',
-    include_in_itinerary: prefilledData?.include_in_itinerary ?? editEvent?.include_in_itinerary ?? true
+    include_in_itinerary:
+      prefilledData?.include_in_itinerary ?? editEvent?.include_in_itinerary ?? true,
   });
 
   // Update form data when editEvent changes
@@ -52,7 +53,7 @@ export const CalendarEventModal = ({
         location: editEvent.location || '',
         description: editEvent.description || '',
         category: editEvent.event_category || 'other',
-        include_in_itinerary: editEvent.include_in_itinerary ?? true
+        include_in_itinerary: editEvent.include_in_itinerary ?? true,
       });
     } else if (prefilledData) {
       setFormData({
@@ -62,7 +63,7 @@ export const CalendarEventModal = ({
         location: prefilledData.location || '',
         description: prefilledData.description || '',
         category: prefilledData.category || 'other',
-        include_in_itinerary: prefilledData.include_in_itinerary ?? true
+        include_in_itinerary: prefilledData.include_in_itinerary ?? true,
       });
     }
   }, [editEvent, prefilledData]);
@@ -96,7 +97,7 @@ export const CalendarEventModal = ({
           end_time: endTime,
           location: formData.location || undefined,
           event_category: formData.category || 'other',
-          include_in_itinerary: formData.include_in_itinerary ?? true
+          include_in_itinerary: formData.include_in_itinerary ?? true,
         });
 
         if (success) {
@@ -118,14 +119,14 @@ export const CalendarEventModal = ({
           event_category: formData.category || 'other',
           include_in_itinerary: formData.include_in_itinerary ?? true,
           source_type: 'manual',
-          source_data: {}
+          source_data: {},
         });
 
         if (result.event) {
           // Show conflict warning if overlapping events exist
           if (result.conflicts.length > 0) {
             toast.success('Event created', {
-              description: `Note: This event overlaps with "${result.conflicts[0]}"${result.conflicts.length > 1 ? ` and ${result.conflicts.length - 1} other event(s)` : ''}.`
+              description: `Note: This event overlaps with "${result.conflicts[0]}"${result.conflicts.length > 1 ? ` and ${result.conflicts.length - 1} other event(s)` : ''}.`,
             });
           } else {
             toast.success('Event created');
@@ -140,9 +141,10 @@ export const CalendarEventModal = ({
       console.error('Error saving event:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast.error('Failed to save event', {
-        description: errorMessage.includes('permission') || errorMessage.includes('RLS') 
-          ? 'You may not have permission to modify events on this trip.'
-          : errorMessage
+        description:
+          errorMessage.includes('permission') || errorMessage.includes('RLS')
+            ? 'You may not have permission to modify events on this trip.'
+            : errorMessage,
       });
     } finally {
       setIsSubmitting(false);
@@ -157,7 +159,7 @@ export const CalendarEventModal = ({
       location: '',
       description: '',
       category: 'other',
-      include_in_itinerary: true
+      include_in_itinerary: true,
     });
     onClose();
   };
@@ -166,18 +168,16 @@ export const CalendarEventModal = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {editEvent ? 'Edit Event' : 'Add to Calendar'}
-          </DialogTitle>
+          <DialogTitle>{editEvent ? 'Edit Event' : 'Add to Calendar'}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="title">Event Title *</Label>
             <Input
               id="title"
               value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              onChange={e => setFormData({ ...formData, title: e.target.value })}
               placeholder="Event name"
               required
             />
@@ -191,13 +191,13 @@ export const CalendarEventModal = ({
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal text-xs px-3",
-                      !formData.date && "text-muted-foreground"
+                      'w-full justify-start text-left font-normal text-xs px-3',
+                      !formData.date && 'text-muted-foreground',
                     )}
                   >
                     <CalendarIcon className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
                     <span className="truncate">
-                      {formData.date ? format(formData.date, "MMM d, yyyy") : "Pick a date"}
+                      {formData.date ? format(formData.date, 'MMM d, yyyy') : 'Pick a date'}
                     </span>
                   </Button>
                 </PopoverTrigger>
@@ -205,7 +205,7 @@ export const CalendarEventModal = ({
                   <Calendar
                     mode="single"
                     selected={formData.date}
-                    onSelect={(date) => date && setFormData({...formData, date})}
+                    onSelect={date => date && setFormData({ ...formData, date })}
                     initialFocus
                     className="p-3 pointer-events-auto"
                   />
@@ -219,7 +219,7 @@ export const CalendarEventModal = ({
                 id="time"
                 type="time"
                 value={formData.time}
-                onChange={(e) => setFormData({...formData, time: e.target.value})}
+                onChange={e => setFormData({ ...formData, time: e.target.value })}
                 required
               />
             </div>
@@ -230,7 +230,7 @@ export const CalendarEventModal = ({
             <Input
               id="location"
               value={formData.location}
-              onChange={(e) => setFormData({...formData, location: e.target.value})}
+              onChange={e => setFormData({ ...formData, location: e.target.value })}
               placeholder="Event location"
             />
           </div>
@@ -240,7 +240,7 @@ export const CalendarEventModal = ({
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
               placeholder="Additional details..."
               rows={2}
             />
@@ -250,8 +250,8 @@ export const CalendarEventModal = ({
             <Switch
               id="include-itinerary"
               checked={formData.include_in_itinerary}
-              onCheckedChange={(checked) => 
-                setFormData({...formData, include_in_itinerary: checked})
+              onCheckedChange={checked =>
+                setFormData({ ...formData, include_in_itinerary: checked })
               }
             />
             <Label htmlFor="include-itinerary">Include in trip itinerary</Label>

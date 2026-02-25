@@ -40,8 +40,20 @@ const mockBalance = {
   amountOwedCurrency: 'USD',
   preferredPaymentMethod: null,
   unsettledPayments: [
-    { paymentId: 'pay-1', amount: 50.0, description: 'Dinner', amountCurrency: 'USD', date: '2025-01-15' },
-    { paymentId: 'pay-2', amount: 25.0, description: 'Taxi', amountCurrency: 'USD', date: '2025-01-16' },
+    {
+      paymentId: 'pay-1',
+      amount: 50.0,
+      description: 'Dinner',
+      amountCurrency: 'USD',
+      date: '2025-01-15',
+    },
+    {
+      paymentId: 'pay-2',
+      amount: 25.0,
+      description: 'Taxi',
+      amountCurrency: 'USD',
+      date: '2025-01-16',
+    },
   ],
 };
 

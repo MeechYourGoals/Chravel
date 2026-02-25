@@ -14,7 +14,7 @@ export const recommendationsData: Recommendation[] = [
   ...activityRecommendations,
   ...tourRecommendations,
   ...experienceRecommendations,
-  ...transportationRecommendations
+  ...transportationRecommendations,
 ];
 
 export const getRecommendationsByType = (type?: string): Recommendation[] => {

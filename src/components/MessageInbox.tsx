@@ -8,7 +8,7 @@ export const MessageInbox = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | 'unread' | 'mentions'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Mock data - replace with real unified messaging later
   const messages: any[] = [];
   const getTotalUnreadCount = () => 0;
@@ -31,7 +31,7 @@ export const MessageInbox = () => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffMinutes < 60) return `${diffMinutes}m ago`;
     if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}h ago`;
     return date.toLocaleDateString();
@@ -70,19 +70,22 @@ export const MessageInbox = () => {
 
       {/* Search Bar */}
       <div className="relative mb-6">
-        <Search size={20} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <Search
+          size={20}
+          className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+        />
         <input
           type="text"
           placeholder="Search messages, people, or trips..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
           className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-glass-orange"
         />
       </div>
 
       {/* Filters */}
       <div className="flex gap-2 mb-6">
-        {['all', 'unread', 'mentions'].map((filterType) => (
+        {['all', 'unread', 'mentions'].map(filterType => (
           <button
             key={filterType}
             onClick={() => setFilter(filterType as any)}
@@ -99,10 +102,10 @@ export const MessageInbox = () => {
 
       {/* Messages */}
       <div className="space-y-3 max-h-96 overflow-y-auto">
-        {filteredMessages.map((message) => {
+        {filteredMessages.map(message => {
           const tripDisplayName = getTripDisplayName(message);
           const badgeColor = getTripBadgeColor(message);
-          
+
           return (
             <div
               key={message.id}
@@ -123,7 +126,9 @@ export const MessageInbox = () => {
                     <div className="flex items-center gap-2">
                       <span className="text-white font-medium">{message.senderName}</span>
                       {tripDisplayName && (
-                        <span className={`text-xs px-2 py-1 rounded-full border backdrop-blur-sm truncate max-w-32 ${badgeColor}`}>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full border backdrop-blur-sm truncate max-w-32 ${badgeColor}`}
+                        >
                           {tripDisplayName}
                         </span>
                       )}
@@ -143,9 +148,7 @@ export const MessageInbox = () => {
                     </div>
                   )}
                 </div>
-                {!message.isRead && (
-                  <div className="w-2 h-2 bg-glass-orange rounded-full"></div>
-                )}
+                {!message.isRead && <div className="w-2 h-2 bg-glass-orange rounded-full"></div>}
               </div>
             </div>
           );

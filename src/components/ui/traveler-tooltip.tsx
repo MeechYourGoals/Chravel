@@ -1,6 +1,5 @@
-
-import * as React from "react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip"
+import * as React from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 
 interface TravelerTooltipProps {
   children: React.ReactNode;
@@ -11,9 +10,7 @@ export const TravelerTooltip = ({ children, name }: TravelerTooltipProps) => {
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          {children}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
         <TooltipContent>
           <p>{name}</p>
         </TooltipContent>

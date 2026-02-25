@@ -78,6 +78,8 @@ export function toDbCalendarEventInsert(
     event_category: normalizeCalendarCategory(data.eventCategory),
     include_in_itinerary: data.includeInItinerary ?? true,
     source_type: data.sourceType ?? 'manual',
-    source_data: (data.sourceData as Database['public']['Tables']['trip_events']['Insert']['source_data']) ?? null,
+    source_data:
+      (data.sourceData as Database['public']['Tables']['trip_events']['Insert']['source_data']) ??
+      null,
   };
 }

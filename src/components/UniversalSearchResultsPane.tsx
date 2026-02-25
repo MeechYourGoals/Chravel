@@ -41,9 +41,9 @@ interface UniversalSearchResultsPaneProps {
   onResultClick?: (result: SemanticSearchResult | UniversalSearchResult) => void;
 }
 
-export const UniversalSearchResultsPane: React.FC<UniversalSearchResultsPaneProps> = ({ 
-  results, 
-  onResultClick 
+export const UniversalSearchResultsPane: React.FC<UniversalSearchResultsPaneProps> = ({
+  results,
+  onResultClick,
 }) => {
   const getIcon = (type: string) => {
     switch (type) {
@@ -74,9 +74,17 @@ export const UniversalSearchResultsPane: React.FC<UniversalSearchResultsPaneProp
           </Badge>
         );
       case 'keyword_match':
-        return <Badge variant="outline" className="text-xs">Keyword</Badge>;
+        return (
+          <Badge variant="outline" className="text-xs">
+            Keyword
+          </Badge>
+        );
       default:
-        return <Badge variant="outline" className="text-xs">Match</Badge>;
+        return (
+          <Badge variant="outline" className="text-xs">
+            Match
+          </Badge>
+        );
     }
   };
 
@@ -100,13 +108,11 @@ export const UniversalSearchResultsPane: React.FC<UniversalSearchResultsPaneProp
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-white/60" />
-        <span className="text-sm font-medium text-white/80">
-          Search Results ({results.length})
-        </span>
+        <span className="text-sm font-medium text-white/80">Search Results ({results.length})</span>
       </div>
-      
+
       <div className="space-y-2 max-h-64 overflow-y-auto">
-        {results.map((result) => (
+        {results.map(result => (
           <Card
             key={result.id}
             className="cursor-pointer hover:bg-white/10 transition-colors bg-white/5 border-white/10"
@@ -114,39 +120,29 @@ export const UniversalSearchResultsPane: React.FC<UniversalSearchResultsPaneProp
           >
             <CardContent className="p-3">
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 mt-0.5">
-                  {getIcon(result.objectType)}
-                </div>
-                
+                <div className="flex-shrink-0 mt-0.5">{getIcon(result.objectType)}</div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-medium text-white capitalize">
                       {result.objectType.replace('_', ' ')}
                     </span>
                     {getMatchReasonBadge(result.matchReason)}
-                    
+
                     {'similarity' in result && (
                       <Badge variant="outline" className="text-xs">
                         {Math.round(result.similarity * 100)}% match
                       </Badge>
                     )}
                   </div>
-                  
-                  <p className="text-sm text-white/70 line-clamp-2 mb-2">
-                    {result.snippet}
-                  </p>
+
+                  <p className="text-sm text-white/70 line-clamp-2 mb-2">{result.snippet}</p>
 
                   {'metadata' in result && result.metadata && (
                     <div className="flex gap-2 text-xs text-white/50">
-                      {result.metadata.fileName && (
-                        <span>📄 {result.metadata.fileName}</span>
-                      )}
-                      {result.metadata.amount && (
-                        <span>💰 ${result.metadata.amount}</span>
-                      )}
-                      {result.metadata.date && (
-                        <span>📅 {result.metadata.date}</span>
-                      )}
+                      {result.metadata.fileName && <span>📄 {result.metadata.fileName}</span>}
+                      {result.metadata.amount && <span>💰 ${result.metadata.amount}</span>}
+                      {result.metadata.date && <span>📅 {result.metadata.date}</span>}
                     </div>
                   )}
                 </div>

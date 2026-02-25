@@ -4,14 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 export default function Healthz() {
   const buildId = import.meta.env.VITE_BUILD_ID ?? 'dev';
   const mode = import.meta.env.MODE;
-  
+
   const [runtimeChecks, setRuntimeChecks] = useState({
     envPresent: false,
     isPreview: false,
     localStorageAvailable: false,
     supabaseSession: null as string | null,
     supabaseDBReachable: false,
-    cspViolations: 0
+    cspViolations: 0,
   });
 
   useEffect(() => {
@@ -28,8 +28,9 @@ export default function Healthz() {
 
     const runChecks = async () => {
       const env = (import.meta as any)?.env ?? {};
-      const isPreview = typeof window !== 'undefined' && window.location.hostname.endsWith('lovableproject.com');
-      
+      const isPreview =
+        typeof window !== 'undefined' && window.location.hostname.endsWith('lovableproject.com');
+
       let sessionStatus = null;
       let dbReachable = false;
 
@@ -41,7 +42,9 @@ export default function Healthz() {
       }
 
       try {
-        const { error } = await supabase.from('profiles').select('id', { count: 'exact', head: true });
+        const { error } = await supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true });
         dbReachable = !error;
       } catch {
         dbReachable = false;
@@ -53,7 +56,7 @@ export default function Healthz() {
         localStorageAvailable: checkLocalStorage(),
         supabaseSession: sessionStatus,
         supabaseDBReachable: dbReachable,
-        cspViolations: 0
+        cspViolations: 0,
       });
     };
 
@@ -69,10 +72,10 @@ export default function Healthz() {
       mediaLinks: false,
       serviceWorkerCleared: true,
       nominatimFallback: true,
-      tripSpecificMockData: true
+      tripSpecificMockData: true,
     },
     runtime: runtimeChecks,
-    status: 'ok'
+    status: 'ok',
   };
 
   return (

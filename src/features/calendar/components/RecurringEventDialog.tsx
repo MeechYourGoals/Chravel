@@ -3,14 +3,15 @@
  * UI for creating recurring events
  */
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -66,10 +67,10 @@ export const RecurringEventDialog: React.FC<RecurringEventDialogProps> = ({
                 type="number"
                 min={1}
                 value={interval}
-                onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
+                onChange={e => setInterval(parseInt(e.target.value) || 1)}
                 className="w-20"
               />
-              <Select value={frequency} onValueChange={(v) => setFrequency(v as RecurrenceFrequency)}>
+              <Select value={frequency} onValueChange={v => setFrequency(v as RecurrenceFrequency)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -85,7 +86,7 @@ export const RecurringEventDialog: React.FC<RecurringEventDialogProps> = ({
 
           <div className="space-y-2">
             <Label>Ends</Label>
-            <Select value={endType} onValueChange={(v) => setEndType(v as any)}>
+            <Select value={endType} onValueChange={v => setEndType(v as any)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -116,14 +117,16 @@ export const RecurringEventDialog: React.FC<RecurringEventDialogProps> = ({
                 type="number"
                 min={1}
                 value={occurrences}
-                onChange={(e) => setOccurrences(parseInt(e.target.value) || 1)}
+                onChange={e => setOccurrences(parseInt(e.target.value) || 1)}
               />
             </div>
           )}
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button onClick={handleSave}>Save</Button>
         </div>
       </DialogContent>

@@ -1,15 +1,15 @@
 /**
  * Chat Content Parser Service
- * 
+ *
  * Automatically parses shared content in chat to extract:
  * - Receipt OCR: Extract text and structured data from receipt images
  * - Itinerary Parsing: Extract calendar events from travel documents (PDFs, images)
  * - Link Unfurling: Fetch rich previews for URLs (already exists, integrated here)
  * - Natural Language Processing: Extract entities (dates, times, locations) from messages
- * 
+ *
  * This service integrates with the enhanced-ai-parser edge function and provides
  * a unified interface for content parsing in the chat flow.
- * 
+ *
  * @module services/chatContentParser
  */
 
@@ -95,15 +95,12 @@ export interface ParsedContent {
 
 /**
  * Parse receipt image using OCR
- * 
+ *
  * @param imageUrl - URL of the receipt image
  * @param tripId - Trip ID for context
  * @returns Parsed receipt data
  */
-export async function parseReceipt(
-  imageUrl: string,
-  tripId: string
-): Promise<ParsedContent> {
+export async function parseReceipt(imageUrl: string, tripId: string): Promise<ParsedContent> {
   try {
     const { data, error } = await supabase.functions.invoke('enhanced-ai-parser', {
       body: {
@@ -124,7 +121,7 @@ export async function parseReceipt(
     }
 
     // Detect if this is a receipt based on document type and structured data
-    const isReceipt = 
+    const isReceipt =
       parsedData.document_type === 'receipt' ||
       parsedData.document_type === 'invoice' ||
       (parsedData.structured_data?.amounts && parsedData.structured_data.amounts.length > 0);
@@ -138,7 +135,7 @@ export async function parseReceipt(
 
     // Generate suggestions
     const suggestions: ParsedContent['suggestions'] = [];
-    
+
     if (receipt.structured_data.total_cost) {
       suggestions.push({
         action: 'extract_receipt',
@@ -173,7 +170,7 @@ export async function parseReceipt(
 
 /**
  * Parse itinerary document (PDF or image) to extract calendar events
- * 
+ *
  * @param fileUrl - URL of the itinerary file
  * @param fileType - MIME type of the file
  * @param messageText - Optional message text for context
@@ -184,7 +181,7 @@ export async function parseItinerary(
   fileUrl: string,
   fileType: string,
   messageText: string,
-  tripId: string
+  tripId: string,
 ): Promise<ParsedContent> {
   try {
     const { data, error } = await supabase.functions.invoke('enhanced-ai-parser', {
@@ -212,7 +209,7 @@ export async function parseItinerary(
     };
 
     // Generate suggestions for each event
-    const suggestions: ParsedContent['suggestions'] = itinerary.events.map((event) => ({
+    const suggestions: ParsedContent['suggestions'] = itinerary.events.map(event => ({
       action: 'create_calendar_event',
       data: {
         title: event.title,
@@ -240,7 +237,7 @@ export async function parseItinerary(
 
 /**
  * Parse URL and fetch rich preview
- * 
+ *
  * @param url - URL to parse
  * @param tripId - Trip ID
  * @param messageId - Optional message ID
@@ -249,7 +246,7 @@ export async function parseItinerary(
 export async function parseLink(
   url: string,
   tripId: string,
-  messageId?: string
+  messageId?: string,
 ): Promise<ParsedContent> {
   try {
     // Fetch OG metadata
@@ -292,15 +289,12 @@ export async function parseLink(
 
 /**
  * Extract entities and intents from natural language message
- * 
+ *
  * @param messageText - Message text to analyze
  * @param tripId - Trip ID for context
  * @returns Extracted entities and suggested actions
  */
-export async function parseMessage(
-  messageText: string,
-  tripId: string
-): Promise<ParsedContent> {
+export async function parseMessage(messageText: string, tripId: string): Promise<ParsedContent> {
   try {
     // Use enhanced-ai-parser for entity extraction
     const { data, error } = await supabase.functions.invoke('enhanced-ai-parser', {
@@ -340,9 +334,9 @@ export async function parseMessage(
 
     // Generate suggestions based on extracted entities
     const suggestions: ParsedContent['suggestions'] = [];
-    
+
     if (entities.suggested_events && entities.suggested_events.length > 0) {
-      entities.suggested_events.forEach((event) => {
+      entities.suggested_events.forEach(event => {
         if (event.confidence > 0.7) {
           suggestions.push({
             action: 'create_calendar_event',
@@ -370,7 +364,7 @@ export async function parseMessage(
     const todos: ParsedTodo[] = todoData?.todos || [];
 
     if (todos.length > 0) {
-      todos.forEach((todo) => {
+      todos.forEach(todo => {
         if (todo.confidence > 0.7) {
           suggestions.push({
             action: 'create_todo',
@@ -399,7 +393,7 @@ export async function parseMessage(
 
 /**
  * Auto-detect content type and parse accordingly
- * 
+ *
  * @param content - Content to parse (file URL, message text, or URL)
  * @param contentType - Type of content: 'image' | 'document' | 'url' | 'message'
  * @param fileType - MIME type (for files)
@@ -412,24 +406,24 @@ export async function autoParseContent(
   contentType: 'image' | 'document' | 'url' | 'message',
   fileType: string,
   tripId: string,
-  messageId?: string
+  messageId?: string,
 ): Promise<ParsedContent | null> {
   try {
     switch (contentType) {
       case 'image':
         // Check if it's likely a receipt or itinerary
         return await parseReceipt(content, tripId);
-      
+
       case 'document':
         // Parse as itinerary
         return await parseItinerary(content, fileType, '', tripId);
-      
+
       case 'url':
         return await parseLink(content, tripId, messageId);
-      
+
       case 'message':
         return await parseMessage(content, tripId);
-      
+
       default:
         return null;
     }
@@ -441,25 +435,27 @@ export async function autoParseContent(
 
 /**
  * Apply parsed content suggestions (create calendar events, todos, etc.)
- * 
+ *
  * @param suggestion - Suggestion to apply
  * @param tripId - Trip ID
  * @returns Created entity ID or null
  */
 export async function applySuggestion(
   suggestion: ParsedContent['suggestions'][0],
-  tripId: string
+  tripId: string,
 ): Promise<string | null> {
   try {
     switch (suggestion.action) {
       case 'create_calendar_event': {
         if (!suggestion.data) return null;
-        
+
         const eventData: CreateEventData = {
           trip_id: tripId,
           title: suggestion.data.title,
           start_time: suggestion.data.date
-            ? new Date(`${suggestion.data.date}T${suggestion.data.start_time || '12:00'}`).toISOString()
+            ? new Date(
+                `${suggestion.data.date}T${suggestion.data.start_time || '12:00'}`,
+              ).toISOString()
             : new Date().toISOString(),
           end_time: suggestion.data.end_time
             ? new Date(`${suggestion.data.date}T${suggestion.data.end_time}`).toISOString()
@@ -473,15 +469,15 @@ export async function applySuggestion(
         const result = await calendarService.createEvent(eventData);
         return result.event?.id || null;
       }
-      
+
       case 'create_todo':
         // TODO: Implement todo creation service
         return null;
-      
+
       case 'extract_receipt':
         // TODO: Implement receipt extraction/storage
         return null;
-      
+
       default:
         return null;
     }

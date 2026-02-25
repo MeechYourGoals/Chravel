@@ -22,41 +22,45 @@ const mockTemplates: MessageTemplate[] = [
   {
     id: '1',
     name: 'Game Day Reminder',
-    content: 'Team meeting at {{time}} in {{location}}. Please arrive 15 minutes early for warm-up. {{additional_info}}',
+    content:
+      'Team meeting at {{time}} in {{location}}. Please arrive 15 minutes early for warm-up. {{additional_info}}',
     category: 'logistics',
     tripType: 'sports',
-    placeholders: ['time', 'location', 'additional_info']
+    placeholders: ['time', 'location', 'additional_info'],
   },
   {
     id: '3',
     name: 'Sound Check',
-    content: 'Sound check at {{time}} in {{venue}}. All {{role}} members must attend. {{technical_notes}}',
+    content:
+      'Sound check at {{time}} in {{venue}}. All {{role}} members must attend. {{technical_notes}}',
     category: 'logistics',
     tripType: 'music',
-    placeholders: ['time', 'venue', 'role', 'technical_notes']
+    placeholders: ['time', 'venue', 'role', 'technical_notes'],
   },
   {
     id: '4',
     name: 'Meeting Reminder',
-    content: 'Team meeting scheduled for {{time}} in {{location}}. Agenda: {{agenda}}. {{preparation_notes}}',
+    content:
+      'Team meeting scheduled for {{time}} in {{location}}. Agenda: {{agenda}}. {{preparation_notes}}',
     category: 'reminder',
     tripType: 'corporate',
-    placeholders: ['time', 'location', 'agenda', 'preparation_notes']
+    placeholders: ['time', 'location', 'agenda', 'preparation_notes'],
   },
   {
     id: '5',
     name: 'Field Trip Reminder',
-    content: 'Field trip to {{destination}} tomorrow. Meet at {{meeting_point}} at {{time}}. Bring {{items_needed}}.',
+    content:
+      'Field trip to {{destination}} tomorrow. Meet at {{meeting_point}} at {{time}}. Bring {{items_needed}}.',
     category: 'reminder',
     tripType: 'school',
-    placeholders: ['destination', 'meeting_point', 'time', 'items_needed']
-  }
+    placeholders: ['destination', 'meeting_point', 'time', 'items_needed'],
+  },
 ];
 
-export const MessageTemplateLibrary = ({ 
-  onSelectTemplate, 
+export const MessageTemplateLibrary = ({
+  onSelectTemplate,
   tripType = 'general',
-  onClose: _onClose 
+  onClose: _onClose,
 }: MessageTemplateLibraryProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -64,10 +68,11 @@ export const MessageTemplateLibrary = ({
   // Filter templates based on trip type, search query, and category
   const filteredTemplates = mockTemplates.filter(template => {
     const matchesTripType = tripType === 'general' || template.tripType === tripType;
-    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         template.content.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      template.content.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
-    
+
     return matchesTripType && matchesSearch && matchesCategory;
   });
 
@@ -75,10 +80,14 @@ export const MessageTemplateLibrary = ({
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'logistics': return 'text-blue-400 bg-blue-400/10';
-      case 'reminder': return 'text-yellow-400 bg-yellow-400/10';
-      case 'update': return 'text-green-400 bg-green-400/10';
-      default: return 'text-gray-400 bg-gray-400/10';
+      case 'logistics':
+        return 'text-blue-400 bg-blue-400/10';
+      case 'reminder':
+        return 'text-yellow-400 bg-yellow-400/10';
+      case 'update':
+        return 'text-green-400 bg-green-400/10';
+      default:
+        return 'text-gray-400 bg-gray-400/10';
     }
   };
 
@@ -98,12 +107,15 @@ export const MessageTemplateLibrary = ({
       {/* Search and Filter */}
       <div className="space-y-3">
         <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          />
           <input
             type="text"
             placeholder="Search templates..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             className="w-full bg-white/5 border border-white/20 rounded-xl pl-10 pr-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
           />
         </div>
@@ -140,7 +152,9 @@ export const MessageTemplateLibrary = ({
                     <h4 className="font-medium text-white group-hover:text-purple-300 transition-colors">
                       {template.name}
                     </h4>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(template.category)}`}>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(template.category)}`}
+                    >
                       {template.category}
                     </span>
                   </div>
@@ -160,7 +174,10 @@ export const MessageTemplateLibrary = ({
                     </div>
                   )}
                 </div>
-                <ChevronRight size={16} className="text-gray-500 group-hover:text-purple-400 transition-colors" />
+                <ChevronRight
+                  size={16}
+                  className="text-gray-500 group-hover:text-purple-400 transition-colors"
+                />
               </div>
             </div>
           ))
@@ -176,14 +193,16 @@ export const MessageTemplateLibrary = ({
       {/* Generate Custom Template Button */}
       <div className="pt-3 border-t border-white/10">
         <Button
-          onClick={() => onSelectTemplate({
-            id: 'custom',
-            name: 'Custom AI Generated',
-            content: '',
-            category: 'custom',
-            tripType: 'general',
-            placeholders: []
-          })}
+          onClick={() =>
+            onSelectTemplate({
+              id: 'custom',
+              name: 'Custom AI Generated',
+              content: '',
+              category: 'custom',
+              tripType: 'general',
+              placeholders: [],
+            })
+          }
           variant="outline"
           className="w-full border-purple-500/50 text-purple-300 hover:bg-purple-500/10"
         >

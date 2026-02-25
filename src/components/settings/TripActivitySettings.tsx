@@ -3,7 +3,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ChatActivitySettings } from '@/components/settings/ChatActivitySettings';
-import { useTripSystemMessagePreferences, useGlobalSystemMessagePreferences } from '@/hooks/useSystemMessagePreferences';
+import {
+  useTripSystemMessagePreferences,
+  useGlobalSystemMessagePreferences,
+} from '@/hooks/useSystemMessagePreferences';
 import { SystemMessageCategoryPrefs } from '@/utils/systemMessageCategory';
 import { RotateCcw } from 'lucide-react';
 
@@ -12,17 +15,11 @@ interface TripActivitySettingsProps {
 }
 
 export const TripActivitySettings: React.FC<TripActivitySettingsProps> = ({ tripId }) => {
-  const { 
-    hasOverride, 
-    preferences, 
-    updatePreferences, 
-    resetToGlobal, 
-    isUpdating,
-    isResetting 
-  } = useTripSystemMessagePreferences(tripId);
-  
+  const { hasOverride, preferences, updatePreferences, resetToGlobal, isUpdating, isResetting } =
+    useTripSystemMessagePreferences(tripId);
+
   const { preferences: globalPrefs } = useGlobalSystemMessagePreferences();
-  
+
   const handleModeChange = (value: string) => {
     if (value === 'global') {
       resetToGlobal();
@@ -30,28 +27,28 @@ export const TripActivitySettings: React.FC<TripActivitySettingsProps> = ({ trip
       // Create trip-specific override with current global values
       updatePreferences({
         showSystemMessages: globalPrefs.showSystemMessages,
-        categories: globalPrefs.categories
+        categories: globalPrefs.categories,
       });
     }
   };
-  
+
   const handleShowSystemMessagesChange = (value: boolean) => {
     updatePreferences({ showSystemMessages: value, categories: preferences.categories });
   };
-  
+
   const handleCategoryChange = (category: keyof SystemMessageCategoryPrefs, value: boolean) => {
     updatePreferences({
       showSystemMessages: preferences.showSystemMessages,
-      categories: { ...preferences.categories, [category]: value }
+      categories: { ...preferences.categories, [category]: value },
     });
   };
-  
+
   return (
     <div className="space-y-4">
       <h4 className="text-base font-semibold text-white">Activity in This Trip</h4>
-      
-      <RadioGroup 
-        value={hasOverride ? 'custom' : 'global'} 
+
+      <RadioGroup
+        value={hasOverride ? 'custom' : 'global'}
         onValueChange={handleModeChange}
         className="space-y-2"
       >
@@ -68,7 +65,7 @@ export const TripActivitySettings: React.FC<TripActivitySettingsProps> = ({ trip
           </Label>
         </div>
       </RadioGroup>
-      
+
       {hasOverride && (
         <div className="mt-4 pt-4 border-t border-white/10">
           <ChatActivitySettings
@@ -78,7 +75,7 @@ export const TripActivitySettings: React.FC<TripActivitySettingsProps> = ({ trip
             onCategoryChange={handleCategoryChange}
             disabled={isUpdating}
           />
-          
+
           <Button
             variant="outline"
             size="sm"

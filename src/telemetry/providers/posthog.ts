@@ -125,10 +125,7 @@ export class PostHogProvider implements TelemetryProvider {
     }
   }
 
-  track<E extends TelemetryEventName>(
-    event: E,
-    properties: TelemetryEventMap[E]
-  ): void {
+  track<E extends TelemetryEventName>(event: E, properties: TelemetryEventMap[E]): void {
     if (!this.enabled || !posthogInstance) return;
 
     const enrichedProperties = {

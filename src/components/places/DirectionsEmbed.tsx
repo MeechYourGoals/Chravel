@@ -141,7 +141,7 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
           <input
             type="text"
             value={fromText}
-            onChange={(e) => setFromText(e.target.value)}
+            onChange={e => setFromText(e.target.value)}
             placeholder="Enter any location, venue, or address..."
             className="w-full bg-white/10 border border-white/20 rounded-lg pl-9 pr-9 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors text-sm"
           />
@@ -199,7 +199,7 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
           <input
             type="text"
             value={toText}
-            onChange={(e) => setToText(e.target.value)}
+            onChange={e => setToText(e.target.value)}
             placeholder="Enter destination..."
             className="w-full bg-white/10 border border-white/20 rounded-lg pl-9 pr-9 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors text-sm"
           />

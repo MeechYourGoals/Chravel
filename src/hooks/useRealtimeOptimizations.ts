@@ -14,13 +14,13 @@ export const useRealtimeOptimizations = (
   tableName: string,
   filter: Record<string, any>,
   onUpdate: (payload: any) => void,
-  options: RealtimeOptions = {}
+  options: RealtimeOptions = {},
 ) => {
   const {
     maxReconnectAttempts = 5,
     reconnectDelay = 1000,
     batchUpdates = true,
-    batchDelay = 100
+    batchDelay = 100,
   } = options;
 
   const channelRef = useRef<any>(null);
@@ -33,25 +33,28 @@ export const useRealtimeOptimizations = (
     if (pendingUpdatesRef.current.length > 0) {
       const updates = [...pendingUpdatesRef.current];
       pendingUpdatesRef.current = [];
-      
+
       // Process all updates at once
       updates.forEach(update => onUpdate(update));
     }
   }, [onUpdate]);
 
-  const handleUpdate = useCallback((payload: any) => {
-    if (batchUpdates) {
-      pendingUpdatesRef.current.push(payload);
-      
-      if (batchTimeoutRef.current) {
-        clearTimeout(batchTimeoutRef.current);
+  const handleUpdate = useCallback(
+    (payload: any) => {
+      if (batchUpdates) {
+        pendingUpdatesRef.current.push(payload);
+
+        if (batchTimeoutRef.current) {
+          clearTimeout(batchTimeoutRef.current);
+        }
+
+        batchTimeoutRef.current = setTimeout(processBatch, batchDelay);
+      } else {
+        onUpdate(payload);
       }
-      
-      batchTimeoutRef.current = setTimeout(processBatch, batchDelay);
-    } else {
-      onUpdate(payload);
-    }
-  }, [onUpdate, batchUpdates, batchDelay, processBatch]);
+    },
+    [onUpdate, batchUpdates, batchDelay, processBatch],
+  );
 
   const connect = useCallback(() => {
     if (channelRef.current) {
@@ -69,25 +72,28 @@ export const useRealtimeOptimizations = (
           table: tableName,
           filter: Object.entries(filter)
             .map(([key, value]) => `${key}=eq.${value}`)
-            .join(',')
+            .join(','),
         },
-        handleUpdate
+        handleUpdate,
       )
-      .subscribe((status) => {
+      .subscribe(status => {
         if (status === 'SUBSCRIBED') {
           isConnectedRef.current = true;
           reconnectAttemptsRef.current = 0;
         } else if (status === 'CHANNEL_ERROR') {
           isConnectedRef.current = false;
           console.error(`❌ Error subscribing to ${tableName} changes`);
-          
+
           if (reconnectAttemptsRef.current < maxReconnectAttempts) {
             reconnectAttemptsRef.current++;
-            setTimeout(() => {
-              if (connectionMonitor.getStatus()) {
-                connect();
-              }
-            }, reconnectDelay * Math.pow(2, reconnectAttemptsRef.current - 1));
+            setTimeout(
+              () => {
+                if (connectionMonitor.getStatus()) {
+                  connect();
+                }
+              },
+              reconnectDelay * Math.pow(2, reconnectAttemptsRef.current - 1),
+            );
           }
         }
       });
@@ -98,7 +104,7 @@ export const useRealtimeOptimizations = (
       clearTimeout(batchTimeoutRef.current);
       processBatch(); // Process any pending updates before disconnecting
     }
-    
+
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
@@ -113,7 +119,7 @@ export const useRealtimeOptimizations = (
     }
 
     // Listen for online/offline events
-    const unsubscribe = connectionMonitor.subscribe((online) => {
+    const unsubscribe = connectionMonitor.subscribe(online => {
       if (online && !isConnectedRef.current) {
         connect();
       } else if (!online) {
@@ -135,7 +141,7 @@ export const useRealtimeOptimizations = (
   return {
     isConnected: isConnectedRef.current,
     reconnectAttempts: reconnectAttemptsRef.current,
-    reconnect: connect
+    reconnect: connect,
   };
 };
 
@@ -154,7 +160,7 @@ export class MessageOrderingQueue {
       // Process this message and any buffered ones that follow
       this.onOrderedMessage(message);
       this.expectedSequence++;
-      
+
       // Check buffer for next expected messages
       while (this.buffer.has(this.expectedSequence)) {
         const nextMessage = this.buffer.get(this.expectedSequence)!;
@@ -189,16 +195,14 @@ export const usePresenceTracking = (tripId: string, userId: string) => {
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
       })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-      })
-      .subscribe(async (status) => {
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {})
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {})
+      .subscribe(async status => {
         if (status === 'SUBSCRIBED') {
           await channel.track({
             user_id: userId,
             online_at: new Date().toISOString(),
-            trip_id: tripId
+            trip_id: tripId,
           });
         }
       });

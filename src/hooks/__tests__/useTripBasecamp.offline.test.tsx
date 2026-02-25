@@ -61,4 +61,3 @@ describe('useUpdateTripBasecamp - offline guardrails', () => {
     expect(basecampService.setTripBasecamp).not.toHaveBeenCalled();
   });
 });
-

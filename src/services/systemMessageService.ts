@@ -16,7 +16,7 @@ class SystemMessageService {
     tripId: string,
     eventType: SystemEventType,
     body: string,
-    payload?: SystemMessagePayload
+    payload?: SystemMessagePayload,
   ): Promise<boolean> {
     // GUARD: Only create system messages for consumer trips
     if (!isConsumerTrip(tripId)) {
@@ -25,20 +25,20 @@ class SystemMessageService {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const authorName = payload?.actorName || user?.email?.split('@')[0] || 'System';
 
-      const { error } = await supabase
-        .from('trip_chat_messages')
-        .insert({
-          trip_id: tripId,
-          content: body,
-          author_name: authorName,
-          user_id: user?.id || null,
-          message_type: 'system',
-          system_event_type: eventType,
-          payload: payload as any,
-        });
+      const { error } = await supabase.from('trip_chat_messages').insert({
+        trip_id: tripId,
+        content: body,
+        author_name: authorName,
+        user_id: user?.id || null,
+        message_type: 'system',
+        system_event_type: eventType,
+        payload: payload as any,
+      });
 
       if (error) {
         console.error('[SystemMessage] Failed to create:', error);
@@ -61,7 +61,7 @@ class SystemMessageService {
     tripId: string,
     uploaderId: string,
     uploaderName: string,
-    mediaType: 'photo' | 'file'
+    mediaType: 'photo' | 'file',
   ): Promise<void> {
     // GUARD: Only for consumer trips
     if (!isConsumerTrip(tripId)) {
@@ -75,10 +75,16 @@ class SystemMessageService {
       // Increment count and reset timer
       clearTimeout(existing.timer);
       existing.count += 1;
-      existing.timer = setTimeout(() => this.flushUploadBatch(batchKey, tripId, uploaderName, mediaType), this.BATCH_DELAY_MS);
+      existing.timer = setTimeout(
+        () => this.flushUploadBatch(batchKey, tripId, uploaderName, mediaType),
+        this.BATCH_DELAY_MS,
+      );
     } else {
       // Start new batch
-      const timer = setTimeout(() => this.flushUploadBatch(batchKey, tripId, uploaderName, mediaType), this.BATCH_DELAY_MS);
+      const timer = setTimeout(
+        () => this.flushUploadBatch(batchKey, tripId, uploaderName, mediaType),
+        this.BATCH_DELAY_MS,
+      );
       this.uploadBatchQueue.set(batchKey, { count: 1, timer });
     }
   }
@@ -87,7 +93,7 @@ class SystemMessageService {
     batchKey: string,
     tripId: string,
     uploaderName: string,
-    mediaType: 'photo' | 'file'
+    mediaType: 'photo' | 'file',
   ): Promise<void> {
     const batch = this.uploadBatchQueue.get(batchKey);
     if (!batch) return;
@@ -128,7 +134,7 @@ class SystemMessageService {
     tripId: string,
     actorName: string,
     previousAddress?: string,
-    newAddress?: string
+    newAddress?: string,
   ): Promise<boolean> {
     let body: string;
     if (previousAddress && newAddress) {
@@ -149,7 +155,7 @@ class SystemMessageService {
   async personalBaseCampUpdated(
     tripId: string,
     actorName: string,
-    newAddress?: string
+    newAddress?: string,
   ): Promise<boolean> {
     const body = newAddress
       ? `${actorName} set their personal base camp to ${newAddress}`
@@ -161,18 +167,31 @@ class SystemMessageService {
     });
   }
 
-  async pollCreated(tripId: string, actorName: string, pollId: string, question: string): Promise<boolean> {
-    return this.createSystemMessage(tripId, 'poll_created', `${actorName} created a poll: "${question}"`, {
-      actorName,
-      pollId,
-      pollQuestion: question,
-    });
+  async pollCreated(
+    tripId: string,
+    actorName: string,
+    pollId: string,
+    question: string,
+  ): Promise<boolean> {
+    return this.createSystemMessage(
+      tripId,
+      'poll_created',
+      `${actorName} created a poll: "${question}"`,
+      {
+        actorName,
+        pollId,
+        pollQuestion: question,
+      },
+    );
   }
 
-  async pollClosed(tripId: string, actorName: string, pollId: string, winningOption?: string): Promise<boolean> {
-    const body = winningOption
-      ? `Poll closed - "${winningOption}" won`
-      : `A poll was closed`;
+  async pollClosed(
+    tripId: string,
+    actorName: string,
+    pollId: string,
+    winningOption?: string,
+  ): Promise<boolean> {
+    const body = winningOption ? `Poll closed - "${winningOption}" won` : `A poll was closed`;
 
     return this.createSystemMessage(tripId, 'poll_closed', body, {
       actorName,
@@ -181,28 +200,58 @@ class SystemMessageService {
     });
   }
 
-  async taskCreated(tripId: string, actorName: string, taskId: string, taskTitle: string): Promise<boolean> {
-    return this.createSystemMessage(tripId, 'task_created', `${actorName} added a task: "${taskTitle}"`, {
-      actorName,
-      taskId,
-      taskTitle,
-    });
+  async taskCreated(
+    tripId: string,
+    actorName: string,
+    taskId: string,
+    taskTitle: string,
+  ): Promise<boolean> {
+    return this.createSystemMessage(
+      tripId,
+      'task_created',
+      `${actorName} added a task: "${taskTitle}"`,
+      {
+        actorName,
+        taskId,
+        taskTitle,
+      },
+    );
   }
 
-  async taskCompleted(tripId: string, actorName: string, taskId: string, taskTitle: string): Promise<boolean> {
-    return this.createSystemMessage(tripId, 'task_completed', `${actorName} completed: "${taskTitle}"`, {
-      actorName,
-      taskId,
-      taskTitle,
-    });
+  async taskCompleted(
+    tripId: string,
+    actorName: string,
+    taskId: string,
+    taskTitle: string,
+  ): Promise<boolean> {
+    return this.createSystemMessage(
+      tripId,
+      'task_completed',
+      `${actorName} completed: "${taskTitle}"`,
+      {
+        actorName,
+        taskId,
+        taskTitle,
+      },
+    );
   }
 
-  async calendarItemAdded(tripId: string, actorName: string, eventId: string, eventTitle: string): Promise<boolean> {
-    return this.createSystemMessage(tripId, 'calendar_item_added', `${actorName} added "${eventTitle}" to the calendar`, {
-      actorName,
-      eventId,
-      eventTitle,
-    });
+  async calendarItemAdded(
+    tripId: string,
+    actorName: string,
+    eventId: string,
+    eventTitle: string,
+  ): Promise<boolean> {
+    return this.createSystemMessage(
+      tripId,
+      'calendar_item_added',
+      `${actorName} added "${eventTitle}" to the calendar`,
+      {
+        actorName,
+        eventId,
+        eventTitle,
+      },
+    );
   }
 
   async paymentRecorded(
@@ -211,7 +260,7 @@ class SystemMessageService {
     paymentId: string,
     amount: number,
     currency: string,
-    description: string
+    description: string,
   ): Promise<boolean> {
     const formattedAmount = new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -228,16 +277,26 @@ class SystemMessageService {
         amount,
         currency,
         description,
-      }
+      },
     );
   }
 
-  async paymentSettled(tripId: string, actorName: string, paymentId: string, description: string): Promise<boolean> {
-    return this.createSystemMessage(tripId, 'payment_settled', `${description} was marked as settled`, {
-      actorName,
-      paymentId,
-      description,
-    });
+  async paymentSettled(
+    tripId: string,
+    actorName: string,
+    paymentId: string,
+    description: string,
+  ): Promise<boolean> {
+    return this.createSystemMessage(
+      tripId,
+      'payment_settled',
+      `${description} was marked as settled`,
+      {
+        actorName,
+        paymentId,
+        description,
+      },
+    );
   }
 }
 

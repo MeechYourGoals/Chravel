@@ -15,9 +15,7 @@ export const DateSeparator = ({ date }: DateSeparatorProps) => {
   return (
     <div className="flex items-center justify-center py-3">
       <div className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm">
-        <span className="text-xs md:text-sm text-white/60 font-medium">
-          {getDateLabel(date)}
-        </span>
+        <span className="text-xs md:text-sm text-white/60 font-medium">{getDateLabel(date)}</span>
       </div>
     </div>
   );

@@ -307,7 +307,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
             <Users className="w-5 h-5 text-purple-500" />
             <h3 className="font-semibold text-foreground">Role Management</h3>
           </div>
-          
+
           {/* Actions Row - Centered */}
           <div className="flex items-center justify-center gap-3">
             <span className="text-xs bg-purple-500/20 text-purple-500 px-2 py-0.5 rounded-full">

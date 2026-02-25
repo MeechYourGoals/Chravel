@@ -11,5 +11,5 @@ export const mockProTripIds = [
   'tesla-cybertruck-roadshow-2025',
   'postmalone-jellyroll-tour-2026',
   'gs-campus-gt-2025',
-  'nvidia-bowling-2025'
+  'nvidia-bowling-2025',
 ];

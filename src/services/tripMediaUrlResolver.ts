@@ -1,5 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
-import { extractTripMediaStoragePath, extractUploadPathFromMetadata } from '@/services/mediaService';
+import {
+  extractTripMediaStoragePath,
+  extractUploadPathFromMetadata,
+} from '@/services/mediaService';
 
 type CachedSignedUrl = {
   signedUrl: string;
@@ -40,7 +43,8 @@ export async function resolveTripMediaUrl(params: {
 
   // Only attempt signing for trip-media URLs (or when metadata provides an upload_path).
   const uploadPath =
-    extractUploadPathFromMetadata(metadata) ?? (isTripMediaStorageUrl(mediaUrl) ? extractTripMediaStoragePath(mediaUrl) : null);
+    extractUploadPathFromMetadata(metadata) ??
+    (isTripMediaStorageUrl(mediaUrl) ? extractTripMediaStoragePath(mediaUrl) : null);
 
   if (!uploadPath) return mediaUrl;
 
@@ -50,7 +54,9 @@ export async function resolveTripMediaUrl(params: {
     return cached.signedUrl;
   }
 
-  const { data, error } = await supabase.storage.from('trip-media').createSignedUrl(uploadPath, expiresInSeconds);
+  const { data, error } = await supabase.storage
+    .from('trip-media')
+    .createSignedUrl(uploadPath, expiresInSeconds);
 
   if (error || !data?.signedUrl) {
     // Fall back to the stored URL (may still work in public bucket envs).
@@ -65,4 +71,3 @@ export async function resolveTripMediaUrl(params: {
 
   return data.signedUrl;
 }
-

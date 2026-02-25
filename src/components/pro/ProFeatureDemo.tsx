@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Users, Shield } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -17,21 +16,25 @@ export const ProFeatureDemo = () => {
   const runTests = () => {
     const tests = {
       'Role System': user.proRole !== undefined,
-      'Permissions': user.permissions.length > 0,
+      Permissions: user.permissions.length > 0,
       'Finance Access': hasTabAccess('finance', userRole, userPermissions),
       'Medical Access': hasTabAccess('medical', userRole, userPermissions),
       'Compliance Access': hasTabAccess('compliance', userRole, userPermissions),
       'Admin Features': userPermissions.includes('admin'),
       'Write Permissions': userPermissions.includes('write'),
-      'Read-Only Mode': isReadOnlyTab('finance', userRole, userPermissions)
+      'Read-Only Mode': isReadOnlyTab('finance', userRole, userPermissions),
     };
-    
+
     setTestResults(tests);
   };
 
   const getStatusIcon = (status: boolean | undefined) => {
     if (status === undefined) return <AlertTriangle size={16} className="text-yellow-500" />;
-    return status ? <CheckCircle size={16} className="text-green-500" /> : <XCircle size={16} className="text-red-500" />;
+    return status ? (
+      <CheckCircle size={16} className="text-green-500" />
+    ) : (
+      <XCircle size={16} className="text-red-500" />
+    );
   };
 
   return (
@@ -39,7 +42,7 @@ export const ProFeatureDemo = () => {
       <div className="flex items-center gap-3 mb-4">
         <h3 className="text-lg font-bold text-white">Pro Features Demo</h3>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -48,7 +51,7 @@ export const ProFeatureDemo = () => {
           </div>
           <p className="text-white font-bold text-lg">{userRole}</p>
         </div>
-        
+
         <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <Shield size={16} className="text-green-400" />

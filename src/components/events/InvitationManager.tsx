@@ -26,16 +26,16 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
   const [newInvite, setNewInvite] = useState({ email: '', name: '', role: 'attendee' as const });
   const [bulkEmails, setBulkEmails] = useState('');
   const [inviteMessage, setInviteMessage] = useState(
-    `You're invited to ${eventData.name || 'our event'}!\n\nJoin us for an amazing experience.\n\nEvent Details:\nDate: ${eventData.startDate} - ${eventData.endDate}\nLocation: ${eventData.location}\n\nWe look forward to seeing you there!`
+    `You're invited to ${eventData.name || 'our event'}!\n\nJoin us for an amazing experience.\n\nEvent Details:\nDate: ${eventData.startDate} - ${eventData.endDate}\nLocation: ${eventData.location}\n\nWe look forward to seeing you there!`,
   );
   const { toast } = useToast();
 
   const addInvitation = () => {
     if (!newInvite.email || !newInvite.name) {
       toast({
-        title: "Missing information",
-        description: "Please provide both email and name.",
-        variant: "destructive"
+        title: 'Missing information',
+        description: 'Please provide both email and name.',
+        variant: 'destructive',
       });
       return;
     }
@@ -45,7 +45,7 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
       email: newInvite.email,
       name: newInvite.name,
       role: newInvite.role,
-      status: 'pending'
+      status: 'pending',
     };
 
     const updated = [...invitations, invitation];
@@ -54,8 +54,8 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
     setNewInvite({ email: '', name: '', role: 'attendee' });
 
     toast({
-      title: "Invitation added",
-      description: `Added invitation for ${newInvite.name}`
+      title: 'Invitation added',
+      description: `Added invitation for ${newInvite.name}`,
     });
   };
 
@@ -71,7 +71,7 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
           email,
           name: name.charAt(0).toUpperCase() + name.slice(1),
           role: 'attendee' as const,
-          status: 'pending' as const
+          status: 'pending' as const,
         };
       });
 
@@ -81,25 +81,25 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
     setBulkEmails('');
 
     toast({
-      title: "Bulk invitations added",
-      description: `Added ${emails.length} invitations`
+      title: 'Bulk invitations added',
+      description: `Added ${emails.length} invitations`,
     });
   };
 
   const sendInvitations = () => {
     const pendingInvites = invitations.filter(inv => inv.status === 'pending');
-    
+
     // Mock sending process
-    const updated = invitations.map(inv => 
-      inv.status === 'pending' ? { ...inv, status: 'sent' as const } : inv
+    const updated = invitations.map(inv =>
+      inv.status === 'pending' ? { ...inv, status: 'sent' as const } : inv,
     );
-    
+
     setInvitations(updated);
     onInvitationsUpdate(updated);
 
     toast({
-      title: "Invitations sent",
-      description: `Sent ${pendingInvites.length} invitations`
+      title: 'Invitations sent',
+      description: `Sent ${pendingInvites.length} invitations`,
     });
   };
 
@@ -111,11 +111,16 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'text-yellow-400';
-      case 'sent': return 'text-blue-400';
-      case 'accepted': return 'text-green-400';
-      case 'declined': return 'text-red-400';
-      default: return 'text-gray-400';
+      case 'pending':
+        return 'text-yellow-400';
+      case 'sent':
+        return 'text-blue-400';
+      case 'accepted':
+        return 'text-green-400';
+      case 'declined':
+        return 'text-red-400';
+      default:
+        return 'text-gray-400';
     }
   };
 
@@ -125,7 +130,7 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
         <h4 className="text-lg font-semibold text-white mb-4">Invitation Message</h4>
         <Textarea
           value={inviteMessage}
-          onChange={(e) => setInviteMessage(e.target.value)}
+          onChange={e => setInviteMessage(e.target.value)}
           className="bg-gray-800/50 border-gray-600 text-white"
           rows={6}
           placeholder="Customize your invitation message..."
@@ -138,32 +143,38 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
           <h4 className="text-lg font-semibold text-white mb-4">Add Individual Invitation</h4>
           <div className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-3">
             <div>
-              <Label htmlFor="invite-name" className="text-white">Name</Label>
+              <Label htmlFor="invite-name" className="text-white">
+                Name
+              </Label>
               <Input
                 id="invite-name"
                 value={newInvite.name}
-                onChange={(e) => setNewInvite({ ...newInvite, name: e.target.value })}
+                onChange={e => setNewInvite({ ...newInvite, name: e.target.value })}
                 className="bg-gray-800/50 border-gray-600 text-white mt-1"
                 placeholder="Attendee name"
               />
             </div>
             <div>
-              <Label htmlFor="invite-email" className="text-white">Email</Label>
+              <Label htmlFor="invite-email" className="text-white">
+                Email
+              </Label>
               <Input
                 id="invite-email"
                 type="email"
                 value={newInvite.email}
-                onChange={(e) => setNewInvite({ ...newInvite, email: e.target.value })}
+                onChange={e => setNewInvite({ ...newInvite, email: e.target.value })}
                 className="bg-gray-800/50 border-gray-600 text-white mt-1"
                 placeholder="email@example.com"
               />
             </div>
             <div>
-              <Label htmlFor="invite-role" className="text-white">Role</Label>
+              <Label htmlFor="invite-role" className="text-white">
+                Role
+              </Label>
               <select
                 id="invite-role"
                 value={newInvite.role}
-                onChange={(e) => setNewInvite({ ...newInvite, role: e.target.value as any })}
+                onChange={e => setNewInvite({ ...newInvite, role: e.target.value as any })}
                 className="w-full mt-1 bg-gray-800/50 border border-gray-600 text-white rounded-md px-3 py-2"
               >
                 <option value="attendee">Attendee</option>
@@ -172,7 +183,10 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
                 <option value="exhibitor">Exhibitor</option>
               </select>
             </div>
-            <Button onClick={addInvitation} className="w-full bg-glass-orange hover:bg-glass-orange/80">
+            <Button
+              onClick={addInvitation}
+              className="w-full bg-glass-orange hover:bg-glass-orange/80"
+            >
               <Plus size={16} className="mr-2" />
               Add Invitation
             </Button>
@@ -184,17 +198,22 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
           <h4 className="text-lg font-semibold text-white mb-4">Bulk Email Import</h4>
           <div className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-3">
             <div>
-              <Label htmlFor="bulk-emails" className="text-white">Email Addresses</Label>
+              <Label htmlFor="bulk-emails" className="text-white">
+                Email Addresses
+              </Label>
               <Textarea
                 id="bulk-emails"
                 value={bulkEmails}
-                onChange={(e) => setBulkEmails(e.target.value)}
+                onChange={e => setBulkEmails(e.target.value)}
                 className="bg-gray-800/50 border-gray-600 text-white mt-1"
                 rows={6}
                 placeholder="Enter email addresses (one per line)&#10;john@example.com&#10;jane@example.com&#10;bob@example.com"
               />
             </div>
-            <Button onClick={processBulkEmails} className="w-full bg-glass-orange hover:bg-glass-orange/80">
+            <Button
+              onClick={processBulkEmails}
+              className="w-full bg-glass-orange hover:bg-glass-orange/80"
+            >
               <Mail size={16} className="mr-2" />
               Import Emails
             </Button>
@@ -206,11 +225,13 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
       {invitations.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-lg font-semibold text-white">
-              Invitations ({invitations.length})
-            </h4>
+            <h4 className="text-lg font-semibold text-white">Invitations ({invitations.length})</h4>
             <div className="flex gap-2">
-              <Button onClick={sendInvitations} size="sm" className="bg-glass-orange hover:bg-glass-orange/80">
+              <Button
+                onClick={sendInvitations}
+                size="sm"
+                className="bg-glass-orange hover:bg-glass-orange/80"
+              >
                 <Send size={16} className="mr-2" />
                 Send All Pending ({invitations.filter(i => i.status === 'pending').length})
               </Button>
@@ -219,8 +240,11 @@ export const InvitationManager = ({ eventData, onInvitationsUpdate }: Invitation
 
           <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
             <div className="max-h-60 overflow-y-auto">
-              {invitations.map((invitation) => (
-                <div key={invitation.id} className="flex items-center justify-between p-3 border-b border-white/10 last:border-b-0">
+              {invitations.map(invitation => (
+                <div
+                  key={invitation.id}
+                  className="flex items-center justify-between p-3 border-b border-white/10 last:border-b-0"
+                >
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <div>

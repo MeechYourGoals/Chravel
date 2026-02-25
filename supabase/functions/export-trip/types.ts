@@ -3,7 +3,7 @@
  */
 
 export type ExportLayout = 'onepager' | 'pro';
-export type ExportSection = 
+export type ExportSection =
   | 'calendar'
   | 'payments'
   | 'polls'

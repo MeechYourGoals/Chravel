@@ -139,7 +139,7 @@ describe('chatService - Integration Tests', () => {
           table: 'trip_chat_messages',
           filter: `trip_id=eq.${tripId}`,
         }),
-        expect.any(Function)
+        expect.any(Function),
       );
       expect(mockChannel.subscribe).toHaveBeenCalled();
       expect(subscription).toBeDefined();

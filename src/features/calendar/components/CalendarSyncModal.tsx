@@ -31,7 +31,7 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
   isOpen,
   onClose,
   tripName,
-  events
+  events,
 }) => {
   const { toast } = useToast();
   const { tier, upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
@@ -47,7 +47,7 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
       color: 'bg-blue-500',
       description: 'Sync with your Google Calendar',
       connected: false,
-      syncEnabled: false
+      syncEnabled: false,
     },
     {
       id: 'outlook',
@@ -56,7 +56,7 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
       color: 'bg-blue-600',
       description: 'Sync with Microsoft Outlook',
       connected: false,
-      syncEnabled: false
+      syncEnabled: false,
     },
     {
       id: 'apple',
@@ -65,8 +65,8 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
       color: 'bg-gray-800',
       description: 'Sync with Apple Calendar',
       connected: false,
-      syncEnabled: false
-    }
+      syncEnabled: false,
+    },
   ]);
 
   const handleConnect = async (providerId: string) => {
@@ -75,7 +75,7 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
       toast({
         title: 'Upgrade Required',
         description: 'Calendar sync is available with Explorer and Frequent Chraveler plans.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -84,23 +84,23 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
     toast({
       title: 'API Key Required',
       description: `Please configure ${providerId} Calendar API credentials in your environment.`,
-      variant: 'destructive'
+      variant: 'destructive',
     });
   };
 
   const handleSyncToggle = (providerId: string, enabled: boolean) => {
-    setProviders(prev => prev.map(provider => 
-      provider.id === providerId 
-        ? { ...provider, syncEnabled: enabled }
-        : provider
-    ));
+    setProviders(prev =>
+      prev.map(provider =>
+        provider.id === providerId ? { ...provider, syncEnabled: enabled } : provider,
+      ),
+    );
   };
 
   const handleExportICS = () => {
     calendarExporter.downloadICS(events, tripName);
     toast({
       title: 'Calendar Exported',
-      description: 'Your trip calendar has been downloaded as an ICS file.'
+      description: 'Your trip calendar has been downloaded as an ICS file.',
     });
   };
 
@@ -156,7 +156,10 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Calendar Integrations</h3>
               {!hasSyncAccess && (
-                <Badge variant="secondary" className="bg-amber-500/20 text-amber-300 border-amber-500/30">
+                <Badge
+                  variant="secondary"
+                  className="bg-amber-500/20 text-amber-300 border-amber-500/30"
+                >
                   <Crown className="w-3 h-3 mr-1" />
                   Explorer+
                 </Badge>
@@ -198,7 +201,7 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
               </Card>
             )}
 
-            {providers.map((provider) => (
+            {providers.map(provider => (
               <Card key={provider.id} className={!hasSyncAccess ? 'opacity-60' : ''}>
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
@@ -208,9 +211,7 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
                       </div>
                       <div>
                         <h4 className="font-medium">{provider.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {provider.description}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{provider.description}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -224,9 +225,7 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
                           <Badge variant="secondary">Connected</Badge>
                           <Switch
                             checked={provider.syncEnabled}
-                            onCheckedChange={(checked) =>
-                              handleSyncToggle(provider.id, checked)
-                            }
+                            onCheckedChange={checked => handleSyncToggle(provider.id, checked)}
                           />
                         </>
                       ) : (
@@ -253,9 +252,7 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
                 Sync Settings
                 {!hasSyncAccess && <Lock className="w-4 h-4 text-muted-foreground" />}
               </CardTitle>
-              <CardDescription>
-                Control how your trip events are synchronized
-              </CardDescription>
+              <CardDescription>Control how your trip events are synchronized</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">

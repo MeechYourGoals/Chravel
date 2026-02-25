@@ -35,12 +35,16 @@ export class TripContextService {
       title: trip.title,
       location: trip.location,
       dateRange: trip.dateRange,
-      participants: trip.participants.map(p => ({ id: p.id.toString(), name: p.name, role: 'participant' })),
+      participants: trip.participants.map(p => ({
+        id: p.id.toString(),
+        name: p.name,
+        role: 'participant',
+      })),
       itinerary: mockData.itinerary.map((day, index) => ({
         id: index.toString(),
         title: `Day ${index + 1}`,
         date: day.date,
-        events: day.events
+        events: day.events,
       })),
       accommodation: mockData.basecamp.name,
       currentDate: today,
@@ -49,7 +53,7 @@ export class TripContextService {
         id: i.toString(),
         type: 'broadcast',
         message: b.content,
-        timestamp: b.timestamp
+        timestamp: b.timestamp,
       })),
       confirmationNumbers: {
         hotel: 'HTL-' + Math.random().toString(36).substr(2, 9),
@@ -72,25 +76,31 @@ export class TripContextService {
       title: proTrip.title,
       location: proTrip.location,
       dateRange: proTrip.dateRange,
-      participants: proTrip.participants.map(p => ({ id: p.id.toString(), name: p.name, role: p.role })),
+      participants: proTrip.participants.map(p => ({
+        id: p.id.toString(),
+        name: p.name,
+        role: p.role,
+      })),
       itinerary: (proTrip.itinerary || []).map((day, index) => ({
         id: index.toString(),
         title: `Day ${index + 1}`,
         date: day.date,
-        events: day.events as any // Mock data - type assertion for simplified event structure
+        events: day.events as any, // Mock data - type assertion for simplified event structure
       })),
       accommodation: `${proTrip.location} Accommodation`,
       currentDate: today,
       upcomingEvents: this.getUpcomingEvents(proTrip.itinerary || [], today),
-      recentUpdates: [{
-        id: '1',
-        type: 'description',
-        message: proTrip.description,
-        timestamp: today
-      }],
+      recentUpdates: [
+        {
+          id: '1',
+          type: 'description',
+          message: proTrip.description,
+          timestamp: today,
+        },
+      ],
       confirmationNumbers: {
         venue: 'VEN-' + Math.random().toString(36).substr(2, 9),
-        transportation: 'TRN-' + Math.random().toString(36).substr(2, 9)
+        transportation: 'TRN-' + Math.random().toString(36).substr(2, 9),
       },
     };
   }
@@ -99,11 +109,12 @@ export class TripContextService {
     // Filter events that are today or in the future
     return itinerary
       .filter(day => day.date >= currentDate)
-      .flatMap(day => 
-        day.events?.map((event: any) => ({
-          ...event,
-          date: day.date
-        })) || []
+      .flatMap(
+        day =>
+          day.events?.map((event: any) => ({
+            ...event,
+            date: day.date,
+          })) || [],
       )
       .slice(0, 5); // Return next 5 upcoming events
   }
@@ -113,7 +124,7 @@ export class TripContextService {
     const upcomingEventsList = context.upcomingEvents
       .map(event => `- ${event.title} at ${event.time} (${event.location})`)
       .join('\n');
-    
+
     const confirmationsList = Object.entries(context.confirmationNumbers)
       .map(([type, number]) => `- ${type.replace('_', ' ')}: ${number}`)
       .join('\n');

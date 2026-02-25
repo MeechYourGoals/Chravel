@@ -10,7 +10,7 @@ test.describe('Trip Creation Flow', () => {
   test('should show trip creation form when authenticated', async ({ page }) => {
     // Look for create trip button/link
     const _createTripButton = page.getByRole('button', { name: /create.*trip|new trip/i });
-    
+
     // This test will need authentication setup
     // For now, just verify the page loads
     await expect(page).toHaveURL('/');
@@ -21,7 +21,7 @@ test.describe('Trip Creation Flow', () => {
     // Fill in form fields
     // Submit empty form
     // Verify validation errors
-    
+
     // Template for future implementation
     expect(true).toBe(true);
   });
@@ -39,7 +39,7 @@ test.describe('Trip Creation Flow', () => {
     // 4. Submit form
     // 5. Verify success toast appears
     // 6. Verify new trip appears in trip list
-    
+
     // Placeholder for now
     expect(true).toBe(true);
   });

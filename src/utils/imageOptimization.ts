@@ -1,8 +1,4 @@
-export const getOptimizedImageUrl = (
-  url: string,
-  width: number,
-  quality: number = 80
-): string => {
+export const getOptimizedImageUrl = (url: string, width: number, quality: number = 80): string => {
   // For Unsplash images, use their optimization API
   if (url.includes('unsplash.com')) {
     try {
@@ -18,7 +14,7 @@ export const getOptimizedImageUrl = (
       return `${url}${separator}w=${width}&q=${quality}&fm=webp&auto=format`;
     }
   }
-  
+
   // For other images, return as-is (would integrate with image CDN in production)
   return url;
 };
@@ -29,12 +25,12 @@ export const generateBlurDataUrl = (width: number = 10, height: number = 10): st
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  
+
   if (ctx) {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.fillRect(0, 0, width, height);
   }
-  
+
   return canvas.toDataURL();
 };
 

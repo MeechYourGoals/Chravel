@@ -19,7 +19,7 @@ interface RetryableMutationResult<T> {
 
 /**
  * Hook for executing mutations with automatic retry logic
- * 
+ *
  * Usage:
  * ```ts
  * const { execute, isLoading, error, retryCount } = useRetryableMutation(
@@ -32,20 +32,15 @@ interface RetryableMutationResult<T> {
  *     backoffMultiplier: 2
  *   }
  * );
- * 
+ *
  * await execute('file123');
  * ```
  */
 export function useRetryableMutation<T>(
   mutationFn: (...args: any[]) => Promise<T>,
-  config: RetryConfig = {}
+  config: RetryConfig = {},
 ): RetryableMutationResult<T> {
-  const {
-    maxRetries = 3,
-    retryDelay = 1000,
-    backoffMultiplier = 2,
-    onRetry
-  } = config;
+  const { maxRetries = 3, retryDelay = 1000, backoffMultiplier = 2, onRetry } = config;
 
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -54,82 +49,85 @@ export function useRetryableMutation<T>(
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const execute = useCallback(async (...args: any[]): Promise<T> => {
-    setIsLoading(true);
-    setError(null);
-    
-    let lastError: Error | null = null;
-    let attempt = 0;
+  const execute = useCallback(
+    async (...args: any[]): Promise<T> => {
+      setIsLoading(true);
+      setError(null);
 
-    while (attempt <= maxRetries) {
-      try {
-        errorTracking.addBreadcrumb({
-          category: 'api-call',
-          message: `Mutation attempt ${attempt + 1}/${maxRetries + 1}`,
-          level: 'info',
-          data: { args: args.slice(0, 2) }
-        });
+      let lastError: Error | null = null;
+      let attempt = 0;
 
-        const result = await mutationFn(...args);
-        
-        setIsLoading(false);
-        setRetryCount(attempt);
-        
-        if (attempt > 0) {
-          toast({
-            title: 'Success',
-            description: `Operation succeeded after ${attempt} ${attempt === 1 ? 'retry' : 'retries'}`,
-          });
-        }
-        
-        return result;
-      } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err));
-        
-        errorTracking.captureException(lastError, {
-          context: 'RetryableMutation',
-          additionalData: {
-            attempt: attempt + 1,
-            maxRetries,
-            willRetry: attempt < maxRetries
-          }
-        });
-
-        if (attempt < maxRetries) {
-          const delay = retryDelay * Math.pow(backoffMultiplier, attempt);
-          
-          if (onRetry) {
-            onRetry(attempt + 1, lastError);
-          }
-
-          toast({
-            title: 'Retrying...',
-            description: `Attempt ${attempt + 1} failed. Retrying in ${delay/1000}s`,
-            variant: 'default'
+      while (attempt <= maxRetries) {
+        try {
+          errorTracking.addBreadcrumb({
+            category: 'api-call',
+            message: `Mutation attempt ${attempt + 1}/${maxRetries + 1}`,
+            level: 'info',
+            data: { args: args.slice(0, 2) },
           });
 
-          await sleep(delay);
-          attempt++;
+          const result = await mutationFn(...args);
+
+          setIsLoading(false);
           setRetryCount(attempt);
-        } else {
-          break;
+
+          if (attempt > 0) {
+            toast({
+              title: 'Success',
+              description: `Operation succeeded after ${attempt} ${attempt === 1 ? 'retry' : 'retries'}`,
+            });
+          }
+
+          return result;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error(String(err));
+
+          errorTracking.captureException(lastError, {
+            context: 'RetryableMutation',
+            additionalData: {
+              attempt: attempt + 1,
+              maxRetries,
+              willRetry: attempt < maxRetries,
+            },
+          });
+
+          if (attempt < maxRetries) {
+            const delay = retryDelay * Math.pow(backoffMultiplier, attempt);
+
+            if (onRetry) {
+              onRetry(attempt + 1, lastError);
+            }
+
+            toast({
+              title: 'Retrying...',
+              description: `Attempt ${attempt + 1} failed. Retrying in ${delay / 1000}s`,
+              variant: 'default',
+            });
+
+            await sleep(delay);
+            attempt++;
+            setRetryCount(attempt);
+          } else {
+            break;
+          }
         }
       }
-    }
 
-    // All retries exhausted
-    setIsLoading(false);
-    setError(lastError);
-    setRetryCount(maxRetries);
+      // All retries exhausted
+      setIsLoading(false);
+      setError(lastError);
+      setRetryCount(maxRetries);
 
-    toast({
-      title: 'Operation Failed',
-      description: `Failed after ${maxRetries} ${maxRetries === 1 ? 'retry' : 'retries'}. Please try again later.`,
-      variant: 'destructive'
-    });
+      toast({
+        title: 'Operation Failed',
+        description: `Failed after ${maxRetries} ${maxRetries === 1 ? 'retry' : 'retries'}. Please try again later.`,
+        variant: 'destructive',
+      });
 
-    throw lastError;
-  }, [mutationFn, maxRetries, retryDelay, backoffMultiplier, onRetry, toast]);
+      throw lastError;
+    },
+    [mutationFn, maxRetries, retryDelay, backoffMultiplier, onRetry, toast],
+  );
 
   const reset = useCallback(() => {
     setError(null);
@@ -142,6 +140,6 @@ export function useRetryableMutation<T>(
     isLoading,
     error,
     retryCount,
-    reset
+    reset,
   };
 }

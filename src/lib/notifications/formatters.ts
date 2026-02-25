@@ -15,15 +15,23 @@ export function formatDateRange(
   if (Number.isNaN(start.getTime())) return '';
 
   const monthNames = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
-  const fmtDay = (d: Date) =>
-    `${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  const fmtDay = (d: Date) => `${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 
-  const fmtShort = (d: Date) =>
-    `${monthNames[d.getMonth()]} ${d.getDate()}`;
+  const fmtShort = (d: Date) => `${monthNames[d.getMonth()]} ${d.getDate()}`;
 
   if (!endDate) return fmtDay(start);
 
@@ -45,9 +53,7 @@ export function formatDateRange(
   return `${fmtDay(start)}\u2013${fmtDay(end)}`;
 }
 
-export function formatLocationSummary(
-  locations: string | string[] | undefined,
-): string {
+export function formatLocationSummary(locations: string | string[] | undefined): string {
   if (!locations) return '';
   const list = Array.isArray(locations) ? locations : [locations];
   const filtered = list.filter(Boolean).map(l => l.trim());

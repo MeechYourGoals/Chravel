@@ -19,7 +19,7 @@ interface State {
 
 /**
  * Feature-level error boundary for graceful degradation
- * 
+ *
  * Usage:
  * ```tsx
  * <FeatureErrorBoundary featureName="TripChat">
@@ -33,27 +33,27 @@ export class FeatureErrorBoundary extends Component<Props, State> {
     this.state = {
       hasError: false,
       error: null,
-      errorCount: 0
+      errorCount: 0,
     };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return {
       hasError: true,
-      error
+      error,
     };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const { featureName, onError } = this.props;
-    
+
     // Log to error tracking service
     errorTracking.captureException(error, {
       context: `FeatureErrorBoundary:${featureName}`,
       additionalData: {
         componentStack: errorInfo.componentStack,
-        errorCount: this.state.errorCount + 1
-      }
+        errorCount: this.state.errorCount + 1,
+      },
     });
 
     // Call custom error handler if provided
@@ -63,7 +63,7 @@ export class FeatureErrorBoundary extends Component<Props, State> {
 
     // Increment error count
     this.setState(prevState => ({
-      errorCount: prevState.errorCount + 1
+      errorCount: prevState.errorCount + 1,
     }));
 
     // If errors keep happening, we might want to disable retries
@@ -77,13 +77,13 @@ export class FeatureErrorBoundary extends Component<Props, State> {
   handleReset = () => {
     this.setState({
       hasError: false,
-      error: null
+      error: null,
     });
-    
+
     errorTracking.addBreadcrumb({
       category: 'user-action',
       message: `User reset error boundary for ${this.props.featureName}`,
-      level: 'info'
+      level: 'info',
     });
   };
 
@@ -103,13 +103,11 @@ export class FeatureErrorBoundary extends Component<Props, State> {
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Something went wrong in {featureName}</AlertTitle>
-            <AlertDescription>
-              {error?.message || 'An unexpected error occurred'}
-            </AlertDescription>
+            <AlertDescription>{error?.message || 'An unexpected error occurred'}</AlertDescription>
           </Alert>
 
           <div className="flex gap-2">
-            <Button 
+            <Button
               onClick={this.handleReset}
               variant="outline"
               size="sm"
@@ -125,9 +123,7 @@ export class FeatureErrorBoundary extends Component<Props, State> {
               <summary className="cursor-pointer font-semibold">
                 Error Details (Development Only)
               </summary>
-              <pre className="mt-2 whitespace-pre-wrap text-xs">
-                {error.stack}
-              </pre>
+              <pre className="mt-2 whitespace-pre-wrap text-xs">{error.stack}</pre>
             </details>
           )}
         </div>
@@ -137,4 +133,3 @@ export class FeatureErrorBoundary extends Component<Props, State> {
     return children;
   }
 }
-

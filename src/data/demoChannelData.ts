@@ -25,32 +25,32 @@ const lakersChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 15,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'LeBron James',
         content: "Who's got the playlist for the bus? 🎵",
-        timestamp: '2:30 PM'
+        timestamp: '2:30 PM',
       },
       {
         senderName: 'Anthony Davis',
         content: 'I got you. Sending now.',
-        timestamp: '2:32 PM'
+        timestamp: '2:32 PM',
       },
       {
         senderName: 'Head Coach',
         content: '🚨 URGENT: Bus departure moved to 5:45 AM sharp. NO exceptions.',
         timestamp: '4:30 PM',
         isBroadcast: true,
-        category: 'urgent'
+        category: 'urgent',
       },
       {
         senderName: 'Austin Reaves',
         content: 'Practice tomorrow 2pm at the arena 🏀',
-        timestamp: '4:45 PM'
-      }
-    ]
+        timestamp: '4:45 PM',
+      },
+    ],
   },
   {
     channel: {
@@ -62,27 +62,27 @@ const lakersChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 5,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'Head Coach',
         content: 'Reviewing game film at 7pm in conference room B',
-        timestamp: '11:15 AM'
+        timestamp: '11:15 AM',
       },
       {
         senderName: 'Assistant Coach',
         content: 'Defense needs work on pick and roll coverage',
-        timestamp: '11:20 AM'
+        timestamp: '11:20 AM',
       },
       {
         senderName: 'Head Coach',
         content: 'Strategy session after practice. All coaches required.',
         timestamp: '12:00 PM',
         isBroadcast: true,
-        category: 'logistics'
-      }
-    ]
+        category: 'logistics',
+      },
+    ],
   },
   {
     channel: {
@@ -94,20 +94,20 @@ const lakersChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 4,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'Team Doctor',
         content: 'Injury report: 2 players need treatment before game',
-        timestamp: '9:00 AM'
+        timestamp: '9:00 AM',
       },
       {
         senderName: 'Physical Therapist',
         content: 'Recovery sessions scheduled for 1pm',
-        timestamp: '9:15 AM'
-      }
-    ]
+        timestamp: '9:15 AM',
+      },
+    ],
   },
   {
     channel: {
@@ -119,20 +119,20 @@ const lakersChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 6,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'Security Chief',
         content: 'Arena entrance secured. All checkpoints active.',
-        timestamp: '8:00 AM'
+        timestamp: '8:00 AM',
       },
       {
         senderName: 'Security Lead',
         content: 'VIP section ready. Badge system operational.',
-        timestamp: '8:30 AM'
-      }
-    ]
+        timestamp: '8:30 AM',
+      },
+    ],
   },
   {
     channel: {
@@ -144,21 +144,21 @@ const lakersChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 10,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'Equipment Manager',
         content: 'All gear loaded on bus. Ready for departure.',
-        timestamp: '7:00 AM'
+        timestamp: '7:00 AM',
       },
       {
         senderName: 'Travel Coordinator',
         content: 'Hotel check-in confirmed for 3pm arrival',
-        timestamp: '7:15 AM'
-      }
-    ]
-  }
+        timestamp: '7:15 AM',
+      },
+    ],
+  },
 ];
 
 // Beyonce Cowboy Carter Tour Demo Channels
@@ -173,32 +173,32 @@ const beyonceChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 25,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'Production Lead',
         content: 'Stage setup complete. Sound check at 3pm',
-        timestamp: '1:45 PM'
+        timestamp: '1:45 PM',
       },
       {
         senderName: 'Lighting Director',
         content: 'New lighting cues programmed for Act 2',
-        timestamp: '2:10 PM'
+        timestamp: '2:10 PM',
       },
       {
         senderName: 'Tour Manager',
         content: 'Showtime in 90 minutes. All crew report to positions NOW.',
         timestamp: '2:20 PM',
         isBroadcast: true,
-        category: 'urgent'
+        category: 'urgent',
       },
       {
         senderName: 'Stage Manager',
         content: 'All pyro tested and ready for tonight',
-        timestamp: '2:30 PM'
-      }
-    ]
+        timestamp: '2:30 PM',
+      },
+    ],
   },
   {
     channel: {
@@ -210,28 +210,28 @@ const beyonceChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 20,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'Security Chief',
         content: 'VIP entrance secured. Meet & greet at 6pm',
-        timestamp: '10:00 AM'
+        timestamp: '10:00 AM',
       },
       {
         senderName: 'Security Chief',
         content: 'Reminder: Backstage credentials must be visible at all times',
         timestamp: '10:15 AM',
         isBroadcast: true,
-        category: 'logistics'
+        category: 'logistics',
       },
       {
         senderName: 'Head of Security',
         content: 'Barricades in place. Crowd control ready',
-        timestamp: '10:30 AM'
-      }
-    ]
-  }
+        timestamp: '10:30 AM',
+      },
+    ],
+  },
 ];
 
 // Eli Lilly C-Suite Retreat Demo Channels
@@ -246,32 +246,32 @@ const eliLillyChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 8,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'David Ricks',
         content: 'Strategic planning session moved to 3pm today',
-        timestamp: '9:00 AM'
+        timestamp: '9:00 AM',
       },
       {
         senderName: 'Executive Assistant',
         content: 'Board meeting materials now available in shared drive',
         timestamp: '9:10 AM',
         isBroadcast: true,
-        category: 'chill'
+        category: 'chill',
       },
       {
         senderName: 'Anat Ashkenazi',
         content: 'Q1 financials deck ready for review',
-        timestamp: '9:15 AM'
+        timestamp: '9:15 AM',
       },
       {
         senderName: 'Dan Skovronsky',
-        content: 'R&D pipeline update at tomorrow\'s session',
-        timestamp: '10:30 AM'
-      }
-    ]
+        content: "R&D pipeline update at tomorrow's session",
+        timestamp: '10:30 AM',
+      },
+    ],
   },
   {
     channel: {
@@ -283,28 +283,28 @@ const eliLillyChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 4,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'Event Coordinator',
         content: 'Dinner reservations confirmed for 7:30pm',
-        timestamp: '11:00 AM'
+        timestamp: '11:00 AM',
       },
       {
         senderName: 'Meeting Planner',
         content: 'AV equipment tested in all conference rooms',
-        timestamp: '11:20 AM'
+        timestamp: '11:20 AM',
       },
       {
         senderName: 'Event Coordinator',
         content: 'Transportation departing hotel lobby at 7:00pm sharp',
         timestamp: '11:45 AM',
         isBroadcast: true,
-        category: 'logistics'
-      }
-    ]
-  }
+        category: 'logistics',
+      },
+    ],
+  },
 ];
 
 // Tesla Cybertruck Launch Demo Channels
@@ -319,25 +319,25 @@ const teslaChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 12,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'Production Lead',
         content: 'Stage setup complete. Sound check at 3pm',
-        timestamp: '1:45 PM'
+        timestamp: '1:45 PM',
       },
       {
         senderName: 'AV Tech',
         content: 'Lighting programmed and ready to test',
-        timestamp: '2:10 PM'
+        timestamp: '2:10 PM',
       },
       {
         senderName: 'Stage Manager',
         content: 'Truck arrives at 4pm. Everyone ready to sync.',
-        timestamp: '2:30 PM'
-      }
-    ]
+        timestamp: '2:30 PM',
+      },
+    ],
   },
   {
     channel: {
@@ -349,21 +349,21 @@ const teslaChannels: DemoChannelData[] = [
       isPrivate: true,
       isArchived: false,
       memberCount: 8,
-      createdBy: 'demo-user'
+      createdBy: 'demo-user',
     },
     messages: [
       {
         senderName: 'Security Chief',
         content: 'Perimeter secured. All checkpoints active.',
-        timestamp: '10:00 AM'
+        timestamp: '10:00 AM',
       },
       {
         senderName: 'Security Lead',
         content: 'VIP entrance ready. Badge system live.',
-        timestamp: '10:30 AM'
-      }
-    ]
-  }
+        timestamp: '10:30 AM',
+      },
+    ],
+  },
 ];
 
 /**
@@ -372,19 +372,17 @@ const teslaChannels: DemoChannelData[] = [
  */
 export const generateDemoChannelsFromRoles = (
   tripId: string,
-  roles: string[]
+  roles: string[],
 ): { channels: TripChannel[]; messagesByChannel: Map<string, ChannelMessage[]> } => {
   const now = new Date().toISOString();
   const uniqueRoles = [...new Set(roles.filter(Boolean))];
-  
+
   // MVP: Cap at 5 roles maximum
   const MAX_ROLES = 5;
   const cappedRoles = uniqueRoles.slice(0, MAX_ROLES);
-  
+
   if (uniqueRoles.length > MAX_ROLES) {
-    console.warn(
-      `Trip ${tripId} has ${uniqueRoles.length} roles, capping at ${MAX_ROLES} for MVP`
-    );
+    console.warn(`Trip ${tripId} has ${uniqueRoles.length} roles, capping at ${MAX_ROLES} for MVP`);
   }
 
   const channels: TripChannel[] = cappedRoles.map((role, index) => ({
@@ -400,7 +398,7 @@ export const generateDemoChannelsFromRoles = (
     memberCount: 1,
     createdAt: now,
     updatedAt: now,
-    createdBy: 'demo-user'
+    createdBy: 'demo-user',
   }));
 
   // Return empty messages for auto-generated channels
@@ -410,42 +408,42 @@ export const generateDemoChannelsFromRoles = (
   return { channels, messagesByChannel };
 };
 
-export const getDemoChannelsForTrip = (tripId: string, roles?: string[]): { channels: TripChannel[]; messagesByChannel: Map<string, ChannelMessage[]> } => {
+export const getDemoChannelsForTrip = (
+  tripId: string,
+  roles?: string[],
+): { channels: TripChannel[]; messagesByChannel: Map<string, ChannelMessage[]> } => {
   const now = new Date().toISOString();
-  
+
   let demoData: DemoChannelData[] = [];
-  
+
   // Map trip IDs to demo channels (handle both numeric and string IDs)
   const tripIdStr = String(tripId);
-  
+
   if (tripIdStr === '13' || tripIdStr === 'lakers-road-trip') {
     demoData = lakersChannels;
-  } 
-  else if (tripIdStr === '14' || tripIdStr === 'tesla-cybertruck-roadshow-2025') {
+  } else if (tripIdStr === '14' || tripIdStr === 'tesla-cybertruck-roadshow-2025') {
     demoData = teslaChannels;
-  }
-  else if (tripIdStr === '15' || tripIdStr === 'beyonce-cowboy-carter-tour') {
+  } else if (tripIdStr === '15' || tripIdStr === 'beyonce-cowboy-carter-tour') {
     demoData = beyonceChannels;
-  }
-  else if (tripIdStr === '16' || tripIdStr === 'eli-lilly-c-suite-retreat-2026') {
+  } else if (tripIdStr === '16' || tripIdStr === 'eli-lilly-c-suite-retreat-2026') {
     demoData = eliLillyChannels;
   }
-  
+
   // If no hardcoded channels exist but roles are provided, generate channels from roles
   if (demoData.length === 0 && roles && roles.length > 0) {
     return generateDemoChannelsFromRoles(tripId, roles);
   }
-  
+
   const channels: TripChannel[] = demoData.map((data, index) => ({
     id: `demo-channel-${tripId}-${index}`,
     tripId: tripId,
     ...data.channel,
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   }));
-  
+
   const messagesByChannel = new Map<string, ChannelMessage[]>();
-  
+
   demoData.forEach((data, channelIndex) => {
     const channelId = `demo-channel-${tripId}-${channelIndex}`;
     const messages: ChannelMessage[] = data.messages.map((msg, msgIndex) => ({
@@ -454,15 +452,15 @@ export const getDemoChannelsForTrip = (tripId: string, roles?: string[]): { chan
       senderId: `demo-sender-${msgIndex}`,
       senderName: msg.senderName,
       content: msg.content,
-      messageType: msg.isBroadcast ? 'system' as const : 'text' as const,
+      messageType: msg.isBroadcast ? ('system' as const) : ('text' as const),
       metadata: msg.isBroadcast ? { isBroadcast: true, category: msg.category } : undefined,
       createdAt: now,
       editedAt: undefined,
-      deletedAt: undefined
+      deletedAt: undefined,
     }));
-    
+
     messagesByChannel.set(channelId, messages);
   });
-  
+
   return { channels, messagesByChannel };
 };

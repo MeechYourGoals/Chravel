@@ -90,17 +90,19 @@ export function reportAppLoaded(): void {
 
   // Check if data was loaded from cache
   const isCached = Boolean(
-    performance.getEntriesByType('navigation').find(
-      (nav) => (nav as PerformanceNavigationTiming).type === 'back_forward'
-    )
+    performance
+      .getEntriesByType('navigation')
+      .find(nav => (nav as PerformanceNavigationTiming).type === 'back_forward'),
   );
 
   // Get network type if available
   let networkType: string | undefined;
   if ('connection' in navigator) {
-    const conn = (navigator as Navigator & {
-      connection?: { effectiveType?: string };
-    }).connection;
+    const conn = (
+      navigator as Navigator & {
+        connection?: { effectiveType?: string };
+      }
+    ).connection;
     networkType = conn?.effectiveType;
   }
 
@@ -174,7 +176,7 @@ export function reportChatRendered(tripId: string, messageCount: number): void {
 export async function trackTimed<T>(
   name: string,
   operation: () => Promise<T>,
-  context?: Record<string, unknown>
+  context?: Record<string, unknown>,
 ): Promise<{ result: T; duration_ms: number }> {
   const timer = new PerformanceTimer(name);
 
@@ -208,7 +210,7 @@ export function observeLongTasks(): void {
   if (!('PerformanceObserver' in window)) return;
 
   try {
-    const observer = new PerformanceObserver((list) => {
+    const observer = new PerformanceObserver(list => {
       for (const entry of list.getEntries()) {
         if (entry.duration > 100) {
           // Only report very long tasks (>100ms)
@@ -247,7 +249,7 @@ export function reportWebVitals(): void {
 
   // Largest Contentful Paint (LCP)
   try {
-    new PerformanceObserver((list) => {
+    new PerformanceObserver(list => {
       const entries = list.getEntries();
       const lastEntry = entries[entries.length - 1];
       if (lastEntry) {
@@ -258,8 +260,8 @@ export function reportWebVitals(): void {
             lastEntry.startTime <= 2500
               ? 'good'
               : lastEntry.startTime <= 4000
-              ? 'needs-improvement'
-              : 'poor',
+                ? 'needs-improvement'
+                : 'poor',
         };
 
         if (import.meta.env.DEV) {
@@ -273,7 +275,7 @@ export function reportWebVitals(): void {
 
   // First Input Delay (FID)
   try {
-    new PerformanceObserver((list) => {
+    new PerformanceObserver(list => {
       const entries = list.getEntries();
       if (entries.length > 0) {
         const firstEntry = entries[0] as PerformanceEventTiming;
@@ -284,8 +286,8 @@ export function reportWebVitals(): void {
             firstEntry.processingStart - firstEntry.startTime <= 100
               ? 'good'
               : firstEntry.processingStart - firstEntry.startTime <= 300
-              ? 'needs-improvement'
-              : 'poor',
+                ? 'needs-improvement'
+                : 'poor',
         };
 
         if (import.meta.env.DEV) {
@@ -301,7 +303,7 @@ export function reportWebVitals(): void {
   try {
     let clsValue = 0;
 
-    new PerformanceObserver((list) => {
+    new PerformanceObserver(list => {
       for (const entry of list.getEntries()) {
         if (!(entry as { hadRecentInput?: boolean }).hadRecentInput) {
           clsValue += (entry as { value?: number }).value ?? 0;
@@ -311,12 +313,7 @@ export function reportWebVitals(): void {
       const metric: WebVitalMetric = {
         name: 'CLS',
         value: clsValue,
-        rating:
-          clsValue <= 0.1
-            ? 'good'
-            : clsValue <= 0.25
-            ? 'needs-improvement'
-            : 'poor',
+        rating: clsValue <= 0.1 ? 'good' : clsValue <= 0.25 ? 'needs-improvement' : 'poor',
       };
 
       if (import.meta.env.DEV && clsValue > 0) {

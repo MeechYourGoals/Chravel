@@ -45,9 +45,7 @@ export function shouldSkipBranding(title: string): boolean {
   }
 
   // Check if has any known meeting platform prefix
-  return KNOWN_MEETING_PREFIXES.some(prefix =>
-    upperTitle.startsWith(prefix.toUpperCase())
-  );
+  return KNOWN_MEETING_PREFIXES.some(prefix => upperTitle.startsWith(prefix.toUpperCase()));
 }
 
 /**

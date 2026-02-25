@@ -16,7 +16,7 @@ export const BasecampTourCard = () => {
         animate={{ opacity: 1, y: 0 }}
       >
         {/* Basecamp header */}
-        <motion.div 
+        <motion.div
           className="flex items-center gap-2 mb-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -31,9 +31,9 @@ export const BasecampTourCard = () => {
           </motion.div>
           <span className="text-sm font-semibold text-primary">Basecamp</span>
         </motion.div>
-        
+
         {/* Location name - types in */}
-        <motion.div 
+        <motion.div
           className="bg-background/50 border border-border/50 rounded-lg p-3 mb-3"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -49,9 +49,9 @@ export const BasecampTourCard = () => {
             Oceanview Inn
           </motion.p>
         </motion.div>
-        
+
         {/* Address - appears after */}
-        <motion.div 
+        <motion.div
           className="flex items-start gap-2 text-sm text-muted-foreground mb-4"
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
@@ -84,7 +84,7 @@ export const BasecampTourCard = () => {
             <span className="text-xs">Map preview</span>
           </motion.div>
         </motion.div>
-        
+
         {/* Saved confirmation */}
         <motion.div
           className="flex items-center justify-center gap-2 text-green-500 text-sm font-medium"
@@ -102,7 +102,7 @@ export const BasecampTourCard = () => {
           <span>Saved to trip</span>
         </motion.div>
       </motion.div>
-      
+
       <motion.p
         className="text-muted-foreground text-base max-w-sm"
         initial={{ opacity: 0, y: 10 }}

@@ -13,11 +13,7 @@ interface TeamOrgChartProps {
   onMemberClick?: (memberId: string) => void;
 }
 
-export const TeamOrgChart = ({
-  roster,
-  category,
-  onMemberClick
-}: TeamOrgChartProps) => {
+export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartProps) => {
   const [zoom, setZoom] = useState(100);
   const { rootNodes, totalLevels } = useOrgChartData(roster);
 
@@ -55,8 +51,8 @@ export const TeamOrgChart = ({
         <div className="bg-white/5 rounded-lg p-8 max-w-md mx-auto">
           <h3 className="text-lg font-medium text-white mb-2">No Hierarchy Defined</h3>
           <p className="text-gray-400 text-sm mb-4">
-            To create an org chart, team members need to be assigned reporting relationships.
-            Use Grid View to manage your team in the meantime.
+            To create an org chart, team members need to be assigned reporting relationships. Use
+            Grid View to manage your team in the meantime.
           </p>
           <p className="text-gray-500 text-xs">
             For now, use Grid View to see all team members and their roles.
@@ -72,10 +68,11 @@ export const TeamOrgChart = ({
       <div className="flex items-center justify-between bg-white/5 border border-gray-700 rounded-lg p-3">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">
-            {totalLevels} Level{totalLevels !== 1 ? 's' : ''} • {roster.length} Member{roster.length !== 1 ? 's' : ''}
+            {totalLevels} Level{totalLevels !== 1 ? 's' : ''} • {roster.length} Member
+            {roster.length !== 1 ? 's' : ''}
           </span>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Button
             onClick={handleZoomOut}
@@ -86,9 +83,7 @@ export const TeamOrgChart = ({
           >
             <ZoomOut size={16} />
           </Button>
-          <span className="text-sm text-gray-400 min-w-[60px] text-center">
-            {zoom}%
-          </span>
+          <span className="text-sm text-gray-400 min-w-[60px] text-center">{zoom}%</span>
           <Button
             onClick={handleZoomIn}
             variant="outline"
@@ -98,12 +93,7 @@ export const TeamOrgChart = ({
           >
             <ZoomIn size={16} />
           </Button>
-          <Button
-            onClick={handleResetZoom}
-            variant="outline"
-            size="sm"
-            className="border-gray-600"
-          >
+          <Button onClick={handleResetZoom} variant="outline" size="sm" className="border-gray-600">
             <Maximize2 size={16} />
           </Button>
           <Button
@@ -119,12 +109,15 @@ export const TeamOrgChart = ({
       </div>
 
       {/* Org Chart Container */}
-      <div data-org-chart-container className="bg-white/5 border border-gray-700 rounded-lg p-8 overflow-auto min-h-[500px]">
+      <div
+        data-org-chart-container
+        className="bg-white/5 border border-gray-700 rounded-lg p-8 overflow-auto min-h-[500px]"
+      >
         <div
           className="flex flex-col items-center justify-start transition-transform"
           style={{
             transform: `scale(${zoom / 100})`,
-            transformOrigin: 'top center'
+            transformOrigin: 'top center',
           }}
         >
           {rootNodes.map((node, index) => (
@@ -153,4 +146,3 @@ export const TeamOrgChart = ({
     </div>
   );
 };
-

@@ -55,7 +55,7 @@ export class TypingIndicatorService {
         const typingUsers = this.extractTypingUsers(this.channel?.presenceState() || {});
         onTypingUpdate(typingUsers);
       })
-      .subscribe(async (status) => {
+      .subscribe(async status => {
         if (status === 'SUBSCRIBED') {
           await this.channel?.track({
             userId: this.userId,
@@ -118,7 +118,7 @@ export class TypingIndicatorService {
     const now = Date.now();
     const TYPING_TIMEOUT = 5000; // 5 seconds
 
-    Object.values(state).forEach((presences) => {
+    Object.values(state).forEach(presences => {
       presences.forEach((presence: any) => {
         if (
           presence.typing === true &&

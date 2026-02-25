@@ -71,10 +71,12 @@ export interface TripContext {
   tripId: string;
   title: string;
   location: string;
-  dateRange: {
-    start: string;
-    end: string;
-  } | string;
+  dateRange:
+    | {
+        start: string;
+        end: string;
+      }
+    | string;
   participants: Array<{
     id: string;
     name: string;
@@ -89,12 +91,14 @@ export interface TripContext {
     description?: string;
     events?: CalendarEvent[];
   }>;
-  accommodation?: {
-    name: string;
-    address: string;
-    checkIn: string;
-    checkOut: string;
-  } | string;
+  accommodation?:
+    | {
+        name: string;
+        address: string;
+        checkIn: string;
+        checkOut: string;
+      }
+    | string;
   currentDate: string;
   upcomingEvents: Array<{
     id: string;
@@ -112,7 +116,7 @@ export interface TripContext {
   confirmationNumbers?: {
     [key: string]: string;
   };
-  
+
   // Enhanced contextual data
   files?: TripFile[];
   photos?: TripPhoto[];
@@ -147,7 +151,7 @@ export interface TripContext {
     current: string;
     forecast: string[];
   };
-  
+
   // Optional properties for legacy support
   isPro?: boolean;
   basecamp?: {

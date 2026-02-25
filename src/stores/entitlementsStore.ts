@@ -1,6 +1,6 @@
 /**
  * Unified Entitlements Store
- * 
+ *
  * Single source of truth for user subscription state.
  * Works across demo mode, RevenueCat (iOS/Android), and Stripe (web).
  * Super admins always get full access regardless of entitlements table.
@@ -26,18 +26,23 @@ interface EntitlementsState {
   lastSyncedAt: Date | null;
   error: string | null;
   purchaseType: PurchaseType;
-  
+
   // Computed helpers
   isSubscribed: boolean;
   isPro: boolean;
   isSuperAdmin: boolean;
   daysRemaining: number | null;
-  
+
   // Actions
   refreshEntitlements: (userId: string, userEmail?: string) => Promise<void>;
   setSuperAdminMode: () => void;
   setDemoMode: (enabled: boolean) => void;
-  setFromStripe: (data: { tier: SubscriptionTier; status: string; periodEnd?: Date; purchaseType?: PurchaseType }) => void;
+  setFromStripe: (data: {
+    tier: SubscriptionTier;
+    status: string;
+    periodEnd?: Date;
+    purchaseType?: PurchaseType;
+  }) => void;
   clear: () => void;
 }
 
@@ -70,10 +75,10 @@ const getSuperAdminEntitlements = (): Set<EntitlementId> => {
 
 export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
   ...DEFAULT_STATE,
-  
+
   refreshEntitlements: async (userId: string, userEmail?: string) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       // SUPER ADMIN CHECK FIRST - email allowlist is the failsafe
       if (userEmail && isSuperAdminEmail(userEmail)) {
@@ -99,7 +104,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
-      
+
       // Cast to string for comparison since role is an enum
       const roles = rolesData?.map(r => String(r.role)) || [];
       const hasAdminRole = roles.includes('enterprise_admin');
@@ -128,21 +133,23 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
-      
+
       if (error) {
         console.error('[EntitlementsStore] Fetch error:', error);
         set({ isLoading: false, error: error.message });
         return;
       }
-      
+
       if (data) {
         const plan = data.plan as SubscriptionTier;
         const status = data.status as EntitlementStatus;
         const tierEntitlements = TIER_ENTITLEMENTS[plan] || [];
         const pType = (data.purchase_type as PurchaseType) || 'subscription';
         const periodEnd = data.current_period_end ? new Date(data.current_period_end) : null;
-        const daysLeft = periodEnd ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
-        
+        const daysLeft = periodEnd
+          ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+          : null;
+
         set({
           plan,
           status,
@@ -186,13 +193,13 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
       isSuperAdmin: true,
     });
   },
-  
+
   setDemoMode: (enabled: boolean) => {
     if (enabled) {
       // Demo mode gets full access
       const demoTier: SubscriptionTier = 'frequent-chraveler';
       const tierEntitlements = TIER_ENTITLEMENTS[demoTier] || [];
-      
+
       set({
         plan: demoTier,
         status: 'active',
@@ -209,16 +216,19 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
       set(DEFAULT_STATE);
     }
   },
-  
-  setFromStripe: (data) => {
+
+  setFromStripe: data => {
     const tierEntitlements = TIER_ENTITLEMENTS[data.tier] || [];
-    const status = data.status === 'active' || data.status === 'trialing' 
-      ? data.status as EntitlementStatus 
-      : 'expired';
+    const status =
+      data.status === 'active' || data.status === 'trialing'
+        ? (data.status as EntitlementStatus)
+        : 'expired';
     const pType = data.purchaseType || 'subscription';
     const periodEnd = data.periodEnd || null;
-    const daysLeft = periodEnd ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
-    
+    const daysLeft = periodEnd
+      ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : null;
+
     set({
       plan: data.tier,
       status,
@@ -234,7 +244,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
       daysRemaining: pType === 'pass' ? daysLeft : null,
     });
   },
-  
+
   clear: () => {
     set(DEFAULT_STATE);
   },

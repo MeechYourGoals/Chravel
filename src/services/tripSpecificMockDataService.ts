@@ -39,8 +39,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
   // 1. Spring Break Cancun 2026 Kappa Alpha Psi Trip
   1: {
     tripId: 1,
-    tripTitle: "Spring Break Cancun 2026 Kappa Alpha Psi Trip",
-    location: "Cancun, Mexico",
+    tripTitle: 'Spring Break Cancun 2026 Kappa Alpha Psi Trip',
+    location: 'Cancun, Mexico',
     photos: [
       {
         id: 'cancun-photo-1',
@@ -51,7 +51,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat',
         file_size: 425678,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'cancun-photo-2',
@@ -62,7 +62,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         source: 'upload',
         file_size: 523456,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'cancun-photo-3',
@@ -73,20 +73,27 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'chat',
         file_size: 378901,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
-    videos: [{
-      id: 'cancun-video-1',
-      media_url: '/mock/videos/team-celebration.mp4',
-      filename: 'Epic Beach Party Highlights.mp4',
-      media_type: 'video',
-      metadata: { duration: 12, width: 1280, height: 720, poster: '/mock/images/beach-volleyball.jpg' },
-      created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
-      source: 'chat',
-      file_size: 12456000,
-      mime_type: 'video/mp4'
-    }],
+    videos: [
+      {
+        id: 'cancun-video-1',
+        media_url: '/mock/videos/team-celebration.mp4',
+        filename: 'Epic Beach Party Highlights.mp4',
+        media_type: 'video',
+        metadata: {
+          duration: 12,
+          width: 1280,
+          height: 720,
+          poster: '/mock/images/beach-volleyball.jpg',
+        },
+        created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+        source: 'chat',
+        file_size: 12456000,
+        mime_type: 'video/mp4',
+      },
+    ],
     files: [
       {
         id: 'cancun-file-1',
@@ -97,36 +104,38 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
         source: 'upload',
         file_size: 267890,
-        mime_type: 'application/pdf'
+        mime_type: 'application/pdf',
       },
       {
         id: 'cancun-file-2',
         media_url: '/mock/images/conference-schedule-preview.jpg',
         filename: 'Excursion Tickets - Chichen Itza.jpg',
         media_type: 'image',
-        metadata: { 
-          isTicket: true, 
-          venue: 'Chichen Itza', 
+        metadata: {
+          isTicket: true,
+          venue: 'Chichen Itza',
           date: '2026-03-17',
-          extractedEvents: 1 
+          extractedEvents: 1,
         },
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         source: 'upload',
         file_size: 345600,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
     links: [
       {
         id: 'cancun-link-1',
         url: 'https://www.palaceresorts.com/moon-palace-cancun',
         title: 'Moon Palace Cancun - All Inclusive Resort',
-        description: 'Luxury all-inclusive resort with 6 restaurants, water park, and pristine beaches.',
+        description:
+          'Luxury all-inclusive resort with 6 restaurants, water park, and pristine beaches.',
         domain: 'palaceresorts.com',
-        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
         source: 'places' as const,
-        tags: ['resort', 'all-inclusive', 'accommodation']
+        tags: ['resort', 'all-inclusive', 'accommodation'],
       },
       {
         id: 'cancun-link-2',
@@ -134,10 +143,11 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: "Joe's Stone Crab Cancun - Seafood Excellence",
         description: 'World-famous stone crab and fresh seafood in the heart of Cancun.',
         domain: 'joestonecrab.com',
-        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'places' as const,
-        tags: ['seafood', 'restaurant', 'upscale']
+        tags: ['seafood', 'restaurant', 'upscale'],
       },
       {
         id: 'cancun-link-3',
@@ -145,10 +155,11 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Coco Bongo Show & Disco',
         description: 'Spectacular acrobatic show with live performances and tribute acts.',
         domain: 'cocobongo.com.mx',
-        image_url: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         source: 'places' as const,
-        tags: ['nightlife', 'show', 'entertainment']
+        tags: ['nightlife', 'show', 'entertainment'],
       },
       {
         id: 'cancun-link-4',
@@ -156,19 +167,20 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Chichen Itza Day Trip',
         description: 'Ancient Mayan ruins and Wonder of the World archaeological site.',
         domain: 'tripadvisor.com',
-        image_url: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1518638150340-f706e86654de?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         source: 'places' as const,
-        tags: ['cultural', 'historical', 'tour']
-      }
-    ]
+        tags: ['cultural', 'historical', 'tour'],
+      },
+    ],
   },
 
   // 2. Tokyo Adventure
   2: {
     tripId: 2,
-    tripTitle: "Tokyo Adventure",
-    location: "Tokyo, Japan",
+    tripTitle: 'Tokyo Adventure',
+    location: 'Tokyo, Japan',
     photos: [
       {
         id: 'tokyo-photo-1',
@@ -179,7 +191,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat',
         file_size: 456789,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'tokyo-photo-2',
@@ -190,7 +202,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         source: 'upload',
         file_size: 398765,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'tokyo-photo-3',
@@ -201,20 +213,27 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'chat',
         file_size: 423456,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
-    videos: [{
-      id: 'tokyo-video-1',
-      media_url: '/mock/videos/venue-tour.mp4',
-      filename: 'Epic Karaoke Night Shibuya.mp4',
-      media_type: 'video',
-      metadata: { duration: 10, width: 1280, height: 720, poster: '/mock/images/concert-stage.jpg' },
-      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-      source: 'chat',
-      file_size: 15678000,
-      mime_type: 'video/mp4'
-    }],
+    videos: [
+      {
+        id: 'tokyo-video-1',
+        media_url: '/mock/videos/venue-tour.mp4',
+        filename: 'Epic Karaoke Night Shibuya.mp4',
+        media_type: 'video',
+        metadata: {
+          duration: 10,
+          width: 1280,
+          height: 720,
+          poster: '/mock/images/concert-stage.jpg',
+        },
+        created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+        source: 'chat',
+        file_size: 15678000,
+        mime_type: 'video/mp4',
+      },
+    ],
     files: [
       {
         id: 'tokyo-file-1',
@@ -225,23 +244,23 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
         source: 'upload',
         file_size: 189456,
-        mime_type: 'application/pdf'
+        mime_type: 'application/pdf',
       },
       {
         id: 'tokyo-file-2',
         media_url: '/mock/files/travel_itinerary.pdf',
         filename: 'Tokyo Itinerary Day by Day.pdf',
         media_type: 'document',
-        metadata: { 
-          isSchedule: true, 
+        metadata: {
+          isSchedule: true,
           days: 10,
-          extractedEvents: 15 
+          extractedEvents: 15,
         },
         created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
         source: 'upload',
         file_size: 567890,
-        mime_type: 'application/pdf'
-      }
+        mime_type: 'application/pdf',
+      },
     ],
     links: [
       {
@@ -250,32 +269,36 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'The Millennials Shibuya Capsule Hotel',
         description: 'Modern capsule hotel in the heart of Shibuya with high-tech amenities.',
         domain: 'booking.com',
-        image_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
         source: 'places' as const,
-        tags: ['capsule', 'modern', 'shibuya']
+        tags: ['capsule', 'modern', 'shibuya'],
       },
       {
         id: 'tokyo-link-2',
         url: 'https://sushidai-tsukiji.com/',
         title: 'Sushi Dai - Tsukiji Outer Market',
-        description: 'World-famous sushi restaurant known for the freshest tuna and traditional preparation.',
+        description:
+          'World-famous sushi restaurant known for the freshest tuna and traditional preparation.',
         domain: 'sushidai-tsukiji.com',
         image_url: 'https://images.unsplash.com/photo-1551963831-b3b1ca40c98e?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
         source: 'places' as const,
-        tags: ['sushi', 'traditional', 'tsukiji']
+        tags: ['sushi', 'traditional', 'tsukiji'],
       },
       {
         id: 'tokyo-link-3',
         url: 'https://www.teamlab.art/e/planets/',
         title: 'teamLab Planets TOKYO Digital Art Museum',
-        description: 'Immersive digital art experience with interactive installations and water features.',
+        description:
+          'Immersive digital art experience with interactive installations and water features.',
         domain: 'teamlab.art',
-        image_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
         source: 'places' as const,
-        tags: ['art', 'digital', 'immersive']
+        tags: ['art', 'digital', 'immersive'],
       },
       {
         id: 'tokyo-link-4',
@@ -283,19 +306,20 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Robot Restaurant Shinjuku',
         description: 'Crazy robot show with lasers, music, and mechanical mayhem in Shinjuku.',
         domain: 'robot-restaurant.com',
-        image_url: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'places' as const,
-        tags: ['entertainment', 'unique', 'shinjuku']
-      }
-    ]
+        tags: ['entertainment', 'unique', 'shinjuku'],
+      },
+    ],
   },
 
   // 3. Jack and Jill's destination wedding (Bali)
   3: {
     tripId: 3,
     tripTitle: "The Tyler's Tie The Knot",
-    location: "Bali, Indonesia",
+    location: 'Bali, Indonesia',
     photos: [
       {
         id: 'bali-photo-1',
@@ -306,7 +330,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'upload',
         file_size: 567890,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'bali-photo-2',
@@ -317,20 +341,27 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         source: 'chat',
         file_size: 456123,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
-    videos: [{
-      id: 'bali-video-1',
-      media_url: '/mock/videos/venue-tour.mp4',
-      filename: 'Wedding Ceremony Highlights.mp4',
-      media_type: 'video',
-      metadata: { duration: 12, width: 1920, height: 1080, poster: '/mock/images/wedding-ceremony.jpg' },
-      created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
-      source: 'upload',
-      file_size: 25678000,
-      mime_type: 'video/mp4'
-    }],
+    videos: [
+      {
+        id: 'bali-video-1',
+        media_url: '/mock/videos/venue-tour.mp4',
+        filename: 'Wedding Ceremony Highlights.mp4',
+        media_type: 'video',
+        metadata: {
+          duration: 12,
+          width: 1920,
+          height: 1080,
+          poster: '/mock/images/wedding-ceremony.jpg',
+        },
+        created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+        source: 'upload',
+        file_size: 25678000,
+        mime_type: 'video/mp4',
+      },
+    ],
     files: [
       {
         id: 'bali-file-1',
@@ -341,8 +372,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
         source: 'upload',
         file_size: 423789,
-        mime_type: 'application/pdf'
-      }
+        mime_type: 'application/pdf',
+      },
     ],
     links: [
       {
@@ -351,10 +382,11 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Seminyak Beach Resort & Spa',
         description: 'Luxury beachfront resort perfect for destination weddings with ocean views.',
         domain: 'seminyakbeachresort.com',
-        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
         source: 'places' as const,
-        tags: ['resort', 'wedding-venue', 'luxury']
+        tags: ['resort', 'wedding-venue', 'luxury'],
       },
       {
         id: 'bali-link-2',
@@ -362,21 +394,24 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'La Lucciola - Beachside Italian',
         description: 'Romantic Italian restaurant with stunning ocean views and fresh seafood.',
         domain: 'lalucianbali.com',
-        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         source: 'places' as const,
-        tags: ['italian', 'romantic', 'ocean-view']
+        tags: ['italian', 'romantic', 'ocean-view'],
       },
       {
         id: 'bali-link-3',
         url: 'https://www.baliswing.com/',
         title: 'Bali Swing Adventure Experience',
-        description: 'Thrilling jungle swings with incredible valley views for adventurous couples.',
+        description:
+          'Thrilling jungle swings with incredible valley views for adventurous couples.',
         domain: 'baliswing.com',
-        image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
         source: 'places' as const,
-        tags: ['adventure', 'scenic', 'couples']
+        tags: ['adventure', 'scenic', 'couples'],
       },
       {
         id: 'bali-link-4',
@@ -384,22 +419,23 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Uluwatu Temple Sunset Kecak Dance',
         description: 'Ancient clifftop temple with traditional Balinese fire dance at sunset.',
         domain: 'tripadvisor.com',
-        image_url: 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
         source: 'places' as const,
-        tags: ['temple', 'cultural', 'sunset']
-      }
-    ]
+        tags: ['temple', 'cultural', 'sunset'],
+      },
+    ],
   },
 
   // Continue with remaining trips... (4-12)
   // For brevity, I'll include a few more key ones
 
-  // 4. Kristen's Bachelorette Party (Nashville)  
+  // 4. Kristen's Bachelorette Party (Nashville)
   4: {
     tripId: 4,
     tripTitle: "Kristen's Bachelorette Party",
-    location: "Nashville, TN",
+    location: 'Nashville, TN',
     photos: [
       {
         id: 'nashville-photo-1',
@@ -410,7 +446,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat',
         file_size: 456789,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'nashville-photo-2',
@@ -421,37 +457,44 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         source: 'upload',
         file_size: 523456,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
-    videos: [{
-      id: 'nashville-video-1',
-      media_url: '/mock/videos/venue-tour.mp4',
-      filename: 'Bride Karaoke Highlights.mp4',
-      media_type: 'video',
-      metadata: { duration: 10, width: 1280, height: 720, poster: '/mock/images/concert-stage.jpg' },
-      created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
-      source: 'chat',
-      file_size: 13456000,
-      mime_type: 'video/mp4'
-    }],
+    videos: [
+      {
+        id: 'nashville-video-1',
+        media_url: '/mock/videos/venue-tour.mp4',
+        filename: 'Bride Karaoke Highlights.mp4',
+        media_type: 'video',
+        metadata: {
+          duration: 10,
+          width: 1280,
+          height: 720,
+          poster: '/mock/images/concert-stage.jpg',
+        },
+        created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+        source: 'chat',
+        file_size: 13456000,
+        mime_type: 'video/mp4',
+      },
+    ],
     files: [
       {
         id: 'nashville-file-1',
         media_url: '/mock/images/conference-schedule-preview.jpg',
         filename: 'Grand Ole Opry VIP Tickets.jpg',
         media_type: 'image',
-        metadata: { 
-          isTicket: true, 
-          venue: 'Grand Ole Opry', 
+        metadata: {
+          isTicket: true,
+          venue: 'Grand Ole Opry',
           date: '2025-11-09',
-          extractedEvents: 1 
+          extractedEvents: 1,
         },
         created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
         source: 'upload',
         file_size: 234567,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
     links: [
       {
@@ -460,10 +503,11 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Omni Nashville Hotel - Downtown',
         description: 'Luxury hotel in the heart of Music City with rooftop pool and spa services.',
         domain: 'omnihotels.com',
-        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
         source: 'places' as const,
-        tags: ['hotel', 'luxury', 'downtown']
+        tags: ['hotel', 'luxury', 'downtown'],
       },
       {
         id: 'nashville-link-2',
@@ -471,21 +515,24 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: "Hattie B's Hot Chicken - Nashville Original",
         description: 'Famous Nashville hot chicken with multiple heat levels and Southern sides.',
         domain: 'hattiebs.com',
-        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'places' as const,
-        tags: ['chicken', 'nashville', 'spicy']
+        tags: ['chicken', 'nashville', 'spicy'],
       },
       {
         id: 'nashville-link-3',
         url: 'https://www.ryman.com/',
         title: 'Ryman Auditorium - Mother Church of Country Music',
-        description: 'Historic venue with legendary country music performances and backstage tours.',
+        description:
+          'Historic venue with legendary country music performances and backstage tours.',
         domain: 'ryman.com',
-        image_url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         source: 'places' as const,
-        tags: ['music', 'historic', 'tour']
+        tags: ['music', 'historic', 'tour'],
       },
       {
         id: 'nashville-link-4',
@@ -493,19 +540,20 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Broadway Honky Tonk District',
         description: 'Neon-lit honky tonks with live bands, dancing, and Nashville nightlife.',
         domain: 'visitmusiccity.com',
-        image_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         source: 'places' as const,
-        tags: ['nightlife', 'music', 'broadway']
-      }
-    ]
+        tags: ['nightlife', 'music', 'broadway'],
+      },
+    ],
   },
 
   // 6. Johnson Family Summer Vacay (Saratoga Springs)
   6: {
     tripId: 6,
-    tripTitle: "Johnson Family Summer Vacay",
-    location: "Saratoga Springs, NY",
+    tripTitle: 'Johnson Family Summer Vacay',
+    location: 'Saratoga Springs, NY',
     photos: [
       {
         id: 'saratoga-photo-1',
@@ -516,7 +564,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         source: 'chat',
         file_size: 445678,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'saratoga-photo-2',
@@ -527,20 +575,27 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'upload',
         file_size: 523789,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
-    videos: [{
-      id: 'saratoga-video-1',
-      media_url: '/mock/videos/team-celebration.mp4',
-      filename: 'Family Summer Adventure Montage.mp4',
-      media_type: 'video',
-      metadata: { duration: 10, width: 1280, height: 720, poster: '/mock/images/group-mountain-photo.jpg' },
-      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-      source: 'chat',
-      file_size: 16789000,
-      mime_type: 'video/mp4'
-    }],
+    videos: [
+      {
+        id: 'saratoga-video-1',
+        media_url: '/mock/videos/team-celebration.mp4',
+        filename: 'Family Summer Adventure Montage.mp4',
+        media_type: 'video',
+        metadata: {
+          duration: 10,
+          width: 1280,
+          height: 720,
+          poster: '/mock/images/group-mountain-photo.jpg',
+        },
+        created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+        source: 'chat',
+        file_size: 16789000,
+        mime_type: 'video/mp4',
+      },
+    ],
     files: [
       {
         id: 'saratoga-file-1',
@@ -551,31 +606,35 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
         source: 'upload',
         file_size: 345600,
-        mime_type: 'application/pdf'
-      }
+        mime_type: 'application/pdf',
+      },
     ],
     links: [
       {
         id: 'saratoga-link-1',
         url: 'https://www.saratogaracecourse.com/',
         title: 'Saratoga Race Course - Historic Horse Racing',
-        description: 'Americas oldest thoroughbred racing venue with summer meets and family events.',
+        description:
+          'Americas oldest thoroughbred racing venue with summer meets and family events.',
         domain: 'saratogaracecourse.com',
-        image_url: 'https://images.unsplash.com/photo-1568032284447-5d3bcb9f9ef8?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1568032284447-5d3bcb9f9ef8?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
         source: 'places' as const,
-        tags: ['racing', 'historic', 'entertainment']
+        tags: ['racing', 'historic', 'entertainment'],
       },
       {
         id: 'saratoga-link-2',
         url: 'https://parks.ny.gov/parks/saratogaspa/',
         title: 'Saratoga Spa State Park',
-        description: 'Natural mineral springs, hiking trails, and the historic Roosevelt Baths & Spa.',
+        description:
+          'Natural mineral springs, hiking trails, and the historic Roosevelt Baths & Spa.',
         domain: 'parks.ny.gov',
-        image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
         source: 'places' as const,
-        tags: ['park', 'spa', 'wellness']
+        tags: ['park', 'spa', 'wellness'],
       },
       {
         id: 'saratoga-link-3',
@@ -583,10 +642,11 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Downtown Saratoga Restaurants & Cafes',
         description: 'Historic Broadway street with farm-to-table dining and local wineries.',
         domain: 'saratoga.com',
-        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
         source: 'places' as const,
-        tags: ['dining', 'downtown', 'local']
+        tags: ['dining', 'downtown', 'local'],
       },
       {
         id: 'saratoga-link-4',
@@ -594,19 +654,20 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'The Adelphi Hotel - Historic Downtown Boutique',
         description: 'Victorian-era luxury hotel with modern amenities in the heart of downtown.',
         domain: 'booking.com',
-        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
         source: 'places' as const,
-        tags: ['hotel', 'historic', 'boutique']
-      }
-    ]
+        tags: ['hotel', 'historic', 'boutique'],
+      },
+    ],
   },
 
   // 7. Fantasy Football Golf Outing (Phoenix)
   7: {
     tripId: 7,
     tripTitle: "Fantasy Football Chat's Annual Golf Outing",
-    location: "Phoenix, Arizona",
+    location: 'Phoenix, Arizona',
     photos: [
       {
         id: 'phoenix-photo-1',
@@ -617,20 +678,27 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat',
         file_size: 434567,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
-    videos: [{
-      id: 'phoenix-video-1',
-      media_url: '/mock/videos/team-celebration.mp4',
-      filename: 'Hole-in-One Celebration.mp4',
-      media_type: 'video',
-      metadata: { duration: 8, width: 1280, height: 720, poster: '/mock/images/group-mountain-photo.jpg' },
-      created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
-      source: 'chat',
-      file_size: 9876000,
-      mime_type: 'video/mp4'
-    }],
+    videos: [
+      {
+        id: 'phoenix-video-1',
+        media_url: '/mock/videos/team-celebration.mp4',
+        filename: 'Hole-in-One Celebration.mp4',
+        media_type: 'video',
+        metadata: {
+          duration: 8,
+          width: 1280,
+          height: 720,
+          poster: '/mock/images/group-mountain-photo.jpg',
+        },
+        created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+        source: 'chat',
+        file_size: 9876000,
+        mime_type: 'video/mp4',
+      },
+    ],
     files: [
       {
         id: 'phoenix-file-1',
@@ -641,8 +709,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
         source: 'upload',
         file_size: 267890,
-        mime_type: 'application/pdf'
-      }
+        mime_type: 'application/pdf',
+      },
     ],
     links: [
       {
@@ -651,52 +719,58 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'TPC Scottsdale - Stadium Course',
         description: 'Home of the Waste Management Phoenix Open with the famous 16th hole stadium.',
         domain: 'tpc.com',
-        image_url: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
         source: 'places' as const,
-        tags: ['golf', 'pga', 'tournament']
+        tags: ['golf', 'pga', 'tournament'],
       },
       {
         id: 'phoenix-link-2',
         url: 'https://www.fourseasons.com/scottsdale/',
         title: 'Four Seasons Resort Scottsdale at Troon North',
-        description: 'Luxury desert resort with championship golf courses and spa in the Sonoran Desert.',
+        description:
+          'Luxury desert resort with championship golf courses and spa in the Sonoran Desert.',
         domain: 'fourseasons.com',
-        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
         source: 'places' as const,
-        tags: ['resort', 'luxury', 'golf']
+        tags: ['resort', 'luxury', 'golf'],
       },
       {
         id: 'phoenix-link-3',
         url: 'https://www.tripadvisor.com/Restaurants-g31310-Phoenix_Arizona.html',
-        title: "Scottsdale Steakhouses & Fine Dining",
+        title: 'Scottsdale Steakhouses & Fine Dining',
         description: "Mastro's Steakhouse, Durant's, and top-rated desert restaurants.",
         domain: 'tripadvisor.com',
-        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
         source: 'places' as const,
-        tags: ['steakhouse', 'dining', 'scottsdale']
+        tags: ['steakhouse', 'dining', 'scottsdale'],
       },
       {
         id: 'phoenix-link-4',
         url: 'https://www.alltrails.com/trail/us/arizona/camelback-mountain-echo-canyon-trail',
         title: 'Camelback Mountain Sunrise Hike',
-        description: 'Popular 1.2 mile trail with 1,280 ft elevation gain and stunning desert views.',
+        description:
+          'Popular 1.2 mile trail with 1,280 ft elevation gain and stunning desert views.',
         domain: 'alltrails.com',
-        image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
         source: 'places' as const,
-        tags: ['hiking', 'scenic', 'sunrise']
-      }
-    ]
+        tags: ['hiking', 'scenic', 'sunrise'],
+      },
+    ],
   },
 
   // 5. Coachella Squad 2026
   5: {
     tripId: 5,
-    tripTitle: "Coachella Squad 2026",
-    location: "Indio, CA",
+    tripTitle: 'Coachella Squad 2026',
+    location: 'Indio, CA',
     photos: [
       {
         id: 'coachella-photo-1',
@@ -707,7 +781,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat',
         file_size: 445678,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'coachella-photo-2',
@@ -718,7 +792,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         source: 'upload',
         file_size: 523456,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'coachella-photo-3',
@@ -729,7 +803,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         source: 'chat',
         file_size: 378901,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'coachella-photo-4',
@@ -740,7 +814,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'upload',
         file_size: 456789,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'coachella-photo-5',
@@ -751,7 +825,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
         source: 'chat',
         file_size: 387654,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'coachella-photo-6',
@@ -762,7 +836,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         source: 'upload',
         file_size: 423567,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'coachella-photo-7',
@@ -773,7 +847,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
         source: 'chat',
         file_size: 398745,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'coachella-photo-8',
@@ -784,8 +858,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
         source: 'upload',
         file_size: 467832,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
     videos: [
       {
@@ -797,7 +871,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat',
         file_size: 18456000,
-        mime_type: 'video/mp4'
+        mime_type: 'video/mp4',
       },
       {
         id: 'coachella-video-2',
@@ -808,7 +882,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         source: 'upload',
         file_size: 8734000,
-        mime_type: 'video/mp4'
+        mime_type: 'video/mp4',
       },
       {
         id: 'coachella-video-3',
@@ -819,8 +893,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
         source: 'chat',
         file_size: 5632000,
-        mime_type: 'video/mp4'
-      }
+        mime_type: 'video/mp4',
+      },
     ],
     files: [
       {
@@ -828,78 +902,78 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         media_url: '/mock/images/conference-schedule-preview.jpg',
         filename: 'Weekend 1 Festival Passes.jpg',
         media_type: 'image',
-        metadata: { 
-          isTicket: true, 
-          venue: 'Coachella Valley Music Festival', 
+        metadata: {
+          isTicket: true,
+          venue: 'Coachella Valley Music Festival',
           date: '2026-04-10',
-          extractedEvents: 3 
+          extractedEvents: 3,
         },
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
         source: 'upload',
         file_size: 234567,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'coachella-file-2',
         media_url: '/mock/files/travel_itinerary.pdf',
         filename: 'Coachella 2026 Lineup & Schedule.pdf',
         media_type: 'document',
-        metadata: { 
+        metadata: {
           isSchedule: true,
           extractedEvents: 47,
-          pageCount: 8
+          pageCount: 8,
         },
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
         source: 'upload',
         file_size: 2456789,
-        mime_type: 'application/pdf'
+        mime_type: 'application/pdf',
       },
       {
         id: 'coachella-file-3',
         media_url: '/mock/images/dinner-receipt-preview.jpg',
         filename: 'Desert House Rental Receipt.jpg',
         media_type: 'image',
-        metadata: { 
+        metadata: {
           isReceipt: true,
           totalAmount: 2400,
           splitCount: 8,
           perPersonAmount: 300,
-          preferredMethod: 'venmo'
+          preferredMethod: 'venmo',
         },
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
         source: 'chat',
         file_size: 345678,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
         id: 'coachella-file-4',
         media_url: '/mock/files/travel_itinerary.pdf',
         filename: 'Coachella Festival Grounds Map.pdf',
         media_type: 'document',
-        metadata: { 
+        metadata: {
           pageCount: 2,
-          extractedEvents: 0
+          extractedEvents: 0,
         },
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
         source: 'upload',
         file_size: 1234567,
-        mime_type: 'application/pdf'
+        mime_type: 'application/pdf',
       },
       {
         id: 'coachella-file-5',
         media_url: '/mock/images/conference-schedule-preview.jpg',
         filename: 'VIP Camping Pass Confirmation.jpg',
         media_type: 'image',
-        metadata: { 
+        metadata: {
           isTicket: true,
           venue: 'Coachella VIP Camping',
-          date: '2026-04-10'
+          date: '2026-04-10',
         },
         created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
         source: 'upload',
         file_size: 198765,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
     links: [
       {
@@ -908,21 +982,23 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Desert House Coachella - 8 Guests',
         description: 'Stunning desert house with pool, perfect for festival groups.',
         domain: 'airbnb.com',
-        image_url: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
         source: 'places' as const,
-        tags: ['airbnb', 'desert', 'festival']
+        tags: ['airbnb', 'desert', 'festival'],
       },
       {
         id: 'coachella-link-2',
         url: 'https://www.yelp.com/biz/pappy-and-harriets-pioneertown',
-        title: 'Pappy & Harriet\'s Pioneertown Palace',
+        title: "Pappy & Harriet's Pioneertown Palace",
         description: 'Legendary desert venue and restaurant, perfect for pre-festival dinner.',
         domain: 'yelp.com',
-        image_url: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 28).toISOString(),
         source: 'places' as const,
-        tags: ['restaurant', 'desert', 'iconic']
+        tags: ['restaurant', 'desert', 'iconic'],
       },
       {
         id: 'coachella-link-3',
@@ -933,7 +1009,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
         source: 'places' as const,
-        tags: ['transportation', 'shuttle', 'festival']
+        tags: ['transportation', 'shuttle', 'festival'],
       },
       {
         id: 'coachella-link-4',
@@ -941,10 +1017,11 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Coachella 2026 Official Lineup',
         description: 'Full artist lineup and set times for both weekends.',
         domain: 'coachella.com',
-        image_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 40).toISOString(),
         source: 'places' as const,
-        tags: ['lineup', 'official', 'schedule']
+        tags: ['lineup', 'official', 'schedule'],
       },
       {
         id: 'coachella-link-5',
@@ -955,16 +1032,16 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 22).toISOString(),
         source: 'places' as const,
-        tags: ['grocery', 'supplies', 'healthy']
-      }
-    ]
+        tags: ['grocery', 'supplies', 'healthy'],
+      },
+    ],
   },
 
   // 9. Newly Divorced Wine-Tasting Getaway (Napa Valley)
   9: {
     tripId: 9,
-    tripTitle: "Newly Divorced Wine-Tasting Getaway", 
-    location: "Napa Valley, CA",
+    tripTitle: 'Newly Divorced Wine-Tasting Getaway',
+    location: 'Napa Valley, CA',
     photos: [
       {
         id: 'napa-photo-1',
@@ -975,10 +1052,10 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat' as const,
         file_size: 445678,
-        mime_type: 'image/jpeg'
+        mime_type: 'image/jpeg',
       },
       {
-        id: 'napa-photo-2', 
+        id: 'napa-photo-2',
         media_url: '/mock/images/travel-selfie.jpg',
         filename: 'Spa Day Relaxation.jpg',
         media_type: 'image' as const,
@@ -986,8 +1063,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
         source: 'upload' as const,
         file_size: 523456,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
     videos: [
       {
@@ -999,8 +1076,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat' as const,
         file_size: 8456000,
-        mime_type: 'video/mp4'
-      }
+        mime_type: 'video/mp4',
+      },
     ],
     files: [
       {
@@ -1008,29 +1085,29 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         media_url: '/mock/files/hotel-confirmation.pdf',
         filename: 'Auberge du Soleil Resort Confirmation.pdf',
         media_type: 'document' as const,
-        metadata: { 
+        metadata: {
           nights: 4,
-          guests: 6
+          guests: 6,
         },
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
         source: 'upload' as const,
         file_size: 234567,
-        mime_type: 'application/pdf'
+        mime_type: 'application/pdf',
       },
       {
         id: 'napa-file-2',
         media_url: '/mock/files/travel_itinerary.pdf',
         filename: 'Napa Wine Tour Reservations.pdf',
         media_type: 'document' as const,
-        metadata: { 
+        metadata: {
           extractedEvents: 5,
-          pageCount: 3
+          pageCount: 3,
         },
         created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
         source: 'upload' as const,
         file_size: 1456789,
-        mime_type: 'application/pdf'
-      }
+        mime_type: 'application/pdf',
+      },
     ],
     links: [
       {
@@ -1039,10 +1116,11 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Napa Valley Winery Tours & Tastings',
         description: 'Full-day wine tasting experiences at boutique vineyards and famous estates.',
         domain: 'viator.com',
-        image_url: 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
         source: 'places' as const,
-        tags: ['wine', 'tasting', 'tour']
+        tags: ['wine', 'tasting', 'tour'],
       },
       {
         id: 'napa-link-2',
@@ -1050,10 +1128,11 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Auberge du Soleil - Luxury Spa Resort',
         description: 'Five-star hillside resort with Michelin-starred dining and world-class spa.',
         domain: 'aubergeresorts.com',
-        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
         source: 'places' as const,
-        tags: ['luxury', 'spa', 'resort']
+        tags: ['luxury', 'spa', 'resort'],
       },
       {
         id: 'napa-link-3',
@@ -1061,30 +1140,33 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Napa Valley Hot Air Balloon Rides',
         description: 'Sunrise flights over vineyards with champagne brunch after landing.',
         domain: 'napavalleyballoons.com',
-        image_url: 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
         source: 'places' as const,
-        tags: ['balloon', 'scenic', 'experience']
+        tags: ['balloon', 'scenic', 'experience'],
       },
       {
         id: 'napa-link-4',
         url: 'https://www.bouchonbistro.com/',
         title: 'Bouchon Bistro by Thomas Keller',
-        description: 'French bistro by renowned chef Thomas Keller with seasonal menus and wine pairings.',
+        description:
+          'French bistro by renowned chef Thomas Keller with seasonal menus and wine pairings.',
         domain: 'bouchonbistro.com',
-        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 18).toISOString(),
         source: 'places' as const,
-        tags: ['french', 'fine-dining', 'michelin']
-      }
-    ]
+        tags: ['french', 'fine-dining', 'michelin'],
+      },
+    ],
   },
 
   // 8. Tulum Wellness Retreat
   8: {
     tripId: 8,
-    tripTitle: "Tulum Wellness Retreat",
-    location: "Tulum, Mexico",
+    tripTitle: 'Tulum Wellness Retreat',
+    location: 'Tulum, Mexico',
     photos: [
       {
         id: 'tulum-photo-1',
@@ -1095,20 +1177,22 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat',
         file_size: 456789,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
-    videos: [{
-      id: 'tulum-video-1',
-      media_url: '/mock/videos/venue-tour.mp4',
-      filename: 'Cenote Diving Adventure.mp4',
-      media_type: 'video',
-      metadata: { duration: 30, width: 1280, height: 720 },
-      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-      source: 'chat',
-      file_size: 11456000,
-      mime_type: 'video/mp4'
-    }],
+    videos: [
+      {
+        id: 'tulum-video-1',
+        media_url: '/mock/videos/venue-tour.mp4',
+        filename: 'Cenote Diving Adventure.mp4',
+        media_type: 'video',
+        metadata: { duration: 30, width: 1280, height: 720 },
+        created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+        source: 'chat',
+        file_size: 11456000,
+        mime_type: 'video/mp4',
+      },
+    ],
     files: [
       {
         id: 'tulum-file-1',
@@ -1119,20 +1203,22 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
         source: 'upload',
         file_size: 345600,
-        mime_type: 'application/pdf'
-      }
+        mime_type: 'application/pdf',
+      },
     ],
     links: [
       {
         id: 'tulum-link-1',
         url: 'https://www.booking.com/city/mx/tulum.html',
         title: 'Tulum Beachfront Boutique Hotels',
-        description: 'Eco-chic resorts on the Caribbean coast with yoga studios and wellness programs.',
+        description:
+          'Eco-chic resorts on the Caribbean coast with yoga studios and wellness programs.',
         domain: 'booking.com',
-        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
         source: 'places' as const,
-        tags: ['eco-resort', 'beach', 'wellness']
+        tags: ['eco-resort', 'beach', 'wellness'],
       },
       {
         id: 'tulum-link-2',
@@ -1143,7 +1229,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 18).toISOString(),
         source: 'places' as const,
-        tags: ['yoga', 'wellness', 'retreat']
+        tags: ['yoga', 'wellness', 'retreat'],
       },
       {
         id: 'tulum-link-3',
@@ -1154,7 +1240,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
         source: 'places' as const,
-        tags: ['cenote', 'snorkeling', 'adventure']
+        tags: ['cenote', 'snorkeling', 'adventure'],
       },
       {
         id: 'tulum-link-4',
@@ -1162,19 +1248,20 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Tulum Mayan Ruins Beachfront',
         description: 'Ancient walled city perched on cliffs overlooking the Caribbean Sea.',
         domain: 'tripadvisor.com',
-        image_url: 'https://images.unsplash.com/photo-1518638150340-f706e86654de?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1518638150340-f706e86654de?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
         source: 'places' as const,
-        tags: ['ruins', 'mayan', 'historic']
-      }
-    ]
+        tags: ['ruins', 'mayan', 'historic'],
+      },
+    ],
   },
 
   // 10. Corporate Holiday Ski Trip – Aspen
   10: {
     tripId: 10,
-    tripTitle: "Corporate Holiday Ski Trip – Aspen",
-    location: "Aspen, CO",
+    tripTitle: 'Corporate Holiday Ski Trip – Aspen',
+    location: 'Aspen, CO',
     photos: [
       {
         id: 'aspen-corp-photo-1',
@@ -1185,20 +1272,22 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat',
         file_size: 467890,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
-    videos: [{
-      id: 'aspen-corp-video-1',
-      media_url: '/mock/videos/team-celebration.mp4',
-      filename: 'Corporate Team Building Day.mp4',
-      media_type: 'video',
-      metadata: { duration: 35, width: 1280, height: 720 },
-      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-      source: 'chat',
-      file_size: 13567000,
-      mime_type: 'video/mp4'
-    }],
+    videos: [
+      {
+        id: 'aspen-corp-video-1',
+        media_url: '/mock/videos/team-celebration.mp4',
+        filename: 'Corporate Team Building Day.mp4',
+        media_type: 'video',
+        metadata: { duration: 35, width: 1280, height: 720 },
+        created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+        source: 'chat',
+        file_size: 13567000,
+        mime_type: 'video/mp4',
+      },
+    ],
     files: [
       {
         id: 'aspen-corp-file-1',
@@ -1209,8 +1298,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
         source: 'upload',
         file_size: 456789,
-        mime_type: 'application/pdf'
-      }
+        mime_type: 'application/pdf',
+      },
     ],
     links: [
       {
@@ -1222,7 +1311,7 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         image_url: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
         source: 'places' as const,
-        tags: ['skiing', 'resort', 'corporate']
+        tags: ['skiing', 'resort', 'corporate'],
       },
       {
         id: 'aspen-corp-link-2',
@@ -1230,21 +1319,24 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Luxury Ski-In/Ski-Out Lodges',
         description: 'Premium mountain hotels with spa services and meeting rooms for teams.',
         domain: 'booking.com',
-        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 40).toISOString(),
         source: 'places' as const,
-        tags: ['luxury', 'lodging', 'ski']
+        tags: ['luxury', 'lodging', 'ski'],
       },
       {
         id: 'aspen-corp-link-3',
         url: 'https://www.tripadvisor.com/Restaurants-g29141-Aspen_Colorado.html',
         title: 'Best Restaurants in Downtown Aspen',
-        description: 'Fine dining and après-ski spots perfect for corporate dinners and celebrations.',
+        description:
+          'Fine dining and après-ski spots perfect for corporate dinners and celebrations.',
         domain: 'tripadvisor.com',
-        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 25).toISOString(),
         source: 'places' as const,
-        tags: ['dining', 'apres-ski', 'upscale']
+        tags: ['dining', 'apres-ski', 'upscale'],
       },
       {
         id: 'aspen-corp-link-4',
@@ -1252,19 +1344,20 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Maroon Bells Scenic Area Winter Access',
         description: 'Iconic twin peaks with snowshoeing and cross-country skiing trails.',
         domain: 'fs.usda.gov',
-        image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
         source: 'places' as const,
-        tags: ['scenic', 'nature', 'snowshoeing']
-      }
-    ]
+        tags: ['scenic', 'nature', 'snowshoeing'],
+      },
+    ],
   },
 
   // 11. Disney Cruise Family Vacation
   11: {
     tripId: 11,
-    tripTitle: "Disney Cruise Family Vacation",
-    location: "Port Canaveral, FL",
+    tripTitle: 'Disney Cruise Family Vacation',
+    location: 'Port Canaveral, FL',
     photos: [
       {
         id: 'disney-photo-1',
@@ -1275,20 +1368,22 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat',
         file_size: 445678,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
-    videos: [{
-      id: 'disney-video-1',
-      media_url: '/mock/videos/team-celebration.mp4',
-      filename: 'Disney Character Meet & Greet.mp4',
-      media_type: 'video',
-      metadata: { duration: 25, width: 1280, height: 720 },
-      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-      source: 'chat',
-      file_size: 10234000,
-      mime_type: 'video/mp4'
-    }],
+    videos: [
+      {
+        id: 'disney-video-1',
+        media_url: '/mock/videos/team-celebration.mp4',
+        filename: 'Disney Character Meet & Greet.mp4',
+        media_type: 'video',
+        metadata: { duration: 25, width: 1280, height: 720 },
+        created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+        source: 'chat',
+        file_size: 10234000,
+        mime_type: 'video/mp4',
+      },
+    ],
     files: [
       {
         id: 'disney-file-1',
@@ -1299,8 +1394,8 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
         source: 'upload',
         file_size: 567890,
-        mime_type: 'application/pdf'
-      }
+        mime_type: 'application/pdf',
+      },
     ],
     links: [
       {
@@ -1309,21 +1404,24 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Disney Cruise Line Official Site',
         description: 'Cruise bookings, itineraries, character experiences, and onboard activities.',
         domain: 'disneycruise.disney.go.com',
-        image_url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 50).toISOString(),
         source: 'places' as const,
-        tags: ['cruise', 'disney', 'family']
+        tags: ['cruise', 'disney', 'family'],
       },
       {
         id: 'disney-link-2',
         url: 'https://www.kennedyspacecenter.com/',
         title: 'Kennedy Space Center Tickets',
-        description: 'NASA tours and exhibits - perfect pre or post-cruise day trip with the family.',
+        description:
+          'NASA tours and exhibits - perfect pre or post-cruise day trip with the family.',
         domain: 'kennedyspacecenter.com',
-        image_url: 'https://images.unsplash.com/photo-1517976487492-5750f3195933?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1517976487492-5750f3195933?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
         source: 'places' as const,
-        tags: ['nasa', 'space', 'attraction']
+        tags: ['nasa', 'space', 'attraction'],
       },
       {
         id: 'disney-link-3',
@@ -1331,30 +1429,32 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Cocoa Beach Restaurants & Dining',
         description: 'Fresh seafood and beachfront cafes near the port for pre-cruise meals.',
         domain: 'tripadvisor.com',
-        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 20).toISOString(),
         source: 'places' as const,
-        tags: ['seafood', 'beach', 'family-friendly']
+        tags: ['seafood', 'beach', 'family-friendly'],
       },
       {
         id: 'disney-link-4',
         url: 'https://disneycruise.disney.go.com/destinations/bahamas/castaway-cay/',
         title: 'Castaway Cay Island Beach Day',
-        description: "Disney's private island with snorkeling, water slides, and character meet & greets.",
+        description:
+          "Disney's private island with snorkeling, water slides, and character meet & greets.",
         domain: 'disneycruise.disney.go.com',
         image_url: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 40).toISOString(),
         source: 'places' as const,
-        tags: ['island', 'beach', 'disney']
-      }
-    ]
+        tags: ['island', 'beach', 'disney'],
+      },
+    ],
   },
 
   // 12. Yellowstone National-Park Hiking Adventure
   12: {
     tripId: 12,
-    tripTitle: "Yellowstone National-Park Hiking Adventure",
-    location: "Yellowstone, WY",
+    tripTitle: 'Yellowstone National-Park Hiking Adventure',
+    location: 'Yellowstone, WY',
     photos: [
       {
         id: 'yellowstone-photo-1',
@@ -1365,20 +1465,22 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
         source: 'chat',
         file_size: 478901,
-        mime_type: 'image/jpeg'
-      }
+        mime_type: 'image/jpeg',
+      },
     ],
-    videos: [{
-      id: 'yellowstone-video-1',
-      media_url: '/mock/videos/venue-tour.mp4',
-      filename: 'Bison Herd Crossing.mp4',
-      media_type: 'video',
-      metadata: { duration: 40, width: 1280, height: 720 },
-      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-      source: 'chat',
-      file_size: 14567000,
-      mime_type: 'video/mp4'
-    }],
+    videos: [
+      {
+        id: 'yellowstone-video-1',
+        media_url: '/mock/videos/venue-tour.mp4',
+        filename: 'Bison Herd Crossing.mp4',
+        media_type: 'video',
+        metadata: { duration: 40, width: 1280, height: 720 },
+        created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+        source: 'chat',
+        file_size: 14567000,
+        mime_type: 'video/mp4',
+      },
+    ],
     files: [
       {
         id: 'yellowstone-file-1',
@@ -1389,20 +1491,22 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         created_at: new Date(Date.now() - 86400000 * 40).toISOString(),
         source: 'upload',
         file_size: 345678,
-        mime_type: 'application/pdf'
-      }
+        mime_type: 'application/pdf',
+      },
     ],
     links: [
       {
         id: 'yellowstone-link-1',
         url: 'https://www.nps.gov/yell/planyourvisit/fees.htm',
         title: 'Yellowstone National Park Passes',
-        description: 'Entry fees, annual passes, and reservation requirements for visiting the park.',
+        description:
+          'Entry fees, annual passes, and reservation requirements for visiting the park.',
         domain: 'nps.gov',
-        image_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
         source: 'places' as const,
-        tags: ['national-park', 'pass', 'entrance']
+        tags: ['national-park', 'pass', 'entrance'],
       },
       {
         id: 'yellowstone-link-2',
@@ -1410,21 +1514,24 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Old Faithful Inn & Park Lodges',
         description: 'Historic in-park lodging with rustic cabins and full-service hotels.',
         domain: 'yellowstonenationalparklodges.com',
-        image_url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 50).toISOString(),
         source: 'places' as const,
-        tags: ['lodging', 'historic', 'in-park']
+        tags: ['lodging', 'historic', 'in-park'],
       },
       {
         id: 'yellowstone-link-3',
         url: 'https://www.alltrails.com/parks/us/wyoming/yellowstone-national-park',
         title: 'Best Hiking Trails in Yellowstone',
-        description: 'Grand Prismatic Spring, Lamar Valley wildlife viewing, and backcountry trails.',
+        description:
+          'Grand Prismatic Spring, Lamar Valley wildlife viewing, and backcountry trails.',
         domain: 'alltrails.com',
-        image_url: 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
         source: 'places' as const,
-        tags: ['hiking', 'trails', 'wildlife']
+        tags: ['hiking', 'trails', 'wildlife'],
       },
       {
         id: 'yellowstone-link-4',
@@ -1432,19 +1539,20 @@ const TRIP_MOCK_DATA: Record<number, TripMockData> = {
         title: 'Lake Yellowstone Hotel Dining Room',
         description: 'Historic lakeside fine dining with regional cuisine and Montana wines.',
         domain: 'yellowstonenationalparklodges.com',
-        image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
+        image_url:
+          'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=200&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 35).toISOString(),
         source: 'places' as const,
-        tags: ['dining', 'historic', 'lakeside']
-      }
-    ]
-  }
+        tags: ['dining', 'historic', 'lakeside'],
+      },
+    ],
+  },
 };
 
 class TripSpecificMockDataService {
   // ✅ FIXED: Always return mock data when requested - calling code decides whether to use it
   // The isDemoMode check happens in tripLinksService.ts, not here
-  
+
   static isUsingMockData(): boolean {
     return true; // Always available - caller decides when to use
   }
@@ -1458,32 +1566,31 @@ class TripSpecificMockDataService {
   static getMockMediaItems(tripId: string | number): TripSpecificMediaItem[] {
     const tripData = this.getTripMockData(tripId);
     if (!tripData) return [];
-    
-    return [
-      ...tripData.photos,
-      ...tripData.videos,
-      ...tripData.files
-    ];
+
+    return [...tripData.photos, ...tripData.videos, ...tripData.files];
   }
 
   static getMockLinkItems(tripId: string | number): TripSpecificLinkItem[] {
     const tripData = this.getTripMockData(tripId);
     if (!tripData) return [];
-    
+
     return tripData.links;
   }
 
-  static getMockMediaByType(tripId: string | number, type: 'photos' | 'videos' | 'files'): TripSpecificMediaItem[] {
+  static getMockMediaByType(
+    tripId: string | number,
+    type: 'photos' | 'videos' | 'files',
+  ): TripSpecificMediaItem[] {
     const tripData = this.getTripMockData(tripId);
     if (!tripData) return [];
-    
+
     return tripData[type] || [];
   }
 
   static getMockLinks(tripId: string | number): TripSpecificLinkItem[] {
     const tripData = this.getTripMockData(tripId);
     if (!tripData) return [];
-    
+
     return tripData.links;
   }
 

@@ -9,47 +9,47 @@ export const FEATURE_TIERS: Record<string, FeatureTier> = {
   plus: {
     emoji: '💎',
     label: 'Plus/Pro',
-    description: 'Available with Travel Plus Pro subscription'
+    description: 'Available with Travel Plus Pro subscription',
   },
   enterprise: {
     emoji: '🚀',
     label: 'Enterprise',
-    description: 'Available with Enterprise subscription'
+    description: 'Available with Enterprise subscription',
   },
   events: {
     emoji: '🌟',
     label: 'Events',
-    description: 'Available with Events subscription'
-  }
+    description: 'Available with Events subscription',
+  },
 };
 
 // Feature tier mappings for different settings
 export const CONSUMER_FEATURE_TIERS: Record<string, string> = {
-  'billing': 'plus',
+  billing: 'plus',
   'travel-wallet': 'plus',
   'calendar-sync': 'plus',
-  'connected-accounts': 'plus'
+  'connected-accounts': 'plus',
 };
 
 export const ENTERPRISE_FEATURE_TIERS: Record<string, string> = {
-  'seats': 'enterprise',
+  seats: 'enterprise',
   'travel-wallet': 'enterprise',
   'game-schedule': 'enterprise',
   'show-schedule': 'enterprise',
-  'notifications': 'enterprise'
+  notifications: 'enterprise',
 };
 
 export const EVENTS_FEATURE_TIERS: Record<string, string> = {
-  'ticketing': 'events',
+  ticketing: 'events',
   'live-engagement': 'events',
-  'networking': 'events',
-  'analytics': 'events',
-  'exhibitors': 'events'
+  networking: 'events',
+  analytics: 'events',
+  exhibitors: 'events',
 };
 
 /**
  * Freemium limits for consumer tiers
- * 
+ *
  * AI Query Limits (per user, per trip - NO daily reset):
  * - Free: 5 queries per user per trip
  * - Explorer: 10 queries per user per trip
@@ -106,29 +106,29 @@ export const FREEMIUM_LIMITS = {
     canCreateEvents: true,
     eventsLimit: -1, // Unlimited
     eventAttendeesLimit: 200,
-  }
+  },
 } as const;
 
 // Pro tier limits
 export const PRO_LIMITS = {
-  'starter': {
+  starter: {
     memberLimit: 50,
     canCreateEvents: true,
     eventsLimit: -1, // Unlimited
     eventAttendeesLimit: -1, // Unlimited for Pro
   },
-  'growth': {
+  growth: {
     memberLimit: 100,
     canCreateEvents: true,
     eventsLimit: -1,
     eventAttendeesLimit: -1,
   },
-  'enterprise': {
+  enterprise: {
     memberLimit: 250,
     canCreateEvents: true,
     eventsLimit: -1,
     eventAttendeesLimit: -1,
-  }
+  },
 } as const;
 
 export type FreemiumTier = keyof typeof FREEMIUM_LIMITS;
@@ -142,7 +142,10 @@ export const getProLimits = (tier: ProTier) => {
   return PRO_LIMITS[tier];
 };
 
-export const getFeatureTierEmoji = (featureId: string, settingsType: 'consumer' | 'enterprise' | 'events'): string => {
+export const getFeatureTierEmoji = (
+  featureId: string,
+  settingsType: 'consumer' | 'enterprise' | 'events',
+): string => {
   return '';
 };
 

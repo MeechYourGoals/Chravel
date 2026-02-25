@@ -13,13 +13,13 @@ type NavigateFn = (path: string) => void;
  */
 export function buildRouteFromPayload(payload: ChravelPushPayload): string {
   const { type, tripId, threadId, messageId, eventId, pollId, taskId } = payload;
-  
+
   // Base trip route
   const route = `/trip/${tripId}`;
-  
+
   // Build query params based on notification type
   const params = new URLSearchParams();
-  
+
   switch (type) {
     case 'chat_message':
       params.set('tab', 'chat');
@@ -30,39 +30,39 @@ export function buildRouteFromPayload(payload: ChravelPushPayload): string {
         params.set('message', messageId);
       }
       break;
-      
+
     case 'poll_update':
       params.set('tab', 'polls');
       if (pollId) {
         params.set('poll', pollId);
       }
       break;
-      
+
     case 'task_update':
       params.set('tab', 'tasks');
       if (taskId) {
         params.set('task', taskId);
       }
       break;
-      
+
     case 'calendar_event':
       params.set('tab', 'calendar');
       if (eventId) {
         params.set('event', eventId);
       }
       break;
-      
+
     case 'broadcast':
       params.set('tab', 'chat');
       params.set('view', 'broadcasts');
       break;
-      
+
     case 'trip_update':
     default:
       // Default to trip overview (no additional params)
       break;
   }
-  
+
   const queryString = params.toString();
   return queryString ? `${route}?${queryString}` : route;
 }
@@ -72,7 +72,7 @@ export function buildRouteFromPayload(payload: ChravelPushPayload): string {
  */
 export function handleNotificationNavigation(
   payload: ChravelPushPayload,
-  navigate: NavigateFn
+  navigate: NavigateFn,
 ): void {
   const route = buildRouteFromPayload(payload);
   console.log('[PushRouting] Navigating to:', route);

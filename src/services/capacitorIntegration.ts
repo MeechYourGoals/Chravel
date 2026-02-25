@@ -19,12 +19,12 @@ export class CapacitorIntegrationService {
 
   async takePicture(): Promise<{ dataUrl: string } | null> {
     // Web fallback: Use file input
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
       input.capture = 'environment';
-      input.onchange = async (e) => {
+      input.onchange = async e => {
         const file = (e.target as HTMLInputElement).files?.[0];
         if (file) {
           const reader = new FileReader();
@@ -43,14 +43,14 @@ export class CapacitorIntegrationService {
   }
 
   async getCurrentPosition(): Promise<GeolocationPosition | null> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (!navigator.geolocation) {
         resolve(null);
         return;
       }
       navigator.geolocation.getCurrentPosition(
-        (position) => resolve(position),
-        () => resolve(null)
+        position => resolve(position),
+        () => resolve(null),
       );
     });
   }

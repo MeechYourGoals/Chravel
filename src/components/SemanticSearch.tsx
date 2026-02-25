@@ -28,7 +28,7 @@ interface SemanticSearchProps {
 export const SemanticSearch: React.FC<SemanticSearchProps> = ({
   tripId,
   onResultClick,
-  placeholder = "Search with AI understanding..."
+  placeholder = 'Search with AI understanding...',
 }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -44,14 +44,14 @@ export const SemanticSearch: React.FC<SemanticSearchProps> = ({
       const response = await fetch('/api/semantic-search', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query: query.trim(),
           tripId,
           limit: 20,
-          threshold: 0.7
-        })
+          threshold: 0.7,
+        }),
       });
 
       if (!response.ok) {
@@ -79,23 +79,42 @@ export const SemanticSearch: React.FC<SemanticSearchProps> = ({
 
   const getResultIcon = (type: string) => {
     switch (type) {
-      case 'trip': return '✈️';
-      case 'place': return '📍';
-      case 'event': return '📅';
-      case 'message': return '💬';
-      case 'file': return '📄';
-      default: return '🔍';
+      case 'trip':
+        return '✈️';
+      case 'place':
+        return '📍';
+      case 'event':
+        return '📅';
+      case 'message':
+        return '💬';
+      case 'file':
+        return '📄';
+      default:
+        return '🔍';
     }
   };
 
   const getMatchReasonBadge = (reason: string) => {
     switch (reason) {
       case 'semantic_similarity':
-        return <Badge variant="secondary" className="text-xs"><Sparkles className="w-3 h-3 mr-1" />AI Match</Badge>;
+        return (
+          <Badge variant="secondary" className="text-xs">
+            <Sparkles className="w-3 h-3 mr-1" />
+            AI Match
+          </Badge>
+        );
       case 'keyword_match':
-        return <Badge variant="outline" className="text-xs">Keyword</Badge>;
+        return (
+          <Badge variant="outline" className="text-xs">
+            Keyword
+          </Badge>
+        );
       default:
-        return <Badge variant="outline" className="text-xs">Match</Badge>;
+        return (
+          <Badge variant="outline" className="text-xs">
+            Match
+          </Badge>
+        );
     }
   };
 
@@ -106,7 +125,7 @@ export const SemanticSearch: React.FC<SemanticSearchProps> = ({
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={e => setQuery(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder={placeholder}
           className="pl-10 pr-20 bg-white/10 border-white/20 text-white placeholder:text-white/60"
@@ -153,7 +172,7 @@ export const SemanticSearch: React.FC<SemanticSearchProps> = ({
       {/* Results */}
       {results.length > 0 && (
         <div className="space-y-2 max-h-96 overflow-y-auto">
-          {results.map((result) => (
+          {results.map(result => (
             <Card
               key={result.id}
               className="cursor-pointer hover:bg-white/5 transition-colors bg-white/5 border-white/10"
@@ -174,9 +193,7 @@ export const SemanticSearch: React.FC<SemanticSearchProps> = ({
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-white/80 line-clamp-2">
-                      {result.snippet}
-                    </p>
+                    <p className="text-sm text-white/80 line-clamp-2">{result.snippet}</p>
                   </div>
                 </div>
               </CardContent>

@@ -58,4 +58,3 @@ if (!existsSync(new URL('../../ios', import.meta.url))) {
 
 // Keep native project in sync with web build.
 run('npx cap sync ios');
-

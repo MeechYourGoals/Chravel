@@ -20,7 +20,7 @@ class RoleBroadcastService {
     tripId: string,
     role: string,
     message: string,
-    priority: 'normal' | 'urgent' = 'normal'
+    priority: 'normal' | 'urgent' = 'normal',
   ): Promise<boolean> {
     return this.sendToMultipleRoles(tripId, [role], message, priority);
   }
@@ -32,10 +32,12 @@ class RoleBroadcastService {
     tripId: string,
     roles: string[],
     message: string,
-    priority: 'normal' | 'urgent' = 'normal'
+    priority: 'normal' | 'urgent' = 'normal',
   ): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
       // Insert message into trip_messages with role targeting
@@ -49,8 +51,8 @@ class RoleBroadcastService {
           metadata: {
             target_roles: roles,
             is_role_broadcast: true,
-            priority: priority
-          }
+            priority: priority,
+          },
         })
         .select()
         .single();
@@ -89,4 +91,3 @@ class RoleBroadcastService {
 }
 
 export const roleBroadcastService = new RoleBroadcastService();
-

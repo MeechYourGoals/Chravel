@@ -66,7 +66,7 @@ function saveDemoReceipts(messageId: string, receipts: MessageReadReceipt[]): vo
  */
 export async function markMessageAsRead(
   params: MarkAsReadParams,
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<boolean> {
   const { messageId, userId, messageType } = params;
 
@@ -74,7 +74,7 @@ export async function markMessageAsRead(
     messageId,
     userId,
     messageType,
-    isDemoMode
+    isDemoMode,
   });
 
   if (isDemoMode) {
@@ -90,7 +90,7 @@ export async function markMessageAsRead(
     const newReceipt: MessageReadReceipt = {
       messageId,
       userId,
-      readAt: new Date().toISOString()
+      readAt: new Date().toISOString(),
     };
 
     receipts.push(newReceipt);
@@ -119,12 +119,10 @@ export async function markMessageAsRead(
       message_id: messageId,
       user_id: userId,
       message_type: messageType,
-      read_at: new Date().toISOString()
+      read_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase
-      .from('message_read_receipts')
-      .insert(receiptData);
+    const { error } = await supabase.from('message_read_receipts').insert(receiptData);
 
     if (error) {
       console.error('[ReadReceiptsService] ❌ Insert error', error);
@@ -144,14 +142,14 @@ export async function markMessageAsRead(
  */
 export async function getMessageReadReceipts(
   params: GetReadReceiptsParams,
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<MessageReadReceipt[]> {
   const { messageId, messageType } = params;
 
   console.debug('[ReadReceiptsService] Fetching read receipts', {
     messageId,
     messageType,
-    isDemoMode
+    isDemoMode,
   });
 
   if (isDemoMode) {
@@ -177,7 +175,7 @@ export async function getMessageReadReceipts(
     return (data || []).map(row => ({
       messageId: row.message_id,
       userId: row.user_id,
-      readAt: row.read_at
+      readAt: row.read_at,
     }));
   } catch (error) {
     console.error('[ReadReceiptsService] ❌ Unexpected error', error);
@@ -192,13 +190,13 @@ export async function getUnreadMessageCount(
   tripId: string,
   userId: string,
   channelId?: string,
-  isDemoMode: boolean = false
+  isDemoMode: boolean = false,
 ): Promise<number> {
   console.debug('[ReadReceiptsService] Fetching unread count', {
     tripId,
     userId,
     channelId,
-    isDemoMode
+    isDemoMode,
   });
 
   if (isDemoMode) {
@@ -215,12 +213,16 @@ export async function getUnreadMessageCount(
         .select('id', { count: 'exact', head: true })
         .eq('channel_id', channelId)
         .neq('sender_id', userId) // Don't count own messages
-        .filter('id', 'not.in', `(
+        .filter(
+          'id',
+          'not.in',
+          `(
           SELECT message_id
           FROM message_read_receipts
           WHERE user_id = '${userId}'
           AND message_type = 'channel'
-        )`);
+        )`,
+        );
 
       if (error) {
         console.error('[ReadReceiptsService] ❌ Count error', error);
@@ -247,13 +249,13 @@ export async function markAllAsRead(
   channelId: string,
   userId: string,
   messageType: 'channel' | 'trip',
-  isDemoMode: boolean
+  isDemoMode: boolean,
 ): Promise<boolean> {
   console.info('[ReadReceiptsService] Marking all messages as read', {
     channelId,
     userId,
     messageType,
-    isDemoMode
+    isDemoMode,
   });
 
   if (isDemoMode) {
@@ -284,7 +286,10 @@ export async function markAllAsRead(
       .select('message_id')
       .eq('user_id', userId)
       .eq('message_type', messageType)
-      .in('message_id', messages.map(m => m.id));
+      .in(
+        'message_id',
+        messages.map(m => m.id),
+      );
 
     const readMessageIds = new Set((existingReceipts || []).map(r => r.message_id));
     const unreadMessages = messages.filter(m => !readMessageIds.has(m.id));
@@ -298,12 +303,10 @@ export async function markAllAsRead(
       message_id: msg.id,
       user_id: userId,
       message_type: messageType,
-      read_at: new Date().toISOString()
+      read_at: new Date().toISOString(),
     }));
 
-    const { error: insertError } = await supabase
-      .from('message_read_receipts')
-      .insert(receipts);
+    const { error: insertError } = await supabase.from('message_read_receipts').insert(receipts);
 
     if (insertError) {
       console.error('[ReadReceiptsService] ❌ Insert error', insertError);
@@ -311,7 +314,7 @@ export async function markAllAsRead(
     }
 
     console.info('[ReadReceiptsService] ✅ Marked all as read', {
-      count: receipts.length
+      count: receipts.length,
     });
     return true;
   } catch (error) {
@@ -326,7 +329,7 @@ export async function markAllAsRead(
 export function subscribeToReadReceipts(
   messageId: string,
   messageType: 'channel' | 'trip',
-  callback: (receipts: MessageReadReceipt[]) => void
+  callback: (receipts: MessageReadReceipt[]) => void,
 ) {
   const channel = supabase
     .channel(`read_receipts_${messageId}`)
@@ -336,16 +339,13 @@ export function subscribeToReadReceipts(
         event: 'INSERT',
         schema: 'public',
         table: 'message_read_receipts',
-        filter: `message_id=eq.${messageId}`
+        filter: `message_id=eq.${messageId}`,
       },
-      async (payload) => {
+      async payload => {
         // Fetch all receipts for this message
-        const receipts = await getMessageReadReceipts(
-          { messageId, messageType },
-          false
-        );
+        const receipts = await getMessageReadReceipts({ messageId, messageType }, false);
         callback(receipts);
-      }
+      },
     )
     .subscribe();
 

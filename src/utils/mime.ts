@@ -39,4 +39,3 @@ export function getUploadContentType(file: File): string {
   // Fall back to extension inference.
   return inferMimeTypeFromFilename(file.name) ?? 'application/octet-stream';
 }
-

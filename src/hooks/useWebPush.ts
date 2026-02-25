@@ -1,9 +1,9 @@
 /**
  * Web Push Notifications Hook
- * 
+ *
  * Manages push subscription lifecycle with iOS-aware handling.
  * Single source of truth for push notification state.
- * 
+ *
  * iOS Notes:
  * - iOS < 16.4: Push not supported
  * - iOS 16.4+ in Safari: Requires "Add to Home Screen" first
@@ -46,51 +46,72 @@ export interface UseWebPushReturn extends WebPushState {
 
 function detectiOS(): { isIOS: boolean; version: number | null; isStandalone: boolean } {
   const ua = navigator.userAgent;
-  
+
   // Check for iOS
-  const isIOS = /iPad|iPhone|iPod/.test(ua) || 
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  
+
   if (!isIOS) {
     return { isIOS: false, version: null, isStandalone: false };
   }
-  
+
   // Parse iOS version
   const match = ua.match(/OS (\d+)_(\d+)/);
   const version = match ? parseFloat(`${match[1]}.${match[2]}`) : null;
-  
+
   // Check standalone mode
-  const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches ||
+  const isStandalone =
+    window.matchMedia?.('(display-mode: standalone)').matches ||
     (navigator as any).standalone === true;
-  
+
   return { isIOS, version, isStandalone };
 }
 
-function checkPushSupport(): { 
-  supported: boolean; 
-  requiresHomeScreen: boolean; 
+function checkPushSupport(): {
+  supported: boolean;
+  requiresHomeScreen: boolean;
   iosUnsupported: boolean;
   reason?: string;
 } {
   // Basic browser support
-  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-    return { supported: false, requiresHomeScreen: false, iosUnsupported: false, reason: 'Browser does not support push' };
+  if (
+    !('serviceWorker' in navigator) ||
+    !('PushManager' in window) ||
+    !('Notification' in window)
+  ) {
+    return {
+      supported: false,
+      requiresHomeScreen: false,
+      iosUnsupported: false,
+      reason: 'Browser does not support push',
+    };
   }
-  
+
   const { isIOS, version, isStandalone } = detectiOS();
-  
+
   if (isIOS) {
     // iOS < 16.4 has no push support
     if (version !== null && version < 16.4) {
-      return { supported: false, requiresHomeScreen: false, iosUnsupported: true, reason: 'iOS 16.4+ required' };
+      return {
+        supported: false,
+        requiresHomeScreen: false,
+        iosUnsupported: true,
+        reason: 'iOS 16.4+ required',
+      };
     }
-    
+
     // iOS 16.4+ but not standalone - needs Add to Home Screen
     if (!isStandalone) {
-      return { supported: false, requiresHomeScreen: true, iosUnsupported: false, reason: 'Add to Home Screen required' };
+      return {
+        supported: false,
+        requiresHomeScreen: true,
+        iosUnsupported: false,
+        reason: 'Add to Home Screen required',
+      };
     }
   }
-  
+
   return { supported: true, requiresHomeScreen: false, iosUnsupported: false };
 }
 
@@ -111,13 +132,22 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
 
 function getDeviceName(): string {
   const ua = navigator.userAgent;
-  const browser = ua.includes('Chrome') ? 'Chrome' : 
-                  ua.includes('Firefox') ? 'Firefox' : 
-                  ua.includes('Safari') ? 'Safari' : 'Browser';
-  const os = ua.includes('Windows') ? 'Windows' :
-             ua.includes('Mac') ? 'Mac' :
-             ua.includes('Android') ? 'Android' :
-             ua.includes('iPhone') || ua.includes('iPad') ? 'iOS' : 'Unknown';
+  const browser = ua.includes('Chrome')
+    ? 'Chrome'
+    : ua.includes('Firefox')
+      ? 'Firefox'
+      : ua.includes('Safari')
+        ? 'Safari'
+        : 'Browser';
+  const os = ua.includes('Windows')
+    ? 'Windows'
+    : ua.includes('Mac')
+      ? 'Mac'
+      : ua.includes('Android')
+        ? 'Android'
+        : ua.includes('iPhone') || ua.includes('iPad')
+          ? 'iOS'
+          : 'Unknown';
   return `${browser} on ${os}`;
 }
 
@@ -128,10 +158,10 @@ function getDeviceName(): string {
 export function useWebPush(): UseWebPushReturn {
   const { user } = useAuth();
   const serviceWorkerRef = useRef<ServiceWorkerRegistration | null>(null);
-  
+
   // Check platform support once
   const pushSupport = checkPushSupport();
-  
+
   const [state, setState] = useState<WebPushState>({
     isSupported: pushSupport.supported,
     permission: 'default',
@@ -184,11 +214,11 @@ export function useWebPush(): UseWebPushReturn {
       // Request permission
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        setState(prev => ({ 
-          ...prev, 
-          isLoading: false, 
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
           permission: permission as WebPushPermission,
-          error: permission === 'denied' ? 'Permission denied' : null 
+          error: permission === 'denied' ? 'Permission denied' : null,
         }));
         return false;
       }
@@ -215,15 +245,18 @@ export function useWebPush(): UseWebPushReturn {
         return false;
       }
 
-      const { error } = await supabase.from('web_push_subscriptions').upsert({
-        user_id: user.id,
-        endpoint: subscription.endpoint,
-        p256dh_key: keys.p256dh,
-        auth_key: keys.auth,
-        device_name: getDeviceName(),
-        is_active: true,
-        failed_count: 0,
-      }, { onConflict: 'user_id,endpoint' });
+      const { error } = await supabase.from('web_push_subscriptions').upsert(
+        {
+          user_id: user.id,
+          endpoint: subscription.endpoint,
+          p256dh_key: keys.p256dh,
+          auth_key: keys.auth,
+          device_name: getDeviceName(),
+          is_active: true,
+          failed_count: 0,
+        },
+        { onConflict: 'user_id,endpoint' },
+      );
 
       if (error) {
         console.error('[useWebPush] Save error:', error);
@@ -248,9 +281,10 @@ export function useWebPush(): UseWebPushReturn {
     try {
       const registration = await getRegistration();
       const subscription = await (registration as any)?.pushManager?.getSubscription();
-      
+
       if (subscription) {
-        await supabase.from('web_push_subscriptions')
+        await supabase
+          .from('web_push_subscriptions')
           .delete()
           .eq('user_id', user.id)
           .eq('endpoint', subscription.endpoint);
@@ -269,9 +303,9 @@ export function useWebPush(): UseWebPushReturn {
   useEffect(() => {
     const init = async () => {
       if (!pushSupport.supported) return;
-      
+
       await checkPermission();
-      
+
       try {
         const registration = await getRegistration();
         const subscription = await (registration as any)?.pushManager?.getSubscription();

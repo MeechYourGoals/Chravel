@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -10,12 +9,12 @@ interface MobileActionSheetProps {
   className?: string;
 }
 
-export const MobileActionSheet = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
-  className 
+export const MobileActionSheet = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  className,
 }: MobileActionSheetProps) => {
   const sheetRef = useRef<HTMLDivElement>(null);
   const startY = useRef<number>(0);
@@ -28,7 +27,7 @@ export const MobileActionSheet = ({
     } else {
       document.body.style.overflow = '';
     }
-    
+
     return () => {
       document.body.style.overflow = '';
     };
@@ -43,7 +42,7 @@ export const MobileActionSheet = ({
     e.preventDefault();
     currentY.current = e.touches[0].clientY;
     const diff = currentY.current - startY.current;
-    
+
     if (diff > 0 && sheetRef.current) {
       sheetRef.current.style.transform = `translateY(${diff}px)`;
     }
@@ -51,7 +50,7 @@ export const MobileActionSheet = ({
 
   const handleTouchEnd = () => {
     const diff = currentY.current - startY.current;
-    
+
     if (sheetRef.current) {
       if (diff > 100) {
         // Close if dragged down more than 100px
@@ -68,23 +67,20 @@ export const MobileActionSheet = ({
   return (
     <div className="fixed inset-0 z-50 md:hidden">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
       {/* Sheet Content */}
-      <div 
+      <div
         ref={sheetRef}
         className={cn(
-          "absolute inset-x-0 bottom-0 bg-background",
-          "rounded-t-3xl shadow-mobile-sheet",
-          "animate-slide-in-bottom",
-          "max-h-[80vh] flex flex-col",
-          className
+          'absolute inset-x-0 bottom-0 bg-background',
+          'rounded-t-3xl shadow-mobile-sheet',
+          'animate-slide-in-bottom',
+          'max-h-[80vh] flex flex-col',
+          className,
         )}
         style={{
-          paddingBottom: `max(16px, env(safe-area-inset-bottom))`
+          paddingBottom: `max(16px, env(safe-area-inset-bottom))`,
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -94,22 +90,17 @@ export const MobileActionSheet = ({
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />
         </div>
-        
+
         {/* Header */}
         {title && (
           <div className="px-6 pb-4">
-            <h3 className="text-h3 font-semibold text-center text-foreground">
-              {title}
-            </h3>
+            <h3 className="text-h3 font-semibold text-center text-foreground">{title}</h3>
           </div>
         )}
-        
+
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto px-6 pb-6">{children}</div>
       </div>
     </div>
   );
 };
-

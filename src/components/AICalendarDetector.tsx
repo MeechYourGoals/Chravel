@@ -32,7 +32,7 @@ export const AICalendarDetector = ({
   messageText,
   fileContent,
   onEventAdded,
-  onDismiss
+  onDismiss,
 }: AICalendarDetectorProps) => {
   const [detectedEvents, setDetectedEvents] = useState<DetectedEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,19 +51,18 @@ export const AICalendarDetector = ({
         setIsLoading(false);
       }
     };
-    
+
     if (messageText || fileContent) {
       detect();
     }
   }, [messageText, fileContent]);
 
-
   const simulateAIDetection = async (text: string): Promise<DetectedEvent[]> => {
     // Mock AI detection logic
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     const events: DetectedEvent[] = [];
-    
+
     // Look for dining reservations
     if (text.toLowerCase().includes('reservation') || text.toLowerCase().includes('restaurant')) {
       events.push({
@@ -75,10 +74,10 @@ export const AICalendarDetector = ({
         category: 'dining',
         confidence: 0.9,
         source_text: text,
-        confirmation_number: 'RES123456'
+        confirmation_number: 'RES123456',
       });
     }
-    
+
     // Look for flight confirmations
     if (text.toLowerCase().includes('flight') || text.toLowerCase().includes('airline')) {
       events.push({
@@ -90,10 +89,10 @@ export const AICalendarDetector = ({
         category: 'transportation',
         confidence: 0.95,
         source_text: text,
-        confirmation_number: 'FL789ABC'
+        confirmation_number: 'FL789ABC',
       });
     }
-    
+
     // Look for hotel bookings
     if (text.toLowerCase().includes('hotel') || text.toLowerCase().includes('check-in')) {
       events.push({
@@ -104,10 +103,10 @@ export const AICalendarDetector = ({
         location: 'Hotel Name',
         category: 'lodging',
         confidence: 0.85,
-        source_text: text
+        source_text: text,
       });
     }
-    
+
     return events;
   };
 
@@ -157,34 +156,38 @@ export const AICalendarDetector = ({
             <div className="flex items-center gap-2">
               <Calendar size={18} className="text-green-400" />
               <span className="text-green-300 font-medium">
-                {detectedEvents.length === 1 
-                  ? 'Calendar event detected!' 
-                  : `${detectedEvents.length} calendar events detected!`
-                }
+                {detectedEvents.length === 1
+                  ? 'Calendar event detected!'
+                  : `${detectedEvents.length} calendar events detected!`}
               </span>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleDismissAll}
               className="text-slate-400 hover:text-white p-1"
             >
               <X size={16} />
             </Button>
           </div>
-          
+
           <div className="space-y-2">
-            {detectedEvents.map((event) => (
-              <div key={event.id} className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+            {detectedEvents.map(event => (
+              <div
+                key={event.id}
+                className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg"
+              >
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-medium text-white">{event.title}</span>
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={`text-xs ${
-                        event.confidence > 0.9 ? 'border-green-500 text-green-300' : 
-                        event.confidence > 0.7 ? 'border-yellow-500 text-yellow-300' : 
-                        'border-red-500 text-red-300'
+                        event.confidence > 0.9
+                          ? 'border-green-500 text-green-300'
+                          : event.confidence > 0.7
+                            ? 'border-yellow-500 text-yellow-300'
+                            : 'border-red-500 text-red-300'
                       }`}
                     >
                       {Math.round(event.confidence * 100)}% confident
@@ -194,7 +197,7 @@ export const AICalendarDetector = ({
                     {event.date && format(event.date, 'MMM d')} • {event.time} • {event.location}
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <Button
                     size="sm"
@@ -231,7 +234,7 @@ export const AICalendarDetector = ({
             time: selectedEvent.time || '',
             location: selectedEvent.location || '',
             category: selectedEvent.category,
-            include_in_itinerary: true
+            include_in_itinerary: true,
           }}
         />
       )}

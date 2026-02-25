@@ -11,13 +11,20 @@ interface SetBasecampSquareProps {
   onBasecampSet?: (basecamp: BasecampLocation) => Promise<void> | void;
 }
 
-export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propOnBasecampSet }: SetBasecampSquareProps) => {
-  const { basecamp: contextBasecamp, setBasecamp: setContextBasecamp, isBasecampSet } = useBasecamp();
+export const SetBasecampSquare = ({
+  basecamp: propBasecamp,
+  onBasecampSet: propOnBasecampSet,
+}: SetBasecampSquareProps) => {
+  const {
+    basecamp: contextBasecamp,
+    setBasecamp: setContextBasecamp,
+    isBasecampSet,
+  } = useBasecamp();
   const { toast } = useToast();
-  
+
   // Use context basecamp if available, otherwise fall back to props
   const basecamp = contextBasecamp || propBasecamp;
-  
+
   const handleBasecampSet = async (newBasecamp: BasecampLocation) => {
     // Always update context
     await setContextBasecamp(newBasecamp);
@@ -69,11 +76,13 @@ export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propO
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-            basecamp 
-              ? 'bg-gradient-to-r from-green-600 to-green-700' 
-              : 'bg-gradient-to-r from-gray-600 to-gray-700'
-          }`}>
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              basecamp
+                ? 'bg-gradient-to-r from-green-600 to-green-700'
+                : 'bg-gradient-to-r from-gray-600 to-gray-700'
+            }`}
+          >
             <Home size={20} className="text-white" />
           </div>
           <div>
@@ -83,7 +92,7 @@ export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propO
             </p>
           </div>
         </div>
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="text-gray-400 hover:text-white transition-colors"
         >
@@ -177,7 +186,7 @@ export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propO
             >
               Update Basecamp Location
             </button>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={handleCopyAddress}
@@ -194,11 +203,13 @@ export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propO
                 Share
               </button>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => {
-                  document.querySelector('.hero-map-section')?.scrollIntoView({ behavior: 'smooth' });
+                  document
+                    .querySelector('.hero-map-section')
+                    ?.scrollIntoView({ behavior: 'smooth' });
                 }}
                 className="bg-gray-800/50 hover:bg-gray-800 text-gray-300 py-2 px-3 rounded-lg transition-colors border border-gray-700 text-xs flex items-center justify-center gap-2"
               >
@@ -224,19 +235,20 @@ export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propO
           <div className="w-20 h-20 bg-gradient-to-r from-gray-800 to-gray-900 rounded-full flex items-center justify-center border border-gray-700 mb-6">
             <Home size={32} className="text-gray-400" />
           </div>
-          
+
           <h4 className="text-xl font-bold text-white mb-3">Set Your Basecamp</h4>
           <p className="text-gray-400 mb-6 max-w-sm mx-auto leading-relaxed">
-            Choose a central location for your trip. We'll calculate distances and travel times from this point to all your destinations.
+            Choose a central location for your trip. We'll calculate distances and travel times from
+            this point to all your destinations.
           </p>
-          
+
           <button
             onClick={() => setIsModalOpen(true)}
             className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-4 rounded-xl transition-all duration-300 hover:scale-105 shadow-xl shadow-green-500/25 font-semibold border border-green-500/50"
           >
             Choose Basecamp
           </button>
-          
+
           <div className="mt-8 space-y-2 text-sm text-gray-500">
             <p>• Hotels, vacation rentals, or meeting spots work great</p>
             <p>• Used for distance calculations and route planning</p>
@@ -245,12 +257,12 @@ export const SetBasecampSquare = ({ basecamp: propBasecamp, onBasecampSet: propO
         </div>
       )}
 
-        <BasecampSelector
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onBasecampSet={handleBasecampSet}
-          currentBasecamp={basecamp}
-        />
+      <BasecampSelector
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onBasecampSet={handleBasecampSet}
+        currentBasecamp={basecamp}
+      />
     </div>
   );
 };

@@ -22,7 +22,7 @@ export const SearchOverlay = ({
   onSearchChange,
   resultCount = 0,
   matchingTrips = [],
-  onTripSelect
+  onTripSelect,
 }: SearchOverlayProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -51,9 +51,7 @@ export const SearchOverlay = ({
       if (matchingTrips.length > 0) {
         if (e.key === 'ArrowDown') {
           e.preventDefault();
-          setSelectedIndex(prev =>
-            prev < matchingTrips.length - 1 ? prev + 1 : prev
-          );
+          setSelectedIndex(prev => (prev < matchingTrips.length - 1 ? prev + 1 : prev));
         } else if (e.key === 'ArrowUp') {
           e.preventDefault();
           setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
@@ -87,7 +85,7 @@ export const SearchOverlay = ({
     >
       <div
         className="fixed inset-x-0 top-0 mt-16 sm:mt-20 mx-auto max-w-2xl px-3 sm:px-4"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Search Input Card */}
         <div className="relative bg-card/95 backdrop-blur-xl border-2 border-border/50 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 space-y-3 sm:space-y-4">
@@ -108,7 +106,7 @@ export const SearchOverlay = ({
               type="text"
               placeholder="Search trips..."
               value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={e => onSearchChange(e.target.value)}
               className="pl-12 pr-12 py-5 sm:py-6 text-base sm:text-lg bg-background/50 border-border/50 rounded-full"
             />
             {searchQuery && (

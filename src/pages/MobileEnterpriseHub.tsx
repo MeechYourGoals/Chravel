@@ -12,7 +12,7 @@ export const MobileEnterpriseHub = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  
+
   const { organizations, loading, fetchUserOrganizations } = useOrganization();
 
   React.useEffect(() => {
@@ -41,10 +41,7 @@ export const MobileEnterpriseHub = () => {
 
       <div className="p-4 space-y-4">
         {/* Create Organization Button */}
-        <Button 
-          onClick={() => setShowCreateModal(true)}
-          className="w-full h-14 gap-2 text-base"
-        >
+        <Button onClick={() => setShowCreateModal(true)} className="w-full h-14 gap-2 text-base">
           <Plus className="w-5 h-5" />
           Create Organization
         </Button>
@@ -71,10 +68,7 @@ export const MobileEnterpriseHub = () => {
       </div>
 
       {/* Create Modal */}
-      <CreateOrganizationModal 
-        open={showCreateModal} 
-        onClose={() => setShowCreateModal(false)} 
-      />
+      <CreateOrganizationModal open={showCreateModal} onClose={() => setShowCreateModal(false)} />
     </div>
   );
 };

@@ -1,9 +1,9 @@
 /**
  * Vercel Edge Function for Invite Link OG Previews
- * 
+ *
  * Routes /join/:code to Supabase generate-invite-preview edge function
  * to serve Open Graph meta tags for iMessage, Slack, Twitter, etc.
- * 
+ *
  * Bots do NOT execute JavaScript, so this returns static HTML with OG tags.
  */
 
@@ -33,19 +33,19 @@ export default async function handler(request: Request): Promise<Response> {
       {
         status: 400,
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      }
+      },
     );
   }
 
   try {
     // Proxy to Supabase generate-invite-preview edge function
     const supabaseUrl = `https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-invite-preview?code=${encodeURIComponent(code)}`;
-    
+
     const upstream = await fetch(supabaseUrl, {
       method: 'GET',
       headers: {
         'User-Agent': request.headers.get('User-Agent') || 'Vercel Edge Function',
-        'Accept': 'text/html',
+        Accept: 'text/html',
       },
     });
 
@@ -60,7 +60,7 @@ export default async function handler(request: Request): Promise<Response> {
     });
   } catch (error) {
     console.error('Error fetching invite preview:', error);
-    
+
     return new Response(
       `<!DOCTYPE html>
 <html>
@@ -80,7 +80,7 @@ export default async function handler(request: Request): Promise<Response> {
       {
         status: 500,
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      }
+      },
     );
   }
 }

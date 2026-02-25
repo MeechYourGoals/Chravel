@@ -73,7 +73,9 @@ export default {
     // Branded canonical URL = the URL being scraped (this Worker endpoint).
     const canonicalUrl = url.toString();
 
-    const upstreamUrl = new URL(`https://${projectRef}.supabase.co/functions/v1/generate-trip-preview`);
+    const upstreamUrl = new URL(
+      `https://${projectRef}.supabase.co/functions/v1/generate-trip-preview`,
+    );
     upstreamUrl.searchParams.set('tripId', tripId);
     upstreamUrl.searchParams.set('canonicalUrl', canonicalUrl);
     upstreamUrl.searchParams.set('appBaseUrl', appBaseUrl);
@@ -100,4 +102,3 @@ export default {
     return htmlResponse(body, { status: upstream.status, headers });
   },
 };
-

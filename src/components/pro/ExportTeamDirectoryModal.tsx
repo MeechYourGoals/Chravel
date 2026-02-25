@@ -8,7 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Download, FileText, Table, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
-import { teamDirectoryExportService, ExportOptions } from '../../services/teamDirectoryExportService';
+import {
+  teamDirectoryExportService,
+  ExportOptions,
+} from '../../services/teamDirectoryExportService';
 
 interface ExportTeamDirectoryModalProps {
   isOpen: boolean;
@@ -27,7 +30,7 @@ export const ExportTeamDirectoryModal = ({
   roster,
   category,
   existingRoles,
-  tripName
+  tripName,
 }: ExportTeamDirectoryModalProps) => {
   const [format, setFormat] = useState<ExportFormat>('pdf');
   const [filterByRole, setFilterByRole] = useState<string>('all');
@@ -42,20 +45,20 @@ export const ExportTeamDirectoryModal = ({
     medical: false,
     credentials: false,
     permissions: false,
-    emergencyContact: false
+    emergencyContact: false,
   });
   const [isExporting, setIsExporting] = useState(false);
   const [exportComplete, setExportComplete] = useState(false);
 
   const handleExport = async () => {
     setIsExporting(true);
-    
+
     try {
       const options: ExportOptions = {
         includeFields,
         filterByRole: filterByRole === 'all' ? undefined : filterByRole,
         title,
-        subtitle
+        subtitle,
       };
 
       let blob: Blob;
@@ -78,7 +81,7 @@ export const ExportTeamDirectoryModal = ({
 
       teamDirectoryExportService.downloadFile(blob, filename);
       setExportComplete(true);
-      
+
       setTimeout(() => {
         handleClose();
       }, 2000);
@@ -94,9 +97,8 @@ export const ExportTeamDirectoryModal = ({
     onClose();
   };
 
-  const filteredCount = filterByRole === 'all' 
-    ? roster.length 
-    : roster.filter(m => m.role === filterByRole).length;
+  const filteredCount =
+    filterByRole === 'all' ? roster.length : roster.filter(m => m.role === filterByRole).length;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -185,7 +187,7 @@ export const ExportTeamDirectoryModal = ({
                   <Input
                     id="title"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={e => setTitle(e.target.value)}
                     className="bg-gray-800 border-gray-600 text-white"
                   />
                 </div>
@@ -194,7 +196,7 @@ export const ExportTeamDirectoryModal = ({
                   <Input
                     id="subtitle"
                     value={subtitle}
-                    onChange={(e) => setSubtitle(e.target.value as typeof subtitle)}
+                    onChange={e => setSubtitle(e.target.value as typeof subtitle)}
                     className="bg-gray-800 border-gray-600 text-white"
                   />
                 </div>
@@ -214,17 +216,17 @@ export const ExportTeamDirectoryModal = ({
                   { id: 'dietary', label: 'Dietary Restrictions' },
                   { id: 'medical', label: 'Medical Notes' },
                   { id: 'permissions', label: 'Permissions' },
-                  { id: 'emergencyContact', label: 'Emergency Contact' }
+                  { id: 'emergencyContact', label: 'Emergency Contact' },
                 ].map(field => (
                   <div key={field.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={field.id}
                       checked={includeFields[field.id as keyof typeof includeFields]}
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={checked => {
                         if (!field.disabled) {
                           setIncludeFields(prev => ({
                             ...prev,
-                            [field.id]: checked as boolean
+                            [field.id]: checked as boolean,
                           }));
                         }
                       }}
@@ -248,7 +250,8 @@ export const ExportTeamDirectoryModal = ({
             {/* Privacy Notice */}
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
               <p className="text-yellow-400 text-sm">
-                ⚠️ This document contains sensitive information. Handle according to your organization's privacy policy.
+                ⚠️ This document contains sensitive information. Handle according to your
+                organization's privacy policy.
               </p>
             </div>
 
@@ -289,4 +292,3 @@ export const ExportTeamDirectoryModal = ({
     </Dialog>
   );
 };
-

@@ -125,4 +125,3 @@ export async function clearAllQueuedOperations(): Promise<void> {
   const ops = await getQueuedOperations();
   await Promise.all(ops.map(op => removeOperation(op.id)));
 }
-

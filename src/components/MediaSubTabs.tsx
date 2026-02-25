@@ -1,5 +1,19 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Video, FileText, Link, Play, Download, MessageCircle, ExternalLink, DollarSign, Users, Loader2, X, Trash2 } from 'lucide-react';
+import {
+  Camera,
+  Video,
+  FileText,
+  Link,
+  Play,
+  Download,
+  MessageCircle,
+  ExternalLink,
+  DollarSign,
+  Users,
+  Loader2,
+  X,
+  Trash2,
+} from 'lucide-react';
 import { mediaService } from '@/services/mediaService';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -60,7 +74,7 @@ const MediaGridTile: React.FC<{
   return (
     <div
       className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
-      onClick={(e) => {
+      onClick={e => {
         e.stopPropagation();
         if (item.media_type === 'video') onOpenVideo(item);
       }}
@@ -94,7 +108,7 @@ const MediaGridTile: React.FC<{
 
       {/* Delete button - always visible */}
       <button
-        onClick={(e) => onDelete(item.id, e)}
+        onClick={e => onDelete(item.id, e)}
         disabled={isDeleting}
         className="absolute top-2 right-2 z-10 rounded-full bg-black/70 p-2 text-white hover:bg-destructive transition-colors"
       >
@@ -123,7 +137,14 @@ const MediaGridTile: React.FC<{
   );
 };
 
-export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded, onDeleteItem }: MediaSubTabsExtendedProps) => {
+export const MediaSubTabs = ({
+  items,
+  type,
+  searchQuery,
+  tripId,
+  onMediaUploaded,
+  onDeleteItem,
+}: MediaSubTabsExtendedProps) => {
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeVideoItem, setActiveVideoItem] = useState<MediaItem | null>(null);
@@ -140,11 +161,11 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (deletingIds.has(id)) return;
-    
+
     setDeletingIds(prev => new Set(prev).add(id));
-    
+
     try {
       // Prefer the parent-provided delete handler (single source of truth).
       if (onDeleteItem) {
@@ -180,7 +201,10 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
     return 'document';
   };
 
-  const handleFileUpload = async (files: FileList | null, activeTabType: 'photos' | 'videos' | 'files') => {
+  const handleFileUpload = async (
+    files: FileList | null,
+    activeTabType: 'photos' | 'videos' | 'files',
+  ) => {
     if (!files || files.length === 0) return;
     if (!tripId) {
       toast.error('Trip ID is required for uploads');
@@ -200,13 +224,13 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
     setIsUploading(true);
     try {
       let uploadedCount = 0;
-      
+
       for (const file of Array.from(files)) {
         const detectedType = getMediaTypeFromMime(file.type);
-        
+
         // Validation & Routing Logic
         let finalMediaType: 'image' | 'video' | 'document' = detectedType;
-        
+
         if (activeTabType === 'photos') {
           if (detectedType !== 'image') {
             if (detectedType === 'video') {
@@ -221,9 +245,9 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
         } else if (activeTabType === 'videos') {
           if (detectedType !== 'video') {
             if (detectedType === 'image') {
-               // Auto-route photo to photos tab (allow but warn)
-               toast.info(`Photo "${file.name}" will be saved to Photos tab`);
-               finalMediaType = 'image';
+              // Auto-route photo to photos tab (allow but warn)
+              toast.info(`Photo "${file.name}" will be saved to Photos tab`);
+              finalMediaType = 'image';
             } else {
               toast.error(`"${file.name}" is not a video`);
               continue;
@@ -234,15 +258,17 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
           // But technically users might want to upload a "chart" image as a file.
           // However, sticking to the plan: "rejects or warns on pure images/videos"
           if (detectedType === 'image' || detectedType === 'video') {
-             toast.error(`Please upload photos/videos in the ${detectedType === 'image' ? 'Photos' : 'Videos'} tab`);
-             continue;
+            toast.error(
+              `Please upload photos/videos in the ${detectedType === 'image' ? 'Photos' : 'Videos'} tab`,
+            );
+            continue;
           }
           finalMediaType = 'document';
         }
 
         const fileName = `${tripId}/${user.id}/${Date.now()}-${file.name}`;
         const contentType = getUploadContentType(file);
-        
+
         // Upload to Supabase Storage with explicit contentType
         // CRITICAL: iOS Safari requires correct Content-Type headers to decode video
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -260,25 +286,21 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
         }
 
         // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('trip-media')
-          .getPublicUrl(fileName);
+        const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(fileName);
 
         // Insert into trip_media_index
-        const { error: dbError } = await supabase
-          .from('trip_media_index')
-          .insert({
-            trip_id: tripId,
-            media_url: urlData.publicUrl,
-            filename: file.name,
-            media_type: finalMediaType, // Use the detected/validated type
-            file_size: file.size,
-            mime_type: contentType,
-            metadata: {
-              upload_path: fileName,
-              uploaded_by: user.id
-            }
-          });
+        const { error: dbError } = await supabase.from('trip_media_index').insert({
+          trip_id: tripId,
+          media_url: urlData.publicUrl,
+          filename: file.name,
+          media_type: finalMediaType, // Use the detected/validated type
+          file_size: file.size,
+          mime_type: contentType,
+          metadata: {
+            upload_path: fileName,
+            uploaded_by: user.id,
+          },
+        });
 
         if (dbError) {
           console.error('Database error:', dbError);
@@ -307,7 +329,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -324,9 +346,9 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
       const deeplink = generatePaymentDeeplink(
         item.metadata.preferredMethod,
         item.metadata.perPersonAmount,
-        'Trip Member'
+        'Trip Member',
       );
-      
+
       if (deeplink) {
         window.open(deeplink, '_blank');
       }
@@ -340,17 +362,14 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
       <div className="space-y-4">
         {/* Header with Add Link Button */}
         <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
-          <h3 className="text-lg font-semibold text-foreground">
-            All Links ({linkItems.length})
-          </h3>
+          <h3 className="text-lg font-semibold text-foreground">All Links ({linkItems.length})</h3>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsAddLinkModalOpen(true)}
             className="text-xs"
           >
-            <Link className="w-4 h-4 mr-1" />
-            + Add Link
+            <Link className="w-4 h-4 mr-1" />+ Add Link
           </Button>
         </div>
 
@@ -365,46 +384,55 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
         ) : null}
 
         {/* Links Display */}
-        {linkItems.length > 0 && linkItems.map((item) => (
-          <div key={item.id} className="bg-card border rounded-lg p-4 hover:bg-card/80 transition-colors">
-            <div className="flex gap-4">
-              {item.image_url && (
-                <img
-                  src={item.image_url}
-                  alt={item.title}
-                  className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <h4 className="text-foreground font-medium text-sm mb-1 truncate">{item.title}</h4>
-                <p className="text-muted-foreground text-xs mb-2 line-clamp-2">{item.description}</p>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{item.domain}</span>
-                    <span>{formatDate(item.created_at)}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {item.source === 'chat' ? 'From chat' : item.source === 'places' ? 'From Places' : 'Manual'}
-                    </Badge>
+        {linkItems.length > 0 &&
+          linkItems.map(item => (
+            <div
+              key={item.id}
+              className="bg-card border rounded-lg p-4 hover:bg-card/80 transition-colors"
+            >
+              <div className="flex gap-4">
+                {item.image_url && (
+                  <img
+                    src={item.image_url}
+                    alt={item.title}
+                    className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-foreground font-medium text-sm mb-1 truncate">
+                    {item.title}
+                  </h4>
+                  <p className="text-muted-foreground text-xs mb-2 line-clamp-2">
+                    {item.description}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>{item.domain}</span>
+                      <span>{formatDate(item.created_at)}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {item.source === 'chat'
+                          ? 'From chat'
+                          : item.source === 'places'
+                            ? 'From Places'
+                            : 'Manual'}
+                      </Badge>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(item.url, '_blank')}
+                      className="text-xs"
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1" />
+                      Open
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => window.open(item.url, '_blank')}
-                    className="text-xs"
-                  >
-                    <ExternalLink className="w-3 h-3 mr-1" />
-                    Open
-                  </Button>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-        
-        <AddLinkModal
-          isOpen={isAddLinkModalOpen}
-          onClose={() => setIsAddLinkModalOpen(false)}
-        />
+          ))}
+
+        <AddLinkModal isOpen={isAddLinkModalOpen} onClose={() => setIsAddLinkModalOpen(false)} />
 
         {/* Video Player Modal */}
         {activeVideoItem && (
@@ -434,7 +462,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
                 width: 'auto',
                 height: 'auto',
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
             />
           </div>
         )}
@@ -455,7 +483,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
           accept="image/*"
           multiple
           className="hidden"
-          onChange={(e) => handleFileUpload(e.target.files, 'photos')}
+          onChange={e => handleFileUpload(e.target.files, 'photos')}
         />
         <input
           ref={videoInputRef}
@@ -463,9 +491,9 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
           accept="video/*"
           multiple
           className="hidden"
-          onChange={(e) => handleFileUpload(e.target.files, 'videos')}
+          onChange={e => handleFileUpload(e.target.files, 'videos')}
         />
-        
+
         {/* Header with Add Button */}
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold text-foreground">
@@ -494,13 +522,19 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
             + Add {type === 'photos' ? 'Photo' : 'Video'}
           </Button>
         </div>
-        
+
         {mediaItems.length === 0 ? (
           <div className="text-center py-8">
-            {type === 'photos' ? <Camera className="mx-auto h-8 w-8 text-muted-foreground mb-2" /> : <Video className="mx-auto h-8 w-8 text-muted-foreground mb-2" />}
+            {type === 'photos' ? (
+              <Camera className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+            ) : (
+              <Video className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+            )}
             <p className="text-muted-foreground text-sm">
               {searchQuery ? (
-                <>No {type} found matching "{searchQuery}". Try a different search term.</>
+                <>
+                  No {type} found matching "{searchQuery}". Try a different search term.
+                </>
               ) : (
                 <>{type.charAt(0).toUpperCase() + type.slice(1)} shared in chat will appear here</>
               )}
@@ -508,11 +542,11 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {mediaItems.map((item) => (
+            {mediaItems.map(item => (
               <MediaGridTile
                 key={item.id}
                 item={item}
-                onOpenVideo={(it) => setActiveVideoItem(it)}
+                onOpenVideo={it => setActiveVideoItem(it)}
                 onDelete={handleDelete}
                 isDeleting={deletingIds.has(item.id)}
               />
@@ -548,7 +582,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
                 width: 'auto',
                 height: 'auto',
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
             />
           </div>
         )}
@@ -558,11 +592,12 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
 
   // Special handling for Files tab - show documents and file-type images
   if (type === 'files') {
-    const fileItems = mediaItems.filter(item => 
-      item.media_type === 'document' || 
-      (item.media_type === 'image' && (item.metadata?.isSchedule || item.metadata?.isReceipt || item.metadata?.isTicket))
+    const fileItems = mediaItems.filter(
+      item =>
+        item.media_type === 'document' ||
+        (item.media_type === 'image' &&
+          (item.metadata?.isSchedule || item.metadata?.isReceipt || item.metadata?.isTicket)),
     );
-
 
     return (
       <div className="space-y-4">
@@ -573,14 +608,12 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
           accept="*/*"
           multiple
           className="hidden"
-          onChange={(e) => handleFileUpload(e.target.files, 'files')}
+          onChange={e => handleFileUpload(e.target.files, 'files')}
         />
-        
+
         {/* Header with Add Button */}
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-foreground">
-            Files ({fileItems.length})
-          </h3>
+          <h3 className="text-lg font-semibold text-foreground">Files ({fileItems.length})</h3>
           <Button
             variant="ghost"
             size="sm"
@@ -596,7 +629,7 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
             + Add File
           </Button>
         </div>
-        
+
         {fileItems.length === 0 ? (
           <div className="text-center py-8">
             <FileText className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
@@ -611,136 +644,137 @@ export const MediaSubTabs = ({ items, type, searchQuery, tripId, onMediaUploaded
         ) : (
           <div className="space-y-3">
             {fileItems.map((item: MediaItem) => (
-            <div key={item.id} className="bg-card border rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {item.metadata?.isReceipt ? (
-                    <div className="flex-shrink-0">
-                      <img
-                        src={item.media_url}
-                        alt={item.filename}
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                    </div>
-                  ) : item.metadata?.isSchedule ? (
-                    <div className="flex-shrink-0">
-                      <img
-                        src={item.media_url}
-                        alt={item.filename}
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex-shrink-0">
-                      <FileText className="text-blue-400" size={20} />
-                    </div>
-                  )}
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-foreground font-medium truncate">{item.filename}</p>
-                      {item.metadata?.isReceipt && (
-                        <Badge variant="outline" className="text-green-400 border-green-400/50">
-                          Receipt
-                        </Badge>
-                      )}
-                      {item.metadata?.isTicket && (
-                        <Badge variant="outline" className="text-blue-400 border-blue-400/50">
-                          Ticket
-                        </Badge>
-                      )}
-                      {item.metadata?.isSchedule && (
-                        <Badge variant="outline" className="text-orange-400 border-orange-400/50">
-                          Schedule
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-1">
-                      <span>{formatFileSize(item.file_size)}</span>
-                      <span>{item.source === 'chat' ? 'From chat' : 'Uploaded'}</span>
-                      <span>{formatDate(item.created_at)}</span>
-                      {item.metadata?.extractedEvents && (
-                        <Badge variant="outline" className="text-orange-400 border-orange-400/50">
-                          {item.metadata.extractedEvents} events
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Receipt-specific info */}
-                    {item.metadata?.isReceipt && item.metadata?.totalAmount && (
-                      <div className="flex items-center gap-4 mt-2">
-                        <div className="flex items-center gap-1">
-                          <DollarSign size={14} className="text-green-400" />
-                          <span className="text-foreground text-sm font-medium">
-                            ${item.metadata.totalAmount.toFixed(2)}
-                          </span>
-                        </div>
-                        
-                        {item.metadata.splitCount && item.metadata.perPersonAmount && (
-                          <div className="flex items-center gap-1">
-                            <Users size={14} className="text-blue-400" />
-                            <span className="text-muted-foreground text-sm">
-                              ${item.metadata.perPersonAmount.toFixed(2)} each ({item.metadata.splitCount} people)
-                            </span>
-                          </div>
-                        )}
-                        
-                        {item.metadata.preferredMethod && (
-                          <div className="flex items-center gap-2">
-                            <PaymentMethodIcon method={item.metadata.preferredMethod} size={14} />
-                            <span className="text-muted-foreground text-sm capitalize">
-                              {item.metadata.preferredMethod}
-                            </span>
-                          </div>
-                        )}
+              <div key={item.id} className="bg-card border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {item.metadata?.isReceipt ? (
+                      <div className="flex-shrink-0">
+                        <img
+                          src={item.media_url}
+                          alt={item.filename}
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                      </div>
+                    ) : item.metadata?.isSchedule ? (
+                      <div className="flex-shrink-0">
+                        <img
+                          src={item.media_url}
+                          alt={item.filename}
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex-shrink-0">
+                        <FileText className="text-blue-400" size={20} />
                       </div>
                     )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-foreground font-medium truncate">{item.filename}</p>
+                        {item.metadata?.isReceipt && (
+                          <Badge variant="outline" className="text-green-400 border-green-400/50">
+                            Receipt
+                          </Badge>
+                        )}
+                        {item.metadata?.isTicket && (
+                          <Badge variant="outline" className="text-blue-400 border-blue-400/50">
+                            Ticket
+                          </Badge>
+                        )}
+                        {item.metadata?.isSchedule && (
+                          <Badge variant="outline" className="text-orange-400 border-orange-400/50">
+                            Schedule
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-1">
+                        <span>{formatFileSize(item.file_size)}</span>
+                        <span>{item.source === 'chat' ? 'From chat' : 'Uploaded'}</span>
+                        <span>{formatDate(item.created_at)}</span>
+                        {item.metadata?.extractedEvents && (
+                          <Badge variant="outline" className="text-orange-400 border-orange-400/50">
+                            {item.metadata.extractedEvents} events
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Receipt-specific info */}
+                      {item.metadata?.isReceipt && item.metadata?.totalAmount && (
+                        <div className="flex items-center gap-4 mt-2">
+                          <div className="flex items-center gap-1">
+                            <DollarSign size={14} className="text-green-400" />
+                            <span className="text-foreground text-sm font-medium">
+                              ${item.metadata.totalAmount.toFixed(2)}
+                            </span>
+                          </div>
+
+                          {item.metadata.splitCount && item.metadata.perPersonAmount && (
+                            <div className="flex items-center gap-1">
+                              <Users size={14} className="text-blue-400" />
+                              <span className="text-muted-foreground text-sm">
+                                ${item.metadata.perPersonAmount.toFixed(2)} each (
+                                {item.metadata.splitCount} people)
+                              </span>
+                            </div>
+                          )}
+
+                          {item.metadata.preferredMethod && (
+                            <div className="flex items-center gap-2">
+                              <PaymentMethodIcon method={item.metadata.preferredMethod} size={14} />
+                              <span className="text-muted-foreground text-sm capitalize">
+                                {item.metadata.preferredMethod}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Receipt payment button */}
+                    {item.metadata?.isReceipt && item.metadata?.perPersonAmount && (
+                      <Button
+                        onClick={() => handlePaymentClick(item)}
+                        size="sm"
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600"
+                      >
+                        Pay ${item.metadata.perPersonAmount.toFixed(2)}
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => window.open(item.media_url, '_blank')}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Download size={16} />
+                    </Button>
+
+                    {/* Delete button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={e => handleDelete(item.id, e)}
+                      disabled={deletingIds.has(item.id)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      {deletingIds.has(item.id) ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
+                    </Button>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  {/* Receipt payment button */}
-                  {item.metadata?.isReceipt && item.metadata?.perPersonAmount && (
-                    <Button
-                      onClick={() => handlePaymentClick(item)}
-                      size="sm"
-                      className="bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600"
-                    >
-                      Pay ${item.metadata.perPersonAmount.toFixed(2)}
-                    </Button>
-                  )}
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => window.open(item.media_url, '_blank')}
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <Download size={16} />
-                  </Button>
-                  
-                  {/* Delete button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleDelete(item.id, e)}
-                    disabled={deletingIds.has(item.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    {deletingIds.has(item.id) ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={16} />
-                    )}
-                  </Button>
-                </div>
               </div>
-            </div>
             ))}
           </div>
-      )}
-    </div>
-  );
-};
+        )}
+      </div>
+    );
+  }
 };

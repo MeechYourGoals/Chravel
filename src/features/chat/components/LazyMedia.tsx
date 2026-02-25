@@ -20,7 +20,7 @@ export function LazyMedia({ src, type, alt = '', className = '' }: LazyMediaProp
           observer.disconnect();
         }
       },
-      { rootMargin: '200px' }
+      { rootMargin: '200px' },
     );
 
     if (ref.current) {
@@ -41,9 +41,7 @@ export function LazyMedia({ src, type, alt = '', className = '' }: LazyMediaProp
 
   return (
     <div ref={ref} className={className}>
-      {!isLoaded && (
-        <div className="bg-muted animate-pulse rounded-md h-[200px] w-full" />
-      )}
+      {!isLoaded && <div className="bg-muted animate-pulse rounded-md h-[200px] w-full" />}
       {type === 'video' ? (
         // iOS CRITICAL: playsInline + muted required for inline playback
         <video

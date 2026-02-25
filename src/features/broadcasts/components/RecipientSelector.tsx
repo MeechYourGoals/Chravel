@@ -14,11 +14,11 @@ interface RecipientSelectorProps {
   isConsumerTrip: boolean;
 }
 
-export const RecipientSelector = ({ 
-  participants, 
-  recipient, 
+export const RecipientSelector = ({
+  participants,
+  recipient,
   onRecipientChange,
-  isConsumerTrip 
+  isConsumerTrip,
 }: RecipientSelectorProps) => {
   if (isConsumerTrip) {
     return null;
@@ -31,16 +31,16 @@ export const RecipientSelector = ({
       <Users size={14} className="text-slate-400" />
       <select
         value={recipient}
-        onChange={(e) => onRecipientChange(e.target.value)}
+        onChange={e => onRecipientChange(e.target.value)}
         className="bg-slate-700 text-white text-xs rounded px-2 py-1 border border-slate-600"
       >
         <option value="everyone">Everyone</option>
-        {roleOptions.map((role) => (
+        {roleOptions.map(role => (
           <option key={`role-${role}`} value={`role:${role}`}>
             {role}
           </option>
         ))}
-        {participants.map((p) => (
+        {participants.map(p => (
           <option key={`user-${p.id}`} value={`user:${p.id}`}>
             {p.name}
           </option>

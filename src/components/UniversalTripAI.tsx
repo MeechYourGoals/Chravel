@@ -1,6 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
-import { Send, Sparkles, MessageCircle, ExternalLink, AlertCircle, Wifi, WifiOff, Database, Zap } from 'lucide-react';
+import {
+  Send,
+  Sparkles,
+  MessageCircle,
+  ExternalLink,
+  AlertCircle,
+  Wifi,
+  WifiOff,
+  Database,
+  Zap,
+} from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TripPreferences } from '../types/consumer';
 import { UniversalConciergeService } from '../services/universalConciergeService';
@@ -57,29 +66,29 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
 
   const handleIngestTripData = async () => {
     if (isIngesting) return;
-    
+
     setIsIngesting(true);
     toast({
-      title: "Building Knowledge Graph",
-      description: "Ingesting trip data to enhance AI responses...",
+      title: 'Building Knowledge Graph',
+      description: 'Ingesting trip data to enhance AI responses...',
     });
 
     const success = await KnowledgeGraphService.batchIngestTripData(tripContext.tripId);
-    
+
     if (success) {
       toast({
-        title: "Knowledge Graph Updated",
-        description: "AI can now provide more contextual responses about your trip!",
+        title: 'Knowledge Graph Updated',
+        description: 'AI can now provide more contextual responses about your trip!',
       });
       await loadKnowledgeStats();
     } else {
       toast({
-        title: "Ingestion Failed",
-        description: "There was an issue building the knowledge graph. Please try again.",
-        variant: "destructive"
+        title: 'Ingestion Failed',
+        description: 'There was an issue building the knowledge graph. Please try again.',
+        variant: 'destructive',
       });
     }
-    
+
     setIsIngesting(false);
   };
 
@@ -90,7 +99,7 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
       id: Date.now().toString(),
       type: 'user',
       content: inputMessage,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -99,36 +108,37 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
 
     try {
       const response = await UniversalConciergeService.processMessage(inputMessage, tripContext);
-      
+
       // Update AI status based on response
       setAiStatus(response.isFromFallback ? 'fallback' : 'connected');
-      
+
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
         content: response.content,
         timestamp: new Date().toISOString(),
-        sources: response.searchResults?.map(result => ({
-          title: result.snippet,
-          url: result.deepLink,
-          snippet: result.content.slice(0, 100) + '...'
-        })) || [],
-        isFromFallback: response.isFromFallback
+        sources:
+          response.searchResults?.map(result => ({
+            title: result.snippet,
+            url: result.deepLink,
+            snippet: result.content.slice(0, 100) + '...',
+          })) || [],
+        isFromFallback: response.isFromFallback,
       };
-      
+
       setMessages(prev => [...prev, assistantMessage]);
     } catch (err) {
       setAiStatus('error');
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      
+
       const errorResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
         content: `I'm having trouble connecting right now. Please try again in a moment.`,
         timestamp: new Date().toISOString(),
-        isFromFallback: true
+        isFromFallback: true,
       };
-      
+
       setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsTyping(false);
@@ -146,10 +156,13 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
     return (
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
-        <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
-          <Sparkles size={16} className="mr-2" />
-          Concierge
-        </Button>
+          <Button
+            variant="outline"
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <Sparkles size={16} className="mr-2" />
+            Concierge
+          </Button>
         </SheetTrigger>
         <SheetContent className="bg-black border-white/20 text-white">
           <SheetHeader>
@@ -232,14 +245,14 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
               )}
               {(!knowledgeStats || knowledgeStats.totalDocuments === 0) && (
                 <div className="flex items-center gap-2">
-                  <DemoDataSeeder 
-                    tripId={tripContext.tripId} 
+                  <DemoDataSeeder
+                    tripId={tripContext.tripId}
                     onSeeded={() => {
                       loadKnowledgeStats();
                       setMessages([]);
                     }}
                   />
-                  <button 
+                  <button
                     onClick={handleIngestTripData}
                     disabled={isIngesting}
                     className="text-xs bg-green-500/20 hover:bg-green-500/30 px-2 py-1 rounded flex items-center gap-1 transition-colors"
@@ -275,13 +288,18 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
                 </div>
               </div>
             ) : (
-              messages.map((message) => (
-                <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${
-                    message.type === 'user'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                      : `${message.isFromFallback ? 'bg-yellow-900/20 border border-yellow-500/30' : 'bg-gray-800 border border-gray-700'} text-gray-300`
-                  }`}>
+              messages.map(message => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                      message.type === 'user'
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                        : `${message.isFromFallback ? 'bg-yellow-900/20 border border-yellow-500/30' : 'bg-gray-800 border border-gray-700'} text-gray-300`
+                    }`}
+                  >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     {message.isFromFallback && (
                       <p className="text-xs text-yellow-400 mt-2 flex items-center gap-1">
@@ -293,7 +311,10 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
                       <div className="mt-2 space-y-1">
                         <p className="text-xs text-gray-400">Sources:</p>
                         {message.sources.map((source, index) => (
-                          <div key={index} className="text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded flex items-center gap-1">
+                          <div
+                            key={index}
+                            className="text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded flex items-center gap-1"
+                          >
                             <ExternalLink size={10} />
                             <span className="truncate">{source.title}</span>
                           </div>
@@ -309,8 +330,14 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
                 <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                    <div
+                      className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.1s' }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.2s' }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -320,7 +347,7 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
           <div className="flex gap-3 items-end">
             <textarea
               value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
+              onChange={e => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Ask about your trip..."
               rows={2}

@@ -27,24 +27,26 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   paymentsEnabled: true,
   eventsEnabled: true,
   dndMode: false,
-  frequency: 'instant'
+  frequency: 'instant',
 };
 
-export const useNotificationPreferences = (initialPreferences?: Partial<NotificationPreferences>) => {
+export const useNotificationPreferences = (
+  initialPreferences?: Partial<NotificationPreferences>,
+) => {
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     ...DEFAULT_PREFERENCES,
-    ...initialPreferences
+    ...initialPreferences,
   });
 
-  const togglePreference = useCallback(<K extends keyof NotificationPreferences>(
-    key: K,
-    value?: NotificationPreferences[K]
-  ) => {
-    setPreferences(prev => ({
-      ...prev,
-      [key]: value !== undefined ? value : !prev[key]
-    }));
-  }, []);
+  const togglePreference = useCallback(
+    <K extends keyof NotificationPreferences>(key: K, value?: NotificationPreferences[K]) => {
+      setPreferences(prev => ({
+        ...prev,
+        [key]: value !== undefined ? value : !prev[key],
+      }));
+    },
+    [],
+  );
 
   const togglePush = useCallback(() => {
     togglePreference('pushEnabled');
@@ -67,14 +69,17 @@ export const useNotificationPreferences = (initialPreferences?: Partial<Notifica
       ...prev,
       dndMode: enabled,
       dndStart: start || prev.dndStart,
-      dndEnd: end || prev.dndEnd
+      dndEnd: end || prev.dndEnd,
     }));
   }, []);
 
-  const toggleCategory = useCallback((category: 'broadcasts' | 'messages' | 'tasks' | 'payments' | 'events') => {
-    const key = `${category}Enabled` as keyof NotificationPreferences;
-    togglePreference(key);
-  }, [togglePreference]);
+  const toggleCategory = useCallback(
+    (category: 'broadcasts' | 'messages' | 'tasks' | 'payments' | 'events') => {
+      const key = `${category}Enabled` as keyof NotificationPreferences;
+      togglePreference(key);
+    },
+    [togglePreference],
+  );
 
   const enableAll = useCallback(() => {
     setPreferences(prev => ({
@@ -86,7 +91,7 @@ export const useNotificationPreferences = (initialPreferences?: Partial<Notifica
       messagesEnabled: true,
       tasksEnabled: true,
       paymentsEnabled: true,
-      eventsEnabled: true
+      eventsEnabled: true,
     }));
   }, []);
 
@@ -101,7 +106,7 @@ export const useNotificationPreferences = (initialPreferences?: Partial<Notifica
       messagesEnabled: false,
       tasksEnabled: false,
       paymentsEnabled: false,
-      eventsEnabled: false
+      eventsEnabled: false,
     }));
   }, []);
 
@@ -109,30 +114,44 @@ export const useNotificationPreferences = (initialPreferences?: Partial<Notifica
     setPreferences(DEFAULT_PREFERENCES);
   }, []);
 
-  const validateDNDTimes = useCallback((start?: string, end?: string): { 
-    isValid: boolean; 
-    error?: string 
-  } => {
-    if (!start || !end) {
-      return { isValid: false, error: 'Both start and end times are required for DND mode' };
-    }
+  const validateDNDTimes = useCallback(
+    (
+      start?: string,
+      end?: string,
+    ): {
+      isValid: boolean;
+      error?: string;
+    } => {
+      if (!start || !end) {
+        return { isValid: false, error: 'Both start and end times are required for DND mode' };
+      }
 
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(start) || !timeRegex.test(end)) {
-      return { isValid: false, error: 'Invalid time format. Use HH:mm format' };
-    }
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(start) || !timeRegex.test(end)) {
+        return { isValid: false, error: 'Invalid time format. Use HH:mm format' };
+      }
 
-    return { isValid: true };
-  }, []);
+      return { isValid: true };
+    },
+    [],
+  );
 
   return {
     // State
     preferences,
-    
+
     // Computed
-    isAnyEnabled: preferences.pushEnabled || preferences.emailEnabled || preferences.smsEnabled || preferences.inAppEnabled,
-    areAllDisabled: !preferences.pushEnabled && !preferences.emailEnabled && !preferences.smsEnabled && !preferences.inAppEnabled,
-    
+    isAnyEnabled:
+      preferences.pushEnabled ||
+      preferences.emailEnabled ||
+      preferences.smsEnabled ||
+      preferences.inAppEnabled,
+    areAllDisabled:
+      !preferences.pushEnabled &&
+      !preferences.emailEnabled &&
+      !preferences.smsEnabled &&
+      !preferences.inAppEnabled,
+
     // Actions
     togglePreference,
     togglePush,
@@ -145,6 +164,6 @@ export const useNotificationPreferences = (initialPreferences?: Partial<Notifica
     disableAll,
     resetToDefaults,
     validateDNDTimes,
-    setPreferences
+    setPreferences,
   };
 };

@@ -52,7 +52,10 @@ class PersonalAccommodationService {
   /**
    * Get user's accommodation for a specific trip
    */
-  async getUserAccommodation(tripId: string, userId?: string): Promise<PersonalAccommodation | null> {
+  async getUserAccommodation(
+    tripId: string,
+    userId?: string,
+  ): Promise<PersonalAccommodation | null> {
     const { data, error } = await (supabase as any)
       .from('user_accommodations')
       .select('*')
@@ -90,25 +93,32 @@ class PersonalAccommodationService {
   /**
    * Create or update user's accommodation
    */
-  async setUserAccommodation(request: CreateAccommodationRequest): Promise<PersonalAccommodation | null> {
-    const { data: { user } } = await supabase.auth.getUser();
+  async setUserAccommodation(
+    request: CreateAccommodationRequest,
+  ): Promise<PersonalAccommodation | null> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await (supabase as any)
       .from('user_accommodations')
-      .upsert({
-        trip_id: request.trip_id,
-        user_id: user.id,
-        accommodation_name: request.accommodation_name,
-        address: request.address,
-        latitude: request.latitude,
-        longitude: request.longitude,
-        check_in: request.check_in,
-        check_out: request.check_out,
-        accommodation_type: request.accommodation_type || 'hotel'
-      }, {
-        onConflict: 'trip_id,user_id'
-      })
+      .upsert(
+        {
+          trip_id: request.trip_id,
+          user_id: user.id,
+          accommodation_name: request.accommodation_name,
+          address: request.address,
+          latitude: request.latitude,
+          longitude: request.longitude,
+          check_in: request.check_in,
+          check_out: request.check_out,
+          accommodation_type: request.accommodation_type || 'hotel',
+        },
+        {
+          onConflict: 'trip_id,user_id',
+        },
+      )
       .select()
       .single();
 
@@ -121,18 +131,20 @@ class PersonalAccommodationService {
 
   // Update user's personal accommodation
   static async updateAccommodation(
-    accommodationId: string, 
-    updates: UpdateAccommodationRequest
+    accommodationId: string,
+    updates: UpdateAccommodationRequest,
   ): Promise<PersonalAccommodation | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('user_accommodations')
         .update({
           ...updates,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', accommodationId)
         .eq('user_id', user.id)
@@ -150,7 +162,9 @@ class PersonalAccommodationService {
   // Delete user's personal accommodation
   static async deleteAccommodation(accommodationId: string): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const { error } = await supabase
@@ -182,7 +196,7 @@ class PersonalAccommodationService {
         .single();
 
       if (error) throw error;
-      
+
       if (!data.basecamp_name) return null;
 
       return {
@@ -194,7 +208,7 @@ class PersonalAccommodationService {
         longitude: data.basecamp_longitude,
         created_by: '', // Not stored in trips table
         created_at: '',
-        updated_at: ''
+        updated_at: '',
       };
     } catch (error) {
       console.error('Error fetching trip basecamp:', error);
@@ -204,14 +218,16 @@ class PersonalAccommodationService {
 
   // Update trip basecamp (admin only)
   static async updateTripBasecamp(
-    tripId: string, 
-    name: string, 
-    address: string, 
-    latitude?: number, 
-    longitude?: number
+    tripId: string,
+    name: string,
+    address: string,
+    latitude?: number,
+    longitude?: number,
   ): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // Check if user is trip admin
@@ -232,7 +248,7 @@ class PersonalAccommodationService {
           basecamp_address: address,
           basecamp_latitude: latitude,
           basecamp_longitude: longitude,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', tripId);
 

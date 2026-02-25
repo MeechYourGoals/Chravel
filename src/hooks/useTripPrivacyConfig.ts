@@ -45,7 +45,9 @@ export const useTripPrivacyConfig = (tripId: string | undefined) => {
  * Get the effective privacy mode for a trip.
  * Returns 'standard' if no config found.
  */
-export const getEffectivePrivacyMode = (config: TripPrivacyConfig | null | undefined): PrivacyMode => {
+export const getEffectivePrivacyMode = (
+  config: TripPrivacyConfig | null | undefined,
+): PrivacyMode => {
   return config?.privacy_mode || 'standard';
 };
 

@@ -8,7 +8,7 @@ services:
     staticPublishPath: ./dist
     envVars:
       - key: NODE_VERSION
-        value: "22"
+        value: '22'
       # Set these in the Render Dashboard → Service → Environment
       # Never hardcode credentials in this file.
       - key: VITE_SUPABASE_URL

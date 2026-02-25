@@ -1,20 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown, 
-  Eye, 
-  MousePointer, 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Eye,
+  MousePointer,
   Bookmark,
   Calendar,
-  DollarSign
+  DollarSign,
 } from 'lucide-react';
 import { CampaignWithTargeting, CampaignStats } from '@/types/advertiser';
 import { AdvertiserService } from '@/services/advertiserService';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface CampaignAnalyticsProps {
   campaigns: CampaignWithTargeting[];
@@ -26,12 +43,11 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
   const [stats, setStats] = useState<CampaignStats | null>(null);
 
   // Filter campaigns based on selection
-  const filteredCampaigns = selectedCampaign === 'all' 
-    ? campaigns 
-    : campaigns.filter(c => c.id === selectedCampaign);
+  const filteredCampaigns =
+    selectedCampaign === 'all' ? campaigns : campaigns.filter(c => c.id === selectedCampaign);
 
   const activeCampaigns = campaigns.filter(c => c.status === 'active');
-  
+
   // Compute totals from filtered campaigns (updates when dropdown changes)
   const totalImpressions = filteredCampaigns.reduce((sum, c) => sum + c.impressions, 0);
   const totalClicks = filteredCampaigns.reduce((sum, c) => sum + c.clicks, 0);
@@ -50,24 +66,32 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
   };
 
   // Generate chart data proportionally from campaign totals
-  const generatePerformanceData = (impressions: number, clicks: number, saves: number, conversions: number) => {
+  const generatePerformanceData = (
+    impressions: number,
+    clicks: number,
+    saves: number,
+    conversions: number,
+  ) => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const weights = [0.08, 0.11, 0.14, 0.12, 0.18, 0.22, 0.15]; // Realistic weekly distribution
-    
+
     return days.map((date, i) => ({
       date,
       impressions: Math.round(impressions * weights[i]),
       clicks: Math.round(clicks * weights[i]),
       saves: Math.round(saves * weights[i]),
-      conversions: Math.round(conversions * weights[i])
+      conversions: Math.round(conversions * weights[i]),
     }));
   };
 
-  const performanceData = generatePerformanceData(totalImpressions, totalClicks, totalSaves, totalConversions);
+  const performanceData = generatePerformanceData(
+    totalImpressions,
+    totalClicks,
+    totalSaves,
+    totalConversions,
+  );
 
-  const topPerformingCampaigns = [...campaigns]
-    .sort((a, b) => b.clicks - a.clicks)
-    .slice(0, 5);
+  const topPerformingCampaigns = [...campaigns].sort((a, b) => b.clicks - a.clicks).slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -81,7 +105,7 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Campaigns</SelectItem>
-              {campaigns.map((campaign) => (
+              {campaigns.map(campaign => (
                 <SelectItem key={campaign.id} value={campaign.id}>
                   {campaign.name}
                 </SelectItem>
@@ -113,9 +137,12 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
             <Eye className="h-3 w-3 tablet:h-4 tablet:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
-            <div className="text-lg tablet:text-2xl font-bold text-white">{totalImpressions.toLocaleString()}</div>
+            <div className="text-lg tablet:text-2xl font-bold text-white">
+              {totalImpressions.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground whitespace-nowrap">
-              <TrendingUp className="h-3 w-3 inline text-green-500" /> +15.3%<span className="hidden tablet:inline"> from last week</span>
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +15.3%
+              <span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
@@ -129,9 +156,12 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
             <MousePointer className="h-3 w-3 tablet:h-4 tablet:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
-            <div className="text-lg tablet:text-2xl font-bold text-white">{totalClicks.toLocaleString()}</div>
+            <div className="text-lg tablet:text-2xl font-bold text-white">
+              {totalClicks.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground whitespace-nowrap">
-              <TrendingUp className="h-3 w-3 inline text-green-500" /> +8.2%<span className="hidden tablet:inline"> from last week</span>
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +8.2%
+              <span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
@@ -142,22 +172,30 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
             <Bookmark className="h-3 w-3 tablet:h-4 tablet:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
-            <div className="text-lg tablet:text-2xl font-bold text-white">{totalSaves.toLocaleString()}</div>
+            <div className="text-lg tablet:text-2xl font-bold text-white">
+              {totalSaves.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground whitespace-nowrap">
-              <TrendingUp className="h-3 w-3 inline text-green-500" /> +12.4%<span className="hidden tablet:inline"> from last week</span>
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +12.4%
+              <span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white/5 border-white/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 tablet:pb-2 px-3 tablet:px-6 pt-3 tablet:pt-6">
-            <CardTitle className="text-xs tablet:text-sm font-medium text-white">Conversions</CardTitle>
+            <CardTitle className="text-xs tablet:text-sm font-medium text-white">
+              Conversions
+            </CardTitle>
             <DollarSign className="h-3 w-3 tablet:h-4 tablet:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="px-3 tablet:px-6 pb-3 tablet:pb-6">
-            <div className="text-lg tablet:text-2xl font-bold text-white">{totalConversions.toLocaleString()}</div>
+            <div className="text-lg tablet:text-2xl font-bold text-white">
+              {totalConversions.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground whitespace-nowrap">
-              <TrendingUp className="h-3 w-3 inline text-green-500" /> +5%<span className="hidden tablet:inline"> from last week</span>
+              <TrendingUp className="h-3 w-3 inline text-green-500" /> +5%
+              <span className="hidden tablet:inline"> from last week</span>
             </p>
           </CardContent>
         </Card>
@@ -167,13 +205,22 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
       <Tabs defaultValue="performance" className="space-y-4">
         <div className="flex justify-center">
           <TabsList className="bg-white/5 border border-white/10 p-1">
-            <TabsTrigger value="performance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="performance"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               Performance
             </TabsTrigger>
-            <TabsTrigger value="engagement" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="engagement"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               Engagement
             </TabsTrigger>
-            <TabsTrigger value="campaigns" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="campaigns"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               Top Campaigns
             </TabsTrigger>
           </TabsList>
@@ -190,26 +237,21 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis dataKey="date" stroke="#9ca3af" />
                   <YAxis stroke="#9ca3af" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(0,0,0,0.8)', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(0,0,0,0.8)',
                       border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px'
-                    }} 
+                      borderRadius: '8px',
+                    }}
                   />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="impressions" 
-                    stroke="hsl(42, 92%, 56%)" 
+                  <Line
+                    type="monotone"
+                    dataKey="impressions"
+                    stroke="hsl(42, 92%, 56%)"
                     name="Impressions"
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="clicks" 
-                    stroke="#3b82f6" 
-                    name="Clicks"
-                  />
+                  <Line type="monotone" dataKey="clicks" stroke="#3b82f6" name="Clicks" />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -227,12 +269,12 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis dataKey="date" stroke="#9ca3af" />
                   <YAxis stroke="#9ca3af" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(0,0,0,0.8)', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(0,0,0,0.8)',
                       border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px'
-                    }} 
+                      borderRadius: '8px',
+                    }}
                   />
                   <Legend />
                   <Bar dataKey="saves" fill="hsl(42, 92%, 56%)" name="Saves" />
@@ -251,7 +293,10 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
             <CardContent>
               <div className="space-y-4">
                 {topPerformingCampaigns.map((campaign, index) => (
-                  <div key={campaign.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                  <div
+                    key={campaign.id}
+                    className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="text-lg font-semibold text-muted-foreground">
                         #{index + 1}
@@ -297,10 +342,7 @@ export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
             <div className="text-center p-4 bg-white/5 border border-white/10 rounded-lg">
               <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-500" />
               <p className="text-2xl font-bold text-white">
-                {totalClicks > 0 
-                  ? ((totalConversions / totalClicks) * 100).toFixed(1)
-                  : '0.0'
-                }%
+                {totalClicks > 0 ? ((totalConversions / totalClicks) * 100).toFixed(1) : '0.0'}%
               </p>
               <p className="text-sm text-muted-foreground">Conversion Rate</p>
             </div>

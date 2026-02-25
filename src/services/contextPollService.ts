@@ -9,21 +9,19 @@ export class ContextPollService {
    */
   startPolling(tripId: string, onUpdate: () => void, intervalMs = 30000): void {
     this.stopPolling();
-    
+
     this.isPolling = true;
     this.pollInterval = setInterval(async () => {
       try {
         // Invalidate cache to force fresh data on next request
         ContextCacheService.invalidate(tripId);
-        
+
         // Trigger update callback
         onUpdate();
-        
       } catch (error) {
         console.error('Error during context polling:', error);
       }
     }, intervalMs);
-    
   }
 
   /**
@@ -53,7 +51,7 @@ export class ContextPollService {
   } {
     return {
       isPolling: this.isPolling,
-      interval: this.pollInterval ? 30000 : undefined
+      interval: this.pollInterval ? 30000 : undefined,
     };
   }
 

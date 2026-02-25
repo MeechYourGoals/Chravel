@@ -5,16 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Building2, 
-  Mail, 
-  Globe, 
+import {
+  Building2,
+  Mail,
+  Globe,
   Save,
   AlertCircle,
   CheckCircle,
   User,
   CreditCard,
-  Plus
+  Plus,
 } from 'lucide-react';
 import { Advertiser } from '@/types/advertiser';
 import { useToast } from '@/hooks/use-toast';
@@ -32,13 +32,13 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
   const [formData, setFormData] = useState({
     company_name: advertiser.company_name,
     company_email: advertiser.company_email,
-    website: advertiser.website || ''
+    website: advertiser.website || '',
   });
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      
+
       const { data, error } = await supabase
         .from('advertisers')
         .update(formData)
@@ -51,15 +51,15 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
       onUpdate(data as unknown as Advertiser);
       setIsEditing(false);
       toast({
-        title: "Settings Updated",
-        description: "Your advertiser profile has been updated successfully"
+        title: 'Settings Updated',
+        description: 'Your advertiser profile has been updated successfully',
       });
     } catch (error) {
       console.error('Error updating settings:', error);
       toast({
-        title: "Error",
-        description: "Failed to update settings. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to update settings. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsSaving(false);
@@ -69,11 +69,23 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" /> Active</Badge>;
+        return (
+          <Badge className="bg-green-500">
+            <CheckCircle className="h-3 w-3 mr-1" /> Active
+          </Badge>
+        );
       case 'suspended':
-        return <Badge className="bg-red-500"><AlertCircle className="h-3 w-3 mr-1" /> Suspended</Badge>;
+        return (
+          <Badge className="bg-red-500">
+            <AlertCircle className="h-3 w-3 mr-1" /> Suspended
+          </Badge>
+        );
       case 'pending':
-        return <Badge className="bg-yellow-500"><AlertCircle className="h-3 w-3 mr-1" /> Pending</Badge>;
+        return (
+          <Badge className="bg-yellow-500">
+            <AlertCircle className="h-3 w-3 mr-1" /> Pending
+          </Badge>
+        );
       default:
         return <Badge>{status}</Badge>;
     }
@@ -97,9 +109,9 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
             </div>
             {getStatusBadge(advertiser.status)}
           </div>
-          
+
           <Separator className="bg-white/10" />
-          
+
           <div className="grid grid-cols-2 gap-2 sm:gap-4 text-sm">
             <div>
               <p className="text-gray-400">Account ID</p>
@@ -145,7 +157,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                   <Input
                     id="company_name"
                     value={formData.company_name}
-                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                    onChange={e => setFormData({ ...formData, company_name: e.target.value })}
                     className="pl-10"
                   />
                 </div>
@@ -159,7 +171,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                     id="company_email"
                     type="email"
                     value={formData.company_email}
-                    onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
+                    onChange={e => setFormData({ ...formData, company_email: e.target.value })}
                     className="pl-10"
                   />
                 </div>
@@ -173,7 +185,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                     id="website"
                     type="url"
                     value={formData.website}
-                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    onChange={e => setFormData({ ...formData, website: e.target.value })}
                     className="pl-10"
                   />
                 </div>
@@ -195,7 +207,7 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
                     setFormData({
                       company_name: advertiser.company_name,
                       company_email: advertiser.company_email,
-                      website: advertiser.website || ''
+                      website: advertiser.website || '',
                     });
                   }}
                   className="border-white/10 text-gray-300 hover:bg-white/10 w-full sm:w-auto"
@@ -267,14 +279,14 @@ export const AdvertiserSettings = ({ advertiser, onUpdate }: AdvertiserSettingsP
               </div>
             </div>
           </div>
-          
+
           <Button
             variant="outline"
             className="w-full border-white/10 hover:bg-white/5 text-white"
             onClick={() => {
               toast({
-                title: "Payment Methods",
-                description: "Payment method setup will be available in a future update."
+                title: 'Payment Methods',
+                description: 'Payment method setup will be available in a future update.',
               });
             }}
           >

@@ -33,9 +33,7 @@ interface TripsDataTrip {
  * @param tripsDataArray - Array of trips from src/data/tripsData.ts
  * @returns Array of trips matching tripService.Trip interface
  */
-export function adaptTripsDataToTripSchema(
-  tripsDataArray: TripsDataTrip[]
-): TripServiceTrip[] {
+export function adaptTripsDataToTripSchema(tripsDataArray: TripsDataTrip[]): TripServiceTrip[] {
   return tripsDataArray.map(trip => {
     // Parse dateRange string (e.g., "Mar 15 - Mar 22, 2026") into start/end dates
     let startDate: string | undefined;
@@ -55,9 +53,18 @@ export function adaptTripsDataToTripSchema(
 
           // Simple month mapping
           const monthMap: Record<string, string> = {
-            'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
-            'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
-            'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+            Jan: '01',
+            Feb: '02',
+            Mar: '03',
+            Apr: '04',
+            May: '05',
+            Jun: '06',
+            Jul: '07',
+            Aug: '08',
+            Sep: '09',
+            Oct: '10',
+            Nov: '11',
+            Dec: '12',
           };
 
           const parseDate = (dateStr: string) => {
@@ -112,7 +119,7 @@ export function adaptTripsDataToTripSchema(
 
       // Optional fields: Not present in tripsData, set to undefined
       basecamp_name: undefined,
-      basecamp_address: undefined
+      basecamp_address: undefined,
     };
   });
 }

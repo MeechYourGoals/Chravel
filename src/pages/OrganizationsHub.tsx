@@ -69,7 +69,7 @@ export const OrganizationsHub = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {organizations.map((org) => {
+            {organizations.map(org => {
               const tierInfo = SUBSCRIPTION_TIERS[org.subscription_tier];
               const seatUsage = (org.seats_used / org.seat_limit) * 100;
 
@@ -92,7 +92,10 @@ export const OrganizationsHub = () => {
                           <p className="text-sm text-gray-400">{org.name}</p>
                         </div>
                       </div>
-                      <ChevronRight size={20} className="text-gray-500 group-hover:text-glass-orange transition-colors" />
+                      <ChevronRight
+                        size={20}
+                        className="text-gray-500 group-hover:text-glass-orange transition-colors"
+                      />
                     </div>
                   </CardHeader>
 
@@ -110,12 +113,17 @@ export const OrganizationsHub = () => {
                       </div>
                       <div className="text-right">
                         <div className="text-sm text-gray-400">Status</div>
-                        <div className={`text-sm font-medium ${
-                          org.subscription_status === 'active' ? 'text-green-400' :
-                          org.subscription_status === 'trial' ? 'text-blue-400' :
-                          'text-yellow-400'
-                        }`}>
-                          {org.subscription_status.charAt(0).toUpperCase() + org.subscription_status.slice(1)}
+                        <div
+                          className={`text-sm font-medium ${
+                            org.subscription_status === 'active'
+                              ? 'text-green-400'
+                              : org.subscription_status === 'trial'
+                                ? 'text-blue-400'
+                                : 'text-yellow-400'
+                          }`}
+                        >
+                          {org.subscription_status.charAt(0).toUpperCase() +
+                            org.subscription_status.slice(1)}
                         </div>
                       </div>
                     </div>
@@ -146,7 +154,7 @@ export const OrganizationsHub = () => {
                         size="sm"
                         variant="outline"
                         className="flex-1 border-white/20 text-white hover:bg-white/10"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           navigate(`/organization/${org.id}`);
                         }}
@@ -158,7 +166,7 @@ export const OrganizationsHub = () => {
                         size="sm"
                         variant="outline"
                         className="flex-1 border-white/20 text-white hover:bg-white/10"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           navigate(`/organization/${org.id}?tab=settings`);
                         }}
@@ -173,10 +181,7 @@ export const OrganizationsHub = () => {
           </div>
         )}
 
-        <CreateOrganizationModal
-          open={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-        />
+        <CreateOrganizationModal open={showCreateModal} onClose={() => setShowCreateModal(false)} />
       </div>
     </div>
   );

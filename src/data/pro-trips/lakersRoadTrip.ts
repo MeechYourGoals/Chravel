@@ -19,7 +19,7 @@ export const lakersRoadTrip: ProTripData = {
       completed: true,
       due_at: '2025-01-19',
       assigned_to: 'equipment-manager',
-      created_at: new Date(Date.now() - 604800000).toISOString()
+      created_at: new Date(Date.now() - 604800000).toISOString(),
     },
     {
       id: 'task-lakers-2',
@@ -28,8 +28,8 @@ export const lakersRoadTrip: ProTripData = {
       completed: false,
       due_at: '2025-01-20',
       assigned_to: 'team-manager',
-      created_at: new Date().toISOString()
-    }
+      created_at: new Date().toISOString(),
+    },
   ],
   polls: [
     {
@@ -38,12 +38,12 @@ export const lakersRoadTrip: ProTripData = {
       options: [
         { id: 'opt1', text: 'Steakhouse', votes: 12 },
         { id: 'opt2', text: 'Sushi Bar', votes: 7 },
-        { id: 'opt3', text: 'Hotel Room Service', votes: 3 }
+        { id: 'opt3', text: 'Hotel Room Service', votes: 3 },
       ],
       total_votes: 22,
       status: 'closed',
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
   ],
   links: [
     {
@@ -53,7 +53,7 @@ export const lakersRoadTrip: ProTripData = {
       description: 'Venue information and logistics',
       domain: 'footprintcenter.com',
       created_at: new Date().toISOString(),
-      source: 'places'
+      source: 'places',
     },
     {
       id: 'link-lakers-2',
@@ -62,8 +62,8 @@ export const lakersRoadTrip: ProTripData = {
       description: 'Team accommodation booking',
       domain: 'marriott.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
-      source: 'manual'
-    }
+      source: 'manual',
+    },
   ],
   broadcasts: [
     {
@@ -73,7 +73,7 @@ export const lakersRoadTrip: ProTripData = {
       targetTrips: ['lakers-road-trip'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['1', '2', '3']
+      readBy: ['1', '2', '3'],
     },
     {
       id: 'bc-lakers-2',
@@ -82,32 +82,82 @@ export const lakersRoadTrip: ProTripData = {
       targetTrips: ['lakers-road-trip'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['1', '2']
-    }
+      readBy: ['1', '2'],
+    },
   ],
   participants: [
     { id: '1', name: 'LeBron James', avatar: getMockAvatar('LeBron James'), role: 'Players' },
     { id: '2', name: 'Anthony Davis', avatar: getMockAvatar('Anthony Davis'), role: 'Players' },
     { id: '3', name: 'Austin Reaves', avatar: getMockAvatar('Austin Reaves'), role: 'Players' },
-    { id: '4', name: 'D\'Angelo Russell', avatar: getMockAvatar('D\'Angelo Russell'), role: 'Players' },
+    {
+      id: '4',
+      name: "D'Angelo Russell",
+      avatar: getMockAvatar("D'Angelo Russell"),
+      role: 'Players',
+    },
     { id: '5', name: 'Rui Hachimura', avatar: getMockAvatar('Rui Hachimura'), role: 'Players' },
     { id: '6', name: 'Christian Wood', avatar: getMockAvatar('Christian Wood'), role: 'Players' },
-    { id: '7', name: 'Jarred Vanderbilt', avatar: getMockAvatar('Jarred Vanderbilt'), role: 'Players' },
+    {
+      id: '7',
+      name: 'Jarred Vanderbilt',
+      avatar: getMockAvatar('Jarred Vanderbilt'),
+      role: 'Players',
+    },
     { id: '8', name: 'Taurean Prince', avatar: getMockAvatar('Taurean Prince'), role: 'Players' },
     { id: '9', name: 'Gabe Vincent', avatar: getMockAvatar('Gabe Vincent'), role: 'Players' },
     { id: '10', name: 'Cam Reddish', avatar: getMockAvatar('Cam Reddish'), role: 'Players' },
     { id: '11', name: 'Max Christie', avatar: getMockAvatar('Max Christie'), role: 'Players' },
     { id: '12', name: 'Dalton Knecht', avatar: getMockAvatar('Dalton Knecht'), role: 'Players' },
-    { id: '13', name: 'Jalen Hood-Schifino', avatar: getMockAvatar('Jalen Hood-Schifino'), role: 'Players' },
+    {
+      id: '13',
+      name: 'Jalen Hood-Schifino',
+      avatar: getMockAvatar('Jalen Hood-Schifino'),
+      role: 'Players',
+    },
     { id: '14', name: 'Maxwell Lewis', avatar: getMockAvatar('Maxwell Lewis'), role: 'Players' },
-    { id: '15', name: 'Christian Koloko', avatar: getMockAvatar('Christian Koloko'), role: 'Players' },
-    { id: '16', name: 'Head Coach Redick', avatar: getMockAvatar('Head Coach Redick'), role: 'Coaches' },
-    { id: '17', name: 'Assistant Coach Nate McMillan', avatar: getMockAvatar('Assistant Coach Nate McMillan'), role: 'Coaches' },
-    { id: '18', name: 'Assistant Coach Scott Brooks', avatar: getMockAvatar('Assistant Coach Scott Brooks'), role: 'Coaches' },
+    {
+      id: '15',
+      name: 'Christian Koloko',
+      avatar: getMockAvatar('Christian Koloko'),
+      role: 'Players',
+    },
+    {
+      id: '16',
+      name: 'Head Coach Redick',
+      avatar: getMockAvatar('Head Coach Redick'),
+      role: 'Coaches',
+    },
+    {
+      id: '17',
+      name: 'Assistant Coach Nate McMillan',
+      avatar: getMockAvatar('Assistant Coach Nate McMillan'),
+      role: 'Coaches',
+    },
+    {
+      id: '18',
+      name: 'Assistant Coach Scott Brooks',
+      avatar: getMockAvatar('Assistant Coach Scott Brooks'),
+      role: 'Coaches',
+    },
     { id: '19', name: 'Team Doctor', avatar: getMockAvatar('Team Doctor'), role: 'Medical Staff' },
-    { id: '20', name: 'Head Trainer', avatar: getMockAvatar('Head Trainer'), role: 'Medical Staff' },
-    { id: '21', name: 'Team Manager', avatar: getMockAvatar('Team Manager'), role: 'Team Operations' },
-    { id: '22', name: 'Logistics Coordinator', avatar: getMockAvatar('Logistics Coordinator'), role: 'Team Operations' }
+    {
+      id: '20',
+      name: 'Head Trainer',
+      avatar: getMockAvatar('Head Trainer'),
+      role: 'Medical Staff',
+    },
+    {
+      id: '21',
+      name: 'Team Manager',
+      avatar: getMockAvatar('Team Manager'),
+      role: 'Team Operations',
+    },
+    {
+      id: '22',
+      name: 'Logistics Coordinator',
+      avatar: getMockAvatar('Logistics Coordinator'),
+      role: 'Team Operations',
+    },
   ],
   budget: {
     total: 150000,
@@ -116,19 +166,24 @@ export const lakersRoadTrip: ProTripData = {
       { name: 'Travel', budgeted: 60000, spent: 20000 },
       { name: 'Accommodation', budgeted: 50000, spent: 15000 },
       { name: 'Meals', budgeted: 30000, spent: 8000 },
-      { name: 'Logistics', budgeted: 10000, spent: 2000 }
-    ]
+      { name: 'Logistics', budgeted: 10000, spent: 2000 },
+    ],
   },
   itinerary: [
     {
       date: '2025-01-20',
       events: [
         { time: '08:00', title: 'Team Departure', location: 'LAX Airport', type: 'travel' },
-        { time: '12:00', title: 'Arrival in Phoenix', location: 'Phoenix Sky Harbor', type: 'travel' },
+        {
+          time: '12:00',
+          title: 'Arrival in Phoenix',
+          location: 'Phoenix Sky Harbor',
+          type: 'travel',
+        },
         { time: '16:00', title: 'Team Practice', location: 'Footprint Center', type: 'meeting' },
-        { time: '19:00', title: 'Game vs Suns', location: 'Footprint Center', type: 'meeting' }
-      ]
-    }
+        { time: '19:00', title: 'Game vs Suns', location: 'Footprint Center', type: 'meeting' },
+      ],
+    },
   ],
   roster: [
     {
@@ -140,7 +195,7 @@ export const lakersRoadTrip: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['locker-room', 'team-areas'],
       roomPreferences: ['suite', 'high-floor'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '2',
@@ -151,7 +206,7 @@ export const lakersRoadTrip: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'team-management'],
       roomPreferences: ['suite', 'quiet-floor'],
-      dietaryRestrictions: ['diabetic-friendly']
+      dietaryRestrictions: ['diabetic-friendly'],
     },
     {
       id: '3',
@@ -161,8 +216,8 @@ export const lakersRoadTrip: ProTripData = {
       role: 'PR/Marketing',
       credentialLevel: 'Backstage',
       permissions: ['team-coordination', 'logistics'],
-      roomPreferences: ['standard-room']
-    }
+      roomPreferences: ['standard-room'],
+    },
   ],
   roomAssignments: [
     {
@@ -173,8 +228,8 @@ export const lakersRoadTrip: ProTripData = {
       checkIn: '2025-01-20T15:00:00Z',
       checkOut: '2025-01-21T11:00:00Z',
       roomType: 'suite',
-      specialRequests: ['late-checkout', 'quiet-floor']
-    }
+      specialRequests: ['late-checkout', 'quiet-floor'],
+    },
   ],
   schedule: [
     {
@@ -186,8 +241,8 @@ export const lakersRoadTrip: ProTripData = {
       location: 'Hotel Conference Room',
       participants: ['1', '2', '3'],
       priority: 'high',
-      notes: 'Review game strategy and matchups'
-    }
+      notes: 'Review game strategy and matchups',
+    },
   ],
   perDiem: {
     dailyRate: 150,
@@ -196,8 +251,8 @@ export const lakersRoadTrip: ProTripData = {
     endDate: '2025-02-03',
     participants: [
       { participantId: '1', customRate: 200, advances: 0, deductions: 0, balance: 2800 },
-      { participantId: '2', customRate: 175, advances: 0, deductions: 0, balance: 2450 }
-    ]
+      { participantId: '2', customRate: 175, advances: 0, deductions: 0, balance: 2450 },
+    ],
   },
   settlement: [],
   medical: [
@@ -210,8 +265,8 @@ export const lakersRoadTrip: ProTripData = {
       severity: 'minor',
       status: 'resolved',
       treatedBy: 'Team Doctor Smith',
-      restricted: false
-    }
+      restricted: false,
+    },
   ],
   compliance: [
     {
@@ -222,9 +277,9 @@ export const lakersRoadTrip: ProTripData = {
       deadline: '2025-01-19',
       status: 'compliant',
       assignedTo: '2',
-      documents: ['nba-travel-policy.pdf']
-    }
+      documents: ['nba-travel-policy.pdf'],
+    },
   ],
   media: [],
-  sponsors: []
+  sponsors: [],
 };

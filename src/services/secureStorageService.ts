@@ -13,9 +13,9 @@ interface UserPreferences {
 
 export class SecureStorageService {
   private static instance: SecureStorageService;
-  
+
   private constructor() {}
-  
+
   static getInstance(): SecureStorageService {
     if (!SecureStorageService.instance) {
       SecureStorageService.instance = new SecureStorageService();
@@ -39,9 +39,9 @@ export class SecureStorageService {
     try {
       const updatedPreferences = {
         ...preferences,
-        last_updated: new Date().toISOString()
+        last_updated: new Date().toISOString(),
       };
-      
+
       // For now, use platform storage until user_preferences table is set up
       await setStorageItem(`user_preferences_${userId}`, updatedPreferences);
     } catch (error) {
@@ -74,16 +74,21 @@ export class SecureStorageService {
       return preferences.archived_trips || { consumer: [], pro: [], event: [] };
     } else {
       // Fallback for demo mode
-      return this.getLocalPreferences('trips_archive_state') || { consumer: [], pro: [], event: [] };
+      return (
+        this.getLocalPreferences('trips_archive_state') || { consumer: [], pro: [], event: [] }
+      );
     }
   }
 
-  async saveArchivedTrips(archivedTrips: UserPreferences['archived_trips'], userId?: string): Promise<void> {
+  async saveArchivedTrips(
+    archivedTrips: UserPreferences['archived_trips'],
+    userId?: string,
+  ): Promise<void> {
     if (userId) {
       const preferences = await this.getUserPreferences(userId);
       await this.saveUserPreferences(userId, {
         ...preferences,
-        archived_trips: archivedTrips
+        archived_trips: archivedTrips,
       });
     } else {
       // Fallback for demo mode
@@ -107,7 +112,7 @@ export class SecureStorageService {
       const preferences = await this.getUserPreferences(userId);
       await this.saveUserPreferences(userId, {
         ...preferences,
-        demo_mode_enabled: enabled
+        demo_mode_enabled: enabled,
       });
     } else {
       if (enabled) {
@@ -121,10 +126,7 @@ export class SecureStorageService {
   // Clear all preferences (for logout/reset)
   async clearUserPreferences(userId: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('user_preferences')
-        .delete()
-        .eq('user_id', userId);
+      const { error } = await supabase.from('user_preferences').delete().eq('user_id', userId);
 
       if (error) {
         console.error('Error clearing user preferences:', error);

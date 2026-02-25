@@ -8,22 +8,18 @@ export interface BaseCampPillProps {
   onClick?: () => void;
 }
 
-export const BaseCampPill: React.FC<BaseCampPillProps> = ({
-  label,
-  icon,
-  tone,
-  onClick
-}) => {
+export const BaseCampPill: React.FC<BaseCampPillProps> = ({ label, icon, tone, onClick }) => {
   const toneStyles = {
     trip: 'ring-1 ring-sky-400/30 bg-sky-900/30 text-sky-200',
-    personal: 'ring-1 ring-emerald-400/30 bg-emerald-900/30 text-emerald-200'
+    personal: 'ring-1 ring-emerald-400/30 bg-emerald-900/30 text-emerald-200',
   };
 
-  const iconComponent = icon === 'edit' ? (
-    <Edit size={14} className="ml-1" />
-  ) : icon === 'lock' ? (
-    <Lock size={14} className="ml-1" />
-  ) : null;
+  const iconComponent =
+    icon === 'edit' ? (
+      <Edit size={14} className="ml-1" />
+    ) : icon === 'lock' ? (
+      <Lock size={14} className="ml-1" />
+    ) : null;
 
   return (
     <div
@@ -36,12 +32,16 @@ export const BaseCampPill: React.FC<BaseCampPillProps> = ({
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      } : undefined}
+      onKeyDown={
+        onClick
+          ? e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
     >
       <span>{label}</span>
       {iconComponent}

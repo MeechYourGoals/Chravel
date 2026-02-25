@@ -27,7 +27,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { editChatMessage, editChannelMessage, deleteChatMessage, deleteChannelMessage } from '@/services/chatService';
+import {
+  editChatMessage,
+  editChannelMessage,
+  deleteChatMessage,
+  deleteChannelMessage,
+} from '@/services/chatService';
 
 export interface MessageActionsProps {
   messageId: string;
@@ -46,7 +51,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   isOwnMessage,
   isDeleted = false,
   onEdit,
-  onDelete
+  onDelete,
 }) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -71,9 +76,10 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
 
     setIsSubmitting(true);
     try {
-      const success = messageType === 'channel'
-        ? await editChannelMessage(messageId, editedContent)
-        : await editChatMessage(messageId, editedContent);
+      const success =
+        messageType === 'channel'
+          ? await editChannelMessage(messageId, editedContent)
+          : await editChatMessage(messageId, editedContent);
 
       if (success) {
         toast.success('Message edited');
@@ -93,9 +99,10 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      const success = messageType === 'channel'
-        ? await deleteChannelMessage(messageId)
-        : await deleteChatMessage(messageId);
+      const success =
+        messageType === 'channel'
+          ? await deleteChannelMessage(messageId)
+          : await deleteChatMessage(messageId);
 
       if (success) {
         toast.success('Message deleted');
@@ -153,7 +160,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           <div className="space-y-4">
             <Textarea
               value={editedContent}
-              onChange={(e) => setEditedContent(e.target.value)}
+              onChange={e => setEditedContent(e.target.value)}
               placeholder="Edit your message..."
               className="bg-gray-800 border-white/10 text-white min-h-[100px]"
               disabled={isSubmitting}
@@ -166,10 +173,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleEdit}
-                disabled={isSubmitting || !editedContent.trim()}
-              >
+              <Button onClick={handleEdit} disabled={isSubmitting || !editedContent.trim()}>
                 {isSubmitting ? 'Saving...' : 'Save'}
               </Button>
             </div>

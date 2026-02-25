@@ -1,7 +1,10 @@
-
 import React from 'react';
 import { Clock, MapPin, Users } from 'lucide-react';
-import { useBroadcastReactions, ReactionType, ReactionCounts } from '../hooks/useBroadcastReactions';
+import {
+  useBroadcastReactions,
+  ReactionType,
+  ReactionCounts,
+} from '../hooks/useBroadcastReactions';
 import { BroadcastResponseButtons } from './BroadcastResponseButtons';
 
 interface BroadcastProps {
@@ -17,23 +20,23 @@ interface BroadcastProps {
   onRespond: (broadcastId: string, response: ReactionType) => void;
 }
 
-export const Broadcast = ({ 
-  id, 
-  sender, 
-  message, 
+export const Broadcast = ({
+  id,
+  sender,
+  message,
   timestamp,
   location,
   category,
   recipients,
   responses: initialResponses,
   userResponse: initialUserResponse,
-  onRespond
+  onRespond,
 }: BroadcastProps) => {
   const { userResponse, responses, handleResponse } = useBroadcastReactions({
     broadcastId: id,
     initialResponses,
     userResponse: initialUserResponse,
-    onRespond
+    onRespond,
   });
 
   const getCategoryColors = () => {
@@ -54,7 +57,7 @@ export const Broadcast = ({
   const formatTime = (date: Date) => {
     const now = new Date();
     const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffMinutes < 60) {
       return `${diffMinutes}m ago`;
     } else if (diffMinutes < 1440) {
@@ -77,9 +80,7 @@ export const Broadcast = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-xs font-medium text-white">
-              {sender.charAt(0).toUpperCase()}
-            </span>
+            <span className="text-xs font-medium text-white">{sender.charAt(0).toUpperCase()}</span>
           </div>
           <span className="font-medium text-white">{sender}</span>
           <span className="text-xs text-slate-400 capitalize">{category}</span>

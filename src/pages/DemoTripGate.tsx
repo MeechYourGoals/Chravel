@@ -187,8 +187,8 @@ const DemoTripGate = () => {
               {tripData?.name || 'This Demo Trip'}
             </h1>
             <p className="text-white/60 mb-5">
-              This is a <span className="text-white font-medium">demo trip</span> created to show how
-              ChravelApp works. Sign up or log in to create your own trip and unlock the full
+              This is a <span className="text-white font-medium">demo trip</span> created to show
+              how ChravelApp works. Sign up or log in to create your own trip and unlock the full
               experience.
             </p>
 
@@ -222,7 +222,6 @@ const DemoTripGate = () => {
                 Create a Trip Like This
               </button>
             </div>
-
           </div>
         </div>
       </div>

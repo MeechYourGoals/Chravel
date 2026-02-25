@@ -2,7 +2,7 @@
  * Concierge Rate Limiting Service for Trips/Events
  * Prevents API cost overruns while maintaining good UX
  * NOW WITH DATABASE-BACKED RATE LIMITING
- * 
+ *
  * IMPORTANT: Limits are per user, per trip (NOT daily reset):
  * - Free: 5 queries per user per trip
  * - Explorer (Plus): 10 queries per user per trip
@@ -25,7 +25,7 @@ class ConciergeRateLimitService {
 
   /**
    * Get per-trip query limit based on user's subscription tier
-   * 
+   *
    * Limits (per user, per trip - NO daily reset):
    * - Free: 5 queries
    * - Explorer/Plus: 10 queries
@@ -50,7 +50,11 @@ class ConciergeRateLimitService {
    * Get current usage for user in specific trip/event - DATABASE-BACKED
    * Note: This counts ALL queries for the trip (no daily reset)
    */
-  async getUsage(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro' = 'free'): Promise<ConciergeUsage> {
+  async getUsage(
+    userId: string,
+    eventId: string,
+    userTier: 'free' | 'plus' | 'pro' = 'free',
+  ): Promise<ConciergeUsage> {
     // Check if in demo mode
     const isDemoMode = await demoModeService.isDemoModeEnabled();
 
@@ -79,7 +83,7 @@ class ConciergeRateLimitService {
       eventId,
       queriesUsed,
       tripLimit: this.getTripLimit(userTier),
-      resetAt: '' // Not used for per-trip model
+      resetAt: '', // Not used for per-trip model
     };
   }
 
@@ -87,7 +91,11 @@ class ConciergeRateLimitService {
    * Get usage from localStorage (demo mode fallback)
    * Note: Per-trip usage persists until trip ends (no daily reset)
    */
-  private getUsageFromStorage(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): ConciergeUsage {
+  private getUsageFromStorage(
+    userId: string,
+    eventId: string,
+    userTier: 'free' | 'plus' | 'pro',
+  ): ConciergeUsage {
     const storageData = this.loadFromStorage();
     const key = `${userId}-${eventId}`;
     const existing = storageData[key];
@@ -105,7 +113,7 @@ class ConciergeRateLimitService {
       eventId,
       queriesUsed: 0,
       tripLimit: this.getTripLimit(userTier),
-      resetAt: '' // Not used for per-trip model
+      resetAt: '', // Not used for per-trip model
     };
 
     storageData[key] = newUsage;
@@ -117,7 +125,11 @@ class ConciergeRateLimitService {
   /**
    * Increment query count for user - DATABASE-BACKED
    */
-  async incrementUsage(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro' = 'free'): Promise<ConciergeUsage> {
+  async incrementUsage(
+    userId: string,
+    eventId: string,
+    userTier: 'free' | 'plus' | 'pro' = 'free',
+  ): Promise<ConciergeUsage> {
     const usage = await this.getUsage(userId, eventId, userTier);
 
     if (userTier !== 'pro' && usage.queriesUsed >= usage.tripLimit) {
@@ -137,14 +149,12 @@ class ConciergeRateLimitService {
     }
 
     // Insert usage record to database
-    const { error } = await supabase
-      .from('concierge_usage')
-      .insert({
-        user_id: userId,
-        context_type: 'event',
-        context_id: eventId,
-        query_count: 1
-      });
+    const { error } = await supabase.from('concierge_usage').insert({
+      user_id: userId,
+      context_type: 'event',
+      context_id: eventId,
+      query_count: 1,
+    });
 
     if (error) {
       console.error('Failed to increment usage in database:', error);
@@ -163,7 +173,11 @@ class ConciergeRateLimitService {
   /**
    * Check if user can make another query - DATABASE-BACKED
    */
-  async canQuery(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro' = 'free'): Promise<boolean> {
+  async canQuery(
+    userId: string,
+    eventId: string,
+    userTier: 'free' | 'plus' | 'pro' = 'free',
+  ): Promise<boolean> {
     if (userTier === 'pro') return true;
 
     const usage = await this.getUsage(userId, eventId, userTier);
@@ -173,9 +187,13 @@ class ConciergeRateLimitService {
   /**
    * Get remaining queries for user in this trip
    */
-  async getRemainingQueries(userId: string, eventId: string, userTier: 'free' | 'plus' | 'pro'): Promise<number> {
+  async getRemainingQueries(
+    userId: string,
+    eventId: string,
+    userTier: 'free' | 'plus' | 'pro',
+  ): Promise<number> {
     if (userTier === 'pro') return Infinity;
-    
+
     const usage = await this.getUsage(userId, eventId, userTier);
     return Math.max(0, usage.tripLimit - usage.queriesUsed);
   }
@@ -186,7 +204,11 @@ class ConciergeRateLimitService {
    * @see getRemainingQueries for current usage info
    * TODO: Remove in v2.0 after all consumers migrated
    */
-  async getTimeUntilReset(_userId: string, _eventId: string, _userTier: 'free' | 'plus' | 'pro'): Promise<string> {
+  async getTimeUntilReset(
+    _userId: string,
+    _eventId: string,
+    _userTier: 'free' | 'plus' | 'pro',
+  ): Promise<string> {
     // Per-trip limits do not reset - they persist for the lifetime of the trip
     return '';
   }
@@ -227,4 +249,3 @@ class ConciergeRateLimitService {
 }
 
 export const conciergeRateLimitService = new ConciergeRateLimitService();
-

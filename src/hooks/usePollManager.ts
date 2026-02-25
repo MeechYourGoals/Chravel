@@ -21,7 +21,7 @@ export const usePollManager = () => {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<PollOption[]>([
     { id: generateOptionId(), text: '' },
-    { id: generateOptionId(), text: '' }
+    { id: generateOptionId(), text: '' },
   ]);
 
   const addOption = useCallback(() => {
@@ -61,7 +61,7 @@ export const usePollManager = () => {
 
     return {
       question: question.trim(),
-      options: options.filter(opt => opt.text.trim()).map(opt => opt.text.trim())
+      options: options.filter(opt => opt.text.trim()).map(opt => opt.text.trim()),
     };
   }, [question, options, validatePoll]);
 
@@ -69,7 +69,7 @@ export const usePollManager = () => {
     setQuestion('');
     setOptions([
       { id: generateOptionId(), text: '' },
-      { id: generateOptionId(), text: '' }
+      { id: generateOptionId(), text: '' },
     ]);
   }, []);
 
@@ -77,12 +77,12 @@ export const usePollManager = () => {
     // State
     question,
     options,
-    
+
     // Computed
     validOptions: options.filter(opt => opt.text.trim()),
     canAddOption: options.length < 10,
     canRemoveOption: options.length > 2,
-    
+
     // Actions
     setQuestion,
     addOption,
@@ -90,6 +90,6 @@ export const usePollManager = () => {
     removeOption,
     validatePoll,
     getPollData,
-    resetForm
+    resetForm,
   };
 };

@@ -27,7 +27,7 @@ export const ConfirmPaymentDialog = ({
   open,
   onOpenChange,
   balance,
-  tripId
+  tripId,
 }: ConfirmPaymentDialogProps) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,9 @@ export const ConfirmPaymentDialog = ({
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       // Update all unsettled payment splits for this user pair
@@ -49,7 +51,7 @@ export const ConfirmPaymentDialog = ({
           confirmed_by: user.id,
           confirmed_at: new Date().toISOString(),
           is_settled: true,
-          settled_at: new Date().toISOString()
+          settled_at: new Date().toISOString(),
         })
         .eq('debtor_user_id', balance.userId)
         .eq('confirmation_status', 'pending');
@@ -57,7 +59,7 @@ export const ConfirmPaymentDialog = ({
       if (updateError) throw updateError;
 
       toast({
-        title: "Payment Confirmed",
+        title: 'Payment Confirmed',
         description: `You've confirmed receiving ${formatCurrency(Math.abs(balance.amountOwed), currency)} from ${balance.userName}`,
       });
 
@@ -75,9 +77,9 @@ export const ConfirmPaymentDialog = ({
       const errorMessage = error instanceof Error ? error.message : 'Failed to confirm payment';
       setError(errorMessage);
       toast({
-        title: "Confirmation Failed",
+        title: 'Confirmation Failed',
         description: errorMessage + '. Please try again.',
-        variant: "destructive"
+        variant: 'destructive',
       });
     } finally {
       setIsConfirming(false);
@@ -87,8 +89,8 @@ export const ConfirmPaymentDialog = ({
   const handleLeavePending = () => {
     onOpenChange(false);
     toast({
-      title: "Payment Still Pending",
-      description: "The payment confirmation request will remain open.",
+      title: 'Payment Still Pending',
+      description: 'The payment confirmation request will remain open.',
     });
   };
 
@@ -101,7 +103,8 @@ export const ConfirmPaymentDialog = ({
             Confirm Payment Received
           </DialogTitle>
           <DialogDescription>
-            {balance.userName} marked their payment as complete. Please confirm you've received the money.
+            {balance.userName} marked their payment as complete. Please confirm you've received the
+            money.
           </DialogDescription>
         </DialogHeader>
 
@@ -109,7 +112,9 @@ export const ConfirmPaymentDialog = ({
           <div className="bg-muted rounded-lg p-4 space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Amount:</span>
-              <span className="font-semibold">{formatCurrency(Math.abs(balance.amountOwed), currency)}</span>
+              <span className="font-semibold">
+                {formatCurrency(Math.abs(balance.amountOwed), currency)}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">From:</span>
@@ -118,13 +123,16 @@ export const ConfirmPaymentDialog = ({
             {balance.preferredPaymentMethod && (
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Via:</span>
-                <span className="font-medium capitalize">{balance.preferredPaymentMethod.type}</span>
+                <span className="font-medium capitalize">
+                  {balance.preferredPaymentMethod.type}
+                </span>
               </div>
             )}
           </div>
 
           <div className="mt-4 text-sm text-muted-foreground">
-            By confirming, you're acknowledging that you've received this payment and the transaction will be marked as complete.
+            By confirming, you're acknowledging that you've received this payment and the
+            transaction will be marked as complete.
           </div>
 
           {error && (

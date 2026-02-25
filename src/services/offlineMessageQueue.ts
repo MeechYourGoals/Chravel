@@ -50,7 +50,7 @@ async function getDB(): Promise<IDBPDatabase<OfflineQueueDB>> {
 export async function queueMessage(message: ChatMessageInsert): Promise<string> {
   const db = await getDB();
   const queueId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   const queuedMessage: QueuedMessage = {
     id: queueId,
     message,
@@ -77,7 +77,7 @@ export async function getQueuedMessages(): Promise<QueuedMessage[]> {
 export async function processQueue(): Promise<{ success: number; failed: number }> {
   const db = await getDB();
   const pendingMessages = await db.getAllFromIndex('queue', 'by-status', 'pending');
-  
+
   let success = 0;
   let failed = 0;
 
@@ -114,9 +114,9 @@ export async function processQueue(): Promise<{ success: number; failed: number 
       success++;
     } catch (error) {
       console.error(`Failed to send queued message ${queued.id}:`, error);
-      
+
       const newRetryCount = queued.retryCount + 1;
-      
+
       if (newRetryCount >= MAX_RETRIES) {
         // Max retries reached - mark as failed
         await db.put('queue', {
@@ -161,7 +161,7 @@ export async function getFailedMessages(): Promise<QueuedMessage[]> {
 export async function retryFailedMessage(queueId: string): Promise<boolean> {
   const db = await getDB();
   const queued = await db.get('queue', queueId);
-  
+
   if (!queued || queued.status !== 'failed') {
     return false;
   }

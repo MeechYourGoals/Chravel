@@ -34,8 +34,8 @@ export const PersonalizedAgenda = ({ eventId, sessions }: PersonalizedAgendaProp
           session_id: sessions[0]?.id || 'session1',
           session_title: sessions[0]?.title || 'AI Innovation Keynote',
           notification_preference: 15,
-          reminder_sent: false
-        }
+          reminder_sent: false,
+        },
       ]);
       setIsLoading(false);
     }
@@ -54,21 +54,21 @@ export const PersonalizedAgenda = ({ eventId, sessions }: PersonalizedAgendaProp
         session_id: session.id,
         session_title: session.title,
         notification_preference: 15,
-        reminder_sent: false
+        reminder_sent: false,
       };
-      
+
       setMySchedule(prev => [...prev, newScheduleItem]);
-      
+
       toast({
-        title: "Added to schedule",
-        description: `${session.title} has been added to your personal agenda.`
+        title: 'Added to schedule',
+        description: `${session.title} has been added to your personal agenda.`,
       });
     } catch (error) {
       console.error('Error adding to schedule:', error);
       toast({
-        title: "Error",
-        description: "Failed to add session to schedule.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to add session to schedule.',
+        variant: 'destructive',
       });
     }
   };
@@ -76,26 +76,28 @@ export const PersonalizedAgenda = ({ eventId, sessions }: PersonalizedAgendaProp
   const removeFromSchedule = async (scheduleId: string, sessionTitle: string) => {
     try {
       setMySchedule(prev => prev.filter(item => item.id !== scheduleId));
-      
+
       toast({
-        title: "Removed from schedule",
-        description: `${sessionTitle} has been removed from your agenda.`
+        title: 'Removed from schedule',
+        description: `${sessionTitle} has been removed from your agenda.`,
       });
     } catch (error) {
       console.error('Error removing from schedule:', error);
       toast({
-        title: "Error",
-        description: "Failed to remove session from schedule.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to remove session from schedule.',
+        variant: 'destructive',
       });
     }
   };
 
   const updateNotificationPreference = async (scheduleId: string, minutes: number) => {
     try {
-      setMySchedule(prev => prev.map(item => 
-        item.id === scheduleId ? { ...item, notification_preference: minutes } : item
-      ));
+      setMySchedule(prev =>
+        prev.map(item =>
+          item.id === scheduleId ? { ...item, notification_preference: minutes } : item,
+        ),
+      );
     } catch (error) {
       console.error('Error updating notification preference:', error);
     }
@@ -140,16 +142,18 @@ export const PersonalizedAgenda = ({ eventId, sessions }: PersonalizedAgendaProp
       {/* My Schedule */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h4 className="text-lg font-semibold text-white mb-4">Your Scheduled Sessions</h4>
-        
+
         {mySchedule.length === 0 ? (
           <div className="text-center py-8">
             <Clock size={32} className="text-gray-500 mx-auto mb-3" />
             <p className="text-gray-400 mb-4">No sessions scheduled yet.</p>
-            <p className="text-gray-500 text-sm">Browse sessions below and add them to your agenda.</p>
+            <p className="text-gray-500 text-sm">
+              Browse sessions below and add them to your agenda.
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {mySchedule.map((item) => {
+            {mySchedule.map(item => {
               const session = getSessionDetails(item.session_id);
               if (!session) return null;
 
@@ -183,7 +187,9 @@ export const PersonalizedAgenda = ({ eventId, sessions }: PersonalizedAgendaProp
                     </div>
                     <Select
                       value={item.notification_preference.toString()}
-                      onValueChange={(value) => updateNotificationPreference(item.id, parseInt(value))}
+                      onValueChange={value =>
+                        updateNotificationPreference(item.id, parseInt(value))
+                      }
                     >
                       <SelectTrigger className="w-32 bg-gray-800/50 border-gray-600 text-white text-sm">
                         <SelectValue />
@@ -207,7 +213,7 @@ export const PersonalizedAgenda = ({ eventId, sessions }: PersonalizedAgendaProp
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h4 className="text-lg font-semibold text-white mb-4">Available Sessions</h4>
         <div className="space-y-3">
-          {sessions.map((session) => (
+          {sessions.map(session => (
             <div key={session.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -221,7 +227,7 @@ export const PersonalizedAgenda = ({ eventId, sessions }: PersonalizedAgendaProp
                     <div>{session.location}</div>
                   </div>
                 </div>
-                
+
                 {isSessionInSchedule(session.id) ? (
                   <div className="flex items-center gap-2 text-green-400 text-sm">
                     <Bell size={14} />

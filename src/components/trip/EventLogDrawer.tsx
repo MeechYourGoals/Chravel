@@ -18,11 +18,7 @@ interface EventLogDrawerProps {
   tripId: string;
 }
 
-export const EventLogDrawer: React.FC<EventLogDrawerProps> = ({
-  isOpen,
-  onClose,
-  tripId,
-}) => {
+export const EventLogDrawer: React.FC<EventLogDrawerProps> = ({ isOpen, onClose, tripId }) => {
   const [events, setEvents] = useState<SystemEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -103,10 +99,7 @@ export const EventLogDrawer: React.FC<EventLogDrawerProps> = ({
               )}
               Copy All
             </button>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-muted rounded-lg transition-colors"
-            >
+            <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -119,11 +112,8 @@ export const EventLogDrawer: React.FC<EventLogDrawerProps> = ({
           ) : events.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">No system events found</div>
           ) : (
-            events.map((event) => (
-              <div
-                key={event.id}
-                className="border border-border rounded-xl p-3 bg-muted/30"
-              >
+            events.map(event => (
+              <div key={event.id} className="border border-border rounded-xl p-3 bg-muted/30">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <p className="text-sm text-foreground">{event.content}</p>

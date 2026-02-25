@@ -23,32 +23,50 @@ interface ArchivedTripCardProps {
   onUpgrade: () => void;
 }
 
-export const ArchivedTripCard = ({ trip, onRestore, onUnhide, onUpgrade }: ArchivedTripCardProps) => {
+export const ArchivedTripCard = ({
+  trip,
+  onRestore,
+  onUnhide,
+  onUpgrade,
+}: ArchivedTripCardProps) => {
   const navigate = useNavigate();
   const { isPro } = useSubscription();
 
   const formatDateRange = () => {
     if (!trip.start_date) return 'No dates set';
-    const start = new Date(trip.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const end = trip.end_date 
-      ? new Date(trip.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const start = new Date(trip.start_date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    const end = trip.end_date
+      ? new Date(trip.end_date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
       : '';
     return end ? `${start} - ${end}` : start;
   };
 
   const getTripTypeLabel = () => {
     switch (trip.trip_type) {
-      case 'pro': return 'Pro Trip';
-      case 'event': return 'Event';
-      default: return 'Trip';
+      case 'pro':
+        return 'Pro Trip';
+      case 'event':
+        return 'Event';
+      default:
+        return 'Trip';
     }
   };
 
   const getTripTypeColor = () => {
     switch (trip.trip_type) {
-      case 'pro': return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-      case 'event': return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
-      default: return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+      case 'pro':
+        return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+      case 'event':
+        return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
+      default:
+        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
     }
   };
 
@@ -58,11 +76,12 @@ export const ArchivedTripCard = ({ trip, onRestore, onUnhide, onUpgrade }: Archi
       return;
     }
     // Pro users can view archived trips directly
-    const route = trip.trip_type === 'pro' 
-      ? `/tour/pro/${trip.id}` 
-      : trip.trip_type === 'event' 
-        ? `/event/${trip.id}` 
-        : `/trip/${trip.id}`;
+    const route =
+      trip.trip_type === 'pro'
+        ? `/tour/pro/${trip.id}`
+        : trip.trip_type === 'event'
+          ? `/event/${trip.id}`
+          : `/trip/${trip.id}`;
     navigate(route);
   };
 
@@ -81,10 +100,10 @@ export const ArchivedTripCard = ({ trip, onRestore, onUnhide, onUpgrade }: Archi
   };
 
   return (
-    <div 
+    <div
       className={`relative group rounded-2xl overflow-hidden transition-all duration-300 border ${
-        isPro 
-          ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 cursor-pointer hover:scale-[1.02]' 
+        isPro
+          ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 cursor-pointer hover:scale-[1.02]'
           : 'bg-white/5 border-white/10 opacity-60 grayscale cursor-pointer'
       }`}
       onClick={handleCardClick}
@@ -102,13 +121,13 @@ export const ArchivedTripCard = ({ trip, onRestore, onUnhide, onUpgrade }: Archi
       {/* Cover Image */}
       <div className="relative h-32 bg-gradient-to-br from-gray-700/50 to-gray-800/50">
         {trip.cover_image_url && (
-          <div 
+          <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url('${trip.cover_image_url}')` }}
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-        
+
         {/* Badges */}
         <div className="absolute top-3 left-3 flex gap-2">
           <Badge variant="secondary" className={getTripTypeColor()}>
@@ -132,9 +151,7 @@ export const ArchivedTripCard = ({ trip, onRestore, onUnhide, onUpgrade }: Archi
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-white mb-2 line-clamp-1">
-          {trip.name}
-        </h3>
+        <h3 className="text-lg font-semibold text-white mb-2 line-clamp-1">{trip.name}</h3>
 
         {trip.destination && (
           <div className="flex items-center gap-2 text-white/70 mb-1 text-sm">
@@ -176,7 +193,10 @@ export const ArchivedTripCard = ({ trip, onRestore, onUnhide, onUpgrade }: Archi
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => { e.stopPropagation(); onUpgrade(); }}
+              onClick={e => {
+                e.stopPropagation();
+                onUpgrade();
+              }}
               className="flex-1 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 text-amber-300 border border-amber-500/30"
             >
               <Lock size={14} className="mr-1" />

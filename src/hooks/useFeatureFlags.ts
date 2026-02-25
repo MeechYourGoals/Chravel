@@ -39,10 +39,10 @@ export const useFeatureFlags = () => {
 
   const canUseChannels = (tripType?: 'consumer' | 'pro' | 'event'): boolean => {
     if (!flags.CHANNELS_ENABLED) return false;
-    
+
     if (flags.CHANNELS_PRO_ONLY && tripType === 'consumer') return false;
     if (flags.CHANNELS_EVENTS_ONLY && tripType !== 'event') return false;
-    
+
     return true;
   };
 

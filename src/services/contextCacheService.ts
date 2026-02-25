@@ -31,7 +31,7 @@ export class ContextCacheService {
   static set(tripId: string, context: ComprehensiveTripContext): void {
     this.cache.set(tripId, {
       data: context,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -64,12 +64,12 @@ export class ContextCacheService {
     const entries = Array.from(this.cache.entries()).map(([tripId, cached]) => ({
       tripId,
       age: now - cached.timestamp,
-      isExpired: (now - cached.timestamp) > this.TTL
+      isExpired: now - cached.timestamp > this.TTL,
     }));
 
     return {
       size: this.cache.size,
-      entries
+      entries,
     };
   }
 
@@ -81,7 +81,7 @@ export class ContextCacheService {
     let cleaned = 0;
 
     for (const [tripId, cached] of this.cache.entries()) {
-      if ((now - cached.timestamp) > this.TTL) {
+      if (now - cached.timestamp > this.TTL) {
         this.cache.delete(tripId);
         cleaned++;
       }

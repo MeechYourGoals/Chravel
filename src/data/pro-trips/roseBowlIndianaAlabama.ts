@@ -4,7 +4,8 @@ import { getMockAvatar } from '../../utils/mockAvatars';
 export const roseBowlIndianaAlabama: ProTripData = {
   id: 'rose-bowl-indiana-alabama-2025',
   title: 'Rose Bowl: Indiana vs Alabama',
-  description: 'Indiana Hoosiers facing Alabama Crimson Tide in the historic Rose Bowl Championship.',
+  description:
+    'Indiana Hoosiers facing Alabama Crimson Tide in the historic Rose Bowl Championship.',
   location: 'Pasadena, California',
   dateRange: 'December 29, 2025 - Jan 2, 2026',
   proTripCategory: 'sports',
@@ -19,7 +20,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
       completed: true,
       due_at: '2025-12-28',
       assigned_to: 'operations',
-      created_at: new Date(Date.now() - 604800000).toISOString()
+      created_at: new Date(Date.now() - 604800000).toISOString(),
     },
     {
       id: 'task-rb-2',
@@ -28,8 +29,8 @@ export const roseBowlIndianaAlabama: ProTripData = {
       completed: false,
       due_at: '2025-12-29',
       assigned_to: 'compliance',
-      created_at: new Date().toISOString()
-    }
+      created_at: new Date().toISOString(),
+    },
   ],
   polls: [
     {
@@ -38,12 +39,12 @@ export const roseBowlIndianaAlabama: ProTripData = {
       options: [
         { id: 'opt1', text: '10:00 AM (Early)', votes: 35 },
         { id: 'opt2', text: '11:00 AM (Standard)', votes: 42 },
-        { id: 'opt3', text: '12:00 PM (Late)', votes: 12 }
+        { id: 'opt3', text: '12:00 PM (Late)', votes: 12 },
       ],
       total_votes: 89,
       status: 'closed',
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
   ],
   links: [
     {
@@ -53,7 +54,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
       description: 'Venue details and parking instructions',
       domain: 'rosebowlstadium.com',
       created_at: new Date().toISOString(),
-      source: 'places'
+      source: 'places',
     },
     {
       id: 'link-rb-2',
@@ -62,8 +63,8 @@ export const roseBowlIndianaAlabama: ProTripData = {
       description: 'Official team accommodation',
       domain: 'ritzcarlton.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
-      source: 'manual'
-    }
+      source: 'manual',
+    },
   ],
   broadcasts: [
     {
@@ -73,24 +74,43 @@ export const roseBowlIndianaAlabama: ProTripData = {
       targetTrips: ['rose-bowl-indiana-alabama-2025'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['2', '3', '4']
+      readBy: ['2', '3', '4'],
     },
     {
       id: 'bc-rb-2',
       senderId: '3',
-      message: 'URGENT: Stadium access restricted to credentialed personnel only. Ensure all IDs visible.',
+      message:
+        'URGENT: Stadium access restricted to credentialed personnel only. Ensure all IDs visible.',
       targetTrips: ['rose-bowl-indiana-alabama-2025'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 1800000).toISOString(),
-      readBy: ['1', '2']
-    }
+      readBy: ['1', '2'],
+    },
   ],
   participants: Array.from({ length: 89 }, (_, i) => {
     const id = String(501 + i);
 
     if (i < 12) {
-      const coaches = ['Curt Cignetti', 'Offensive Coordinator', 'Defensive Coordinator', 'Special Teams Coach', 'QB Coach', 'RB Coach', 'WR Coach', 'OL Coach', 'DL Coach', 'LB Coach', 'DB Coach', 'Strength Coach'];
-      return { id, name: coaches[i] || `Coach ${i + 1}`, avatar: getMockAvatar(coaches[i] || `Coach ${i + 1}`), role: 'Coaches' };
+      const coaches = [
+        'Curt Cignetti',
+        'Offensive Coordinator',
+        'Defensive Coordinator',
+        'Special Teams Coach',
+        'QB Coach',
+        'RB Coach',
+        'WR Coach',
+        'OL Coach',
+        'DL Coach',
+        'LB Coach',
+        'DB Coach',
+        'Strength Coach',
+      ];
+      return {
+        id,
+        name: coaches[i] || `Coach ${i + 1}`,
+        avatar: getMockAvatar(coaches[i] || `Coach ${i + 1}`),
+        role: 'Coaches',
+      };
     } else if (i < 60) {
       const positions = ['QB', 'RB', 'WR', 'TE', 'OL', 'DL', 'LB', 'DB', 'K', 'P', 'LS'];
       const position = positions[(i - 12) % positions.length];
@@ -98,11 +118,42 @@ export const roseBowlIndianaAlabama: ProTripData = {
       const playerName = `${position} Player ${playerNumber}`;
       return { id, name: playerName, avatar: getMockAvatar(playerName), role: 'Players' };
     } else if (i < 72) {
-      const medical = ['Head Team Doctor', 'Athletic Trainer 1', 'Athletic Trainer 2', 'Physical Therapist', 'Nutritionist', 'Mental Health Specialist', 'Team Chaplain', 'Video Coordinator', 'Technology Specialist', 'Academic Advisor', 'Logistics Manager', 'Assistant Logistics Manager'];
+      const medical = [
+        'Head Team Doctor',
+        'Athletic Trainer 1',
+        'Athletic Trainer 2',
+        'Physical Therapist',
+        'Nutritionist',
+        'Mental Health Specialist',
+        'Team Chaplain',
+        'Video Coordinator',
+        'Technology Specialist',
+        'Academic Advisor',
+        'Logistics Manager',
+        'Assistant Logistics Manager',
+      ];
       const staffName = medical[i - 60] || `Medical Staff ${i - 59}`;
       return { id, name: staffName, avatar: getMockAvatar(staffName), role: 'Medical Staff' };
     } else {
-      const admin = ['Athletic Director', 'Team Manager', 'Operations Manager', 'Travel Coordinator', 'Compliance Officer', 'Sports Information Director', 'Media Relations', 'Security Chief', 'Bus Driver 1', 'Bus Driver 2', 'Team Chef', 'Logistics Coordinator', 'Administrative Assistant 1', 'Administrative Assistant 2', 'Guest Relations', 'Support Staff 1', 'Support Staff 2'];
+      const admin = [
+        'Athletic Director',
+        'Team Manager',
+        'Operations Manager',
+        'Travel Coordinator',
+        'Compliance Officer',
+        'Sports Information Director',
+        'Media Relations',
+        'Security Chief',
+        'Bus Driver 1',
+        'Bus Driver 2',
+        'Team Chef',
+        'Logistics Coordinator',
+        'Administrative Assistant 1',
+        'Administrative Assistant 2',
+        'Guest Relations',
+        'Support Staff 1',
+        'Support Staff 2',
+      ];
       const staffName = admin[i - 72] || `Support Staff ${i - 71}`;
       return { id, name: staffName, avatar: getMockAvatar(staffName), role: 'Support Staff' };
     }
@@ -114,8 +165,8 @@ export const roseBowlIndianaAlabama: ProTripData = {
       { name: 'Travel', budgeted: 150000, spent: 40000 },
       { name: 'Accommodation', budgeted: 200000, spent: 55000 },
       { name: 'Meals', budgeted: 100000, spent: 20000 },
-      { name: 'Logistics', budgeted: 50000, spent: 10000 }
-    ]
+      { name: 'Logistics', budgeted: 50000, spent: 10000 },
+    ],
   },
   itinerary: [
     {
@@ -123,11 +174,21 @@ export const roseBowlIndianaAlabama: ProTripData = {
       events: [
         { time: '08:00', title: 'Team Departure', location: 'Bloomington Airport', type: 'travel' },
         { time: '13:30', title: 'Arrival in Los Angeles', location: 'LAX Airport', type: 'travel' },
-        { time: '16:00', title: 'Hotel Check-in', location: 'Ritz-Carlton Pasadena', type: 'travel' },
+        {
+          time: '16:00',
+          title: 'Hotel Check-in',
+          location: 'Ritz-Carlton Pasadena',
+          type: 'travel',
+        },
         { time: '18:00', title: 'Team Practice', location: 'Rose Bowl Stadium', type: 'meeting' },
-        { time: '20:00', title: 'Team Dinner', location: 'Langham Huntington Pasadena', type: 'meeting' }
-      ]
-    }
+        {
+          time: '20:00',
+          title: 'Team Dinner',
+          location: 'Langham Huntington Pasadena',
+          type: 'meeting',
+        },
+      ],
+    },
   ],
   roster: [
     {
@@ -139,7 +200,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'team-management'],
       roomPreferences: ['suite', 'quiet-floor'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '2',
@@ -150,7 +211,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['locker-room', 'team-areas'],
       roomPreferences: ['double-room', 'teammate-pairing'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '3',
@@ -161,7 +222,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['locker-room', 'team-areas'],
       roomPreferences: ['double-room', 'teammate-pairing'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '4',
@@ -172,7 +233,7 @@ export const roseBowlIndianaAlabama: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['locker-room', 'team-areas'],
       roomPreferences: ['double-room', 'teammate-pairing'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '5',
@@ -183,8 +244,8 @@ export const roseBowlIndianaAlabama: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['medical-facilities', 'team-coordination'],
       roomPreferences: ['single-room', 'near-elevator'],
-      dietaryRestrictions: ['vegetarian']
-    }
+      dietaryRestrictions: ['vegetarian'],
+    },
   ],
   roomAssignments: [
     {
@@ -195,8 +256,8 @@ export const roseBowlIndianaAlabama: ProTripData = {
       checkIn: '2025-12-29T16:00:00Z',
       checkOut: '2026-01-02T11:00:00Z',
       roomType: 'suite',
-      specialRequests: ['late-checkout', 'quiet-floor']
-    }
+      specialRequests: ['late-checkout', 'quiet-floor'],
+    },
   ],
   schedule: [
     {
@@ -208,8 +269,8 @@ export const roseBowlIndianaAlabama: ProTripData = {
       location: 'Ritz-Carlton Conference Room',
       participants: ['1', '2', '3', '4'],
       priority: 'high',
-      notes: 'Review Alabama defensive schemes and game plan'
-    }
+      notes: 'Review Alabama defensive schemes and game plan',
+    },
   ],
   perDiem: {
     dailyRate: 150,
@@ -218,8 +279,8 @@ export const roseBowlIndianaAlabama: ProTripData = {
     endDate: '2026-01-02',
     participants: [
       { participantId: '1', customRate: 250, advances: 0, deductions: 0, balance: 1250 },
-      { participantId: '2', customRate: 150, advances: 0, deductions: 0, balance: 750 }
-    ]
+      { participantId: '2', customRate: 150, advances: 0, deductions: 0, balance: 750 },
+    ],
   },
   settlement: [],
   medical: [],
@@ -232,9 +293,9 @@ export const roseBowlIndianaAlabama: ProTripData = {
       deadline: '2025-12-28',
       status: 'compliant',
       assignedTo: '1',
-      documents: ['ncaa-travel-policy.pdf']
-    }
+      documents: ['ncaa-travel-policy.pdf'],
+    },
   ],
   media: [],
-  sponsors: []
+  sponsors: [],
 };

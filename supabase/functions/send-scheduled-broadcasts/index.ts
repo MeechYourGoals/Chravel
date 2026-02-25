@@ -1,13 +1,13 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
-import { createSecureResponse, createErrorResponse } from "../_shared/securityHeaders.ts";
+import { createSecureResponse, createErrorResponse } from '../_shared/securityHeaders.ts';
 
 /**
  * Edge function to send scheduled broadcasts
  * This should be called by a cron job (e.g., Supabase Cron or external scheduler)
  * every minute to check for broadcasts that need to be sent
  */
-serve(async (req) => {
+serve(async req => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -35,14 +35,14 @@ serve(async (req) => {
       return createSecureResponse({
         success: true,
         message: 'No scheduled broadcasts to send',
-        count: 0
+        count: 0,
       });
     }
 
     const results = {
       sent: 0,
       failed: 0,
-      errors: [] as string[]
+      errors: [] as string[],
     };
 
     // Process each scheduled broadcast
@@ -86,15 +86,18 @@ serve(async (req) => {
                   action: 'send_push',
                   userId: broadcast.created_by,
                   tokens: tokens.map(t => t.token),
-                  title: broadcast.priority === 'urgent' ? '🚨 Urgent Broadcast' : '📢 Scheduled Broadcast',
+                  title:
+                    broadcast.priority === 'urgent'
+                      ? '🚨 Urgent Broadcast'
+                      : '📢 Scheduled Broadcast',
                   body: broadcast.message.substring(0, 100),
                   data: {
                     type: 'broadcast',
                     broadcastId: broadcast.id,
                     tripId: broadcast.trip_id,
-                    url: `/trips/${broadcast.trip_id}/broadcasts`
-                  }
-                }
+                    url: `/trips/${broadcast.trip_id}/broadcasts`,
+                  },
+                },
               });
 
               if (pushError) {
@@ -116,9 +119,8 @@ serve(async (req) => {
     return createSecureResponse({
       success: true,
       message: `Processed ${scheduledBroadcasts.length} scheduled broadcasts`,
-      results
+      results,
     });
-
   } catch (error) {
     console.error('Error in send-scheduled-broadcasts function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';

@@ -31,29 +31,32 @@ export const useSwipeToDelete = ({ onDelete, threshold = 100 }: SwipeToDeleteOpt
     currentPosRef.current = { x: touch.clientX, y: touch.clientY };
   }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!startPosRef.current) return;
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!startPosRef.current) return;
 
-    const touch = e.touches[0];
-    currentPosRef.current = { x: touch.clientX, y: touch.clientY };
+      const touch = e.touches[0];
+      currentPosRef.current = { x: touch.clientX, y: touch.clientY };
 
-    const deltaX = startPosRef.current.x - currentPosRef.current.x;
-    const deltaY = Math.abs(startPosRef.current.y - currentPosRef.current.y);
+      const deltaX = startPosRef.current.x - currentPosRef.current.x;
+      const deltaY = Math.abs(startPosRef.current.y - currentPosRef.current.y);
 
-    // Only consider horizontal swipes (left)
-    if (deltaX > 10 && deltaY < 30) {
-      setSwipeState({
-        isSwiping: true,
-        swipeDistance: Math.min(deltaX, threshold * 1.5),
-        shouldShowDelete: deltaX > threshold / 2,
-      });
+      // Only consider horizontal swipes (left)
+      if (deltaX > 10 && deltaY < 30) {
+        setSwipeState({
+          isSwiping: true,
+          swipeDistance: Math.min(deltaX, threshold * 1.5),
+          shouldShowDelete: deltaX > threshold / 2,
+        });
 
-      // Haptic feedback when crossing threshold
-      if (deltaX > threshold && !swipeState.shouldShowDelete) {
-        hapticService.medium();
+        // Haptic feedback when crossing threshold
+        if (deltaX > threshold && !swipeState.shouldShowDelete) {
+          hapticService.medium();
+        }
       }
-    }
-  }, [threshold, swipeState.shouldShowDelete]);
+    },
+    [threshold, swipeState.shouldShowDelete],
+  );
 
   const handleTouchEnd = useCallback(() => {
     if (!startPosRef.current || !currentPosRef.current) {

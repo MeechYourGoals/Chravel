@@ -33,8 +33,8 @@ export const MediaAggregatedPhotos = ({ tripId }: MediaAggregatedPhotosProps) =>
           media_type: 'image',
           metadata: { source: 'chat' },
           created_at: new Date().toISOString(),
-          source: 'chat'
-        }
+          source: 'chat',
+        },
       ]);
       setLoading(false);
       return;
@@ -74,7 +74,7 @@ export const MediaAggregatedPhotos = ({ tripId }: MediaAggregatedPhotosProps) =>
           media_type: item.media_type,
           metadata: item.metadata || {},
           created_at: item.created_at,
-          source: 'chat' as const
+          source: 'chat' as const,
         })),
         ...(uploadedFiles || []).map(item => ({
           id: item.id,
@@ -83,13 +83,13 @@ export const MediaAggregatedPhotos = ({ tripId }: MediaAggregatedPhotosProps) =>
           media_type: item.file_type,
           metadata: { source: 'upload' },
           created_at: item.created_at,
-          source: 'upload' as const
-        }))
+          source: 'upload' as const,
+        })),
       ];
 
       // Sort by date descending
       allMedia.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      
+
       setMediaItems(allMedia);
     } catch (error) {
       console.error('Error fetching media:', error);
@@ -121,14 +121,17 @@ export const MediaAggregatedPhotos = ({ tripId }: MediaAggregatedPhotosProps) =>
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {mediaItems.map((item) => (
-          <div key={item.id} className="group relative aspect-square rounded-lg overflow-hidden bg-muted">
+        {mediaItems.map(item => (
+          <div
+            key={item.id}
+            className="group relative aspect-square rounded-lg overflow-hidden bg-muted"
+          >
             <img
               src={item.media_url}
               alt={item.filename}
               className="w-full h-full object-cover transition-transform group-hover:scale-105"
             />
-            
+
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors">
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="flex items-center gap-1">
@@ -139,7 +142,7 @@ export const MediaAggregatedPhotos = ({ tripId }: MediaAggregatedPhotosProps) =>
                   )}
                 </div>
               </div>
-              
+
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <p className="text-white text-sm font-medium truncate">{item.filename}</p>
                 <p className="text-white/80 text-xs">

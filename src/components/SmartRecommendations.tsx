@@ -32,7 +32,7 @@ export const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
   tripId,
   userPreferences,
   basedOn = 'preferences',
-  limit = 6
+  limit = 6,
 }) => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,14 +50,14 @@ export const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
       const response = await fetch('/api/smart-recommendations', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           tripId,
           userPreferences,
           basedOn,
-          limit
-        })
+          limit,
+        }),
       });
 
       if (response.ok) {
@@ -85,7 +85,7 @@ export const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
         location: 'Downtown',
         similarity: 0.85,
         reasons: ['Matches your love for culture', 'Similar to previous trips'],
-        metadata: { category: 'Culture', duration: '2-3 hours' }
+        metadata: { category: 'Culture', duration: '2-3 hours' },
       },
       {
         id: '2',
@@ -94,18 +94,23 @@ export const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
         description: 'Taste authentic local cuisine with expert guides',
         similarity: 0.78,
         reasons: ['Based on dining preferences', 'Highly rated by similar travelers'],
-        metadata: { price: '$$', duration: '3 hours', rating: 4.8 }
-      }
+        metadata: { price: '$$', duration: '3 hours', rating: 4.8 },
+      },
     ];
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'trip': return <Calendar className="w-4 h-4" />;
-      case 'place': return <MapPin className="w-4 h-4" />;
-      case 'activity': return <Sparkles className="w-4 h-4" />;
-      case 'venue': return <Users className="w-4 h-4" />;
-      default: return <Sparkles className="w-4 h-4" />;
+      case 'trip':
+        return <Calendar className="w-4 h-4" />;
+      case 'place':
+        return <MapPin className="w-4 h-4" />;
+      case 'activity':
+        return <Sparkles className="w-4 h-4" />;
+      case 'venue':
+        return <Users className="w-4 h-4" />;
+      default:
+        return <Sparkles className="w-4 h-4" />;
     }
   };
 
@@ -126,7 +131,7 @@ export const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3].map(i => (
               <div key={i} className="animate-pulse">
                 <div className="h-4 bg-white/20 rounded mb-2" />
                 <div className="h-3 bg-white/10 rounded w-3/4" />
@@ -150,7 +155,7 @@ export const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {recommendations.map((rec) => (
+        {recommendations.map(rec => (
           <div
             key={rec.id}
             className="p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
@@ -160,16 +165,16 @@ export const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
                 <div className="flex items-center gap-2 mb-2">
                   {getTypeIcon(rec.type)}
                   <span className="font-medium text-white">{rec.title}</span>
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className={`text-xs ${getSimilarityColor(rec.similarity)}`}
                   >
                     {Math.round(rec.similarity * 100)}% match
                   </Badge>
                 </div>
-                
+
                 <p className="text-sm text-white/80 mb-2">{rec.description}</p>
-                
+
                 {rec.location && (
                   <div className="flex items-center gap-1 text-xs text-white/60 mb-2">
                     <MapPin className="w-3 h-3" />
@@ -206,7 +211,7 @@ export const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
                   ))}
                 </div>
               </div>
-              
+
               <Button size="sm" variant="outline" className="shrink-0">
                 Add
               </Button>

@@ -14,11 +14,12 @@ export const useShowSchedule = (organizationId?: string) => {
   });
 
   const createMutation = useMutation({
-    mutationFn: (show: any) => showScheduleService.create({
-      ...show,
-      organization_id: organizationId!,
-      created_by: user!.id,
-    }),
+    mutationFn: (show: any) =>
+      showScheduleService.create({
+        ...show,
+        organization_id: organizationId!,
+        created_by: user!.id,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['show-schedules'] });
       toast.success('Show added successfully');
@@ -29,7 +30,7 @@ export const useShowSchedule = (organizationId?: string) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: any }) => 
+    mutationFn: ({ id, updates }: { id: string; updates: any }) =>
       showScheduleService.update(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['show-schedules'] });
@@ -52,13 +53,14 @@ export const useShowSchedule = (organizationId?: string) => {
   });
 
   const bulkCreateMutation = useMutation({
-    mutationFn: (shows: any[]) => showScheduleService.bulkCreate(
-      shows.map(s => ({
-        ...s,
-        organization_id: organizationId!,
-        created_by: user!.id,
-      }))
-    ),
+    mutationFn: (shows: any[]) =>
+      showScheduleService.bulkCreate(
+        shows.map(s => ({
+          ...s,
+          organization_id: organizationId!,
+          created_by: user!.id,
+        })),
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['show-schedules'] });
       toast.success('Shows imported successfully');

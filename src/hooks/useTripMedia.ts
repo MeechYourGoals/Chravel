@@ -48,16 +48,16 @@ export const useTripMedia = (tripId: string) => {
           table: 'trip_media_index',
           filter: `trip_id=eq.${tripId}`,
         },
-        (payload) => {
+        payload => {
           queryClient.invalidateQueries({ queryKey: ['tripMedia', tripId] });
-          
+
           const mediaItem = payload.new as TripMedia;
           toast({
             title: 'New Media Uploaded',
             description: `${mediaItem.filename || 'A file'} was added by another user.`,
-            duration: 3000
+            duration: 3000,
           });
-        }
+        },
       )
       .on(
         'postgres_changes',
@@ -67,15 +67,15 @@ export const useTripMedia = (tripId: string) => {
           table: 'trip_media_index',
           filter: `trip_id=eq.${tripId}`,
         },
-        (payload) => {
+        payload => {
           // Handle media edits (caption, tags, etc.) in realtime
-          queryClient.setQueryData<TripMedia[]>(['tripMedia', tripId], (old) => {
+          queryClient.setQueryData<TripMedia[]>(['tripMedia', tripId], old => {
             if (!old) return old;
             return old.map(item =>
-              item.id === (payload.new as TripMedia).id ? (payload.new as TripMedia) : item
+              item.id === (payload.new as TripMedia).id ? (payload.new as TripMedia) : item,
             );
           });
-        }
+        },
       )
       .on(
         'postgres_changes',
@@ -85,9 +85,9 @@ export const useTripMedia = (tripId: string) => {
           table: 'trip_media_index',
           filter: `trip_id=eq.${tripId}`,
         },
-        (payload) => {
+        payload => {
           queryClient.invalidateQueries({ queryKey: ['tripMedia', tripId] });
-        }
+        },
       )
       .subscribe();
 
@@ -110,14 +110,14 @@ export const useTripMedia = (tripId: string) => {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!tripId
+    enabled: !!tripId,
   });
 
   // Upload media mutation
   const uploadMediaMutation = useMutation({
     mutationFn: async ({ file, media_type }: UploadMediaRequest) => {
       let fileToUpload = file;
-      
+
       // Compress images before upload
       if (file.type.startsWith('image/') && file.type !== 'image/gif') {
         try {
@@ -146,7 +146,7 @@ export const useTripMedia = (tripId: string) => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${tripId}/${Date.now()}.${fileExt}`;
       const contentType = getUploadContentType(file);
-      
+
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('trip-media')
         .upload(fileName, fileToUpload, {
@@ -157,9 +157,9 @@ export const useTripMedia = (tripId: string) => {
       if (uploadError) throw uploadError;
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('trip-media')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('trip-media').getPublicUrl(fileName);
 
       // Save media record to database
       const { data, error } = await supabase
@@ -175,8 +175,8 @@ export const useTripMedia = (tripId: string) => {
           tags: [],
           metadata: {
             upload_path: uploadData.path,
-            original_name: file.name
-          }
+            original_name: file.name,
+          },
         })
         .select()
         .single();
@@ -188,16 +188,16 @@ export const useTripMedia = (tripId: string) => {
       queryClient.invalidateQueries({ queryKey: ['tripMedia', tripId] });
       toast({
         title: 'Media uploaded',
-        description: 'Your file has been uploaded successfully.'
+        description: 'Your file has been uploaded successfully.',
       });
     },
     onError: () => {
       toast({
         title: 'Error',
         description: 'Failed to upload media. Please try again.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Delete media mutation
@@ -210,16 +210,16 @@ export const useTripMedia = (tripId: string) => {
       queryClient.invalidateQueries({ queryKey: ['tripMedia', tripId] });
       toast({
         title: 'Media deleted',
-        description: 'The file has been removed.'
+        description: 'The file has been removed.',
       });
     },
     onError: () => {
       toast({
         title: 'Error',
         description: 'Failed to delete media. Please try again.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   return {
@@ -228,6 +228,6 @@ export const useTripMedia = (tripId: string) => {
     uploadMedia: uploadMediaMutation.mutate,
     deleteMedia: deleteMediaMutation.mutate,
     isUploading: uploadMediaMutation.isPending,
-    isDeleting: deleteMediaMutation.isPending
+    isDeleting: deleteMediaMutation.isPending,
   };
 };

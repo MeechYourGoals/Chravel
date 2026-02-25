@@ -17,7 +17,8 @@ const mockUser = {
 };
 
 const mockSession = {
-  access_token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjNlNDU2Ny1lODliLTEyZDMtYTQ1Ni00MjY2MTQxNzQwMDAiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMH0.signature',
+  access_token:
+    'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjNlNDU2Ny1lODliLTEyZDMtYTQ1Ni00MjY2MTQxNzQwMDAiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMH0.signature',
   refresh_token: 'mock-refresh-token',
   expires_in: 3600,
   expires_at: Date.now() / 1000 + 3600,
@@ -94,7 +95,6 @@ vi.mock('@/store/demoModeStore', () => ({
   }),
 }));
 
-
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -133,8 +133,6 @@ describe('AuthProvider', () => {
     // Initially loading should be true
     expect(result.current.isLoading).toBe(true);
   });
-
-
 
   it('syncs auth metadata when updating display and real names', async () => {
     mockSupabaseClient.auth.getSession.mockResolvedValue({

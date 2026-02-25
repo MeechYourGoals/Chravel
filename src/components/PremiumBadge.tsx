@@ -7,10 +7,10 @@ interface PremiumBadgeProps {
   variant?: 'default' | 'outline';
 }
 
-export const PremiumBadge = ({ className = "", variant = "default" }: PremiumBadgeProps) => {
+export const PremiumBadge = ({ className = '', variant = 'default' }: PremiumBadgeProps) => {
   return (
-    <Badge 
-      variant="secondary" 
+    <Badge
+      variant="secondary"
       className={`bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30 transition-colors flex items-center gap-1.5 font-medium ${className}`}
     >
       <Sparkles size={12} />

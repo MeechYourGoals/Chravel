@@ -11,7 +11,7 @@ interface ChannelSelectorProps {
 export const ChannelSelector = ({
   channels,
   selectedChannel,
-  onSelectChannel
+  onSelectChannel,
 }: ChannelSelectorProps) => {
   if (channels.length === 0) {
     return (
@@ -24,7 +24,7 @@ export const ChannelSelector = ({
 
   return (
     <div className="space-y-2">
-      {channels.map((channel) => (
+      {channels.map(channel => (
         <button
           key={channel.id}
           onClick={() => onSelectChannel(channel)}
@@ -40,12 +40,8 @@ export const ChannelSelector = ({
             <Hash size={16} className="flex-shrink-0 text-gray-500" />
           )}
           <div className="flex-1 text-left min-w-0">
-            <div className="font-medium text-sm truncate">
-              {channel.channelName}
-            </div>
-            <div className="text-xs text-gray-500 truncate">
-              {channel.requiredRoleName}
-            </div>
+            <div className="font-medium text-sm truncate">{channel.channelName}</div>
+            <div className="text-xs text-gray-500 truncate">{channel.requiredRoleName}</div>
           </div>
           {channel.unreadCount && channel.unreadCount > 0 && (
             <div className="flex-shrink-0 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center text-xs text-white font-semibold">

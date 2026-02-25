@@ -11,7 +11,7 @@ interface UseAsyncOperationOptions {
 
 export const useAsyncOperation = <T = any>(
   operation: (...args: any[]) => Promise<T>,
-  options: UseAsyncOperationOptions = {}
+  options: UseAsyncOperationOptions = {},
 ) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<any>(null);
@@ -27,11 +27,7 @@ export const useAsyncOperation = <T = any>(
 
         if (options.retryOptions) {
           // Execute with retry logic
-          result = await withRetry(
-            () => operation(...args),
-            options.context,
-            options.retryOptions
-          );
+          result = await withRetry(() => operation(...args), options.context, options.retryOptions);
         } else {
           // Execute directly
           result = await operation(...args);
@@ -49,7 +45,7 @@ export const useAsyncOperation = <T = any>(
         setIsLoading(false);
       }
     },
-    [operation, options]
+    [operation, options],
   );
 
   const reset = useCallback(() => {

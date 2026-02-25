@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SettingsMenu } from '../SettingsMenu';
 import { InviteModal } from '../InviteModal';
@@ -35,13 +34,13 @@ export const TripDetailModals = ({
   onCloseTripsPlusModal,
   tripName,
   tripId,
-  userId
+  userId,
 }: TripDetailModalsProps) => {
   return (
     <>
       <SettingsMenu isOpen={showSettings} onClose={onCloseSettings} />
-      <InviteModal 
-        isOpen={showInvite} 
+      <InviteModal
+        isOpen={showInvite}
         onClose={onCloseInvite}
         tripName={tripName}
         tripId={tripId}
@@ -54,10 +53,7 @@ export const TripDetailModals = ({
         tripName={tripName}
         currentUserId={userId || '4'}
       />
-      <PlusUpsellModal
-        isOpen={showTripsPlusModal}
-        onClose={onCloseTripsPlusModal}
-      />
+      <PlusUpsellModal isOpen={showTripsPlusModal} onClose={onCloseTripsPlusModal} />
     </>
   );
 };

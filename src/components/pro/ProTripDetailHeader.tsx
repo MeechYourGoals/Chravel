@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Settings, MessageCircle, UserPlus } from 'lucide-react';
@@ -21,7 +20,7 @@ export const ProTripDetailHeader = ({
   onToggleInbox,
   onShowInvite,
   onShowTripSettings,
-  onShowAuth
+  onShowAuth,
 }: ProTripDetailHeaderProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -41,10 +40,11 @@ export const ProTripDetailHeader = ({
 
       <div className="flex items-center gap-3">
         {/* Pro Badge */}
-        <div className={`bg-gradient-to-r ${accentColors.gradient} backdrop-blur-sm border border-yellow-500/30 rounded-xl px-4 py-2 flex items-center gap-2`}>
+        <div
+          className={`bg-gradient-to-r ${accentColors.gradient} backdrop-blur-sm border border-yellow-500/30 rounded-xl px-4 py-2 flex items-center gap-2`}
+        >
           <span className="text-white font-medium">PRO</span>
         </div>
-
       </div>
     </div>
   );

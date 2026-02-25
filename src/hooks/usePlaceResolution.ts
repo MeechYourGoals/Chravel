@@ -49,8 +49,8 @@ export const usePlaceResolution = () => {
       const { data, error: functionError } = await supabase.functions.invoke('venue-enricher', {
         body: {
           action: 'resolve_place_links',
-          query: placeName
-        }
+          query: placeName,
+        },
       });
 
       if (functionError) {
@@ -64,7 +64,7 @@ export const usePlaceResolution = () => {
       return {
         success: true,
         place: data.place,
-        linkOptions: data.linkOptions
+        linkOptions: data.linkOptions,
       };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -78,10 +78,34 @@ export const usePlaceResolution = () => {
   const categorizePlaceType = (placeTypes: string[]): PlaceCategory => {
     // Mapping from new categories to Google Place types
     const categoryMap: { [key in PlaceCategory]?: string[] } = {
-      'Accommodation': ['lodging', 'hotel', 'motel', 'resort', 'hostel', 'rv_park'],
-      'Appetite': ['restaurant', 'cafe', 'bar', 'bakery', 'meal_takeaway', 'meal_delivery', 'food', 'night_club'],
-      'Activity': ['tourist_attraction', 'museum', 'amusement_park', 'zoo', 'aquarium', 'art_gallery', 'park', 'church', 'mosque', 'synagogue', 'hindu_temple', 'movie_theater', 'casino', 'spa'],
-      'Attraction': ['stadium', 'landmark', 'point_of_interest'], // Stadiums, music venues, sports venues
+      Accommodation: ['lodging', 'hotel', 'motel', 'resort', 'hostel', 'rv_park'],
+      Appetite: [
+        'restaurant',
+        'cafe',
+        'bar',
+        'bakery',
+        'meal_takeaway',
+        'meal_delivery',
+        'food',
+        'night_club',
+      ],
+      Activity: [
+        'tourist_attraction',
+        'museum',
+        'amusement_park',
+        'zoo',
+        'aquarium',
+        'art_gallery',
+        'park',
+        'church',
+        'mosque',
+        'synagogue',
+        'hindu_temple',
+        'movie_theater',
+        'casino',
+        'spa',
+      ],
+      Attraction: ['stadium', 'landmark', 'point_of_interest'], // Stadiums, music venues, sports venues
     };
 
     for (const [category, types] of Object.entries(categoryMap)) {
@@ -98,6 +122,6 @@ export const usePlaceResolution = () => {
     resolvePlaceName,
     categorizePlaceType,
     isLoading,
-    error
+    error,
   };
 };

@@ -11,19 +11,19 @@ interface BroadcastSchedulerProps {
 export const BroadcastScheduler = ({
   scheduledFor,
   onScheduleChange,
-  onCancel
+  onCancel,
 }: BroadcastSchedulerProps) => {
   const [dateInput, setDateInput] = useState(
-    scheduledFor ? scheduledFor.toISOString().slice(0, 16) : ''
+    scheduledFor ? scheduledFor.toISOString().slice(0, 16) : '',
   );
   const [timeInput, setTimeInput] = useState(
-    scheduledFor ? scheduledFor.toTimeString().slice(0, 5) : ''
+    scheduledFor ? scheduledFor.toTimeString().slice(0, 5) : '',
   );
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value;
     setDateInput(newDate);
-    
+
     if (newDate && timeInput) {
       const scheduledDate = new Date(`${newDate}T${timeInput}`);
       if (scheduledDate > new Date()) {
@@ -35,7 +35,7 @@ export const BroadcastScheduler = ({
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = e.target.value;
     setTimeInput(newTime);
-    
+
     if (dateInput && newTime) {
       const scheduledDate = new Date(`${dateInput}T${newTime}`);
       if (scheduledDate > new Date()) {
@@ -67,10 +67,7 @@ export const BroadcastScheduler = ({
           <Calendar size={16} className="text-blue-400" />
           <span className="text-sm font-medium text-white">Schedule Broadcast</span>
         </div>
-        <button
-          onClick={handleClear}
-          className="text-slate-400 hover:text-white"
-        >
+        <button onClick={handleClear} className="text-slate-400 hover:text-white">
           <X size={16} />
         </button>
       </div>
@@ -144,11 +141,12 @@ export const BroadcastScheduler = ({
           <div className="flex items-center gap-2 text-xs text-slate-300 bg-slate-900/30 rounded p-2">
             <Clock size={12} />
             <span>
-              Scheduled for {scheduledFor.toLocaleString('en-US', {
+              Scheduled for{' '}
+              {scheduledFor.toLocaleString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 hour: 'numeric',
-                minute: '2-digit'
+                minute: '2-digit',
               })}
             </span>
           </div>

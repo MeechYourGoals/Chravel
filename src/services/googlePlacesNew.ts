@@ -4,14 +4,14 @@
 
 /**
  * Google Places API (New) 2024 Service
- * 
+ *
  * Migrated from legacy Places API to the new Place class-based API.
  * Key improvements:
  * - Better performance with field masks
  * - Improved billing control
  * - Modern async/await patterns
  * - Enhanced type safety
- * 
+ *
  * Documentation: https://developers.google.com/maps/documentation/javascript/place-class
  */
 
@@ -23,7 +23,7 @@ import type {
   ConvertedPrediction,
   SearchByTextRequest,
   AutocompleteRequest,
-  PLACE_FIELDS
+  PLACE_FIELDS,
 } from '@/types/places';
 import {
   generateCacheKey,
@@ -164,32 +164,34 @@ export const apiQuotaMonitor = new ApiQuotaMonitor();
 export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
   maxRetries: number = 2,
-  baseDelay: number = 500
+  baseDelay: number = 500,
 ): Promise<T> {
   let lastError: Error;
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error as Error;
-      
+
       // Don't retry on quota exhaustion - use cache instead
-      if ((error as any)?.message?.includes('quota') || 
-          (error as any)?.message?.includes('OVER_QUERY_LIMIT')) {
+      if (
+        (error as any)?.message?.includes('quota') ||
+        (error as any)?.message?.includes('OVER_QUERY_LIMIT')
+      ) {
         throw error;
       }
-      
+
       if (attempt === maxRetries) {
         break;
       }
-      
+
       // Exponential backoff with jitter
       const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -199,13 +201,11 @@ export async function retryWithBackoff<T>(
 export async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number = 5000,
-  errorMsg: string = 'API request timed out'
+  errorMsg: string = 'API request timed out',
 ): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(errorMsg)), timeoutMs)
-    ),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMsg)), timeoutMs)),
   ]);
 }
 
@@ -215,7 +215,7 @@ export async function withTimeout<T>(
  */
 export async function loadMaps(): Promise<typeof google.maps> {
   if (mapsApi) return mapsApi;
-  
+
   if (!loaderPromise) {
     const apiKey = getGoogleMapsApiKey();
 
@@ -224,7 +224,7 @@ export async function loadMaps(): Promise<typeof google.maps> {
       console.error('[GooglePlacesNew] ❌ API key missing or placeholder', {
         hasKey: Boolean(apiKey),
         isPlaceholder: apiKey === 'placeholder',
-        envCheck: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? 'present' : 'missing'
+        envCheck: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? 'present' : 'missing',
       });
       toast.error('Maps API key not configured');
       throw new Error(errorMsg);
@@ -233,7 +233,7 @@ export async function loadMaps(): Promise<typeof google.maps> {
     console.info('[GooglePlacesNew] ℹ️ Loading Google Maps API...', {
       apiKeyLength: apiKey.length,
       version: 'weekly',
-      libraries: ['places', 'geocoding', 'marker']
+      libraries: ['places', 'geocoding', 'marker'],
     });
 
     const loader = new Loader({
@@ -242,19 +242,20 @@ export async function loadMaps(): Promise<typeof google.maps> {
       libraries: ['places', 'geocoding', 'marker'],
     });
 
-    loaderPromise = loader.load()
-      .then((google) => {
+    loaderPromise = loader
+      .load()
+      .then(google => {
         mapsApi = google.maps;
         console.info('[GooglePlacesNew] ✅ Google Maps API loaded successfully');
         return mapsApi;
       })
-      .catch((error) => {
+      .catch(error => {
         console.error('[GooglePlacesNew] ❌ Failed to load Google Maps API', {
           error: error.message,
           code: error.code,
-          stack: import.meta.env.DEV ? error.stack : undefined
+          stack: import.meta.env.DEV ? error.stack : undefined,
         });
-        
+
         // More specific error messages
         let userMessage = 'Failed to load Google Maps';
         if (error.message?.includes('ApiNotActivatedMapError')) {
@@ -264,7 +265,7 @@ export async function loadMaps(): Promise<typeof google.maps> {
         } else if (error.message?.includes('InvalidKeyMapError')) {
           userMessage = 'Invalid API key';
         }
-        
+
         toast.error(userMessage);
         loaderPromise = null;
         throw new Error(`Google Maps API failed to load: ${error.message}`);
@@ -278,17 +279,24 @@ export async function loadMaps(): Promise<typeof google.maps> {
  * Extract photo URIs from Place photos array
  * Returns up to maxPhotos URIs with specified size
  */
-export function extractPhotoUris(photos: any[], maxPhotos: number = 3, maxWidthPx: number = 800): string[] {
+export function extractPhotoUris(
+  photos: any[],
+  maxPhotos: number = 3,
+  maxWidthPx: number = 800,
+): string[] {
   if (!photos || photos.length === 0) return [];
-  
-  return photos.slice(0, maxPhotos).map((photo: any) => {
-    // New API: photos have getURI() method
-    if (typeof photo.getURI === 'function') {
-      return photo.getURI({ maxWidth: maxWidthPx });
-    }
-    // Fallback: direct URI access
-    return photo.uri || '';
-  }).filter(Boolean);
+
+  return photos
+    .slice(0, maxPhotos)
+    .map((photo: any) => {
+      // New API: photos have getURI() method
+      if (typeof photo.getURI === 'function') {
+        return photo.getURI({ maxWidth: maxWidthPx });
+      }
+      // Fallback: direct URI access
+      return photo.uri || '';
+    })
+    .filter(Boolean);
 }
 
 /**
@@ -300,10 +308,12 @@ export function convertPlaceToLegacy(place: PlaceData): ConvertedPlace {
     place_id: place.id,
     name: place.displayName || 'Unknown Place',
     formatted_address: place.formattedAddress,
-    geometry: place.location ? {
-      location: place.location,
-      viewport: place.viewport,
-    } : undefined,
+    geometry: place.location
+      ? {
+          location: place.location,
+          viewport: place.viewport,
+        }
+      : undefined,
     rating: place.rating,
     website: place.websiteURI,
     url: place.googleMapsURI,
@@ -317,16 +327,16 @@ export function convertPlaceToLegacy(place: PlaceData): ConvertedPlace {
  */
 function preprocessQuery(query: string): string {
   const normalizations: Record<string, string> = {
-    'centre': 'center',
-    'theatre': 'theater',
-    'shoppe': 'shop',
+    centre: 'center',
+    theatre: 'theater',
+    shoppe: 'shop',
   };
-  
+
   let processed = query.toLowerCase();
   for (const [variant, standard] of Object.entries(normalizations)) {
     processed = processed.replace(new RegExp(variant, 'g'), standard);
   }
-  
+
   return processed;
 }
 
@@ -338,16 +348,28 @@ function detectPlaceType(query: string): string | undefined {
   const q = preprocessQuery(query);
 
   // Food & Dining
-  if (q.includes('restaurant') || q.includes('food') || q.includes('dining') ||
-      q.includes('cafe') || q.includes('coffee')) return 'restaurant';
+  if (
+    q.includes('restaurant') ||
+    q.includes('food') ||
+    q.includes('dining') ||
+    q.includes('cafe') ||
+    q.includes('coffee')
+  )
+    return 'restaurant';
 
   // Accommodation
-  if (q.includes('hotel') || q.includes('lodging') || q.includes('motel') ||
-      q.includes('inn')) return 'lodging';
+  if (q.includes('hotel') || q.includes('lodging') || q.includes('motel') || q.includes('inn'))
+    return 'lodging';
 
   // Entertainment & Sports - ENHANCED
-  if (q.includes('stadium') || q.includes('arena') || q.includes('center') || 
-      q.includes('coliseum') || q.includes('amphitheater')) return 'stadium';
+  if (
+    q.includes('stadium') ||
+    q.includes('arena') ||
+    q.includes('center') ||
+    q.includes('coliseum') ||
+    q.includes('amphitheater')
+  )
+    return 'stadium';
   if (q.includes('theater') || q.includes('cinema') || q.includes('movie')) return 'movie_theater';
   if (q.includes('museum')) return 'museum';
   if (q.includes('park')) return 'park';
@@ -386,14 +408,7 @@ function detectPlaceType(query: string): string | undefined {
  */
 function isProximityQuery(query: string): boolean {
   const q = query.toLowerCase();
-  const proximityPatterns = [
-    'near me',
-    'nearby',
-    'close to me',
-    'around me',
-    'closest',
-    'nearest'
-  ];
+  const proximityPatterns = ['near me', 'nearby', 'close to me', 'around me', 'closest', 'nearest'];
   return proximityPatterns.some(pattern => q.includes(pattern));
 }
 
@@ -403,39 +418,40 @@ function isProximityQuery(query: string): boolean {
  */
 function mapQueryToPlaceTypes(query: string): string[] {
   const q = preprocessQuery(query);
-  
+
   // Food & Dining
   if (q.includes('coffee') || q.includes('cafe')) return ['cafe', 'coffee_shop'];
   if (q.includes('restaurant') || q.includes('food') || q.includes('dining')) return ['restaurant'];
   if (q.includes('pizza')) return ['pizza_restaurant'];
   if (q.includes('bar') || q.includes('pub')) return ['bar', 'night_club'];
   if (q.includes('bakery')) return ['bakery'];
-  
+
   // Accommodation
   if (q.includes('hotel') || q.includes('lodging')) return ['lodging', 'hotel'];
-  
+
   // Entertainment & Activities
   if (q.includes('gym') || q.includes('fitness')) return ['gym'];
   if (q.includes('park')) return ['park'];
   if (q.includes('museum')) return ['museum'];
-  if (q.includes('movie') || q.includes('cinema') || q.includes('theater')) return ['movie_theater'];
+  if (q.includes('movie') || q.includes('cinema') || q.includes('theater'))
+    return ['movie_theater'];
   if (q.includes('shopping') || q.includes('mall')) return ['shopping_mall'];
-  
+
   // Services
   if (q.includes('gas') || q.includes('fuel')) return ['gas_station'];
   if (q.includes('pharmacy') || q.includes('drugstore')) return ['pharmacy'];
   if (q.includes('atm') || q.includes('bank')) return ['atm', 'bank'];
   if (q.includes('hospital') || q.includes('clinic')) return ['hospital'];
-  
+
   // Transportation
   if (q.includes('parking')) return ['parking'];
   if (q.includes('airport')) return ['airport'];
   if (q.includes('station')) return ['transit_station'];
-  
+
   // Generic categories for broad searches
   if (q.includes('attraction')) return ['tourist_attraction'];
   if (q.includes('store') || q.includes('shop')) return ['store'];
-  
+
   // Default: return empty to search all types
   return [];
 }
@@ -444,7 +460,7 @@ function mapQueryToPlaceTypes(query: string): string[] {
  * Search for nearby places using Nearby Search (New API)
  * Ideal for proximity-based queries like "coffee near me"
  * Includes Supabase caching and OSM fallback
- * 
+ *
  * @param location - Center point for search
  * @param radius - Search radius in meters (default 5000m = 5km)
  * @param placeTypes - Optional place types to filter (e.g., ['restaurant', 'cafe'])
@@ -454,19 +470,23 @@ export async function searchNearby(
   location: { lat: number; lng: number },
   radius: number = 5000,
   placeTypes: string[] = [],
-  maxResults: number = 10
+  maxResults: number = 10,
 ): Promise<ConvertedPlace[]> {
   await loadMaps();
-  
+
   // Check Supabase cache first
-  const cacheKey = generateCacheKey('nearby-search', `${location.lat},${location.lng}`, null, { radius, types: placeTypes.join(','), maxResults });
+  const cacheKey = generateCacheKey('nearby-search', `${location.lat},${location.lng}`, null, {
+    radius,
+    types: placeTypes.join(','),
+    maxResults,
+  });
   const cached = await getCachedPlace<ConvertedPlace[]>(cacheKey);
   if (cached) {
     return cached;
   }
-  
-  const { Place } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
-  
+
+  const { Place } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary;
+
   const request: any = {
     locationRestriction: {
       circle: {
@@ -486,7 +506,7 @@ export async function searchNearby(
       'types',
       'userRatingCount',
       'priceLevel',
-      'photos'
+      'photos',
     ],
     maxResultCount: Math.min(maxResults, 20), // API limit
     languageCode: 'en',
@@ -507,26 +527,35 @@ export async function searchNearby(
     if (!places || places.length === 0) {
       return [];
     }
-    
+
     // Convert and sort by rating (with photos)
-    const converted = places.map((place: any) => convertPlaceToLegacy({
-      id: place.id,
-      displayName: place.displayName?.text,
-      formattedAddress: place.formattedAddress,
-      location: place.location,
-      viewport: place.viewport,
-      rating: place.rating,
-      websiteURI: place.websiteURI,
-      googleMapsURI: place.googleMapsURI,
-      types: place.types,
-      photos: place.photos ? extractPhotoUris(place.photos, 3) : undefined,
-    }));
-    
+    const converted = places.map((place: any) =>
+      convertPlaceToLegacy({
+        id: place.id,
+        displayName: place.displayName?.text,
+        formattedAddress: place.formattedAddress,
+        location: place.location,
+        viewport: place.viewport,
+        rating: place.rating,
+        websiteURI: place.websiteURI,
+        googleMapsURI: place.googleMapsURI,
+        types: place.types,
+        photos: place.photos ? extractPhotoUris(place.photos, 3) : undefined,
+      }),
+    );
+
     // Sort by rating (best first)
     const results = converted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
     // Cache in Supabase (30-day TTL)
-    await setCachedPlace(cacheKey, 'nearby-search', `${location.lat},${location.lng}`, results, undefined, { lat: location.lat, lng: location.lng });
+    await setCachedPlace(
+      cacheKey,
+      'nearby-search',
+      `${location.lat},${location.lng}`,
+      results,
+      undefined,
+      { lat: location.lat, lng: location.lng },
+    );
 
     return results;
   } catch (error) {
@@ -549,7 +578,7 @@ export async function searchNearby(
         };
       });
     }
-    
+
     return [];
   }
 }
@@ -558,7 +587,7 @@ export async function searchNearby(
  * Search for places using Text Search (New API)
  * Replaces legacy textSearch method
  * Includes Supabase caching and OSM fallback
- * 
+ *
  * @param query - Search query text
  * @param origin - Optional origin for location bias
  * @param maxResults - Maximum number of results (default 5)
@@ -566,19 +595,19 @@ export async function searchNearby(
 export async function searchByText(
   query: string,
   origin: SearchOrigin = null,
-  maxResults: number = 5
+  maxResults: number = 5,
 ): Promise<ConvertedPlace[]> {
   await loadMaps();
-  
+
   // Check Supabase cache first
   const cacheKey = generateCacheKey('text-search', query, origin, { maxResults });
   const cached = await getCachedPlace<ConvertedPlace[]>(cacheKey);
   if (cached) {
     return cached;
   }
-  
-  const { Place } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
-  
+
+  const { Place } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary;
+
   const request: SearchByTextRequest = {
     textQuery: query,
     fields: [
@@ -591,7 +620,7 @@ export async function searchByText(
       'websiteURI',
       'googleMapsURI',
       'types',
-      'photos'
+      'photos',
     ],
     maxResultCount: maxResults,
     languageCode: 'en',
@@ -617,20 +646,22 @@ export async function searchByText(
     if (!places || places.length === 0) {
       return [];
     }
-    
+
     // Convert to legacy format with photos
-    const results = places.map((place: any) => convertPlaceToLegacy({
-      id: place.id,
-      displayName: place.displayName?.text,
-      formattedAddress: place.formattedAddress,
-      location: place.location,
-      viewport: place.viewport,
-      rating: place.rating,
-      websiteURI: place.websiteURI,
-      googleMapsURI: place.googleMapsURI,
-      types: place.types,
-      photos: place.photos ? extractPhotoUris(place.photos, 3) : undefined,
-    }));
+    const results = places.map((place: any) =>
+      convertPlaceToLegacy({
+        id: place.id,
+        displayName: place.displayName?.text,
+        formattedAddress: place.formattedAddress,
+        location: place.location,
+        viewport: place.viewport,
+        rating: place.rating,
+        websiteURI: place.websiteURI,
+        googleMapsURI: place.googleMapsURI,
+        types: place.types,
+        photos: place.photos ? extractPhotoUris(place.photos, 3) : undefined,
+      }),
+    );
 
     // Cache in Supabase (30-day TTL)
     await setCachedPlace(cacheKey, 'text-search', query, results, undefined, origin);
@@ -654,7 +685,7 @@ export async function searchByText(
         };
       });
     }
-    
+
     return [];
   }
 }
@@ -667,10 +698,10 @@ export async function searchByText(
 export async function autocomplete(
   input: string,
   sessionToken: string,
-  origin: SearchOrigin
+  origin: SearchOrigin,
 ): Promise<ConvertedPrediction[]> {
   await loadMaps();
-  
+
   // Check Supabase cache first (30-day TTL)
   const cacheKey = generateCacheKey('autocomplete', input, origin);
   const cached = await getCachedPlace<ConvertedPrediction[]>(cacheKey);
@@ -696,9 +727,11 @@ export async function autocomplete(
     // Note: OSM doesn't support autocomplete, so we return empty array
     return [];
   }
-  
-  const { AutocompleteSuggestion } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
-  
+
+  const { AutocompleteSuggestion } = (await google.maps.importLibrary(
+    'places',
+  )) as google.maps.PlacesLibrary;
+
   const request: AutocompleteRequest = {
     input,
     sessionToken,
@@ -726,7 +759,7 @@ export async function autocomplete(
       // @ts-ignore - New API method
       return await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
     });
-    
+
     if (!suggestions || suggestions.length === 0) {
       return [];
     }
@@ -737,10 +770,12 @@ export async function autocomplete(
       .map((s: any) => ({
         place_id: s.placePrediction.placeId,
         description: s.placePrediction.text.text,
-        structured_formatting: s.placePrediction.structuredFormat ? {
-          main_text: s.placePrediction.structuredFormat.mainText.text,
-          secondary_text: s.placePrediction.structuredFormat.secondaryText?.text,
-        } : undefined,
+        structured_formatting: s.placePrediction.structuredFormat
+          ? {
+              main_text: s.placePrediction.structuredFormat.mainText.text,
+              secondary_text: s.placePrediction.structuredFormat.secondaryText?.text,
+            }
+          : undefined,
       }));
 
     // Cache results (both client-side and Supabase)
@@ -754,14 +789,16 @@ export async function autocomplete(
     }
 
     // If quota error, try to return cached results
-    if ((error as any)?.message?.includes('quota') ||
-        (error as any)?.message?.includes('OVER_QUERY_LIMIT')) {
+    if (
+      (error as any)?.message?.includes('quota') ||
+      (error as any)?.message?.includes('OVER_QUERY_LIMIT')
+    ) {
       const expiredCache = apiQuotaMonitor.getCachedResult(clientCacheKey);
       if (expiredCache) {
         return expiredCache;
       }
     }
-    
+
     // Note: OSM doesn't support autocomplete, so we return empty array
     return [];
   }
@@ -774,19 +811,19 @@ export async function autocomplete(
  */
 export async function fetchPlaceDetails(
   placeId: string,
-  sessionToken?: string
+  sessionToken?: string,
 ): Promise<ConvertedPlace | null> {
   await loadMaps();
-  
+
   // Check Supabase cache first (30-day TTL)
   const cacheKey = generateCacheKey('place-details', placeId, null);
   const cached = await getCachedPlace<ConvertedPlace>(cacheKey);
   if (cached) {
     return cached;
   }
-  
-  const { Place } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
-  
+
+  const { Place } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary;
+
   try {
     // Record API usage
     await recordApiUsage('place-details');
@@ -809,7 +846,7 @@ export async function fetchPlaceDetails(
         'googleMapsURI',
         'types',
         'userRatingCount',
-        'priceLevel'
+        'priceLevel',
       ],
     });
 
@@ -840,7 +877,7 @@ export async function fetchPlaceDetails(
       // Return null - caller should handle gracefully
       return null;
     }
-    
+
     return null;
   }
 }
@@ -853,9 +890,9 @@ export async function fetchPlaceDetails(
  * 4. searchByText (replaces findPlaceFromQuery + textSearch)
  * 5. geocode (fallback for addresses)
  * 6. OSM fallback (if Google Maps API fails)
- * 
+ *
  * Includes Supabase caching, quota monitoring, and OSM fallback
- * 
+ *
  * @param query - Search query
  * @param origin - Optional origin for location bias
  * @param sessionToken - Session token for billing
@@ -863,7 +900,7 @@ export async function fetchPlaceDetails(
 export async function resolveQuery(
   query: string,
   origin: SearchOrigin,
-  sessionToken: string
+  sessionToken: string,
 ): Promise<ConvertedPlace | null> {
   await loadMaps();
 
@@ -902,7 +939,7 @@ export async function resolveQuery(
     if (isProximityQuery(query) && origin) {
       const placeTypes = mapQueryToPlaceTypes(query);
       const nearbyPlaces = await retryWithBackoff(async () =>
-        searchNearby(origin, 5000, placeTypes, 5)
+        searchNearby(origin, 5000, placeTypes, 5),
       );
 
       if (nearbyPlaces.length > 0) {
@@ -917,14 +954,12 @@ export async function resolveQuery(
     // 2) Try searchByText with type detection
     const detectedType = detectPlaceType(query);
 
-    const places = await retryWithBackoff(async () => 
-      searchByText(query, origin, 1)
-    );
-    
+    const places = await retryWithBackoff(async () => searchByText(query, origin, 1));
+
     if (places.length > 0) {
       // Enrich with full details
-      const enriched = await retryWithBackoff(async () => 
-        fetchPlaceDetails(places[0].place_id, sessionToken)
+      const enriched = await retryWithBackoff(async () =>
+        fetchPlaceDetails(places[0].place_id, sessionToken),
       );
       const result = enriched || places[0];
       // Cache result (both client-side and Supabase)
@@ -936,14 +971,14 @@ export async function resolveQuery(
     // 3) Fallback to geocode for addresses
     await recordApiUsage('geocode');
     const geocoder = new google.maps.Geocoder();
-    
+
     const result = await retryWithBackoff(async () => {
       const geoResult = await geocoder.geocode({
         address: query,
         ...(origin && {
           bounds: new google.maps.LatLngBounds(
             new google.maps.LatLng(origin.lat - 0.4, origin.lng - 0.4),
-            new google.maps.LatLng(origin.lat + 0.4, origin.lng + 0.4)
+            new google.maps.LatLng(origin.lat + 0.4, origin.lng + 0.4),
           ),
         }),
       });
@@ -975,8 +1010,10 @@ export async function resolveQuery(
     }
 
     // If quota error, try to return cached results
-    if ((error as any)?.message?.includes('quota') ||
-        (error as any)?.message?.includes('OVER_QUERY_LIMIT')) {
+    if (
+      (error as any)?.message?.includes('quota') ||
+      (error as any)?.message?.includes('OVER_QUERY_LIMIT')
+    ) {
       const expiredCache = apiQuotaMonitor.getCachedResult(clientCacheKey);
       if (expiredCache) {
         return expiredCache;
@@ -998,7 +1035,7 @@ export async function resolveQuery(
  */
 async function resolveQueryOSM(
   query: string,
-  origin: SearchOrigin
+  origin: SearchOrigin,
 ): Promise<ConvertedPlace | null> {
   try {
     // Try OSM search
@@ -1024,7 +1061,7 @@ async function resolveQueryOSM(
         geometry: {
           location: new google.maps.LatLng(
             parseFloat(geocodeResult.lat),
-            parseFloat(geocodeResult.lon)
+            parseFloat(geocodeResult.lon),
           ),
         },
       };
@@ -1044,7 +1081,7 @@ async function resolveQueryOSM(
 export function centerMapOnPlace(map: google.maps.Map, place: ConvertedPlace) {
   const geometry = place.geometry;
   if (!geometry) return;
-  
+
   if (geometry.viewport) {
     map.fitBounds(geometry.viewport);
   } else if (geometry.location) {

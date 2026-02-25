@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export type Permission = 
+export type Permission =
   | 'view_trip'
   | 'edit_calendar'
   | 'edit_payments'
@@ -28,16 +28,16 @@ interface TripMemberPermissions {
 
 /**
  * useTripPermissions Hook
- * 
+ *
  * Manages granular permissions for trip members.
  * Supports role-based permissions with override capabilities.
- * 
+ *
  * Permission Levels:
  * - none: No access
  * - view: Read-only access
  * - edit: Can modify
  * - admin: Full control
- * 
+ *
  * Default Roles:
  * - admin: All permissions
  * - member: Limited permissions (view most, edit calendar/payments)
@@ -61,7 +61,7 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
       delete_media: 'admin',
       view_chat: 'admin',
       send_messages: 'admin',
-      manage_settings: 'admin'
+      manage_settings: 'admin',
     },
     member: {
       view_trip: 'view',
@@ -74,7 +74,7 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
       delete_media: 'none',
       view_chat: 'view',
       send_messages: 'edit',
-      manage_settings: 'none'
+      manage_settings: 'none',
     },
     viewer: {
       view_trip: 'view',
@@ -87,8 +87,8 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
       delete_media: 'none',
       view_chat: 'view',
       send_messages: 'none',
-      manage_settings: 'none'
-    }
+      manage_settings: 'none',
+    },
   };
 
   useEffect(() => {
@@ -114,7 +114,10 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
         .single();
 
       // Cast to expected type since permissions column is missing from generated types
-      const typedMember = (member || null) as unknown as { role: string; permissions?: PermissionMatrix } | null;
+      const typedMember = (member || null) as unknown as {
+        role: string;
+        permissions?: PermissionMatrix;
+      } | null;
 
       if (error || !typedMember) {
         // Not a member - no permissions
@@ -149,12 +152,12 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
    */
   const hasPermission = (permission: Permission, minLevel: PermissionLevel = 'view'): boolean => {
     const userLevel = permissions[permission] || 'none';
-    
+
     const levelHierarchy: Record<PermissionLevel, number> = {
       none: 0,
       view: 1,
       edit: 2,
-      admin: 3
+      admin: 3,
     };
 
     return levelHierarchy[userLevel] >= levelHierarchy[minLevel];
@@ -165,7 +168,7 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
    */
   const updatePermissions = async (
     targetUserId: string,
-    newPermissions: Partial<PermissionMatrix>
+    newPermissions: Partial<PermissionMatrix>,
   ): Promise<boolean> => {
     if (!hasPermission('manage_members', 'admin')) {
       console.error('Insufficient permissions to update member permissions');
@@ -221,7 +224,7 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
         .from('trip_members')
         .update({
           role: newRole,
-          permissions: defaultPerms
+          permissions: defaultPerms,
         } as any)
         .eq('trip_id', tripId)
         .eq('user_id', targetUserId);
@@ -247,6 +250,6 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
     hasPermission,
     updatePermissions,
     updateRole,
-    refreshPermissions: loadPermissions
+    refreshPermissions: loadPermissions,
   };
 };

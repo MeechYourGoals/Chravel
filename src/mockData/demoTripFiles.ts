@@ -34,5 +34,5 @@ export const demoTripFilesByTripId: Record<string, DemoTripFile[]> = Object.from
     }));
 
     return [String(tripId), formattedFiles];
-  })
+  }),
 );

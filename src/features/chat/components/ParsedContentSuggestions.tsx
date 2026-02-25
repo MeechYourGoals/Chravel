@@ -1,9 +1,9 @@
 /**
  * Parsed Content Suggestions Component
- * 
+ *
  * Displays suggestions from parsed chat content (receipts, itineraries, messages)
  * Allows users to quickly apply suggestions (create calendar events, todos, etc.)
- * 
+ *
  * @module components/chat/ParsedContentSuggestions
  */
 
@@ -92,9 +92,7 @@ export const ParsedContentSuggestions: React.FC<ParsedContentSuggestionsProps> =
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-blue-400" />
             <div>
-              <CardTitle className="text-sm font-semibold text-white">
-                {getTitle()}
-              </CardTitle>
+              <CardTitle className="text-sm font-semibold text-white">{getTitle()}</CardTitle>
               <CardDescription className="text-xs text-gray-400 mt-1">
                 {getDescription()}
               </CardDescription>
@@ -120,12 +118,8 @@ export const ParsedContentSuggestions: React.FC<ParsedContentSuggestionsProps> =
               className="flex items-center justify-between gap-3 p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800/70 transition-colors"
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="text-blue-400 flex-shrink-0">
-                  {getIcon(suggestion.action)}
-                </div>
-                <span className="text-sm text-gray-300 truncate">
-                  {suggestion.message}
-                </span>
+                <div className="text-blue-400 flex-shrink-0">{getIcon(suggestion.action)}</div>
+                <span className="text-sm text-gray-300 truncate">{suggestion.message}</span>
               </div>
               <Button
                 size="sm"

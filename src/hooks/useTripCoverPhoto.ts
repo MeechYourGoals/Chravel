@@ -61,7 +61,7 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
       // Check if any row was actually updated
       if (!data) {
         console.error('[useTripCoverPhoto] No rows updated - user may not have permission');
-        toast.error('You don\'t have permission to update this trip\'s cover photo');
+        toast.error("You don't have permission to update this trip's cover photo");
         return false;
       }
 
@@ -110,7 +110,7 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
       // Check if any row was actually updated
       if (!data) {
         console.error('[useTripCoverPhoto] No rows updated - user may not have permission');
-        toast.error('You don\'t have permission to update this trip\'s cover photo');
+        toast.error("You don't have permission to update this trip's cover photo");
         return false;
       }
 
@@ -118,9 +118,7 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
       if (coverPhoto && coverPhoto.includes('supabase')) {
         const fileName = coverPhoto.split('/').pop();
         if (fileName) {
-          await supabase.storage
-            .from('advertiser-assets')
-            .remove([`${tripId}/${fileName}`]);
+          await supabase.storage.from('advertiser-assets').remove([`${tripId}/${fileName}`]);
         }
       }
 
@@ -142,6 +140,6 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
     coverPhoto,
     updateCoverPhoto,
     removeCoverPhoto,
-    isUpdating
+    isUpdating,
   };
 };

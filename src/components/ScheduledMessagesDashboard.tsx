@@ -11,10 +11,10 @@ interface ScheduledMessagesDashboardProps {
   tourId?: string;
 }
 
-export const ScheduledMessagesDashboard = ({ 
-  userId, 
-  tripId, 
-  tourId 
+export const ScheduledMessagesDashboard = ({
+  userId,
+  tripId,
+  tourId,
 }: ScheduledMessagesDashboardProps) => {
   const [scheduledMessages, setScheduledMessages] = useState<ScheduledMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,8 +52,8 @@ export const ScheduledMessagesDashboard = ({
   };
 
   const handleUpdateMessage = async (updatedMessage: ScheduledMessage) => {
-    setScheduledMessages(prev => 
-      prev.map(msg => msg.id === updatedMessage.id ? updatedMessage : msg)
+    setScheduledMessages(prev =>
+      prev.map(msg => (msg.id === updatedMessage.id ? updatedMessage : msg)),
     );
     setShowEditModal(false);
     setSelectedMessage(null);
@@ -66,10 +66,14 @@ export const ScheduledMessagesDashboard = ({
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'text-red-400 bg-red-400/10';
-      case 'reminder': return 'text-yellow-400 bg-yellow-400/10';
-      case 'fyi': return 'text-blue-400 bg-blue-400/10';
-      default: return 'text-gray-400 bg-gray-400/10';
+      case 'urgent':
+        return 'text-red-400 bg-red-400/10';
+      case 'reminder':
+        return 'text-yellow-400 bg-yellow-400/10';
+      case 'fyi':
+        return 'text-blue-400 bg-blue-400/10';
+      default:
+        return 'text-gray-400 bg-gray-400/10';
     }
   };
 
@@ -77,7 +81,7 @@ export const ScheduledMessagesDashboard = ({
     if (isSent) return 'text-green-400 bg-green-400/10';
     const sendTime = new Date(sendAt);
     const now = new Date();
-    
+
     if (sendTime < now) return 'text-orange-400 bg-orange-400/10';
     return 'text-blue-400 bg-blue-400/10';
   };
@@ -86,7 +90,7 @@ export const ScheduledMessagesDashboard = ({
     if (isSent) return 'Sent';
     const sendTime = new Date(sendAt);
     const now = new Date();
-    
+
     if (sendTime < now) return 'Pending';
     return 'Scheduled';
   };
@@ -120,7 +124,7 @@ export const ScheduledMessagesDashboard = ({
       {/* Messages List */}
       {scheduledMessages.length > 0 ? (
         <div className="space-y-4">
-          {scheduledMessages.map((message) => (
+          {scheduledMessages.map(message => (
             <div
               key={message.id}
               className="bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/8 transition-colors"
@@ -129,10 +133,14 @@ export const ScheduledMessagesDashboard = ({
                 <div className="flex-1">
                   {/* Header with status and priority */}
                   <div className="flex items-center gap-2 mb-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(message.sendAt, message.isSent)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(message.sendAt, message.isSent)}`}
+                    >
                       {getStatusText(message.sendAt, message.isSent)}
                     </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getPriorityColor(message.priority || 'fyi')}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getPriorityColor(message.priority || 'fyi')}`}
+                    >
                       {message.priority || 'fyi'}
                     </span>
                     {/* Recurring indicator */}
@@ -144,9 +152,7 @@ export const ScheduledMessagesDashboard = ({
                   </div>
 
                   {/* Message content */}
-                  <p className="text-white mb-3 leading-relaxed">
-                    {message.content}
-                  </p>
+                  <p className="text-white mb-3 leading-relaxed">{message.content}</p>
 
                   {/* Schedule info */}
                   <div className="flex items-center gap-4 text-sm text-gray-400">

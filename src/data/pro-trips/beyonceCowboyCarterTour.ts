@@ -4,7 +4,8 @@ import { getMockAvatar } from '../../utils/mockAvatars';
 export const beyonceCowboyCarterTour: ProTripData = {
   id: 'beyonce-cowboy-carter-tour',
   title: 'Beyoncé – Cowboy Carter World Tour (Intl Leg)',
-  description: 'International leg of Beyoncé Cowboy Carter World Tour covering major stadiums across Europe and Asia.',
+  description:
+    'International leg of Beyoncé Cowboy Carter World Tour covering major stadiums across Europe and Asia.',
   location: 'London, Paris, Tokyo, Sydney',
   dateRange: 'Mar 1 - Apr 30, 2025',
   proTripCategory: 'touring',
@@ -15,30 +16,33 @@ export const beyonceCowboyCarterTour: ProTripData = {
     {
       id: 'bc-1',
       senderId: '8',
-      message: 'All crew: Load-in starts at 8 AM sharp tomorrow. Please arrive 15 minutes early for safety briefing.',
+      message:
+        'All crew: Load-in starts at 8 AM sharp tomorrow. Please arrive 15 minutes early for safety briefing.',
       targetTrips: ['beyonce-cowboy-carter-tour'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 86400000).toISOString(),
-      readBy: ['4', '5', '6', '7']
+      readBy: ['4', '5', '6', '7'],
     },
     {
       id: 'bc-2',
       senderId: '9',
-      message: 'Weather update: Rain expected during load-out. Waterproof covers for equipment are mandatory.',
+      message:
+        'Weather update: Rain expected during load-out. Waterproof covers for equipment are mandatory.',
       targetTrips: ['beyonce-cowboy-carter-tour'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 43200000).toISOString(),
-      readBy: ['4', '5', '8']
+      readBy: ['4', '5', '8'],
     },
     {
       id: 'bc-3',
       senderId: '16',
-      message: 'URGENT: Security protocol update - all crew must wear visible ID badges at all times backstage.',
+      message:
+        'URGENT: Security protocol update - all crew must wear visible ID badges at all times backstage.',
       targetTrips: ['beyonce-cowboy-carter-tour'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['4']
-    }
+      readBy: ['4'],
+    },
   ],
   tasks: [
     {
@@ -48,7 +52,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
       completed: false,
       due_at: '2025-02-28',
       assigned_to: 'Crew',
-      created_at: new Date(Date.now() - 172800000).toISOString()
+      created_at: new Date(Date.now() - 172800000).toISOString(),
     },
     {
       id: 'task-2',
@@ -57,7 +61,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
       completed: true,
       due_at: '2025-02-27',
       assigned_to: 'Tour Manager',
-      created_at: new Date(Date.now() - 259200000).toISOString()
+      created_at: new Date(Date.now() - 259200000).toISOString(),
     },
     {
       id: 'task-3',
@@ -66,8 +70,8 @@ export const beyonceCowboyCarterTour: ProTripData = {
       completed: false,
       due_at: '2025-03-01',
       assigned_to: 'Crew',
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
   ],
   polls: [
     {
@@ -76,11 +80,11 @@ export const beyonceCowboyCarterTour: ProTripData = {
       options: [
         { id: 'opt1', text: '11:00 PM (right after load-out)', votes: 15 },
         { id: 'opt2', text: 'Midnight (gives time to shower)', votes: 28 },
-        { id: 'opt3', text: '1:00 AM (late night vibes)', votes: 8 }
+        { id: 'opt3', text: '1:00 AM (late night vibes)', votes: 8 },
       ],
       total_votes: 51,
       status: 'active',
-      created_at: new Date(Date.now() - 129600000).toISOString()
+      created_at: new Date(Date.now() - 129600000).toISOString(),
     },
     {
       id: 'poll-2',
@@ -88,12 +92,12 @@ export const beyonceCowboyCarterTour: ProTripData = {
       options: [
         { id: 'opt1', text: 'Tour bus (leaves together)', votes: 22 },
         { id: 'opt2', text: 'Private shuttles (smaller groups)', votes: 19 },
-        { id: 'opt3', text: 'Individual rideshare (flexible timing)', votes: 10 }
+        { id: 'opt3', text: 'Individual rideshare (flexible timing)', votes: 10 },
       ],
       total_votes: 51,
       status: 'closed',
-      created_at: new Date(Date.now() - 302400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 302400000).toISOString(),
+    },
   ],
   links: [
     {
@@ -103,7 +107,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
       description: 'Official venue information and logistics',
       domain: 'wembleystadium.com',
       created_at: new Date(Date.now() - 604800000).toISOString(),
-      source: 'places'
+      source: 'places',
     },
     {
       id: 'link-2',
@@ -112,7 +116,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
       description: 'Crew accommodation details and amenities',
       domain: 'thelanghanlondon.com',
       created_at: new Date(Date.now() - 864000000).toISOString(),
-      source: 'manual'
+      source: 'manual',
     },
     {
       id: 'link-3',
@@ -121,68 +125,243 @@ export const beyonceCowboyCarterTour: ProTripData = {
       description: 'Directions and parking information',
       domain: 'maps.google.com',
       created_at: new Date(Date.now() - 432000000).toISOString(),
-      source: 'places'
-    }
+      source: 'places',
+    },
   ],
   participants: [
     // MVP: Consolidated to 5 roles (Artists, Tour Manager, Crew, Performers, Security)
     { id: '4', name: 'Beyoncé', avatar: getMockAvatar('Beyoncé'), role: 'Artists' },
     { id: '5', name: 'Les Twins', avatar: getMockAvatar('Les Twins'), role: 'Performers' },
-    { id: '6', name: 'Simmie Cobbs Jr.', avatar: getMockAvatar('Simmie Cobbs Jr.'), role: 'Performers' },
-    { id: '7', name: 'Musical Director', avatar: getMockAvatar('Musical Director'), role: 'Performers' },
-    { id: '8', name: 'Tour Director', avatar: getMockAvatar('Tour Director'), role: 'Tour Manager' },
-    { id: '9', name: 'Production Manager', avatar: getMockAvatar('Production Manager'), role: 'Tour Manager' },
-    { id: '10', name: 'Lighting Designer', avatar: getMockAvatar('Lighting Designer'), role: 'Crew' },
+    {
+      id: '6',
+      name: 'Simmie Cobbs Jr.',
+      avatar: getMockAvatar('Simmie Cobbs Jr.'),
+      role: 'Performers',
+    },
+    {
+      id: '7',
+      name: 'Musical Director',
+      avatar: getMockAvatar('Musical Director'),
+      role: 'Performers',
+    },
+    {
+      id: '8',
+      name: 'Tour Director',
+      avatar: getMockAvatar('Tour Director'),
+      role: 'Tour Manager',
+    },
+    {
+      id: '9',
+      name: 'Production Manager',
+      avatar: getMockAvatar('Production Manager'),
+      role: 'Tour Manager',
+    },
+    {
+      id: '10',
+      name: 'Lighting Designer',
+      avatar: getMockAvatar('Lighting Designer'),
+      role: 'Crew',
+    },
     { id: '11', name: 'Sound Engineer', avatar: getMockAvatar('Sound Engineer'), role: 'Crew' },
     { id: '12', name: 'Stage Manager', avatar: getMockAvatar('Stage Manager'), role: 'Crew' },
     { id: '13', name: 'Costume Designer', avatar: getMockAvatar('Costume Designer'), role: 'Crew' },
     { id: '14', name: 'Choreographer', avatar: getMockAvatar('Choreographer'), role: 'Crew' },
-    { id: '15', name: 'Creative Director', avatar: getMockAvatar('Creative Director'), role: 'Crew' },
+    {
+      id: '15',
+      name: 'Creative Director',
+      avatar: getMockAvatar('Creative Director'),
+      role: 'Crew',
+    },
     { id: '16', name: 'Security Chief', avatar: getMockAvatar('Security Chief'), role: 'Security' },
-    { id: '17', name: 'Personal Security 1', avatar: getMockAvatar('Personal Security 1'), role: 'Security' },
-    { id: '18', name: 'Personal Security 2', avatar: getMockAvatar('Personal Security 2'), role: 'Security' },
-    { id: '19', name: 'Wardrobe Assistant 1', avatar: getMockAvatar('Wardrobe Assistant 1'), role: 'Crew' },
-    { id: '20', name: 'Wardrobe Assistant 2', avatar: getMockAvatar('Wardrobe Assistant 2'), role: 'Crew' },
+    {
+      id: '17',
+      name: 'Personal Security 1',
+      avatar: getMockAvatar('Personal Security 1'),
+      role: 'Security',
+    },
+    {
+      id: '18',
+      name: 'Personal Security 2',
+      avatar: getMockAvatar('Personal Security 2'),
+      role: 'Security',
+    },
+    {
+      id: '19',
+      name: 'Wardrobe Assistant 1',
+      avatar: getMockAvatar('Wardrobe Assistant 1'),
+      role: 'Crew',
+    },
+    {
+      id: '20',
+      name: 'Wardrobe Assistant 2',
+      avatar: getMockAvatar('Wardrobe Assistant 2'),
+      role: 'Crew',
+    },
     { id: '21', name: 'Hair Stylist', avatar: getMockAvatar('Hair Stylist'), role: 'Crew' },
     { id: '22', name: 'Makeup Artist', avatar: getMockAvatar('Makeup Artist'), role: 'Crew' },
-    { id: '23', name: 'Personal Assistant', avatar: getMockAvatar('Personal Assistant'), role: 'Crew' },
-    { id: '24', name: 'Tour Photographer', avatar: getMockAvatar('Tour Photographer'), role: 'Crew' },
+    {
+      id: '23',
+      name: 'Personal Assistant',
+      avatar: getMockAvatar('Personal Assistant'),
+      role: 'Crew',
+    },
+    {
+      id: '24',
+      name: 'Tour Photographer',
+      avatar: getMockAvatar('Tour Photographer'),
+      role: 'Crew',
+    },
     { id: '25', name: 'Videographer', avatar: getMockAvatar('Videographer'), role: 'Crew' },
     { id: '26', name: 'Catering Manager', avatar: getMockAvatar('Catering Manager'), role: 'Crew' },
-    { id: '27', name: 'Transportation Coordinator', avatar: getMockAvatar('Transportation Coordinator'), role: 'Crew' },
-    { id: '28', name: 'Venue Coordinator', avatar: getMockAvatar('Venue Coordinator'), role: 'Crew' },
+    {
+      id: '27',
+      name: 'Transportation Coordinator',
+      avatar: getMockAvatar('Transportation Coordinator'),
+      role: 'Crew',
+    },
+    {
+      id: '28',
+      name: 'Venue Coordinator',
+      avatar: getMockAvatar('Venue Coordinator'),
+      role: 'Crew',
+    },
     { id: '29', name: 'FOH Engineer', avatar: getMockAvatar('FOH Engineer'), role: 'Crew' },
     { id: '30', name: 'Monitor Engineer', avatar: getMockAvatar('Monitor Engineer'), role: 'Crew' },
-    { id: '31', name: 'Lighting Technician 1', avatar: getMockAvatar('Lighting Technician 1'), role: 'Crew' },
-    { id: '32', name: 'Lighting Technician 2', avatar: getMockAvatar('Lighting Technician 2'), role: 'Crew' },
+    {
+      id: '31',
+      name: 'Lighting Technician 1',
+      avatar: getMockAvatar('Lighting Technician 1'),
+      role: 'Crew',
+    },
+    {
+      id: '32',
+      name: 'Lighting Technician 2',
+      avatar: getMockAvatar('Lighting Technician 2'),
+      role: 'Crew',
+    },
     { id: '33', name: 'Video Director', avatar: getMockAvatar('Video Director'), role: 'Crew' },
-    { id: '34', name: 'Camera Operator 1', avatar: getMockAvatar('Camera Operator 1'), role: 'Crew' },
-    { id: '35', name: 'Camera Operator 2', avatar: getMockAvatar('Camera Operator 2'), role: 'Crew' },
-    { id: '36', name: 'Backup Dancer 1', avatar: getMockAvatar('Backup Dancer 1'), role: 'Performers' },
-    { id: '37', name: 'Backup Dancer 2', avatar: getMockAvatar('Backup Dancer 2'), role: 'Performers' },
-    { id: '38', name: 'Backup Dancer 3', avatar: getMockAvatar('Backup Dancer 3'), role: 'Performers' },
-    { id: '39', name: 'Backup Dancer 4', avatar: getMockAvatar('Backup Dancer 4'), role: 'Performers' },
-    { id: '40', name: 'Backup Dancer 5', avatar: getMockAvatar('Backup Dancer 5'), role: 'Performers' },
-    { id: '41', name: 'Backup Dancer 6', avatar: getMockAvatar('Backup Dancer 6'), role: 'Performers' },
-    { id: '42', name: 'Guitar Player 1', avatar: getMockAvatar('Guitar Player 1'), role: 'Performers' },
-    { id: '43', name: 'Guitar Player 2', avatar: getMockAvatar('Guitar Player 2'), role: 'Performers' },
+    {
+      id: '34',
+      name: 'Camera Operator 1',
+      avatar: getMockAvatar('Camera Operator 1'),
+      role: 'Crew',
+    },
+    {
+      id: '35',
+      name: 'Camera Operator 2',
+      avatar: getMockAvatar('Camera Operator 2'),
+      role: 'Crew',
+    },
+    {
+      id: '36',
+      name: 'Backup Dancer 1',
+      avatar: getMockAvatar('Backup Dancer 1'),
+      role: 'Performers',
+    },
+    {
+      id: '37',
+      name: 'Backup Dancer 2',
+      avatar: getMockAvatar('Backup Dancer 2'),
+      role: 'Performers',
+    },
+    {
+      id: '38',
+      name: 'Backup Dancer 3',
+      avatar: getMockAvatar('Backup Dancer 3'),
+      role: 'Performers',
+    },
+    {
+      id: '39',
+      name: 'Backup Dancer 4',
+      avatar: getMockAvatar('Backup Dancer 4'),
+      role: 'Performers',
+    },
+    {
+      id: '40',
+      name: 'Backup Dancer 5',
+      avatar: getMockAvatar('Backup Dancer 5'),
+      role: 'Performers',
+    },
+    {
+      id: '41',
+      name: 'Backup Dancer 6',
+      avatar: getMockAvatar('Backup Dancer 6'),
+      role: 'Performers',
+    },
+    {
+      id: '42',
+      name: 'Guitar Player 1',
+      avatar: getMockAvatar('Guitar Player 1'),
+      role: 'Performers',
+    },
+    {
+      id: '43',
+      name: 'Guitar Player 2',
+      avatar: getMockAvatar('Guitar Player 2'),
+      role: 'Performers',
+    },
     { id: '44', name: 'Bass Player', avatar: getMockAvatar('Bass Player'), role: 'Performers' },
     { id: '45', name: 'Drummer', avatar: getMockAvatar('Drummer'), role: 'Performers' },
-    { id: '46', name: 'Keyboard Player', avatar: getMockAvatar('Keyboard Player'), role: 'Performers' },
+    {
+      id: '46',
+      name: 'Keyboard Player',
+      avatar: getMockAvatar('Keyboard Player'),
+      role: 'Performers',
+    },
     { id: '47', name: 'Percussion', avatar: getMockAvatar('Percussion'), role: 'Performers' },
-    { id: '48', name: 'Backup Vocalist 1', avatar: getMockAvatar('Backup Vocalist 1'), role: 'Performers' },
-    { id: '49', name: 'Backup Vocalist 2', avatar: getMockAvatar('Backup Vocalist 2'), role: 'Performers' },
-    { id: '50', name: 'Pyrotechnics Specialist', avatar: getMockAvatar('Pyrotechnics Specialist'), role: 'Crew' },
-    { id: '51', name: 'Rigging Specialist', avatar: getMockAvatar('Rigging Specialist'), role: 'Crew' },
+    {
+      id: '48',
+      name: 'Backup Vocalist 1',
+      avatar: getMockAvatar('Backup Vocalist 1'),
+      role: 'Performers',
+    },
+    {
+      id: '49',
+      name: 'Backup Vocalist 2',
+      avatar: getMockAvatar('Backup Vocalist 2'),
+      role: 'Performers',
+    },
+    {
+      id: '50',
+      name: 'Pyrotechnics Specialist',
+      avatar: getMockAvatar('Pyrotechnics Specialist'),
+      role: 'Crew',
+    },
+    {
+      id: '51',
+      name: 'Rigging Specialist',
+      avatar: getMockAvatar('Rigging Specialist'),
+      role: 'Crew',
+    },
     { id: '52', name: 'Set Designer', avatar: getMockAvatar('Set Designer'), role: 'Crew' },
-    { id: '53', name: 'Staging Coordinator', avatar: getMockAvatar('Staging Coordinator'), role: 'Crew' },
+    {
+      id: '53',
+      name: 'Staging Coordinator',
+      avatar: getMockAvatar('Staging Coordinator'),
+      role: 'Crew',
+    },
     { id: '54', name: 'Load-In Manager', avatar: getMockAvatar('Load-In Manager'), role: 'Crew' },
     { id: '55', name: 'Truck Driver 1', avatar: getMockAvatar('Truck Driver 1'), role: 'Crew' },
     { id: '56', name: 'Truck Driver 2', avatar: getMockAvatar('Truck Driver 2'), role: 'Crew' },
     { id: '57', name: 'Bus Driver', avatar: getMockAvatar('Bus Driver'), role: 'Crew' },
-    { id: '58', name: 'Travel Coordinator', avatar: getMockAvatar('Travel Coordinator'), role: 'Crew' },
-    { id: '59', name: 'Merchandise Manager', avatar: getMockAvatar('Merchandise Manager'), role: 'Crew' },
-    { id: '60', name: 'Tour Accountant', avatar: getMockAvatar('Tour Accountant'), role: 'Tour Manager' }
+    {
+      id: '58',
+      name: 'Travel Coordinator',
+      avatar: getMockAvatar('Travel Coordinator'),
+      role: 'Crew',
+    },
+    {
+      id: '59',
+      name: 'Merchandise Manager',
+      avatar: getMockAvatar('Merchandise Manager'),
+      role: 'Crew',
+    },
+    {
+      id: '60',
+      name: 'Tour Accountant',
+      avatar: getMockAvatar('Tour Accountant'),
+      role: 'Tour Manager',
+    },
   ],
   budget: {
     total: 25000000,
@@ -191,19 +370,24 @@ export const beyonceCowboyCarterTour: ProTripData = {
       { name: 'Production', budgeted: 15000000, spent: 5000000 },
       { name: 'Travel & Logistics', budgeted: 5000000, spent: 1800000 },
       { name: 'Accommodation', budgeted: 3000000, spent: 1200000 },
-      { name: 'Marketing', budgeted: 2000000, spent: 500000 }
-    ]
+      { name: 'Marketing', budgeted: 2000000, spent: 500000 },
+    ],
   },
   itinerary: [
     {
       date: '2025-03-01',
       events: [
         { time: '10:00', title: 'Load-in Begins', location: 'Wembley Stadium', type: 'meeting' },
-        { time: '14:00', title: 'Sound Check', location: 'Wembley Stadium Main Stage', type: 'meeting' },
+        {
+          time: '14:00',
+          title: 'Sound Check',
+          location: 'Wembley Stadium Main Stage',
+          type: 'meeting',
+        },
         { time: '17:00', title: 'Final Rehearsal', location: 'Wembley Stadium', type: 'meeting' },
-        { time: '20:00', title: 'Show Time', location: 'Wembley Stadium', type: 'meeting' }
-      ]
-    }
+        { time: '20:00', title: 'Show Time', location: 'Wembley Stadium', type: 'meeting' },
+      ],
+    },
   ],
   roster: [
     {
@@ -215,7 +399,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'artist-privileges'],
       roomPreferences: ['presidential-suite', 'top-floor', 'extra-security'],
-      dietaryRestrictions: ['no-dairy']
+      dietaryRestrictions: ['no-dairy'],
     },
     {
       id: '5',
@@ -226,7 +410,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'tour-management'],
       roomPreferences: ['executive-suite', 'near-artist'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '6',
@@ -237,7 +421,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['production-areas', 'equipment-access'],
       roomPreferences: ['standard-suite'],
-      dietaryRestrictions: ['vegetarian']
+      dietaryRestrictions: ['vegetarian'],
     },
     {
       id: '7',
@@ -247,7 +431,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
       role: 'Security',
       credentialLevel: 'AllAccess',
       permissions: ['security-protocols', 'emergency-access'],
-      roomPreferences: ['standard-room', 'security-floor']
+      roomPreferences: ['standard-room', 'security-floor'],
     },
     {
       id: '8',
@@ -257,8 +441,8 @@ export const beyonceCowboyCarterTour: ProTripData = {
       role: 'Crew',
       credentialLevel: 'Backstage',
       permissions: ['audio-equipment', 'stage-access'],
-      roomPreferences: ['crew-housing']
-    }
+      roomPreferences: ['crew-housing'],
+    },
   ],
   roomAssignments: [
     {
@@ -269,8 +453,8 @@ export const beyonceCowboyCarterTour: ProTripData = {
       checkIn: '2025-02-28T14:00:00Z',
       checkOut: '2025-03-03T12:00:00Z',
       roomType: 'suite',
-      specialRequests: ['extra-security', 'private-entrance', 'soundproofing']
-    }
+      specialRequests: ['extra-security', 'private-entrance', 'soundproofing'],
+    },
   ],
   schedule: [
     {
@@ -282,8 +466,8 @@ export const beyonceCowboyCarterTour: ProTripData = {
       location: 'Wembley Stadium Loading Dock',
       participants: ['6', '8'],
       priority: 'critical',
-      notes: 'All production gear must be in place before sound check'
-    }
+      notes: 'All production gear must be in place before sound check',
+    },
   ],
   perDiem: {
     dailyRate: 200,
@@ -293,8 +477,8 @@ export const beyonceCowboyCarterTour: ProTripData = {
     participants: [
       { participantId: '4', customRate: 0, advances: 0, deductions: 0, balance: 0 },
       { participantId: '5', customRate: 300, advances: 0, deductions: 0, balance: 18300 },
-      { participantId: '6', customRate: 250, advances: 0, deductions: 0, balance: 15250 }
-    ]
+      { participantId: '6', customRate: 250, advances: 0, deductions: 0, balance: 15250 },
+    ],
   },
   settlement: [
     {
@@ -307,8 +491,8 @@ export const beyonceCowboyCarterTour: ProTripData = {
       netRevenue: 9500000,
       merchandiseRevenue: 1500000,
       finalPayout: 11000000,
-      status: 'calculated'
-    }
+      status: 'calculated',
+    },
   ],
   medical: [],
   compliance: [
@@ -320,8 +504,8 @@ export const beyonceCowboyCarterTour: ProTripData = {
       deadline: '2025-02-15',
       status: 'compliant',
       assignedTo: '5',
-      documents: ['visa-checklist.pdf', 'work-permits.pdf']
-    }
+      documents: ['visa-checklist.pdf', 'work-permits.pdf'],
+    },
   ],
   media: [
     {
@@ -333,8 +517,8 @@ export const beyonceCowboyCarterTour: ProTripData = {
       duration: 45,
       location: 'BBC Broadcasting House',
       participants: ['4'],
-      status: 'confirmed'
-    }
+      status: 'confirmed',
+    },
   ],
   sponsors: [
     {
@@ -345,7 +529,7 @@ export const beyonceCowboyCarterTour: ProTripData = {
       assignedTo: '5',
       status: 'in-progress',
       deliverables: ['exclusive-content', 'behind-scenes-footage'],
-      notes: 'Multi-platform content creation and distribution'
-    }
-  ]
+      notes: 'Multi-platform content creation and distribution',
+    },
+  ],
 };

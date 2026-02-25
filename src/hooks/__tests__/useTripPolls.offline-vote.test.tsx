@@ -10,13 +10,15 @@ const cacheStore = new Map<string, any>();
 
 vi.mock('@/offline/cache', () => {
   return {
-    getCachedEntities: vi.fn(async ({ tripId, entityType }: { tripId: string; entityType: string }) => {
-      const keyPrefix = `${tripId}:${entityType}:`;
-      const entities = [...cacheStore.entries()]
-        .filter(([k]) => k.startsWith(keyPrefix))
-        .map(([, v]) => v);
-      return entities;
-    }),
+    getCachedEntities: vi.fn(
+      async ({ tripId, entityType }: { tripId: string; entityType: string }) => {
+        const keyPrefix = `${tripId}:${entityType}:`;
+        const entities = [...cacheStore.entries()]
+          .filter(([k]) => k.startsWith(keyPrefix))
+          .map(([, v]) => v);
+        return entities;
+      },
+    ),
     cacheEntity: vi.fn(async ({ tripId, entityType, entityId, data }: any) => {
       cacheStore.set(`${tripId}:${entityType}:${entityId}`, {
         tripId,
@@ -127,4 +129,3 @@ describe('useTripPolls - offline vote optimistic persistence', () => {
     expect(poll?.options.find(o => o.id === 'opt-1')?.votes).toBe(1);
   });
 });
-

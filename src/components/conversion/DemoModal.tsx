@@ -18,7 +18,7 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
     company: '',
     teamSize: '',
     useCase: '',
-    message: ''
+    message: '',
   });
 
   if (!isOpen) return null;
@@ -37,9 +37,9 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
   };
 
   const getDemoDescription = () => {
-    return demoType === 'events' 
+    return demoType === 'events'
       ? 'See how Chravel Events can streamline your event management workflow'
-      : 'Discover how Chravel Pro can transform your team\'s travel coordination';
+      : "Discover how Chravel Pro can transform your team's travel coordination";
   };
 
   const getUseCaseOptions = () => {
@@ -50,7 +50,7 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
         'Festival Coordination',
         'Wedding Planning',
         'Sports Events',
-        'Other'
+        'Other',
       ];
     }
     return [
@@ -59,7 +59,7 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
       'Sports Teams',
       'Film Production',
       'Agency Operations',
-      'Other'
+      'Other',
     ];
   };
 
@@ -82,24 +82,20 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Full Name *
-              </label>
+              <label className="block text-sm font-medium text-foreground mb-2">Full Name *</label>
               <Input
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                onChange={e => handleInputChange('name', e.target.value)}
                 placeholder="John Doe"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Work Email *
-              </label>
+              <label className="block text-sm font-medium text-foreground mb-2">Work Email *</label>
               <Input
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                onChange={e => handleInputChange('email', e.target.value)}
                 placeholder="john@company.com"
                 required
               />
@@ -107,12 +103,10 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Company *
-            </label>
+            <label className="block text-sm font-medium text-foreground mb-2">Company *</label>
             <Input
               value={formData.company}
-              onChange={(e) => handleInputChange('company', e.target.value)}
+              onChange={e => handleInputChange('company', e.target.value)}
               placeholder="Company Inc."
               required
             />
@@ -120,10 +114,8 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Team Size
-              </label>
-              <Select onValueChange={(value) => handleInputChange('teamSize', value)}>
+              <label className="block text-sm font-medium text-foreground mb-2">Team Size</label>
+              <Select onValueChange={value => handleInputChange('teamSize', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select size" />
                 </SelectTrigger>
@@ -136,15 +128,13 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Use Case
-              </label>
-              <Select onValueChange={(value) => handleInputChange('useCase', value)}>
+              <label className="block text-sm font-medium text-foreground mb-2">Use Case</label>
+              <Select onValueChange={value => handleInputChange('useCase', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select use case" />
                 </SelectTrigger>
                 <SelectContent>
-                  {getUseCaseOptions().map((option) => (
+                  {getUseCaseOptions().map(option => (
                     <SelectItem key={option} value={option}>
                       {option}
                     </SelectItem>
@@ -160,25 +150,17 @@ export const DemoModal = ({ isOpen, onClose, demoType = 'pro' }: DemoModalProps)
             </label>
             <Textarea
               value={formData.message}
-              onChange={(e) => handleInputChange('message', e.target.value)}
+              onChange={e => handleInputChange('message', e.target.value)}
               placeholder="What challenges are you looking to solve?"
               rows={3}
             />
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
-            >
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="flex-1 bg-primary hover:bg-primary/90"
-            >
+            <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90">
               Schedule Demo
             </Button>
           </div>

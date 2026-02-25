@@ -1,9 +1,27 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -27,7 +45,7 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
   tripId,
   members,
   roles,
-  onRoleAssigned
+  onRoleAssigned,
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -42,7 +60,7 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
       toast({
         title: 'Missing Selection',
         description: 'Please select a role and at least one member',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -55,7 +73,7 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
 
       toast({
         title: 'Roles Assigned',
-        description: `Successfully assigned role to ${selectedMembers.length} member(s)`
+        description: `Successfully assigned role to ${selectedMembers.length} member(s)`,
       });
 
       // Reset form
@@ -68,16 +86,14 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
       toast({
         title: 'Failed to Assign Roles',
         description: error instanceof Error ? error.message : 'An error occurred',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
 
   const toggleMember = (memberId: string) => {
     setSelectedMembers(prev =>
-      prev.includes(memberId)
-        ? prev.filter(id => id !== memberId)
-        : [...prev, memberId]
+      prev.includes(memberId) ? prev.filter(id => id !== memberId) : [...prev, memberId],
     );
   };
 
@@ -126,7 +142,9 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
           </Button>
         </div>
 
-        <div className={`border rounded-lg overflow-y-auto ${isMobile ? 'max-h-[40vh]' : 'max-h-[300px]'}`}>
+        <div
+          className={`border rounded-lg overflow-y-auto ${isMobile ? 'max-h-[40vh]' : 'max-h-[300px]'}`}
+        >
           {members.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -176,8 +194,8 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
         >
           Cancel
         </Button>
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={isProcessing || selectedMembers.length === 0}
           className={isMobile ? 'min-h-[44px] order-1' : ''}
         >
@@ -194,9 +212,7 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl overflow-y-auto">
           <SheetHeader className="pb-4">
             <SheetTitle>Assign Role to Members</SheetTitle>
-            <SheetDescription>
-              Select members and assign them a role
-            </SheetDescription>
+            <SheetDescription>Select members and assign them a role</SheetDescription>
           </SheetHeader>
           {formContent}
         </SheetContent>
@@ -209,9 +225,7 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Assign Role to Members</DialogTitle>
-          <DialogDescription>
-            Select members and assign them a role
-          </DialogDescription>
+          <DialogDescription>Select members and assign them a role</DialogDescription>
         </DialogHeader>
         {formContent}
       </DialogContent>

@@ -10,7 +10,12 @@ import {
   Users,
   Tag,
 } from 'lucide-react';
-import { ProCategoryEnum, PRO_CATEGORIES_ORDERED, getCategoryConfig, normalizeLegacyCategory } from '@/types/proCategories';
+import {
+  ProCategoryEnum,
+  PRO_CATEGORIES_ORDERED,
+  getCategoryConfig,
+  normalizeLegacyCategory,
+} from '@/types/proCategories';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseDateRange, formatDateRange } from '@/utils/dateFormatters';
 import { tripService, Trip } from '@/services/tripService';
@@ -65,7 +70,9 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
 
   // Pro category state
   const allCategories = PRO_CATEGORIES_ORDERED;
-  const initialCategory = normalizeLegacyCategory(trip.categories?.find(c => c.type === 'pro_category')?.value);
+  const initialCategory = normalizeLegacyCategory(
+    trip.categories?.find(c => c.type === 'pro_category')?.value,
+  );
   const [proCategory, setProCategory] = useState<ProCategoryEnum>(initialCategory);
 
   // Initialize form data when modal opens
@@ -80,7 +87,9 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
         organizer_display_name: trip.organizer_display_name || '',
       });
       setSelectedCardColor(trip.card_color);
-      const cat = normalizeLegacyCategory(trip.categories?.find(c => c.type === 'pro_category')?.value);
+      const cat = normalizeLegacyCategory(
+        trip.categories?.find(c => c.type === 'pro_category')?.value,
+      );
       setProCategory(cat);
     }
   }, [isOpen, trip]);
@@ -286,7 +295,6 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
               </p>
             </div>
           )}
-
 
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">

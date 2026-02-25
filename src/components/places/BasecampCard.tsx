@@ -22,7 +22,7 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
     name: '',
     address: '',
   });
-  
+
   // Sync form data when tripBasecamp loads
   useEffect(() => {
     if (tripBasecamp && !isEditing) {
@@ -82,7 +82,7 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
           </span>
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {!tripBasecamp && !isEditing ? (
           <div className="text-center py-8">
@@ -105,17 +105,17 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
               <Input
                 id="basecamp-name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Downtown Chicago, Santa Monica, Aspen Resort"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="basecamp-address">Address *</Label>
               <Textarea
                 id="basecamp-address"
                 value={formData.address}
-                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                onChange={e => setFormData(prev => ({ ...prev, address: e.target.value }))}
                 placeholder="Enter the basecamp address..."
                 rows={3}
               />
@@ -123,23 +123,24 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
 
             {updateBasecampMutation.error && (
               <div className="text-sm text-destructive">
-                Error: {updateBasecampMutation.error instanceof Error 
-                  ? updateBasecampMutation.error.message 
+                Error:{' '}
+                {updateBasecampMutation.error instanceof Error
+                  ? updateBasecampMutation.error.message
                   : 'Failed to update basecamp'}
               </div>
             )}
 
             <div className="flex gap-2">
-              <Button 
-                onClick={handleSave} 
+              <Button
+                onClick={handleSave}
                 disabled={updateBasecampMutation.isPending || !formData.address.trim()}
                 className="flex-1"
               >
                 <Save className="h-4 w-4 mr-2" />
                 {updateBasecampMutation.isPending ? 'Saving...' : 'Save'}
               </Button>
-              <Button 
-                onClick={handleCancel} 
+              <Button
+                onClick={handleCancel}
                 variant="outline"
                 disabled={updateBasecampMutation.isPending}
               >
@@ -155,17 +156,10 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
                   <MapPin className="h-4 w-4 text-blue-500" />
                   <span className="font-medium">{tripBasecamp.name}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {tripBasecamp.address}
-                </p>
+                <p className="text-sm text-muted-foreground">{tripBasecamp.address}</p>
               </div>
               {isAdmin && (
-                <Button
-                  onClick={handleEdit}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                >
+                <Button onClick={handleEdit} variant="ghost" size="sm" className="h-8 w-8 p-0">
                   <Edit3 className="h-4 w-4" />
                 </Button>
               )}
@@ -176,12 +170,3 @@ export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
     </Card>
   );
 };
-
-
-
-
-
-
-
-
-

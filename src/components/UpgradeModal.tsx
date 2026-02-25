@@ -1,5 +1,33 @@
 import React, { useState } from 'react';
-import { X, Crown, Building, Sparkles, MessageCircle, Settings, Zap, Users, Shield, TrendingUp, Star, BarChart3, Calendar, Wallet, Globe, Phone, CalendarPlus, UserCheck, Clock, FileText, DollarSign, TrendingDown, Mail, Ticket, Megaphone, Paintbrush, Camera } from 'lucide-react';
+import {
+  X,
+  Crown,
+  Building,
+  Sparkles,
+  MessageCircle,
+  Settings,
+  Zap,
+  Users,
+  Shield,
+  TrendingUp,
+  Star,
+  BarChart3,
+  Calendar,
+  Wallet,
+  Globe,
+  Phone,
+  CalendarPlus,
+  UserCheck,
+  Clock,
+  FileText,
+  DollarSign,
+  TrendingDown,
+  Mail,
+  Ticket,
+  Megaphone,
+  Paintbrush,
+  Camera,
+} from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TRIPS_PLUS_PRICE, TRIPS_PLUS_ANNUAL_PRICE } from '../types/consumer';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +40,9 @@ interface UpgradeModalProps {
 }
 
 export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
-  const [selectedPlan, setSelectedPlan] = useState<'explorer' | 'frequent-chraveler' | 'travel-pro' | 'events'>('explorer');
+  const [selectedPlan, setSelectedPlan] = useState<
+    'explorer' | 'frequent-chraveler' | 'travel-pro' | 'events'
+  >('explorer');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const { upgradeToTier, isLoading } = useConsumerSubscription();
 
@@ -26,11 +56,11 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
       // Handle Travel Pro upgrade - use Pro Starter by default
       try {
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { tier: 'pro-starter' }
+          body: { tier: 'pro-starter' },
         });
-        
+
         if (error) throw error;
-        
+
         if (data.url) {
           window.open(data.url, '_blank');
           onClose();
@@ -61,10 +91,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold text-white">Choose Your Plan</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <X size={24} />
           </button>
         </div>
@@ -124,36 +151,48 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
           <div>
             {/* Tier Info */}
             <div className="text-center mb-8">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                selectedPlan === 'explorer' ? 'bg-gradient-to-r from-glass-orange to-glass-yellow' :
-                'bg-gradient-to-r from-purple-500 to-purple-600'
-              }`}>
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                  selectedPlan === 'explorer'
+                    ? 'bg-gradient-to-r from-glass-orange to-glass-yellow'
+                    : 'bg-gradient-to-r from-purple-500 to-purple-600'
+                }`}
+              >
                 {selectedPlan === 'explorer' && <Globe size={32} className="text-white" />}
-                {selectedPlan === 'frequent-chraveler' && <Sparkles size={32} className="text-white" />}
+                {selectedPlan === 'frequent-chraveler' && (
+                  <Sparkles size={32} className="text-white" />
+                )}
               </div>
               <h3 className="text-2xl font-bold text-white mb-2 capitalize">
                 {selectedPlan === 'frequent-chraveler' ? 'Frequent Chraveler' : selectedPlan}
               </h3>
               <p className="text-gray-300">
                 {selectedPlan === 'explorer' && 'Never lose a trip memory'}
-                {selectedPlan === 'frequent-chraveler' && 'For travel pros and adventure enthusiasts'}
+                {selectedPlan === 'frequent-chraveler' &&
+                  'For travel pros and adventure enthusiasts'}
               </p>
             </div>
 
             {/* Billing Toggle */}
             <div className="flex items-center justify-center gap-4 mb-6">
-              <span className={`text-sm ${billingCycle === 'monthly' ? 'text-white font-medium' : 'text-gray-400'}`}>
+              <span
+                className={`text-sm ${billingCycle === 'monthly' ? 'text-white font-medium' : 'text-gray-400'}`}
+              >
                 Monthly
               </span>
               <button
                 onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
                 className="relative w-12 h-6 bg-gray-700 rounded-full transition-colors"
               >
-                <div className={`absolute top-1 w-4 h-4 bg-glass-orange rounded-full transition-transform ${
-                  billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-1'
-                }`} />
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-glass-orange rounded-full transition-transform ${
+                    billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
               </button>
-              <span className={`text-sm ${billingCycle === 'annual' ? 'text-white font-medium' : 'text-gray-400'}`}>
+              <span
+                className={`text-sm ${billingCycle === 'annual' ? 'text-white font-medium' : 'text-gray-400'}`}
+              >
                 Annual
               </span>
               {billingCycle === 'annual' && (
@@ -167,9 +206,14 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
             <div className="text-center">
               <div className="bg-gradient-to-r from-glass-orange/20 to-glass-yellow/20 backdrop-blur-sm border border-glass-orange/30 rounded-2xl p-6 mb-6">
                 <div className="text-4xl font-bold text-white mb-2">
-                  ${billingCycle === 'monthly' 
-                    ? (selectedPlan === 'explorer' ? '9.99' : '19.99')
-                    : (selectedPlan === 'explorer' ? '99' : '199')}
+                  $
+                  {billingCycle === 'monthly'
+                    ? selectedPlan === 'explorer'
+                      ? '9.99'
+                      : '19.99'
+                    : selectedPlan === 'explorer'
+                      ? '99'
+                      : '199'}
                   {billingCycle === 'monthly' ? '/month' : '/year'}
                 </div>
                 {billingCycle === 'annual' && (
@@ -266,7 +310,10 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <Users size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Advanced Team Collaboration</h4>
-                <p className="text-gray-300 text-sm">Comprehensive team management with role-based permissions, collaborative planning tools, and real-time synchronization across all team members.</p>
+                <p className="text-gray-300 text-sm">
+                  Comprehensive team management with role-based permissions, collaborative planning
+                  tools, and real-time synchronization across all team members.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
@@ -274,15 +321,23 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <Wallet size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Enterprise Budget Management</h4>
-                <p className="text-gray-300 text-sm">Comprehensive expense tracking, budget allocation, automated approval workflows, and detailed financial reporting with export capabilities.</p>
+                <p className="text-gray-300 text-sm">
+                  Comprehensive expense tracking, budget allocation, automated approval workflows,
+                  and detailed financial reporting with export capabilities.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
                 <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
                   <BarChart3 size={24} className="text-yellow-400" />
                 </div>
-                <h4 className="text-lg font-bold text-white mb-2">Analytics & Business Intelligence</h4>
-                <p className="text-gray-300 text-sm">Detailed trip analytics, sentiment analysis, performance metrics, ROI tracking, and customizable dashboards for data-driven decision making.</p>
+                <h4 className="text-lg font-bold text-white mb-2">
+                  Analytics & Business Intelligence
+                </h4>
+                <p className="text-gray-300 text-sm">
+                  Detailed trip analytics, sentiment analysis, performance metrics, ROI tracking,
+                  and customizable dashboards for data-driven decision making.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
@@ -290,15 +345,23 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <Phone size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">24/7 Priority Support</h4>
-                <p className="text-gray-300 text-sm">Dedicated account management, priority technical support, custom integrations, and enterprise-grade SLA guarantees.</p>
+                <p className="text-gray-300 text-sm">
+                  Dedicated account management, priority technical support, custom integrations, and
+                  enterprise-grade SLA guarantees.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
                 <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
                   <Shield size={24} className="text-yellow-400" />
                 </div>
-                <h4 className="text-lg font-bold text-white mb-2">Enterprise Security & Compliance</h4>
-                <p className="text-gray-300 text-sm">Advanced security features, SSO integration, audit trails, GDPR compliance, and enterprise-grade data protection standards.</p>
+                <h4 className="text-lg font-bold text-white mb-2">
+                  Enterprise Security & Compliance
+                </h4>
+                <p className="text-gray-300 text-sm">
+                  Advanced security features, SSO integration, audit trails, GDPR compliance, and
+                  enterprise-grade data protection standards.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
@@ -306,30 +369,45 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <Globe size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Multi-Organization Management</h4>
-                <p className="text-gray-300 text-sm">Manage multiple organizations, white-label options, custom branding, and scalable seat-based pricing for enterprise deployments.</p>
+                <p className="text-gray-300 text-sm">
+                  Manage multiple organizations, white-label options, custom branding, and scalable
+                  seat-based pricing for enterprise deployments.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
                 <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
                   <Calendar size={24} className="text-yellow-400" />
                 </div>
-                <h4 className="text-lg font-bold text-white mb-2">Advanced Scheduling & Automation</h4>
-                <p className="text-gray-300 text-sm">Automated itinerary generation, smart scheduling optimization, calendar integrations, and workflow automation for complex travel operations.</p>
+                <h4 className="text-lg font-bold text-white mb-2">
+                  Advanced Scheduling & Automation
+                </h4>
+                <p className="text-gray-300 text-sm">
+                  Automated itinerary generation, smart scheduling optimization, calendar
+                  integrations, and workflow automation for complex travel operations.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
                 <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
                   <Star size={24} className="text-yellow-400" />
                 </div>
-                <h4 className="text-lg font-bold text-white mb-2">Custom Integrations & API Access</h4>
-                <p className="text-gray-300 text-sm">REST API access, custom integrations with existing systems, webhook support, and developer resources for seamless enterprise integration.</p>
+                <h4 className="text-lg font-bold text-white mb-2">
+                  Custom Integrations & API Access
+                </h4>
+                <p className="text-gray-300 text-sm">
+                  REST API access, custom integrations with existing systems, webhook support, and
+                  developer resources for seamless enterprise integration.
+                </p>
               </div>
             </div>
 
             <div className="text-center">
               <div className="bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 backdrop-blur-sm border border-yellow-500/30 rounded-2xl p-6 mb-6">
                 <div className="text-4xl font-bold text-white mb-2">Start Trial</div>
-                <p className="text-gray-300 mb-2">Custom pricing available for large scale events, contact sales for more</p>
+                <p className="text-gray-300 mb-2">
+                  Custom pricing available for large scale events, contact sales for more
+                </p>
               </div>
             </div>
           </div>
@@ -340,7 +418,12 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 <CalendarPlus size={32} className="text-white" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">Chravel Events</h3>
-              <p className="text-gray-300 mb-4">Chravel Events brings all your event management needs into one professional suite—connecting venues, schedules, attendees, and teams with real-time updates, collaboration, budgeting, and bulletproof communications. Streamline every step, from invitations to analytics, with robust security and branding for your ambitions.</p>
+              <p className="text-gray-300 mb-4">
+                Chravel Events brings all your event management needs into one professional
+                suite—connecting venues, schedules, attendees, and teams with real-time updates,
+                collaboration, budgeting, and bulletproof communications. Streamline every step,
+                from invitations to analytics, with robust security and branding for your ambitions.
+              </p>
             </div>
 
             {/* Events Features Grid */}
@@ -350,7 +433,10 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <CalendarPlus size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">All-in-One Event Planning</h4>
-                <p className="text-gray-300 text-sm">Manage attendee lists, schedules, venue details, and event essentials in one unified platform.</p>
+                <p className="text-gray-300 text-sm">
+                  Manage attendee lists, schedules, venue details, and event essentials in one
+                  unified platform.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
@@ -358,7 +444,10 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <Mail size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Automated Invitations & RSVP</h4>
-                <p className="text-gray-300 text-sm">Send invitations individually or in bulk via email/SMS, track status, and manage re-invitations.</p>
+                <p className="text-gray-300 text-sm">
+                  Send invitations individually or in bulk via email/SMS, track status, and manage
+                  re-invitations.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
@@ -366,15 +455,23 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <UserCheck size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Custom Roles & Permissions</h4>
-                <p className="text-gray-300 text-sm">Assign roles to event staff (planner, vendor, performer, guest) with tiered access controls.</p>
+                <p className="text-gray-300 text-sm">
+                  Assign roles to event staff (planner, vendor, performer, guest) with tiered access
+                  controls.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
                 <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
                   <Clock size={24} className="text-indigo-400" />
                 </div>
-                <h4 className="text-lg font-bold text-white mb-2">Integrated Scheduling & Timeline</h4>
-                <p className="text-gray-300 text-sm">Build multi-day agendas, time slots for activities, automated reminders, and conflict detection.</p>
+                <h4 className="text-lg font-bold text-white mb-2">
+                  Integrated Scheduling & Timeline
+                </h4>
+                <p className="text-gray-300 text-sm">
+                  Build multi-day agendas, time slots for activities, automated reminders, and
+                  conflict detection.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
@@ -382,7 +479,10 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <FileText size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Real-time Collaboration</h4>
-                <p className="text-gray-300 text-sm">Shared event chat, document sharing, and real-time updates for attendees, organizers, and vendors.</p>
+                <p className="text-gray-300 text-sm">
+                  Shared event chat, document sharing, and real-time updates for attendees,
+                  organizers, and vendors.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
@@ -390,7 +490,10 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <DollarSign size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Budgeting & Payments</h4>
-                <p className="text-gray-300 text-sm">Expense tracking, vendor payment management, split payments for group buys, and automated budget alerts.</p>
+                <p className="text-gray-300 text-sm">
+                  Expense tracking, vendor payment management, split payments for group buys, and
+                  automated budget alerts.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
@@ -398,15 +501,23 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <BarChart3 size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Analytics & Insights</h4>
-                <p className="text-gray-300 text-sm">Track ticket sales, RSVP-to-attendance rate, engagement metrics, and marketing performance.</p>
+                <p className="text-gray-300 text-sm">
+                  Track ticket sales, RSVP-to-attendance rate, engagement metrics, and marketing
+                  performance.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
                 <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
                   <Ticket size={24} className="text-indigo-400" />
                 </div>
-                <h4 className="text-lg font-bold text-white mb-2">Professional Invitations & Ticketing</h4>
-                <p className="text-gray-300 text-sm">Generate custom invitations, integrate with ticketing platforms, and manage attendee ticketing.</p>
+                <h4 className="text-lg font-bold text-white mb-2">
+                  Professional Invitations & Ticketing
+                </h4>
+                <p className="text-gray-300 text-sm">
+                  Generate custom invitations, integrate with ticketing platforms, and manage
+                  attendee ticketing.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6 relative">
@@ -417,7 +528,10 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <Megaphone size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Advanced Communication</h4>
-                <p className="text-gray-300 text-sm">Broadcast urgent updates to all participants and schedule broadcast messages for pre-event, in-event, and post-event.</p>
+                <p className="text-gray-300 text-sm">
+                  Broadcast urgent updates to all participants and schedule broadcast messages for
+                  pre-event, in-event, and post-event.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6 relative">
@@ -428,7 +542,10 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <Paintbrush size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">White-label & Branding</h4>
-                <p className="text-gray-300 text-sm">Brand the event experience with your logo, theme colors, and sponsor branding for large-scale clients.</p>
+                <p className="text-gray-300 text-sm">
+                  Brand the event experience with your logo, theme colors, and sponsor branding for
+                  large-scale clients.
+                </p>
               </div>
 
               <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
@@ -436,7 +553,10 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   <Shield size={24} className="text-indigo-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Security & Compliance</h4>
-                <p className="text-gray-300 text-sm">GDPR compliance, audit logging, secure file uploads, and granular invitation control to protect private events.</p>
+                <p className="text-gray-300 text-sm">
+                  GDPR compliance, audit logging, secure file uploads, and granular invitation
+                  control to protect private events.
+                </p>
               </div>
             </div>
 

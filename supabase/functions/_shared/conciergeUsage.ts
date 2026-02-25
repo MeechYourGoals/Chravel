@@ -1,4 +1,7 @@
-export type ConciergeUsageIncrementStatus = 'incremented' | 'limit_reached' | 'verification_unavailable';
+export type ConciergeUsageIncrementStatus =
+  | 'incremented'
+  | 'limit_reached'
+  | 'verification_unavailable';
 
 export interface ConciergeUsageIncrementResult {
   status: ConciergeUsageIncrementStatus;

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Home, Users, Calendar, MapPin } from 'lucide-react';
 import { RoomAssignment, ProParticipant } from '../../types/pro';
@@ -11,12 +10,12 @@ interface RoomAssignmentsModalProps {
   onUpdateAssignments: (assignments: RoomAssignment[]) => void;
 }
 
-export const RoomAssignmentsModal = ({ 
-  isOpen, 
-  onClose, 
-  roomAssignments, 
+export const RoomAssignmentsModal = ({
+  isOpen,
+  onClose,
+  roomAssignments,
   roster,
-  onUpdateAssignments 
+  onUpdateAssignments,
 }: RoomAssignmentsModalProps) => {
   const [assignments, setAssignments] = useState<RoomAssignment[]>(roomAssignments);
 
@@ -34,11 +33,16 @@ export const RoomAssignmentsModal = ({
 
   const getRoomTypeColor = (type: string) => {
     switch (type) {
-      case 'suite': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      case 'single': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'double': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'connecting': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'suite':
+        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'single':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'double':
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'connecting':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
 
@@ -51,10 +55,7 @@ export const RoomAssignmentsModal = ({
             <Home className="text-red-400" size={24} />
             <h2 className="text-xl font-bold text-white">Room Assignments</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <X size={24} />
           </button>
         </div>
@@ -62,14 +63,19 @@ export const RoomAssignmentsModal = ({
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {assignments.map((assignment) => (
-              <div key={assignment.id} className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
+            {assignments.map(assignment => (
+              <div
+                key={assignment.id}
+                className="bg-white/5 backdrop-blur-sm border border-gray-700 rounded-xl p-4"
+              >
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-white font-medium">{assignment.room}</h3>
                     <p className="text-gray-400 text-sm">{assignment.hotel}</p>
                   </div>
-                  <div className={`px-2 py-1 rounded-lg border text-xs font-medium ${getRoomTypeColor(assignment.roomType)}`}>
+                  <div
+                    className={`px-2 py-1 rounded-lg border text-xs font-medium ${getRoomTypeColor(assignment.roomType)}`}
+                  >
                     {assignment.roomType}
                   </div>
                 </div>
@@ -79,10 +85,12 @@ export const RoomAssignmentsModal = ({
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Users size={16} className="text-gray-400" />
-                      <span className="text-gray-400 text-sm">Occupants ({assignment.occupants.length})</span>
+                      <span className="text-gray-400 text-sm">
+                        Occupants ({assignment.occupants.length})
+                      </span>
                     </div>
                     <div className="space-y-1">
-                      {assignment.occupants.map((occupantId) => (
+                      {assignment.occupants.map(occupantId => (
                         <div key={occupantId} className="flex items-center gap-2 text-sm">
                           <div className="w-2 h-2 bg-red-400 rounded-full"></div>
                           <span className="text-white">{getParticipantName(occupantId)}</span>
@@ -98,14 +106,18 @@ export const RoomAssignmentsModal = ({
                         <Calendar size={14} className="text-gray-400" />
                         <span className="text-gray-400 text-xs">Check-in</span>
                       </div>
-                      <p className="text-white text-sm">{new Date(assignment.checkIn).toLocaleDateString()}</p>
+                      <p className="text-white text-sm">
+                        {new Date(assignment.checkIn).toLocaleDateString()}
+                      </p>
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <Calendar size={14} className="text-gray-400" />
                         <span className="text-gray-400 text-xs">Check-out</span>
                       </div>
-                      <p className="text-white text-sm">{new Date(assignment.checkOut).toLocaleDateString()}</p>
+                      <p className="text-white text-sm">
+                        {new Date(assignment.checkOut).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
 
@@ -115,7 +127,10 @@ export const RoomAssignmentsModal = ({
                       <p className="text-gray-400 text-xs mb-1">Special Requests:</p>
                       <div className="flex flex-wrap gap-1">
                         {assignment.specialRequests.map((request, index) => (
-                          <span key={index} className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs">
+                          <span
+                            key={index}
+                            className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded text-xs"
+                          >
                             {request}
                           </span>
                         ))}

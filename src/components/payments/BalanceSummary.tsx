@@ -31,9 +31,7 @@ export const BalanceSummary = ({ summary }: BalanceSummaryProps) => {
           {/* You Owe */}
           <div className="text-center space-y-0.5">
             <p className="text-xs text-muted-foreground">You Owe</p>
-            <p className="text-2xl font-bold text-orange-600">
-              {formatAmount(summary.totalOwed)}
-            </p>
+            <p className="text-2xl font-bold text-orange-600">{formatAmount(summary.totalOwed)}</p>
           </div>
 
           {/* You Are Owed */}
@@ -47,7 +45,9 @@ export const BalanceSummary = ({ summary }: BalanceSummaryProps) => {
           {/* Net Balance */}
           <div className="text-center space-y-0.5">
             <p className="text-xs text-muted-foreground">Net Balance</p>
-            <div className={`flex items-center justify-center gap-2 text-2xl font-bold ${getNetBalanceColor()}`}>
+            <div
+              className={`flex items-center justify-center gap-2 text-2xl font-bold ${getNetBalanceColor()}`}
+            >
               {getNetBalanceIcon()}
               {formatAmount(Math.abs(summary.netBalance))}
             </div>

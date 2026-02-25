@@ -1,37 +1,16 @@
 import React, { useState } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '../ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
-import { 
-  MoreHorizontal, 
-  Mail, 
-  Trash2, 
-  Edit, 
-  UserCheck, 
-  UserX, 
-  Clock 
-} from 'lucide-react';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import { MoreHorizontal, Mail, Trash2, Edit, UserCheck, UserX, Clock } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { RosterMember } from '../../types/enterprise';
 
 interface TeamManagementTableProps {
@@ -51,7 +30,7 @@ export const TeamManagementTable = ({
   onSelectAll,
   onEditMember,
   onDeleteMember,
-  onResendInvite
+  onResendInvite,
 }: TeamManagementTableProps) => {
   return (
     <div className="space-y-4">
@@ -68,7 +47,7 @@ export const TeamManagementTable = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {members.map((member) => (
+            {members.map(member => (
               <TableRow key={member.id} className="border-white/20 hover:bg-white/5">
                 <TableCell>
                   <Checkbox className="border-white/30" />

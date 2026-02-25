@@ -1,5 +1,10 @@
 import { TripEvent, CreateEventData } from './calendarService';
-import { getStorageItem, setStorageItem, removeStorageItem, platformStorage } from '@/platform/storage';
+import {
+  getStorageItem,
+  setStorageItem,
+  removeStorageItem,
+  platformStorage,
+} from '@/platform/storage';
 
 class CalendarStorageService {
   private getStorageKey(tripId: string): string {
@@ -27,14 +32,16 @@ class CalendarStorageService {
 
   // Seed events for a trip (demo mode)
   async setEvents(tripId: string, events: TripEvent[]): Promise<void> {
-    const sorted = [...events].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+    const sorted = [...events].sort(
+      (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
+    );
     await this.saveEvents(tripId, sorted);
   }
 
   // Create a new event
   async createEvent(eventData: CreateEventData): Promise<TripEvent> {
     const events = await this.getEvents(eventData.trip_id);
-    
+
     const newEvent: TripEvent = {
       id: `demo-event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       trip_id: eventData.trip_id,
@@ -49,7 +56,7 @@ class CalendarStorageService {
       source_data: eventData.source_data || {},
       created_by: 'demo-user',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     events.push(newEvent);
@@ -59,18 +66,22 @@ class CalendarStorageService {
   }
 
   // Update an event
-  async updateEvent(tripId: string, eventId: string, updates: Partial<TripEvent>): Promise<TripEvent | null> {
+  async updateEvent(
+    tripId: string,
+    eventId: string,
+    updates: Partial<TripEvent>,
+  ): Promise<TripEvent | null> {
     const events = await this.getEvents(tripId);
     const eventIndex = events.findIndex(e => e.id === eventId);
-    
+
     if (eventIndex === -1) return null;
 
     const updatedEvent = {
       ...events[eventIndex],
       ...updates,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
-    
+
     events[eventIndex] = updatedEvent;
     events.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
     await this.saveEvents(tripId, events);
@@ -81,12 +92,12 @@ class CalendarStorageService {
   async deleteEvent(tripId: string, eventId: string): Promise<boolean> {
     const events = await this.getEvents(tripId);
     const filteredEvents = events.filter(e => e.id !== eventId);
-    
+
     if (filteredEvents.length !== events.length) {
       await this.saveEvents(tripId, filteredEvents);
       return true;
     }
-    
+
     return false;
   }
 
@@ -99,13 +110,20 @@ class CalendarStorageService {
   async clearAllDemoEvents(): Promise<void> {
     // Get all keys from storage
     const allKeys: string[] = [];
-    for (let i = 0; i < (await platformStorage.getItem('length') ? parseInt(await platformStorage.getItem('length') || '0') : 0); i++) {
+    for (
+      let i = 0;
+      i <
+      ((await platformStorage.getItem('length'))
+        ? parseInt((await platformStorage.getItem('length')) || '0')
+        : 0);
+      i++
+    ) {
       const key = `calendar_events_${i}`;
       if (await platformStorage.getItem(key)) {
         allKeys.push(key);
       }
     }
-    
+
     // Remove calendar event keys
     for (const key of allKeys) {
       if (key.startsWith('calendar_events_')) {

@@ -41,14 +41,10 @@ export interface UseGeminiVoiceReturn {
 }
 
 // ---------- Platform detection ----------
-const isIOS =
-  typeof navigator !== 'undefined' &&
-  /iP(hone|ad|od)/.test(navigator.userAgent);
+const isIOS = typeof navigator !== 'undefined' && /iP(hone|ad|od)/.test(navigator.userAgent);
 
 const isIOSPWA =
-  isIOS &&
-  typeof window !== 'undefined' &&
-  (window.navigator as any).standalone === true;
+  isIOS && typeof window !== 'undefined' && (window.navigator as any).standalone === true;
 
 // ---------- Browser support ----------
 const SpeechRecognitionClass =
@@ -92,8 +88,7 @@ export function useWebSpeechVoice(
     wsCloseCode: null,
     wsCloseReason: null,
     mediaDevicesSupported:
-      typeof navigator !== 'undefined' &&
-      Boolean(navigator.mediaDevices?.getUserMedia),
+      typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     lastMediaErrorName: null,
   });
 
@@ -363,9 +358,7 @@ export function useWebSpeechVoice(
       // never fire within 5s, the mic likely isn't working on this device.
       noAudioTimerRef.current = setTimeout(() => {
         if (activeRef.current && !accumulatedTranscriptRef.current.trim()) {
-          setErrorMessage(
-            'No audio detected. Please check microphone permissions and try again.',
-          );
+          setErrorMessage('No audio detected. Please check microphone permissions and try again.');
           cleanup();
           setVoiceState('error');
         }

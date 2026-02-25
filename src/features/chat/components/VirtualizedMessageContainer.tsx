@@ -79,7 +79,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => containerRef.current,
-    estimateSize: (index) => (rows[index]?.type === 'date' ? DATE_ROW_HEIGHT : ROW_HEIGHT_ESTIMATE),
+    estimateSize: index => (rows[index]?.type === 'date' ? DATE_ROW_HEIGHT : ROW_HEIGHT_ESTIMATE),
     overscan: 5,
   });
 
@@ -167,7 +167,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
       if (localHasMore) {
         isLoadingRef.current = true;
         const prevScrollHeight = containerRef.current.scrollHeight;
-        setVisibleStartIndex((prev) => Math.max(0, prev - pageSize));
+        setVisibleStartIndex(prev => Math.max(0, prev - pageSize));
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             if (containerRef.current) {
@@ -208,7 +208,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
             position: 'relative',
           }}
         >
-          {virtualItems.map((virtualRow) => {
+          {virtualItems.map(virtualRow => {
             const row = rows[virtualRow.index];
             if (!row) return null;
             if (row.type === 'date') {
@@ -238,9 +238,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div className="space-y-2">
-                  {renderMessage(row.message, row.index)}
-                </div>
+                <div className="space-y-2">{renderMessage(row.message, row.index)}</div>
               </div>
             );
           })}

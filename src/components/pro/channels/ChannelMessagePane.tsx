@@ -26,19 +26,12 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
   onChannelUpdate: _onChannelUpdate,
   onChannelDelete: _onChannelDelete,
   onShowMembers,
-  isAdmin
+  isAdmin,
 }) => {
   const [messageInput, setMessageInput] = useState('');
-  
-  const { 
-    messages, 
-    loading, 
-    sending, 
-    sendMessage,
-    loadMore,
-    hasMore,
-    isLoadingMore
-  } = useChannelMessages(channel.id);
+
+  const { messages, loading, sending, sendMessage, loadMore, hasMore, isLoadingMore } =
+    useChannelMessages(channel.id);
 
   const { toast } = useToast();
 
@@ -84,9 +77,7 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
         <div className="flex items-center gap-3">
           <div>
             <h2 className="text-lg font-semibold text-white">{channel.name}</h2>
-            {channel.description && (
-              <p className="text-sm text-gray-400">{channel.description}</p>
-            )}
+            {channel.description && <p className="text-sm text-gray-400">{channel.description}</p>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -100,11 +91,7 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
             {channel.member_count}
           </Button>
           {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white"
-            >
+            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
               <Settings size={16} />
             </Button>
           )}
@@ -116,7 +103,7 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
         className="flex-1 mx-4 my-4 rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col"
         style={{
           minHeight: '360px',
-          maxHeight: 'max(360px, 75vh)'
+          maxHeight: 'max(360px, 75vh)',
         }}
       >
         {loading ? (
@@ -144,7 +131,9 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2 mb-1">
-                    <span className="font-semibold text-white">{message.author_name || 'Anonymous'}</span>
+                    <span className="font-semibold text-white">
+                      {message.author_name || 'Anonymous'}
+                    </span>
                     <span className="text-xs text-gray-400">
                       {format(new Date(message.created_at), 'h:mm a')}
                     </span>
@@ -167,7 +156,7 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
             <Input
               placeholder={`Message #${channel.name}`}
               value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
+              onChange={e => setMessageInput(e.target.value)}
               onKeyPress={handleKeyPress}
               disabled={sending}
               className="flex-1 !rounded-full bg-white/5 border border-white/10 text-white placeholder-neutral-400 focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm"

@@ -24,7 +24,7 @@ export const CountdownBadge = ({ targetDate, tripName, className }: CountdownBad
       days: Math.floor(difference / (1000 * 60 * 60 * 24)),
       hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
       minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-      isExpired: false
+      isExpired: false,
     };
   }
 
@@ -75,7 +75,10 @@ export const CountdownBadge = ({ targetDate, tripName, className }: CountdownBad
 
   if (timeLeft.days === 1) {
     return (
-      <Badge variant="default" className={`${className} animate-bounce bg-gradient-to-r from-orange-500 to-red-500`}>
+      <Badge
+        variant="default"
+        className={`${className} animate-bounce bg-gradient-to-r from-orange-500 to-red-500`}
+      >
         <Calendar size={12} className="mr-1" />
         Tomorrow!
       </Badge>
@@ -84,7 +87,10 @@ export const CountdownBadge = ({ targetDate, tripName, className }: CountdownBad
 
   // Less than 24 hours - show hours
   return (
-    <Badge variant="default" className={`${className} animate-pulse bg-gradient-to-r from-red-500 to-pink-500`}>
+    <Badge
+      variant="default"
+      className={`${className} animate-pulse bg-gradient-to-r from-red-500 to-pink-500`}
+    >
       <Clock size={12} className="mr-1" />
       {timeLeft.hours}h {timeLeft.minutes}m left
     </Badge>

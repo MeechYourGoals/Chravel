@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 import { Button } from './button';
@@ -20,7 +19,7 @@ export const EnhancedEmptyState = ({
   actionLabel,
   onAction,
   illustration,
-  className = ""
+  className = '',
 }: EnhancedEmptyStateProps) => {
   return (
     <div className={`text-center py-12 px-4 ${className}`}>
@@ -33,12 +32,10 @@ export const EnhancedEmptyState = ({
           <Icon size={32} className="text-primary" />
         </div>
       )}
-      
+
       <h3 className="text-xl font-semibold text-foreground mb-3">{title}</h3>
-      <p className="text-muted-foreground mb-6 max-w-md mx-auto leading-relaxed">
-        {description}
-      </p>
-      
+      <p className="text-muted-foreground mb-6 max-w-md mx-auto leading-relaxed">{description}</p>
+
       {actionLabel && onAction && (
         <Button
           onClick={onAction}

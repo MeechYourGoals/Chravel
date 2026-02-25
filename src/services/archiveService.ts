@@ -40,10 +40,7 @@ export const deleteTripForMe = async (tripId: string, userId: string): Promise<v
 
 // Hide a trip (privacy feature - separate from archive)
 export const hideTrip = async (tripId: string): Promise<void> => {
-  const { error } = await supabase
-    .from('trips')
-    .update({ is_hidden: true })
-    .eq('id', tripId);
+  const { error } = await supabase.from('trips').update({ is_hidden: true }).eq('id', tripId);
 
   if (error) {
     console.error('Failed to hide trip:', error);
@@ -53,10 +50,7 @@ export const hideTrip = async (tripId: string): Promise<void> => {
 
 // Unhide a trip
 export const unhideTrip = async (tripId: string): Promise<void> => {
-  const { error } = await supabase
-    .from('trips')
-    .update({ is_hidden: false })
-    .eq('id', tripId);
+  const { error } = await supabase.from('trips').update({ is_hidden: false }).eq('id', tripId);
 
   if (error) {
     console.error('Failed to unhide trip:', error);
@@ -97,7 +91,10 @@ export const getHiddenTrips = async (userId: string) => {
 };
 
 // Get archived trip count for stats
-export const getArchivedTripCount = async (userId: string, tripType?: TripType): Promise<number> => {
+export const getArchivedTripCount = async (
+  userId: string,
+  tripType?: TripType,
+): Promise<number> => {
   let query = supabase
     .from('trips')
     .select('id', { count: 'exact', head: true })
@@ -120,11 +117,12 @@ export const getArchivedTripCount = async (userId: string, tripType?: TripType):
 };
 
 // Archive a trip
-export const archiveTrip = async (tripId: string, tripType: TripType, userId?: string): Promise<void> => {
-  const { error } = await supabase
-    .from('trips')
-    .update({ is_archived: true })
-    .eq('id', tripId);
+export const archiveTrip = async (
+  tripId: string,
+  tripType: TripType,
+  userId?: string,
+): Promise<void> => {
+  const { error } = await supabase.from('trips').update({ is_archived: true }).eq('id', tripId);
 
   if (error) {
     console.error('Failed to archive trip:', error);
@@ -133,7 +131,11 @@ export const archiveTrip = async (tripId: string, tripType: TripType, userId?: s
 };
 
 // Restore (unarchive) a trip
-export const restoreTrip = async (tripId: string, tripType: TripType, userId?: string): Promise<void> => {
+export const restoreTrip = async (
+  tripId: string,
+  tripType: TripType,
+  userId?: string,
+): Promise<void> => {
   // Check if user has reached their active trip limit
   if (userId) {
     const { data: profile } = await supabase
@@ -142,9 +144,12 @@ export const restoreTrip = async (tripId: string, tripType: TripType, userId?: s
       .eq('user_id', userId)
       .single();
 
-    const tier = profile?.subscription_status === 'active' 
-      ? (profile.subscription_product_id?.includes('explorer') ? 'explorer' : 'frequent-chraveler')
-      : 'free';
+    const tier =
+      profile?.subscription_status === 'active'
+        ? profile.subscription_product_id?.includes('explorer')
+          ? 'explorer'
+          : 'frequent-chraveler'
+        : 'free';
 
     // Count current active trips
     const { count, error: countError } = await supabase
@@ -161,10 +166,7 @@ export const restoreTrip = async (tripId: string, tripType: TripType, userId?: s
     }
   }
 
-  const { error } = await supabase
-    .from('trips')
-    .update({ is_archived: false })
-    .eq('id', tripId);
+  const { error } = await supabase.from('trips').update({ is_archived: false }).eq('id', tripId);
 
   if (error) {
     console.error('Failed to restore trip:', error);
@@ -173,7 +175,11 @@ export const restoreTrip = async (tripId: string, tripType: TripType, userId?: s
 };
 
 // Check if a trip is archived
-export const isTripArchived = async (tripId: string, tripType: TripType, userId?: string): Promise<boolean> => {
+export const isTripArchived = async (
+  tripId: string,
+  tripType: TripType,
+  userId?: string,
+): Promise<boolean> => {
   const { data, error } = await supabase
     .from('trips')
     .select('is_archived')
@@ -194,7 +200,7 @@ export const getArchivedTrips = async (userId?: string) => {
     .from('trips')
     .select('*')
     .eq('is_archived', true)
-    .eq('is_hidden', false)  // Hidden trips should not appear in archive section
+    .eq('is_hidden', false) // Hidden trips should not appear in archive section
     .eq('created_by', userId || '');
 
   if (error) {
@@ -203,7 +209,7 @@ export const getArchivedTrips = async (userId?: string) => {
       consumer: [],
       pro: [],
       events: [],
-      total: 0
+      total: 0,
     };
   }
 
@@ -216,15 +222,15 @@ export const getArchivedTrips = async (userId?: string) => {
     consumer,
     pro,
     events,
-    total: archivedTrips?.length || 0
+    total: archivedTrips?.length || 0,
   };
 };
 
 // Filter active (non-archived) trips
 export const filterActiveTrips = async <T extends { id: string | number }>(
-  trips: T[], 
+  trips: T[],
   tripType: TripType,
-  userId?: string
+  userId?: string,
 ): Promise<T[]> => {
   // Get all archived trip IDs from database
   const { data: archivedTrips, error } = await supabase
@@ -248,16 +254,17 @@ export const getTripArchiveStatus = async (tripId: string, tripType: TripType, u
   return {
     isArchived,
     canArchive: !isArchived,
-    canRestore: isArchived
+    canRestore: isArchived,
   };
 };
 
 // Bulk archive operations
-export const bulkArchiveTrips = async (tripIds: string[], tripType: TripType, userId?: string): Promise<void> => {
-  const { error } = await supabase
-    .from('trips')
-    .update({ is_archived: true })
-    .in('id', tripIds);
+export const bulkArchiveTrips = async (
+  tripIds: string[],
+  tripType: TripType,
+  userId?: string,
+): Promise<void> => {
+  const { error } = await supabase.from('trips').update({ is_archived: true }).in('id', tripIds);
 
   if (error) {
     console.error('Failed to bulk archive trips:', error);
@@ -265,11 +272,12 @@ export const bulkArchiveTrips = async (tripIds: string[], tripType: TripType, us
   }
 };
 
-export const bulkRestoreTrips = async (tripIds: string[], tripType: TripType, userId?: string): Promise<void> => {
-  const { error } = await supabase
-    .from('trips')
-    .update({ is_archived: false })
-    .in('id', tripIds);
+export const bulkRestoreTrips = async (
+  tripIds: string[],
+  tripType: TripType,
+  userId?: string,
+): Promise<void> => {
+  const { error } = await supabase.from('trips').update({ is_archived: false }).in('id', tripIds);
 
   if (error) {
     console.error('Failed to bulk restore trips:', error);
@@ -307,13 +315,13 @@ export const getArchiveAnalytics = async (userId?: string) => {
       archivedByType: {
         consumer: archived.consumer.length,
         pro: archived.pro.length,
-        events: archived.events.length
+        events: archived.events.length,
       },
       archiveRate: {
         consumer: 0,
         pro: 0,
-        events: 0
-      }
+        events: 0,
+      },
     };
   }
 
@@ -326,13 +334,13 @@ export const getArchiveAnalytics = async (userId?: string) => {
     archivedByType: {
       consumer: archived.consumer.length,
       pro: archived.pro.length,
-      events: archived.events.length
+      events: archived.events.length,
     },
     archiveRate: {
       consumer: archived.consumer.length / totalConsumer,
       pro: archived.pro.length / totalPro,
-      events: archived.events.length / totalEvents
-    }
+      events: archived.events.length / totalEvents,
+    },
   };
 };
 

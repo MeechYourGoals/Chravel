@@ -1,6 +1,6 @@
 /**
  * Push Notification Testing Page
- * 
+ *
  * Simple admin panel for testing push notifications.
  * Only accessible in development or to admin users.
  */
@@ -30,15 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Bell,
-  RefreshCw,
-  Send,
-  Smartphone,
-  Monitor,
-  Users,
-  Trash2,
-} from 'lucide-react';
+import { Bell, RefreshCw, Send, Smartphone, Monitor, Users, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -60,7 +52,7 @@ interface Subscription {
   created_at: string;
 }
 
-type NotificationType = 
+type NotificationType =
   | 'chat_message'
   | 'itinerary_update'
   | 'payment_request'
@@ -120,13 +112,15 @@ const SendTest: React.FC<{ userId: string }> = ({ userId }) => {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Type</Label>
-          <Select value={type} onValueChange={(v) => setType(v as NotificationType)}>
+          <Select value={type} onValueChange={v => setType(v as NotificationType)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {types.map(t => (
-                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -134,16 +128,20 @@ const SendTest: React.FC<{ userId: string }> = ({ userId }) => {
 
         <div className="space-y-2">
           <Label>Title</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Input value={title} onChange={e => setTitle(e.target.value)} />
         </div>
 
         <div className="space-y-2">
           <Label>Body</Label>
-          <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={2} />
+          <Textarea value={body} onChange={e => setBody(e.target.value)} rows={2} />
         </div>
 
         <Button onClick={handleSend} disabled={isSending || !title} className="w-full">
-          {isSending ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+          {isSending ? (
+            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4 mr-2" />
+          )}
           {isSending ? 'Sending...' : 'Send Test'}
         </Button>
       </CardContent>
@@ -176,7 +174,9 @@ const SubscriptionsViewer: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
 
   const deactivate = async (id: string) => {
     await supabase.from('web_push_subscriptions').update({ is_active: false }).eq('id', id);

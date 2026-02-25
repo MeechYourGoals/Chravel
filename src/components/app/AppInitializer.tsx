@@ -10,11 +10,10 @@ import { useAuth } from '@/hooks/useAuth';
 export const AppInitializer = ({ children }: { children: React.ReactNode }) => {
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
-  
+
   // Only run health checks for authenticated users NOT in demo mode
   const shouldRunHealthChecks = user && !isDemoMode;
   const { isInitialized, conciergeStatus, mapsStatus } = useApiHealth(shouldRunHealthChecks);
-
 
   // CSP violation monitoring with error safety
   useEffect(() => {
@@ -25,7 +24,7 @@ export const AppInitializer = ({ children }: { children: React.ReactNode }) => {
             directive: e.violatedDirective,
             blockedURI: e.blockedURI,
             effectiveDirective: e.effectiveDirective,
-            disposition: e.disposition
+            disposition: e.disposition,
           });
         } catch (error) {
           console.error('[CSP] Error handling violation:', error);

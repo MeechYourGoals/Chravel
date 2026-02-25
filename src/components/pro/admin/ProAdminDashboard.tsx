@@ -18,7 +18,7 @@ interface ProAdminDashboardProps {
 export const ProAdminDashboard: React.FC<ProAdminDashboardProps> = ({
   tripId,
   tripCreatorId,
-  isAdmin
+  isAdmin,
 }) => {
   const [showBulkAssignment, setShowBulkAssignment] = useState(false);
 
@@ -50,28 +50,22 @@ export const ProAdminDashboard: React.FC<ProAdminDashboardProps> = ({
 
         <Tabs defaultValue="admins" className="w-full">
           <TabsList className="grid w-full grid-cols-4 rounded-full bg-white/5 p-1">
-            <TabsTrigger 
-              value="admins" 
-              className="rounded-full data-[state=active]:bg-blue-600"
-            >
+            <TabsTrigger value="admins" className="rounded-full data-[state=active]:bg-blue-600">
               <Shield className="w-4 h-4 mr-2" />
               Admins
             </TabsTrigger>
-            <TabsTrigger 
-              value="roles"
-              className="rounded-full data-[state=active]:bg-purple-600"
-            >
+            <TabsTrigger value="roles" className="rounded-full data-[state=active]:bg-purple-600">
               <Users className="w-4 h-4 mr-2" />
               Roles
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="assignments"
               className="rounded-full data-[state=active]:bg-green-600"
             >
               <UserCheck className="w-4 h-4 mr-2" />
               Assignments
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="requests"
               className="rounded-full data-[state=active]:bg-orange-600"
             >

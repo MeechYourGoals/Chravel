@@ -22,7 +22,7 @@ class PlatformUtils {
       isMobile,
       isIOS,
       isAndroid,
-      platform: isIOS ? 'ios' : isAndroid ? 'android' : 'web'
+      platform: isIOS ? 'ios' : isAndroid ? 'android' : 'web',
     };
   }
 
@@ -32,7 +32,7 @@ class PlatformUtils {
       const patterns: Record<string, number> = {
         light: 10,
         medium: 20,
-        heavy: 30
+        heavy: 30,
       };
       navigator.vibrate(patterns[type]);
     }

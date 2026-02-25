@@ -2,12 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, Clock, Save, X } from 'lucide-react';
 import { unifiedMessagingService } from '../services/unifiedMessagingService';
 import { ScheduledMessage } from '../types/messaging';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 
 interface EditScheduledMessageModalProps {
@@ -21,14 +16,16 @@ export const EditScheduledMessageModal = ({
   message,
   isOpen,
   onClose,
-  onUpdate
+  onUpdate,
 }: EditScheduledMessageModalProps) => {
   const [content, setContent] = useState(message.content);
   const [sendAt, setSendAt] = useState(() => {
     const date = new Date(message.sendAt);
     return date.toISOString().slice(0, 16); // Format for datetime-local input
   });
-  const [priority, setPriority] = useState<'urgent' | 'reminder' | 'fyi'>(message.priority || 'fyi');
+  const [priority, setPriority] = useState<'urgent' | 'reminder' | 'fyi'>(
+    message.priority || 'fyi',
+  );
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -82,7 +79,7 @@ export const EditScheduledMessageModal = ({
             <label className="text-sm font-medium text-gray-300">Message</label>
             <textarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={e => setContent(e.target.value)}
               rows={4}
               className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none backdrop-blur-sm"
               placeholder="Enter your message..."
@@ -93,11 +90,14 @@ export const EditScheduledMessageModal = ({
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-300">Send At</label>
             <div className="relative">
-              <Calendar size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Calendar
+                size={16}
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              />
               <input
                 type="datetime-local"
                 value={sendAt}
-                onChange={(e) => setSendAt(e.target.value)}
+                onChange={e => setSendAt(e.target.value)}
                 min={new Date().toISOString().slice(0, 16)}
                 className="w-full bg-white/5 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 backdrop-blur-sm"
               />

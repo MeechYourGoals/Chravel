@@ -14,24 +14,24 @@ interface TripViewToggleProps {
   onAuthRequired?: () => void;
 }
 
-export const TripViewToggle = ({ 
-  viewMode, 
-  onViewModeChange, 
+export const TripViewToggle = ({
+  viewMode,
+  onViewModeChange,
   showRecsTab = false,
   recsTabDisabled = false,
   className,
   requireAuth = false,
-  onAuthRequired
+  onAuthRequired,
 }: TripViewToggleProps) => {
   const isMobile = useIsMobile();
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn('w-full', className)}>
       <ScrollFadeContainer className="h-full contents md:contents lg:block">
-          <ToggleGroup
+        <ToggleGroup
           type="single"
           value={viewMode}
-          onValueChange={(value) => {
+          onValueChange={value => {
             if (value) {
               // If auth is required for protected tabs, trigger auth modal
               if (requireAuth && ['myTrips', 'tripsPro', 'events'].includes(value)) {
@@ -70,9 +70,11 @@ export const TripViewToggle = ({
               value="travelRecs"
               aria-label="Recs"
               disabled={recsTabDisabled}
-              title={recsTabDisabled ? "Enable Demo Mode to access Travel Recommendations" : undefined}
+              title={
+                recsTabDisabled ? 'Enable Demo Mode to access Travel Recommendations' : undefined
+              }
               className={`justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-yellow-500 data-[state=on]:to-yellow-600 data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-yellow-500/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center ${recsTabDisabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
-              onClick={(e) => {
+              onClick={e => {
                 if (recsTabDisabled) {
                   e.preventDefault();
                   e.stopPropagation();

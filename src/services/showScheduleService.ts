@@ -24,18 +24,16 @@ export const showScheduleService = {
       .select('*')
       .eq('organization_id', organizationId)
       .order('show_date', { ascending: true });
-    
+
     if (error) throw error;
     return (data as ShowSchedule[]) || [];
   },
 
-  async create(show: Omit<ShowSchedule, 'id' | 'created_at' | 'updated_at'>): Promise<ShowSchedule> {
-    const { data, error } = await supabase
-      .from('show_schedules')
-      .insert(show)
-      .select()
-      .single();
-    
+  async create(
+    show: Omit<ShowSchedule, 'id' | 'created_at' | 'updated_at'>,
+  ): Promise<ShowSchedule> {
+    const { data, error } = await supabase.from('show_schedules').insert(show).select().single();
+
     if (error) throw error;
     return data as ShowSchedule;
   },
@@ -47,26 +45,22 @@ export const showScheduleService = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data as ShowSchedule;
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('show_schedules')
-      .delete()
-      .eq('id', id);
-    
+    const { error } = await supabase.from('show_schedules').delete().eq('id', id);
+
     if (error) throw error;
   },
 
-  async bulkCreate(shows: Omit<ShowSchedule, 'id' | 'created_at' | 'updated_at'>[]): Promise<ShowSchedule[]> {
-    const { data, error } = await supabase
-      .from('show_schedules')
-      .insert(shows)
-      .select();
-    
+  async bulkCreate(
+    shows: Omit<ShowSchedule, 'id' | 'created_at' | 'updated_at'>[],
+  ): Promise<ShowSchedule[]> {
+    const { data, error } = await supabase.from('show_schedules').insert(shows).select();
+
     if (error) throw error;
     return data as ShowSchedule[];
   },

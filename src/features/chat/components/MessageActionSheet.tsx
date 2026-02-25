@@ -9,7 +9,17 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Heart, ThumbsUp, ThumbsDown, AlertCircle, MessageSquareReply, Edit, Trash2, MoreHorizontal, X } from 'lucide-react';
+import {
+  Heart,
+  ThumbsUp,
+  ThumbsDown,
+  AlertCircle,
+  MessageSquareReply,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,12 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useMobilePortrait } from '@/hooks/useMobilePortrait';
 import { useLongPress } from '@/hooks/useLongPress';
@@ -44,7 +49,12 @@ export interface MessageActionSheetProps {
   children: React.ReactNode;
 }
 
-const REACTIONS: Array<{ type: ReactionType; emoji: string; icon: React.ElementType; label: string }> = [
+const REACTIONS: Array<{
+  type: ReactionType;
+  emoji: string;
+  icon: React.ElementType;
+  label: string;
+}> = [
   { type: 'like', emoji: '👍', icon: ThumbsUp, label: 'Like' },
   { type: 'love', emoji: '❤️', icon: Heart, label: 'Love' },
   { type: 'dislike', emoji: '👎', icon: ThumbsDown, label: 'Dislike' },
@@ -84,7 +94,7 @@ export const MessageActionSheet: React.FC<MessageActionSheetProps> = ({
       onReaction(messageId, type);
       setShowSheet(false);
     },
-    [messageId, onReaction]
+    [messageId, onReaction],
   );
 
   const handleReply = useCallback(() => {
@@ -105,7 +115,7 @@ export const MessageActionSheet: React.FC<MessageActionSheetProps> = ({
   // Render reaction buttons
   const renderReactionButtons = (size: 'sm' | 'lg' = 'sm') => (
     <div className={cn('flex items-center', size === 'lg' ? 'gap-3 justify-center' : 'gap-1')}>
-      {REACTIONS.map((reaction) => {
+      {REACTIONS.map(reaction => {
         const data = reactions[reaction.type];
         const isActive = data?.userReacted;
         return (
@@ -116,10 +126,8 @@ export const MessageActionSheet: React.FC<MessageActionSheetProps> = ({
             onClick={() => handleReaction(reaction.type)}
             className={cn(
               'rounded-full transition-all',
-              size === 'lg'
-                ? 'h-14 w-14 flex-col gap-0.5'
-                : 'h-7 px-2',
-              isActive && 'bg-primary/20 text-primary'
+              size === 'lg' ? 'h-14 w-14 flex-col gap-0.5' : 'h-7 px-2',
+              isActive && 'bg-primary/20 text-primary',
             )}
             title={reaction.label}
           >
@@ -145,20 +153,14 @@ export const MessageActionSheet: React.FC<MessageActionSheetProps> = ({
         className={cn(
           'absolute -top-8 right-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-background/95 border border-border/50 shadow-md',
           'opacity-0 group-hover:opacity-100 transition-opacity z-10',
-          showHoverActions && 'opacity-100'
+          showHoverActions && 'opacity-100',
         )}
       >
         {/* Reaction buttons */}
         {renderReactionButtons('sm')}
 
         {/* Reply button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleReply}
-          className="h-7 px-2"
-          title="Reply"
-        >
+        <Button variant="ghost" size="sm" onClick={handleReply} className="h-7 px-2" title="Reply">
           <MessageSquareReply className="h-4 w-4" />
           {replyCount > 0 && <span className="text-xs ml-1">{replyCount}</span>}
         </Button>
@@ -201,9 +203,7 @@ export const MessageActionSheet: React.FC<MessageActionSheetProps> = ({
 
         {/* Message preview */}
         <div className="px-4 py-3 bg-muted/30 rounded-lg mb-4 max-h-24 overflow-hidden">
-          <p className="text-sm text-muted-foreground line-clamp-3">
-            {messageContent}
-          </p>
+          <p className="text-sm text-muted-foreground line-clamp-3">{messageContent}</p>
         </div>
 
         {/* Reactions */}
@@ -252,11 +252,7 @@ export const MessageActionSheet: React.FC<MessageActionSheetProps> = ({
         </div>
 
         {/* Cancel button */}
-        <Button
-          variant="ghost"
-          className="w-full mt-4 h-12"
-          onClick={() => setShowSheet(false)}
-        >
+        <Button variant="ghost" className="w-full mt-4 h-12" onClick={() => setShowSheet(false)}>
           Cancel
         </Button>
       </SheetContent>
@@ -284,12 +280,7 @@ export const MessageActionSheet: React.FC<MessageActionSheetProps> = ({
         onFocus={() => setShowHoverActions(true)}
         onBlur={() => setShowHoverActions(false)}
       >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowSheet(true)}
-          className="text-xs"
-        >
+        <Button variant="ghost" size="sm" onClick={() => setShowSheet(true)} className="text-xs">
           Message actions
         </Button>
       </div>

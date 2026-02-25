@@ -11,10 +11,20 @@ export const googleIO2026: ProTripData = {
   proTripCategory: 'work',
   tags: [],
   participants: [
-    { id: '1', name: 'Sundar Pichai', avatar: getMockAvatar('Sundar Pichai'), role: 'Keynote Speakers' },
+    {
+      id: '1',
+      name: 'Sundar Pichai',
+      avatar: getMockAvatar('Sundar Pichai'),
+      role: 'Keynote Speakers',
+    },
     { id: '2', name: 'Aparna Pappu', avatar: getMockAvatar('Aparna Pappu'), role: 'Demo Team' },
-    { id: '3', name: 'Jordan Tigani', avatar: getMockAvatar('Jordan Tigani'), role: 'Product Managers' },
-    { id: '4', name: 'Maya Chen', avatar: getMockAvatar('Maya Chen'), role: 'Developer Advocates' }
+    {
+      id: '3',
+      name: 'Jordan Tigani',
+      avatar: getMockAvatar('Jordan Tigani'),
+      role: 'Product Managers',
+    },
+    { id: '4', name: 'Maya Chen', avatar: getMockAvatar('Maya Chen'), role: 'Developer Advocates' },
   ],
   budget: {
     total: 500000,
@@ -23,19 +33,29 @@ export const googleIO2026: ProTripData = {
       { name: 'Speaker Fees', budgeted: 200000, spent: 50000 },
       { name: 'Production', budgeted: 150000, spent: 40000 },
       { name: 'Accommodation', budgeted: 100000, spent: 25000 },
-      { name: 'Catering', budgeted: 50000, spent: 10000 }
-    ]
+      { name: 'Catering', budgeted: 50000, spent: 10000 },
+    ],
   },
   itinerary: [
     {
       date: '2026-05-12',
       events: [
-        { time: '08:00', title: 'Keynote Rehearsal', location: 'Shoreline Amphitheatre', type: 'meeting' },
+        {
+          time: '08:00',
+          title: 'Keynote Rehearsal',
+          location: 'Shoreline Amphitheatre',
+          type: 'meeting',
+        },
         { time: '10:00', title: 'Opening Keynote', location: 'Main Stage', type: 'meeting' },
-        { time: '12:00', title: 'Developer Sessions Begin', location: 'Various Venues', type: 'meeting' },
-        { time: '17:00', title: 'Developer After Hours', location: 'Googleplex', type: 'meeting' }
-      ]
-    }
+        {
+          time: '12:00',
+          title: 'Developer Sessions Begin',
+          location: 'Various Venues',
+          type: 'meeting',
+        },
+        { time: '17:00', title: 'Developer After Hours', location: 'Googleplex', type: 'meeting' },
+      ],
+    },
   ],
   roster: [
     {
@@ -47,7 +67,7 @@ export const googleIO2026: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'executive-access'],
       roomPreferences: ['executive-suite', 'private-transportation'],
-      dietaryRestrictions: ['vegetarian']
+      dietaryRestrictions: ['vegetarian'],
     },
     {
       id: '2',
@@ -58,7 +78,7 @@ export const googleIO2026: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['demo-areas', 'backstage-access'],
       roomPreferences: ['suite', 'tech-setup'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '3',
@@ -69,7 +89,7 @@ export const googleIO2026: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['product-demos', 'press-access'],
       roomPreferences: ['standard-suite'],
-      dietaryRestrictions: ['gluten-free']
+      dietaryRestrictions: ['gluten-free'],
     },
     {
       id: '4',
@@ -80,8 +100,8 @@ export const googleIO2026: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['developer-areas', 'community-access'],
       roomPreferences: ['standard-room'],
-      dietaryRestrictions: []
-    }
+      dietaryRestrictions: [],
+    },
   ],
   roomAssignments: [
     {
@@ -92,8 +112,8 @@ export const googleIO2026: ProTripData = {
       checkIn: '2026-05-11T15:00:00Z',
       checkOut: '2026-05-16T12:00:00Z',
       roomType: 'suite',
-      specialRequests: ['executive-floor', 'private-check-in']
-    }
+      specialRequests: ['executive-floor', 'private-check-in'],
+    },
   ],
   schedule: [
     {
@@ -105,8 +125,8 @@ export const googleIO2026: ProTripData = {
       location: 'Shoreline Amphitheatre Main Stage',
       participants: ['1', '2'],
       priority: 'critical',
-      notes: 'Major AI announcements and product launches'
-    }
+      notes: 'Major AI announcements and product launches',
+    },
   ],
   perDiem: {
     dailyRate: 250,
@@ -115,8 +135,8 @@ export const googleIO2026: ProTripData = {
     endDate: '2026-05-15',
     participants: [
       { participantId: '1', customRate: 0, advances: 0, deductions: 0, balance: 0 },
-      { participantId: '2', customRate: 300, advances: 0, deductions: 0, balance: 1200 }
-    ]
+      { participantId: '2', customRate: 300, advances: 0, deductions: 0, balance: 1200 },
+    ],
   },
   settlement: [],
   medical: [],
@@ -129,8 +149,8 @@ export const googleIO2026: ProTripData = {
       deadline: '2026-05-01',
       status: 'compliant',
       assignedTo: '1',
-      documents: ['security-clearance.pdf']
-    }
+      documents: ['security-clearance.pdf'],
+    },
   ],
   media: [
     {
@@ -142,8 +162,8 @@ export const googleIO2026: ProTripData = {
       duration: 240,
       location: 'Shoreline Amphitheatre',
       participants: ['1', '2', '3', '4'],
-      status: 'confirmed'
-    }
+      status: 'confirmed',
+    },
   ],
-  sponsors: []
+  sponsors: [],
 };

@@ -30,7 +30,7 @@ export const useOrgChartData = (roster: ProParticipant[]) => {
         level: member.hierarchyLevel || 0,
         children: [],
         parent: member.reportsTo,
-        directReportCount: member.directReports?.length || 0
+        directReportCount: member.directReports?.length || 0,
       });
     });
 
@@ -59,7 +59,7 @@ export const useOrgChartData = (roster: ProParticipant[]) => {
     return {
       nodes: Array.from(nodeMap.values()),
       rootNodes: rootNodes.sort((a, b) => a.level - b.level),
-      totalLevels: Math.max(...Array.from(nodeMap.values()).map(n => n.level), 0) + 1
+      totalLevels: Math.max(...Array.from(nodeMap.values()).map(n => n.level), 0) + 1,
     };
   }, [roster]);
 
@@ -74,9 +74,7 @@ export const useOrgChartData = (roster: ProParticipant[]) => {
 
     while (current) {
       path.unshift(current);
-      current = current.parent 
-        ? orgChartData.nodes.find(n => n.id === current!.parent)
-        : undefined;
+      current = current.parent ? orgChartData.nodes.find(n => n.id === current!.parent) : undefined;
     }
 
     return path;
@@ -85,7 +83,6 @@ export const useOrgChartData = (roster: ProParticipant[]) => {
   return {
     ...orgChartData,
     updateHierarchy,
-    getNodePath
+    getNodePath,
   };
 };
-

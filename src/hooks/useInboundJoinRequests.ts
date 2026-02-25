@@ -95,12 +95,12 @@ export const useInboundJoinRequests = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'trip_join_requests'
+          table: 'trip_join_requests',
         },
         () => {
           // Refetch count when any join request changes
           fetchPendingCount();
-        }
+        },
       )
       .subscribe();
 
@@ -112,6 +112,6 @@ export const useInboundJoinRequests = () => {
   return {
     pendingCount,
     isLoading,
-    refetch: fetchPendingCount
+    refetch: fetchPendingCount,
   };
 };

@@ -12,7 +12,8 @@ const formatBytes = (bytes: number): string => {
 };
 
 export const DatabaseMonitoringDashboard = () => {
-  const { tableMetrics, storageMetrics, totalDbSize, totalRowCount, isLoading } = useDatabaseMetrics();
+  const { tableMetrics, storageMetrics, totalDbSize, totalRowCount, isLoading } =
+    useDatabaseMetrics();
 
   if (isLoading) {
     return (
@@ -103,7 +104,7 @@ export const DatabaseMonitoringDashboard = () => {
             {tableMetrics
               .sort((a, b) => b.row_count - a.row_count)
               .slice(0, 15)
-              .map((table) => {
+              .map(table => {
                 const estimatedSize = (table.row_count * 2000) / (1024 * 1024); // MB
                 return (
                   <div key={table.table_name} className="flex items-center justify-between">
@@ -115,9 +116,7 @@ export const DatabaseMonitoringDashboard = () => {
                     </div>
                     <div className="text-right">
                       <div className="font-medium">~{estimatedSize.toFixed(2)} MB</div>
-                      <div className="text-sm text-muted-foreground">
-                        Estimated size
-                      </div>
+                      <div className="text-sm text-muted-foreground">Estimated size</div>
                     </div>
                   </div>
                 );
@@ -134,7 +133,7 @@ export const DatabaseMonitoringDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {storageMetrics.map((storage) => (
+            {storageMetrics.map(storage => (
               <div key={storage.bucket} className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="font-medium">{storage.bucket}</div>

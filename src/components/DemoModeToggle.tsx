@@ -2,12 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Info } from 'lucide-react';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { Button } from './ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from './ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,9 +43,10 @@ export const DemoModeToggle = () => {
               variant="outline"
               size="sm"
               className={`flex items-center justify-center gap-1.5 transition-all duration-200 rounded-lg
-                ${isDemoMode 
-                  ? 'bg-primary/30 border-primary/70 text-primary hover:bg-primary/40 shadow-lg shadow-primary/20 border-2 backdrop-blur-md' 
-                  : 'bg-background/40 border-border/50 text-foreground/90 hover:bg-background/50 backdrop-blur-md border-2'
+                ${
+                  isDemoMode
+                    ? 'bg-primary/30 border-primary/70 text-primary hover:bg-primary/40 shadow-lg shadow-primary/20 border-2 backdrop-blur-md'
+                    : 'bg-background/40 border-border/50 text-foreground/90 hover:bg-background/50 backdrop-blur-md border-2'
                 }`}
             >
               {isDemoMode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
@@ -62,7 +58,7 @@ export const DemoModeToggle = () => {
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-xs">
             <p className="text-sm">
-              {isDemoMode 
+              {isDemoMode
                 ? 'Demo Mode is ON - Showing mock data for presentations. Toggle OFF to see clean, empty state ready for production.'
                 : 'Demo Mode is OFF - Clean state with no mock data. Toggle ON to see full feature showcase with sample data.'}
             </p>
@@ -90,9 +86,7 @@ export const DemoModeToggle = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmToggle}>
-              Turn Off Demo Mode
-            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmToggle}>Turn Off Demo Mode</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

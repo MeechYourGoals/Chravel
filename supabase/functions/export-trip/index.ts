@@ -4,10 +4,10 @@
  * Text-only, production-quality PDF generation with Puppeteer
  */
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
-import { PDFDocument, StandardFonts, rgb, type PDFFont } from "https://esm.sh/pdf-lib@1.17.1";
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
+import puppeteer from 'https://deno.land/x/puppeteer@16.2.0/mod.ts';
+import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'https://esm.sh/pdf-lib@1.17.1';
 import { getTripData } from './data.ts';
 import { renderTemplate } from './template.ts';
 import { slug, formatTimestamp } from './util.ts';
@@ -56,7 +56,11 @@ function guessExt(filename: string | undefined): string {
   return ext || '';
 }
 
-function classifyForEmbedding(opts: { name: string; mimeType?: string; typeLabel?: string }): 'pdf' | 'image' | 'doc' | 'other' {
+function classifyForEmbedding(opts: {
+  name: string;
+  mimeType?: string;
+  typeLabel?: string;
+}): 'pdf' | 'image' | 'doc' | 'other' {
   const mime = (opts.mimeType || '').toLowerCase();
   const label = (opts.typeLabel || '').toLowerCase();
   const ext = guessExt(opts.name);
@@ -106,13 +110,30 @@ async function addFallbackAttachmentPage(params: {
   const margin = 54;
   let y = height - margin;
 
-  page.drawText('Attachment', { x: margin, y, font: fontBold, size: 18, color: rgb(0.06, 0.09, 0.16) });
+  page.drawText('Attachment', {
+    x: margin,
+    y,
+    font: fontBold,
+    size: 18,
+    color: rgb(0.06, 0.09, 0.16),
+  });
   y -= 28;
-  page.drawText(params.title, { x: margin, y, font: fontBold, size: 12, color: rgb(0.06, 0.09, 0.16) });
+  page.drawText(params.title, {
+    x: margin,
+    y,
+    font: fontBold,
+    size: 12,
+    color: rgb(0.06, 0.09, 0.16),
+  });
   y -= 18;
 
   if (params.subtitle) {
-    const subLines = wrapText({ text: params.subtitle, maxWidth: width - margin * 2, font, fontSize: 10 });
+    const subLines = wrapText({
+      text: params.subtitle,
+      maxWidth: width - margin * 2,
+      font,
+      fontSize: 10,
+    });
     for (const line of subLines) {
       page.drawText(line, { x: margin, y, font, size: 10, color: rgb(0.42, 0.45, 0.5) });
       y -= 14;
@@ -147,7 +168,11 @@ async function appendAttachmentsToPdf(params: {
   const baseDoc = await PDFDocument.load(params.basePdfBytes);
 
   for (const att of params.attachments) {
-    const kind = classifyForEmbedding({ name: att.name, mimeType: att.mime_type, typeLabel: att.type });
+    const kind = classifyForEmbedding({
+      name: att.name,
+      mimeType: att.mime_type,
+      typeLabel: att.type,
+    });
 
     // Prefer storage path for fetching.
     const storagePath = att.path;
@@ -162,7 +187,11 @@ async function appendAttachmentsToPdf(params: {
         const ab = await data.arrayBuffer();
         fileBytes = new Uint8Array(ab);
       } catch (e) {
-        logStep('Attachment download failed', { name: att.name, path: storagePath, error: e instanceof Error ? e.message : String(e) });
+        logStep('Attachment download failed', {
+          name: att.name,
+          path: storagePath,
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
 
@@ -180,7 +209,9 @@ async function appendAttachmentsToPdf(params: {
 
         const ext = guessExt(att.name);
         const isPng = ext === 'png';
-        const embedded = isPng ? await baseDoc.embedPng(fileBytes) : await baseDoc.embedJpg(fileBytes);
+        const embedded = isPng
+          ? await baseDoc.embedPng(fileBytes)
+          : await baseDoc.embedJpg(fileBytes);
 
         const margin = 18;
         const maxW = width - margin * 2;
@@ -233,13 +264,18 @@ async function appendAttachmentsToPdf(params: {
         lines: fallbackLines,
       });
     } catch (e) {
-      logStep('Attachment embed failed', { name: att.name, error: e instanceof Error ? e.message : String(e) });
+      logStep('Attachment embed failed', {
+        name: att.name,
+        error: e instanceof Error ? e.message : String(e),
+      });
       await addFallbackAttachmentPage({
         doc: baseDoc,
         paper: params.paper,
         title: att.name,
         subtitle: att.type,
-        lines: ['This attachment could not be embedded in the PDF export. Please download it from ChravelApp.'],
+        lines: [
+          'This attachment could not be embedded in the PDF export. Please download it from ChravelApp.',
+        ],
       });
     }
   }
@@ -247,32 +283,32 @@ async function appendAttachmentsToPdf(params: {
   return await baseDoc.save();
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
+serve(async req => {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
   // Get authorization header for authentication
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
-    logStep("Unauthorized - missing auth header");
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized - authentication required' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    logStep('Unauthorized - missing auth header');
+    return new Response(JSON.stringify({ error: 'Unauthorized - authentication required' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   // Use anon key with user's JWT to respect RLS
   const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false }
+    auth: { persistSession: false },
   });
 
   try {
-    logStep("Export started", { method: req.method, url: req.url });
+    logStep('Export started', { method: req.method, url: req.url });
 
     // Parse request - support both GET and POST
     let tripId: string;
@@ -285,7 +321,7 @@ serve(async (req) => {
       const url = new URL(req.url);
       tripId = url.searchParams.get('tripId') || '';
       const sectionsParam = url.searchParams.get('sections');
-      sections = sectionsParam ? sectionsParam.split(',') as ExportSection[] : [];
+      sections = sectionsParam ? (sectionsParam.split(',') as ExportSection[]) : [];
       layout = (url.searchParams.get('layout') || 'onepager') as ExportLayout;
       privacyRedaction = url.searchParams.get('privacy_redaction') === 'true';
       paper = (url.searchParams.get('paper') || 'letter') as 'letter' | 'a4';
@@ -298,7 +334,7 @@ serve(async (req) => {
       paper = body.paper || 'letter';
     }
 
-    logStep("Request parsed", { tripId, sections, layout, privacyRedaction, paper });
+    logStep('Request parsed', { tripId, sections, layout, privacyRedaction, paper });
 
     // Verify user is a member of the trip before proceeding
     const { data: membershipCheck, error: membershipError } = await supabaseClient
@@ -309,14 +345,14 @@ serve(async (req) => {
       .maybeSingle();
 
     if (membershipError || !membershipCheck) {
-      logStep("Forbidden - not a trip member", { tripId, error: membershipError?.message });
+      logStep('Forbidden - not a trip member', { tripId, error: membershipError?.message });
       return new Response(
         JSON.stringify({ error: 'Forbidden - you must be a member of this trip to export it' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    logStep("Authorization verified", { tripId });
+    logStep('Authorization verified', { tripId });
 
     // Auto-detect layout from trip_type if not explicitly provided
     if (!layout || layout === 'onepager') {
@@ -327,38 +363,48 @@ serve(async (req) => {
         .single();
 
       if (!tripError && trip) {
-        layout = (trip.trip_type === 'pro' || trip.trip_type === 'events') ? 'pro' : 'onepager';
-        logStep("Layout auto-detected", { trip_type: trip.trip_type, layout });
+        layout = trip.trip_type === 'pro' || trip.trip_type === 'events' ? 'pro' : 'onepager';
+        logStep('Layout auto-detected', { trip_type: trip.trip_type, layout });
       }
     }
 
     // Validate layout
     if (layout !== 'onepager' && layout !== 'pro') {
-      logStep("Invalid layout", { layout });
+      logStep('Invalid layout', { layout });
       return new Response(
         JSON.stringify({ error: 'Invalid layout. Must be "onepager" or "pro"' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     if (!tripId || !Array.isArray(sections)) {
-      logStep("Invalid request", { tripId, sectionsType: typeof sections });
+      logStep('Invalid request', { tripId, sectionsType: typeof sections });
       return new Response(
         JSON.stringify({ error: 'Invalid request: tripId and sections required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     // Default sections if none provided
     if (sections.length === 0) {
-      sections = layout === 'pro' 
-        ? ['calendar', 'payments', 'places', 'tasks', 'polls', 'roster', 'broadcasts', 'attachments']
-        : ['calendar', 'payments', 'places', 'tasks', 'polls'];
-      logStep("Using default sections", { sections });
+      sections =
+        layout === 'pro'
+          ? [
+              'calendar',
+              'payments',
+              'places',
+              'tasks',
+              'polls',
+              'roster',
+              'broadcasts',
+              'attachments',
+            ]
+          : ['calendar', 'payments', 'places', 'tasks', 'polls'];
+      logStep('Using default sections', { sections });
     }
 
     // Fetch and transform trip data
-    logStep("Fetching trip data");
+    logStep('Fetching trip data');
     let exportData: any; // TODO: Define proper TripExportData interface
     try {
       exportData = await getTripData(
@@ -366,42 +412,44 @@ serve(async (req) => {
         tripId,
         sections as ExportSection[],
         layout,
-        privacyRedaction
+        privacyRedaction,
       );
-      logStep("Trip data fetched successfully", { 
-        sectionsWithData: Object.keys(exportData).filter((k: string) => Array.isArray((exportData as any)[k]))
+      logStep('Trip data fetched successfully', {
+        sectionsWithData: Object.keys(exportData).filter((k: string) =>
+          Array.isArray((exportData as any)[k]),
+        ),
       });
     } catch (error) {
       if (error instanceof Error && error.message === 'Trip not found') {
-        logStep("Trip not found", { tripId });
-        return new Response(
-          JSON.stringify({ error: 'Trip not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        logStep('Trip not found', { tripId });
+        return new Response(JSON.stringify({ error: 'Trip not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
       throw error;
     }
 
     // Render HTML
-    logStep("Rendering HTML template");
+    logStep('Rendering HTML template');
     const html = await renderTemplate(exportData);
-    logStep("HTML rendered", { htmlLength: html.length });
+    logStep('HTML rendered', { htmlLength: html.length });
 
     // Generate PDF with Puppeteer
-    logStep("Launching Puppeteer");
+    logStep('Launching Puppeteer');
     const browser = await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 
     const page = await browser.newPage();
-    logStep("Loading HTML into page");
+    logStep('Loading HTML into page');
     await page.setContent(html, { waitUntil: 'networkidle0' });
     await page.emulateMediaType('print');
 
     // Layout name for metadata
     const layoutName = layout === 'pro' ? 'ChravelApp Pro Summary' : 'One-Pager';
 
-    logStep("Generating PDF", { format: paper, layout: layoutName });
+    logStep('Generating PDF', { format: paper, layout: layoutName });
     let pdfBytes = await page.pdf({
       printBackground: true,
       format: paper === 'a4' ? 'A4' : 'Letter',
@@ -413,16 +461,20 @@ serve(async (req) => {
           <div>Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
         </div>
       `,
-      margin: { top: '48pt', right: '54pt', bottom: '64pt', left: '54pt' }
+      margin: { top: '48pt', right: '54pt', bottom: '64pt', left: '54pt' },
     });
 
     await browser.close();
-    logStep("PDF generated successfully", { size: pdfBytes.length });
+    logStep('PDF generated successfully', { size: pdfBytes.length });
 
     // If attachments are included, append the actual files after the recap.
     // The recap body already contains a plain-text Attachments index section.
-    if (sections.includes('attachments') && Array.isArray((exportData as any).attachments) && (exportData as any).attachments.length > 0) {
-      logStep("Appending attachment pages", { count: (exportData as any).attachments.length });
+    if (
+      sections.includes('attachments') &&
+      Array.isArray((exportData as any).attachments) &&
+      (exportData as any).attachments.length > 0
+    ) {
+      logStep('Appending attachment pages', { count: (exportData as any).attachments.length });
       try {
         const merged = await appendAttachmentsToPdf({
           supabaseClient,
@@ -430,10 +482,10 @@ serve(async (req) => {
           attachments: (exportData as any).attachments,
           paper,
         });
-        logStep("Attachments appended", { newSize: merged.length });
+        logStep('Attachments appended', { newSize: merged.length });
         pdfBytes = merged;
       } catch (e) {
-        logStep("Failed to append attachments (continuing with base PDF)", {
+        logStep('Failed to append attachments (continuing with base PDF)', {
           error: e instanceof Error ? e.message : String(e),
         });
       }
@@ -441,7 +493,7 @@ serve(async (req) => {
 
     // Generate filename with timestamp
     const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}.pdf`;
-    logStep("Returning PDF", { filename, size: pdfBytes.length });
+    logStep('Returning PDF', { filename, size: pdfBytes.length });
 
     // Return PDF directly as Response body
     return new Response(pdfBytes as unknown as BodyInit, {
@@ -452,18 +504,17 @@ serve(async (req) => {
         'Content-Length': pdfBytes.length.toString(),
       },
     });
-
   } catch (error) {
-    logStep("ERROR", { 
+    logStep('ERROR', {
       message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
     });
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error instanceof Error ? error.message : 'Export failed',
-        details: error instanceof Error ? error.stack : String(error)
+        details: error instanceof Error ? error.stack : String(error),
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });

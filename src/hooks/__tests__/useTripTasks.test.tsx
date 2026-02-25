@@ -21,32 +21,30 @@ vi.mock('@/offline/cache', () => ({
 }));
 vi.mock('../useAuth', () => ({
   useAuth: () => ({
-    user: { id: 'test-user-id' }
-  })
+    user: { id: 'test-user-id' },
+  }),
 }));
 vi.mock('../useDemoMode', () => ({
   useDemoMode: () => ({
-    isDemoMode: false
-  })
+    isDemoMode: false,
+  }),
 }));
 vi.mock('../use-toast', () => ({
   useToast: () => ({
-    toast: vi.fn()
-  })
+    toast: vi.fn(),
+  }),
 }));
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
-      mutations: { retry: false }
-    }
+      mutations: { retry: false },
+    },
   });
-  
+
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 };
 
@@ -78,7 +76,8 @@ function makeSupabaseChain(overrides: SupabaseChainOverrides = {}) {
   chain.single = vi.fn(async () => overrides.single ?? { data: null, error: null });
   chain.maybeSingle = vi.fn(async () => overrides.maybeSingle ?? { data: null, error: null });
   // Make the chain awaitable (Supabase query builders are Promise-like).
-  chain.then = (onFulfilled: any, onRejected: any) => Promise.resolve(response).then(onFulfilled, onRejected);
+  chain.then = (onFulfilled: any, onRejected: any) =>
+    Promise.resolve(response).then(onFulfilled, onRejected);
   return chain;
 }
 
@@ -90,7 +89,7 @@ describe('useTripTasks', () => {
     // Mock navigator.onLine
     Object.defineProperty(navigator, 'onLine', {
       writable: true,
-      value: true
+      value: true,
     });
 
     vi.mocked(getCachedEntities).mockResolvedValue([]);
@@ -126,8 +125,8 @@ describe('useTripTasks', () => {
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
           task_status: [],
-          creator: { id: 'user-1', display_name: 'Test User', avatar_url: null }
-        }
+          creator: { id: 'user-1', display_name: 'Test User', avatar_url: null },
+        },
       ];
 
       tableMocks.trip_tasks = makeSupabaseChain({
@@ -135,7 +134,7 @@ describe('useTripTasks', () => {
       });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {
@@ -155,17 +154,17 @@ describe('useTripTasks', () => {
         due_at: null,
         is_poll: false,
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z'
+        updated_at: '2024-01-01T00:00:00Z',
       };
 
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
-        error: null
+        error: null,
       } as any);
 
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: null,
-        error: null
+        error: null,
       } as any);
 
       tableMocks.trip_tasks = makeSupabaseChain({
@@ -178,7 +177,7 @@ describe('useTripTasks', () => {
       });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {
@@ -188,14 +187,13 @@ describe('useTripTasks', () => {
       await result.current.createTaskMutation.mutateAsync({
         title: 'New Task',
         description: 'New Description',
-        is_poll: false
+        is_poll: false,
       });
 
       await waitFor(() => {
         expect(result.current.createTaskMutation.isSuccess).toBe(true);
       });
     });
-
 
     it('should update a task successfully', async () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
@@ -242,12 +240,12 @@ describe('useTripTasks', () => {
     it('should toggle task status successfully', async () => {
       const mockTask = {
         id: 'task-1',
-        version: 1
+        version: 1,
       };
 
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
-        error: null
+        error: null,
       } as any);
 
       tableMocks.trip_tasks = makeSupabaseChain({
@@ -257,11 +255,11 @@ describe('useTripTasks', () => {
 
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: { success: true, new_version: 2, is_completed: true },
-        error: null
+        error: null,
       } as any);
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {
@@ -270,7 +268,7 @@ describe('useTripTasks', () => {
 
       await result.current.toggleTaskMutation.mutateAsync({
         taskId: 'task-1',
-        completed: true
+        completed: true,
       });
 
       await waitFor(() => {
@@ -283,7 +281,7 @@ describe('useTripTasks', () => {
     it('should retry on version conflict', async () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
-        error: null
+        error: null,
       } as any);
 
       const tripTasksChain = makeSupabaseChain({
@@ -299,15 +297,15 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.rpc)
         .mockResolvedValueOnce({
           data: null,
-          error: { message: 'Task has been modified by another user', code: 'P0001' }
+          error: { message: 'Task has been modified by another user', code: 'P0001' },
         } as any)
         .mockResolvedValueOnce({
           data: { success: true, new_version: 3, is_completed: true },
-          error: null
+          error: null,
         } as any);
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {
@@ -316,10 +314,10 @@ describe('useTripTasks', () => {
 
       // Use setTimeout to simulate retry delay
       vi.useFakeTimers();
-      
+
       const promise = result.current.toggleTaskMutation.mutateAsync({
         taskId: 'task-1',
-        completed: true
+        completed: true,
       });
 
       // Advance timers to trigger retry
@@ -336,7 +334,7 @@ describe('useTripTasks', () => {
     it('should throw error after max retries', async () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
-        error: null
+        error: null,
       } as any);
 
       tableMocks.trip_tasks = makeSupabaseChain({
@@ -347,11 +345,11 @@ describe('useTripTasks', () => {
       // Always return version conflict
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: null,
-        error: { message: 'Task has been modified by another user', code: 'P0001' }
+        error: { message: 'Task has been modified by another user', code: 'P0001' },
       } as any);
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {
@@ -362,7 +360,7 @@ describe('useTripTasks', () => {
 
       const promise = result.current.toggleTaskMutation.mutateAsync({
         taskId: 'task-1',
-        completed: true
+        completed: true,
       });
 
       const expectation = expect(promise).rejects.toThrow();
@@ -377,13 +375,13 @@ describe('useTripTasks', () => {
     it('should queue task creation when offline', async () => {
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
-        value: false
+        value: false,
       });
 
       vi.mocked(offlineSyncService.queueOperation).mockResolvedValue('queue-id-1' as any);
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {
@@ -393,8 +391,8 @@ describe('useTripTasks', () => {
       await expect(
         result.current.createTaskMutation.mutateAsync({
           title: 'Offline Task',
-          is_poll: false
-        })
+          is_poll: false,
+        }),
       ).rejects.toThrow('OFFLINE:');
 
       expect(offlineSyncService.queueOperation).toHaveBeenCalledWith(
@@ -408,18 +406,18 @@ describe('useTripTasks', () => {
     it('should queue task toggle when offline', async () => {
       Object.defineProperty(navigator, 'onLine', {
         writable: true,
-        value: false
+        value: false,
       });
 
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
-        error: null
+        error: null,
       } as any);
 
       vi.mocked(offlineSyncService.queueOperation).mockResolvedValue('queue-id-2' as any);
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {
@@ -429,8 +427,8 @@ describe('useTripTasks', () => {
       await expect(
         result.current.toggleTaskMutation.mutateAsync({
           taskId: 'task-1',
-          completed: true
-        })
+          completed: true,
+        }),
       ).rejects.toThrow('OFFLINE:');
 
       expect(offlineSyncService.queueOperation).toHaveBeenCalledWith(
@@ -447,7 +445,7 @@ describe('useTripTasks', () => {
     it('should handle access denied errors', async () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
-        error: null
+        error: null,
       } as any);
 
       vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as any);
@@ -461,7 +459,7 @@ describe('useTripTasks', () => {
       });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {
@@ -471,8 +469,8 @@ describe('useTripTasks', () => {
       await expect(
         result.current.createTaskMutation.mutateAsync({
           title: 'Test Task',
-          is_poll: false
-        })
+          is_poll: false,
+        }),
       ).rejects.toThrow('Access denied');
 
       await waitFor(() => {
@@ -483,7 +481,7 @@ describe('useTripTasks', () => {
     it('should handle network errors', async () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
-        error: null
+        error: null,
       } as any);
 
       tableMocks.trip_tasks = makeSupabaseChain({
@@ -492,7 +490,7 @@ describe('useTripTasks', () => {
       });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {
@@ -502,8 +500,8 @@ describe('useTripTasks', () => {
       await expect(
         result.current.toggleTaskMutation.mutateAsync({
           taskId: 'task-1',
-          completed: true
-        })
+          completed: true,
+        }),
       ).rejects.toThrow('Network error');
 
       await waitFor(() => {
@@ -522,7 +520,7 @@ describe('useTripTasks', () => {
         is_poll: false,
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
-        task_status: []
+        task_status: [],
       }));
 
       tableMocks.trip_tasks = makeSupabaseChain({
@@ -530,7 +528,7 @@ describe('useTripTasks', () => {
       });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {
@@ -550,7 +548,7 @@ describe('useTripTasks', () => {
         is_poll: false,
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
-        task_status: []
+        task_status: [],
       }));
 
       tableMocks.trip_tasks = makeSupabaseChain({
@@ -558,7 +556,7 @@ describe('useTripTasks', () => {
       });
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
-        wrapper: createWrapper()
+        wrapper: createWrapper(),
       });
 
       await waitFor(() => {

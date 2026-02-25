@@ -13,11 +13,23 @@ export interface StorageMetric {
 }
 
 const TRACKED_TABLES = [
-  'trips', 'trip_members', 'trip_chat_messages', 'trip_events',
-  'trip_media_index', 'trip_files', 'trip_tasks', 'trip_polls',
-  'trip_payment_messages', 'payment_splits', 'profiles',
-  'organizations', 'organization_members', 'broadcasts',
-  'notifications', 'kb_documents', 'kb_chunks'
+  'trips',
+  'trip_members',
+  'trip_chat_messages',
+  'trip_events',
+  'trip_media_index',
+  'trip_files',
+  'trip_tasks',
+  'trip_polls',
+  'trip_payment_messages',
+  'payment_splits',
+  'profiles',
+  'organizations',
+  'organization_members',
+  'broadcasts',
+  'notifications',
+  'kb_documents',
+  'kb_chunks',
 ];
 
 export const useDatabaseMetrics = () => {
@@ -26,13 +38,13 @@ export const useDatabaseMetrics = () => {
     queryKey: ['databaseMetrics', 'tables'],
     queryFn: async (): Promise<TableMetric[]> => {
       const metrics: TableMetric[] = [];
-      
+
       for (const tableName of TRACKED_TABLES) {
         try {
           const { count, error } = await supabase
             .from(tableName as any)
             .select('*', { count: 'exact', head: true });
-          
+
           if (!error && count !== null) {
             metrics.push({
               table_name: tableName,
@@ -43,7 +55,7 @@ export const useDatabaseMetrics = () => {
           console.warn(`Could not fetch count for ${tableName}:`, err);
         }
       }
-      
+
       return metrics;
     },
     refetchInterval: 60000, // Refresh every minute
@@ -54,17 +66,17 @@ export const useDatabaseMetrics = () => {
     queryKey: ['databaseMetrics', 'storage'],
     queryFn: async (): Promise<StorageMetric[]> => {
       // Get file counts from trip_media_index
-      const { data: mediaData } = await supabase
-        .from('trip_media_index')
-        .select('file_size');
+      const { data: mediaData } = await supabase.from('trip_media_index').select('file_size');
 
       const totalSize = mediaData?.reduce((sum, item) => sum + (item.file_size || 0), 0) || 0;
-      
-      return [{
-        bucket: 'trip-media',
-        file_count: mediaData?.length || 0,
-        total_size_mb: totalSize / (1024 * 1024),
-      }];
+
+      return [
+        {
+          bucket: 'trip-media',
+          file_count: mediaData?.length || 0,
+          total_size_mb: totalSize / (1024 * 1024),
+        },
+      ];
     },
     refetchInterval: 60000,
   });

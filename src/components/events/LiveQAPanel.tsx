@@ -38,7 +38,7 @@ export const LiveQAPanel = ({ sessionId, eventId, userRole = 'attendee' }: LiveQ
         if (currentUserId && data.length > 0) {
           const upvoted = await eventQAService.getUserUpvotedQuestions(
             currentUserId,
-            data.map(q => q.id)
+            data.map(q => q.id),
           );
           setUpvotedQuestions(new Set(upvoted));
         }
@@ -50,22 +50,18 @@ export const LiveQAPanel = ({ sessionId, eventId, userRole = 'attendee' }: LiveQ
     fetchInitialQuestions();
 
     // Subscribe to real-time updates
-    const unsubscribe = eventQAService.subscribeToQuestions(
-      eventId,
-      sessionId,
-      (updatedQuestion) => {
-        setQuestions(prev => {
-          const existing = prev.find(q => q.id === updatedQuestion.id);
-          if (existing) {
-            // Update existing question
-            return prev.map(q => q.id === updatedQuestion.id ? updatedQuestion : q);
-          } else {
-            // Add new question
-            return [updatedQuestion, ...prev];
-          }
-        });
-      }
-    );
+    const unsubscribe = eventQAService.subscribeToQuestions(eventId, sessionId, updatedQuestion => {
+      setQuestions(prev => {
+        const existing = prev.find(q => q.id === updatedQuestion.id);
+        if (existing) {
+          // Update existing question
+          return prev.map(q => (q.id === updatedQuestion.id ? updatedQuestion : q));
+        } else {
+          // Add new question
+          return [updatedQuestion, ...prev];
+        }
+      });
+    });
 
     return () => {
       unsubscribe();
@@ -78,9 +74,11 @@ export const LiveQAPanel = ({ sessionId, eventId, userRole = 'attendee' }: LiveQ
     setIsSubmitting(true);
     try {
       // Get user name
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       let userName = user?.email?.split('@')[0] || 'Anonymous';
-      
+
       if (!user) {
         const name = prompt('Please enter your name to ask a question:');
         if (!name) {
@@ -90,25 +88,19 @@ export const LiveQAPanel = ({ sessionId, eventId, userRole = 'attendee' }: LiveQ
         userName = name;
       }
 
-      await eventQAService.submitQuestion(
-        eventId,
-        sessionId,
-        newQuestion,
-        user?.id,
-        userName
-      );
-      
+      await eventQAService.submitQuestion(eventId, sessionId, newQuestion, user?.id, userName);
+
       setNewQuestion('');
       toast({
-        title: "Question submitted",
-        description: "Your question has been added to the Q&A queue."
+        title: 'Question submitted',
+        description: 'Your question has been added to the Q&A queue.',
       });
     } catch (error) {
       console.error('Error submitting question:', error);
       toast({
-        title: "Error",
-        description: "Failed to submit question. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to submit question. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
@@ -121,17 +113,17 @@ export const LiveQAPanel = ({ sessionId, eventId, userRole = 'attendee' }: LiveQ
     try {
       await eventQAService.upvoteQuestion(questionId, currentUserId);
       setUpvotedQuestions(prev => new Set([...prev, questionId]));
-      
+
       // Optimistically update UI
-      setQuestions(prev => prev.map(q => 
-        q.id === questionId ? { ...q, upvotes: q.upvotes + 1 } : q
-      ));
+      setQuestions(prev =>
+        prev.map(q => (q.id === questionId ? { ...q, upvotes: q.upvotes + 1 } : q)),
+      );
     } catch (error) {
       console.error('Error upvoting question:', error);
       toast({
-        title: "Error",
-        description: "Failed to upvote question.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to upvote question.',
+        variant: 'destructive',
       });
     }
   };
@@ -140,26 +132,23 @@ export const LiveQAPanel = ({ sessionId, eventId, userRole = 'attendee' }: LiveQ
     if (userRole !== 'organizer' && userRole !== 'speaker') return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const answeredBy = user?.email?.split('@')[0] || 'Speaker';
-      
-      await eventQAService.answerQuestion(
-        questionId,
-        answer,
-        answeredBy,
-        user?.id
-      );
-      
+
+      await eventQAService.answerQuestion(questionId, answer, answeredBy, user?.id);
+
       toast({
-        title: "Question answered",
-        description: "Your answer has been posted."
+        title: 'Question answered',
+        description: 'Your answer has been posted.',
       });
     } catch (error) {
       console.error('Error marking question as answered:', error);
       toast({
-        title: "Error",
-        description: "Failed to post answer.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to post answer.',
+        variant: 'destructive',
       });
     }
   };
@@ -180,7 +169,7 @@ export const LiveQAPanel = ({ sessionId, eventId, userRole = 'attendee' }: LiveQ
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <Textarea
           value={newQuestion}
-          onChange={(e) => setNewQuestion(e.target.value)}
+          onChange={e => setNewQuestion(e.target.value)}
           placeholder="Ask a question about this session..."
           className="bg-gray-800/50 border-gray-600 text-white mb-3"
           rows={3}
@@ -197,7 +186,7 @@ export const LiveQAPanel = ({ sessionId, eventId, userRole = 'attendee' }: LiveQ
 
       {/* Questions List */}
       <div className="space-y-4">
-        {questions.map((question) => (
+        {questions.map(question => (
           <div key={question.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">

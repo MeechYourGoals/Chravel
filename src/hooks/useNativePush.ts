@@ -31,7 +31,7 @@ export function useNativePush() {
     isLoading: false,
     error: null,
   });
-  
+
   const listenersSetup = useRef(false);
   const tokenRef = useRef<string | null>(null);
 
@@ -43,57 +43,57 @@ export function useNativePush() {
     if (!user || !NativePush.isNativePush()) {
       return null;
     }
-    
+
     setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
+
     try {
       // Request permission
       const permission = await NativePush.requestPermissions();
       setState(prev => ({ ...prev, permission }));
-      
+
       if (permission !== 'granted') {
-        setState(prev => ({ 
-          ...prev, 
+        setState(prev => ({
+          ...prev,
           isLoading: false,
-          error: 'Permission not granted' 
+          error: 'Permission not granted',
         }));
         return null;
       }
-      
+
       // Register for push
       const result = await NativePush.register();
-      
+
       if (result.error || !result.token) {
-        setState(prev => ({ 
-          ...prev, 
+        setState(prev => ({
+          ...prev,
           isLoading: false,
-          error: result.error || 'Failed to get token' 
+          error: result.error || 'Failed to get token',
         }));
         return null;
       }
-      
+
       // Save token to Supabase
       const saved = await saveDeviceToken(user.id, result.token);
-      
+
       if (!saved) {
         console.warn('[useNativePush] Failed to save token to database');
       }
-      
+
       tokenRef.current = result.token;
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         token: result.token,
         isRegistered: true,
-        isLoading: false 
+        isLoading: false,
       }));
-      
+
       return result.token;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         isLoading: false,
-        error: errorMessage 
+        error: errorMessage,
       }));
       return null;
     }
@@ -104,15 +104,15 @@ export function useNativePush() {
    */
   const unregisterFromPush = useCallback(async (): Promise<void> => {
     if (!user || !tokenRef.current) return;
-    
+
     try {
       await removeDeviceToken(user.id, tokenRef.current);
       await NativePush.unregister();
       tokenRef.current = null;
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         token: null,
-        isRegistered: false 
+        isRegistered: false,
       }));
     } catch (err) {
       console.error('[useNativePush] Failed to unregister:', err);
@@ -140,24 +140,26 @@ export function useNativePush() {
     if (!NativePush.isNativePush() || listenersSetup.current) {
       return;
     }
-    
+
     listenersSetup.current = true;
 
     // Handle foreground notifications - show toast
-    const unsubReceived = NativePush.onNotificationReceived((notification) => {
+    const unsubReceived = NativePush.onNotificationReceived(notification => {
       console.log('[useNativePush] Foreground notification:', notification);
-      
+
       const payload = NativePush.parsePayload(notification.data || {});
-      
+
       toast(notification.title || 'New notification', {
         description: notification.body,
-        action: payload ? {
-          label: 'View',
-          onClick: () => {
-            const route = buildRouteFromPayload(payload);
-            navigate(route);
-          }
-        } : undefined,
+        action: payload
+          ? {
+              label: 'View',
+              onClick: () => {
+                const route = buildRouteFromPayload(payload);
+                navigate(route);
+              },
+            }
+          : undefined,
         duration: 5000,
       });
     });
@@ -174,17 +176,20 @@ export function useNativePush() {
   // Update last_seen periodically when app is active
   useEffect(() => {
     if (!user || !tokenRef.current) return;
-    
+
     // Update on mount
     updateLastSeen(user.id, tokenRef.current);
-    
+
     // Update every 5 minutes
-    const interval = setInterval(() => {
-      if (tokenRef.current) {
-        updateLastSeen(user.id, tokenRef.current);
-      }
-    }, 5 * 60 * 1000);
-    
+    const interval = setInterval(
+      () => {
+        if (tokenRef.current) {
+          updateLastSeen(user.id, tokenRef.current);
+        }
+      },
+      5 * 60 * 1000,
+    );
+
     return () => clearInterval(interval);
   }, [user]);
 

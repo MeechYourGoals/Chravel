@@ -26,7 +26,7 @@ export const SettlePaymentDialog = ({
   open,
   onOpenChange,
   balance,
-  tripId
+  tripId,
 }: SettlePaymentDialogProps) => {
   const { toast } = useToast();
   const [settling, setSettling] = useState(false);
@@ -38,7 +38,9 @@ export const SettlePaymentDialog = ({
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const youOweThem = balance.amountOwed < 0;
@@ -50,7 +52,7 @@ export const SettlePaymentDialog = ({
           .from('payment_splits')
           .update({
             confirmation_status: 'pending',
-            settlement_method: balance.preferredPaymentMethod?.type || 'other'
+            settlement_method: balance.preferredPaymentMethod?.type || 'other',
           })
           .in('payment_message_id', splitIds)
           .eq('debtor_user_id', user.id)
@@ -72,7 +74,7 @@ export const SettlePaymentDialog = ({
             confirmation_status: 'confirmed',
             confirmed_by: user.id,
             confirmed_at: new Date().toISOString(),
-            settlement_method: balance.preferredPaymentMethod?.type || 'other'
+            settlement_method: balance.preferredPaymentMethod?.type || 'other',
           })
           .in('payment_message_id', splitIds)
           .eq('debtor_user_id', balance.userId)
@@ -97,7 +99,7 @@ export const SettlePaymentDialog = ({
       toast({
         title: 'Error',
         description: errorMessage + '. Please try again.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setSettling(false);
@@ -111,9 +113,7 @@ export const SettlePaymentDialog = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Settle Payment</DialogTitle>
-          <DialogDescription>
-            Confirm that this payment has been completed
-          </DialogDescription>
+          <DialogDescription>Confirm that this payment has been completed</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -135,8 +135,8 @@ export const SettlePaymentDialog = ({
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Method:</span>
               <span className="font-medium">
-                {balance.preferredPaymentMethod.type.charAt(0).toUpperCase() + 
-                 balance.preferredPaymentMethod.type.slice(1)}
+                {balance.preferredPaymentMethod.type.charAt(0).toUpperCase() +
+                  balance.preferredPaymentMethod.type.slice(1)}
               </span>
             </div>
           )}
@@ -162,11 +162,7 @@ export const SettlePaymentDialog = ({
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={settling}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={settling}>
             Cancel
           </Button>
           <Button onClick={handleSettle} disabled={settling}>

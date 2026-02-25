@@ -1,5 +1,13 @@
 import React from 'react';
-import { FileText, Calendar, Receipt, MessageSquare, MapPin, Users, ExternalLink } from 'lucide-react';
+import {
+  FileText,
+  Calendar,
+  Receipt,
+  MessageSquare,
+  MapPin,
+  Users,
+  ExternalLink,
+} from 'lucide-react';
 import { SearchResult } from '../services/universalConciergeService';
 
 interface SearchResultsPaneProps {
@@ -47,19 +55,17 @@ export const SearchResultsPane = ({ results, onResultClick }: SearchResultsPaneP
         <ExternalLink size={16} className="text-gray-400" />
         <span className="text-sm font-medium text-gray-300">Search Results</span>
       </div>
-      
+
       <div className="space-y-2">
-        {results.map((result) => (
+        {results.map(result => (
           <div
             key={result.id}
             onClick={() => handleResultClick(result)}
             className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:border-white/20"
           >
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                {getIcon(result.objectType)}
-              </div>
-              
+              <div className="flex-shrink-0 mt-0.5">{getIcon(result.objectType)}</div>
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-medium text-gray-400 uppercase">
@@ -71,27 +77,19 @@ export const SearchResultsPane = ({ results, onResultClick }: SearchResultsPaneP
                     </span>
                   )}
                 </div>
-                
-                <p className="text-white text-sm font-medium mb-1 line-clamp-1">
-                  {result.snippet}
-                </p>
-                
-                <p className="text-gray-400 text-xs line-clamp-2">
-                  {result.content}
-                </p>
-                
+
+                <p className="text-white text-sm font-medium mb-1 line-clamp-1">{result.snippet}</p>
+
+                <p className="text-gray-400 text-xs line-clamp-2">{result.content}</p>
+
                 {(result.metadata?.date || result.metadata?.fileName) && (
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                    {result.metadata.date && (
-                      <span>📅 {result.metadata.date}</span>
-                    )}
-                    {result.metadata.fileName && (
-                      <span>📎 {result.metadata.fileName}</span>
-                    )}
+                    {result.metadata.date && <span>📅 {result.metadata.date}</span>}
+                    {result.metadata.fileName && <span>📎 {result.metadata.fileName}</span>}
                   </div>
                 )}
               </div>
-              
+
               <ExternalLink size={14} className="text-gray-500 flex-shrink-0 mt-1" />
             </div>
           </div>

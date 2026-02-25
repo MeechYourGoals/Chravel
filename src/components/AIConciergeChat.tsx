@@ -128,7 +128,8 @@ const ALLOWED_IMAGE_TYPES = new Set([
 ]);
 
 /** Simple unique ID generator for chat messages */
-const uniqueId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+const uniqueId = (prefix: string) =>
+  `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
 const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -149,7 +150,6 @@ const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment>
     name: file.name,
   };
 };
-
 
 const invokeConciergeWithTimeout = async (
   requestBody: Record<string, unknown> & { message: string },
@@ -235,14 +235,11 @@ export const AIConciergeChat = ({
   // ─── Voice (Dictation-Only — Web Speech API) ─────────────────────────────
   // Microphone captures speech → text → populates input field (auto-sends).
   // No model audio output. No duplex WebSocket. No barge-in.
-  const handleDictationResult = useCallback(
-    (text: string) => {
-      if (!text.trim()) return;
-      // Insert text into input field only — user reviews and sends manually
-      setInputMessage(prev => prev ? prev + ' ' + text.trim() : text.trim());
-    },
-    [],
-  );
+  const handleDictationResult = useCallback((text: string) => {
+    if (!text.trim()) return;
+    // Insert text into input field only — user reviews and sends manually
+    setInputMessage(prev => (prev ? prev + ' ' + text.trim() : text.trim()));
+  }, []);
 
   const {
     voiceState: dictationState,
@@ -430,26 +427,33 @@ export const AIConciergeChat = ({
   }, [isOffline, aiStatus]);
 
   // ── Delete a single concierge message (privacy) ──────────────────────────
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
-    // Remove from local state immediately
-    setMessages(prev => prev.filter(m => m.id !== messageId));
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      // Remove from local state immediately
+      setMessages(prev => prev.filter(m => m.id !== messageId));
 
-    // If it's a persisted history message, also update DB
-    const historyMatch = messageId.match(/^history-(user|assistant)-([^-]+)/);
-    if (historyMatch && user?.id) {
-      const [, role, rowId] = historyMatch;
-      if (role === 'user') {
-        // Delete entire row (removes both Q and A from DB)
-        await supabase.from('ai_queries').delete().eq('id', rowId).eq('user_id', user.id);
-        // Also remove the paired assistant message from UI
-        const pairedPrefix = `history-assistant-${rowId}`;
-        setMessages(prev => prev.filter(m => !m.id.startsWith(pairedPrefix)));
-      } else {
-        // Just null out the response text in DB
-        await supabase.from('ai_queries').update({ response_text: null }).eq('id', rowId).eq('user_id', user.id);
+      // If it's a persisted history message, also update DB
+      const historyMatch = messageId.match(/^history-(user|assistant)-([^-]+)/);
+      if (historyMatch && user?.id) {
+        const [, role, rowId] = historyMatch;
+        if (role === 'user') {
+          // Delete entire row (removes both Q and A from DB)
+          await supabase.from('ai_queries').delete().eq('id', rowId).eq('user_id', user.id);
+          // Also remove the paired assistant message from UI
+          const pairedPrefix = `history-assistant-${rowId}`;
+          setMessages(prev => prev.filter(m => !m.id.startsWith(pairedPrefix)));
+        } else {
+          // Just null out the response text in DB
+          await supabase
+            .from('ai_queries')
+            .update({ response_text: null })
+            .eq('id', rowId)
+            .eq('user_id', user.id);
+        }
       }
-    }
-  }, [user?.id]);
+    },
+    [user?.id],
+  );
 
   const handleSendMessage = async (messageOverride?: string) => {
     const typedMessage =
@@ -653,7 +657,9 @@ export const AIConciergeChat = ({
               };
 
               if (name === 'searchPlaces' && result.places && Array.isArray(result.places)) {
-                ensureAndPatch({ functionCallPlaces: result.places as ChatMessage['functionCallPlaces'] });
+                ensureAndPatch({
+                  functionCallPlaces: result.places as ChatMessage['functionCallPlaces'],
+                });
               }
               if (name === 'getPlaceDetails' && result.success) {
                 const detailPlace = {
@@ -672,7 +678,10 @@ export const AIConciergeChat = ({
                   if (idx !== -1) {
                     const existing = prev[idx].functionCallPlaces || [];
                     const updated = [...prev];
-                    updated[idx] = { ...updated[idx], functionCallPlaces: [...existing, detailPlace] };
+                    updated[idx] = {
+                      ...updated[idx],
+                      functionCallPlaces: [...existing, detailPlace],
+                    };
                     return updated;
                   }
                   // Create placeholder with this first place detail
@@ -1015,7 +1024,7 @@ export const AIConciergeChat = ({
           accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
           multiple
           className="hidden"
-          onChange={(e) => {
+          onChange={e => {
             const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
             if (files.length > 0) setAttachedImages(prev => [...prev, ...files].slice(0, 4));
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -1103,7 +1112,7 @@ export const AIConciergeChat = ({
               <div className="flex-1 h-px bg-white/10" />
             </div>
           )}
-        {messages.length > 0 && (
+          {messages.length > 0 && (
             <ChatMessages
               messages={messages}
               isTyping={isTyping}
@@ -1152,7 +1161,11 @@ export const AIConciergeChat = ({
             disabled={isQueryLimitReached}
             showImageAttach={UPLOAD_ENABLED}
             attachedImages={UPLOAD_ENABLED ? attachedImages : []}
-            onImageAttach={UPLOAD_ENABLED ? (files: File[]) => setAttachedImages(prev => [...prev, ...files].slice(0, 4)) : undefined}
+            onImageAttach={
+              UPLOAD_ENABLED
+                ? (files: File[]) => setAttachedImages(prev => [...prev, ...files].slice(0, 4))
+                : undefined
+            }
             onRemoveImage={
               UPLOAD_ENABLED
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))

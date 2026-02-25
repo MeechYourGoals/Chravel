@@ -29,11 +29,12 @@ export const useEvents = () => {
 
   const archiveTripMutation = useMutation({
     mutationFn: (id: string) => archiveService.archiveTrip(id, 'event'),
-    onMutate: async (tripId) => {
+    onMutate: async tripId => {
       await queryClient.cancelQueries({ queryKey: [EVENTS_QUERY_KEY] });
       const previousTrips = queryClient.getQueryData([EVENTS_QUERY_KEY, user?.id, isDemoMode]);
-      queryClient.setQueryData([EVENTS_QUERY_KEY, user?.id, isDemoMode], (old: EventData[] | undefined) =>
-        old ? old.filter((trip) => trip.id !== tripId) : []
+      queryClient.setQueryData(
+        [EVENTS_QUERY_KEY, user?.id, isDemoMode],
+        (old: EventData[] | undefined) => (old ? old.filter(trip => trip.id !== tripId) : []),
       );
       return { previousTrips };
     },
@@ -48,11 +49,12 @@ export const useEvents = () => {
 
   const hideTripMutation = useMutation({
     mutationFn: (id: string) => archiveService.hideTrip(id),
-    onMutate: async (tripId) => {
+    onMutate: async tripId => {
       await queryClient.cancelQueries({ queryKey: [EVENTS_QUERY_KEY] });
       const previousTrips = queryClient.getQueryData([EVENTS_QUERY_KEY, user?.id, isDemoMode]);
-      queryClient.setQueryData([EVENTS_QUERY_KEY, user?.id, isDemoMode], (old: EventData[] | undefined) =>
-        old ? old.filter((trip) => trip.id !== tripId) : []
+      queryClient.setQueryData(
+        [EVENTS_QUERY_KEY, user?.id, isDemoMode],
+        (old: EventData[] | undefined) => (old ? old.filter(trip => trip.id !== tripId) : []),
       );
       return { previousTrips };
     },
@@ -71,8 +73,9 @@ export const useEvents = () => {
     onMutate: async ({ tripId }) => {
       await queryClient.cancelQueries({ queryKey: [EVENTS_QUERY_KEY] });
       const previousTrips = queryClient.getQueryData([EVENTS_QUERY_KEY, user?.id, isDemoMode]);
-      queryClient.setQueryData([EVENTS_QUERY_KEY, user?.id, isDemoMode], (old: EventData[] | undefined) =>
-        old ? old.filter((trip) => trip.id !== tripId) : []
+      queryClient.setQueryData(
+        [EVENTS_QUERY_KEY, user?.id, isDemoMode],
+        (old: EventData[] | undefined) => (old ? old.filter(trip => trip.id !== tripId) : []),
       );
       return { previousTrips };
     },

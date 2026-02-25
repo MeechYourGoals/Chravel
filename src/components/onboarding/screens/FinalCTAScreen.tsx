@@ -85,11 +85,7 @@ export const FinalCTAScreen = ({ onCreateTrip, onExploreDemoTrip }: FinalCTAScre
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
       >
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={onCreateTrip}
-        >
+        <Button size="lg" className="w-full" onClick={onCreateTrip}>
           <Plane className="w-4 h-4 mr-2" />
           Create Your First Trip
         </Button>

@@ -288,10 +288,7 @@ export interface TelemetryProvider {
   reset(): void;
 
   /** Track an event */
-  track<E extends TelemetryEventName>(
-    event: E,
-    properties: TelemetryEventMap[E]
-  ): void;
+  track<E extends TelemetryEventName>(event: E, properties: TelemetryEventMap[E]): void;
 
   /** Track a page view */
   page(name: string, properties?: Record<string, unknown>): void;

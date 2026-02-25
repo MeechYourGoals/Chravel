@@ -16,11 +16,11 @@ interface MessageSearchProps {
   isDemoMode?: boolean;
 }
 
-export const MessageSearch: React.FC<MessageSearchProps> = ({ 
-  tripId, 
+export const MessageSearch: React.FC<MessageSearchProps> = ({
+  tripId,
   onMessageSelect,
   localMessages = [],
-  isDemoMode = false
+  isDemoMode = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -33,57 +33,65 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
   // Highlight search term in text
   const highlightText = (text: string, searchTerm: string) => {
     if (!searchTerm.trim()) return text;
-    
+
     // Escape special regex characters in searchTerm
     const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const parts = text.split(new RegExp(`(${escapedTerm})`, 'gi'));
-    
-    return parts.map((part, i) => 
-      part.toLowerCase() === searchTerm.toLowerCase() 
-        ? <mark key={i} className="bg-yellow-500/30 text-yellow-200 rounded px-0.5">{part}</mark>
-        : part
+
+    return parts.map((part, i) =>
+      part.toLowerCase() === searchTerm.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-500/30 text-yellow-200 rounded px-0.5">
+          {part}
+        </mark>
+      ) : (
+        part
+      ),
     );
   };
 
-  const handleSearch = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
-      setResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      let searchResults;
-      
-      if (isDemoMode && localMessages.length > 0) {
-        // Local search for demo mode
-        searchResults = localMessages
-          .filter(msg => 
-            msg.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            msg.sender.name.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-          .map(msg => ({
-            id: msg.id,
-            content: msg.text,
-            author_name: msg.sender.name,
-            created_at: msg.createdAt,
-            trip_id: tripId
-          }))
-          .slice(0, 50);
-      } else {
-        // Backend search for real data
-        searchResults = await searchMessages(tripId, searchQuery);
+  const handleSearch = useCallback(
+    async (searchQuery: string) => {
+      if (!searchQuery.trim()) {
+        setResults([]);
+        return;
       }
-      
-      setResults(searchResults);
-      setSelectedIndex(0);
-    } catch (error) {
-      console.error('Search failed:', error);
-      setResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [tripId, isDemoMode, localMessages]);
+
+      setIsSearching(true);
+      try {
+        let searchResults;
+
+        if (isDemoMode && localMessages.length > 0) {
+          // Local search for demo mode
+          searchResults = localMessages
+            .filter(
+              msg =>
+                msg.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                msg.sender.name.toLowerCase().includes(searchQuery.toLowerCase()),
+            )
+            .map(msg => ({
+              id: msg.id,
+              content: msg.text,
+              author_name: msg.sender.name,
+              created_at: msg.createdAt,
+              trip_id: tripId,
+            }))
+            .slice(0, 50);
+        } else {
+          // Backend search for real data
+          searchResults = await searchMessages(tripId, searchQuery);
+        }
+
+        setResults(searchResults);
+        setSelectedIndex(0);
+      } catch (error) {
+        console.error('Search failed:', error);
+        setResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [tripId, isDemoMode, localMessages],
+  );
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
@@ -160,13 +168,16 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
     <div className="relative">
       <div className="flex items-center gap-2 bg-gray-900/50 p-2 rounded-lg border border-gray-700">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+          <Search
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            size={16}
+          />
           <Input
             ref={inputRef}
             type="text"
             placeholder="Search messages... (↑↓ to navigate, Enter to jump)"
             value={query}
-            onChange={(e) => handleQueryChange(e.target.value)}
+            onChange={e => handleQueryChange(e.target.value)}
             className="pl-10 pr-10 bg-gray-800 border-gray-600"
             autoFocus
           />
@@ -182,10 +193,12 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
             </button>
           )}
         </div>
-        
+
         {results.length > 0 && (
           <div className="flex items-center gap-1 text-xs text-gray-400">
-            <span>{selectedIndex + 1} / {results.length}</span>
+            <span>
+              {selectedIndex + 1} / {results.length}
+            </span>
             <button
               onClick={() => setSelectedIndex(prev => Math.max(prev - 1, 0))}
               className="p-1 hover:bg-gray-700 rounded disabled:opacity-30"
@@ -202,7 +215,7 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
             </button>
           </div>
         )}
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -218,7 +231,7 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
       </div>
 
       {results.length > 0 && (
-        <div 
+        <div
           ref={resultsRef}
           className="absolute top-full left-0 right-0 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl max-h-80 overflow-y-auto z-50"
         >
@@ -232,20 +245,20 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
                 setQuery('');
               }}
               className={cn(
-                "w-full text-left px-4 py-3 border-b border-gray-700 last:border-b-0 transition-colors",
-                index === selectedIndex 
-                  ? "bg-blue-600/20 border-l-4 border-l-blue-500" 
-                  : "hover:bg-gray-700"
+                'w-full text-left px-4 py-3 border-b border-gray-700 last:border-b-0 transition-colors',
+                index === selectedIndex
+                  ? 'bg-blue-600/20 border-l-4 border-l-blue-500'
+                  : 'hover:bg-gray-700',
               )}
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium text-white">{result.author_name}</span>
                 <span className="text-xs text-gray-500">
-                  {new Date(result.created_at).toLocaleDateString('en-US', { 
-                    month: 'short', 
+                  {new Date(result.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
                     day: 'numeric',
                     hour: '2-digit',
-                    minute: '2-digit'
+                    minute: '2-digit',
                   })}
                 </span>
               </div>

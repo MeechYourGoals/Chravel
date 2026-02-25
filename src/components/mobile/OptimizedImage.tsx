@@ -25,11 +25,11 @@ export const OptimizedImage = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [triedFallback, setTriedFallback] = useState(false);
-  
+
   // Skip optimization for local assets (imported as ES modules)
   const isLocalAsset = src.startsWith('/') || src.startsWith('data:') || !src.includes('http');
-  const [currentSrc, setCurrentSrc] = useState(() => 
-    isLocalAsset ? src : getOptimizedImageUrl(src, width, quality)
+  const [currentSrc, setCurrentSrc] = useState(() =>
+    isLocalAsset ? src : getOptimizedImageUrl(src, width, quality),
   );
   const blurDataUrl = generateBlurDataUrl();
 
@@ -50,9 +50,7 @@ export const OptimizedImage = ({
   };
 
   if (hasError) {
-    return (
-      <div className={`${className} bg-transparent`} />
-    );
+    return <div className={`${className} bg-transparent`} />;
   }
 
   return (
@@ -64,7 +62,7 @@ export const OptimizedImage = ({
           style={{ backgroundImage: `url(${blurDataUrl})` }}
         />
       )}
-      
+
       {/* Actual image */}
       <img
         src={currentSrc}

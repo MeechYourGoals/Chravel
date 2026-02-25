@@ -1,12 +1,12 @@
 /**
  * Google Maps API Usage Dashboard
- * 
+ *
  * Displays real-time usage statistics for Google Maps API:
  * - Hourly usage (last 24 hours)
  * - Daily usage (last 7 days)
  * - Estimated costs
  * - Quota warnings
- * 
+ *
  * Created: 2025-02-01
  * Purpose: Monitor API usage and prevent unexpected costs
  */
@@ -32,20 +32,16 @@ type EndpointStats = {
   totalCost: number;
 };
 
-const ENDPOINTS: Array<'autocomplete' | 'text-search' | 'place-details' | 'nearby-search' | 'geocode'> = [
-  'autocomplete',
-  'text-search',
-  'place-details',
-  'nearby-search',
-  'geocode',
-];
+const ENDPOINTS: Array<
+  'autocomplete' | 'text-search' | 'place-details' | 'nearby-search' | 'geocode'
+> = ['autocomplete', 'text-search', 'place-details', 'nearby-search', 'geocode'];
 
 const ENDPOINT_LABELS: Record<string, string> = {
-  'autocomplete': 'Autocomplete',
+  autocomplete: 'Autocomplete',
   'text-search': 'Text Search',
   'place-details': 'Place Details',
   'nearby-search': 'Nearby Search',
-  'geocode': 'Geocoding',
+  geocode: 'Geocoding',
 };
 
 // Cost thresholds for alerts
@@ -127,9 +123,7 @@ export function GoogleMapsUsageDashboard() {
             <Activity className="h-5 w-5" />
             Google Maps API Usage Dashboard
           </CardTitle>
-          <CardDescription>
-            Monitor API usage and costs to prevent unexpected bills
-          </CardDescription>
+          <CardDescription>Monitor API usage and costs to prevent unexpected bills</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Summary Cards */}
@@ -203,7 +197,7 @@ export function GoogleMapsUsageDashboard() {
           {/* Endpoint Breakdown */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Endpoint Breakdown</h3>
-            {ENDPOINTS.map((endpoint) => {
+            {ENDPOINTS.map(endpoint => {
               const endpointStat = stats[endpoint];
               if (!endpointStat) return null;
 
@@ -253,7 +247,9 @@ export function GoogleMapsUsageDashboard() {
                 <li>
                   Place details are cached for 30 days in Supabase (reduces API calls by ~60-80%)
                 </li>
-                <li>Autocomplete results are cached client-side (1 hour) and server-side (30 days)</li>
+                <li>
+                  Autocomplete results are cached client-side (1 hour) and server-side (30 days)
+                </li>
                 <li>OpenStreetMap fallback activates automatically if Google Maps API fails</li>
                 <li>Monitor this dashboard daily to catch usage spikes early</li>
                 <li>Consider implementing rate limiting for high-traffic endpoints</li>

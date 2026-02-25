@@ -11,12 +11,11 @@ interface UseScrollDirectionOptions {
 }
 
 export const useScrollDirection = (
-  thresholdOrOptions: number | UseScrollDirectionOptions = 10
+  thresholdOrOptions: number | UseScrollDirectionOptions = 10,
 ): ScrollState => {
   // Handle both legacy number argument and new options object
-  const options = typeof thresholdOrOptions === 'number'
-    ? { threshold: thresholdOrOptions }
-    : thresholdOrOptions;
+  const options =
+    typeof thresholdOrOptions === 'number' ? { threshold: thresholdOrOptions } : thresholdOrOptions;
   const { threshold = 10, containerRef } = options;
 
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
@@ -26,9 +25,7 @@ export const useScrollDirection = (
 
   const updateScrollDirection = useCallback(() => {
     // Get scroll position from container or window
-    const scrollY = containerRef?.current
-      ? containerRef.current.scrollTop
-      : window.scrollY;
+    const scrollY = containerRef?.current ? containerRef.current.scrollTop : window.scrollY;
 
     // Check if at top
     setIsAtTop(scrollY <= 0);
@@ -55,9 +52,7 @@ export const useScrollDirection = (
 
     // Determine scroll target (container element or window)
     const scrollTarget = containerRef?.current || window;
-    const initialScrollY = containerRef?.current
-      ? containerRef.current.scrollTop
-      : window.scrollY;
+    const initialScrollY = containerRef?.current ? containerRef.current.scrollTop : window.scrollY;
 
     // Set initial state
     lastScrollY.current = initialScrollY;

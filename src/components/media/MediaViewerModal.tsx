@@ -91,27 +91,30 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
     touchStartY.current = e.touches[0].clientY;
   }, []);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartX.current === null || touchStartY.current === null) return;
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (touchStartX.current === null || touchStartY.current === null) return;
 
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-    const deltaX = touchEndX - touchStartX.current;
-    const deltaY = touchEndY - touchStartY.current;
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaX = touchEndX - touchStartX.current;
+      const deltaY = touchEndY - touchStartY.current;
 
-    // Only trigger if horizontal swipe is dominant and significant
-    const minSwipeDistance = 50;
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
-      if (deltaX > 0) {
-        goToPrev();
-      } else {
-        goToNext();
+      // Only trigger if horizontal swipe is dominant and significant
+      const minSwipeDistance = 50;
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+        if (deltaX > 0) {
+          goToPrev();
+        } else {
+          goToNext();
+        }
       }
-    }
 
-    touchStartX.current = null;
-    touchStartY.current = null;
-  }, [goToPrev, goToNext]);
+      touchStartX.current = null;
+      touchStartY.current = null;
+    },
+    [goToPrev, goToNext],
+  );
 
   // Keyboard navigation
   useEffect(() => {
@@ -157,7 +160,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
       <button
         className="absolute right-4 z-20 text-white bg-white/20 rounded-full p-3 hover:bg-white/30 transition-colors backdrop-blur-sm"
         style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
-        onClick={(e) => {
+        onClick={e => {
           e.stopPropagation();
           onClose();
         }}
@@ -174,7 +177,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
         rel="noopener noreferrer"
         className="absolute left-4 z-20 text-white bg-white/20 rounded-full p-3 hover:bg-white/30 transition-colors backdrop-blur-sm"
         style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
         aria-label="Download media"
       >
         <Download className="w-6 h-6" />
@@ -182,7 +185,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
       {/* Image counter - centered below buttons */}
       {items.length > 1 && (
-        <div 
+        <div
           className="absolute left-1/2 -translate-x-1/2 z-20 text-white/80 text-sm font-medium bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm"
           style={{ top: 'calc(env(safe-area-inset-top, 0px) + 20px)' }}
         >
@@ -194,7 +197,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
       {canGoPrev && (
         <button
           className="absolute left-4 top-1/2 -translate-y-1/2 z-20 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors hidden sm:flex"
-          onClick={(e) => {
+          onClick={e => {
             e.stopPropagation();
             goToPrev();
           }}
@@ -206,7 +209,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
       {canGoNext && (
         <button
           className="absolute right-4 top-1/2 -translate-y-1/2 z-20 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors hidden sm:flex"
-          onClick={(e) => {
+          onClick={e => {
             e.stopPropagation();
             goToNext();
           }}
@@ -226,7 +229,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <Download className="w-5 h-5" />
             Download instead
@@ -246,7 +249,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             exit="exit"
             transition={{ type: 'tween', duration: 0.2 }}
             className="flex items-center justify-center w-full h-full px-4"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             {/* Video player - iOS CRITICAL: muted required for autoplay */}
             {category === 'video' && (
@@ -261,7 +264,8 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
                 className="max-w-full max-h-full"
                 style={{
                   maxWidth: '95vw',
-                  maxHeight: 'calc(95vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
+                  maxHeight:
+                    'calc(95vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
                   width: 'auto',
                   height: 'auto',
                 }}
@@ -277,7 +281,8 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
                 className="max-w-full max-h-full object-contain select-none"
                 style={{
                   maxWidth: '95vw',
-                  maxHeight: 'calc(95vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
+                  maxHeight:
+                    'calc(95vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
                 }}
                 draggable={false}
                 onError={() => setHasError(true)}
@@ -289,7 +294,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
       {/* Swipe hint for mobile (shown briefly on first open) */}
       {items.length > 1 && (
-        <div 
+        <div
           className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 text-white/60 text-xs sm:hidden"
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
         >

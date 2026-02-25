@@ -64,7 +64,7 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
     const loadReplies = async () => {
       setIsLoading(true);
       const data = await getThreadReplies(parentMessage.id);
-      const formatted = data.map((row) => formatReply(row, tripMembers));
+      const formatted = data.map(row => formatReply(row, tripMembers));
       setReplies(formatted);
       setIsLoading(false);
     };
@@ -76,25 +76,21 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
   useEffect(() => {
     const channel = subscribeToThreadReplies(
       parentMessage.id,
-      (row) => {
-        setReplies((prev) => {
+      row => {
+        setReplies(prev => {
           // Dedupe by id
-          if (prev.some((r) => r.id === row.id)) return prev;
+          if (prev.some(r => r.id === row.id)) return prev;
           return [...prev, formatReply(row, tripMembers)];
         });
       },
-      (row) => {
+      row => {
         // Handle updates (e.g., edits, deletes)
         if (row.is_deleted) {
-          setReplies((prev) => prev.filter((r) => r.id !== row.id));
+          setReplies(prev => prev.filter(r => r.id !== row.id));
         } else {
-          setReplies((prev) =>
-            prev.map((r) =>
-              r.id === row.id ? formatReply(row, tripMembers) : r
-            )
-          );
+          setReplies(prev => prev.map(r => (r.id === row.id ? formatReply(row, tripMembers) : r)));
         }
-      }
+      },
     );
 
     return () => {
@@ -109,9 +105,9 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
 
   const formatReply = (
     row: MessageRow,
-    members: Array<{ id: string; name: string; avatar?: string }>
+    members: Array<{ id: string; name: string; avatar?: string }>,
   ): ThreadReply => {
-    const member = members.find((m) => m.id === row.user_id);
+    const member = members.find(m => m.id === row.user_id);
     return {
       id: row.id,
       content: row.content,
@@ -135,7 +131,7 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
         parentMessage.id,
         replyContent.trim(),
         authorName,
-        user?.id
+        user?.id,
       );
       setReplyContent('');
     } catch (error) {
@@ -211,26 +207,19 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
             No replies yet. Be the first to reply!
           </div>
         ) : (
-          replies.map((reply) => (
+          replies.map(reply => (
             <div
               key={reply.id}
-              className={cn(
-                'flex gap-2',
-                isOwnMessage(reply.authorId) && 'flex-row-reverse'
-              )}
+              className={cn('flex gap-2', isOwnMessage(reply.authorId) && 'flex-row-reverse')}
             >
               <Avatar className="h-6 w-6 flex-shrink-0">
                 <AvatarImage src={reply.authorAvatar || defaultAvatar} />
-                <AvatarFallback className="text-xs">
-                  {getInitials(reply.authorName)}
-                </AvatarFallback>
+                <AvatarFallback className="text-xs">{getInitials(reply.authorName)}</AvatarFallback>
               </Avatar>
               <div
                 className={cn(
                   'max-w-[80%] rounded-2xl px-3 py-1.5',
-                  isOwnMessage(reply.authorId)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
+                  isOwnMessage(reply.authorId) ? 'bg-primary text-primary-foreground' : 'bg-muted',
                 )}
               >
                 {!isOwnMessage(reply.authorId) && (
@@ -238,9 +227,7 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
                     {reply.authorName}
                   </span>
                 )}
-                <p className="text-sm whitespace-pre-wrap break-words">
-                  {reply.content}
-                </p>
+                <p className="text-sm whitespace-pre-wrap break-words">{reply.content}</p>
                 <span className="text-[10px] opacity-60 mt-0.5 block">
                   {formatTime(reply.createdAt)}
                   {reply.isEdited && ' (edited)'}
@@ -257,7 +244,7 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
         <div className="flex items-end gap-2">
           <Textarea
             value={replyContent}
-            onChange={(e) => setReplyContent(e.target.value)}
+            onChange={e => setReplyContent(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Reply to thread..."
             className="min-h-[44px] max-h-[120px] resize-none text-sm"

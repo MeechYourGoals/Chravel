@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { getRecommendationsByType } from '../data/recommendations';
 
@@ -9,6 +8,6 @@ export const useRecommendations = (activeFilter: string = 'all') => {
 
   return {
     recommendations: staticRecommendations,
-    hasRecommendations: staticRecommendations.length > 0
+    hasRecommendations: staticRecommendations.length > 0,
   };
 };

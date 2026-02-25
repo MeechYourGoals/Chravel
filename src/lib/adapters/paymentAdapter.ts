@@ -30,9 +30,7 @@ export function toAppPayment(row: PaymentRow): PaymentMessage {
     splitParticipants: Array.isArray(row.split_participants)
       ? (row.split_participants as string[])
       : [],
-    paymentMethods: Array.isArray(row.payment_methods)
-      ? (row.payment_methods as string[])
-      : [],
+    paymentMethods: Array.isArray(row.payment_methods) ? (row.payment_methods as string[]) : [],
     createdBy: row.created_by,
     createdAt: row.created_at,
     isSettled: row.is_settled ?? false,
@@ -61,7 +59,9 @@ export function toDbPaymentInsert(
     currency: data.currency ?? 'USD',
     description: data.description,
     split_count: data.splitCount,
-    split_participants: (data.splitParticipants ?? []) as unknown as Database['public']['Tables']['trip_payment_messages']['Insert']['split_participants'],
-    payment_methods: (data.paymentMethods ?? []) as unknown as Database['public']['Tables']['trip_payment_messages']['Insert']['payment_methods'],
+    split_participants: (data.splitParticipants ??
+      []) as unknown as Database['public']['Tables']['trip_payment_messages']['Insert']['split_participants'],
+    payment_methods: (data.paymentMethods ??
+      []) as unknown as Database['public']['Tables']['trip_payment_messages']['Insert']['payment_methods'],
   };
 }

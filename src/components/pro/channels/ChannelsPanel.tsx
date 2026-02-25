@@ -16,10 +16,10 @@ interface ChannelsPanelProps {
   isAdmin?: boolean;
 }
 
-export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({ 
-  tripId, 
+export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
+  tripId,
   userRole = 'staff',
-  isAdmin = false 
+  isAdmin = false,
 }) => {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,20 +27,17 @@ export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
   const [showNewChannelModal, setShowNewChannelModal] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
 
-  const {
-    channels,
-    isLoading: loading,
-    refetch: loadChannels
-  } = useChannels(tripId);
+  const { channels, isLoading: loading, refetch: loadChannels } = useChannels(tripId);
 
   // Filter channels based on search and tab
   const filteredChannels = channels.filter(channel => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch =
+      !searchTerm ||
       channel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       channel.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesTab = activeTab === 'all' || channel.channel_type === activeTab;
-    
+
     return matchesSearch && matchesTab;
   });
 
@@ -81,9 +78,17 @@ export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
 
   const getChannelTypeBadge = (channel: ChannelWithStats) => {
     if (channel.channel_type === 'role') {
-      return <Badge variant="secondary" className="text-xs">Role</Badge>;
+      return (
+        <Badge variant="secondary" className="text-xs">
+          Role
+        </Badge>
+      );
     }
-    return <Badge variant="outline" className="text-xs">Custom</Badge>;
+    return (
+      <Badge variant="outline" className="text-xs">
+        Custom
+      </Badge>
+    );
   };
 
   const selectedChannelData = filteredChannels.find(c => c.id === selectedChannel);
@@ -115,9 +120,9 @@ export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">Channels</h3>
             {isAdmin && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowNewChannelModal(true)}
                 className="text-primary hover:text-primary-foreground"
               >
@@ -131,14 +136,24 @@ export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
               placeholder="Search channels..."
               className="pl-10 bg-card border-border"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'all' | 'role' | 'custom')} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={value => setActiveTab(value as 'all' | 'role' | 'custom')}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-              <TabsTrigger value="role" className="text-xs">Role</TabsTrigger>
-              <TabsTrigger value="custom" className="text-xs">Custom</TabsTrigger>
+              <TabsTrigger value="all" className="text-xs">
+                All
+              </TabsTrigger>
+              <TabsTrigger value="role" className="text-xs">
+                Role
+              </TabsTrigger>
+              <TabsTrigger value="custom" className="text-xs">
+                Custom
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -150,9 +165,9 @@ export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
               <MessageCircle size={32} className="mx-auto mb-2 text-gray-300" />
               <p className="text-sm">No channels found</p>
               {isAdmin && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowNewChannelModal(true)}
                   className="mt-4 border-primary text-primary hover:bg-primary/10"
                 >
@@ -163,7 +178,7 @@ export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
             </div>
           ) : (
             <div className="p-2 space-y-1">
-              {filteredChannels.map((channel) => (
+              {filteredChannels.map(channel => (
                 <div
                   key={channel.id}
                   onClick={() => handleChannelSelect(channel.id)}
@@ -185,7 +200,9 @@ export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
                       </span>
                     )}
                     {channel.is_unread && (
-                      <Badge variant="destructive" className="ml-1">New</Badge>
+                      <Badge variant="destructive" className="ml-1">
+                        New
+                      </Badge>
                     )}
                   </div>
                 </div>

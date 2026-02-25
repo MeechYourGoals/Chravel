@@ -357,22 +357,34 @@ export const useTripTasks = (
       // Fallback: hub not mounted yet, use minimal channel
       const channel = supabase
         .channel(`trip_tasks:${tripId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_tasks', filter: `trip_id=eq.${tripId}` },
-          () => queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] }))
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'trip_tasks', filter: `trip_id=eq.${tripId}` },
+          () => queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] }),
+        )
         .subscribe();
-      return () => { supabase.removeChannel(channel); };
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
 
     const unsub1 = hub.subscribe('trip_tasks', '*', (payload: any) => {
       queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       if (payload.eventType === 'INSERT') {
-        toast({ title: 'New Task Added', description: `${payload.new?.title} was added.`, duration: 3000 });
+        toast({
+          title: 'New Task Added',
+          description: `${payload.new?.title} was added.`,
+          duration: 3000,
+        });
       }
     });
     const unsub2 = hub.subscribe('task_status', '*', () => {
       queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
     });
-    return () => { unsub1(); unsub2(); };
+    return () => {
+      unsub1();
+      unsub2();
+    };
   }, [tripId, isDemoMode, queryClient, toast]);
 
   const tasksQuery = useQuery({
@@ -579,11 +591,13 @@ export const useTripTasks = (
         new Set([...(task.assignedTo ?? []), ...(task.is_poll ? [] : [authUser.id])]),
       );
 
-      const taskStatusRows = (assignedUserIds.length > 0 ? assignedUserIds : [authUser.id]).map(assigneeId => ({
-        task_id: newTask.id,
-        user_id: assigneeId,
-        completed: false,
-      }));
+      const taskStatusRows = (assignedUserIds.length > 0 ? assignedUserIds : [authUser.id]).map(
+        assigneeId => ({
+          task_id: newTask.id,
+          user_id: assigneeId,
+          completed: false,
+        }),
+      );
 
       const { error: taskStatusError } = await supabase.from('task_status').insert(taskStatusRows);
       if (taskStatusError) {
@@ -676,7 +690,14 @@ export const useTripTasks = (
   });
 
   const updateTaskMutation = useMutation({
-    mutationFn: async ({ taskId, title, description, due_at, is_poll, assignedTo }: UpdateTaskRequest) => {
+    mutationFn: async ({
+      taskId,
+      title,
+      description,
+      due_at,
+      is_poll,
+      assignedTo,
+    }: UpdateTaskRequest) => {
       if (isDemoMode || !user) {
         const updated = await taskStorageService.updateTask(tripId, taskId, {
           title: title.trim(),
@@ -875,7 +896,9 @@ export const useTripTasks = (
           if (task.id === taskId) {
             // Must match the logic in TaskRow.tsx - check isDemoMode first
             const currentUserId = isDemoMode || !user ? 'demo-user' : user.id;
-            const hasCurrentUserStatus = task.task_status?.some(status => status.user_id === currentUserId);
+            const hasCurrentUserStatus = task.task_status?.some(
+              status => status.user_id === currentUserId,
+            );
             const updatedStatus = hasCurrentUserStatus
               ? task.task_status?.map(status => {
                   if (status.user_id === currentUserId) {

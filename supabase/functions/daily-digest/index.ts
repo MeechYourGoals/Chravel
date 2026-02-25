@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -12,9 +12,10 @@ interface RequestBody {
   tour_id?: string;
 }
 
-serve(async (req) => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } = await import('../_shared/securityHeaders.ts');
-  
+serve(async req => {
+  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
+    await import('../_shared/securityHeaders.ts');
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -26,7 +27,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: { user } } = await supabase.auth.getUser(jwt);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser(jwt);
     if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -60,7 +63,8 @@ serve(async (req) => {
 
       const { data: digest, error } = await query.single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "not found"
         throw error;
       }
 
@@ -100,7 +104,7 @@ serve(async (req) => {
       if (tour_id) existingQuery = existingQuery.eq('tour_id', tour_id);
 
       const { data: existing } = await existingQuery.single();
-      
+
       if (existing) {
         return new Response(JSON.stringify({ error: 'Digest already exists for today' }), {
           status: 409,
@@ -139,7 +143,9 @@ serve(async (req) => {
       const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
       if (!lovableApiKey) throw new Error('LOVABLE_API_KEY not set');
 
-      const messageTexts = messages.map(m => `[${m.priority?.toUpperCase() || 'FYI'}] ${m.content}`).join('\n');
+      const messageTexts = messages
+        .map(m => `[${m.priority?.toUpperCase() || 'FYI'}] ${m.content}`)
+        .join('\n');
       const summary = await generateSummary(messageTexts, lovableApiKey);
 
       // Store digest in database
@@ -169,7 +175,6 @@ serve(async (req) => {
       status: 405,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (err) {
     console.error('Daily Digest Error:', err);
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -190,9 +195,10 @@ async function generateSummary(messageText: string, apiKey: string): Promise<str
     body: JSON.stringify({
       model: 'google/gemini-2.5-flash',
       messages: [
-        { 
-          role: 'system', 
-          content: 'Create a concise daily digest summary of the following messages. Focus on key logistics, updates, and action items. Use bullet points. Prioritize urgent items at the top.' 
+        {
+          role: 'system',
+          content:
+            'Create a concise daily digest summary of the following messages. Focus on key logistics, updates, and action items. Use bullet points. Prioritize urgent items at the top.',
         },
         { role: 'user', content: messageText },
       ],

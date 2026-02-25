@@ -18,7 +18,7 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
   destination,
   startDate,
   coverImage,
-  requestedAt
+  requestedAt,
 }) => {
   return (
     <Card className="relative overflow-hidden bg-card/50 border-border opacity-60 cursor-not-allowed">
@@ -33,11 +33,7 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
       {/* Cover Image with Gray Overlay */}
       <div className="relative h-32 bg-muted">
         {coverImage ? (
-          <img 
-            src={coverImage} 
-            alt={tripName}
-            className="w-full h-full object-cover grayscale"
-          />
+          <img src={coverImage} alt={tripName} className="w-full h-full object-cover grayscale" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-muted to-muted-foreground/20" />
         )}

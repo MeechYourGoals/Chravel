@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DollarSign, Plus, TrendingUp, TrendingDown, PieChart, Receipt } from 'lucide-react';
 
@@ -27,7 +26,12 @@ interface BudgetTrackerProps {
   onAddExpense?: (expense: Omit<Expense, 'id'>) => void;
 }
 
-export const BudgetTracker = ({ tripId: _tripId, totalBudget, expenses, onAddExpense: _onAddExpense }: BudgetTrackerProps) => {
+export const BudgetTracker = ({
+  tripId: _tripId,
+  totalBudget,
+  expenses,
+  onAddExpense: _onAddExpense,
+}: BudgetTrackerProps) => {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -53,31 +57,46 @@ export const BudgetTracker = ({ tripId: _tripId, totalBudget, expenses, onAddExp
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'accommodation': return '🏨';
-      case 'food': return '🍽️';
-      case 'transport': return '🚗';
-      case 'activities': return '🎪';
-      case 'shopping': return '🛍️';
-      case 'other': return '📦';
-      default: return '💰';
+      case 'accommodation':
+        return '🏨';
+      case 'food':
+        return '🍽️';
+      case 'transport':
+        return '🚗';
+      case 'activities':
+        return '🎪';
+      case 'shopping':
+        return '🛍️';
+      case 'other':
+        return '📦';
+      default:
+        return '💰';
     }
   };
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'accommodation': return 'bg-blue-500';
-      case 'food': return 'bg-green-500';
-      case 'transport': return 'bg-yellow-500';
-      case 'activities': return 'bg-purple-500';
-      case 'shopping': return 'bg-pink-500';
-      case 'other': return 'bg-gray-500';
-      default: return 'bg-gray-500';
+      case 'accommodation':
+        return 'bg-blue-500';
+      case 'food':
+        return 'bg-green-500';
+      case 'transport':
+        return 'bg-yellow-500';
+      case 'activities':
+        return 'bg-purple-500';
+      case 'shopping':
+        return 'bg-pink-500';
+      case 'other':
+        return 'bg-gray-500';
+      default:
+        return 'bg-gray-500';
     }
   };
 
-  const filteredExpenses = selectedCategory === 'all' 
-    ? expenses 
-    : expenses.filter(exp => exp.category === selectedCategory);
+  const filteredExpenses =
+    selectedCategory === 'all'
+      ? expenses
+      : expenses.filter(exp => exp.category === selectedCategory);
 
   return (
     <div className="space-y-6">
@@ -98,13 +117,18 @@ export const BudgetTracker = ({ tripId: _tripId, totalBudget, expenses, onAddExp
         <div className="mb-6">
           <div className="flex justify-between items-center mb-3">
             <span className="text-gray-300">Total Spent</span>
-            <span className="text-white font-semibold">${totalSpent.toFixed(2)} / ${totalBudget.toFixed(2)}</span>
+            <span className="text-white font-semibold">
+              ${totalSpent.toFixed(2)} / ${totalBudget.toFixed(2)}
+            </span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-3">
-            <div 
+            <div
               className={`h-3 rounded-full transition-all ${
-                spentPercentage > 90 ? 'bg-red-500' : 
-                spentPercentage > 75 ? 'bg-yellow-500' : 'bg-green-500'
+                spentPercentage > 90
+                  ? 'bg-red-500'
+                  : spentPercentage > 75
+                    ? 'bg-yellow-500'
+                    : 'bg-green-500'
               }`}
               style={{ width: `${Math.min(spentPercentage, 100)}%` }}
             ></div>
@@ -113,13 +137,11 @@ export const BudgetTracker = ({ tripId: _tripId, totalBudget, expenses, onAddExp
             <span className={`${remainingBudget >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {remainingBudget >= 0 ? (
                 <div className="flex items-center gap-1">
-                  <TrendingUp size={16} />
-                  ${remainingBudget.toFixed(2)} remaining
+                  <TrendingUp size={16} />${remainingBudget.toFixed(2)} remaining
                 </div>
               ) : (
                 <div className="flex items-center gap-1">
-                  <TrendingDown size={16} />
-                  ${Math.abs(remainingBudget).toFixed(2)} over budget
+                  <TrendingDown size={16} />${Math.abs(remainingBudget).toFixed(2)} over budget
                 </div>
               )}
             </span>
@@ -129,7 +151,7 @@ export const BudgetTracker = ({ tripId: _tripId, totalBudget, expenses, onAddExp
 
         {/* Category Breakdown */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((cat) => {
+          {categories.map(cat => {
             const percentage = cat.budgeted > 0 ? (cat.spent / cat.budgeted) * 100 : 0;
             return (
               <div key={cat.category} className="bg-gray-800/50 rounded-2xl p-4">
@@ -150,7 +172,7 @@ export const BudgetTracker = ({ tripId: _tripId, totalBudget, expenses, onAddExp
                     <span className="text-gray-300">${cat.budgeted.toFixed(2)}</span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div 
+                    <div
                       className={`h-2 rounded-full transition-all ${getCategoryColor(cat.category)}`}
                       style={{ width: `${Math.min(percentage, 100)}%` }}
                     ></div>
@@ -177,7 +199,7 @@ export const BudgetTracker = ({ tripId: _tripId, totalBudget, expenses, onAddExp
         >
           All Expenses
         </button>
-        {categories.map((cat) => (
+        {categories.map(cat => (
           <button
             key={cat.category}
             onClick={() => setSelectedCategory(cat.category)}
@@ -197,14 +219,16 @@ export const BudgetTracker = ({ tripId: _tripId, totalBudget, expenses, onAddExp
         <h4 className="text-xl font-bold text-white mb-4">Recent Expenses</h4>
         <div className="space-y-3">
           {filteredExpenses.length > 0 ? (
-            filteredExpenses.map((expense) => (
+            filteredExpenses.map(expense => (
               <div key={expense.id} className="bg-gray-800/50 rounded-2xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">{getCategoryIcon(expense.category)}</span>
                     <div>
                       <h5 className="font-semibold text-white">{expense.name}</h5>
-                      <p className="text-sm text-gray-400 capitalize">{expense.category} • {expense.date}</p>
+                      <p className="text-sm text-gray-400 capitalize">
+                        {expense.category} • {expense.date}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">

@@ -1,8 +1,8 @@
 /**
  * Deep Links Hook
- * 
+ *
  * Handles Universal Links and Custom URL Scheme navigation for iOS.
- * 
+ *
  * Usage:
  * ```tsx
  * // In a component inside Router context (e.g., App.tsx after BrowserRouter)
@@ -25,23 +25,23 @@ import { attachNavigator } from '@/native/lifecycle';
 function parseDeepLinkUrl(url: string): string | null {
   try {
     const parsed = new URL(url);
-    
+
     // Handle custom scheme (chravel://path)
     if (parsed.protocol === 'chravel:') {
       // chravel://trip/abc123 -> /trip/abc123
       return parsed.pathname.startsWith('/') ? parsed.pathname : `/${parsed.pathname}`;
     }
-    
+
     // Handle universal links (https://chravel.app/path)
     if (parsed.hostname === 'chravel.app' || parsed.hostname === 'www.chravel.app') {
       return parsed.pathname + parsed.search;
     }
-    
+
     // Fallback: use the pathname if it looks like a valid route
     if (parsed.pathname.startsWith('/')) {
       return parsed.pathname + parsed.search;
     }
-    
+
     return null;
   } catch {
     // If URL parsing fails, try to extract path directly
@@ -56,10 +56,10 @@ function parseDeepLinkUrl(url: string): string | null {
 
 /**
  * Hook to handle deep links in the app.
- * 
+ *
  * Registers listeners for:
  * - appUrlOpen: Handles both Universal Links and Custom URL Scheme
- * 
+ *
  * Also attaches the React Router navigate function to the lifecycle module
  * for cold-start push notification routing.
  */
@@ -79,7 +79,7 @@ export function useDeepLinks(): void {
     // Handle deep links when app is opened with URL
     const handleAppUrlOpen = (event: URLOpenListenerEvent) => {
       console.log('[DeepLinks] App opened with URL:', event.url);
-      
+
       const path = parseDeepLinkUrl(event.url);
       if (path) {
         console.log('[DeepLinks] Navigating to:', path);
@@ -126,7 +126,7 @@ export function useDeepLinks(): void {
 
 /**
  * Supported deep link routes:
- * 
+ *
  * Trip routes:
  * - /trip/:tripId
  * - /trip/:tripId?tab=chat
@@ -134,21 +134,21 @@ export function useDeepLinks(): void {
  * - /trip/:tripId?tab=calendar
  * - /trip/:tripId?tab=pay
  * - /trip/:tripId?tab=ai
- * 
+ *
  * Pro/Event routes:
  * - /tour/pro/:tripId
  * - /event/:eventId
- * 
+ *
  * Invite routes:
  * - /join/:inviteCode
  * - /invite/:token
- * 
+ *
  * Organization routes:
  * - /organization/:orgId
- * 
+ *
  * User routes:
  * - /profile/:userId
- * 
+ *
  * Other:
  * - /settings
  * - /archive

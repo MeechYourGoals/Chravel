@@ -10,17 +10,17 @@ interface PrivacyIndicatorProps {
   className?: string;
 }
 
-export const PrivacyIndicator = ({ 
-  privacyMode, 
-  showLabel = true, 
+export const PrivacyIndicator = ({
+  privacyMode,
+  showLabel = true,
   variant = 'minimal',
-  className = '' 
+  className = '',
 }: PrivacyIndicatorProps) => {
   const config = getPrivacyModeInfo(privacyMode);
 
   const iconMap = {
     standard: Bot,
-    high: Lock
+    high: Lock,
   };
 
   const Icon = iconMap[privacyMode];
@@ -41,7 +41,9 @@ export const PrivacyIndicator = ({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-medium ${getColorClass()} ${className}`}>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-medium ${getColorClass()} ${className}`}
+            >
               <Icon size={12} />
               {showLabel && config.label}
             </span>
@@ -59,7 +61,9 @@ export const PrivacyIndicator = ({
 
   if (variant === 'detailed') {
     return (
-      <div className={`flex items-center gap-3 p-3 rounded-xl border ${getColorClass()} ${className}`}>
+      <div
+        className={`flex items-center gap-3 p-3 rounded-xl border ${getColorClass()} ${className}`}
+      >
         <Icon size={20} />
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -84,10 +88,11 @@ export const PrivacyIndicator = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div className={`flex items-center gap-2 ${className}`}>
-            <Icon size={16} className={privacyMode === 'standard' ? 'text-blue-400' : 'text-green-400'} />
-            {showLabel && (
-              <span className="text-sm text-slate-300">{config.label}</span>
-            )}
+            <Icon
+              size={16}
+              className={privacyMode === 'standard' ? 'text-blue-400' : 'text-green-400'}
+            />
+            {showLabel && <span className="text-sm text-slate-300">{config.label}</span>}
           </div>
         </TooltipTrigger>
         <TooltipContent>
@@ -108,7 +113,8 @@ export const PrivacyIndicator = ({
               <div className="flex items-center gap-2">
                 <Lock className="text-green-400" size={12} />
                 <span className="text-xs">
-                  {config.features.message_encryption === 'e2ee' ? 'End-to-End' : 'Server'} Encrypted
+                  {config.features.message_encryption === 'e2ee' ? 'End-to-End' : 'Server'}{' '}
+                  Encrypted
                 </span>
               </div>
             </div>

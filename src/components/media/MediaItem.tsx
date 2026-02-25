@@ -24,7 +24,7 @@ export const MediaItem = ({ item }: MediaItemProps) => {
           alt={item.filename}
           loading="lazy"
           decoding="async"
-          onError={(e) => {
+          onError={e => {
             const target = e.currentTarget as HTMLImageElement;
             if (target.src !== '/placeholder.svg') {
               target.src = '/placeholder.svg';

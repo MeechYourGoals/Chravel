@@ -43,7 +43,7 @@ export function useSubscription() {
         // Determine plan from product_id
         let plan: Subscription['plan'] = 'free';
         const productId = profile?.subscription_product_id;
-        
+
         if (profile?.subscription_status === 'active' && productId) {
           if (productId.includes('explorer')) {
             plan = 'explorer';
@@ -62,7 +62,7 @@ export function useSubscription() {
         setSubscription({
           plan,
           status: profile?.subscription_status === 'active' ? 'active' : 'inactive',
-          productId
+          productId,
         });
       } catch (err) {
         console.error('Subscription check error:', err);
@@ -77,15 +77,17 @@ export function useSubscription() {
 
   // isPro is true for any paid tier
   const isPro = subscription?.plan !== 'free' && subscription?.status === 'active';
-  
+
   return {
     subscription,
     loading,
     isPro,
     isExplorer: subscription?.plan === 'explorer' && subscription?.status === 'active',
-    isFrequentChraveler: subscription?.plan === 'frequent-chraveler' && subscription?.status === 'active',
+    isFrequentChraveler:
+      subscription?.plan === 'frequent-chraveler' && subscription?.status === 'active',
     isEnterprise: subscription?.plan === 'enterprise' && subscription?.status === 'active',
     isActive: subscription?.status === 'active' || subscription?.status === 'trial',
-    isFree: subscription?.plan === 'free' || !subscription?.status || subscription?.status === 'inactive'
+    isFree:
+      subscription?.plan === 'free' || !subscription?.status || subscription?.status === 'inactive',
   };
 }

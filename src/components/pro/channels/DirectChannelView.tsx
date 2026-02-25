@@ -9,7 +9,11 @@ interface DirectChannelViewProps {
   userRole: string;
 }
 
-const DEMO_TRIP_IDS = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'];
+const DEMO_TRIP_IDS = [
+  'lakers-road-trip',
+  'beyonce-cowboy-carter-tour',
+  'eli-lilly-c-suite-retreat-2026',
+];
 
 export const DirectChannelView = ({ tripId, userRole }: DirectChannelViewProps) => {
   const [channels, setChannels] = useState<TripChannel[]>([]);
@@ -35,10 +39,7 @@ export const DirectChannelView = ({ tripId, userRole }: DirectChannelViewProps) 
   if (selectedChannel) {
     return (
       <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
-        <ChannelChatView 
-          channel={selectedChannel} 
-          onBack={() => setSelectedChannel(null)}
-        />
+        <ChannelChatView channel={selectedChannel} onBack={() => setSelectedChannel(null)} />
       </div>
     );
   }
@@ -52,7 +53,7 @@ export const DirectChannelView = ({ tripId, userRole }: DirectChannelViewProps) 
       </div>
 
       <div className="grid gap-3">
-        {channels.map((channel) => (
+        {channels.map(channel => (
           <button
             key={channel.id}
             onClick={() => setSelectedChannel(channel)}
@@ -72,9 +73,7 @@ export const DirectChannelView = ({ tripId, userRole }: DirectChannelViewProps) 
                 <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
                   {channel.memberCount} members
                 </span>
-                <span className="text-gray-400 group-hover:text-white transition-colors">
-                  →
-                </span>
+                <span className="text-gray-400 group-hover:text-white transition-colors">→</span>
               </div>
             </div>
           </button>

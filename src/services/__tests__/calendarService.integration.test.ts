@@ -86,7 +86,7 @@ describe('calendarService - Integration Tests', () => {
         expect.objectContaining({
           p_trip_id: tripId,
           p_title: 'Test Event',
-        })
+        }),
       );
     });
 

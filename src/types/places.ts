@@ -1,6 +1,6 @@
 /**
  * Type definitions for Google Places API (New) 2024
- * 
+ *
  * These types supplement the official @types/google.maps package
  * for the new Places API that was released in 2024.
  */
@@ -90,7 +90,7 @@ export const PLACE_FIELDS = {
   PHOTOS: ['photos'], // Photo field for image previews
   ALL: [
     'id',
-    'displayName', 
+    'displayName',
     'formattedAddress',
     'location',
     'viewport',
@@ -101,8 +101,8 @@ export const PLACE_FIELDS = {
     'businessStatus',
     'userRatingCount',
     'priceLevel',
-    'photos'
-  ]
+    'photos',
+  ],
 } as const;
 
 /**

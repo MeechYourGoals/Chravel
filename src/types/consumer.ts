@@ -1,6 +1,11 @@
-
 export interface ConsumerSubscription {
-  tier: 'free' | 'explorer' | 'frequent-chraveler' | 'pro-starter' | 'pro-growth' | 'pro-enterprise';
+  tier:
+    | 'free'
+    | 'explorer'
+    | 'frequent-chraveler'
+    | 'pro-starter'
+    | 'pro-growth'
+    | 'pro-enterprise';
   status: 'active' | 'trial' | 'expired' | 'cancelled';
   trialEndsAt?: string;
   subscriptionEndsAt?: string;
@@ -59,7 +64,7 @@ export const CONSUMER_TRIP_CATEGORIES: TripCategory[] = [
   { id: 'bachelor-bachelorette', label: 'Bachelor/Bachelorette', color: 'fuchsia' },
   { id: 'reunion', label: 'Reunion', color: 'cyan' },
   { id: 'shopping', label: 'Shopping', color: 'violet' },
-  { id: 'nightlife', label: 'Nightlife', color: 'amber' }
+  { id: 'nightlife', label: 'Nightlife', color: 'amber' },
 ];
 
 /**
@@ -91,35 +96,83 @@ export interface AIRecommendation {
 }
 
 export const DIETARY_OPTIONS = [
-  'Vegetarian', 'Vegan', 'Halal', 'Kosher', 'Gluten-free', 
-  'Dairy-free', 'Nut-free', 'Pescatarian', 'Keto', 'No restrictions'
+  'Vegetarian',
+  'Vegan',
+  'Halal',
+  'Kosher',
+  'Gluten-free',
+  'Dairy-free',
+  'Nut-free',
+  'Pescatarian',
+  'Keto',
+  'No restrictions',
 ];
 
 export const VIBE_OPTIONS = [
-  'Chill', 'Party', 'Outdoorsy', 'Family-friendly', 'Romantic', 
-  'Adventure', 'Cultural', 'Luxury', 'Budget-friendly', 'Nightlife',
-  'High Energy', 'Cozy', 'Date Night', 'Good for Groups'
+  'Chill',
+  'Party',
+  'Outdoorsy',
+  'Family-friendly',
+  'Romantic',
+  'Adventure',
+  'Cultural',
+  'Luxury',
+  'Budget-friendly',
+  'Nightlife',
+  'High Energy',
+  'Cozy',
+  'Date Night',
+  'Good for Groups',
 ];
 
 export const ACCESSIBILITY_OPTIONS = [
-  'Differently Abled Accessible', 'EV Charging Nearby', 'Pet Friendly',
-  'Family Friendly', 'Women Owned', 'LGBTQ+ Friendly'
+  'Differently Abled Accessible',
+  'EV Charging Nearby',
+  'Pet Friendly',
+  'Family Friendly',
+  'Women Owned',
+  'LGBTQ+ Friendly',
 ];
 
 export const BUSINESS_OPTIONS = [
-  'Business Appropriate', 'Corporate', 'Formal', 'Chains', 'Franchises'
+  'Business Appropriate',
+  'Corporate',
+  'Formal',
+  'Chains',
+  'Franchises',
 ];
 
 export const ENTERTAINMENT_OPTIONS = [
-  'Live Music', 'Comedy', 'Theater', 'Sports', 'Art', 'Historic',
-  'Shopping', 'Tourist Attraction', 'Landmark', 'Must-See'
+  'Live Music',
+  'Comedy',
+  'Theater',
+  'Sports',
+  'Art',
+  'Historic',
+  'Shopping',
+  'Tourist Attraction',
+  'Landmark',
+  'Must-See',
 ];
 
 export const LIFESTYLE_OPTIONS = [
-  'After Hours', 'Late Night', 'Early Morning Risers', 'Locally Owned',
-  'Black Owned', 'Cannabis Friendly', 'Casual', 'Fine Dining',
-  'Healthy Eats', 'Brunch', 'Lounges', 'Outdoors', 'Physical Adventure',
-  'Sightseeing', 'Volunteering', 'Night Owls', 'Farmer\'s Markets'
+  'After Hours',
+  'Late Night',
+  'Early Morning Risers',
+  'Locally Owned',
+  'Black Owned',
+  'Cannabis Friendly',
+  'Casual',
+  'Fine Dining',
+  'Healthy Eats',
+  'Brunch',
+  'Lounges',
+  'Outdoors',
+  'Physical Adventure',
+  'Sightseeing',
+  'Volunteering',
+  'Night Owls',
+  "Farmer's Markets",
 ];
 
 // Consumer subscription pricing - NEW 3-TIER STRUCTURE
@@ -130,7 +183,7 @@ export const CONSUMER_PRICING = {
     trips: Infinity,
     aiQueries: 10, // 10 queries per trip
     savings: 20,
-    savingsPercent: 17
+    savingsPercent: 17,
   },
   'frequent-chraveler': {
     monthly: 19.99,
@@ -140,8 +193,8 @@ export const CONSUMER_PRICING = {
     proTripsPerMonth: 1, // Can create 1 Chravel Pro trip/month
     proTripSeats: 50, // 50-seat allotment for Pro trip
     savings: 40,
-    savingsPercent: 17
-  }
+    savingsPercent: 17,
+  },
 } as const;
 
 // Legacy exports for backward compatibility (map to Explorer)
@@ -163,5 +216,5 @@ export const FEATURE_ACCESS = {
   TRIP_CATEGORIES: 'explorer', // Both paid tiers can tag
   PRO_TRIP_ACCESS: 'frequent-chraveler', // 1 Pro trip/month
   PRIORITY_SUPPORT: 'explorer',
-  EARLY_ACCESS: 'frequent-chraveler'
+  EARLY_ACCESS: 'frequent-chraveler',
 } as const;

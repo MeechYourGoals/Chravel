@@ -63,9 +63,7 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
     location: mockTrip.location,
     dateRange: mockTrip.dateRange,
     proTripCategory: normalizeLegacyCategory(
-      (supabaseTrip as any).categories?.find(
-        (c: any) => c.type === 'pro_category'
-      )?.value
+      (supabaseTrip as any).categories?.find((c: any) => c.type === 'pro_category')?.value,
     ),
     tags: [],
     participants: [],

@@ -30,22 +30,26 @@ export const PendingTripCard = ({ trip }: PendingTripCardProps) => {
   const handleClick = () => {
     // Show message that trip is pending approval
     // Could also navigate to a "pending" view or show a toast
-    alert('This trip is pending approval from the organizer. You\'ll be notified once your request is reviewed.');
+    alert(
+      "This trip is pending approval from the organizer. You'll be notified once your request is reviewed.",
+    );
   };
 
-  const coverImage = trip.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop';
+  const coverImage =
+    trip.coverPhoto ||
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=200&fit=crop';
 
   return (
-    <div 
+    <div
       className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20 opacity-60 cursor-not-allowed"
       onClick={handleClick}
     >
       {/* Trip Image/Header - Responsive */}
       <div className="relative h-32 md:h-48 bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent p-4 md:p-6">
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center opacity-50"
           style={{
-            backgroundImage: `url('${coverImage}')`
+            backgroundImage: `url('${coverImage}')`,
           }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
@@ -58,8 +62,8 @@ export const PendingTripCard = ({ trip }: PendingTripCardProps) => {
                 </h3>
                 {/* Pending Approval Badge */}
                 <div className="mt-2 flex items-center gap-2">
-                  <Badge 
-                    variant="secondary" 
+                  <Badge
+                    variant="secondary"
                     className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 flex items-center gap-1"
                   >
                     <Clock size={12} className="animate-pulse" />
@@ -97,7 +101,9 @@ export const PendingTripCard = ({ trip }: PendingTripCardProps) => {
             <div className="text-xs md:text-sm text-gray-500">Days</div>
           </div>
           <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white/60">{trip.placesCount ?? 0}</div>
+            <div className="text-xl md:text-2xl font-bold text-white/60">
+              {trip.placesCount ?? 0}
+            </div>
             <div className="text-xs md:text-sm text-gray-500">Places</div>
           </div>
         </div>

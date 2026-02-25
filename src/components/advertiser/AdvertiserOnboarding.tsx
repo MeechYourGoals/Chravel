@@ -15,22 +15,22 @@ interface AdvertiserOnboardingProps {
 
 export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) => {
   const { toast } = useToast();
-  const isDemoMode = useDemoModeStore((state) => state.isDemoMode);
+  const isDemoMode = useDemoModeStore(state => state.isDemoMode);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     company_name: isDemoMode ? 'Demo Travel Company' : '',
     company_email: isDemoMode ? 'demo@travelcompany.com' : '',
-    website: isDemoMode ? 'https://www.demotravelcompany.com' : ''
+    website: isDemoMode ? 'https://www.demotravelcompany.com' : '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.company_name || !formData.company_email) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive"
+        title: 'Missing Information',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
       });
       return;
     }
@@ -38,20 +38,20 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
     try {
       setIsLoading(true);
       const advertiser = await AdvertiserService.createAdvertiserProfile(formData);
-      
+
       if (advertiser) {
         toast({
-          title: "Welcome to Chravel Ads!",
-          description: "Your advertiser account has been created successfully"
+          title: 'Welcome to Chravel Ads!',
+          description: 'Your advertiser account has been created successfully',
         });
         onComplete(advertiser);
       }
     } catch (error) {
       console.error('Error creating advertiser profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to create advertiser profile. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to create advertiser profile. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -62,14 +62,11 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            Welcome to Chravel Advertiser Hub
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">Welcome to Chravel Advertiser Hub</CardTitle>
           <CardDescription>
-            {isDemoMode 
+            {isDemoMode
               ? 'Demo Mode: Fill out the form below to see how the advertiser hub works'
-              : 'Create your advertiser profile to start promoting your travel destinations'
-            }
+              : 'Create your advertiser profile to start promoting your travel destinations'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -85,7 +82,7 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
                   type="text"
                   placeholder="Your Company Name"
                   value={formData.company_name}
-                  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                  onChange={e => setFormData({ ...formData, company_name: e.target.value })}
                   className="pl-10"
                   required
                 />
@@ -103,7 +100,7 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
                   type="email"
                   placeholder="contact@company.com"
                   value={formData.company_email}
-                  onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
+                  onChange={e => setFormData({ ...formData, company_email: e.target.value })}
                   className="pl-10"
                   required
                 />
@@ -119,17 +116,13 @@ export const AdvertiserOnboarding = ({ onComplete }: AdvertiserOnboardingProps) 
                   type="url"
                   placeholder="https://www.company.com"
                   value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  onChange={e => setFormData({ ...formData, website: e.target.value })}
                   className="pl-10"
                 />
               </div>
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Creating Profile...' : 'Create Advertiser Profile'}
             </Button>
           </form>

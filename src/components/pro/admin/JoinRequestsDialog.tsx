@@ -14,9 +14,7 @@ interface JoinRequestsDialogProps {
 export const JoinRequestsDialog = ({ open, onOpenChange, tripId }: JoinRequestsDialogProps) => {
   const isMobile = useIsMobile();
 
-  const content = (
-    <JoinRequestsPanel tripId={tripId} />
-  );
+  const content = <JoinRequestsPanel tripId={tripId} />;
 
   if (isMobile) {
     return (

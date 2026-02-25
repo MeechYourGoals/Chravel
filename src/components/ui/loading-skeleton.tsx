@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Skeleton } from './skeleton';
 
@@ -19,14 +18,14 @@ export const TripCardSkeleton = ({ count = 3 }: TripCardSkeletonProps) => {
             </div>
             <Skeleton className="h-16 w-16 rounded-lg" />
           </div>
-          
+
           <div className="flex items-center gap-2 mb-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-8 w-8 rounded-full" />
             ))}
             <Skeleton className="h-4 w-16" />
           </div>
-          
+
           <div className="flex gap-2">
             <Skeleton className="h-9 flex-1" />
             <Skeleton className="h-9 w-20" />
@@ -42,7 +41,10 @@ export const StatsSkeletonGrid = () => {
   return (
     <div className="grid grid-cols-2 gap-4 mb-8">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="bg-card rounded-enterprise p-4 text-center border border-border">
+        <div
+          key={index}
+          className="bg-card rounded-enterprise p-4 text-center border border-border"
+        >
           <Skeleton className="h-8 w-8 mx-auto mb-2 rounded-full" />
           <Skeleton className="h-8 w-12 mx-auto mb-1" />
           <Skeleton className="h-4 w-20 mx-auto" />

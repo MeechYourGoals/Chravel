@@ -32,18 +32,21 @@ export const travelWalletService = {
       .eq('user_id', userId)
       .order('is_preferred', { ascending: false })
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return data || [];
   },
 
-  async addAirline(userId: string, program: Omit<AirlineProgram, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<AirlineProgram> {
+  async addAirline(
+    userId: string,
+    program: Omit<AirlineProgram, 'id' | 'user_id' | 'created_at' | 'updated_at'>,
+  ): Promise<AirlineProgram> {
     const { data, error } = await supabase
       .from('loyalty_airlines')
       .insert({ user_id: userId, ...program })
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -55,17 +58,14 @@ export const travelWalletService = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
 
   async deleteAirline(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('loyalty_airlines')
-      .delete()
-      .eq('id', id);
-    
+    const { error } = await supabase.from('loyalty_airlines').delete().eq('id', id);
+
     if (error) throw error;
   },
 
@@ -77,18 +77,21 @@ export const travelWalletService = {
       .eq('user_id', userId)
       .order('is_preferred', { ascending: false })
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return data || [];
   },
 
-  async addHotel(userId: string, program: Omit<HotelProgram, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<HotelProgram> {
+  async addHotel(
+    userId: string,
+    program: Omit<HotelProgram, 'id' | 'user_id' | 'created_at' | 'updated_at'>,
+  ): Promise<HotelProgram> {
     const { data, error } = await supabase
       .from('loyalty_hotels')
       .insert({ user_id: userId, ...program })
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -100,17 +103,14 @@ export const travelWalletService = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
 
   async deleteHotel(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('loyalty_hotels')
-      .delete()
-      .eq('id', id);
-    
+    const { error } = await supabase.from('loyalty_hotels').delete().eq('id', id);
+
     if (error) throw error;
   },
 
@@ -122,18 +122,21 @@ export const travelWalletService = {
       .eq('user_id', userId)
       .order('is_preferred', { ascending: false })
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return data || [];
   },
 
-  async addRental(userId: string, program: Omit<RentalProgram, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<RentalProgram> {
+  async addRental(
+    userId: string,
+    program: Omit<RentalProgram, 'id' | 'user_id' | 'created_at' | 'updated_at'>,
+  ): Promise<RentalProgram> {
     const { data, error } = await supabase
       .from('loyalty_rentals')
       .insert({ user_id: userId, ...program })
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -145,17 +148,14 @@ export const travelWalletService = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
 
   async deleteRental(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('loyalty_rentals')
-      .delete()
-      .eq('id', id);
-    
+    const { error } = await supabase.from('loyalty_rentals').delete().eq('id', id);
+
     if (error) throw error;
   },
 };

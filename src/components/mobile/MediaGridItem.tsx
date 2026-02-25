@@ -19,7 +19,7 @@ interface MediaGridItemProps {
 
 /**
  * MediaGridItem - Mobile media grid item using TripMediaRenderer
- * 
+ *
  * Uses the canonical TripMediaRenderer for consistent iOS-safe media rendering.
  * Supports swipe-to-delete and long-press gestures.
  */
@@ -45,7 +45,7 @@ export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onL
       className="relative overflow-hidden rounded-md"
       style={{
         WebkitTapHighlightColor: 'transparent',
-        WebkitTouchCallout: 'none'
+        WebkitTouchCallout: 'none',
       }}
     >
       {/* Delete background that shows when swiping */}
@@ -63,7 +63,7 @@ export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onL
       <button
         {...longPressHandlers}
         {...swipeHandlers}
-        onClick={async (e) => {
+        onClick={async e => {
           // Don't trigger click if we just finished swiping
           if (swipeState.isSwiping) {
             e.preventDefault();

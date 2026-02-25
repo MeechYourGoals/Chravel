@@ -4,7 +4,8 @@ import { getMockAvatar } from '../../utils/mockAvatars';
 export const yCombinatorCohort: ProTripData = {
   id: 'creator-house-content-shoot-2026',
   title: 'Creator House — Multi-Day Content Shoot',
-  description: 'Multi-day content production shoot with crew, talent, tight schedules, locations, releases, shoot times, payments, logistics, and file management.',
+  description:
+    'Multi-day content production shoot with crew, talent, tight schedules, locations, releases, shoot times, payments, logistics, and file management.',
   location: 'Miami, FL',
   dateRange: 'Aug 3 - Aug 8, 2026',
   proTripCategory: 'productions',
@@ -19,7 +20,7 @@ export const yCombinatorCohort: ProTripData = {
       completed: true,
       due_at: '2026-08-02',
       assigned_to: 'production-manager',
-      created_at: new Date(Date.now() - 604800000).toISOString()
+      created_at: new Date(Date.now() - 604800000).toISOString(),
     },
     {
       id: 'task-creator-2',
@@ -28,8 +29,8 @@ export const yCombinatorCohort: ProTripData = {
       completed: false,
       due_at: '2026-08-03',
       assigned_to: 'camera-lead',
-      created_at: new Date().toISOString()
-    }
+      created_at: new Date().toISOString(),
+    },
   ],
   polls: [
     {
@@ -38,12 +39,12 @@ export const yCombinatorCohort: ProTripData = {
       options: [
         { id: 'opt1', text: 'Morning (8 AM - 12 PM)', votes: 3 },
         { id: 'opt2', text: 'Afternoon (1 PM - 5 PM)', votes: 5 },
-        { id: 'opt3', text: 'Evening (6 PM - 10 PM)', votes: 1 }
+        { id: 'opt3', text: 'Evening (6 PM - 10 PM)', votes: 1 },
       ],
       total_votes: 9,
       status: 'closed',
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
   ],
   links: [
     {
@@ -53,7 +54,7 @@ export const yCombinatorCohort: ProTripData = {
       description: 'Local attractions and filming locations',
       domain: 'miamibeach.com',
       created_at: new Date().toISOString(),
-      source: 'places'
+      source: 'places',
     },
     {
       id: 'link-creator-2',
@@ -62,8 +63,8 @@ export const yCombinatorCohort: ProTripData = {
       description: 'Cloud storage for all shoot footage and files',
       domain: 'dropbox.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
-      source: 'manual'
-    }
+      source: 'manual',
+    },
   ],
   broadcasts: [
     {
@@ -73,7 +74,7 @@ export const yCombinatorCohort: ProTripData = {
       targetTrips: ['creator-house-content-shoot-2026'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['2', '3', '4', '5']
+      readBy: ['2', '3', '4', '5'],
     },
     {
       id: 'bc-creator-2',
@@ -82,16 +83,36 @@ export const yCombinatorCohort: ProTripData = {
       targetTrips: ['creator-house-content-shoot-2026'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['1', '2', '3']
-    }
+      readBy: ['1', '2', '3'],
+    },
   ],
   participants: [
-    { id: '1', name: 'Darren Watkins Jr.', avatar: getMockAvatar('Darren Watkins Jr.'), role: 'Talent' },
+    {
+      id: '1',
+      name: 'Darren Watkins Jr.',
+      avatar: getMockAvatar('Darren Watkins Jr.'),
+      role: 'Talent',
+    },
     { id: '2', name: 'Kai Cenat', avatar: getMockAvatar('Kai Cenat'), role: 'Talent' },
     { id: '3', name: 'Adin Ross', avatar: getMockAvatar('Adin Ross'), role: 'Talent' },
-    { id: '4', name: 'Nicole Perez', avatar: getMockAvatar('Nicole Perez'), role: 'Production Manager' },
-    { id: '5', name: 'Trevor Mills', avatar: getMockAvatar('Trevor Mills'), role: 'Camera & Editing' },
-    { id: '6', name: 'Jamal Wright', avatar: getMockAvatar('Jamal Wright'), role: 'Logistics & Security' }
+    {
+      id: '4',
+      name: 'Nicole Perez',
+      avatar: getMockAvatar('Nicole Perez'),
+      role: 'Production Manager',
+    },
+    {
+      id: '5',
+      name: 'Trevor Mills',
+      avatar: getMockAvatar('Trevor Mills'),
+      role: 'Camera & Editing',
+    },
+    {
+      id: '6',
+      name: 'Jamal Wright',
+      avatar: getMockAvatar('Jamal Wright'),
+      role: 'Logistics & Security',
+    },
   ],
   budget: {
     total: 85000,
@@ -100,19 +121,39 @@ export const yCombinatorCohort: ProTripData = {
       { name: 'Talent Fees', budgeted: 45000, spent: 30000 },
       { name: 'Production & Equipment', budgeted: 25000, spent: 18000 },
       { name: 'Lodging & Meals', budgeted: 10000, spent: 5000 },
-      { name: 'Logistics & Security', budgeted: 5000, spent: 2000 }
-    ]
+      { name: 'Logistics & Security', budgeted: 5000, spent: 2000 },
+    ],
   },
   itinerary: [
     {
       date: '2026-08-03',
       events: [
-        { time: '09:00', title: 'Crew Arrival & Equipment Setup', location: 'Miami Creator House', type: 'meeting' },
-        { time: '11:00', title: 'First Shoot — Outdoor Beach Scene', location: 'South Beach', type: 'meeting' },
-        { time: '14:00', title: 'Studio Shoot — Indoor Content', location: 'Creator House Studio', type: 'meeting' },
-        { time: '18:00', title: 'Dailies Review & Editing', location: 'Production Room', type: 'meeting' }
-      ]
-    }
+        {
+          time: '09:00',
+          title: 'Crew Arrival & Equipment Setup',
+          location: 'Miami Creator House',
+          type: 'meeting',
+        },
+        {
+          time: '11:00',
+          title: 'First Shoot — Outdoor Beach Scene',
+          location: 'South Beach',
+          type: 'meeting',
+        },
+        {
+          time: '14:00',
+          title: 'Studio Shoot — Indoor Content',
+          location: 'Creator House Studio',
+          type: 'meeting',
+        },
+        {
+          time: '18:00',
+          title: 'Dailies Review & Editing',
+          location: 'Production Room',
+          type: 'meeting',
+        },
+      ],
+    },
   ],
   roster: [
     {
@@ -124,7 +165,7 @@ export const yCombinatorCohort: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['admin'],
       roomPreferences: [],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '2',
@@ -135,7 +176,7 @@ export const yCombinatorCohort: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['admin'],
       roomPreferences: [],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '3',
@@ -146,7 +187,7 @@ export const yCombinatorCohort: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['admin'],
       roomPreferences: [],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '4',
@@ -157,7 +198,7 @@ export const yCombinatorCohort: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['admin'],
       roomPreferences: [],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '5',
@@ -168,7 +209,7 @@ export const yCombinatorCohort: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['editor'],
       roomPreferences: [],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '6',
@@ -179,8 +220,8 @@ export const yCombinatorCohort: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['editor'],
       roomPreferences: [],
-      dietaryRestrictions: []
-    }
+      dietaryRestrictions: [],
+    },
   ],
   roomAssignments: [
     {
@@ -191,8 +232,8 @@ export const yCombinatorCohort: ProTripData = {
       checkIn: '2026-08-03T12:00:00Z',
       checkOut: '2026-08-08T11:00:00Z',
       roomType: 'double',
-      specialRequests: ['streaming-setup', 'soundproofing']
-    }
+      specialRequests: ['streaming-setup', 'soundproofing'],
+    },
   ],
   schedule: [
     {
@@ -204,8 +245,8 @@ export const yCombinatorCohort: ProTripData = {
       location: 'South Beach, Miami',
       participants: ['1', '2', '3', '4', '5'],
       priority: 'high',
-      notes: 'Main outdoor content shoot with all talent'
-    }
+      notes: 'Main outdoor content shoot with all talent',
+    },
   ],
   perDiem: {
     dailyRate: 150,
@@ -215,8 +256,8 @@ export const yCombinatorCohort: ProTripData = {
     participants: [
       { participantId: '4', customRate: 200, advances: 0, deductions: 0, balance: 1200 },
       { participantId: '5', customRate: 175, advances: 0, deductions: 0, balance: 1050 },
-      { participantId: '6', customRate: 150, advances: 0, deductions: 0, balance: 900 }
-    ]
+      { participantId: '6', customRate: 150, advances: 0, deductions: 0, balance: 900 },
+    ],
   },
   settlement: [],
   medical: [],
@@ -229,9 +270,9 @@ export const yCombinatorCohort: ProTripData = {
       deadline: '2026-08-02',
       status: 'compliant',
       assignedTo: '4',
-      documents: ['talent-releases.pdf', 'location-permits.pdf']
-    }
+      documents: ['talent-releases.pdf', 'location-permits.pdf'],
+    },
   ],
   media: [],
-  sponsors: []
+  sponsors: [],
 };

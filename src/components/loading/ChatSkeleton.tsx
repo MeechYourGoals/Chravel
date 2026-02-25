@@ -15,7 +15,7 @@ export const ChatSkeleton = () => (
         </div>
       </div>
     </div>
-    
+
     {/* Messages area skeleton */}
     <div className="flex-1 p-4 space-y-4 overflow-hidden">
       {/* Incoming message */}
@@ -26,12 +26,12 @@ export const ChatSkeleton = () => (
           <div className="h-12 bg-muted rounded-lg w-48 md:w-64" />
         </div>
       </div>
-      
+
       {/* Outgoing message */}
       <div className="flex gap-2 justify-end">
         <div className="h-10 bg-muted rounded-lg w-40 md:w-56" />
       </div>
-      
+
       {/* Incoming message */}
       <div className="flex gap-2">
         <div className="h-8 w-8 bg-muted rounded-full flex-shrink-0" />
@@ -40,13 +40,13 @@ export const ChatSkeleton = () => (
           <div className="h-16 bg-muted rounded-lg w-52 md:w-72" />
         </div>
       </div>
-      
+
       {/* Outgoing message */}
       <div className="flex gap-2 justify-end">
         <div className="h-8 bg-muted rounded-lg w-32 md:w-48" />
       </div>
     </div>
-    
+
     {/* Input area skeleton */}
     <div className="p-4 border-t border-border">
       <div className="flex gap-2">

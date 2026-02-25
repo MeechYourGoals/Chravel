@@ -14,11 +14,12 @@ export const useGameSchedule = (organizationId?: string) => {
   });
 
   const createMutation = useMutation({
-    mutationFn: (game: any) => gameScheduleService.create({
-      ...game,
-      organization_id: organizationId!,
-      created_by: user!.id,
-    }),
+    mutationFn: (game: any) =>
+      gameScheduleService.create({
+        ...game,
+        organization_id: organizationId!,
+        created_by: user!.id,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['game-schedules'] });
       toast.success('Game added successfully');
@@ -29,7 +30,7 @@ export const useGameSchedule = (organizationId?: string) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: any }) => 
+    mutationFn: ({ id, updates }: { id: string; updates: any }) =>
       gameScheduleService.update(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['game-schedules'] });
@@ -52,13 +53,14 @@ export const useGameSchedule = (organizationId?: string) => {
   });
 
   const bulkCreateMutation = useMutation({
-    mutationFn: (games: any[]) => gameScheduleService.bulkCreate(
-      games.map(g => ({
-        ...g,
-        organization_id: organizationId!,
-        created_by: user!.id,
-      }))
-    ),
+    mutationFn: (games: any[]) =>
+      gameScheduleService.bulkCreate(
+        games.map(g => ({
+          ...g,
+          organization_id: organizationId!,
+          created_by: user!.id,
+        })),
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['game-schedules'] });
       toast.success('Games imported successfully');

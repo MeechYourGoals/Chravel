@@ -9,7 +9,7 @@ export type RoleChannel = {
   memberCount: number;
   createdAt: string;
   createdBy: string;
-}
+};
 
 export type RoleChannelMessage = {
   id: string;
@@ -19,7 +19,7 @@ export type RoleChannelMessage = {
   senderAvatar?: string;
   content: string;
   createdAt: string;
-}
+};
 
 class RoleChannelService {
   /**
@@ -28,7 +28,9 @@ class RoleChannelService {
    */
   async createRoleChannel(tripId: string, roleName: string): Promise<RoleChannel | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
       const channelSlug = roleName.toLowerCase().replace(/\s+/g, '-');
@@ -40,7 +42,7 @@ class RoleChannelService {
           channel_name: roleName,
           channel_slug: channelSlug,
           is_private: true,
-          created_by: user.id
+          created_by: user.id,
         })
         .select()
         .single();
@@ -53,7 +55,7 @@ class RoleChannelService {
         roleName: data.channel_name,
         memberCount: 0,
         createdAt: data.created_at,
-        createdBy: data.created_by
+        createdBy: data.created_by,
       };
     } catch (error) {
       console.error('Failed to create role channel:', error);
@@ -80,7 +82,7 @@ class RoleChannelService {
         roleName: d.channel_name,
         memberCount: 0, // TODO: Calculate from roster
         createdAt: d.created_at,
-        createdBy: d.created_by
+        createdBy: d.created_by,
       }));
     } catch (error) {
       console.error('Failed to get role channels:', error);
@@ -93,10 +95,7 @@ class RoleChannelService {
    */
   async deleteChannel(channelId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('trip_channels')
-        .delete()
-        .eq('id', channelId);
+      const { error } = await supabase.from('trip_channels').delete().eq('id', channelId);
 
       if (error) throw error;
       return true;
@@ -124,7 +123,9 @@ class RoleChannelService {
    */
   async sendChannelMessage(channelId: string, content: string): Promise<RoleChannelMessage | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
       const { data, error } = await supabase
@@ -132,7 +133,7 @@ class RoleChannelService {
         .insert({
           channel_id: channelId,
           sender_id: user.id,
-          content
+          content,
         })
         .select()
         .single();
@@ -144,7 +145,7 @@ class RoleChannelService {
         channelId: data.channel_id,
         senderId: data.sender_id,
         content: data.content,
-        createdAt: data.created_at
+        createdAt: data.created_at,
       };
     } catch (error) {
       console.error('Failed to send channel message:', error);
@@ -159,7 +160,8 @@ class RoleChannelService {
     try {
       const { data, error } = await supabase
         .from('channel_messages')
-        .select(`
+        .select(
+          `
           *,
           sender:sender_id (
             id,
@@ -169,7 +171,8 @@ class RoleChannelService {
             display_name,
             avatar_url
           )
-        `)
+        `,
+        )
         .eq('channel_id', channelId)
         .is('deleted_at', null)
         .order('created_at', { ascending: true });
@@ -180,10 +183,11 @@ class RoleChannelService {
         id: d.id,
         channelId: d.channel_id,
         senderId: d.sender_id,
-        senderName: d.profiles?.display_name || d.sender?.raw_user_meta_data?.full_name || 'Anonymous',
+        senderName:
+          d.profiles?.display_name || d.sender?.raw_user_meta_data?.full_name || 'Anonymous',
         senderAvatar: d.profiles?.avatar_url || d.sender?.raw_user_meta_data?.avatar_url,
         content: d.content,
-        createdAt: d.created_at
+        createdAt: d.created_at,
       }));
     } catch (error) {
       console.error('Failed to get channel messages:', error);
@@ -194,10 +198,7 @@ class RoleChannelService {
   /**
    * Subscribe to new messages in a channel
    */
-  subscribeToChannel(
-    channelId: string,
-    onMessage: (message: RoleChannelMessage) => void
-  ) {
+  subscribeToChannel(channelId: string, onMessage: (message: RoleChannelMessage) => void) {
     const subscription = supabase
       .channel(`channel_messages:${channelId}`)
       .on(
@@ -206,17 +207,17 @@ class RoleChannelService {
           event: 'INSERT',
           schema: 'public',
           table: 'channel_messages',
-          filter: `channel_id=eq.${channelId}`
+          filter: `channel_id=eq.${channelId}`,
         },
-        (payload) => {
+        payload => {
           onMessage({
             id: payload.new.id,
             channelId: payload.new.channel_id,
             senderId: payload.new.sender_id,
             content: payload.new.content,
-            createdAt: payload.new.created_at
+            createdAt: payload.new.created_at,
           });
-        }
+        },
       )
       .subscribe();
 

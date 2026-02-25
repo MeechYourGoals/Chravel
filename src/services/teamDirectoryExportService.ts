@@ -32,8 +32,8 @@ const defaultOptions: ExportOptions = {
     medical: false,
     credentials: false,
     permissions: false,
-    emergencyContact: false
-  }
+    emergencyContact: false,
+  },
 };
 
 class TeamDirectoryExportService {
@@ -43,7 +43,7 @@ class TeamDirectoryExportService {
   exportToPDF(
     roster: ProParticipant[],
     category: ProTripCategory,
-    options: ExportOptions = defaultOptions
+    options: ExportOptions = defaultOptions,
   ): Blob {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -62,7 +62,7 @@ class TeamDirectoryExportService {
     const dateStr = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
     doc.text(`Generated: ${dateStr}`, pageWidth / 2, 35, { align: 'center' });
 
@@ -105,7 +105,7 @@ class TeamDirectoryExportService {
         row.push(
           member.emergencyContact
             ? `${member.emergencyContact.name} (${member.emergencyContact.phone})`
-            : 'N/A'
+            : 'N/A',
         );
       }
       return row;
@@ -118,17 +118,17 @@ class TeamDirectoryExportService {
       startY: 45,
       styles: {
         fontSize: 8,
-        cellPadding: 3
+        cellPadding: 3,
       },
       headStyles: {
         fillColor: [220, 38, 38], // Red
         textColor: 255,
-        fontStyle: 'bold'
+        fontStyle: 'bold',
       },
       alternateRowStyles: {
-        fillColor: [245, 245, 245]
+        fillColor: [245, 245, 245],
       },
-      margin: { top: 45, bottom: 20 }
+      margin: { top: 45, bottom: 20 },
     });
 
     // Add footer
@@ -137,17 +137,14 @@ class TeamDirectoryExportService {
       doc.setPage(i);
       doc.setFontSize(8);
       doc.setTextColor(150);
-      doc.text(
-        `Page ${i} of ${pageCount}`,
-        pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 10,
-        { align: 'center' }
-      );
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, {
+        align: 'center',
+      });
       doc.text(
         'CONFIDENTIAL - For Internal Use Only',
         pageWidth / 2,
         doc.internal.pageSize.getHeight() - 5,
-        { align: 'center' }
+        { align: 'center' },
       );
     }
 
@@ -157,10 +154,7 @@ class TeamDirectoryExportService {
   /**
    * Export team directory to CSV
    */
-  exportToCSV(
-    roster: ProParticipant[],
-    options: ExportOptions = defaultOptions
-  ): Blob {
+  exportToCSV(roster: ProParticipant[], options: ExportOptions = defaultOptions): Blob {
     // Filter roster
     let filteredRoster = roster;
     if (options.filterByRole && options.filterByRole !== 'all') {
@@ -178,7 +172,11 @@ class TeamDirectoryExportService {
     if (options.includeFields.medical) headers.push('Medical Notes');
     if (options.includeFields.permissions) headers.push('Permissions');
     if (options.includeFields.emergencyContact) {
-      headers.push('Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relationship');
+      headers.push(
+        'Emergency Contact Name',
+        'Emergency Contact Phone',
+        'Emergency Contact Relationship',
+      );
     }
 
     const rows = filteredRoster.map(member => {
@@ -201,7 +199,7 @@ class TeamDirectoryExportService {
         row.push(
           member.emergencyContact?.name || '',
           member.emergencyContact?.phone || '',
-          member.emergencyContact?.relationship || ''
+          member.emergencyContact?.relationship || '',
         );
       }
       return row;
@@ -210,7 +208,7 @@ class TeamDirectoryExportService {
     // Convert to CSV string
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
     ].join('\n');
 
     return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -222,7 +220,7 @@ class TeamDirectoryExportService {
   exportToExcel(
     roster: ProParticipant[],
     category: ProTripCategory,
-    options: ExportOptions = defaultOptions
+    options: ExportOptions = defaultOptions,
   ): Blob {
     // Filter roster
     let filteredRoster = roster;
@@ -244,7 +242,11 @@ class TeamDirectoryExportService {
     if (options.includeFields.medical) headers.push('Medical Notes');
     if (options.includeFields.permissions) headers.push('Permissions');
     if (options.includeFields.emergencyContact) {
-      headers.push('Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relationship');
+      headers.push(
+        'Emergency Contact Name',
+        'Emergency Contact Phone',
+        'Emergency Contact Relationship',
+      );
     }
     data.push(headers);
 
@@ -269,7 +271,7 @@ class TeamDirectoryExportService {
         row.push(
           member.emergencyContact?.name || '',
           member.emergencyContact?.phone || '',
-          member.emergencyContact?.relationship || ''
+          member.emergencyContact?.relationship || '',
         );
       }
       data.push(row);
@@ -281,9 +283,7 @@ class TeamDirectoryExportService {
 
     // Set column widths
     const colWidths = headers.map((_, i) => {
-      const maxLength = Math.max(
-        ...data.map(row => (row[i] ? row[i].toString().length : 0))
-      );
+      const maxLength = Math.max(...data.map(row => (row[i] ? row[i].toString().length : 0)));
       return { wch: Math.min(maxLength + 2, 50) };
     });
     ws['!cols'] = colWidths;
@@ -305,4 +305,3 @@ class TeamDirectoryExportService {
 }
 
 export const teamDirectoryExportService = new TeamDirectoryExportService();
-

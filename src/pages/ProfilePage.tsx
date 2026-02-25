@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Archive, Camera, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +25,7 @@ const ProfilePage = () => {
     { label: 'Total Trips', value: '12', icon: '✈️' },
     { label: 'Countries Visited', value: '8', icon: '🌍' },
     { label: 'Photos Shared', value: '247', icon: '📸' },
-    { label: 'Friends Connected', value: '28', icon: '👥' }
+    { label: 'Friends Connected', value: '28', icon: '👥' },
   ];
 
   if (isLoading) {
@@ -53,15 +52,21 @@ const ProfilePage = () => {
             {user?.email?.charAt(0).toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
-        
+
         <h1 className="text-2xl font-bold mb-1">{user?.email?.split('@')[0] || 'User'}</h1>
         <p className="text-muted-foreground mb-4">Travel Enthusiast</p>
-        
+
         <div className="flex gap-2 justify-center">
-          <Badge className="bg-primary/20 text-primary animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <Badge
+            className="bg-primary/20 text-primary animate-fade-in"
+            style={{ animationDelay: '0.1s' }}
+          >
             Pro Member
           </Badge>
-          <Badge className="bg-accent/20 text-accent animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <Badge
+            className="bg-accent/20 text-accent animate-fade-in"
+            style={{ animationDelay: '0.2s' }}
+          >
             Early Adopter
           </Badge>
         </div>
@@ -70,8 +75,8 @@ const ProfilePage = () => {
       {/* Stats Grid with staggered animation */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         {stats.map((stat, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className="bg-card border border-border rounded-enterprise p-4 text-center animate-fade-in transition-all duration-200 hover:scale-105 hover:shadow-enterprise-md"
             style={{ animationDelay: `${0.1 * (index + 1)}s` }}
           >
@@ -86,9 +91,9 @@ const ProfilePage = () => {
 
       {/* Quick Actions with enhanced interactions */}
       <div className="space-y-3 mb-8">
-        <InteractiveButton 
-          variant="outline" 
-          className="w-full justify-start h-12" 
+        <InteractiveButton
+          variant="outline"
+          className="w-full justify-start h-12"
           size="lg"
           onClick={() => navigate('/')}
           microAnimation="scale"
@@ -96,10 +101,10 @@ const ProfilePage = () => {
           <Camera className="mr-3" size={18} />
           Manage Photos & Memories
         </InteractiveButton>
-        
-        <InteractiveButton 
-          variant="outline" 
-          className="w-full justify-start h-12" 
+
+        <InteractiveButton
+          variant="outline"
+          className="w-full justify-start h-12"
           size="lg"
           onClick={() => navigate('/archive')}
           microAnimation="scale"
@@ -107,10 +112,10 @@ const ProfilePage = () => {
           <Archive className="mr-3" size={18} />
           Archived Trips
         </InteractiveButton>
-        
-        <InteractiveButton 
-          variant="outline" 
-          className="w-full justify-start h-12" 
+
+        <InteractiveButton
+          variant="outline"
+          className="w-full justify-start h-12"
           size="lg"
           onClick={() => navigate('/')}
           microAnimation="scale"
@@ -128,12 +133,12 @@ const ProfilePage = () => {
             <p className="text-foreground">Added 12 photos to Tokyo Adventure</p>
             <p className="text-xs text-muted-foreground">2 hours ago</p>
           </div>
-          
+
           <div className="bg-card border border-border rounded-enterprise p-3 transition-all duration-200 hover:shadow-enterprise">
             <p className="text-foreground">Created new trip: Paris Weekend</p>
             <p className="text-xs text-muted-foreground">1 day ago</p>
           </div>
-          
+
           <div className="bg-card border border-border rounded-enterprise p-3 transition-all duration-200 hover:shadow-enterprise">
             <p className="text-foreground">Joined Bali Group Trip</p>
             <p className="text-xs text-muted-foreground">3 days ago</p>

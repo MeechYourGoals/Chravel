@@ -76,14 +76,14 @@ describe('PDF Export Client Helpers', () => {
       const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
       const chunkSize = 3;
       const expected = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]];
-      
+
       // Implementation would be:
       // const chunks: number[][] = [];
       // for (let i = 0; i < array.length; i += chunkSize) {
       //   chunks.push(array.slice(i, i + chunkSize));
       // }
       // expect(chunks).toEqual(expected);
-      
+
       expect(true).toBe(true); // Placeholder
     });
 
@@ -91,7 +91,7 @@ describe('PDF Export Client Helpers', () => {
       const array: number[] = [];
       const chunkSize = 3;
       const expected: number[][] = [];
-      
+
       expect(true).toBe(true); // Placeholder
     });
 
@@ -99,7 +99,7 @@ describe('PDF Export Client Helpers', () => {
       const array = [1, 2];
       const chunkSize = 5;
       const expected = [[1, 2]];
-      
+
       expect(true).toBe(true); // Placeholder
     });
   });
@@ -109,25 +109,25 @@ describe('PDF Export Client Helpers', () => {
       // This would test hexToRgb if exported
       const hex = '#428BCA';
       const expected: [number, number, number] = [66, 139, 202];
-      
+
       // Implementation would be:
       // const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       // expect(result).toEqual(expected);
-      
+
       expect(true).toBe(true); // Placeholder
     });
 
     it('should handle hex without # prefix', () => {
       const hex = '428BCA';
       const expected: [number, number, number] = [66, 139, 202];
-      
+
       expect(true).toBe(true); // Placeholder
     });
 
     it('should return default color for invalid hex', () => {
       const hex = 'invalid';
       const defaultColor: [number, number, number] = [66, 139, 202];
-      
+
       expect(true).toBe(true); // Placeholder
     });
   });
@@ -150,7 +150,7 @@ describe('PDF Export Client Helpers', () => {
             },
           ],
         },
-        ['attachments']
+        ['attachments'],
       );
 
       const instances = (jsPDF as any).instances as any[];

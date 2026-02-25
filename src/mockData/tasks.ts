@@ -9,7 +9,7 @@ export const mockTasks = [
     is_poll: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    version: 1
+    version: 1,
   },
   {
     id: 'mock-task-2',
@@ -22,6 +22,6 @@ export const mockTasks = [
     is_poll: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    version: 1
-  }
+    version: 1,
+  },
 ];

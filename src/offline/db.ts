@@ -111,4 +111,3 @@ export async function getOfflineDb(): Promise<IDBPDatabase<ChravelOfflineDB>> {
 
   return dbInstance;
 }
-

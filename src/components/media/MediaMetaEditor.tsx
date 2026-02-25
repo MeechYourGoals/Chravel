@@ -41,7 +41,7 @@ export const MediaMetaEditor = ({
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
+    setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -98,25 +98,21 @@ export const MediaMetaEditor = ({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Caption
-            </label>
+            <label className="block text-sm font-medium text-foreground mb-2">Caption</label>
             <Textarea
               value={caption}
-              onChange={(e) => setCaption(e.target.value)}
+              onChange={e => setCaption(e.target.value)}
               placeholder="Add a caption..."
               className="min-h-[100px]"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Tags
-            </label>
+            <label className="block text-sm font-medium text-foreground mb-2">Tags</label>
             <div className="flex gap-2 mb-2">
               <Input
                 value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
+                onChange={e => setTagInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Add tag..."
               />
@@ -125,7 +121,7 @@ export const MediaMetaEditor = ({
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
+              {tags.map(tag => (
                 <Badge key={tag} variant="secondary" className="gap-1">
                   {tag}
                   <button

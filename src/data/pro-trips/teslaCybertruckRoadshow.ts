@@ -4,7 +4,8 @@ import { getMockAvatar } from '../../utils/mockAvatars';
 export const teslaCybertruckRoadshow: ProTripData = {
   id: 'chravel-first-company-offsite-2026',
   title: 'ChravelApp — First Company Off-Site',
-  description: 'Internal company off-site for strategy planning, team bonding, and foundational work. Invite-only event with travel and lodging coordination.',
+  description:
+    'Internal company off-site for strategy planning, team bonding, and foundational work. Invite-only event with travel and lodging coordination.',
   location: 'Joshua Tree, CA',
   dateRange: 'Apr 17 - Apr 20, 2026',
   proTripCategory: 'work',
@@ -19,7 +20,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       completed: true,
       due_at: '2026-04-16',
       assigned_to: 'ops-lead',
-      created_at: new Date(Date.now() - 604800000).toISOString()
+      created_at: new Date(Date.now() - 604800000).toISOString(),
     },
     {
       id: 'task-offsite-2',
@@ -28,8 +29,8 @@ export const teslaCybertruckRoadshow: ProTripData = {
       completed: false,
       due_at: '2026-04-17',
       assigned_to: 'ceo',
-      created_at: new Date().toISOString()
-    }
+      created_at: new Date().toISOString(),
+    },
   ],
   polls: [
     {
@@ -38,12 +39,12 @@ export const teslaCybertruckRoadshow: ProTripData = {
       options: [
         { id: 'opt1', text: 'Stargazing & Bonfire', votes: 9 },
         { id: 'opt2', text: 'Hiking at Sunset', votes: 3 },
-        { id: 'opt3', text: 'Team Dinner & Games', votes: 2 }
+        { id: 'opt3', text: 'Team Dinner & Games', votes: 2 },
       ],
       total_votes: 14,
       status: 'closed',
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
   ],
   links: [
     {
@@ -53,7 +54,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       description: 'Venue information and amenities',
       domain: 'theruinvenue.com',
       created_at: new Date().toISOString(),
-      source: 'places'
+      source: 'places',
     },
     {
       id: 'link-offsite-2',
@@ -62,8 +63,8 @@ export const teslaCybertruckRoadshow: ProTripData = {
       description: 'Nearby hiking and outdoor activities',
       domain: 'joshuatreenp.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
-      source: 'manual'
-    }
+      source: 'manual',
+    },
   ],
   broadcasts: [
     {
@@ -73,7 +74,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       targetTrips: ['chravel-first-company-offsite-2026'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['2', '3', '4']
+      readBy: ['2', '3', '4'],
     },
     {
       id: 'bc-offsite-2',
@@ -82,15 +83,35 @@ export const teslaCybertruckRoadshow: ProTripData = {
       targetTrips: ['chravel-first-company-offsite-2026'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['1', '2']
-    }
+      readBy: ['1', '2'],
+    },
   ],
   participants: [
     { id: '1', name: 'Carlton Anderson', avatar: getMockAvatar('Carlton Anderson'), role: 'CEO' },
-    { id: '2', name: 'Percy Quinton', avatar: getMockAvatar('Percy Quinton'), role: 'Head of Finance' },
-    { id: '3', name: 'David Gerald', avatar: getMockAvatar('David Gerald'), role: 'Sports Marketing' },
-    { id: '4', name: 'Cathy Sandiego', avatar: getMockAvatar('Cathy Sandiego'), role: 'Ops & People' },
-    { id: '5', name: 'Jared Kincaid', avatar: getMockAvatar('Jared Kincaid'), role: 'Finance & Planning' }
+    {
+      id: '2',
+      name: 'Percy Quinton',
+      avatar: getMockAvatar('Percy Quinton'),
+      role: 'Head of Finance',
+    },
+    {
+      id: '3',
+      name: 'David Gerald',
+      avatar: getMockAvatar('David Gerald'),
+      role: 'Sports Marketing',
+    },
+    {
+      id: '4',
+      name: 'Cathy Sandiego',
+      avatar: getMockAvatar('Cathy Sandiego'),
+      role: 'Ops & People',
+    },
+    {
+      id: '5',
+      name: 'Jared Kincaid',
+      avatar: getMockAvatar('Jared Kincaid'),
+      role: 'Finance & Planning',
+    },
   ],
   budget: {
     total: 25000,
@@ -99,19 +120,34 @@ export const teslaCybertruckRoadshow: ProTripData = {
       { name: 'Venue & Lodging', budgeted: 12000, spent: 9500 },
       { name: 'Catering & Meals', budgeted: 8000, spent: 6000 },
       { name: 'Travel & Transport', budgeted: 3500, spent: 2500 },
-      { name: 'Activities & Materials', budgeted: 1500, spent: 500 }
-    ]
+      { name: 'Activities & Materials', budgeted: 1500, spent: 500 },
+    ],
   },
   itinerary: [
     {
       date: '2026-04-17',
       events: [
-        { time: '09:00', title: 'Team Arrival & Check-In', location: 'The Ruin Venue', type: 'meeting' },
-        { time: '11:00', title: 'Opening Session & Vision Alignment', location: 'Main Hall', type: 'meeting' },
-        { time: '14:00', title: 'Strategy Breakout Sessions', location: 'Conference Room', type: 'meeting' },
-        { time: '18:00', title: 'Stargazing & Bonfire', location: 'Outdoor Area', type: 'meeting' }
-      ]
-    }
+        {
+          time: '09:00',
+          title: 'Team Arrival & Check-In',
+          location: 'The Ruin Venue',
+          type: 'meeting',
+        },
+        {
+          time: '11:00',
+          title: 'Opening Session & Vision Alignment',
+          location: 'Main Hall',
+          type: 'meeting',
+        },
+        {
+          time: '14:00',
+          title: 'Strategy Breakout Sessions',
+          location: 'Conference Room',
+          type: 'meeting',
+        },
+        { time: '18:00', title: 'Stargazing & Bonfire', location: 'Outdoor Area', type: 'meeting' },
+      ],
+    },
   ],
   roster: [
     {
@@ -123,7 +159,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['admin'],
       roomPreferences: [],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '2',
@@ -134,7 +170,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['admin'],
       roomPreferences: [],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '3',
@@ -145,7 +181,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['editor'],
       roomPreferences: [],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '4',
@@ -156,7 +192,7 @@ export const teslaCybertruckRoadshow: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['admin'],
       roomPreferences: [],
-      dietaryRestrictions: ['vegetarian']
+      dietaryRestrictions: ['vegetarian'],
     },
     {
       id: '5',
@@ -167,8 +203,8 @@ export const teslaCybertruckRoadshow: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['editor'],
       roomPreferences: [],
-      dietaryRestrictions: []
-    }
+      dietaryRestrictions: [],
+    },
   ],
   roomAssignments: [
     {
@@ -179,8 +215,8 @@ export const teslaCybertruckRoadshow: ProTripData = {
       checkIn: '2026-04-17T09:00:00Z',
       checkOut: '2026-04-20T12:00:00Z',
       roomType: 'double',
-      specialRequests: []
-    }
+      specialRequests: [],
+    },
   ],
   schedule: [
     {
@@ -192,19 +228,19 @@ export const teslaCybertruckRoadshow: ProTripData = {
       location: 'The Ruin Venue - Main Hall',
       participants: ['1', '2', '3', '4', '5'],
       priority: 'high',
-      notes: 'Kickoff session for company strategy and team alignment'
-    }
+      notes: 'Kickoff session for company strategy and team alignment',
+    },
   ],
   perDiem: {
     dailyRate: 0,
     currency: 'USD',
     startDate: '2026-04-17',
     endDate: '2026-04-20',
-    participants: []
+    participants: [],
   },
   settlement: [],
   medical: [],
   compliance: [],
   media: [],
-  sponsors: []
+  sponsors: [],
 };

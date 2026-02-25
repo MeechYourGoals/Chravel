@@ -46,7 +46,9 @@ export const SortableCardWrapper: React.FC<SortableCardWrapperProps> = ({
   };
 
   // When in reorder mode: subtle highlight (ring), no wiggle
-  const reorderModeClasses = reorderMode ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background' : '';
+  const reorderModeClasses = reorderMode
+    ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background'
+    : '';
 
   return (
     <div

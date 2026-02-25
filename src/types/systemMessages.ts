@@ -25,37 +25,37 @@ export interface SystemMessagePayload {
   // Member events
   memberId?: string;
   memberName?: string;
-  
+
   // Base camp events
   previousAddress?: string;
   newAddress?: string;
   previousName?: string;
   newName?: string;
-  
+
   // Poll events
   pollId?: string;
   pollQuestion?: string;
   winningOption?: string;
-  
+
   // Task events
   taskId?: string;
   taskTitle?: string;
-  
+
   // Calendar events
   eventId?: string;
   eventTitle?: string;
   eventDate?: string;
-  
+
   // Payment events
   paymentId?: string;
   amount?: number;
   currency?: string;
   description?: string;
-  
+
   // Media events
   mediaCount?: number;
   mediaType?: 'photo' | 'file';
-  
+
   // Generic
   actorName?: string;
   actorId?: string;

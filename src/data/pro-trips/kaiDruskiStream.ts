@@ -19,7 +19,7 @@ export const kaiDruskiStream: ProTripData = {
       completed: true,
       due_at: '2026-03-11',
       assigned_to: 'technical-director',
-      created_at: new Date(Date.now() - 604800000).toISOString()
+      created_at: new Date(Date.now() - 604800000).toISOString(),
     },
     {
       id: 'task-broadcast-2',
@@ -28,8 +28,8 @@ export const kaiDruskiStream: ProTripData = {
       completed: false,
       due_at: '2026-03-12',
       assigned_to: 'broadcast-ops',
-      created_at: new Date().toISOString()
-    }
+      created_at: new Date().toISOString(),
+    },
   ],
   polls: [
     {
@@ -38,12 +38,12 @@ export const kaiDruskiStream: ProTripData = {
       options: [
         { id: 'opt1', text: '5:00 AM (Early Setup)', votes: 12 },
         { id: 'opt2', text: '7:00 AM (Standard)', votes: 15 },
-        { id: 'opt3', text: '9:00 AM (Late Start)', votes: 4 }
+        { id: 'opt3', text: '9:00 AM (Late Start)', votes: 4 },
       ],
       total_votes: 31,
       status: 'closed',
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    }
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+    },
   ],
   links: [
     {
@@ -53,7 +53,7 @@ export const kaiDruskiStream: ProTripData = {
       description: 'Official broadcast platform for live sports',
       domain: 'amazon.com',
       created_at: new Date().toISOString(),
-      source: 'places'
+      source: 'places',
     },
     {
       id: 'link-broadcast-2',
@@ -62,8 +62,8 @@ export const kaiDruskiStream: ProTripData = {
       description: 'Venue information and crew access details',
       domain: 'hardrockstadium.com',
       created_at: new Date(Date.now() - 172800000).toISOString(),
-      source: 'manual'
-    }
+      source: 'manual',
+    },
   ],
   broadcasts: [
     {
@@ -73,7 +73,7 @@ export const kaiDruskiStream: ProTripData = {
       targetTrips: ['amazon-prime-sports-broadcast-miami'],
       priority: 'urgent',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
-      readBy: ['2', '3', '4']
+      readBy: ['2', '3', '4'],
     },
     {
       id: 'bc-broadcast-2',
@@ -82,15 +82,30 @@ export const kaiDruskiStream: ProTripData = {
       targetTrips: ['amazon-prime-sports-broadcast-miami'],
       priority: 'normal',
       timestamp: new Date(Date.now() - 7200000).toISOString(),
-      readBy: ['1', '3']
-    }
+      readBy: ['1', '3'],
+    },
   ],
   participants: [
-    { id: '1', name: 'Dana Schultz', avatar: getMockAvatar('Dana Schultz'), role: 'Executive Producer' },
-    { id: '2', name: 'Ramon Alvarez', avatar: getMockAvatar('Ramon Alvarez'), role: 'Technical Director' },
+    {
+      id: '1',
+      name: 'Dana Schultz',
+      avatar: getMockAvatar('Dana Schultz'),
+      role: 'Executive Producer',
+    },
+    {
+      id: '2',
+      name: 'Ramon Alvarez',
+      avatar: getMockAvatar('Ramon Alvarez'),
+      role: 'Technical Director',
+    },
     { id: '3', name: 'Sophie Chen', avatar: getMockAvatar('Sophie Chen'), role: 'Broadcast Ops' },
     { id: '4', name: 'Luke Matthews', avatar: getMockAvatar('Luke Matthews'), role: 'Camera Lead' },
-    { id: '5', name: 'Priya Nair', avatar: getMockAvatar('Priya Nair'), role: 'Talent Coordination' }
+    {
+      id: '5',
+      name: 'Priya Nair',
+      avatar: getMockAvatar('Priya Nair'),
+      role: 'Talent Coordination',
+    },
   ],
   budget: {
     total: 1800000,
@@ -99,19 +114,39 @@ export const kaiDruskiStream: ProTripData = {
       { name: 'Broadcast Equipment', budgeted: 800000, spent: 350000 },
       { name: 'Crew & Staff', budgeted: 600000, spent: 250000 },
       { name: 'Venue & Facilities', budgeted: 300000, spent: 120000 },
-      { name: 'Logistics & Travel', budgeted: 100000, spent: 30000 }
-    ]
+      { name: 'Logistics & Travel', budgeted: 100000, spent: 30000 },
+    ],
   },
   itinerary: [
     {
       date: '2026-03-12',
       events: [
-        { time: '07:00', title: 'Broadcast Equipment Setup', location: 'Hard Rock Stadium', type: 'meeting' },
-        { time: '10:00', title: 'Camera Test & Positioning', location: 'Broadcast Booth', type: 'meeting' },
-        { time: '14:00', title: 'Technical Rehearsal', location: 'Production Truck', type: 'meeting' },
-        { time: '18:00', title: 'Pre-Broadcast Final Check', location: 'Control Room', type: 'meeting' }
-      ]
-    }
+        {
+          time: '07:00',
+          title: 'Broadcast Equipment Setup',
+          location: 'Hard Rock Stadium',
+          type: 'meeting',
+        },
+        {
+          time: '10:00',
+          title: 'Camera Test & Positioning',
+          location: 'Broadcast Booth',
+          type: 'meeting',
+        },
+        {
+          time: '14:00',
+          title: 'Technical Rehearsal',
+          location: 'Production Truck',
+          type: 'meeting',
+        },
+        {
+          time: '18:00',
+          title: 'Pre-Broadcast Final Check',
+          location: 'Control Room',
+          type: 'meeting',
+        },
+      ],
+    },
   ],
   roster: [
     {
@@ -123,7 +158,7 @@ export const kaiDruskiStream: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'executive-access'],
       roomPreferences: ['suite', 'high-floor'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '2',
@@ -134,7 +169,7 @@ export const kaiDruskiStream: ProTripData = {
       credentialLevel: 'AllAccess',
       permissions: ['all-areas', 'technical-control'],
       roomPreferences: ['standard', 'mid-floor'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '3',
@@ -145,7 +180,7 @@ export const kaiDruskiStream: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['broadcast-area', 'control-room'],
       roomPreferences: ['standard', 'mid-floor'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '4',
@@ -156,7 +191,7 @@ export const kaiDruskiStream: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['field-access', 'camera-positions'],
       roomPreferences: ['standard', 'any-floor'],
-      dietaryRestrictions: []
+      dietaryRestrictions: [],
     },
     {
       id: '5',
@@ -167,8 +202,8 @@ export const kaiDruskiStream: ProTripData = {
       credentialLevel: 'Backstage',
       permissions: ['talent-area', 'backstage'],
       roomPreferences: ['standard', 'mid-floor'],
-      dietaryRestrictions: []
-    }
+      dietaryRestrictions: [],
+    },
   ],
   roomAssignments: [
     {
@@ -179,8 +214,8 @@ export const kaiDruskiStream: ProTripData = {
       checkIn: '2026-03-12T14:00:00Z',
       checkOut: '2026-03-17T12:00:00Z',
       roomType: 'suite',
-      specialRequests: ['early-checkin', 'quiet-floor']
-    }
+      specialRequests: ['early-checkin', 'quiet-floor'],
+    },
   ],
   schedule: [
     {
@@ -192,8 +227,8 @@ export const kaiDruskiStream: ProTripData = {
       location: 'Hard Rock Stadium',
       participants: ['1', '2', '3', '4', '5'],
       priority: 'critical',
-      notes: 'Live Amazon Prime Video sports broadcast'
-    }
+      notes: 'Live Amazon Prime Video sports broadcast',
+    },
   ],
   perDiem: {
     dailyRate: 400,
@@ -202,8 +237,8 @@ export const kaiDruskiStream: ProTripData = {
     endDate: '2026-03-17',
     participants: [
       { participantId: '1', customRate: 650, advances: 0, deductions: 0, balance: 3250 },
-      { participantId: '2', customRate: 550, advances: 0, deductions: 0, balance: 2750 }
-    ]
+      { participantId: '2', customRate: 550, advances: 0, deductions: 0, balance: 2750 },
+    ],
   },
   settlement: [],
   medical: [],
@@ -212,12 +247,13 @@ export const kaiDruskiStream: ProTripData = {
       id: 'comp-broadcast1',
       type: 'safety',
       title: 'FCC Broadcast Regulations',
-      description: 'All broadcast operations must comply with FCC standards and streaming protocols',
+      description:
+        'All broadcast operations must comply with FCC standards and streaming protocols',
       deadline: '2026-03-11',
       status: 'compliant',
       assignedTo: '2',
-      documents: ['fcc-approval.pdf', 'broadcast-protocols.pdf']
-    }
+      documents: ['fcc-approval.pdf', 'broadcast-protocols.pdf'],
+    },
   ],
   media: [
     {
@@ -229,8 +265,8 @@ export const kaiDruskiStream: ProTripData = {
       duration: 90,
       location: 'Hard Rock Stadium Media Center',
       participants: ['1', '2', '5'],
-      status: 'confirmed'
-    }
+      status: 'confirmed',
+    },
   ],
   sponsors: [
     {
@@ -241,7 +277,7 @@ export const kaiDruskiStream: ProTripData = {
       assignedTo: '1',
       status: 'completed',
       deliverables: ['live-broadcast', 'pre-show-coverage', 'post-game-highlights'],
-      notes: 'Amazon Prime Video exclusive streaming partner for live sports'
-    }
-  ]
+      notes: 'Amazon Prime Video exclusive streaming partner for live sports',
+    },
+  ],
 };

@@ -15,15 +15,18 @@ interface OrganizationData {
 interface OrganizationSectionProps {
   organizations: OrganizationData[];
   onCreateOrganization?: () => void;
-  onSave?: (orgId: string, data: {
-    name: string;
-    displayName: string;
-    billingEmail: string;
-    contactName: string;
-    contactEmail: string;
-    contactPhone: string;
-    contactJobTitle: string;
-  }) => Promise<void>;
+  onSave?: (
+    orgId: string,
+    data: {
+      name: string;
+      displayName: string;
+      billingEmail: string;
+      contactName: string;
+      contactEmail: string;
+      contactPhone: string;
+      contactJobTitle: string;
+    },
+  ) => Promise<void>;
 }
 
 export const OrganizationSection = ({
@@ -106,7 +109,7 @@ export const OrganizationSection = ({
           key={org.id}
           organization={org}
           badge={index >= 1 ? index + 1 : undefined}
-          onSave={onSave ? (data) => onSave(org.id, data) : undefined}
+          onSave={onSave ? data => onSave(org.id, data) : undefined}
         />
       ))}
     </div>

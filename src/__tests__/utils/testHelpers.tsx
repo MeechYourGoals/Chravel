@@ -52,7 +52,7 @@ export function renderWithProviders(
     queryClient = createTestQueryClient(),
     initialEntries: _initialEntries = ['/'],
     ...renderOptions
-  }: CustomRenderOptions = {}
+  }: CustomRenderOptions = {},
 ) {
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
@@ -75,7 +75,7 @@ export function renderWithProviders(
 /**
  * Wait for async operations to complete
  */
-export const waitForAsync = () => new Promise((resolve) => setTimeout(resolve, 0));
+export const waitForAsync = () => new Promise(resolve => setTimeout(resolve, 0));
 
 /**
  * Create mock trip data

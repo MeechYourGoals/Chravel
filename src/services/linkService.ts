@@ -21,7 +21,7 @@ export async function insertLinkIndex(params: {
       og_title: params.ogTitle ?? null,
       og_image_url: params.ogImage ?? null,
       og_description: params.ogDescription ?? null,
-      domain: params.domain ?? (new URL(params.url)).hostname,
+      domain: params.domain ?? new URL(params.url).hostname,
       message_id: params.messageId ?? null,
     })
     .select()
@@ -40,7 +40,7 @@ export async function fetchOpenGraphData(url: string): Promise<{
     // Use the fetch-og-metadata edge function to get rich previews
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
+
     if (!supabaseUrl || !supabaseAnonKey) {
       // Fallback to basic URL parsing
       const urlObj = new URL(url);
@@ -54,7 +54,7 @@ export async function fetchOpenGraphData(url: string): Promise<{
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
+        Authorization: `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify({ url }),
     });
@@ -64,7 +64,7 @@ export async function fetchOpenGraphData(url: string): Promise<{
     }
 
     const metadata = await response.json();
-    
+
     return {
       domain: metadata.siteName || new URL(url).hostname,
       title: metadata.title,

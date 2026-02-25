@@ -44,10 +44,10 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
           break;
         case '+':
         case '=':
-          setScale((s) => Math.min(s + 0.5, 3));
+          setScale(s => Math.min(s + 0.5, 3));
           break;
         case '-':
-          setScale((s) => Math.max(s - 0.5, 0.5));
+          setScale(s => Math.max(s - 0.5, 0.5));
           break;
       }
     };
@@ -57,12 +57,12 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   }, [isOpen, currentIndex, images.length]);
 
   const goToPrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    setCurrentIndex(prev => (prev > 0 ? prev - 1 : images.length - 1));
     setScale(1);
   }, [images.length]);
 
   const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    setCurrentIndex(prev => (prev < images.length - 1 ? prev + 1 : 0));
     setScale(1);
   }, [images.length]);
 
@@ -127,7 +127,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
           {/* Toolbar */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
             <button
-              onClick={() => setScale((s) => Math.max(s - 0.5, 0.5))}
+              onClick={() => setScale(s => Math.max(s - 0.5, 0.5))}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
               aria-label="Zoom out"
             >
@@ -135,7 +135,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
             </button>
             <span className="px-2 text-white text-sm">{Math.round(scale * 100)}%</span>
             <button
-              onClick={() => setScale((s) => Math.min(s + 0.5, 3))}
+              onClick={() => setScale(s => Math.min(s + 0.5, 3))}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
               aria-label="Zoom in"
             >
@@ -186,7 +186,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
               alt={currentImage.caption || `Image ${currentIndex + 1}`}
               className={cn(
                 'max-w-full max-h-[85vh] object-contain rounded-lg transition-transform duration-200',
-                'select-none'
+                'select-none',
               )}
               style={{ transform: `scale(${scale})` }}
               draggable={false}

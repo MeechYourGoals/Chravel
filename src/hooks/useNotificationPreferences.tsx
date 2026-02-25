@@ -1,6 +1,6 @@
 /**
  * Notification Preferences Hook
- * 
+ *
  * Manages user notification preferences with backend persistence.
  */
 
@@ -32,7 +32,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   task_assignments: true,
   broadcasts: true,
   rsvp_updates: true,
-  event_reminders: true
+  event_reminders: true,
 };
 
 export function useNotificationPreferences() {
@@ -72,54 +72,60 @@ export function useNotificationPreferences() {
     }
   }, [user]);
 
-  const updatePreferences = useCallback(async (newPreferences: Partial<NotificationPreferences>) => {
-    if (!user) return;
+  const updatePreferences = useCallback(
+    async (newPreferences: Partial<NotificationPreferences>) => {
+      if (!user) return;
 
-    try {
-      setIsSaving(true);
+      try {
+        setIsSaving(true);
 
-      const updatedPreferences = {
-        ...preferences,
-        ...newPreferences
-      };
+        const updatedPreferences = {
+          ...preferences,
+          ...newPreferences,
+        };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          notification_settings: updatedPreferences
-        })
-        .eq('user_id', user.id);
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            notification_settings: updatedPreferences,
+          })
+          .eq('user_id', user.id);
 
-      if (error) {
+        if (error) {
+          console.error('Failed to update notification preferences:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to save notification preferences. Please try again.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        setPreferences(updatedPreferences);
+        toast({
+          title: 'Success',
+          description: 'Notification preferences updated successfully.',
+        });
+      } catch (error) {
         console.error('Failed to update notification preferences:', error);
         toast({
           title: 'Error',
           description: 'Failed to save notification preferences. Please try again.',
-          variant: 'destructive'
+          variant: 'destructive',
         });
-        return;
+      } finally {
+        setIsSaving(false);
       }
+    },
+    [user, preferences, toast],
+  );
 
-      setPreferences(updatedPreferences);
-      toast({
-        title: 'Success',
-        description: 'Notification preferences updated successfully.'
-      });
-    } catch (error) {
-      console.error('Failed to update notification preferences:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save notification preferences. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [user, preferences, toast]);
-
-  const updatePreference = useCallback((key: keyof NotificationPreferences, value: boolean) => {
-    updatePreferences({ [key]: value });
-  }, [updatePreferences]);
+  const updatePreference = useCallback(
+    (key: keyof NotificationPreferences, value: boolean) => {
+      updatePreferences({ [key]: value });
+    },
+    [updatePreferences],
+  );
 
   useEffect(() => {
     loadPreferences();
@@ -137,17 +143,17 @@ export function useNotificationPreferences() {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`
+          filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
+        payload => {
           // Handle subscription-related notifications
           if (payload.new.type === 'subscription') {
             toast({
               title: payload.new.title,
-              description: payload.new.message
+              description: payload.new.message,
             });
           }
-        }
+        },
       )
       .subscribe();
 
@@ -162,6 +168,6 @@ export function useNotificationPreferences() {
     isSaving,
     updatePreference,
     updatePreferences,
-    refresh: loadPreferences
+    refresh: loadPreferences,
   };
 }

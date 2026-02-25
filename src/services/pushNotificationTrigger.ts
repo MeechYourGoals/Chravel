@@ -1,6 +1,6 @@
 /**
  * Push Notification Trigger Service
- * 
+ *
  * Triggers push notifications via the send-push edge function.
  * Fails gracefully if push is not configured - never blocks app functionality.
  */
@@ -8,7 +8,13 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export interface PushPayload {
-  type: 'chat_message' | 'trip_update' | 'poll_update' | 'task_update' | 'calendar_event' | 'broadcast';
+  type:
+    | 'chat_message'
+    | 'trip_update'
+    | 'poll_update'
+    | 'task_update'
+    | 'calendar_event'
+    | 'broadcast';
   tripId: string;
   threadId?: string;
   messageId?: string;
@@ -35,7 +41,7 @@ interface SendPushResult {
  */
 export async function sendPushToUsers(
   userIds: string[],
-  notification: NotificationContent
+  notification: NotificationContent,
 ): Promise<SendPushResult> {
   if (!userIds.length) {
     return { success: true, sent: 0, failed: 0, errors: [] };
@@ -68,7 +74,7 @@ export async function sendPushToUsers(
 export async function sendPushToTrip(
   tripId: string,
   excludeUserId: string,
-  notification: NotificationContent
+  notification: NotificationContent,
 ): Promise<SendPushResult> {
   try {
     const { data, error } = await supabase.functions.invoke('send-push', {
@@ -108,9 +114,8 @@ export async function notifyTripOfChatMessage(params: {
   const { tripId, senderId, senderName, messageContent, messageId, threadId, tripName } = params;
 
   // Truncate message content for notification
-  const truncatedContent = messageContent.length > 100 
-    ? messageContent.substring(0, 97) + '...' 
-    : messageContent;
+  const truncatedContent =
+    messageContent.length > 100 ? messageContent.substring(0, 97) + '...' : messageContent;
 
   const notification: NotificationContent = {
     title: tripName ? `${senderName} in ${tripName}` : senderName,
@@ -143,9 +148,8 @@ export async function notifyTripOfBroadcast(params: {
 }): Promise<void> {
   const { tripId, senderId, senderName, broadcastMessage, tripName } = params;
 
-  const truncatedContent = broadcastMessage.length > 100 
-    ? broadcastMessage.substring(0, 97) + '...' 
-    : broadcastMessage;
+  const truncatedContent =
+    broadcastMessage.length > 100 ? broadcastMessage.substring(0, 97) + '...' : broadcastMessage;
 
   const notification: NotificationContent = {
     title: tripName ? `📢 ${tripName}` : '📢 Broadcast',
@@ -176,9 +180,8 @@ export async function notifyTripOfPoll(params: {
 }): Promise<void> {
   const { tripId, creatorId, creatorName, pollQuestion, pollId, tripName } = params;
 
-  const truncatedQuestion = pollQuestion.length > 80 
-    ? pollQuestion.substring(0, 77) + '...' 
-    : pollQuestion;
+  const truncatedQuestion =
+    pollQuestion.length > 80 ? pollQuestion.substring(0, 77) + '...' : pollQuestion;
 
   const notification: NotificationContent = {
     title: tripName ? `📊 New Poll in ${tripName}` : '📊 New Poll',

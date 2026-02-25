@@ -6,7 +6,11 @@ import { Button } from '../ui/button';
 import { ActionPill } from '../ui/ActionPill';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
-import { EVENT_PARITY_ROW_CLASS, EVENT_PARITY_COL_START, EVENT_PARITY_HEADER_SPAN_CLASS } from '@/lib/tabParity';
+import {
+  EVENT_PARITY_ROW_CLASS,
+  EVENT_PARITY_COL_START,
+  EVENT_PARITY_HEADER_SPAN_CLASS,
+} from '@/lib/tabParity';
 import { Card, CardContent } from '../ui/card';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';

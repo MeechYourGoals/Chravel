@@ -32,7 +32,7 @@ function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash);
@@ -48,7 +48,7 @@ export function getProTripColorByName(colorName: string): ProTripColor | null {
 
 /**
  * Get a color for a Pro Trip or Event based on saved color or fallback to deterministic hash
- * 
+ *
  * @param tripId - The unique identifier for the trip (string or number)
  * @param savedColor - Optional user-selected color name (e.g., 'red', 'blue')
  * @returns ProTripColor object with gradient and accent color

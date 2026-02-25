@@ -49,7 +49,9 @@ export const ReadReceipts: React.FC<ReadReceiptsProps> = ({
   return (
     <div className="flex items-center gap-1 text-gray-500 text-xs mt-1">
       <CheckCheck size={12} />
-      <span>Read by {readCount} of {totalRecipients}</span>
+      <span>
+        Read by {readCount} of {totalRecipients}
+      </span>
     </div>
   );
 };

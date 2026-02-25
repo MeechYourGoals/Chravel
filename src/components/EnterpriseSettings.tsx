@@ -35,8 +35,16 @@ export const EnterpriseSettings = ({
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
   const { toast } = useToast();
 
-  const { organizations: orgs, currentOrg, members, loading, error, fetchUserOrganizations, fetchOrgMembers, updateOrganization } =
-    useOrganization();
+  const {
+    organizations: orgs,
+    currentOrg,
+    members,
+    loading,
+    error,
+    fetchUserOrganizations,
+    fetchOrgMembers,
+    updateOrganization,
+  } = useOrganization();
 
   useEffect(() => {
     if (currentOrg?.id) {
@@ -149,7 +157,11 @@ export const EnterpriseSettings = ({
                       contact_job_title: data.contactJobTitle || null,
                     });
                     if (err) {
-                      toast({ title: 'Error', description: 'Failed to save. Please try again.', variant: 'destructive' });
+                      toast({
+                        title: 'Error',
+                        description: 'Failed to save. Please try again.',
+                        variant: 'destructive',
+                      });
                     } else {
                       toast({ title: 'Saved', description: 'Organization settings updated.' });
                     }
@@ -193,7 +205,11 @@ export const EnterpriseSettings = ({
                       contact_job_title: data.contactJobTitle || null,
                     });
                     if (err) {
-                      toast({ title: 'Error', description: 'Failed to save. Please try again.', variant: 'destructive' });
+                      toast({
+                        title: 'Error',
+                        description: 'Failed to save. Please try again.',
+                        variant: 'destructive',
+                      });
                     } else {
                       toast({ title: 'Saved', description: 'Organization settings updated.' });
                     }

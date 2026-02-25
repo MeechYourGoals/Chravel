@@ -39,7 +39,11 @@ function errorResponse(
   corsHeaders: HeadersInit,
   errorCode?: JoinTripErrorCode,
 ): Response {
-  return createJsonResponse({ success: false, message, error_code: errorCode }, status, corsHeaders);
+  return createJsonResponse(
+    { success: false, message, error_code: errorCode },
+    status,
+    corsHeaders,
+  );
 }
 
 function successResponse(data: Record<string, unknown>, corsHeaders: HeadersInit): Response {
@@ -300,7 +304,11 @@ serve(async req => {
 
           if (updateError) {
             logStep('ERROR: Failed to update rejected request', { error: updateError.message });
-            return errorResponse('Failed to resubmit join request. Please try again.', 500, corsHeaders);
+            return errorResponse(
+              'Failed to resubmit join request. Please try again.',
+              500,
+              corsHeaders,
+            );
           }
 
           // Send notifications to trip members/admins
@@ -344,7 +352,11 @@ serve(async req => {
           }
 
           logStep('ERROR: Failed to create join request', { error: requestError.message });
-          return errorResponse('Failed to submit join request. Please try again.', 500, corsHeaders);
+          return errorResponse(
+            'Failed to submit join request. Please try again.',
+            500,
+            corsHeaders,
+          );
         }
 
         joinRequestId = joinRequest?.id;
@@ -422,18 +434,16 @@ serve(async req => {
     }
 
     // No approval required - upsert to support re-join (user may have status=left)
-    const { error: memberError } = await supabaseClient
-      .from('trip_members')
-      .upsert(
-        {
-          trip_id: invite.trip_id,
-          user_id: user.id,
-          role: 'member',
-          status: 'active',
-          left_at: null,
-        },
-        { onConflict: 'trip_id,user_id' },
-      );
+    const { error: memberError } = await supabaseClient.from('trip_members').upsert(
+      {
+        trip_id: invite.trip_id,
+        user_id: user.id,
+        role: 'member',
+        status: 'active',
+        left_at: null,
+      },
+      { onConflict: 'trip_id,user_id' },
+    );
 
     if (memberError) {
       logStep('ERROR: Failed to add member', { error: memberError.message });

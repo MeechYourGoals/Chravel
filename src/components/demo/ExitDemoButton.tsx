@@ -35,23 +35,24 @@ export const ExitDemoButton: React.FC<ExitDemoButtonProps> = ({ onNavigate }) =>
             hover:bg-orange-500/10 hover:border-orange-500/50
             transition-colors duration-200
             text-xs font-medium
-            ${isMobile 
-              ? 'bottom-20 right-3' 
-              : 'top-4 right-4'
-            }
+            ${isMobile ? 'bottom-20 right-3' : 'top-4 right-4'}
           `}
-          style={isMobile ? {
-            bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
-            right: 'calc(12px + env(safe-area-inset-right, 0px))',
-          } : undefined}
+          style={
+            isMobile
+              ? {
+                  bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+                  right: 'calc(12px + env(safe-area-inset-right, 0px))',
+                }
+              : undefined
+          }
         >
           <LogOut size={14} />
           <span>Exit Demo</span>
         </motion.button>
       </AnimatePresence>
 
-      <ExitDemoModal 
-        open={showModal} 
+      <ExitDemoModal
+        open={showModal}
         onOpenChange={setShowModal}
         onNavigate={onNavigate ?? (() => window.location.assign('/'))}
       />

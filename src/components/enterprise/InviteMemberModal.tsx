@@ -3,7 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail } from 'lucide-react';
@@ -23,7 +29,7 @@ export const InviteMemberModal = ({ open, onClose, organizationId }: InviteMembe
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast({
         title: 'Missing email',
@@ -65,12 +71,14 @@ export const InviteMemberModal = ({ open, onClose, organizationId }: InviteMembe
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="email" className="text-gray-300">Email Address</Label>
+            <Label htmlFor="email" className="text-gray-300">
+              Email Address
+            </Label>
             <Input
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               className="bg-gray-800/50 border-gray-600 text-white"
               placeholder="colleague@example.com"
               required
@@ -78,19 +86,25 @@ export const InviteMemberModal = ({ open, onClose, organizationId }: InviteMembe
           </div>
 
           <div>
-            <Label htmlFor="role" className="text-gray-300">Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as 'admin' | 'member')}>
+            <Label htmlFor="role" className="text-gray-300">
+              Role
+            </Label>
+            <Select value={role} onValueChange={v => setRole(v as 'admin' | 'member')}>
               <SelectTrigger className="bg-gray-800/50 border-gray-600 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="member" className="text-white">Member</SelectItem>
-                <SelectItem value="admin" className="text-white">Admin</SelectItem>
+                <SelectItem value="member" className="text-white">
+                  Member
+                </SelectItem>
+                <SelectItem value="admin" className="text-white">
+                  Admin
+                </SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-400 mt-1">
-              {role === 'admin' 
-                ? 'Can manage members and organization settings' 
+              {role === 'admin'
+                ? 'Can manage members and organization settings'
                 : 'Can view and participate in trips'}
             </p>
           </div>

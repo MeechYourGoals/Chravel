@@ -22,11 +22,11 @@ interface MobileTeamMemberCardProps {
   isCurrentUser?: boolean;
 }
 
-export const MobileTeamMemberCard = ({ 
-  member, 
-  onChangeRole, 
+export const MobileTeamMemberCard = ({
+  member,
+  onChangeRole,
   onRemove,
-  isCurrentUser 
+  isCurrentUser,
 }: MobileTeamMemberCardProps) => {
   const getRoleIcon = (role: string) => {
     const lowerRole = role.toLowerCase();
@@ -44,13 +44,17 @@ export const MobileTeamMemberCard = ({
 
   const getStatusBadge = (status?: string) => {
     if (!status || status === 'active') return null;
-    
+
     return (
-      <span className={`text-xs px-2 py-0.5 rounded-full ${
-        status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-        status === 'invited' ? 'bg-blue-500/20 text-blue-400' :
-        'bg-gray-500/20 text-gray-400'
-      }`}>
+      <span
+        className={`text-xs px-2 py-0.5 rounded-full ${
+          status === 'pending'
+            ? 'bg-yellow-500/20 text-yellow-400'
+            : status === 'invited'
+              ? 'bg-blue-500/20 text-blue-400'
+              : 'bg-gray-500/20 text-gray-400'
+        }`}
+      >
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );
@@ -66,18 +70,16 @@ export const MobileTeamMemberCard = ({
                 {member.name.charAt(0).toUpperCase()}
               </span>
             </div>
-            
+
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium truncate">
-                  {member.name}
-                </span>
-                {isCurrentUser && (
-                  <span className="text-xs text-gray-400">(You)</span>
-                )}
+                <span className="text-white font-medium truncate">{member.name}</span>
+                {isCurrentUser && <span className="text-xs text-gray-400">(You)</span>}
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${getRoleColor(member.role)}`}>
+                <span
+                  className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${getRoleColor(member.role)}`}
+                >
                   {getRoleIcon(member.role)}
                   {member.role}
                 </span>
@@ -114,10 +116,7 @@ export const MobileTeamMemberCard = ({
                   </>
                 )}
                 {onRemove && (
-                  <DropdownMenuItem
-                    onClick={onRemove}
-                    className="text-red-400 hover:bg-red-500/10"
-                  >
+                  <DropdownMenuItem onClick={onRemove} className="text-red-400 hover:bg-red-500/10">
                     <Trash2 size={16} className="mr-2" />
                     Remove from Organization
                   </DropdownMenuItem>

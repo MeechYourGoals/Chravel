@@ -15,7 +15,7 @@ interface InlineReplyComponentProps {
 export const InlineReplyComponent: React.FC<InlineReplyComponentProps> = ({
   replyTo,
   onRemoveReply,
-  onCancel
+  onCancel,
 }) => {
   if (!replyTo) return null;
 

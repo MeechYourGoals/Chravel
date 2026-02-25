@@ -31,7 +31,9 @@ export async function searchAllTrips(searchTerm: string): Promise<{
   error: string | null;
 }> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return { trips: [], error: 'Not authenticated' };
     }
@@ -108,7 +110,9 @@ export async function getAllUserTrips(): Promise<{
   error: string | null;
 }> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return { created: [], member: [], error: 'Not authenticated' };
     }
@@ -137,9 +141,7 @@ export async function getAllUserTrips(): Promise<{
     const memberTripIds = memberships?.map(m => m.trip_id) || [];
 
     // Get member trip details (excluding ones we created)
-    const nonCreatorMemberIds = memberTripIds.filter(
-      id => !createdTrips?.some(t => t.id === id)
-    );
+    const nonCreatorMemberIds = memberTripIds.filter(id => !createdTrips?.some(t => t.id === id));
 
     let memberTripData: typeof createdTrips = [];
     if (nonCreatorMemberIds.length > 0) {
@@ -180,7 +182,9 @@ export async function getAllUserTrips(): Promise<{
 /**
  * Recover a trip by un-archiving and un-hiding it.
  */
-export async function recoverTrip(tripId: string): Promise<{ success: boolean; error: string | null }> {
+export async function recoverTrip(
+  tripId: string,
+): Promise<{ success: boolean; error: string | null }> {
   try {
     const { error } = await supabase
       .from('trips')
@@ -213,22 +217,26 @@ export async function debugTrips(): Promise<void> {
   }
 
   console.log('\n📦 CREATED TRIPS:');
-  console.table(result.created.map(t => ({
-    name: t.name,
-    type: t.trip_type,
-    archived: t.is_archived ? '✓' : '',
-    hidden: t.is_hidden ? '✓' : '',
-    id: t.id.slice(0, 8) + '...',
-  })));
+  console.table(
+    result.created.map(t => ({
+      name: t.name,
+      type: t.trip_type,
+      archived: t.is_archived ? '✓' : '',
+      hidden: t.is_hidden ? '✓' : '',
+      id: t.id.slice(0, 8) + '...',
+    })),
+  );
 
   console.log('\n👥 MEMBER TRIPS (not creator):');
-  console.table(result.member.map(t => ({
-    name: t.name,
-    type: t.trip_type,
-    archived: t.is_archived ? '✓' : '',
-    hidden: t.is_hidden ? '✓' : '',
-    id: t.id.slice(0, 8) + '...',
-  })));
+  console.table(
+    result.member.map(t => ({
+      name: t.name,
+      type: t.trip_type,
+      archived: t.is_archived ? '✓' : '',
+      hidden: t.is_hidden ? '✓' : '',
+      id: t.id.slice(0, 8) + '...',
+    })),
+  );
 
   const archived = [...result.created, ...result.member].filter(t => t.is_archived);
   const hidden = [...result.created, ...result.member].filter(t => t.is_hidden);
@@ -252,7 +260,13 @@ export async function debugTrips(): Promise<void> {
 
 // Expose to window for console debugging
 if (typeof window !== 'undefined') {
-  (window as unknown as { debugTrips: typeof debugTrips; searchAllTrips: typeof searchAllTrips; recoverTrip: typeof recoverTrip }).debugTrips = debugTrips;
+  (
+    window as unknown as {
+      debugTrips: typeof debugTrips;
+      searchAllTrips: typeof searchAllTrips;
+      recoverTrip: typeof recoverTrip;
+    }
+  ).debugTrips = debugTrips;
   (window as unknown as { searchAllTrips: typeof searchAllTrips }).searchAllTrips = searchAllTrips;
   (window as unknown as { recoverTrip: typeof recoverTrip }).recoverTrip = recoverTrip;
 }

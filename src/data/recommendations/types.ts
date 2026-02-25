@@ -1,4 +1,3 @@
-
 export interface Recommendation {
   id: number;
   type: 'hotel' | 'restaurant' | 'activity' | 'tour' | 'experience' | 'transportation';

@@ -24,10 +24,9 @@ export const EmptyState = ({ viewMode, onCreateTrip }: EmptyStateProps) => {
         {viewMode === 'myTrips' ? 'No trips yet' : 'No professional trips yet'}
       </h3>
       <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-        {viewMode === 'myTrips' 
+        {viewMode === 'myTrips'
           ? 'Start planning your next adventure! Create your first trip and invite friends to join.'
-          : 'Manage professional trips, tours, and events with advanced collaboration tools.'
-        }
+          : 'Manage professional trips, tours, and events with advanced collaboration tools.'}
       </p>
       <button
         onClick={onCreateTrip}
@@ -36,19 +35,25 @@ export const EmptyState = ({ viewMode, onCreateTrip }: EmptyStateProps) => {
         <Plus size={20} />
         Create Your First Trip
       </button>
-      
+
       <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto text-left">
         <div className="p-4 bg-card rounded-lg border border-border">
           <h4 className="font-semibold mb-2">Collaborate in Real-Time</h4>
-          <p className="text-sm text-muted-foreground">Plan together with friends, family, or team members with live updates</p>
+          <p className="text-sm text-muted-foreground">
+            Plan together with friends, family, or team members with live updates
+          </p>
         </div>
         <div className="p-4 bg-card rounded-lg border border-border">
           <h4 className="font-semibold mb-2">Smart Planning</h4>
-          <p className="text-sm text-muted-foreground">AI-powered itineraries, budget tracking, and automated reminders</p>
+          <p className="text-sm text-muted-foreground">
+            AI-powered itineraries, budget tracking, and automated reminders
+          </p>
         </div>
         <div className="p-4 bg-card rounded-lg border border-border">
           <h4 className="font-semibold mb-2">Everything in One Place</h4>
-          <p className="text-sm text-muted-foreground">Messages, payments, files, and schedules—all organized by trip</p>
+          <p className="text-sm text-muted-foreground">
+            Messages, payments, files, and schedules—all organized by trip
+          </p>
         </div>
       </div>
     </div>

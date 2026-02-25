@@ -16,14 +16,14 @@ interface BulkInviteUploadProps {
 
 /**
  * BulkInviteUpload Component
- * 
+ *
  * Allows trip organizers to upload a CSV file with email addresses
  * for bulk invitations. Supports CSV parsing and validation.
- * 
+ *
  * CSV Format:
  * - First column: Email (required)
  * - Second column: Name (optional)
- * 
+ *
  * Features:
  * - CSV file upload and parsing
  * - Email validation
@@ -31,10 +31,7 @@ interface BulkInviteUploadProps {
  * - Error handling for invalid rows
  * - Mobile-responsive design
  */
-export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
-  onProcess,
-  maxRows = 100
-}) => {
+export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({ onProcess, maxRows = 100 }) => {
   const [rows, setRows] = useState<BulkInviteRow[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -46,7 +43,7 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
   };
 
   const parseCSV = (csvText: string): BulkInviteRow[] => {
-    const lines = csvText.split('\n').filter((line) => line.trim());
+    const lines = csvText.split('\n').filter(line => line.trim());
     const parsed: BulkInviteRow[] = [];
 
     for (let i = 0; i < Math.min(lines.length, maxRows); i++) {
@@ -54,7 +51,7 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
       if (!line) continue;
 
       // Simple CSV parsing (handles quoted values)
-      const columns = line.split(',').map((col) => col.trim().replace(/^"|"$/g, ''));
+      const columns = line.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
       const email = columns[0]?.trim();
       const name = columns[1]?.trim();
 
@@ -63,7 +60,7 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
           email: '',
           name,
           status: 'invalid',
-          error: 'Missing email address'
+          error: 'Missing email address',
         });
         continue;
       }
@@ -73,7 +70,7 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
           email,
           name,
           status: 'invalid',
-          error: 'Invalid email format'
+          error: 'Invalid email format',
         });
         continue;
       }
@@ -81,7 +78,7 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
       parsed.push({
         email,
         name,
-        status: 'valid'
+        status: 'valid',
       });
     }
 
@@ -143,9 +140,7 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
   };
 
   const handleProcess = async () => {
-    const validEmails = rows
-      .filter((row) => row.status === 'valid')
-      .map((row) => row.email);
+    const validEmails = rows.filter(row => row.status === 'valid').map(row => row.email);
 
     if (validEmails.length === 0) {
       toast.error('No valid email addresses to process');
@@ -175,8 +170,8 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
     }
   };
 
-  const validCount = rows.filter((r) => r.status === 'valid').length;
-  const invalidCount = rows.filter((r) => r.status === 'invalid').length;
+  const validCount = rows.filter(r => r.status === 'valid').length;
+  const invalidCount = rows.filter(r => r.status === 'invalid').length;
 
   return (
     <div className="space-y-4">
@@ -187,9 +182,7 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            isDragging
-              ? 'border-blue-500 bg-blue-500/10'
-              : 'border-gray-600 bg-gray-800/30'
+            isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-gray-600 bg-gray-800/30'
           }`}
         >
           <input
@@ -209,12 +202,8 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
               browse
             </button>
           </p>
-          <p className="text-gray-400 text-sm">
-            CSV format: email,name (one per line)
-          </p>
-          <p className="text-gray-500 text-xs mt-2">
-            Maximum {maxRows} rows per upload
-          </p>
+          <p className="text-gray-400 text-sm">CSV format: email,name (one per line)</p>
+          <p className="text-gray-500 text-xs mt-2">Maximum {maxRows} rows per upload</p>
         </div>
       )}
 
@@ -225,9 +214,7 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-blue-400" />
-                <span className="text-white font-medium">
-                  {rows.length} row(s) loaded
-                </span>
+                <span className="text-white font-medium">{rows.length} row(s) loaded</span>
               </div>
               {validCount > 0 && (
                 <div className="flex items-center gap-1 text-green-400">
@@ -268,9 +255,7 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
                     }`}
                   >
                     <td className="px-4 py-2 text-white">{row.email}</td>
-                    <td className="px-4 py-2 text-gray-400">
-                      {row.name || '-'}
-                    </td>
+                    <td className="px-4 py-2 text-gray-400">{row.name || '-'}</td>
                     <td className="px-4 py-2">
                       {row.status === 'valid' ? (
                         <span className="text-green-400 flex items-center gap-1">
@@ -302,9 +287,7 @@ export const BulkInviteUpload: React.FC<BulkInviteUploadProps> = ({
                   Processing...
                 </>
               ) : (
-                <>
-                  Send {validCount} Invitation(s)
-                </>
+                <>Send {validCount} Invitation(s)</>
               )}
             </button>
             <button

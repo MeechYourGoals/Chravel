@@ -12,7 +12,7 @@ export const loadEventsMockData = async (): Promise<Record<string, EventData>> =
   // Dynamic import to reduce initial bundle size
   const { eventsMockData } = await import('./eventsMockData');
   eventsMockDataCache = eventsMockData;
-  
+
   return eventsMockData;
 };
 

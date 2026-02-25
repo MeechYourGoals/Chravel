@@ -9,7 +9,5 @@
   "repository": "https://github.com/vercel-labs/agent-browser",
   "license": "MIT",
   "keywords": ["browser", "automation", "qa", "testing", "dogfood"],
-  "skills": [
-    "dogfood"
-  ]
+  "skills": ["dogfood"]
 }

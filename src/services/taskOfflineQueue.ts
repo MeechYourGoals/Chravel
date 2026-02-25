@@ -30,20 +30,22 @@ class TaskOfflineQueue {
   /**
    * Add an operation to the queue
    */
-  async enqueue(operation: Omit<QueuedTaskOperation, 'id' | 'timestamp' | 'retries'>): Promise<string> {
+  async enqueue(
+    operation: Omit<QueuedTaskOperation, 'id' | 'timestamp' | 'retries'>,
+  ): Promise<string> {
     const queue = await this.getQueue();
     const id = `queue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const queuedOperation: QueuedTaskOperation = {
       ...operation,
       id,
       timestamp: Date.now(),
-      retries: 0
+      retries: 0,
     };
 
     queue.push(queuedOperation);
     await this.saveQueue(queue);
-    
+
     return id;
   }
 
@@ -53,12 +55,12 @@ class TaskOfflineQueue {
   async dequeue(operationId: string): Promise<boolean> {
     const queue = await this.getQueue();
     const filtered = queue.filter(op => op.id !== operationId);
-    
+
     if (filtered.length !== queue.length) {
       await this.saveQueue(filtered);
       return true;
     }
-    
+
     return false;
   }
 
@@ -76,12 +78,12 @@ class TaskOfflineQueue {
   async incrementRetry(operationId: string): Promise<QueuedTaskOperation | null> {
     const queue = await this.getQueue();
     const operation = queue.find(op => op.id === operationId);
-    
+
     if (!operation) return null;
-    
+
     operation.retries += 1;
     await this.saveQueue(queue);
-    
+
     return operation;
   }
 
@@ -107,7 +109,7 @@ class TaskOfflineQueue {
   async getReadyOperations(): Promise<QueuedTaskOperation[]> {
     const queue = await this.getQueue();
     const now = Date.now();
-    
+
     return queue.filter(op => {
       const timeSinceQueued = now - op.timestamp;
       const retryDelay = this.RETRY_DELAY * (op.retries + 1);
@@ -146,7 +148,7 @@ class TaskOfflineQueue {
    */
   async processQueue(
     onCreateTask: (tripId: string, data: CreateTaskRequest) => Promise<any>,
-    onToggleTask: (data: ToggleTaskRequest) => Promise<any>
+    onToggleTask: (data: ToggleTaskRequest) => Promise<any>,
   ): Promise<{ processed: number; failed: number }> {
     if (!this.isOnline()) {
       return { processed: 0, failed: 0 };
@@ -170,7 +172,7 @@ class TaskOfflineQueue {
       } catch (error) {
         console.error(`Failed to process operation ${operation.id}:`, error);
         const updated = await this.incrementRetry(operation.id);
-        
+
         if (updated && updated.retries >= this.MAX_RETRIES) {
           failed++;
           // Keep in queue but mark as failed - user can manually retry

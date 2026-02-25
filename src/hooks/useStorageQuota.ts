@@ -16,7 +16,7 @@ export const useStorageQuota = (tripId?: string) => {
     quotaMB: isPlus ? PLUS_TIER_STORAGE_MB : FREE_TIER_STORAGE_MB,
     percentUsed: 0,
     isNearLimit: false,
-    isOverLimit: false
+    isOverLimit: false,
   });
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +28,7 @@ export const useStorageQuota = (tripId?: string) => {
         quotaMB: FREE_TIER_STORAGE_MB,
         percentUsed: 25.4,
         isNearLimit: false,
-        isOverLimit: false
+        isOverLimit: false,
       });
       setLoading(false);
       return;
@@ -43,16 +43,14 @@ export const useStorageQuota = (tripId?: string) => {
       let totalBytes = 0;
 
       // Query trip_media_index for file sizes
-      const query = supabase
-        .from('trip_media_index')
-        .select('file_size');
+      const query = supabase.from('trip_media_index').select('file_size');
 
       if (tripId) {
         query.eq('trip_id', tripId);
       }
 
       const { data: mediaData } = await query;
-      
+
       if (mediaData) {
         totalBytes = mediaData.reduce((sum, item) => sum + (item.file_size || 0), 0);
       }
@@ -69,7 +67,7 @@ export const useStorageQuota = (tripId?: string) => {
         quotaMB,
         percentUsed: Math.round(percentUsed * 10) / 10,
         isNearLimit: percentUsed >= 80,
-        isOverLimit: percentUsed >= 100
+        isOverLimit: percentUsed >= 100,
       });
     } catch (error) {
       console.error('Error calculating storage usage:', error);
@@ -82,6 +80,6 @@ export const useStorageQuota = (tripId?: string) => {
     quota,
     loading,
     refresh: calculateStorageUsage,
-    canUpload: !quota.isOverLimit || isPlus || isDemoMode
+    canUpload: !quota.isOverLimit || isPlus || isDemoMode,
   };
 };

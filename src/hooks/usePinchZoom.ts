@@ -8,7 +8,7 @@ interface PinchZoomOptions {
 
 export const usePinchZoom = (
   elementRef: React.RefObject<HTMLElement>,
-  options: PinchZoomOptions = {}
+  options: PinchZoomOptions = {},
 ) => {
   const { minZoom = 1, maxZoom = 4, onZoomChange } = options;
   const [zoom, setZoom] = useState(1);
@@ -38,11 +38,8 @@ export const usePinchZoom = (
         e.preventDefault();
         const currentDistance = getDistance(e.touches);
         const scale = currentDistance / initialDistance.current;
-        const newZoom = Math.min(
-          Math.max(initialZoom.current * scale, minZoom),
-          maxZoom
-        );
-        
+        const newZoom = Math.min(Math.max(initialZoom.current * scale, minZoom), maxZoom);
+
         setZoom(newZoom);
         onZoomChange?.(newZoom);
       }

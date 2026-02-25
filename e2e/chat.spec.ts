@@ -9,7 +9,7 @@ test.describe('Chat Functionality', () => {
     // Look for chat elements
     const chatInput = page.getByPlaceholder(/type.*message|message/i);
     const chatContainer = page.locator('[data-testid="chat"]').or(page.locator('main')).first();
-    
+
     // Verify chat UI elements exist
     await expect(chatContainer).toBeVisible();
   });
@@ -19,14 +19,14 @@ test.describe('Chat Functionality', () => {
     // 1. Authentication
     // 2. Active trip context
     // 3. Chat input field
-    
+
     // Template for future implementation
     const chatInput = page.getByPlaceholder(/type.*message/i);
-    
+
     if (await chatInput.isVisible()) {
       await chatInput.fill('Test message');
       await chatInput.press('Enter');
-      
+
       // Verify message appears in chat
       await expect(page.getByText('Test message')).toBeVisible({ timeout: 5000 });
     } else {

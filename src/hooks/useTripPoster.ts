@@ -9,7 +9,7 @@ export const useTripPoster = () => {
   const generatePoster = async (): Promise<string | null> => {
     setIsGenerating(true);
     setError(null);
-    
+
     try {
       const posterElement = document.getElementById('trip-poster');
       if (!posterElement) {
@@ -39,7 +39,7 @@ export const useTripPoster = () => {
 
   const downloadPoster = (tripTitle: string) => {
     if (!posterUrl) return;
-    
+
     const link = document.createElement('a');
     link.download = `${tripTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_trip_poster.png`;
     link.href = posterUrl;
@@ -57,19 +57,19 @@ export const useTripPoster = () => {
         const response = await fetch(posterUrl);
         const blob = await response.blob();
         const file = new File([blob], `${tripTitle}_trip_poster.png`, { type: 'image/png' });
-        
+
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: `${tripTitle} - Trip Details`,
             text: `Check out this amazing trip: ${tripTitle}`,
-            files: [file]
+            files: [file],
           });
         } else {
           // Fallback to text sharing
           await navigator.share({
             title: `${tripTitle} - Trip Details`,
             text: `Check out this amazing trip: ${tripTitle}`,
-            url: window.location.href
+            url: window.location.href,
           });
         }
       } catch (err) {
@@ -94,6 +94,6 @@ export const useTripPoster = () => {
     generatePoster,
     downloadPoster,
     sharePoster,
-    resetPoster
+    resetPoster,
   };
 };

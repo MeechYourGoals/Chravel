@@ -15,19 +15,17 @@ export const useOrientation = (): Orientation => {
 
   useEffect(() => {
     const handleOrientationChange = () => {
-      const newOrientation = window.innerHeight > window.innerWidth 
-        ? 'portrait' 
-        : 'landscape';
-      
+      const newOrientation = window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
+
       setOrientation(newOrientation);
     };
 
     // Listen to resize events (works on all devices)
     window.addEventListener('resize', handleOrientationChange);
-    
+
     // Also listen to orientationchange event (iOS specific)
     window.addEventListener('orientationchange', handleOrientationChange);
-    
+
     // Initial check
     handleOrientationChange();
 

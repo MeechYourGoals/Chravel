@@ -30,7 +30,9 @@ class RoleTemplateService {
    */
   async saveTemplate(request: RoleTemplateCreateRequest): Promise<RoleTemplate | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
       // Aggregate roles from roster
@@ -42,7 +44,7 @@ class RoleTemplateService {
         } else {
           roleMap.set(member.role, {
             count: 1,
-            credentialLevel: member.credentialLevel
+            credentialLevel: member.credentialLevel,
           });
         }
       });
@@ -50,7 +52,7 @@ class RoleTemplateService {
       const roles = Array.from(roleMap.entries()).map(([role, data]) => ({
         role,
         count: data.count,
-        credentialLevel: data.credentialLevel
+        credentialLevel: data.credentialLevel,
       }));
 
       const { data, error } = await (supabase as any)
@@ -62,7 +64,7 @@ class RoleTemplateService {
           roles: roles,
           created_by: user.id,
           organization_id: request.organizationId,
-          is_public: request.isPublic || false
+          is_public: request.isPublic || false,
         })
         .select()
         .single();
@@ -79,7 +81,7 @@ class RoleTemplateService {
         organizationId: (data as any).organization_id,
         isPublic: (data as any).is_public,
         createdAt: (data as any).created_at,
-        updatedAt: (data as any).updated_at
+        updatedAt: (data as any).updated_at,
       };
     } catch (error) {
       console.error('Failed to save template:', error);
@@ -110,7 +112,7 @@ class RoleTemplateService {
         organizationId: (data as any).organization_id,
         isPublic: (data as any).is_public,
         createdAt: (data as any).created_at,
-        updatedAt: (data as any).updated_at
+        updatedAt: (data as any).updated_at,
       };
     } catch (error) {
       console.error('Failed to load template:', error);
@@ -123,7 +125,9 @@ class RoleTemplateService {
    */
   async getUserTemplates(): Promise<RoleTemplate[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return [];
 
       const { data, error } = await (supabase as any)
@@ -144,7 +148,7 @@ class RoleTemplateService {
         organizationId: d.organization_id,
         isPublic: d.is_public,
         createdAt: d.created_at,
-        updatedAt: d.updated_at
+        updatedAt: d.updated_at,
       }));
     } catch (error) {
       console.error('Failed to get user templates:', error);
@@ -157,7 +161,9 @@ class RoleTemplateService {
    */
   async getTemplatesByCategory(category: ProTripCategory): Promise<RoleTemplate[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return [];
 
       const { data, error } = await (supabase as any)
@@ -179,7 +185,7 @@ class RoleTemplateService {
         organizationId: d.organization_id,
         isPublic: d.is_public,
         createdAt: d.created_at,
-        updatedAt: d.updated_at
+        updatedAt: d.updated_at,
       }));
     } catch (error) {
       console.error('Failed to get templates by category:', error);
@@ -210,7 +216,7 @@ class RoleTemplateService {
    */
   async updateTemplate(
     templateId: string,
-    updates: Partial<Pick<RoleTemplate, 'name' | 'description' | 'isPublic'>>
+    updates: Partial<Pick<RoleTemplate, 'name' | 'description' | 'isPublic'>>,
   ): Promise<boolean> {
     try {
       const { error } = await (supabase as any)
@@ -218,7 +224,7 @@ class RoleTemplateService {
         .update({
           name: updates.name,
           description: updates.description,
-          is_public: updates.isPublic
+          is_public: updates.isPublic,
         })
         .eq('id', templateId);
 
@@ -236,7 +242,7 @@ class RoleTemplateService {
    */
   applyTemplateToRoster(
     template: RoleTemplate,
-    currentRoster: ProParticipant[]
+    currentRoster: ProParticipant[],
   ): Map<string, string> {
     const assignments = new Map<string, string>();
     const templateRoles = template.roles.map(r => r.role);
@@ -258,4 +264,3 @@ class RoleTemplateService {
 }
 
 export const roleTemplateService = new RoleTemplateService();
-

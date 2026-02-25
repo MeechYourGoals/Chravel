@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Archive, Calendar, MapPin, Users, Search } from 'lucide-react';
 import { Input } from '../components/ui/input';
@@ -21,9 +20,9 @@ const ArchivePage = () => {
     if (!isDemoMode) {
       return [];
     }
-    
+
     const archived = [];
-    
+
     // Regular trips
     tripsData.forEach(trip => {
       const endDate = new Date(trip.dateRange.split(' - ')[1]);
@@ -31,7 +30,7 @@ const ArchivePage = () => {
         archived.push({
           ...trip,
           type: 'trip',
-          deepLink: `/trip/${trip.id}`
+          deepLink: `/trip/${trip.id}`,
         });
       }
     });
@@ -43,7 +42,7 @@ const ArchivePage = () => {
         archived.push({
           ...trip,
           type: 'pro',
-          deepLink: `/tour/pro/${trip.id}`
+          deepLink: `/tour/pro/${trip.id}`,
         });
       }
     });
@@ -55,15 +54,16 @@ const ArchivePage = () => {
         archived.push({
           ...event,
           type: 'event',
-          deepLink: `/event/${event.id}`
+          deepLink: `/event/${event.id}`,
         });
       }
     });
 
-    return archived.filter(item => 
-      searchQuery === '' || 
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchQuery.toLowerCase())
+    return archived.filter(
+      item =>
+        searchQuery === '' ||
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.location.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   };
 
@@ -93,12 +93,15 @@ const ArchivePage = () => {
 
       {/* Search */}
       <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+        <Search
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          size={18}
+        />
         <Input
           type="text"
           placeholder="Search archived trips..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
           className="pl-10 bg-gray-900/80 border-gray-700 text-white placeholder-gray-400 h-12"
         />
       </div>
@@ -119,7 +122,7 @@ const ArchivePage = () => {
             <p>Your completed trips will appear here</p>
           </div>
         ) : (
-          archivedTrips.map((trip) => (
+          archivedTrips.map(trip => (
             <div
               key={`${trip.type}-${trip.id}`}
               onClick={() => navigate(trip.deepLink)}
@@ -144,7 +147,7 @@ const ArchivePage = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex gap-2">
                 {getTypeBadge(trip.type)}
                 <Badge className="bg-gray-500/20 text-gray-400">

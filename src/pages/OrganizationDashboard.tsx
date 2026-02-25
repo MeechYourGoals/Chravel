@@ -22,8 +22,19 @@ export const OrganizationDashboard = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { organizations, currentOrg, members, loading, fetchOrgMembers, updateMemberRole, removeMember, setCurrentOrg, fetchUserOrganizations, updateOrganization } = useOrganization();
-  
+  const {
+    organizations,
+    currentOrg,
+    members,
+    loading,
+    fetchOrgMembers,
+    updateMemberRole,
+    removeMember,
+    setCurrentOrg,
+    fetchUserOrganizations,
+    updateOrganization,
+  } = useOrganization();
+
   const [activeTab, setActiveTab] = useState('overview');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [linkedTrips, setLinkedTrips] = useState<any[]>([]);
@@ -49,7 +60,8 @@ export const OrganizationDashboard = () => {
       setLoadingTrips(true);
       const { data, error } = await supabase
         .from('pro_trip_organizations')
-        .select(`
+        .select(
+          `
           trip_id,
           trips:trip_id (
             id,
@@ -61,11 +73,12 @@ export const OrganizationDashboard = () => {
             trip_type,
             cover_image_url
           )
-        `)
+        `,
+        )
         .eq('organization_id', organizationId);
 
       if (error) throw error;
-      
+
       const trips = data?.map(item => item.trips).filter(Boolean) || [];
       setLinkedTrips(trips);
     } catch (error) {
@@ -126,10 +139,10 @@ export const OrganizationDashboard = () => {
         <div className="text-center">
           <Building size={64} className="text-gray-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Organization Not Found</h2>
-          <p className="text-gray-400 mb-6">This organization doesn't exist or you don't have access.</p>
-          <Button onClick={() => navigate('/organizations')}>
-            View My Organizations
-          </Button>
+          <p className="text-gray-400 mb-6">
+            This organization doesn't exist or you don't have access.
+          </p>
+          <Button onClick={() => navigate('/organizations')}>View My Organizations</Button>
         </div>
       </div>
     );
@@ -154,7 +167,7 @@ export const OrganizationDashboard = () => {
             <ChevronLeft size={20} />
             Back to Organizations
           </button>
-          
+
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
               <Building size={24} className="text-white" />
@@ -175,7 +188,9 @@ export const OrganizationDashboard = () => {
             </Card>
             <Card className="bg-white/5 border-white/10">
               <CardContent className="p-4">
-                <div className="text-2xl font-bold text-green-400">{currentOrg.seat_limit - currentOrg.seats_used}</div>
+                <div className="text-2xl font-bold text-green-400">
+                  {currentOrg.seat_limit - currentOrg.seats_used}
+                </div>
                 <div className="text-xs text-gray-400">Available Seats</div>
               </CardContent>
             </Card>
@@ -195,7 +210,7 @@ export const OrganizationDashboard = () => {
         {/* Mobile Team List */}
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-white">Team Members</h3>
-          {members.map((member) => (
+          {members.map(member => (
             <MobileTeamMemberCard
               key={member.id}
               member={{
@@ -205,7 +220,9 @@ export const OrganizationDashboard = () => {
                 avatar: '',
                 status: member.status as 'active' | 'pending',
               }}
-              onChangeRole={isAdmin ? (newRole) => handleChangeRole(member.id, newRole.toLowerCase()) : undefined}
+              onChangeRole={
+                isAdmin ? newRole => handleChangeRole(member.id, newRole.toLowerCase()) : undefined
+              }
               onRemove={isAdmin ? () => handleRemove(member.id) : undefined}
               isCurrentUser={member.user_id === user?.id}
             />
@@ -334,35 +351,45 @@ export const OrganizationDashboard = () => {
           <TabsContent value="overview" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <OrganizationSection
-                organizations={[{
-                  id: currentOrg.id,
-                  name: currentOrg.name,
-                  displayName: currentOrg.display_name,
-                  billingEmail: currentOrg.billing_email || '',
-                  contactName: (currentOrg as { contact_name?: string })?.contact_name || '',
-                  contactEmail: (currentOrg as { contact_email?: string })?.contact_email || '',
-                  contactPhone: (currentOrg as { contact_phone?: string })?.contact_phone || '',
-                  contactJobTitle: (currentOrg as { contact_job_title?: string })?.contact_job_title || '',
-                }]}
-                onSave={updateOrganization ? async (orgId, data) => {
-                  const { error: err } = await updateOrganization(orgId, {
-                    name: data.name,
-                    display_name: data.displayName,
-                    billing_email: data.billingEmail,
-                    contact_name: data.contactName || null,
-                    contact_email: data.contactEmail || null,
-                    contact_phone: data.contactPhone || null,
-                    contact_job_title: data.contactJobTitle || null,
-                  });
-                  if (!err) toast({ title: 'Saved', description: 'Organization settings updated.' });
-                } : undefined}
+                organizations={[
+                  {
+                    id: currentOrg.id,
+                    name: currentOrg.name,
+                    displayName: currentOrg.display_name,
+                    billingEmail: currentOrg.billing_email || '',
+                    contactName: (currentOrg as { contact_name?: string })?.contact_name || '',
+                    contactEmail: (currentOrg as { contact_email?: string })?.contact_email || '',
+                    contactPhone: (currentOrg as { contact_phone?: string })?.contact_phone || '',
+                    contactJobTitle:
+                      (currentOrg as { contact_job_title?: string })?.contact_job_title || '',
+                  },
+                ]}
+                onSave={
+                  updateOrganization
+                    ? async (orgId, data) => {
+                        const { error: err } = await updateOrganization(orgId, {
+                          name: data.name,
+                          display_name: data.displayName,
+                          billing_email: data.billingEmail,
+                          contact_name: data.contactName || null,
+                          contact_email: data.contactEmail || null,
+                          contact_phone: data.contactPhone || null,
+                          contact_job_title: data.contactJobTitle || null,
+                        });
+                        if (!err)
+                          toast({ title: 'Saved', description: 'Organization settings updated.' });
+                      }
+                    : undefined
+                }
               />
-              <BillingSection organization={{
-                subscriptionTier: currentOrg.subscription_tier,
-                subscriptionEndsAt: currentOrg.subscription_ends_at || 'N/A',
-                seatsUsed: currentOrg.seats_used,
-                seatLimit: currentOrg.seat_limit,
-              }} />
+              <BillingSection
+                organization={{
+                  subscriptionTier: currentOrg.subscription_tier,
+                  subscriptionEndsAt: currentOrg.subscription_ends_at || 'N/A',
+                  seatsUsed: currentOrg.seats_used,
+                  seatLimit: currentOrg.seat_limit,
+                }}
+              />
             </div>
           </TabsContent>
 
@@ -381,10 +408,10 @@ export const OrganizationDashboard = () => {
                 <CardContent className="p-12 text-center">
                   <Briefcase size={64} className="text-gray-600 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-white mb-2">No Pro Trips Yet</h3>
-                  <p className="text-gray-400 mb-6">Create your first Pro trip and link it to this organization</p>
-                  <Button onClick={() => navigate('/')}>
-                    Create Pro Trip
-                  </Button>
+                  <p className="text-gray-400 mb-6">
+                    Create your first Pro trip and link it to this organization
+                  </p>
+                  <Button onClick={() => navigate('/')}>Create Pro Trip</Button>
                 </CardContent>
               </Card>
             ) : (
@@ -396,7 +423,10 @@ export const OrganizationDashboard = () => {
                     onClick={() => navigate(`/tour/pro/${trip.id}`)}
                   >
                     {trip.cover_image_url && (
-                      <div className="h-32 bg-cover bg-center rounded-t-lg" style={{ backgroundImage: `url(${trip.cover_image_url})` }} />
+                      <div
+                        className="h-32 bg-cover bg-center rounded-t-lg"
+                        style={{ backgroundImage: `url(${trip.cover_image_url})` }}
+                      />
                     )}
                     <CardHeader>
                       <CardTitle className="text-white group-hover:text-glass-orange transition-colors">
@@ -407,11 +437,14 @@ export const OrganizationDashboard = () => {
                     <CardContent>
                       {trip.start_date && trip.end_date && (
                         <p className="text-xs text-gray-500">
-                          {new Date(trip.start_date).toLocaleDateString()} - {new Date(trip.end_date).toLocaleDateString()}
+                          {new Date(trip.start_date).toLocaleDateString()} -{' '}
+                          {new Date(trip.end_date).toLocaleDateString()}
                         </p>
                       )}
                       {trip.description && (
-                        <p className="text-sm text-gray-400 mt-2 line-clamp-2">{trip.description}</p>
+                        <p className="text-sm text-gray-400 mt-2 line-clamp-2">
+                          {trip.description}
+                        </p>
                       )}
                     </CardContent>
                   </Card>
@@ -424,35 +457,48 @@ export const OrganizationDashboard = () => {
             <TabsContent value="settings" className="mt-6">
               <div className="space-y-6">
                 <OrganizationSection
-                  organizations={[{
-                    id: currentOrg.id,
-                    name: currentOrg.name,
-                    displayName: currentOrg.display_name,
-                    billingEmail: currentOrg.billing_email || '',
-                    contactName: (currentOrg as { contact_name?: string })?.contact_name || '',
-                    contactEmail: (currentOrg as { contact_email?: string })?.contact_email || '',
-                    contactPhone: (currentOrg as { contact_phone?: string })?.contact_phone || '',
-                    contactJobTitle: (currentOrg as { contact_job_title?: string })?.contact_job_title || '',
-                  }]}
-                  onSave={updateOrganization ? async (orgId, data) => {
-                    const { error: err } = await updateOrganization(orgId, {
-                      name: data.name,
-                      display_name: data.displayName,
-                      billing_email: data.billingEmail,
-                      contact_name: data.contactName || null,
-                      contact_email: data.contactEmail || null,
-                      contact_phone: data.contactPhone || null,
-                      contact_job_title: data.contactJobTitle || null,
-                    });
-                    if (!err) toast({ title: 'Saved', description: 'Organization settings updated.' });
-                  } : undefined}
+                  organizations={[
+                    {
+                      id: currentOrg.id,
+                      name: currentOrg.name,
+                      displayName: currentOrg.display_name,
+                      billingEmail: currentOrg.billing_email || '',
+                      contactName: (currentOrg as { contact_name?: string })?.contact_name || '',
+                      contactEmail: (currentOrg as { contact_email?: string })?.contact_email || '',
+                      contactPhone: (currentOrg as { contact_phone?: string })?.contact_phone || '',
+                      contactJobTitle:
+                        (currentOrg as { contact_job_title?: string })?.contact_job_title || '',
+                    },
+                  ]}
+                  onSave={
+                    updateOrganization
+                      ? async (orgId, data) => {
+                          const { error: err } = await updateOrganization(orgId, {
+                            name: data.name,
+                            display_name: data.displayName,
+                            billing_email: data.billingEmail,
+                            contact_name: data.contactName || null,
+                            contact_email: data.contactEmail || null,
+                            contact_phone: data.contactPhone || null,
+                            contact_job_title: data.contactJobTitle || null,
+                          });
+                          if (!err)
+                            toast({
+                              title: 'Saved',
+                              description: 'Organization settings updated.',
+                            });
+                        }
+                      : undefined
+                  }
                 />
-                <BillingSection organization={{
-                  subscriptionTier: currentOrg.subscription_tier,
-                  subscriptionEndsAt: currentOrg.subscription_ends_at || 'N/A',
-                  seatsUsed: currentOrg.seats_used,
-                  seatLimit: currentOrg.seat_limit,
-                }} />
+                <BillingSection
+                  organization={{
+                    subscriptionTier: currentOrg.subscription_tier,
+                    subscriptionEndsAt: currentOrg.subscription_ends_at || 'N/A',
+                    seatsUsed: currentOrg.seats_used,
+                    seatLimit: currentOrg.seat_limit,
+                  }}
+                />
               </div>
             </TabsContent>
           )}

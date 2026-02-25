@@ -13,9 +13,7 @@ export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDe
   const { isSubscribed, upgradeToTier } = useConsumerSubscription();
 
   if (loading) {
-    return (
-      <div className="animate-pulse bg-white/5 h-2 rounded-full w-full" />
-    );
+    return <div className="animate-pulse bg-white/5 h-2 rounded-full w-full" />;
   }
 
   const getBarColor = () => {
@@ -40,15 +38,13 @@ export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDe
               Storage: {quota.usedMB.toFixed(1)} MB / {quota.quotaMB} MB
             </span>
           </div>
-          <span className={`font-medium ${getTextColor()}`}>
-            {quota.percentUsed.toFixed(1)}%
-          </span>
+          <span className={`font-medium ${getTextColor()}`}>{quota.percentUsed.toFixed(1)}%</span>
         </div>
       )}
 
       {/* Progress Bar */}
       <div className="relative w-full h-2 bg-white/10 rounded-full overflow-hidden">
-        <div 
+        <div
           className={`absolute left-0 top-0 h-full ${getBarColor()} transition-all duration-500`}
           style={{ width: `${Math.min(quota.percentUsed, 100)}%` }}
         />
@@ -80,7 +76,8 @@ export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDe
           <div className="flex-1">
             <p className="text-yellow-300 text-sm font-medium mb-1">Approaching Storage Limit</p>
             <p className="text-yellow-200/80 text-xs mb-2">
-              You've used {quota.percentUsed.toFixed(0)}% of your storage. Upgrade for unlimited storage.
+              You've used {quota.percentUsed.toFixed(0)}% of your storage. Upgrade for unlimited
+              storage.
             </p>
             <button
               onClick={() => upgradeToTier('explorer', 'annual')}
@@ -95,9 +92,7 @@ export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDe
 
       {isSubscribed && showDetails && (
         <div className="text-center">
-          <span className="text-xs text-gray-400">
-            ✨ Unlimited storage with your plan
-          </span>
+          <span className="text-xs text-gray-400">✨ Unlimited storage with your plan</span>
         </div>
       )}
     </div>

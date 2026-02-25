@@ -19,10 +19,10 @@ const createChainableMock = (resolvedValue: { data: any; error: any }) => {
     maybeSingle: vi.fn().mockResolvedValue(resolvedValue),
     single: vi.fn().mockResolvedValue(resolvedValue),
     then: vi.fn((resolve: any, reject: any) => {
-        // If resolvedValue contains error, we might want to consider it a "success" response from Supabase client
-        // (Supabase client doesn't throw on error usually, unless .throwOnError() is used, which is not here)
-        // So we resolve with the value.
-        resolve(resolvedValue);
+      // If resolvedValue contains error, we might want to consider it a "success" response from Supabase client
+      // (Supabase client doesn't throw on error usually, unless .throwOnError() is used, which is not here)
+      // So we resolve with the value.
+      resolve(resolvedValue);
     }),
   };
   // Make all chain methods return the chain explicitly
@@ -400,9 +400,7 @@ describe('paymentBalanceService', () => {
       });
 
       // We don't expect DB calls, but safeguard mocks
-      (supabase.from as any).mockImplementation(
-        createFromMock({})
-      );
+      (supabase.from as any).mockImplementation(createFromMock({}));
 
       await expect(paymentBalanceService.getBalanceSummary('trip-1', 'user-1')).rejects.toThrow(
         'Unauthorized: Authentication required',
@@ -429,8 +427,8 @@ describe('paymentBalanceService', () => {
     });
 
     it('should handle errors gracefully', async () => {
-        // This test simulates a DB error that is NOT unauthorized
-        // The service catches generic errors and returns empty summary
+      // This test simulates a DB error that is NOT unauthorized
+      // The service catches generic errors and returns empty summary
       const mockSelect = vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({
           data: null,
@@ -443,7 +441,9 @@ describe('paymentBalanceService', () => {
           // Simulate DB error on trip_members query
           const chain = createChainableMock({ data: null, error: { message: 'DB Error' } });
           // Overwrite maybeSingle to return error
-          chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: { message: 'DB Error' } });
+          chain.maybeSingle = vi
+            .fn()
+            .mockResolvedValue({ data: null, error: { message: 'DB Error' } });
           return chain;
         }
         return createChainableMock({ data: [], error: null });

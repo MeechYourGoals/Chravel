@@ -6,10 +6,7 @@ interface VirtualScrollOptions {
   containerHeight?: number;
 }
 
-export const useVirtualScroll = <T,>(
-  items: T[],
-  options: VirtualScrollOptions
-) => {
+export const useVirtualScroll = <T>(items: T[], options: VirtualScrollOptions) => {
   const { itemHeight, overscan = 3, containerHeight = window.innerHeight } = options;
   const [scrollTop, setScrollTop] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -18,7 +15,7 @@ export const useVirtualScroll = <T,>(
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
   const endIndex = Math.min(
     items.length - 1,
-    Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan
+    Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan,
   );
 
   const visibleItems = items.slice(startIndex, endIndex + 1).map((item, index) => ({

@@ -75,7 +75,11 @@ export const usePdfExportUsage = (tripId: string) => {
 
   // Fetch export count for this trip - use localStorage for simplicity
   // In production, this could be a database table like concierge_usage
-  const { data: usage, isLoading, refetch } = useQuery({
+  const {
+    data: usage,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['pdf-export-usage', tripId, user?.id],
     queryFn: async (): Promise<PdfExportUsage> => {
       if (!user?.id || !tripId) {
@@ -128,10 +132,13 @@ export const usePdfExportUsage = (tripId: string) => {
       const exportData = localStorage.getItem(storageKey);
       const currentCount = exportData ? JSON.parse(exportData).count : 0;
 
-      localStorage.setItem(storageKey, JSON.stringify({
-        count: currentCount + 1,
-        lastExport: new Date().toISOString(),
-      }));
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          count: currentCount + 1,
+          lastExport: new Date().toISOString(),
+        }),
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pdf-export-usage', tripId, user?.id] });
@@ -153,13 +160,13 @@ export const usePdfExportUsage = (tripId: string) => {
     if (usage.hasExported) {
       return {
         status: 'used',
-        message: `Free export used (${usage.exportCount}/${usage.limit})`
+        message: `Free export used (${usage.exportCount}/${usage.limit})`,
       };
     }
 
     return {
       status: 'available',
-      message: `1 free export available`
+      message: `1 free export available`,
     };
   };
 

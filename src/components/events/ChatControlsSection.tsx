@@ -17,14 +17,14 @@ export const ChatControlsSection = () => {
     messageHistory: true,
     broadcastsEnabled: true,
     notificationSound: true,
-    moderatorApproval: false
+    moderatorApproval: false,
   });
 
   const [autoModeration, setAutoModeration] = useState({
     enabled: true,
     restrictedWords: 'spam, advertisement, promotion',
     maxMessageLength: 500,
-    rateLimitSeconds: 5
+    rateLimitSeconds: 5,
   });
 
   const updateSetting = (key: string, value: boolean | string | number) => {
@@ -52,7 +52,7 @@ export const ChatControlsSection = () => {
           <MessageSquare size={20} />
           Basic Chat Settings
         </h4>
-        
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -61,18 +61,20 @@ export const ChatControlsSection = () => {
             </div>
             <Switch
               checked={chatSettings.enabled}
-              onCheckedChange={(checked) => updateSetting('enabled', checked)}
+              onCheckedChange={checked => updateSetting('enabled', checked)}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-white">Attendee-to-Attendee Chat</Label>
-              <p className="text-gray-400 text-sm">Allow attendees to message each other directly</p>
+              <p className="text-gray-400 text-sm">
+                Allow attendees to message each other directly
+              </p>
             </div>
             <Switch
               checked={chatSettings.attendeeToAttendee}
-              onCheckedChange={(checked) => updateSetting('attendeeToAttendee', checked)}
+              onCheckedChange={checked => updateSetting('attendeeToAttendee', checked)}
               disabled={!chatSettings.enabled}
             />
           </div>
@@ -84,7 +86,7 @@ export const ChatControlsSection = () => {
             </div>
             <Switch
               checked={chatSettings.attendeeToSpeaker}
-              onCheckedChange={(checked) => updateSetting('attendeeToSpeaker', checked)}
+              onCheckedChange={checked => updateSetting('attendeeToSpeaker', checked)}
               disabled={!chatSettings.enabled}
             />
           </div>
@@ -92,11 +94,13 @@ export const ChatControlsSection = () => {
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-white">Anonymous Messages</Label>
-              <p className="text-gray-400 text-sm">Allow anonymous messaging for sensitive topics</p>
+              <p className="text-gray-400 text-sm">
+                Allow anonymous messaging for sensitive topics
+              </p>
             </div>
             <Switch
               checked={chatSettings.anonymousAllowed}
-              onCheckedChange={(checked) => updateSetting('anonymousAllowed', checked)}
+              onCheckedChange={checked => updateSetting('anonymousAllowed', checked)}
               disabled={!chatSettings.enabled}
             />
           </div>
@@ -109,7 +113,7 @@ export const ChatControlsSection = () => {
           <Shield size={20} />
           Moderation & Safety
         </h4>
-        
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -118,7 +122,7 @@ export const ChatControlsSection = () => {
             </div>
             <Switch
               checked={chatSettings.moderated}
-              onCheckedChange={(checked) => updateSetting('moderated', checked)}
+              onCheckedChange={checked => updateSetting('moderated', checked)}
               disabled={!chatSettings.enabled}
             />
           </div>
@@ -130,7 +134,7 @@ export const ChatControlsSection = () => {
             </div>
             <Switch
               checked={chatSettings.profanityFilter}
-              onCheckedChange={(checked) => updateSetting('profanityFilter', checked)}
+              onCheckedChange={checked => updateSetting('profanityFilter', checked)}
               disabled={!chatSettings.enabled}
             />
           </div>
@@ -142,7 +146,7 @@ export const ChatControlsSection = () => {
                 <Label className="text-gray-300 text-sm">Max Message Length</Label>
                 <Select
                   value={autoModeration.maxMessageLength.toString()}
-                  onValueChange={(value) => updateAutoModeration('maxMessageLength', parseInt(value))}
+                  onValueChange={value => updateAutoModeration('maxMessageLength', parseInt(value))}
                 >
                   <SelectTrigger className="bg-gray-800/50 border-gray-600 text-white">
                     <SelectValue />
@@ -159,7 +163,7 @@ export const ChatControlsSection = () => {
                 <Label className="text-gray-300 text-sm">Rate Limit (seconds)</Label>
                 <Select
                   value={autoModeration.rateLimitSeconds.toString()}
-                  onValueChange={(value) => updateAutoModeration('rateLimitSeconds', parseInt(value))}
+                  onValueChange={value => updateAutoModeration('rateLimitSeconds', parseInt(value))}
                 >
                   <SelectTrigger className="bg-gray-800/50 border-gray-600 text-white">
                     <SelectValue />
@@ -179,12 +183,14 @@ export const ChatControlsSection = () => {
             <Label className="text-white">Restricted Words</Label>
             <Textarea
               value={autoModeration.restrictedWords}
-              onChange={(e) => updateAutoModeration('restrictedWords', e.target.value)}
+              onChange={e => updateAutoModeration('restrictedWords', e.target.value)}
               className="bg-gray-800/50 border-gray-600 text-white"
               placeholder="Enter comma-separated words to filter"
               rows={3}
             />
-            <p className="text-gray-500 text-xs">Messages containing these words will be automatically flagged</p>
+            <p className="text-gray-500 text-xs">
+              Messages containing these words will be automatically flagged
+            </p>
           </div>
         </div>
       </div>
@@ -195,7 +201,7 @@ export const ChatControlsSection = () => {
           <Bell size={20} />
           Notification Settings
         </h4>
-        
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -204,18 +210,20 @@ export const ChatControlsSection = () => {
             </div>
             <Switch
               checked={chatSettings.notificationSound}
-              onCheckedChange={(checked) => updateSetting('notificationSound', checked)}
+              onCheckedChange={checked => updateSetting('notificationSound', checked)}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-white">Broadcast Notifications</Label>
-              <p className="text-gray-400 text-sm">Send push notifications for important broadcasts</p>
+              <p className="text-gray-400 text-sm">
+                Send push notifications for important broadcasts
+              </p>
             </div>
             <Switch
               checked={chatSettings.broadcastsEnabled}
-              onCheckedChange={(checked) => updateSetting('broadcastsEnabled', checked)}
+              onCheckedChange={checked => updateSetting('broadcastsEnabled', checked)}
             />
           </div>
         </div>
@@ -227,7 +235,7 @@ export const ChatControlsSection = () => {
           <Eye size={20} />
           Privacy & Data
         </h4>
-        
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -236,7 +244,7 @@ export const ChatControlsSection = () => {
             </div>
             <Switch
               checked={chatSettings.messageHistory}
-              onCheckedChange={(checked) => updateSetting('messageHistory', checked)}
+              onCheckedChange={checked => updateSetting('messageHistory', checked)}
             />
           </div>
 
@@ -264,7 +272,7 @@ export const ChatControlsSection = () => {
           <Users size={20} />
           Role-Based Permissions
         </h4>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-white">
             <thead>

@@ -10,8 +10,8 @@ export const InviteModalHeader = ({ tripName, onClose }: InviteModalHeaderProps)
   return (
     <>
       {/* Close Button - Fixed Position */}
-      <button 
-        onClick={onClose} 
+      <button
+        onClick={onClose}
         className="absolute top-4 right-4 z-10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors"
         title="Close"
       >

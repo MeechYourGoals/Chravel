@@ -12,7 +12,7 @@ export class AppError extends Error {
     message: string,
     public code: string,
     public context?: ErrorContext,
-    public originalError?: any
+    public originalError?: any,
   ) {
     super(message);
     this.name = 'AppError';
@@ -63,7 +63,7 @@ export const errorHandlingService = {
         return 'Request timed out. Please try again.';
       }
       if (error.message.includes('permission')) {
-        return 'You don\'t have permission to perform this action.';
+        return "You don't have permission to perform this action.";
       }
       return error.message;
     }
@@ -116,7 +116,7 @@ export const errorHandlingService = {
     message: string,
     code: string,
     context?: ErrorContext,
-    originalError?: any
+    originalError?: any,
   ): AppError {
     return new AppError(message, code, context, originalError);
   },

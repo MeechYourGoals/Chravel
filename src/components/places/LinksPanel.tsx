@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { MapPin, Trash2, Navigation2, Calendar, Eye, EyeOff, Link } from 'lucide-react';
-import { PlaceWithDistance, BasecampLocation, PlaceCategory, PlaceCategoryEnum } from '@/types/basecamp';
+import {
+  PlaceWithDistance,
+  BasecampLocation,
+  PlaceCategory,
+  PlaceCategoryEnum,
+} from '@/types/basecamp';
 import { AddPlaceModal } from '../AddPlaceModal';
 import { AddToCalendarButton } from '../AddToCalendarButton';
 import { AddToCalendarData } from '@/types/calendar';
@@ -41,16 +46,14 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set(['all']));
 
-  const availableCategories = PlaceCategoryEnum.filter(cat =>
-    places.some(p => p.category === cat)
-  );
+  const availableCategories = PlaceCategoryEnum.filter(cat => places.some(p => p.category === cat));
 
   const categoryIcons: { [key in PlaceCategory]: React.ElementType } = {
-    'Appetite': MapPin,
-    'Activity': Calendar,
-    'Accommodation': MapPin,
-    'Attraction': Navigation2,
-    'Other': Link,
+    Appetite: MapPin,
+    Activity: Calendar,
+    Accommodation: MapPin,
+    Attraction: Navigation2,
+    Other: Link,
   };
 
   const toggleCategory = (category: PlaceCategory | 'all') => {
@@ -72,10 +75,9 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
     setVisibleCategories(newVisible);
   };
 
-  const filteredPlaces =
-    visibleCategories.has('all')
-      ? places
-      : places.filter(p => p.category && visibleCategories.has(p.category));
+  const filteredPlaces = visibleCategories.has('all')
+    ? places
+    : places.filter(p => p.category && visibleCategories.has(p.category));
 
   return (
     <>

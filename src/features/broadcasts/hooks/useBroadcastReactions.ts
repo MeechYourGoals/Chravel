@@ -19,50 +19,56 @@ export const useBroadcastReactions = ({
   broadcastId,
   initialResponses,
   userResponse: initialUserResponse,
-  onRespond
+  onRespond,
 }: UseBroadcastReactionsProps) => {
   const [userResponse, setUserResponse] = useState<ReactionType | undefined>(initialUserResponse);
   const [responses, setResponses] = useState<ReactionCounts>(initialResponses);
 
-  const handleResponse = useCallback((response: ReactionType) => {
-    // Optimistic update
-    const oldResponse = userResponse;
-    setUserResponse(response);
+  const handleResponse = useCallback(
+    (response: ReactionType) => {
+      // Optimistic update
+      const oldResponse = userResponse;
+      setUserResponse(response);
 
-    setResponses(prev => {
-      const updated = { ...prev };
-      
-      // Remove old response count
-      if (oldResponse) {
-        updated[oldResponse] = Math.max(0, updated[oldResponse] - 1);
-      }
-      
-      // Add new response count
-      updated[response] = updated[response] + 1;
-      
-      return updated;
-    });
+      setResponses(prev => {
+        const updated = { ...prev };
 
-    // Call external handler
-    onRespond?.(broadcastId, response);
-  }, [broadcastId, userResponse, onRespond]);
+        // Remove old response count
+        if (oldResponse) {
+          updated[oldResponse] = Math.max(0, updated[oldResponse] - 1);
+        }
 
-  const totalResponses = useMemo(() => 
-    responses.coming + responses.wait + responses.cant,
-    [responses]
+        // Add new response count
+        updated[response] = updated[response] + 1;
+
+        return updated;
+      });
+
+      // Call external handler
+      onRespond?.(broadcastId, response);
+    },
+    [broadcastId, userResponse, onRespond],
   );
 
-  const responsePercentages = useMemo(() => ({
-    coming: totalResponses > 0 ? (responses.coming / totalResponses) * 100 : 0,
-    wait: totalResponses > 0 ? (responses.wait / totalResponses) * 100 : 0,
-    cant: totalResponses > 0 ? (responses.cant / totalResponses) * 100 : 0
-  }), [responses, totalResponses]);
+  const totalResponses = useMemo(
+    () => responses.coming + responses.wait + responses.cant,
+    [responses],
+  );
+
+  const responsePercentages = useMemo(
+    () => ({
+      coming: totalResponses > 0 ? (responses.coming / totalResponses) * 100 : 0,
+      wait: totalResponses > 0 ? (responses.wait / totalResponses) * 100 : 0,
+      cant: totalResponses > 0 ? (responses.cant / totalResponses) * 100 : 0,
+    }),
+    [responses, totalResponses],
+  );
 
   return {
     userResponse,
     responses,
     totalResponses,
     responsePercentages,
-    handleResponse
+    handleResponse,
   };
 };

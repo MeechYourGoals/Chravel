@@ -1,6 +1,6 @@
 /**
  * Consolidated Realtime Hub for Trip data
- * 
+ *
  * Reduces 20-35 individual Supabase channels per trip to 3 multiplexed channels:
  * 1. trip_data:{tripId} - trip_members, trip_events, trip_tasks, trip_polls, trip_payment_messages, payment_splits, trip_media
  * 2. trip_chat:{tripId} - chat_messages, message_reactions, message_read_receipts
@@ -44,9 +44,15 @@ class TripRealtimeHub {
 
     // Channel 1: Trip data (members, events, tasks, polls, payments, media)
     const dataTables = [
-      'trip_members', 'trip_events', 'trip_tasks', 'trip_polls',
-      'trip_payment_messages', 'payment_splits', 'trip_media',
-      'broadcasts', 'trip_basecamps'
+      'trip_members',
+      'trip_events',
+      'trip_tasks',
+      'trip_polls',
+      'trip_payment_messages',
+      'payment_splits',
+      'trip_media',
+      'broadcasts',
+      'trip_basecamps',
     ];
 
     this.dataChannel = supabase.channel(`hub_data:${this.tripId}`);
@@ -54,7 +60,7 @@ class TripRealtimeHub {
       this.dataChannel.on(
         'postgres_changes',
         { event: '*', schema: 'public', table, filter: `trip_id=eq.${this.tripId}` },
-        (payload: any) => this.dispatch(table, payload)
+        (payload: any) => this.dispatch(table, payload),
       );
     }
 
@@ -62,7 +68,7 @@ class TripRealtimeHub {
     this.dataChannel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'task_status' },
-      (payload: any) => this.dispatch('task_status', payload)
+      (payload: any) => this.dispatch('task_status', payload),
     );
 
     this.dataChannel.subscribe((status: string) => {
@@ -79,7 +85,7 @@ class TripRealtimeHub {
       this.chatChannel.on(
         'postgres_changes',
         { event: '*', schema: 'public', table, ...(filter ? { filter } : {}) },
-        (payload: any) => this.dispatch(table, payload)
+        (payload: any) => this.dispatch(table, payload),
       );
     }
     this.chatChannel.subscribe();
@@ -89,7 +95,9 @@ class TripRealtimeHub {
     this.presenceChannel
       .on('presence', { event: 'sync' }, () => this.dispatch('presence_sync', {}))
       .on('presence', { event: 'join' }, (payload: any) => this.dispatch('presence_join', payload))
-      .on('presence', { event: 'leave' }, (payload: any) => this.dispatch('presence_leave', payload))
+      .on('presence', { event: 'leave' }, (payload: any) =>
+        this.dispatch('presence_leave', payload),
+      )
       .subscribe();
   }
 
@@ -111,7 +119,10 @@ class TripRealtimeHub {
 
     return () => {
       const current = this.subscribers.get(table) || [];
-      this.subscribers.set(table, current.filter(s => s !== sub));
+      this.subscribers.set(
+        table,
+        current.filter(s => s !== sub),
+      );
     };
   }
 
@@ -165,7 +176,7 @@ function getOrCreateHub(tripId: string): TripRealtimeHub {
 /**
  * Hook to connect to the consolidated realtime hub for a trip.
  * Replaces individual channel subscriptions across hooks.
- * 
+ *
  * Usage:
  *   const hub = useTripRealtimeHub(tripId);
  *   // Subscribe to specific table changes

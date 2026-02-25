@@ -11,8 +11,8 @@ export class KnowledgeGraphService {
           source: 'message',
           sourceId: messageId,
           tripId,
-          content
-        }
+          content,
+        },
       });
 
       if (error) {
@@ -36,8 +36,8 @@ export class KnowledgeGraphService {
         body: {
           source: 'poll',
           sourceId: pollId,
-          tripId
-        }
+          tripId,
+        },
       });
 
       if (error) {
@@ -61,8 +61,8 @@ export class KnowledgeGraphService {
         body: {
           source: 'file',
           sourceId: fileId,
-          tripId
-        }
+          tripId,
+        },
       });
 
       if (error) {
@@ -86,8 +86,8 @@ export class KnowledgeGraphService {
         body: {
           source: 'link',
           sourceId: linkId,
-          tripId
-        }
+          tripId,
+        },
       });
 
       if (error) {
@@ -119,7 +119,7 @@ export class KnowledgeGraphService {
           await this.ingestMessage(
             message.id,
             tripId,
-            `${message.author_name}: ${message.content}`
+            `${message.author_name}: ${message.content}`,
           );
           // Small delay to avoid overwhelming the API
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -127,10 +127,7 @@ export class KnowledgeGraphService {
       }
 
       // Ingest existing polls
-      const { data: polls } = await supabase
-        .from('trip_polls')
-        .select('id')
-        .eq('trip_id', tripId);
+      const { data: polls } = await supabase.from('trip_polls').select('id').eq('trip_id', tripId);
 
       if (polls && polls.length > 0) {
         for (const poll of polls) {
@@ -140,10 +137,7 @@ export class KnowledgeGraphService {
       }
 
       // Ingest existing files
-      const { data: files } = await supabase
-        .from('trip_files')
-        .select('id')
-        .eq('trip_id', tripId);
+      const { data: files } = await supabase.from('trip_files').select('id').eq('trip_id', tripId);
 
       if (files && files.length > 0) {
         for (const file of files) {
@@ -153,10 +147,7 @@ export class KnowledgeGraphService {
       }
 
       // Ingest existing links
-      const { data: links } = await supabase
-        .from('trip_links')
-        .select('id')
-        .eq('trip_id', tripId);
+      const { data: links } = await supabase.from('trip_links').select('id').eq('trip_id', tripId);
 
       if (links && links.length > 0) {
         for (const link of links) {
@@ -192,7 +183,8 @@ export class KnowledgeGraphService {
       return {
         totalDocuments: docs.length,
         sourceBreakdown: stats,
-        lastIngested: docs.length > 0 ? Math.max(...docs.map(d => new Date(d.created_at).getTime())) : null
+        lastIngested:
+          docs.length > 0 ? Math.max(...docs.map(d => new Date(d.created_at).getTime())) : null,
       };
     } catch (error) {
       if (import.meta.env.DEV) console.error('Failed to get knowledge graph stats:', error);

@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
-import { TripPreferences as TripPreferencesType, DIETARY_OPTIONS, VIBE_OPTIONS, ACCESSIBILITY_OPTIONS, BUSINESS_OPTIONS, ENTERTAINMENT_OPTIONS, LIFESTYLE_OPTIONS, BUDGET_UNIT_OPTIONS } from '../types/consumer';
+import {
+  TripPreferences as TripPreferencesType,
+  DIETARY_OPTIONS,
+  VIBE_OPTIONS,
+  ACCESSIBILITY_OPTIONS,
+  BUSINESS_OPTIONS,
+  ENTERTAINMENT_OPTIONS,
+  LIFESTYLE_OPTIONS,
+  BUDGET_UNIT_OPTIONS,
+} from '../types/consumer';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -12,7 +21,11 @@ interface TripPreferencesProps {
   initialPreferences?: Partial<TripPreferencesType>;
 }
 
-export const TripPreferences = ({ tripId, onPreferencesChange, initialPreferences }: TripPreferencesProps) => {
+export const TripPreferences = ({
+  tripId,
+  onPreferencesChange,
+  initialPreferences,
+}: TripPreferencesProps) => {
   const { isDemoMode } = useDemoMode();
   const { accentColors } = useTripVariant();
   const [preferences, setPreferences] = useState<TripPreferencesType>({
@@ -25,7 +38,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
     budgetMin: initialPreferences?.budgetMin || 0,
     budgetMax: initialPreferences?.budgetMax || 1000,
     budgetUnit: initialPreferences?.budgetUnit || 'experience',
-    timePreference: initialPreferences?.timePreference || 'flexible'
+    timePreference: initialPreferences?.timePreference || 'flexible',
   });
 
   const [budgetError, setBudgetError] = useState<string | null>(null);
@@ -43,7 +56,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
         budgetMin: initialPreferences.budgetMin || 0,
         budgetMax: initialPreferences.budgetMax || 1000,
         budgetUnit: initialPreferences.budgetUnit || 'experience',
-        timePreference: initialPreferences.timePreference || 'flexible'
+        timePreference: initialPreferences.timePreference || 'flexible',
       });
     }
   }, [initialPreferences]);
@@ -52,7 +65,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
     const newDietary = preferences.dietary.includes(option)
       ? preferences.dietary.filter(item => item !== option)
       : [...preferences.dietary, option];
-    
+
     const newPreferences = { ...preferences, dietary: newDietary };
     setPreferences(newPreferences);
     onPreferencesChange(newPreferences);
@@ -62,7 +75,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
     const newVibe = preferences.vibe.includes(option)
       ? preferences.vibe.filter(item => item !== option)
       : [...preferences.vibe, option];
-    
+
     const newPreferences = { ...preferences, vibe: newVibe };
     setPreferences(newPreferences);
     onPreferencesChange(newPreferences);
@@ -74,7 +87,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
       const newArray = currentArray.includes(option)
         ? currentArray.filter(item => item !== option)
         : [...currentArray, option];
-      
+
       const newPreferences = { ...preferences, [category]: newArray };
       setPreferences(newPreferences);
       onPreferencesChange(newPreferences);
@@ -84,7 +97,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
   const handleBudgetChange = (field: 'budgetMin' | 'budgetMax', value: string) => {
     const numValue = Math.max(0, parseInt(value) || 0);
     const newPreferences = { ...preferences, [field]: numValue };
-    
+
     // Validate min <= max
     const min = field === 'budgetMin' ? numValue : newPreferences.budgetMin;
     const max = field === 'budgetMax' ? numValue : newPreferences.budgetMax;
@@ -93,7 +106,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
     } else {
       setBudgetError(null);
     }
-    
+
     setPreferences(newPreferences);
     if (!(min > 0 && max > 0 && min > max)) {
       onPreferencesChange(newPreferences);
@@ -101,7 +114,10 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
   };
 
   const handleBudgetUnitChange = (value: string) => {
-    const newPreferences = { ...preferences, budgetUnit: value as TripPreferencesType['budgetUnit'] };
+    const newPreferences = {
+      ...preferences,
+      budgetUnit: value as TripPreferencesType['budgetUnit'],
+    };
     setPreferences(newPreferences);
     onPreferencesChange(newPreferences);
   };
@@ -115,7 +131,9 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className={`bg-gradient-to-r from-${accentColors.primary}/30 to-${accentColors.secondary}/30 p-2 rounded-xl`}>
+        <div
+          className={`bg-gradient-to-r from-${accentColors.primary}/30 to-${accentColors.secondary}/30 p-2 rounded-xl`}
+        >
           <Sparkles size={20} className={`text-${accentColors.primary}`} />
         </div>
         <div>
@@ -123,7 +141,9 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
           <p className="text-gray-400 text-sm">Help our AI make better recommendations</p>
         </div>
         <div className="ml-auto">
-          <div className={`bg-gradient-to-r from-${accentColors.primary}/20 to-${accentColors.secondary}/20 px-3 py-1 rounded-full`}>
+          <div
+            className={`bg-gradient-to-r from-${accentColors.primary}/20 to-${accentColors.secondary}/20 px-3 py-1 rounded-full`}
+          >
             <span className={`text-${accentColors.primary} text-sm font-medium`}>
               {isDemoMode ? 'DEMO MODE' : 'PLUS'}
             </span>
@@ -136,7 +156,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
         <div>
           <h4 className="text-white font-medium mb-3">Dietary Preferences</h4>
           <div className="flex flex-wrap gap-2">
-            {DIETARY_OPTIONS.map((option) => (
+            {DIETARY_OPTIONS.map(option => (
               <button
                 key={option}
                 onClick={() => handleDietaryChange(option)}
@@ -156,7 +176,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
         <div>
           <h4 className="text-white font-medium mb-3">Vibe & Activities</h4>
           <div className="flex flex-wrap gap-2">
-            {VIBE_OPTIONS.map((option) => (
+            {VIBE_OPTIONS.map(option => (
               <button
                 key={option}
                 onClick={() => handleVibeChange(option)}
@@ -176,7 +196,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
         <div>
           <h4 className="text-white font-medium mb-3">Accessibility & Inclusivity</h4>
           <div className="flex flex-wrap gap-2">
-            {ACCESSIBILITY_OPTIONS.map((option) => (
+            {ACCESSIBILITY_OPTIONS.map(option => (
               <button
                 key={option}
                 onClick={() => handleCategoryChange('accessibility', option)}
@@ -196,7 +216,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
         <div>
           <h4 className="text-white font-medium mb-3">Business & Professional</h4>
           <div className="flex flex-wrap gap-2">
-            {BUSINESS_OPTIONS.map((option) => (
+            {BUSINESS_OPTIONS.map(option => (
               <button
                 key={option}
                 onClick={() => handleCategoryChange('business', option)}
@@ -216,7 +236,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
         <div>
           <h4 className="text-white font-medium mb-3">Entertainment & Culture</h4>
           <div className="flex flex-wrap gap-2">
-            {ENTERTAINMENT_OPTIONS.map((option) => (
+            {ENTERTAINMENT_OPTIONS.map(option => (
               <button
                 key={option}
                 onClick={() => handleCategoryChange('entertainment', option)}
@@ -236,7 +256,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
         <div>
           <h4 className="text-white font-medium mb-3">Lifestyle & Timing</h4>
           <div className="flex flex-wrap gap-2">
-            {LIFESTYLE_OPTIONS.map((option) => (
+            {LIFESTYLE_OPTIONS.map(option => (
               <button
                 key={option}
                 onClick={() => handleCategoryChange('lifestyle', option)}
@@ -263,7 +283,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
                 min={0}
                 placeholder="0"
                 value={preferences.budgetMin}
-                onChange={(e) => handleBudgetChange('budgetMin', e.target.value)}
+                onChange={e => handleBudgetChange('budgetMin', e.target.value)}
                 className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
               />
             </div>
@@ -274,7 +294,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
                 min={0}
                 placeholder="1000"
                 value={preferences.budgetMax}
-                onChange={(e) => handleBudgetChange('budgetMax', e.target.value)}
+                onChange={e => handleBudgetChange('budgetMax', e.target.value)}
                 className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
               />
             </div>
@@ -285,7 +305,7 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
                   <SelectValue placeholder="Per experience" />
                 </SelectTrigger>
                 <SelectContent>
-                  {BUDGET_UNIT_OPTIONS.map((option) => (
+                  {BUDGET_UNIT_OPTIONS.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -294,16 +314,14 @@ export const TripPreferences = ({ tripId, onPreferencesChange, initialPreference
               </Select>
             </div>
           </div>
-          {budgetError && (
-            <p className="text-red-400 text-sm mt-2">{budgetError}</p>
-          )}
+          {budgetError && <p className="text-red-400 text-sm mt-2">{budgetError}</p>}
         </div>
 
         {/* Time Preference */}
         <div>
           <h4 className="text-white font-medium mb-3">Time Preference</h4>
           <div className="flex gap-2">
-            {['early-riser', 'night-owl', 'flexible'].map((option) => (
+            {['early-riser', 'night-owl', 'flexible'].map(option => (
               <button
                 key={option}
                 onClick={() => handleTimeChange(option as any)}

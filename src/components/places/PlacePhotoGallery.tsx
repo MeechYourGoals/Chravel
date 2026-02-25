@@ -14,16 +14,18 @@ export const PlacePhotoGallery: React.FC<PlacePhotoGalleryProps> = ({
   photos,
   placeName,
   maxPhotos = 3,
-  className
+  className,
 }) => {
   const displayPhotos = photos?.slice(0, maxPhotos) || [];
 
   if (displayPhotos.length === 0) {
     return (
-      <div className={cn(
-        "w-full h-32 bg-muted rounded-lg flex items-center justify-center",
-        className
-      )}>
+      <div
+        className={cn(
+          'w-full h-32 bg-muted rounded-lg flex items-center justify-center',
+          className,
+        )}
+      >
         <Image className="w-8 h-8 text-muted-foreground/40" />
       </div>
     );
@@ -32,7 +34,7 @@ export const PlacePhotoGallery: React.FC<PlacePhotoGalleryProps> = ({
   // Single photo layout
   if (displayPhotos.length === 1) {
     return (
-      <div className={cn("w-full h-32 rounded-lg overflow-hidden", className)}>
+      <div className={cn('w-full h-32 rounded-lg overflow-hidden', className)}>
         <OptimizedImage
           src={displayPhotos[0]}
           alt={`${placeName} - Photo 1`}
@@ -46,7 +48,7 @@ export const PlacePhotoGallery: React.FC<PlacePhotoGalleryProps> = ({
   // Two photos layout (50/50 split)
   if (displayPhotos.length === 2) {
     return (
-      <div className={cn("grid grid-cols-2 gap-1 h-32 rounded-lg overflow-hidden", className)}>
+      <div className={cn('grid grid-cols-2 gap-1 h-32 rounded-lg overflow-hidden', className)}>
         {displayPhotos.map((photo, idx) => (
           <OptimizedImage
             key={idx}
@@ -62,7 +64,7 @@ export const PlacePhotoGallery: React.FC<PlacePhotoGalleryProps> = ({
 
   // Three+ photos layout (large left, 2 stacked right)
   return (
-    <div className={cn("grid grid-cols-2 gap-1 h-32 rounded-lg overflow-hidden", className)}>
+    <div className={cn('grid grid-cols-2 gap-1 h-32 rounded-lg overflow-hidden', className)}>
       <OptimizedImage
         src={displayPhotos[0]}
         alt={`${placeName} - Photo 1`}

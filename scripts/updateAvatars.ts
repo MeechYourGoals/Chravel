@@ -9,26 +9,26 @@ import { join } from 'path';
 const updateAvatarsInFile = (filePath: string): boolean => {
   try {
     let content = readFileSync(filePath, 'utf-8');
-    
+
     // Check if file needs getMockAvatar import
     const needsImport = content.includes('avatar:') && !content.includes('getMockAvatar');
-    
+
     if (needsImport) {
       // Add import at the top after other imports
       const importStatement = "import { getMockAvatar } from '../utils/mockAvatars';\n";
       const importStatement2 = "import { getMockAvatar } from '../../utils/mockAvatars';\n";
-      
+
       if (content.includes("from '../types/pro'")) {
         // Pro trip file
         content = content.replace(
           "import { ProTripData } from '../../types/pro';\n",
-          `import { ProTripData } from '../../types/pro';\n${importStatement2}`
+          `import { ProTripData } from '../../types/pro';\n${importStatement2}`,
         );
       } else if (content.includes("from '../types/events'")) {
         // Events file
         content = content.replace(
           "import { EventData } from '../types/events';\n",
-          `import { EventData } from '../types/events';\n${importStatement}`
+          `import { EventData } from '../types/events';\n${importStatement}`,
         );
       } else {
         // Consumer trips file
@@ -39,28 +39,25 @@ const updateAvatarsInFile = (filePath: string): boolean => {
         }
       }
     }
-    
+
     // Replace all Unsplash URLs with getMockAvatar() calls
     // Pattern: avatar: 'https://images.unsplash.com/photo-...?w=40&h=40&fit=crop&crop=face'
-    content = content.replace(
-      /avatar:\s*'https:\/\/images\.unsplash\.com\/[^']+'/g,
-      (match) => {
-        // Extract the name from context (look backward for name: 'XXX')
-        return match; // Will be replaced in second pass
-      }
-    );
-    
+    content = content.replace(/avatar:\s*'https:\/\/images\.unsplash\.com\/[^']+'/g, match => {
+      // Extract the name from context (look backward for name: 'XXX')
+      return match; // Will be replaced in second pass
+    });
+
     // More targeted replacement with name extraction
     content = content.replace(
       /{\s*id:\s*\d+,\s*name:\s*['"]([^'"]+)['"],\s*avatar:\s*'https:\/\/images\.unsplash\.com\/[^']+'/g,
       (match, name) => {
         return match.replace(
           /avatar:\s*'https:\/\/images\.unsplash\.com\/[^']+'/,
-          `avatar: getMockAvatar('${name}')`
+          `avatar: getMockAvatar('${name}')`,
         );
-      }
+      },
     );
-    
+
     writeFileSync(filePath, content, 'utf-8');
     console.log(`✅ Updated: ${filePath}`);
     return true;

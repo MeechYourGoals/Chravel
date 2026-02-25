@@ -23,7 +23,10 @@ export interface ICSExportEvent {
 
 export class CalendarExporter {
   private formatDate(date: Date): string {
-    return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    return date
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}/, '');
   }
 
   private escapeText(text: string): string {
@@ -38,10 +41,13 @@ export class CalendarExporter {
     const icsEvents = events.map(event => ({
       title: brandEventTitleForIcs(event.title), // Apply ChravelApp branding
       start: event.date instanceof Date ? event.date : new Date(event.date),
-      end: new Date((event.date instanceof Date ? event.date : new Date(event.date)).getTime() + (2 * 60 * 60 * 1000)), // 2 hours default
+      end: new Date(
+        (event.date instanceof Date ? event.date : new Date(event.date)).getTime() +
+          2 * 60 * 60 * 1000,
+      ), // 2 hours default
       location: event.location,
       description: event.description,
-      uid: event.id
+      uid: event.id,
     }));
 
     return this.generateICS(icsEvents, tripName);
@@ -55,7 +61,7 @@ export class CalendarExporter {
       `X-WR-CALNAME:${this.escapeText(calendarName)}`,
       'X-WR-TIMEZONE:UTC',
       'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH'
+      'METHOD:PUBLISH',
     ];
 
     events.forEach(event => {
@@ -64,15 +70,15 @@ export class CalendarExporter {
       lines.push(`DTSTART:${this.formatDate(event.start)}`);
       lines.push(`DTEND:${this.formatDate(event.end)}`);
       lines.push(`SUMMARY:${this.escapeText(event.title)}`);
-      
+
       if (event.location) {
         lines.push(`LOCATION:${this.escapeText(event.location)}`);
       }
-      
+
       if (event.description) {
         lines.push(`DESCRIPTION:${this.escapeText(event.description)}`);
       }
-      
+
       lines.push(`DTSTAMP:${this.formatDate(new Date())}`);
       lines.push('END:VEVENT');
     });
@@ -101,29 +107,41 @@ export class CalendarExporter {
     apple: string;
   } {
     const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
-    const startDate = eventDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-    const endDate = new Date(eventDate.getTime() + (2 * 60 * 60 * 1000))
-      .toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const startDate = eventDate
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}/, '');
+    const endDate = new Date(eventDate.getTime() + 2 * 60 * 60 * 1000)
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}/, '');
 
     const params = {
       title: encodeURIComponent(event.title),
       start: startDate,
       end: endDate,
       location: encodeURIComponent(event.location || ''),
-      description: encodeURIComponent(event.description || '')
+      description: encodeURIComponent(event.description || ''),
     };
 
     return {
       google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${params.title}&dates=${params.start}/${params.end}&location=${params.location}&details=${params.description}`,
       outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${params.title}&startdt=${params.start}&enddt=${params.end}&location=${params.location}&body=${params.description}`,
-      apple: `data:text/calendar;charset=utf8,${encodeURIComponent(this.generateICS([{
-        title: brandEventTitleForIcs(event.title), // Apply ChravelApp branding
-        start: eventDate,
-        end: new Date(eventDate.getTime() + (2 * 60 * 60 * 1000)),
-        location: event.location,
-        description: event.description,
-        uid: event.id
-      }], 'Trip Event'))}`
+      apple: `data:text/calendar;charset=utf8,${encodeURIComponent(
+        this.generateICS(
+          [
+            {
+              title: brandEventTitleForIcs(event.title), // Apply ChravelApp branding
+              start: eventDate,
+              end: new Date(eventDate.getTime() + 2 * 60 * 60 * 1000),
+              location: event.location,
+              description: event.description,
+              uid: event.id,
+            },
+          ],
+          'Trip Event',
+        ),
+      )}`,
     };
   }
 }

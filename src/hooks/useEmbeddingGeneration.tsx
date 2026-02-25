@@ -18,87 +18,97 @@ export function useEmbeddingGeneration(tripId: string | undefined) {
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
 
-  const generateEmbeddings = useCallback(async (
-    sourceType: 'chat' | 'task' | 'poll' | 'payment' | 'broadcast' | 'file' | 'link' | 'calendar' | 'all' = 'all',
-    forceRefresh = false
-  ) => {
-    if (!tripId) {
-      console.warn('No tripId provided for embedding generation');
-      return false;
-    }
-
-    // Demo mode: Skip API calls, return success immediately
-    if (isDemoMode) {
-      setStatus({
-        isGenerating: false,
-        error: null,
-        lastGenerated: new Date(),
-      });
-      return true;
-    }
-
-    setStatus(prev => ({ ...prev, isGenerating: true, error: null }));
-
-    try {
-      
-      const { data, error } = await supabase.functions.invoke('generate-embeddings', {
-        body: {
-          tripId,
-          sourceType,
-          forceRefresh,
-          isDemoMode: false
-        },
-      });
-
-      if (error) {
-        throw error;
+  const generateEmbeddings = useCallback(
+    async (
+      sourceType:
+        | 'chat'
+        | 'task'
+        | 'poll'
+        | 'payment'
+        | 'broadcast'
+        | 'file'
+        | 'link'
+        | 'calendar'
+        | 'all' = 'all',
+      forceRefresh = false,
+    ) => {
+      if (!tripId) {
+        console.warn('No tripId provided for embedding generation');
+        return false;
       }
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'Failed to generate embeddings');
-      }
-
-      
-      setStatus({
-        isGenerating: false,
-        error: null,
-        lastGenerated: new Date(),
-      });
-
-      // Only show toast if user explicitly initiated a refresh AND embeddings were generated
-      if (forceRefresh && data.totalProcessed > 0) {
-        toast({
-          title: 'AI Context Updated',
-          description: `Generated ${data.totalProcessed} embeddings for better AI responses.`,
-          duration: 3000,
+      // Demo mode: Skip API calls, return success immediately
+      if (isDemoMode) {
+        setStatus({
+          isGenerating: false,
+          error: null,
+          lastGenerated: new Date(),
         });
+        return true;
       }
 
-      return true;
-    } catch (error) {
-      console.error('Failed to generate embeddings:', error);
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      setStatus({
-        isGenerating: false,
-        error: errorMessage,
-        lastGenerated: null,
-      });
+      setStatus(prev => ({ ...prev, isGenerating: true, error: null }));
 
-      // Only show error toast for user-initiated actions
-      if (forceRefresh) {
-        toast({
-          title: 'Embedding Generation Failed',
-          description: errorMessage,
-          variant: 'destructive',
-          duration: 5000,
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-embeddings', {
+          body: {
+            tripId,
+            sourceType,
+            forceRefresh,
+            isDemoMode: false,
+          },
         });
-      }
 
-      return false;
-    }
-  }, [tripId, toast, isDemoMode]);
+        if (error) {
+          throw error;
+        }
+
+        if (!data?.success) {
+          throw new Error(data?.error || 'Failed to generate embeddings');
+        }
+
+        setStatus({
+          isGenerating: false,
+          error: null,
+          lastGenerated: new Date(),
+        });
+
+        // Only show toast if user explicitly initiated a refresh AND embeddings were generated
+        if (forceRefresh && data.totalProcessed > 0) {
+          toast({
+            title: 'AI Context Updated',
+            description: `Generated ${data.totalProcessed} embeddings for better AI responses.`,
+            duration: 3000,
+          });
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Failed to generate embeddings:', error);
+
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        setStatus({
+          isGenerating: false,
+          error: errorMessage,
+          lastGenerated: null,
+        });
+
+        // Only show error toast for user-initiated actions
+        if (forceRefresh) {
+          toast({
+            title: 'Embedding Generation Failed',
+            description: errorMessage,
+            variant: 'destructive',
+            duration: 5000,
+          });
+        }
+
+        return false;
+      }
+    },
+    [tripId, toast, isDemoMode],
+  );
 
   const generateInitialEmbeddings = useCallback(async () => {
     if (!tripId) return;

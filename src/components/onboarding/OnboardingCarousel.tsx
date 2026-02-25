@@ -54,12 +54,15 @@ export const OnboardingCarousel = ({
     onboardingEvents.screenViewed(currentScreen);
   }, [currentScreen]);
 
-  const goToScreen = useCallback((index: number) => {
-    if (index < 0 || index >= TOTAL_SCREENS) return;
-    setDirection(index > currentScreen ? 1 : -1);
-    setCurrentScreen(index);
-    haptics.light();
-  }, [currentScreen]);
+  const goToScreen = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= TOTAL_SCREENS) return;
+      setDirection(index > currentScreen ? 1 : -1);
+      setCurrentScreen(index);
+      haptics.light();
+    },
+    [currentScreen],
+  );
 
   const handleNext = useCallback(() => {
     if (currentScreen < TOTAL_SCREENS - 1) {
@@ -199,16 +202,12 @@ export const OnboardingCarousel = ({
                 <ChevronLeft className="w-5 h-5" />
               </Button>
             )}
-            <Button
-              size="lg"
-              className="flex-1"
-              onClick={handleNext}
-            >
+            <Button size="lg" className="flex-1" onClick={handleNext}>
               {currentScreen === 0 ? 'Get Started' : 'Next'}
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
-          
+
           <button
             onClick={handleSkip}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"

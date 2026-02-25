@@ -1,6 +1,6 @@
 /**
  * Notification Preferences Component
- * 
+ *
  * Allows users to configure:
  * - Which channels to receive notifications (push, email, SMS)
  * - Which types of notifications to receive
@@ -13,8 +13,20 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Bell, Moon, Mail, MessageSquare, DollarSign, Calendar, Users, Megaphone } from 'lucide-react';
-import { userPreferencesService, NotificationPreferences as NotificationPrefs } from '@/services/userPreferencesService';
+import {
+  Bell,
+  Moon,
+  Mail,
+  MessageSquare,
+  DollarSign,
+  Calendar,
+  Users,
+  Megaphone,
+} from 'lucide-react';
+import {
+  userPreferencesService,
+  NotificationPreferences as NotificationPrefs,
+} from '@/services/userPreferencesService';
 import { useAuth } from '@/hooks/useAuth';
 
 export const NotificationPreferences = () => {
@@ -37,7 +49,7 @@ export const NotificationPreferences = () => {
     quiet_hours_enabled: false,
     quiet_start: '22:00',
     quiet_end: '08:00',
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
 
   const [loading, setLoading] = useState(true);
@@ -80,7 +92,7 @@ export const NotificationPreferences = () => {
 
     try {
       await userPreferencesService.updateNotificationPreferences(user.id, {
-        [key]: value
+        [key]: value,
       });
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -111,7 +123,7 @@ export const NotificationPreferences = () => {
       setSaving(false);
     }
   };
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -119,7 +131,7 @@ export const NotificationPreferences = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6 p-6 max-w-2xl">
       <div className="flex items-center justify-between">
@@ -131,7 +143,7 @@ export const NotificationPreferences = () => {
         </div>
         <Bell className="h-8 w-8 text-primary" />
       </div>
-      
+
       {/* Channels */}
       <div className="space-y-4 p-4 border rounded-lg">
         <h4 className="font-semibold text-lg flex items-center gap-2">
@@ -144,39 +156,39 @@ export const NotificationPreferences = () => {
               <Bell className="h-4 w-4 text-muted-foreground" />
               <Label htmlFor="push">Push Notifications</Label>
             </div>
-            <Switch 
+            <Switch
               id="push"
               checked={prefs.push_enabled}
-              onCheckedChange={(v) => updatePreference('push_enabled', v)}
+              onCheckedChange={v => updatePreference('push_enabled', v)}
             />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-muted-foreground" />
               <Label htmlFor="email">Email Notifications</Label>
             </div>
-            <Switch 
+            <Switch
               id="email"
               checked={prefs.email_enabled}
-              onCheckedChange={(v) => updatePreference('email_enabled', v)}
+              onCheckedChange={v => updatePreference('email_enabled', v)}
             />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
               <Label htmlFor="sms">SMS Notifications</Label>
             </div>
-            <Switch 
+            <Switch
               id="sms"
               checked={prefs.sms_enabled}
-              onCheckedChange={(v) => updatePreference('sms_enabled', v)}
+              onCheckedChange={v => updatePreference('sms_enabled', v)}
             />
           </div>
         </div>
       </div>
-      
+
       {/* Categories */}
       <div className="space-y-4 p-4 border rounded-lg">
         <h4 className="font-semibold text-lg">What to notify me about</h4>
@@ -186,63 +198,63 @@ export const NotificationPreferences = () => {
               <Megaphone className="h-4 w-4 text-muted-foreground" />
               <Label htmlFor="broadcasts">Broadcast messages</Label>
             </div>
-            <Switch 
+            <Switch
               id="broadcasts"
               checked={prefs.broadcasts}
-              onCheckedChange={(v) => updatePreference('broadcasts', v)}
+              onCheckedChange={v => updatePreference('broadcasts', v)}
             />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <Label htmlFor="tasks">Task assignments</Label>
             </div>
-            <Switch 
+            <Switch
               id="tasks"
               checked={prefs.tasks}
-              onCheckedChange={(v) => updatePreference('tasks', v)}
+              onCheckedChange={v => updatePreference('tasks', v)}
             />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
               <Label htmlFor="payments">Payment requests</Label>
             </div>
-            <Switch 
+            <Switch
               id="payments"
               checked={prefs.payments}
-              onCheckedChange={(v) => updatePreference('payments', v)}
+              onCheckedChange={v => updatePreference('payments', v)}
             />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <Label htmlFor="calendar">Calendar event reminders</Label>
             </div>
-            <Switch 
+            <Switch
               id="calendar"
               checked={prefs.calendar_reminders}
-              onCheckedChange={(v) => updatePreference('calendar_reminders', v)}
+              onCheckedChange={v => updatePreference('calendar_reminders', v)}
             />
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <Label htmlFor="invites">Trip invitations</Label>
             </div>
-            <Switch 
+            <Switch
               id="invites"
               checked={prefs.trip_invites}
-              onCheckedChange={(v) => updatePreference('trip_invites', v)}
+              onCheckedChange={v => updatePreference('trip_invites', v)}
             />
           </div>
         </div>
       </div>
-      
+
       {/* Quiet Hours */}
       <div className="space-y-4 p-4 border rounded-lg">
         <h4 className="font-semibold text-lg flex items-center gap-2">
@@ -256,53 +268,50 @@ export const NotificationPreferences = () => {
               Pause non-urgent notifications during these hours
             </p>
           </div>
-          <Switch 
+          <Switch
             id="quiet"
             checked={prefs.quiet_hours_enabled}
-            onCheckedChange={(v) => updatePreference('quiet_hours_enabled', v)}
+            onCheckedChange={v => updatePreference('quiet_hours_enabled', v)}
           />
         </div>
-        
+
         {prefs.quiet_hours_enabled && (
           <div className="flex gap-4 items-center ml-6">
             <div>
-              <Label htmlFor="quiet_start" className="text-xs">From</Label>
+              <Label htmlFor="quiet_start" className="text-xs">
+                From
+              </Label>
               <input
                 id="quiet_start"
                 type="time"
                 value={prefs.quiet_start}
-                onChange={(e) => updatePreference('quiet_start', e.target.value)}
+                onChange={e => updatePreference('quiet_start', e.target.value)}
                 className="block mt-1 px-3 py-2 border rounded bg-background"
               />
             </div>
             <span className="mt-6">to</span>
             <div>
-              <Label htmlFor="quiet_end" className="text-xs">Until</Label>
+              <Label htmlFor="quiet_end" className="text-xs">
+                Until
+              </Label>
               <input
                 id="quiet_end"
                 type="time"
                 value={prefs.quiet_end}
-                onChange={(e) => updatePreference('quiet_end', e.target.value)}
+                onChange={e => updatePreference('quiet_end', e.target.value)}
                 className="block mt-1 px-3 py-2 border rounded bg-background"
               />
             </div>
           </div>
         )}
       </div>
-      
+
       {/* Save Button */}
       <div className="flex justify-end gap-4">
-        <Button
-          variant="outline"
-          onClick={loadPreferences}
-          disabled={saving}
-        >
+        <Button variant="outline" onClick={loadPreferences} disabled={saving}>
           Reset
         </Button>
-        <Button
-          onClick={saveAllPreferences}
-          disabled={saving}
-        >
+        <Button onClick={saveAllPreferences} disabled={saving}>
           {saving ? 'Saving...' : 'Save Preferences'}
         </Button>
       </div>

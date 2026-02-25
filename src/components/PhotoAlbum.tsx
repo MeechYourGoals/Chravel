@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, X } from 'lucide-react';
 
@@ -18,22 +17,22 @@ export const PhotoAlbum = () => {
       url: '/src/assets/vacation-beach-group.jpg',
       timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
       uploadedBy: 'Marcus',
-      caption: 'Beach day with the crew! 🏖️'
+      caption: 'Beach day with the crew! 🏖️',
     },
     {
-      id: 'photo-2', 
+      id: 'photo-2',
       url: '/src/assets/vacation-landmark-selfie.jpg',
       timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
       uploadedBy: 'Sarah',
-      caption: 'Epic group selfie at the landmark!'
+      caption: 'Epic group selfie at the landmark!',
     },
     {
       id: 'photo-3',
       url: '/src/assets/vacation-dinner-sunset.jpg',
       timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
       uploadedBy: 'Alex',
-      caption: 'Sunset dinner vibes ✨'
-    }
+      caption: 'Sunset dinner vibes ✨',
+    },
   ];
 
   const [photos, setPhotos] = useState<Photo[]>(mockPhotos);
@@ -42,9 +41,9 @@ export const PhotoAlbum = () => {
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      Array.from(files).forEach((file) => {
+      Array.from(files).forEach(file => {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = e => {
           const newPhoto: Photo = {
             id: Date.now().toString() + Math.random(),
             url: e.target?.result as string,
@@ -97,14 +96,10 @@ export const PhotoAlbum = () => {
       {/* Photos Grid */}
       {photos.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {photos.map((photo) => (
+          {photos.map(photo => (
             <div key={photo.id} className="group relative">
               <div className="aspect-square bg-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-700 group-hover:shadow-xl group-hover:scale-[1.02] transition-all duration-300">
-                <img
-                  src={photo.url}
-                  alt="Trip photo"
-                  className="w-full h-full object-cover"
-                />
+                <img src={photo.url} alt="Trip photo" className="w-full h-full object-cover" />
               </div>
               <button
                 onClick={() => removePhoto(photo.id)}
@@ -115,9 +110,7 @@ export const PhotoAlbum = () => {
               <div className="mt-3 px-2">
                 <div className="text-sm font-medium text-white">{photo.uploadedBy}</div>
                 <div className="text-xs text-gray-400">{photo.timestamp.toLocaleDateString()}</div>
-                {photo.caption && (
-                  <div className="text-xs text-gray-300 mt-1">{photo.caption}</div>
-                )}
+                {photo.caption && <div className="text-xs text-gray-300 mt-1">{photo.caption}</div>}
               </div>
             </div>
           ))}
@@ -130,7 +123,9 @@ export const PhotoAlbum = () => {
             </div>
           </div>
           <h3 className="text-2xl font-bold text-white mb-3">No photos yet</h3>
-          <p className="text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">Start capturing memories from your trip! Upload photos to share with your group.</p>
+          <p className="text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">
+            Start capturing memories from your trip! Upload photos to share with your group.
+          </p>
           <button
             onClick={triggerPhotoUpload}
             className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-4 rounded-2xl transition-all duration-200 flex items-center gap-3 mx-auto shadow-lg border border-gray-700 hover:border-red-500/50 font-medium"

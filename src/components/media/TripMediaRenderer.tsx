@@ -131,21 +131,24 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
     }
   }, [didAttemptBlobFallback, mimeType, url]);
 
-  const handleError = useCallback(async (e: React.SyntheticEvent) => {
-    const mediaError = describeMediaError(e.currentTarget);
-    console.error('[TripMediaRenderer] Media failed to load:', {
-      url,
-      mimeType,
-      mediaError,
-    });
-    // If this is a video, try the typed-blob fallback once (fixes wrong storage Content-Type).
-    if (category === 'video') {
-      const recovered = await tryBlobFallback();
-      if (recovered) return;
-    }
-    setHasError(true);
-    onError?.(e);
-  }, [url, mimeType, onError, category, tryBlobFallback]);
+  const handleError = useCallback(
+    async (e: React.SyntheticEvent) => {
+      const mediaError = describeMediaError(e.currentTarget);
+      console.error('[TripMediaRenderer] Media failed to load:', {
+        url,
+        mimeType,
+        mediaError,
+      });
+      // If this is a video, try the typed-blob fallback once (fixes wrong storage Content-Type).
+      if (category === 'video') {
+        const recovered = await tryBlobFallback();
+        if (recovered) return;
+      }
+      setHasError(true);
+      onError?.(e);
+    },
+    [url, mimeType, onError, category, tryBlobFallback],
+  );
 
   const handleLoad = useCallback(() => {
     setIsLoaded(true);
@@ -159,9 +162,7 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
         style={{ minHeight: mode === 'thumbnail' ? '100%' : '200px' }}
       >
         <AlertCircle className="w-8 h-8 text-orange-400 mb-2" />
-        <p className="text-white/70 text-sm text-center mb-3">
-          Unable to preview
-        </p>
+        <p className="text-white/70 text-sm text-center mb-3">Unable to preview</p>
         <a
           href={url}
           target="_blank"
@@ -225,7 +226,7 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
         }}
         onError={handleError}
         onLoadedData={handleLoad}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         <source src={effectiveUrl} type={mimeType} />
       </video>
@@ -298,7 +299,12 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
         aria-label="Close video"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       </button>
 
@@ -311,7 +317,7 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <Download className="w-5 h-5" />
             Download instead
@@ -333,7 +339,7 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
             width: 'auto',
             height: 'auto',
           }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
           onError={() => setHasError(true)}
         />
       )}

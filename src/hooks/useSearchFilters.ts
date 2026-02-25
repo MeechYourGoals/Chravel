@@ -22,7 +22,7 @@ export const useSearchFilters = (initialQuery = '', initialFilters: SearchFilter
   const [options, setOptions] = useState<SearchOptions>({
     caseSensitive: false,
     fuzzyMatch: true,
-    maxResults: 50
+    maxResults: 50,
   });
 
   const addFilter = useCallback((filter: SearchFilter) => {
@@ -38,9 +38,7 @@ export const useSearchFilters = (initialQuery = '', initialFilters: SearchFilter
   }, []);
 
   const updateFilter = useCallback((filterKey: string, newValue: SearchFilter['value']) => {
-    setFilters(prev => prev.map(f => 
-      f.key === filterKey ? { ...f, value: newValue } : f
-    ));
+    setFilters(prev => prev.map(f => (f.key === filterKey ? { ...f, value: newValue } : f)));
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -55,7 +53,7 @@ export const useSearchFilters = (initialQuery = '', initialFilters: SearchFilter
 
   const updateQuery = useCallback((newQuery: string) => {
     setQuery(newQuery);
-    
+
     // Add to history if query is substantial
     if (newQuery.trim().length > 2) {
       setSearchHistory(prev => {
@@ -69,109 +67,113 @@ export const useSearchFilters = (initialQuery = '', initialFilters: SearchFilter
     setSearchHistory([]);
   }, []);
 
-  const applyFilters = useCallback(<T extends Record<string, any>>(
-    items: T[]
-  ): T[] => {
-    let filtered = items;
+  const applyFilters = useCallback(
+    <T extends Record<string, any>>(items: T[]): T[] => {
+      let filtered = items;
 
-    // Apply query search
-    if (query.trim()) {
-      const searchQuery = options.caseSensitive ? query : query.toLowerCase();
-      
-      filtered = filtered.filter(item => {
-        const searchableFields = Object.values(item).join(' ');
-        const searchText = options.caseSensitive 
-          ? searchableFields 
-          : searchableFields.toLowerCase();
-        
-        if (options.fuzzyMatch) {
-          // Simple fuzzy match: check if all query words are present
-          const queryWords = searchQuery.split(/\s+/);
-          return queryWords.every(word => searchText.includes(word));
-        } else {
-          return searchText.includes(searchQuery);
-        }
+      // Apply query search
+      if (query.trim()) {
+        const searchQuery = options.caseSensitive ? query : query.toLowerCase();
+
+        filtered = filtered.filter(item => {
+          const searchableFields = Object.values(item).join(' ');
+          const searchText = options.caseSensitive
+            ? searchableFields
+            : searchableFields.toLowerCase();
+
+          if (options.fuzzyMatch) {
+            // Simple fuzzy match: check if all query words are present
+            const queryWords = searchQuery.split(/\s+/);
+            return queryWords.every(word => searchText.includes(word));
+          } else {
+            return searchText.includes(searchQuery);
+          }
+        });
+      }
+
+      // Apply custom filters
+      filters.forEach(filter => {
+        filtered = filtered.filter(item => {
+          const itemValue = item[filter.key];
+
+          if (Array.isArray(filter.value)) {
+            // Array filter: item value must be in filter values
+            return filter.value.includes(itemValue);
+          } else if (typeof filter.value === 'boolean') {
+            // Boolean filter
+            return itemValue === filter.value;
+          } else if (typeof filter.value === 'number') {
+            // Numeric filter
+            return itemValue === filter.value;
+          } else {
+            // String filter
+            return itemValue
+              ?.toString()
+              .toLowerCase()
+              .includes(filter.value.toString().toLowerCase());
+          }
+        });
       });
-    }
 
-    // Apply custom filters
-    filters.forEach(filter => {
-      filtered = filtered.filter(item => {
-        const itemValue = item[filter.key];
-        
-        if (Array.isArray(filter.value)) {
-          // Array filter: item value must be in filter values
-          return filter.value.includes(itemValue);
-        } else if (typeof filter.value === 'boolean') {
-          // Boolean filter
-          return itemValue === filter.value;
-        } else if (typeof filter.value === 'number') {
-          // Numeric filter
-          return itemValue === filter.value;
-        } else {
-          // String filter
-          return itemValue?.toString().toLowerCase().includes(
-            filter.value.toString().toLowerCase()
-          );
-        }
-      });
-    });
+      return filtered;
+    },
+    [query, filters, options],
+  );
 
-    return filtered;
-  }, [query, filters, options]);
+  const sortResults = useCallback(
+    <T extends Record<string, any>>(items: T[]): T[] => {
+      const sorted = [...items];
 
-  const sortResults = useCallback(<T extends Record<string, any>>(
-    items: T[]
-  ): T[] => {
-    const sorted = [...items];
+      switch (sortBy) {
+        case 'date-desc':
+          return sorted.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.created_at || a.date || 0);
+            const dateB = new Date(b.createdAt || b.created_at || b.date || 0);
+            return dateB.getTime() - dateA.getTime();
+          });
 
-    switch (sortBy) {
-      case 'date-desc':
-        return sorted.sort((a, b) => {
-          const dateA = new Date(a.createdAt || a.created_at || a.date || 0);
-          const dateB = new Date(b.createdAt || b.created_at || b.date || 0);
-          return dateB.getTime() - dateA.getTime();
-        });
-      
-      case 'date-asc':
-        return sorted.sort((a, b) => {
-          const dateA = new Date(a.createdAt || a.created_at || a.date || 0);
-          const dateB = new Date(b.createdAt || b.created_at || b.date || 0);
-          return dateA.getTime() - dateB.getTime();
-        });
-      
-      case 'name-asc':
-        return sorted.sort((a, b) => {
-          const nameA = (a.name || a.title || '').toLowerCase();
-          const nameB = (b.name || b.title || '').toLowerCase();
-          return nameA.localeCompare(nameB);
-        });
-      
-      case 'name-desc':
-        return sorted.sort((a, b) => {
-          const nameA = (a.name || a.title || '').toLowerCase();
-          const nameB = (b.name || b.title || '').toLowerCase();
-          return nameB.localeCompare(nameA);
-        });
-      
-      case 'relevance':
-      default:
-        return sorted;
-    }
-  }, [sortBy]);
+        case 'date-asc':
+          return sorted.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.created_at || a.date || 0);
+            const dateB = new Date(b.createdAt || b.created_at || b.date || 0);
+            return dateA.getTime() - dateB.getTime();
+          });
 
-  const getFilteredAndSorted = useCallback(<T extends Record<string, any>>(
-    items: T[]
-  ): T[] => {
-    const filtered = applyFilters(items);
-    const sorted = sortResults(filtered);
-    
-    if (options.maxResults) {
-      return sorted.slice(0, options.maxResults);
-    }
-    
-    return sorted;
-  }, [applyFilters, sortResults, options.maxResults]);
+        case 'name-asc':
+          return sorted.sort((a, b) => {
+            const nameA = (a.name || a.title || '').toLowerCase();
+            const nameB = (b.name || b.title || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+
+        case 'name-desc':
+          return sorted.sort((a, b) => {
+            const nameA = (a.name || a.title || '').toLowerCase();
+            const nameB = (b.name || b.title || '').toLowerCase();
+            return nameB.localeCompare(nameA);
+          });
+
+        case 'relevance':
+        default:
+          return sorted;
+      }
+    },
+    [sortBy],
+  );
+
+  const getFilteredAndSorted = useCallback(
+    <T extends Record<string, any>>(items: T[]): T[] => {
+      const filtered = applyFilters(items);
+      const sorted = sortResults(filtered);
+
+      if (options.maxResults) {
+        return sorted.slice(0, options.maxResults);
+      }
+
+      return sorted;
+    },
+    [applyFilters, sortResults, options.maxResults],
+  );
 
   const activeFilterCount = useMemo(() => {
     return filters.length + (query.trim() ? 1 : 0);
@@ -188,11 +190,11 @@ export const useSearchFilters = (initialQuery = '', initialFilters: SearchFilter
     sortBy,
     searchHistory,
     options,
-    
+
     // Computed
     activeFilterCount,
     hasActiveFilters,
-    
+
     // Actions
     setQuery: updateQuery,
     setSortBy,
@@ -205,6 +207,6 @@ export const useSearchFilters = (initialQuery = '', initialFilters: SearchFilter
     clearHistory,
     applyFilters,
     sortResults,
-    getFilteredAndSorted
+    getFilteredAndSorted,
   };
 };

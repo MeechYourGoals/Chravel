@@ -1,15 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { travelWalletService, AirlineProgram, HotelProgram, RentalProgram } from '@/services/travelWalletService';
+import {
+  travelWalletService,
+  AirlineProgram,
+  HotelProgram,
+  RentalProgram,
+} from '@/services/travelWalletService';
 import { toast } from 'sonner';
 
 export const useTravelWallet = (userId: string) => {
   const queryClient = useQueryClient();
 
   // Airlines
-  const {
-    data: airlines = [],
-    isLoading: airlinesLoading,
-  } = useQuery({
+  const { data: airlines = [], isLoading: airlinesLoading } = useQuery({
     queryKey: ['loyalty-airlines', userId],
     queryFn: () => travelWalletService.listAirlines(userId),
     enabled: !!userId,
@@ -51,10 +53,7 @@ export const useTravelWallet = (userId: string) => {
   });
 
   // Hotels
-  const {
-    data: hotels = [],
-    isLoading: hotelsLoading,
-  } = useQuery({
+  const { data: hotels = [], isLoading: hotelsLoading } = useQuery({
     queryKey: ['loyalty-hotels', userId],
     queryFn: () => travelWalletService.listHotels(userId),
     enabled: !!userId,
@@ -96,10 +95,7 @@ export const useTravelWallet = (userId: string) => {
   });
 
   // Rentals
-  const {
-    data: rentals = [],
-    isLoading: rentalsLoading,
-  } = useQuery({
+  const { data: rentals = [], isLoading: rentalsLoading } = useQuery({
     queryKey: ['loyalty-rentals', userId],
     queryFn: () => travelWalletService.listRentals(userId),
     enabled: !!userId,

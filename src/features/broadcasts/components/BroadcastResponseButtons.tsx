@@ -10,14 +10,12 @@ interface BroadcastResponseButtonsProps {
 export const BroadcastResponseButtons = ({
   responses,
   userResponse,
-  onRespond
+  onRespond,
 }: BroadcastResponseButtonsProps) => {
   const getButtonClass = (type: ReactionType, activeColor: string, hoverColor: string) => {
     const isActive = userResponse === type;
     return `px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
-      isActive 
-        ? `${activeColor} text-white` 
-        : `bg-slate-700 text-slate-300 ${hoverColor}`
+      isActive ? `${activeColor} text-white` : `bg-slate-700 text-slate-300 ${hoverColor}`
     }`;
   };
 

@@ -1,9 +1,9 @@
 /**
  * Event Permissions Hook
- * 
+ *
  * Provides role-based access control utilities for Events (Pro/Enterprise feature).
  * Integrates with Supabase trip_roles, user_trip_roles, and trip_channels tables.
- * 
+ *
  * Permission Matrix:
  * | Feature   | Attendee                    | Organizer/Admin             |
  * |-----------|-----------------------------|-----------------------------|
@@ -46,66 +46,70 @@ export const useEventPermissions = (tripId: string) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [channelPermissions, setChannelPermissions] = useState<Map<string, ChannelPermission>>(new Map());
+  const [channelPermissions, setChannelPermissions] = useState<Map<string, ChannelPermission>>(
+    new Map(),
+  );
 
   // Determine if user is an organizer (admin, creator, or has organizer role)
   const isOrganizer = useMemo(() => {
     if (isDemoMode) return true; // Demo mode = full access
     if (isAdmin || isCreator) return true;
     // Check for 'Organizer' role in userRoles
-    return userRoles.some(r => 
-      r.roleName.toLowerCase() === 'organizer' || 
-      r.roleName.toLowerCase() === 'admin'
+    return userRoles.some(
+      r => r.roleName.toLowerCase() === 'organizer' || r.roleName.toLowerCase() === 'admin',
     );
   }, [isDemoMode, isAdmin, isCreator, userRoles]);
 
   // Generate event-specific permissions based on organizer status
-  const eventPermissions: EventFeaturePermissions = useMemo(() => ({
-    agenda: {
-      canView: true,
-      canCreate: isOrganizer,
-      canEdit: isOrganizer,
-      canDelete: isOrganizer,
-      canUpload: isOrganizer
-    },
-    calendar: {
-      canView: true,
-      canCreate: isOrganizer,
-      canEdit: isOrganizer,
-      canDelete: isOrganizer
-    },
-    chat: {
-      canView: true,
-      canSend: true, // All members can send
-      canDeleteOwn: true, // All can delete their own
-      canDeleteAny: isOrganizer // Only organizers can moderate
-    },
-    media: {
-      canView: true,
-      canUpload: true, // All members can upload (encouraged for photo sharing)
-      canDeleteOwn: true, // All can delete their own
-      canDeleteAny: isOrganizer // Only organizers can moderate
-    },
-    lineup: {
-      canView: true,
-      canCreate: isOrganizer,
-      canEdit: isOrganizer,
-      canDelete: isOrganizer
-    },
-    polls: {
-      canView: true,
-      canVote: true, // All members can vote
-      canCreate: isOrganizer,
-      canClose: isOrganizer,
-      canDelete: isOrganizer
-    },
-    tasks: {
-      canView: true,
-      canCreate: isOrganizer,
-      canEdit: isOrganizer,
-      canDelete: isOrganizer
-    }
-  }), [isOrganizer]);
+  const eventPermissions: EventFeaturePermissions = useMemo(
+    () => ({
+      agenda: {
+        canView: true,
+        canCreate: isOrganizer,
+        canEdit: isOrganizer,
+        canDelete: isOrganizer,
+        canUpload: isOrganizer,
+      },
+      calendar: {
+        canView: true,
+        canCreate: isOrganizer,
+        canEdit: isOrganizer,
+        canDelete: isOrganizer,
+      },
+      chat: {
+        canView: true,
+        canSend: true, // All members can send
+        canDeleteOwn: true, // All can delete their own
+        canDeleteAny: isOrganizer, // Only organizers can moderate
+      },
+      media: {
+        canView: true,
+        canUpload: true, // All members can upload (encouraged for photo sharing)
+        canDeleteOwn: true, // All can delete their own
+        canDeleteAny: isOrganizer, // Only organizers can moderate
+      },
+      lineup: {
+        canView: true,
+        canCreate: isOrganizer,
+        canEdit: isOrganizer,
+        canDelete: isOrganizer,
+      },
+      polls: {
+        canView: true,
+        canVote: true, // All members can vote
+        canCreate: isOrganizer,
+        canClose: isOrganizer,
+        canDelete: isOrganizer,
+      },
+      tasks: {
+        canView: true,
+        canCreate: isOrganizer,
+        canEdit: isOrganizer,
+        canDelete: isOrganizer,
+      },
+    }),
+    [isOrganizer],
+  );
 
   // Load user's roles and determine organizer status
   const loadUserRoles = useCallback(async () => {
@@ -131,7 +135,8 @@ export const useEventPermissions = (tripId: string) => {
       // Get user's roles for this trip
       const { data: roleAssignments, error: rolesError } = await supabase
         .from('user_trip_roles')
-        .select(`
+        .select(
+          `
           id,
           role_id,
           is_primary,
@@ -139,7 +144,8 @@ export const useEventPermissions = (tripId: string) => {
             id,
             role_name
           )
-        `)
+        `,
+        )
         .eq('trip_id', tripId)
         .eq('user_id', user.id);
 
@@ -152,7 +158,7 @@ export const useEventPermissions = (tripId: string) => {
       const roles: UserRole[] = (roleAssignments || []).map((assignment: any) => ({
         roleId: assignment.role_id,
         roleName: assignment.trip_roles?.role_name || 'Unknown',
-        isPrimary: assignment.is_primary ?? true
+        isPrimary: assignment.is_primary ?? true,
       }));
 
       setUserRoles(roles);
@@ -177,14 +183,16 @@ export const useEventPermissions = (tripId: string) => {
   }, [user?.id, tripId]);
 
   // Load permissions for all channels user can access
-  const loadChannelPermissions = useCallback(async (roles: UserRole[]) => {
-    if (!user?.id || !tripId) return;
+  const loadChannelPermissions = useCallback(
+    async (roles: UserRole[]) => {
+      if (!user?.id || !tripId) return;
 
-    try {
-      // Get all channels for this trip
-      const { data: channels, error: channelsError } = await supabase
-        .from('trip_channels')
-        .select(`
+      try {
+        // Get all channels for this trip
+        const { data: channels, error: channelsError } = await supabase
+          .from('trip_channels')
+          .select(
+            `
           id,
           channel_name,
           channel_slug,
@@ -192,84 +200,95 @@ export const useEventPermissions = (tripId: string) => {
           channel_role_access:channel_role_access (
             role_id
           )
-        `)
-        .eq('trip_id', tripId)
-        .eq('is_archived', false);
+        `,
+          )
+          .eq('trip_id', tripId)
+          .eq('is_archived', false);
 
-      if (channelsError) {
-        console.error('Failed to load channels:', channelsError);
-        return;
-      }
-
-      const permissionsMap = new Map<string, ChannelPermission>();
-      const userRoleIds = roles.map(r => r.roleId);
-
-      // Check access for each channel
-      for (const channel of channels || []) {
-        const channelRoleIds = (channel.channel_role_access || []).map((cra: any) => cra.role_id);
-        const hasAccess = userRoleIds.some(roleId => channelRoleIds.includes(roleId)) || isAdmin;
-
-        if (hasAccess) {
-          permissionsMap.set(channel.id, {
-            channelId: channel.id,
-            canView: true,
-            canEdit: isAdmin || roles.some(r => r.isPrimary && channelRoleIds.includes(r.roleId)),
-            canPost: true
-          });
+        if (channelsError) {
+          console.error('Failed to load channels:', channelsError);
+          return;
         }
-      }
 
-      setChannelPermissions(permissionsMap);
-    } catch (error) {
-      console.error('Error loading channel permissions:', error);
-    }
-  }, [user?.id, tripId, isAdmin]);
+        const permissionsMap = new Map<string, ChannelPermission>();
+        const userRoleIds = roles.map(r => r.roleId);
+
+        // Check access for each channel
+        for (const channel of channels || []) {
+          const channelRoleIds = (channel.channel_role_access || []).map((cra: any) => cra.role_id);
+          const hasAccess = userRoleIds.some(roleId => channelRoleIds.includes(roleId)) || isAdmin;
+
+          if (hasAccess) {
+            permissionsMap.set(channel.id, {
+              channelId: channel.id,
+              canView: true,
+              canEdit: isAdmin || roles.some(r => r.isPrimary && channelRoleIds.includes(r.roleId)),
+              canPost: true,
+            });
+          }
+        }
+
+        setChannelPermissions(permissionsMap);
+      } catch (error) {
+        console.error('Error loading channel permissions:', error);
+      }
+    },
+    [user?.id, tripId, isAdmin],
+  );
 
   // Check if user can access a specific channel
-  const canAccessChannel = useCallback(async (channelId: string): Promise<boolean> => {
-    if (!user?.id) return false;
-    if (isAdmin) return true;
+  const canAccessChannel = useCallback(
+    async (channelId: string): Promise<boolean> => {
+      if (!user?.id) return false;
+      if (isAdmin) return true;
 
-    try {
-      const { data, error } = await supabase.rpc('can_access_channel', {
-        _user_id: user.id,
-        _channel_id: channelId
-      });
+      try {
+        const { data, error } = await supabase.rpc('can_access_channel', {
+          _user_id: user.id,
+          _channel_id: channelId,
+        });
 
-      if (error) {
+        if (error) {
+          console.error('Error checking channel access:', error);
+          return false;
+        }
+
+        return !!data;
+      } catch (error) {
         console.error('Error checking channel access:', error);
         return false;
       }
-
-      return !!data;
-    } catch (error) {
-      console.error('Error checking channel access:', error);
-      return false;
-    }
-  }, [user?.id, isAdmin]);
+    },
+    [user?.id, isAdmin],
+  );
 
   // Check if user has specific admin permission
-  const hasAdminPermission = useCallback(async (permission: 'can_manage_roles' | 'can_manage_channels' | 'can_designate_admins'): Promise<boolean> => {
-    if (!user?.id || !tripId) return false;
+  const hasAdminPermission = useCallback(
+    async (
+      permission: 'can_manage_roles' | 'can_manage_channels' | 'can_designate_admins',
+    ): Promise<boolean> => {
+      if (!user?.id || !tripId) return false;
 
-    try {
-      const { data, error } = await supabase.rpc('has_admin_permission', {
-        _user_id: user.id,
-        _trip_id: tripId,
-        _permission: permission
-      });
+      try {
+        const { data, error } = await supabase.rpc('has_admin_permission', {
+          _user_id: user.id,
+          _trip_id: tripId,
+          _permission: permission,
+        });
 
-      if (error) {
+        if (error) {
+          console.error('Error checking admin permission:', error);
+          return false;
+        }
+
+        return !!data;
+      } catch (error) {
         console.error('Error checking admin permission:', error);
         return false;
       }
-
-      return !!data;
-    } catch (error) {
-      console.error('Error checking admin permission:', error);
-      return false;
-    }
-  }, [user?.id, tripId]);
+    },
+    [user?.id, tripId],
+  );
 
   useEffect(() => {
     loadUserRoles();
@@ -285,6 +304,6 @@ export const useEventPermissions = (tripId: string) => {
     eventPermissions,
     canAccessChannel,
     hasAdminPermission,
-    refreshPermissions: loadUserRoles
+    refreshPermissions: loadUserRoles,
   };
 };

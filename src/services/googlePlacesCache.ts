@@ -2,18 +2,18 @@
 // @ts-nocheck - Temporary until RPC functions added to generated types
 /**
  * Google Places API Cache Service
- * 
+ *
  * Provides server-side caching layer using Supabase to:
  * - Reduce API calls by 60-80% (cache hit rate)
  * - Lower costs by caching place details for 30 days
  * - Improve performance (cache responses are instant)
- * 
+ *
  * Cache Strategy:
  * - Autocomplete: 1 hour client-side, 30 days server-side
  * - Place Details: 30 days server-side (place data rarely changes)
  * - Text Search: 30 days server-side (same query = same results)
  * - Nearby Search: 1 hour client-side, 30 days server-side
- * 
+ *
  * Created: 2025-02-01
  * Purpose: Reduce Google Maps API costs and improve performance
  */
@@ -30,7 +30,7 @@ export function generateCacheKey(
   endpoint: 'autocomplete' | 'text-search' | 'place-details' | 'nearby-search',
   query: string,
   origin: SearchOrigin | null,
-  additionalParams?: Record<string, string | number>
+  additionalParams?: Record<string, string | number>,
 ): string {
   const parts = [
     endpoint,
@@ -38,18 +38,18 @@ export function generateCacheKey(
     origin ? `${origin.lat.toFixed(6)},${origin.lng.toFixed(6)}` : 'no-origin',
     ...(additionalParams ? Object.entries(additionalParams).map(([k, v]) => `${k}:${v}`) : []),
   ];
-  
+
   // Create a hash-like key (simple but effective for our use case)
   const key = parts.join('|');
-  
+
   // Use a simple hash function (not cryptographically secure, but fast)
   let hash = 0;
   for (let i = 0; i < key.length; i++) {
     const char = key.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
-  
+
   return `places_cache_${Math.abs(hash).toString(36)}`;
 }
 
@@ -58,7 +58,7 @@ export function generateCacheKey(
  * Returns null if cache miss or expired
  */
 export async function getCachedPlace<T extends ConvertedPlace | ConvertedPrediction[]>(
-  cacheKey: string
+  cacheKey: string,
 ): Promise<T | null> {
   try {
     const { data, error } = await supabase.rpc('get_places_cache' as any, {
@@ -94,7 +94,7 @@ export async function setCachedPlace(
   query: string,
   data: ConvertedPlace | ConvertedPrediction[],
   placeId?: string,
-  origin?: SearchOrigin | null
+  origin?: SearchOrigin | null,
 ): Promise<void> {
   try {
     const { error } = await supabase.rpc('set_places_cache', {
@@ -131,15 +131,15 @@ export async function setCachedPlace(
  */
 export async function recordApiUsage(
   endpoint: 'autocomplete' | 'text-search' | 'place-details' | 'nearby-search' | 'geocode',
-  userId?: string | null
+  userId?: string | null,
 ): Promise<void> {
   // Cost estimates per request (USD) - update if Google changes pricing
   const costPerRequest: Record<string, number> = {
-    'autocomplete': 0.017,
+    autocomplete: 0.017,
     'text-search': 0.017,
     'place-details': 0.017,
     'nearby-search': 0.032,
-    'geocode': 0.005,
+    geocode: 0.005,
   };
 
   const estimatedCost = costPerRequest[endpoint] || 0.017;
@@ -170,7 +170,7 @@ export async function recordApiUsage(
  */
 export async function getHourlyUsage(
   endpoint: 'autocomplete' | 'text-search' | 'place-details' | 'nearby-search' | 'geocode',
-  userId?: string | null
+  userId?: string | null,
 ): Promise<Array<{ request_count: number; estimated_cost_usd: number; date_hour: string }>> {
   try {
     const { data, error } = await supabase.rpc('get_hourly_usage', {
@@ -185,7 +185,11 @@ export async function getHourlyUsage(
       return [];
     }
 
-    return (data || []) as Array<{ request_count: number; estimated_cost_usd: number; date_hour: string }>;
+    return (data || []) as Array<{
+      request_count: number;
+      estimated_cost_usd: number;
+      date_hour: string;
+    }>;
   } catch (error) {
     if (import.meta.env.DEV) {
       console.warn('[PlacesCache] Hourly usage fetch failed:', error);
@@ -200,7 +204,7 @@ export async function getHourlyUsage(
 export async function getDailyUsage(
   endpoint: 'autocomplete' | 'text-search' | 'place-details' | 'nearby-search' | 'geocode',
   days: number = 7,
-  userId?: string | null
+  userId?: string | null,
 ): Promise<Array<{ request_count: number; estimated_cost_usd: number; date_day: string }>> {
   try {
     const { data, error } = await supabase.rpc('get_daily_usage', {
@@ -216,7 +220,11 @@ export async function getDailyUsage(
       return [];
     }
 
-    return (data || []) as Array<{ request_count: number; estimated_cost_usd: number; date_day: string }>;
+    return (data || []) as Array<{
+      request_count: number;
+      estimated_cost_usd: number;
+      date_day: string;
+    }>;
   } catch (error) {
     if (import.meta.env.DEV) {
       console.warn('[PlacesCache] Daily usage fetch failed:', error);

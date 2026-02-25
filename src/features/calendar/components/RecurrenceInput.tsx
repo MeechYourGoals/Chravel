@@ -7,7 +7,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Repeat } from 'lucide-react';
@@ -40,14 +46,14 @@ function parseRRule(rrule: string | undefined): RecurrenceConfig {
     return {
       frequency: 'DAILY',
       interval: 1,
-      endType: 'never'
+      endType: 'never',
     };
   }
 
   const config: RecurrenceConfig = {
     frequency: 'DAILY',
     interval: 1,
-    endType: 'never'
+    endType: 'never',
   };
 
   const parts = rrule.split(';');
@@ -75,10 +81,7 @@ function parseRRule(rrule: string | undefined): RecurrenceConfig {
  * Build RRULE string from RecurrenceConfig
  */
 function buildRRule(config: RecurrenceConfig): string {
-  const parts = [
-    `FREQ=${config.frequency}`,
-    `INTERVAL=${config.interval}`
-  ];
+  const parts = [`FREQ=${config.frequency}`, `INTERVAL=${config.interval}`];
 
   if (config.endType === 'count' && config.count) {
     parts.push(`COUNT=${config.count}`);
@@ -134,11 +137,7 @@ export const RecurrenceInput: React.FC<RecurrenceInputProps> = ({ value, onChang
             Repeat Event
           </Label>
         </div>
-        <Switch
-          id="recurring-switch"
-          checked={isRecurring}
-          onCheckedChange={handleToggle}
-        />
+        <Switch id="recurring-switch" checked={isRecurring} onCheckedChange={handleToggle} />
       </div>
 
       {/* Recurrence Options */}
@@ -149,7 +148,7 @@ export const RecurrenceInput: React.FC<RecurrenceInputProps> = ({ value, onChang
             <Label className="text-sm min-w-[80px]">Repeats</Label>
             <Select
               value={config.frequency}
-              onValueChange={(freq) =>
+              onValueChange={freq =>
                 updateRecurrence({ ...config, frequency: freq as RecurrenceFrequency })
               }
             >
@@ -172,7 +171,7 @@ export const RecurrenceInput: React.FC<RecurrenceInputProps> = ({ value, onChang
               min={1}
               max={99}
               value={config.interval}
-              onChange={(e) =>
+              onChange={e =>
                 updateRecurrence({ ...config, interval: parseInt(e.target.value, 10) || 1 })
               }
               className="w-[80px]"
@@ -221,7 +220,7 @@ export const RecurrenceInput: React.FC<RecurrenceInputProps> = ({ value, onChang
             <Label className="text-sm min-w-[80px]">Ends</Label>
             <Select
               value={config.endType}
-              onValueChange={(type) =>
+              onValueChange={type =>
                 updateRecurrence({ ...config, endType: type as RecurrenceEndType })
               }
             >
@@ -244,7 +243,7 @@ export const RecurrenceInput: React.FC<RecurrenceInputProps> = ({ value, onChang
                 min={1}
                 max={999}
                 value={config.count || 10}
-                onChange={(e) =>
+                onChange={e =>
                   updateRecurrence({ ...config, count: parseInt(e.target.value, 10) || 1 })
                 }
                 className="w-[100px]"
@@ -259,7 +258,7 @@ export const RecurrenceInput: React.FC<RecurrenceInputProps> = ({ value, onChang
               <Input
                 type="date"
                 value={config.until || ''}
-                onChange={(e) => updateRecurrence({ ...config, until: e.target.value })}
+                onChange={e => updateRecurrence({ ...config, until: e.target.value })}
                 className="w-[180px]"
               />
             </div>

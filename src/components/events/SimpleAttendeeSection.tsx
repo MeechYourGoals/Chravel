@@ -9,17 +9,46 @@ import { EventAttendee, RSVPStatus } from '../../types/events';
 
 export const SimpleAttendeeSection = () => {
   const [attendees, setAttendees] = useState<EventAttendee[]>([
-    { id: '1', name: 'John Smith', email: 'john@example.com', status: 'going', rsvpedAt: '2024-01-15' },
-    { id: '2', name: 'Sarah Johnson', email: 'sarah@example.com', status: 'maybe', rsvpedAt: '2024-01-14' },
-    { id: '3', name: 'Mike Davis', email: 'mike@example.com', status: 'going', rsvpedAt: '2024-01-13' },
-    { id: '4', name: 'Alex Kim', email: 'alex@example.com', status: 'not-going', rsvpedAt: '2024-01-12' },
+    {
+      id: '1',
+      name: 'John Smith',
+      email: 'john@example.com',
+      status: 'going',
+      rsvpedAt: '2024-01-15',
+    },
+    {
+      id: '2',
+      name: 'Sarah Johnson',
+      email: 'sarah@example.com',
+      status: 'maybe',
+      rsvpedAt: '2024-01-14',
+    },
+    {
+      id: '3',
+      name: 'Mike Davis',
+      email: 'mike@example.com',
+      status: 'going',
+      rsvpedAt: '2024-01-13',
+    },
+    {
+      id: '4',
+      name: 'Alex Kim',
+      email: 'alex@example.com',
+      status: 'not-going',
+      rsvpedAt: '2024-01-12',
+    },
     { id: '5', name: 'Jamie Wilson', email: 'jamie@example.com', status: 'not-answered' },
-    { id: '6', name: 'Chris Brown', email: 'chris@example.com', status: 'not-answered' }
+    { id: '6', name: 'Chris Brown', email: 'chris@example.com', status: 'not-answered' },
   ]);
-  
-  const [showFilters, setShowFilters] = useState<RSVPStatus[]>(['going', 'maybe', 'not-going', 'not-answered']);
+
+  const [showFilters, setShowFilters] = useState<RSVPStatus[]>([
+    'going',
+    'maybe',
+    'not-going',
+    'not-answered',
+  ]);
   const [eventId] = useState('event-123'); // This would come from props in real implementation
-  
+
   const {
     copied,
     inviteLink,
@@ -28,13 +57,13 @@ export const SimpleAttendeeSection = () => {
     handleCopyLink,
     handleShare,
     handleEmailInvite,
-    handleSMSInvite
-  } = useInviteLink({ 
-    isOpen: true, 
-    tripName: 'My Amazing Event', 
-    requireApproval: false, 
+    handleSMSInvite,
+  } = useInviteLink({
+    isOpen: true,
+    tripName: 'My Amazing Event',
+    requireApproval: false,
     expireIn7Days: false,
-    tripId: eventId
+    tripId: eventId,
   });
 
   // Calculate summary counts
@@ -51,27 +80,45 @@ export const SimpleAttendeeSection = () => {
     going: attendees.filter(a => a.status === 'going'),
     maybe: attendees.filter(a => a.status === 'maybe'),
     'not-going': attendees.filter(a => a.status === 'not-going'),
-    'not-answered': attendees.filter(a => a.status === 'not-answered')
+    'not-answered': attendees.filter(a => a.status === 'not-answered'),
   };
 
   const getStatusConfig = (status: RSVPStatus) => {
     switch (status) {
       case 'going':
-        return { label: 'Going', bgColor: 'bg-green-500/20', textColor: 'text-green-400', icon: '✓' };
+        return {
+          label: 'Going',
+          bgColor: 'bg-green-500/20',
+          textColor: 'text-green-400',
+          icon: '✓',
+        };
       case 'maybe':
-        return { label: 'Maybe', bgColor: 'bg-yellow-500/20', textColor: 'text-yellow-400', icon: '?' };
+        return {
+          label: 'Maybe',
+          bgColor: 'bg-yellow-500/20',
+          textColor: 'text-yellow-400',
+          icon: '?',
+        };
       case 'not-going':
-        return { label: 'Not Going', bgColor: 'bg-red-500/20', textColor: 'text-red-400', icon: '✗' };
+        return {
+          label: 'Not Going',
+          bgColor: 'bg-red-500/20',
+          textColor: 'text-red-400',
+          icon: '✗',
+        };
       case 'not-answered':
-        return { label: 'Not Answered', bgColor: 'bg-gray-500/20', textColor: 'text-gray-400', icon: '–' };
+        return {
+          label: 'Not Answered',
+          bgColor: 'bg-gray-500/20',
+          textColor: 'text-gray-400',
+          icon: '–',
+        };
     }
   };
 
   const toggleFilter = (status: RSVPStatus) => {
-    setShowFilters(prev => 
-      prev.includes(status) 
-        ? prev.filter(s => s !== status)
-        : [...prev, status]
+    setShowFilters(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status],
     );
   };
 
@@ -101,9 +148,7 @@ export const SimpleAttendeeSection = () => {
           <span className="bg-gray-500/20 text-gray-400 px-3 py-1 rounded-full font-medium">
             {notAnsweredCount} Not Answered
           </span>
-          <span className="text-white font-medium ml-2">
-            • {attendees.length} Total Invites
-          </span>
+          <span className="text-white font-medium ml-2">• {attendees.length} Total Invites</span>
         </div>
       </div>
 
@@ -116,7 +161,7 @@ export const SimpleAttendeeSection = () => {
         <p className="text-gray-300 text-sm mb-3">
           Share this link with your guests so they can RSVP to your event
         </p>
-        
+
         <InviteLinkSection
           inviteLink={inviteLink}
           loading={loading}
@@ -124,7 +169,7 @@ export const SimpleAttendeeSection = () => {
           onCopyLink={handleCopyLink}
           onRegenerate={regenerateInviteToken}
         />
-        
+
         <ShareOptionsSection
           loading={loading}
           inviteLink={inviteLink}
@@ -132,7 +177,7 @@ export const SimpleAttendeeSection = () => {
           onEmailInvite={handleEmailInvite}
           onSMSInvite={handleSMSInvite}
         />
-        
+
         <InviteInstructions />
       </div>
 
@@ -143,13 +188,13 @@ export const SimpleAttendeeSection = () => {
             RSVP Responses ({attendees.length} total)
           </h4>
           <div className="flex gap-2">
-            {(['going', 'maybe', 'not-going', 'not-answered'] as RSVPStatus[]).map((status) => {
+            {(['going', 'maybe', 'not-going', 'not-answered'] as RSVPStatus[]).map(status => {
               const config = getStatusConfig(status);
               const isActive = showFilters.includes(status);
               return (
                 <Button
                   key={status}
-                  variant={isActive ? "default" : "outline"}
+                  variant={isActive ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => toggleFilter(status)}
                   className={`text-xs ${isActive ? config.bgColor + ' ' + config.textColor : 'text-gray-400'}`}
@@ -163,23 +208,25 @@ export const SimpleAttendeeSection = () => {
 
         {/* Grouped RSVP List */}
         <div className="space-y-4">
-          {(['going', 'maybe', 'not-going', 'not-answered'] as RSVPStatus[]).map((status) => {
+          {(['going', 'maybe', 'not-going', 'not-answered'] as RSVPStatus[]).map(status => {
             const statusAttendees = groupedAttendees[status];
             const config = getStatusConfig(status);
-            
+
             if (!showFilters.includes(status) || statusAttendees.length === 0) return null;
-            
+
             return (
               <div key={status} className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className={`w-3 h-3 rounded-full ${config.bgColor.replace('/20', '')}`}></span>
+                  <span
+                    className={`w-3 h-3 rounded-full ${config.bgColor.replace('/20', '')}`}
+                  ></span>
                   <h5 className={`font-medium ${config.textColor}`}>
                     {config.label} ({statusAttendees.length})
                   </h5>
                 </div>
-                
+
                 <div className="space-y-2 pl-5">
-                  {statusAttendees.map((attendee) => (
+                  {statusAttendees.map(attendee => (
                     <div
                       key={attendee.id}
                       className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
@@ -191,9 +238,11 @@ export const SimpleAttendeeSection = () => {
                           <p className="text-gray-400 text-xs">{attendee.email}</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.bgColor} ${config.textColor}`}>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${config.bgColor} ${config.textColor}`}
+                        >
                           {config.icon} {config.label}
                         </span>
                         {attendee.rsvpedAt && (
@@ -208,7 +257,7 @@ export const SimpleAttendeeSection = () => {
               </div>
             );
           })}
-          
+
           {filteredAttendees.length === 0 && (
             <div className="text-center py-8 text-gray-400">
               <Users size={48} className="mx-auto mb-4 opacity-50" />

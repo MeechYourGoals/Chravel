@@ -16,9 +16,9 @@ class WebClipboard {
       return { success: true };
     } catch (error) {
       console.error('Clipboard copy error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Copy failed' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Copy failed',
       };
     }
   }
@@ -29,9 +29,9 @@ class WebClipboard {
       return { success: true, text };
     } catch (error) {
       console.error('Clipboard paste error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Paste failed' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Paste failed',
       };
     }
   }

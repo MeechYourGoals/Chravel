@@ -26,7 +26,7 @@ export const RoleChannelManager = ({
   tripId,
   roster,
   userRole,
-  existingRoles
+  existingRoles,
 }: RoleChannelManagerProps) => {
   const [channels, setChannels] = useState<TripChannel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<TripChannel | null>(null);
@@ -39,8 +39,16 @@ export const RoleChannelManager = ({
   useEffect(() => {
     if (isOpen) {
       // Auto-enable demo mode for specific trips
-      const autoDemoTrips = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15', '16'];
-      
+      const autoDemoTrips = [
+        'lakers-road-trip',
+        'beyonce-cowboy-carter-tour',
+        'eli-lilly-c-suite-retreat-2026',
+        '13',
+        '14',
+        '15',
+        '16',
+      ];
+
       if (autoDemoTrips.includes(tripId)) {
         // SYNCHRONOUSLY load demo channels to avoid race condition
         const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
@@ -50,7 +58,7 @@ export const RoleChannelManager = ({
       } else {
         loadChannels();
       }
-      
+
       checkAdminStatus();
     }
   }, [isOpen, tripId]);
@@ -62,11 +70,19 @@ export const RoleChannelManager = ({
 
   const loadChannels = async () => {
     setLoading(true);
-    
+
     // Check if this is a demo trip
-    const autoDemoTrips = ['lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026', '13', '14', '15', '16'];
+    const autoDemoTrips = [
+      'lakers-road-trip',
+      'beyonce-cowboy-carter-tour',
+      'eli-lilly-c-suite-retreat-2026',
+      '13',
+      '14',
+      '15',
+      '16',
+    ];
     const shouldUseDemoData = demoMode || autoDemoTrips.includes(tripId);
-    
+
     if (shouldUseDemoData) {
       const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
       setChannels(demoChannels);
@@ -75,7 +91,7 @@ export const RoleChannelManager = ({
       const accessibleChannels = await channelService.getAccessibleChannels(tripId);
       setChannels(accessibleChannels);
     }
-    
+
     setLoading(false);
   };
 
@@ -135,20 +151,35 @@ export const RoleChannelManager = ({
                 <div className="text-gray-400">Loading channels...</div>
               </div>
             ) : selectedChannel ? (
-              <ChannelChatView 
-                channel={selectedChannel} 
-                onBack={handleBackToList}
-              />
+              <ChannelChatView channel={selectedChannel} onBack={handleBackToList} />
             ) : (
               <div className="space-y-4 md:space-y-6 py-4 md:py-0">
                 {/* Demo Mode Banner */}
-                {(demoMode || ['13', '14', '15', '16', 'lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'].includes(tripId)) && (
+                {(demoMode ||
+                  [
+                    '13',
+                    '14',
+                    '15',
+                    '16',
+                    'lakers-road-trip',
+                    'beyonce-cowboy-carter-tour',
+                    'eli-lilly-c-suite-retreat-2026',
+                  ].includes(tripId)) && (
                   <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 md:p-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0 sm:justify-between">
                       <p className="text-blue-400 text-xs md:text-sm">
-                        <strong>Demo Mode:</strong> Sample channels with mock messages. Click any to explore!
+                        <strong>Demo Mode:</strong> Sample channels with mock messages. Click any to
+                        explore!
                       </p>
-                      {!['13', '14', '15', '16', 'lakers-road-trip', 'beyonce-cowboy-carter-tour', 'eli-lilly-c-suite-retreat-2026'].includes(tripId) && (
+                      {![
+                        '13',
+                        '14',
+                        '15',
+                        '16',
+                        'lakers-road-trip',
+                        'beyonce-cowboy-carter-tour',
+                        'eli-lilly-c-suite-retreat-2026',
+                      ].includes(tripId) && (
                         <Button
                           onClick={exitDemoMode}
                           size="sm"
@@ -194,7 +225,9 @@ export const RoleChannelManager = ({
                   <div className="text-center py-8 bg-white/5 rounded-lg border border-gray-700">
                     <MessageSquare size={48} className="text-gray-600 mx-auto mb-2" />
                     <p className="text-gray-400 text-sm">No role channels assigned yet</p>
-                    <p className="text-xs text-gray-500 mt-1">Contact an admin to assign you a role</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Contact an admin to assign you a role
+                    </p>
                   </div>
                 )}
               </div>

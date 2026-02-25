@@ -316,9 +316,7 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
               <RadioGroupItem value="everyone" id="chat-everyone" className="mt-1" />
               <Label htmlFor="chat-everyone" className="cursor-pointer space-y-1">
                 <span className="font-medium text-foreground">Everyone can chat</span>
-                <p className="text-xs text-muted-foreground">
-                  All attendees can send messages.
-                </p>
+                <p className="text-xs text-muted-foreground">All attendees can send messages.</p>
               </Label>
             </div>
           </RadioGroup>
@@ -338,9 +336,7 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Media upload permissions</DialogTitle>
-            <DialogDescription>
-              Control who can upload media in this event.
-            </DialogDescription>
+            <DialogDescription>Control who can upload media in this event.</DialogDescription>
           </DialogHeader>
           <RadioGroup
             value={pendingMediaMode}
@@ -351,18 +347,14 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
               <RadioGroupItem value="admin_only" id="media-admin" className="mt-1" />
               <Label htmlFor="media-admin" className="cursor-pointer space-y-1">
                 <span className="font-medium text-foreground">Admins only</span>
-                <p className="text-xs text-muted-foreground">
-                  Only admins can upload media.
-                </p>
+                <p className="text-xs text-muted-foreground">Only admins can upload media.</p>
               </Label>
             </div>
             <div className="flex items-start space-x-3">
               <RadioGroupItem value="everyone" id="media-everyone" className="mt-1" />
               <Label htmlFor="media-everyone" className="cursor-pointer space-y-1">
                 <span className="font-medium text-foreground">Everyone can upload</span>
-                <p className="text-xs text-muted-foreground">
-                  Any attendee can upload media.
-                </p>
+                <p className="text-xs text-muted-foreground">Any attendee can upload media.</p>
               </Label>
             </div>
           </RadioGroup>

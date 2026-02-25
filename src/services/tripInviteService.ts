@@ -75,7 +75,7 @@ export interface CreateInviteResult {
 export async function getInvitePreview(code: string): Promise<InvitePreview> {
   try {
     const { data, error } = await supabase.functions.invoke('get-invite-preview', {
-      body: { code }
+      body: { code },
     });
 
     if (error) {
@@ -83,7 +83,7 @@ export async function getInvitePreview(code: string): Promise<InvitePreview> {
       return {
         success: false,
         error_code: 'INVALID',
-        message: error.message || 'Failed to fetch invite preview'
+        message: error.message || 'Failed to fetch invite preview',
       };
     }
 
@@ -93,7 +93,7 @@ export async function getInvitePreview(code: string): Promise<InvitePreview> {
     return {
       success: false,
       error_code: 'INVALID',
-      message: 'An unexpected error occurred'
+      message: 'An unexpected error occurred',
     };
   }
 }
@@ -105,24 +105,26 @@ export async function getInvitePreview(code: string): Promise<InvitePreview> {
 export async function acceptInvite(code: string): Promise<JoinTripResult> {
   try {
     // Check if user is authenticated
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return {
         success: false,
-        error: 'Please sign in to join this trip'
+        error: 'Please sign in to join this trip',
       };
     }
 
     const { data, error } = await supabase.functions.invoke('join-trip', {
-      body: { inviteCode: code }
+      body: { inviteCode: code },
     });
 
     if (error) {
       console.error('Error joining trip:', error);
       return {
         success: false,
-        error: error.message || 'Failed to join trip'
+        error: error.message || 'Failed to join trip',
       };
     }
 
@@ -131,7 +133,7 @@ export async function acceptInvite(code: string): Promise<JoinTripResult> {
     console.error('Exception in acceptInvite:', error);
     return {
       success: false,
-      error: 'An unexpected error occurred while joining the trip'
+      error: 'An unexpected error occurred while joining the trip',
     };
   }
 }
@@ -191,11 +193,13 @@ export async function createInviteLink(options: CreateInviteOptions): Promise<Cr
       : null;
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return {
         success: false,
-        error: 'Please sign in to create invite links'
+        error: 'Please sign in to create invite links',
       };
     }
 
@@ -210,7 +214,7 @@ export async function createInviteLink(options: CreateInviteOptions): Promise<Cr
         expires_at: expiresAt,
         max_uses: maxUses,
         is_active: true,
-        current_uses: 0
+        current_uses: 0,
       })
       .select('code')
       .single();
@@ -225,7 +229,7 @@ export async function createInviteLink(options: CreateInviteOptions): Promise<Cr
       console.error('Error creating invite link:', error);
       return {
         success: false,
-        error: error.message || 'Failed to create invite link'
+        error: error.message || 'Failed to create invite link',
       };
     }
 
@@ -234,13 +238,13 @@ export async function createInviteLink(options: CreateInviteOptions): Promise<Cr
     return {
       success: true,
       code: data.code,
-      inviteLink
+      inviteLink,
     };
   } catch (error) {
     console.error('Exception in createInviteLink:', error);
     return {
       success: false,
-      error: 'An unexpected error occurred'
+      error: 'An unexpected error occurred',
     };
   }
 }
@@ -248,7 +252,9 @@ export async function createInviteLink(options: CreateInviteOptions): Promise<Cr
 /**
  * Deactivate an existing invite link
  */
-export async function deactivateInviteLink(code: string): Promise<{ success: boolean; error?: string }> {
+export async function deactivateInviteLink(
+  code: string,
+): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase
       .from('trip_invites')
@@ -295,7 +301,7 @@ export async function getActiveInviteForTrip(tripId: string): Promise<{
       code: data.code,
       inviteLink: `${window.location.origin}/join/${data.code}`,
       requireApproval: data.require_approval,
-      expiresAt: data.expires_at
+      expiresAt: data.expires_at,
     };
   } catch (error) {
     console.error('Exception in getActiveInviteForTrip:', error);

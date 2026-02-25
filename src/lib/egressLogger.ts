@@ -66,9 +66,7 @@ export function logChannel(channelName: string, event: 'subscribe' | 'unsubscrib
   channelCounts.set(channelName, next);
 
   const totalActive = Array.from(channelCounts.values()).reduce((s, v) => s + v, 0);
-  console.debug(
-    `[Egress/RT] channel "${channelName}" ${event} | active channels: ${totalActive}`,
-  );
+  console.debug(`[Egress/RT] channel "${channelName}" ${event} | active channels: ${totalActive}`);
 }
 
 /**
@@ -96,7 +94,9 @@ export function getEgressReport(): void {
   console.groupEnd();
 
   console.group('[Egress Report] Active Realtime Channels');
-  console.table(Array.from(channelCounts.entries()).map(([name, count]) => ({ name, active: count })));
+  console.table(
+    Array.from(channelCounts.entries()).map(([name, count]) => ({ name, active: count })),
+  );
   console.groupEnd();
 }
 

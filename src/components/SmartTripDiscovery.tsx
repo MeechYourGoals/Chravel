@@ -28,10 +28,10 @@ interface SmartTripDiscoveryProps {
   basedOn?: 'similar' | 'trending' | 'preferences';
 }
 
-export const SmartTripDiscovery = ({ 
-  currentTripId, 
-  userPreferences, 
-  basedOn = 'similar' 
+export const SmartTripDiscovery = ({
+  currentTripId,
+  userPreferences,
+  basedOn = 'similar',
 }: SmartTripDiscoveryProps) => {
   const [recommendations, setRecommendations] = useState<TripRecommendation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,26 +47,30 @@ export const SmartTripDiscovery = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: basedOn === 'similar' ? `trips similar to ${currentTripId}` : 
-                 basedOn === 'trending' ? 'trending popular trips' :
-                 `trips matching ${userPreferences?.activities?.join(' ')}`,
+          query:
+            basedOn === 'similar'
+              ? `trips similar to ${currentTripId}`
+              : basedOn === 'trending'
+                ? 'trending popular trips'
+                : `trips matching ${userPreferences?.activities?.join(' ')}`,
           limit: 6,
-          threshold: 0.6
-        })
+          threshold: 0.6,
+        }),
       }).then(r => r.json());
 
-      const formattedResults = data?.results?.map((result: any) => ({
-        id: result.id,
-        title: result.tripName || result.content?.slice(0, 50),
-        location: result.metadata?.location || 'Various Locations',
-        dateRange: result.metadata?.dateRange || 'Flexible Dates',
-        participants: result.metadata?.participants || 0,
-        similarity: result.similarity,
-        tripType: result.metadata?.tripType || 'regular',
-        tags: result.metadata?.tags || [],
-        deepLink: result.deepLink,
-        reason: getRecommendationReason(result.similarity, basedOn)
-      })) || [];
+      const formattedResults =
+        data?.results?.map((result: any) => ({
+          id: result.id,
+          title: result.tripName || result.content?.slice(0, 50),
+          location: result.metadata?.location || 'Various Locations',
+          dateRange: result.metadata?.dateRange || 'Flexible Dates',
+          participants: result.metadata?.participants || 0,
+          similarity: result.similarity,
+          tripType: result.metadata?.tripType || 'regular',
+          tags: result.metadata?.tags || [],
+          deepLink: result.deepLink,
+          reason: getRecommendationReason(result.similarity, basedOn),
+        })) || [];
 
       setRecommendations(formattedResults);
     } catch (error) {
@@ -94,7 +98,7 @@ export const SmartTripDiscovery = ({
       tripType: 'regular',
       tags: ['culture', 'food', 'museums'],
       deepLink: '/trip/european-adventure',
-      reason: '85% similar to your current trip'
+      reason: '85% similar to your current trip',
     },
     {
       id: 'fallback-2',
@@ -106,15 +110,18 @@ export const SmartTripDiscovery = ({
       tripType: 'pro',
       tags: ['business', 'networking', 'tech'],
       deepLink: '/tour/pro/lakers-road-trip',
-      reason: 'Popular with professionals'
-    }
+      reason: 'Popular with professionals',
+    },
   ];
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'pro': return <TrendingUp className="w-4 h-4" />;
-      case 'event': return <Calendar className="w-4 h-4" />;
-      default: return <MapPin className="w-4 h-4" />;
+      case 'pro':
+        return <TrendingUp className="w-4 h-4" />;
+      case 'event':
+        return <Calendar className="w-4 h-4" />;
+      default:
+        return <MapPin className="w-4 h-4" />;
     }
   };
 
@@ -173,8 +180,11 @@ export const SmartTripDiscovery = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {recommendations.map((rec) => (
-          <Card key={rec.id} className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors">
+        {recommendations.map(rec => (
+          <Card
+            key={rec.id}
+            className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors"
+          >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
@@ -183,50 +193,50 @@ export const SmartTripDiscovery = ({
                     {rec.title}
                   </CardTitle>
                 </div>
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className={`text-xs ${getSimilarityColor(rec.similarity)}`}
                 >
                   {Math.round(rec.similarity * 100)}%
                 </Badge>
               </div>
             </CardHeader>
-            
+
             <CardContent className="pt-0">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                   <MapPin className="w-3 h-3" />
                   <span>{rec.location}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                   <Calendar className="w-3 h-3" />
                   <span>{rec.dateRange}</span>
                 </div>
-                
+
                 {rec.participants > 0 && (
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <Users className="w-3 h-3" />
                     <span>{rec.participants} participants</span>
                   </div>
                 )}
-                
+
                 <p className="text-xs text-gray-500 italic">{rec.reason}</p>
-                
+
                 {rec.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {rec.tags.slice(0, 3).map((tag) => (
+                    {rec.tags.slice(0, 3).map(tag => (
                       <Badge key={tag} variant="secondary" className="text-xs">
                         {tag}
                       </Badge>
                     ))}
                   </div>
                 )}
-                
-                <Button 
-                  size="sm" 
+
+                <Button
+                  size="sm"
                   className="w-full mt-3"
-                  onClick={() => window.location.href = rec.deepLink}
+                  onClick={() => (window.location.href = rec.deepLink)}
                 >
                   View Trip
                 </Button>

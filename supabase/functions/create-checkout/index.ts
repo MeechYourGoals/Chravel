@@ -80,7 +80,7 @@ serve(async req => {
 
     // Parse request
     const { tier, billing_cycle = 'monthly', purchase_type = 'subscription' } = await req.json();
-    logStep("Request parsed", { tier, billing_cycle, purchase_type });
+    logStep('Request parsed', { tier, billing_cycle, purchase_type });
 
     const isPass = purchase_type === 'pass';
 
@@ -92,7 +92,7 @@ serve(async req => {
     } else {
       // Subscription: normalize tier
       const normalizedTier = tier.replace('consumer-', '');
-      logStep("Normalized tier", { original: tier, normalized: normalizedTier });
+      logStep('Normalized tier', { original: tier, normalized: normalizedTier });
 
       if (normalizedTier === 'explorer' || normalizedTier === 'frequent-chraveler') {
         priceIdKey = `${normalizedTier}-${billing_cycle}`;
@@ -126,18 +126,18 @@ serve(async req => {
     }
 
     // Create checkout session
-    const origin = req.headers.get("origin") || "https://chravel.app";
-    
+    const origin = req.headers.get('origin') || 'https://chravel.app';
+
     const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
-      mode: isPass ? "payment" : "subscription",
-      success_url: `${origin}/settings?checkout=success&tier=${isPass ? (PASS_TIER[priceIdKey] || tier) : tier}&purchase_type=${purchase_type}`,
+      mode: isPass ? 'payment' : 'subscription',
+      success_url: `${origin}/settings?checkout=success&tier=${isPass ? PASS_TIER[priceIdKey] || tier : tier}&purchase_type=${purchase_type}`,
       cancel_url: `${origin}/settings?checkout=cancelled`,
       metadata: {
         user_id: user.id,
-        tier: isPass ? (PASS_TIER[priceIdKey] || tier) : tier,
+        tier: isPass ? PASS_TIER[priceIdKey] || tier : tier,
         billing_cycle: isPass ? 'one-time' : billing_cycle,
         purchase_type: purchase_type,
         duration_days: isPass ? String(PASS_DURATION_DAYS[priceIdKey] || 0) : '0',

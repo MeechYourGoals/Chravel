@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Upload, DollarSign, Users } from 'lucide-react';
 import { Receipt, ReceiptUpload, PaymentMethod } from '../../types/receipts';
@@ -16,11 +15,11 @@ interface ReceiptUploadModalProps {
   tripId: string;
 }
 
-export const ReceiptUploadModal = ({ 
-  isOpen, 
-  onClose, 
+export const ReceiptUploadModal = ({
+  isOpen,
+  onClose,
   onReceiptUploaded,
-  tripId 
+  tripId,
 }: ReceiptUploadModalProps) => {
   const { user } = useAuth();
   const { isPlus } = useConsumerSubscription();
@@ -43,14 +42,14 @@ export const ReceiptUploadModal = ({
         alert('File size must be less than 10MB');
         return;
       }
-      
+
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
       if (!allowedTypes.includes(file.type)) {
         alert('Only JPG, PNG, and PDF files are allowed');
         return;
       }
-      
+
       setSelectedFile(file);
     }
   };
@@ -80,7 +79,7 @@ export const ReceiptUploadModal = ({
           const { data: signedData } = await supabase.storage
             .from('trip-files')
             .createSignedUrl(uploadData.path, 3600); // 1 hour expiry
-            
+
           if (signedData) {
             receiptUrlForAI = signedData.signedUrl;
           }
@@ -90,12 +89,12 @@ export const ReceiptUploadModal = ({
       }
 
       const { data, error } = await supabase.functions.invoke('receipt-parser', {
-        body: { 
-          receiptImageUrl: receiptUrlForAI, 
+        body: {
+          receiptImageUrl: receiptUrlForAI,
           receiptPath: storagePath,
-          tripId, 
-          userId: user.id 
-        }
+          tripId,
+          userId: user.id,
+        },
       });
 
       if (error) throw error;
@@ -114,8 +113,9 @@ export const ReceiptUploadModal = ({
           parsedData: undefined,
           preferredMethod,
           splitCount,
-          perPersonAmount: splitCount && data.receipt.amount ? data.receipt.amount / splitCount : undefined,
-          createdAt: data.receipt.created_at
+          perPersonAmount:
+            splitCount && data.receipt.amount ? data.receipt.amount / splitCount : undefined,
+          createdAt: data.receipt.created_at,
         };
 
         setTotalAmount(data.receipt.amount ? String(data.receipt.amount) : '');
@@ -146,10 +146,7 @@ export const ReceiptUploadModal = ({
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-700">
             <h3 className="text-lg font-semibold text-white">Upload Receipt</h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
+            <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
               <X size={20} />
             </button>
           </div>
@@ -188,16 +185,14 @@ export const ReceiptUploadModal = ({
 
             {/* Total Amount */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Total Amount
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Total Amount</label>
               <div className="relative">
                 <DollarSign size={18} className="absolute left-3 top-3 text-gray-400" />
                 <input
                   type="number"
                   step="0.01"
                   value={totalAmount}
-                  onChange={(e) => setTotalAmount(e.target.value)}
+                  onChange={e => setTotalAmount(e.target.value)}
                   placeholder="0.00"
                   className="w-full bg-gray-800 border border-gray-600 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-green-500"
                   required
@@ -211,7 +206,7 @@ export const ReceiptUploadModal = ({
                 Preferred Payment Method
               </label>
               <div className="grid grid-cols-2 gap-3">
-                {paymentMethods.map((method) => (
+                {paymentMethods.map(method => (
                   <button
                     key={method}
                     type="button"
@@ -233,9 +228,13 @@ export const ReceiptUploadModal = ({
 
             {parsedResult && (
               <div className="bg-white/5 rounded-xl p-4 space-y-2">
-                <div className="text-gray-300 text-sm">Parsed Total: {parsedResult.total_amount ?? 'N/A'}</div>
+                <div className="text-gray-300 text-sm">
+                  Parsed Total: {parsedResult.total_amount ?? 'N/A'}
+                </div>
                 {parsedResult.merchant_name && (
-                  <div className="text-gray-300 text-sm">Merchant: {parsedResult.merchant_name}</div>
+                  <div className="text-gray-300 text-sm">
+                    Merchant: {parsedResult.merchant_name}
+                  </div>
                 )}
                 {parsedResult.date && (
                   <div className="text-gray-300 text-sm">Date: {parsedResult.date}</div>
@@ -257,13 +256,15 @@ export const ReceiptUploadModal = ({
                         type="number"
                         min="1"
                         value={splitCount || ''}
-                        onChange={(e) => setSplitCount(e.target.value ? parseInt(e.target.value) : undefined)}
+                        onChange={e =>
+                          setSplitCount(e.target.value ? parseInt(e.target.value) : undefined)
+                        }
                         placeholder="How many people?"
                         className="w-full bg-gray-800 border border-gray-600 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-green-500"
                       />
                     </div>
                   </div>
-                  
+
                   {isPlus && (
                     <button
                       type="button"
@@ -274,11 +275,12 @@ export const ReceiptUploadModal = ({
                     </button>
                   )}
                 </div>
-                
+
                 {splitCount && (totalAmount || parsedResult?.total_amount) && (
                   <div className="text-green-400 text-sm">
-                    Each person owes: {(
-                      (parseFloat(totalAmount || String(parsedResult?.total_amount || 0))) /
+                    Each person owes:{' '}
+                    {(
+                      parseFloat(totalAmount || String(parsedResult?.total_amount || 0)) /
                       splitCount
                     ).toFixed(2)}
                   </div>

@@ -30,16 +30,14 @@ export const BroadcastList = ({ broadcasts, userResponses, onRespond }: Broadcas
       <div className="text-center py-12">
         <Radio size={48} className="text-slate-600 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-slate-400 mb-2">No Recent Broadcasts</h3>
-        <p className="text-slate-500 text-sm">
-          Share quick updates and alerts with your group
-        </p>
+        <p className="text-slate-500 text-sm">Share quick updates and alerts with your group</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {broadcasts.map((broadcast) => (
+      {broadcasts.map(broadcast => (
         <BroadcastItem
           key={broadcast.id}
           {...broadcast}

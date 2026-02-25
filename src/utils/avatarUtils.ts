@@ -1,6 +1,6 @@
 /**
  * Utility functions for consistent avatar display across the application
- * 
+ *
  * Enhanced for production MVP with:
  * - SVG-based default avatar generation (no external API dependency)
  * - Consistent color generation from name hash
@@ -14,12 +14,12 @@
  */
 export const getInitials = (name: string): string => {
   if (!name || typeof name !== 'string') return 'U';
-  
+
   const names = name.trim().split(' ').filter(Boolean);
-  
+
   if (names.length === 0) return 'U';
   if (names.length === 1) return names[0][0].toUpperCase();
-  
+
   // First and last name initials
   return (names[0][0] + names[names.length - 1][0]).toUpperCase();
 };
@@ -31,13 +31,13 @@ export const getInitials = (name: string): string => {
  */
 export const isValidAvatarUrl = (avatarUrl?: string | null): boolean => {
   if (!avatarUrl) return false;
-  
+
   // Accept local paths starting with '/'
   if (avatarUrl.startsWith('/')) return true;
-  
+
   // Accept data URIs (for SVG avatars)
   if (avatarUrl.startsWith('data:')) return true;
-  
+
   // Check for valid URL format and common image extensions
   try {
     const url = new URL(avatarUrl);
@@ -80,10 +80,10 @@ export const generateDefaultAvatar = (name: string, size: number = 128): string 
   if (!name || typeof name !== 'string') {
     name = 'User';
   }
-  
+
   const initials = getInitials(name);
   const bgColor = generateColorFromName(name);
-  
+
   // Create SVG with initials
   const svg = `
     <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
@@ -102,7 +102,7 @@ export const generateDefaultAvatar = (name: string, size: number = 128): string 
       </text>
     </svg>
   `.trim();
-  
+
   // Convert to data URI
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 };

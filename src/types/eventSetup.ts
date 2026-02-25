@@ -11,7 +11,7 @@ export interface EventSetupData {
   endDate?: string;
   category?: string;
   tags?: string[];
-  
+
   // Setup details
   capacity?: number;
   registrationStatus?: 'open' | 'closed' | 'waitlist';
@@ -21,14 +21,14 @@ export interface EventSetupData {
   timezone?: string;
   registrationDeadline?: string;
   eventType?: string;
-  
+
   // Schedule
   schedule?: EventScheduleData;
   template?: IndustryTemplate;
-  
+
   // Invitations
   invitations?: EventInvitation[];
-  
+
   // Additional settings
   settings?: Record<string, unknown>;
 }

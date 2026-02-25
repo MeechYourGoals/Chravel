@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, X } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -11,13 +10,17 @@ interface LocationSearchBarProps {
   autoFromBasecamp?: boolean;
 }
 
-export const LocationSearchBar = ({ onLocationSelect, currentLocation, autoFromBasecamp = false }: LocationSearchBarProps) => {
+export const LocationSearchBar = ({
+  onLocationSelect,
+  currentLocation,
+  autoFromBasecamp = false,
+}: LocationSearchBarProps) => {
   const [searchValue, setSearchValue] = useState(currentLocation || '');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { basecamp } = useBasecamp();
-  
+
   // Phase C: Debounce timer ref
   const debounceTimerRef = useRef<NodeJS.Timeout>();
 
@@ -36,7 +39,7 @@ export const LocationSearchBar = ({ onLocationSelect, currentLocation, autoFromB
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
-    
+
     if (value.length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -46,16 +49,16 @@ export const LocationSearchBar = ({ onLocationSelect, currentLocation, autoFromB
 
     // Phase C: Clear previous debounce timer
     clearTimeout(debounceTimerRef.current);
-    
+
     setIsLoading(true);
-    
+
     // Phase C: Debounce autocomplete requests by 300ms
     debounceTimerRef.current = setTimeout(async () => {
       try {
         // Phase B: Use New Google Places API directly (client-side)
         const { autocomplete } = await import('@/services/googlePlacesNew');
         const predictions = await autocomplete(value, `session-location-${Date.now()}`, undefined);
-        
+
         if (predictions && predictions.length > 0) {
           setSuggestions(predictions.slice(0, 5));
           setShowSuggestions(true);
@@ -89,11 +92,14 @@ export const LocationSearchBar = ({ onLocationSelect, currentLocation, autoFromB
   return (
     <div className="relative w-full max-w-md mx-auto mb-4">
       <div className="relative">
-        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+        <Search
+          size={18}
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+        />
         <input
           type="text"
           value={searchValue}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={e => handleSearch(e.target.value)}
           placeholder="Search city or location..."
           className="w-full bg-background border border-border rounded-xl pl-10 pr-10 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
         />

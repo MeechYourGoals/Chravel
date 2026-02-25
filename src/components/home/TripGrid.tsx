@@ -477,8 +477,8 @@ export const TripGrid = React.memo(
                 {/* Sortable active trips */}
                 <SortableTripGrid
                   items={activeTrips}
-                  getId={(trip) => trip.id.toString()}
-                  renderCard={(trip) => (
+                  getId={trip => trip.id.toString()}
+                  renderCard={trip => (
                     <SwipeableTripCardWrapper
                       trip={trip}
                       isMobile={isMobile}
@@ -502,7 +502,9 @@ export const TripGrid = React.memo(
                 {/* Reorder mode Done button */}
                 {reorderMode === 'my_trips' && (
                   <div className="col-span-full flex justify-center py-2">
-                    <Button size="sm" onClick={() => setReorderMode(null)}>Done</Button>
+                    <Button size="sm" onClick={() => setReorderMode(null)}>
+                      Done
+                    </Button>
                   </div>
                 )}
               </>
@@ -510,8 +512,8 @@ export const TripGrid = React.memo(
               <>
                 <SortableTripGrid
                   items={Object.values(activeProTrips)}
-                  getId={(trip) => trip.id}
-                  renderCard={(trip) => (
+                  getId={trip => trip.id}
+                  renderCard={trip => (
                     <SwipeableProTripCardWrapper
                       trip={trip}
                       isMobile={isMobile}
@@ -529,7 +531,9 @@ export const TripGrid = React.memo(
                 />
                 {reorderMode === 'pro' && (
                   <div className="col-span-full flex justify-center py-2">
-                    <Button size="sm" onClick={() => setReorderMode(null)}>Done</Button>
+                    <Button size="sm" onClick={() => setReorderMode(null)}>
+                      Done
+                    </Button>
                   </div>
                 )}
               </>
@@ -537,8 +541,8 @@ export const TripGrid = React.memo(
               <>
                 <SortableTripGrid
                   items={Object.values(activeEvents)}
-                  getId={(event) => event.id}
-                  renderCard={(event) =>
+                  getId={event => event.id}
+                  renderCard={event =>
                     isMobile ? (
                       <MobileEventCard
                         event={event}
@@ -563,7 +567,9 @@ export const TripGrid = React.memo(
                 />
                 {reorderMode === 'events' && (
                   <div className="col-span-full flex justify-center py-2">
-                    <Button size="sm" onClick={() => setReorderMode(null)}>Done</Button>
+                    <Button size="sm" onClick={() => setReorderMode(null)}>
+                      Done
+                    </Button>
                   </div>
                 )}
               </>

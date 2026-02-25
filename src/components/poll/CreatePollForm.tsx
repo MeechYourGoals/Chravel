@@ -7,7 +7,11 @@ import { Label } from '../ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface CreatePollFormProps {
-  onCreatePoll: (question: string, options: string[], settings: PollSettings) => Promise<void> | void;
+  onCreatePoll: (
+    question: string,
+    options: string[],
+    settings: PollSettings,
+  ) => Promise<void> | void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -19,7 +23,11 @@ export interface PollSettings {
   deadline_at?: string;
 }
 
-export const CreatePollForm = ({ onCreatePoll, onCancel, isSubmitting = false }: CreatePollFormProps) => {
+export const CreatePollForm = ({
+  onCreatePoll,
+  onCancel,
+  isSubmitting = false,
+}: CreatePollFormProps) => {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
   const [settings, setSettings] = useState<PollSettings>({
@@ -50,7 +58,7 @@ export const CreatePollForm = ({ onCreatePoll, onCancel, isSubmitting = false }:
 
   const handleCreate = async () => {
     const validOptions = options.filter(opt => opt.trim() !== '');
-    
+
     if (question.trim() && validOptions.length >= 2) {
       let deadline_at: string | undefined;
       if (deadlineDate) {
@@ -60,9 +68,9 @@ export const CreatePollForm = ({ onCreatePoll, onCancel, isSubmitting = false }:
 
       await onCreatePoll(question.trim(), validOptions, {
         ...settings,
-        deadline_at
+        deadline_at,
       });
-      
+
       // Reset form
       setQuestion('');
       setOptions(['', '']);
@@ -106,13 +114,11 @@ export const CreatePollForm = ({ onCreatePoll, onCancel, isSubmitting = false }:
       <div className="space-y-4">
         {/* Question */}
         <div>
-          <label className="block text-sm font-semibold text-white mb-2">
-            Poll Question
-          </label>
+          <label className="block text-sm font-semibold text-white mb-2">Poll Question</label>
           <Input
             type="text"
             value={question}
-            onChange={(e) => setQuestion(e.target.value)}
+            onChange={e => setQuestion(e.target.value)}
             placeholder="What would you like to ask the group?"
             className="w-full bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
           />
@@ -120,16 +126,14 @@ export const CreatePollForm = ({ onCreatePoll, onCancel, isSubmitting = false }:
 
         {/* Options */}
         <div>
-          <label className="block text-sm font-semibold text-white mb-2">
-            Options
-          </label>
+          <label className="block text-sm font-semibold text-white mb-2">Options</label>
           <div className="space-y-2">
             {options.map((option, index) => (
               <div key={index} className="flex gap-2">
                 <Input
                   type="text"
                   value={option}
-                  onChange={(e) => handleOptionChange(index, e.target.value)}
+                  onChange={e => handleOptionChange(index, e.target.value)}
                   placeholder={`Option ${index + 1}`}
                   className="flex-1 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
                 />
@@ -157,8 +161,10 @@ export const CreatePollForm = ({ onCreatePoll, onCancel, isSubmitting = false }:
 
         {/* Poll Settings */}
         <div className="space-y-3 p-4 bg-glass-slate-bg/30 rounded-xl border border-glass-slate-border/50">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Poll Settings</p>
-          
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            Poll Settings
+          </p>
+
           {/* Multiple Choice */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -179,7 +185,7 @@ export const CreatePollForm = ({ onCreatePoll, onCancel, isSubmitting = false }:
             <Switch
               id="multiple-choice"
               checked={settings.allow_multiple}
-              onCheckedChange={(checked) => setSettings({ ...settings, allow_multiple: checked })}
+              onCheckedChange={checked => setSettings({ ...settings, allow_multiple: checked })}
             />
           </div>
 
@@ -203,7 +209,7 @@ export const CreatePollForm = ({ onCreatePoll, onCancel, isSubmitting = false }:
             <Switch
               id="anonymous"
               checked={settings.is_anonymous}
-              onCheckedChange={(checked) => setSettings({ ...settings, is_anonymous: checked })}
+              onCheckedChange={checked => setSettings({ ...settings, is_anonymous: checked })}
             />
           </div>
 
@@ -227,7 +233,7 @@ export const CreatePollForm = ({ onCreatePoll, onCancel, isSubmitting = false }:
             <Switch
               id="allow-changes"
               checked={settings.allow_vote_change}
-              onCheckedChange={(checked) => setSettings({ ...settings, allow_vote_change: checked })}
+              onCheckedChange={checked => setSettings({ ...settings, allow_vote_change: checked })}
             />
           </div>
 
@@ -241,14 +247,14 @@ export const CreatePollForm = ({ onCreatePoll, onCancel, isSubmitting = false }:
               <Input
                 type="date"
                 value={deadlineDate}
-                onChange={(e) => setDeadlineDate(e.target.value)}
+                onChange={e => setDeadlineDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
                 className="flex-1 bg-glass-slate-bg border-glass-slate-border text-white text-sm h-9"
               />
               <Input
                 type="time"
                 value={deadlineTime}
-                onChange={(e) => setDeadlineTime(e.target.value)}
+                onChange={e => setDeadlineTime(e.target.value)}
                 disabled={!deadlineDate}
                 className="w-28 bg-glass-slate-bg border-glass-slate-border text-white text-sm h-9"
               />

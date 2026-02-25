@@ -14,15 +14,15 @@ interface EditableDescriptionProps {
   hideInlineButtonOnLg?: boolean;
 }
 
-export const EditableDescription = ({ 
-  tripId, 
-  description, 
-  onUpdate, 
-  className = "text-gray-300 text-lg leading-relaxed",
+export const EditableDescription = ({
+  tripId,
+  description,
+  onUpdate,
+  className = 'text-gray-300 text-lg leading-relaxed',
   maxLines = 2,
   collapsible = true,
   externalEditTrigger,
-  hideInlineButtonOnLg = false
+  hideInlineButtonOnLg = false,
 }: EditableDescriptionProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(description);
@@ -85,7 +85,7 @@ export const EditableDescription = ({
       <div className="space-y-3">
         <textarea
           value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
+          onChange={e => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           className="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-gray-300 text-lg leading-relaxed resize-none min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
           placeholder="Add a description for this trip..."
@@ -109,9 +109,7 @@ export const EditableDescription = ({
             <X size={14} />
             Cancel
           </button>
-          <span className="text-xs text-gray-400">
-            Ctrl+Enter to save, Esc to cancel
-          </span>
+          <span className="text-xs text-gray-400">Ctrl+Enter to save, Esc to cancel</span>
         </div>
       </div>
     );

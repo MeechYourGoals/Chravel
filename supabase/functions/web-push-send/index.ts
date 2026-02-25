@@ -1,15 +1,15 @@
 /**
  * Web Push Send Edge Function
- * 
+ *
  * Sends Web Push notifications using the Web Push Protocol with VAPID authentication.
  * Supports notification types: chat messages, itinerary updates, payment requests, trip reminders.
- * 
+ *
  * Required Environment Variables (Supabase Secrets):
  * - VAPID_PUBLIC_KEY: Base64url-encoded P-256 public key
- * - VAPID_PRIVATE_KEY: Base64url-encoded P-256 private key  
+ * - VAPID_PRIVATE_KEY: Base64url-encoded P-256 private key
  * - SUPABASE_URL: Auto-provided by Supabase
  * - SUPABASE_SERVICE_ROLE_KEY: Auto-provided by Supabase
- * 
+ *
  * @see https://web.dev/push-notifications-web-push-protocol/
  * @see https://datatracker.ietf.org/doc/html/rfc8291 (Web Push Encryption)
  * @see https://datatracker.ietf.org/doc/html/rfc8292 (VAPID)
@@ -28,7 +28,7 @@ import {
 // Types
 // ============================================================================
 
-type NotificationType = 
+type NotificationType =
   | 'chat_message'
   | 'itinerary_update'
   | 'payment_request'
@@ -45,7 +45,7 @@ interface SendPushRequest {
   userIds?: string[];
   tripId?: string;
   excludeUserId?: string;
-  
+
   // Notification content
   type: NotificationType;
   title: string;
@@ -53,7 +53,7 @@ interface SendPushRequest {
   icon?: string;
   badge?: string;
   image?: string;
-  
+
   // Action data for routing
   data?: {
     tripId?: string;
@@ -65,10 +65,10 @@ interface SendPushRequest {
     url?: string;
     [key: string]: unknown;
   };
-  
+
   // Notification actions (buttons)
   actions?: NotificationAction[];
-  
+
   // Options
   tag?: string;
   requireInteraction?: boolean;
@@ -88,12 +88,11 @@ interface SendResult {
   }[];
 }
 
-
 // ============================================================================
 // Main Handler
 // ============================================================================
 
-Deno.serve(async (req) => {
+Deno.serve(async req => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -112,10 +111,11 @@ Deno.serve(async (req) => {
     if (!vapidPublicKey || !vapidPrivateKey) {
       console.error('[web-push-send] VAPID keys not configured');
       return new Response(
-        JSON.stringify({ 
-          error: 'VAPID keys not configured. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in Supabase secrets.' 
+        JSON.stringify({
+          error:
+            'VAPID keys not configured. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in Supabase secrets.',
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -124,24 +124,27 @@ Deno.serve(async (req) => {
     // ========================================================================
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Create client with user's JWT to verify identity
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
+      global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user: caller }, error: authError } = await userClient.auth.getUser();
+    const {
+      data: { user: caller },
+      error: authError,
+    } = await userClient.auth.getUser();
     if (authError || !caller) {
       console.error('[web-push-send] Auth error:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log(`[web-push-send] Authenticated caller: ${caller.id}`);
@@ -155,17 +158,17 @@ Deno.serve(async (req) => {
 
     // Validate request
     if (!body.title || !body.body) {
-      return new Response(
-        JSON.stringify({ error: 'title and body are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'title and body are required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (!body.userIds?.length && !body.tripId) {
-      return new Response(
-        JSON.stringify({ error: 'Either userIds or tripId is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Either userIds or tripId is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // ========================================================================
@@ -184,10 +187,10 @@ Deno.serve(async (req) => {
 
       if (membershipError || !callerMembership) {
         console.warn(`[web-push-send] Caller ${caller.id} is not a member of trip ${body.tripId}`);
-        return new Response(
-          JSON.stringify({ error: 'You are not a member of this trip' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: 'You are not a member of this trip' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       console.log(`[web-push-send] Caller is trip member with role: ${callerMembership.role}`);
@@ -200,10 +203,10 @@ Deno.serve(async (req) => {
 
       if (membersError) {
         console.error('[web-push-send] Failed to fetch trip members:', membersError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch trip members' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: 'Failed to fetch trip members' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       targetUserIds = (members || []).map(m => m.user_id);
@@ -211,45 +214,49 @@ Deno.serve(async (req) => {
       // When targeting specific userIds, only allow:
       // 1. Sending to self
       // 2. Sending to users in a shared trip
-      
+
       // For security, verify each target user shares a trip with caller
       const nonSelfTargets = body.userIds.filter(id => id !== caller.id);
-      
+
       if (nonSelfTargets.length > 0) {
         // Get all trips where caller is a member
         const { data: callerTrips } = await supabase
           .from('trip_members')
           .select('trip_id')
           .eq('user_id', caller.id);
-        
+
         const callerTripIds = (callerTrips || []).map(t => t.trip_id);
-        
+
         if (callerTripIds.length === 0) {
           return new Response(
-            JSON.stringify({ error: 'You can only send notifications to yourself or trip members' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({
+              error: 'You can only send notifications to yourself or trip members',
+            }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
           );
         }
-        
+
         // Check if all target users share at least one trip with caller
         const { data: sharedMembers } = await supabase
           .from('trip_members')
           .select('user_id')
           .in('trip_id', callerTripIds)
           .in('user_id', nonSelfTargets);
-        
+
         const sharedUserIds = new Set((sharedMembers || []).map(m => m.user_id));
         const unauthorizedTargets = nonSelfTargets.filter(id => !sharedUserIds.has(id));
-        
+
         if (unauthorizedTargets.length > 0) {
           console.warn(`[web-push-send] Unauthorized targets: ${unauthorizedTargets.join(', ')}`);
           return new Response(
-            JSON.stringify({ error: 'You can only send notifications to users you share a trip with' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({
+              error: 'You can only send notifications to users you share a trip with',
+            }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
           );
         }
       }
-      
+
       targetUserIds = body.userIds;
     }
 
@@ -260,10 +267,9 @@ Deno.serve(async (req) => {
 
     if (targetUserIds.length === 0) {
       console.log('[web-push-send] No target users after filtering');
-      return new Response(
-        JSON.stringify({ success: true, sent: 0, failed: 0, errors: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: true, sent: 0, failed: 0, errors: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log(`[web-push-send] Targeting ${targetUserIds.length} users`);
@@ -278,10 +284,10 @@ Deno.serve(async (req) => {
 
     if (subscriptionsError) {
       console.error('[web-push-send] Failed to fetch subscriptions:', subscriptionsError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch subscriptions' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Failed to fetch subscriptions' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const webPushSubscriptions = (subscriptions || []) as WebPushSubscription[];
@@ -289,14 +295,14 @@ Deno.serve(async (req) => {
 
     if (webPushSubscriptions.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          sent: 0, 
-          failed: 0, 
-          errors: [], 
-          message: 'No active web push subscriptions found' 
+        JSON.stringify({
+          success: true,
+          sent: 0,
+          failed: 0,
+          errors: [],
+          message: 'No active web push subscriptions found',
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -328,26 +334,26 @@ Deno.serve(async (req) => {
       details: [],
     };
 
-    const sendPromises = webPushSubscriptions.map(async (subscription) => {
+    const sendPromises = webPushSubscriptions.map(async subscription => {
       const result = await sendWebPushNotification(
         subscription,
         notificationPayload,
         vapidPublicKey,
         vapidPrivateKey,
         vapidSubject,
-        body.ttl || 86400
+        body.ttl || 86400,
       );
 
       if (result.success) {
         results.sent++;
-        
+
         // Update last_used_at
         await supabase
           .from('web_push_subscriptions')
-          .update({ 
+          .update({
             last_used_at: new Date().toISOString(),
             failed_count: 0,
-            last_error: null
+            last_error: null,
           })
           .eq('id', subscription.id);
       } else {
@@ -364,9 +370,9 @@ Deno.serve(async (req) => {
           // Increment failure count
           await supabase
             .from('web_push_subscriptions')
-            .update({ 
+            .update({
               failed_count: subscription.failed_count + 1,
-              last_error: result.error
+              last_error: result.error,
             })
             .eq('id', subscription.id);
         }
@@ -384,16 +390,14 @@ Deno.serve(async (req) => {
 
     console.log(`[web-push-send] Complete: sent=${results.sent}, failed=${results.failed}`);
 
-    return new Response(
-      JSON.stringify(results),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify(results), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('[web-push-send] Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });

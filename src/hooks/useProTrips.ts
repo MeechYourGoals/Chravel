@@ -29,11 +29,12 @@ export const useProTrips = () => {
 
   const archiveTripMutation = useMutation({
     mutationFn: (id: string) => archiveService.archiveTrip(id, 'pro'),
-    onMutate: async (tripId) => {
+    onMutate: async tripId => {
       await queryClient.cancelQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
       const previousTrips = queryClient.getQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode]);
-      queryClient.setQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode], (old: ProTripData[] | undefined) =>
-        old ? old.filter((trip) => trip.id !== tripId) : []
+      queryClient.setQueryData(
+        [PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode],
+        (old: ProTripData[] | undefined) => (old ? old.filter(trip => trip.id !== tripId) : []),
       );
       return { previousTrips };
     },
@@ -47,11 +48,12 @@ export const useProTrips = () => {
 
   const hideTripMutation = useMutation({
     mutationFn: (id: string) => archiveService.hideTrip(id),
-    onMutate: async (tripId) => {
+    onMutate: async tripId => {
       await queryClient.cancelQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
       const previousTrips = queryClient.getQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode]);
-      queryClient.setQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode], (old: ProTripData[] | undefined) =>
-        old ? old.filter((trip) => trip.id !== tripId) : []
+      queryClient.setQueryData(
+        [PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode],
+        (old: ProTripData[] | undefined) => (old ? old.filter(trip => trip.id !== tripId) : []),
       );
       return { previousTrips };
     },
@@ -69,8 +71,9 @@ export const useProTrips = () => {
     onMutate: async ({ tripId }) => {
       await queryClient.cancelQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
       const previousTrips = queryClient.getQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode]);
-      queryClient.setQueryData([PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode], (old: ProTripData[] | undefined) =>
-        old ? old.filter((trip) => trip.id !== tripId) : []
+      queryClient.setQueryData(
+        [PRO_TRIPS_QUERY_KEY, user?.id, isDemoMode],
+        (old: ProTripData[] | undefined) => (old ? old.filter(trip => trip.id !== tripId) : []),
       );
       return { previousTrips };
     },

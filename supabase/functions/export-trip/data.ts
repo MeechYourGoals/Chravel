@@ -2,7 +2,7 @@
  * Data Fetching and Transformation for PDF Export
  */
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import type {
   TripExportData,
   ExportLayout,
@@ -21,22 +21,18 @@ export async function getTripData(
   tripId: string,
   sections: ExportSection[],
   layout: ExportLayout,
-  privacyRedaction: boolean
+  privacyRedaction: boolean,
 ): Promise<TripExportData> {
   console.log('[EXPORT-DATA] Fetching trip:', tripId, 'layout:', layout);
-  
+
   // Fetch trip details
-  const { data: trip, error } = await supabase
-    .from('trips')
-    .select('*')
-    .eq('id', tripId)
-    .single();
+  const { data: trip, error } = await supabase.from('trips').select('*').eq('id', tripId).single();
 
   if (!trip) {
     console.error('[EXPORT-DATA] Trip not found:', tripId, 'error:', error);
     throw new Error('Trip not found');
   }
-  
+
   console.log('[EXPORT-DATA] Trip found:', trip.name, 'trip_type:', trip.trip_type);
 
   // Format dates
@@ -58,7 +54,7 @@ export async function getTripData(
 
   // Fetch sections based on request
   console.log('[EXPORT-DATA] Fetching sections:', sections);
-  
+
   if (sections.includes('roster')) {
     console.log('[EXPORT-DATA] Fetching roster');
     data.roster = await fetchRoster(supabase, tripId, privacyRedaction);
@@ -73,7 +69,7 @@ export async function getTripData(
     // Type assertion for payment status mapping
     data.payments = payments.items.map((p: any) => ({
       ...p,
-      status: p.status || 'Pending' // Ensure valid status
+      status: p.status || 'Pending', // Ensure valid status
     })) as any;
     data.totals = payments.totals;
   }
@@ -88,7 +84,9 @@ export async function getTripData(
 
   if (sections.includes('places')) {
     // Pass userId to include personal basecamp in export
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     data.places = await fetchPlaces(supabase, tripId, user?.id);
   }
 
@@ -103,15 +101,23 @@ export async function getTripData(
     data.attachments = await fetchAttachments(supabase, tripId);
   }
 
-  console.log('[EXPORT-DATA] Data fetching complete. Sections with data:', Object.keys(data).filter(k => Array.isArray(data[k as keyof typeof data])));
-  
+  console.log(
+    '[EXPORT-DATA] Data fetching complete. Sections with data:',
+    Object.keys(data).filter(k => Array.isArray(data[k as keyof typeof data])),
+  );
+
   return data;
 }
 
-async function fetchRoster(supabase: SupabaseClient, tripId: string, privacyRedaction: boolean): Promise<Member[]> {
+async function fetchRoster(
+  supabase: SupabaseClient,
+  tripId: string,
+  privacyRedaction: boolean,
+): Promise<Member[]> {
   const { data } = await supabase
     .from('trip_members')
-    .select(`
+    .select(
+      `
       user_id,
       role,
       dept,
@@ -120,7 +126,8 @@ async function fetchRoster(supabase: SupabaseClient, tripId: string, privacyReda
         email,
         phone
       )
-    `)
+    `,
+    )
     .eq('trip_id', tripId)
     .order('profiles(display_name)', { ascending: true });
 
@@ -137,7 +144,7 @@ async function fetchRoster(supabase: SupabaseClient, tripId: string, privacyReda
 async function fetchCalendar(supabase: SupabaseClient, tripId: string): Promise<EventItem[]> {
   try {
     console.log('[EXPORT-DATA] Fetching calendar for trip:', tripId);
-    
+
     const { data: events, error } = await supabase
       .from('trip_events')
       .select('id, title, location, description, start_time, end_time')
@@ -172,11 +179,12 @@ async function fetchCalendar(supabase: SupabaseClient, tripId: string): Promise<
 async function fetchPayments(supabase: SupabaseClient, tripId: string) {
   try {
     console.log('[EXPORT-DATA] Fetching payments for trip:', tripId);
-    
+
     // First, fetch all payment messages for this trip
     const { data: paymentMessages, error: pmError } = await supabase
       .from('trip_payment_messages')
-      .select(`
+      .select(
+        `
         id,
         description,
         amount,
@@ -185,7 +193,8 @@ async function fetchPayments(supabase: SupabaseClient, tripId: string) {
         created_by,
         created_at,
         creator:profiles!created_by(display_name)
-      `)
+      `,
+      )
       .eq('trip_id', tripId)
       .order('created_at', { ascending: true });
 
@@ -206,14 +215,16 @@ async function fetchPayments(supabase: SupabaseClient, tripId: string) {
     // Fetch splits for these payments
     const { data: splits, error: splitsError } = await supabase
       .from('payment_splits')
-      .select(`
+      .select(
+        `
         payment_message_id,
         debtor_user_id,
         amount_owed,
         settled,
         settled_at,
         debtor:profiles!debtor_user_id(display_name)
-      `)
+      `,
+      )
       .in('payment_message_id', paymentIds);
 
     if (splitsError) {
@@ -246,7 +257,11 @@ async function fetchPayments(supabase: SupabaseClient, tripId: string) {
         payer: pm.creator?.display_name || 'Unknown',
         amount: pm.amount || 0,
         currency: pm.currency || 'USD',
-        status: pmSplits.every(s => s.settled) ? 'Paid' : (pmSplits.some(s => s.settled) ? 'Partial' : 'Pending'),
+        status: pmSplits.every(s => s.settled)
+          ? 'Paid'
+          : pmSplits.some(s => s.settled)
+            ? 'Partial'
+            : 'Pending',
         due: undefined,
         split: pmSplits.map((s: any) => ({
           name: s.debtor?.display_name || 'Unknown',
@@ -273,7 +288,7 @@ async function fetchPayments(supabase: SupabaseClient, tripId: string) {
 async function fetchPolls(supabase: SupabaseClient, tripId: string): Promise<PollItem[]> {
   try {
     console.log('[EXPORT-DATA] Fetching polls for trip:', tripId);
-    
+
     // Fetch polls with options stored in JSONB
     const { data: polls, error } = await supabase
       .from('trip_polls')
@@ -330,17 +345,19 @@ async function fetchPolls(supabase: SupabaseClient, tripId: string): Promise<Pol
 async function fetchTasks(supabase: SupabaseClient, tripId: string): Promise<TaskItem[]> {
   try {
     console.log('[EXPORT-DATA] Fetching tasks for trip:', tripId);
-    
+
     // Query with creator profile join
     const { data: tasks, error } = await supabase
       .from('trip_tasks')
-      .select(`
+      .select(
+        `
         title,
         description,
         due_at,
         completed,
         creator:profiles!creator_id(display_name)
-      `)
+      `,
+      )
       .eq('trip_id', tripId)
       .order('due_at', { ascending: true, nullsFirst: false });
 
@@ -369,13 +386,13 @@ async function fetchTasks(supabase: SupabaseClient, tripId: string): Promise<Tas
 }
 
 async function fetchPlaces(
-  supabase: SupabaseClient, 
+  supabase: SupabaseClient,
   tripId: string,
-  userId?: string
+  userId?: string,
 ): Promise<LinkItem[]> {
   try {
     console.log('[EXPORT-DATA] Fetching places (basecamps + links) for trip:', tripId);
-    
+
     const places: LinkItem[] = [];
 
     // 1. Fetch Trip Basecamp
@@ -386,10 +403,11 @@ async function fetchPlaces(
       .single();
 
     if (trip?.basecamp_address) {
-      const gmapsUrl = trip.basecamp_latitude && trip.basecamp_longitude
-        ? `https://www.google.com/maps/search/?api=1&query=${trip.basecamp_latitude},${trip.basecamp_longitude}`
-        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.basecamp_address)}`;
-      
+      const gmapsUrl =
+        trip.basecamp_latitude && trip.basecamp_longitude
+          ? `https://www.google.com/maps/search/?api=1&query=${trip.basecamp_latitude},${trip.basecamp_longitude}`
+          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.basecamp_address)}`;
+
       places.push({
         title: `🏠 Trip Basecamp${trip.basecamp_name ? ': ' + trip.basecamp_name : ''}`,
         url: gmapsUrl,
@@ -409,10 +427,11 @@ async function fetchPlaces(
         .maybeSingle();
 
       if (personalAccom?.address) {
-        const gmapsUrl = personalAccom.latitude && personalAccom.longitude
-          ? `https://www.google.com/maps/search/?api=1&query=${personalAccom.latitude},${personalAccom.longitude}`
-          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(personalAccom.address)}`;
-        
+        const gmapsUrl =
+          personalAccom.latitude && personalAccom.longitude
+            ? `https://www.google.com/maps/search/?api=1&query=${personalAccom.latitude},${personalAccom.longitude}`
+            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(personalAccom.address)}`;
+
         places.push({
           title: `📍 Personal Basecamp${personalAccom.name ? ': ' + personalAccom.name : ''}`,
           url: gmapsUrl,
@@ -434,7 +453,7 @@ async function fetchPlaces(
       console.error('[EXPORT-DATA] Error fetching trip links:', error);
     } else if (links && links.length > 0) {
       console.log('[EXPORT-DATA] Found', links.length, 'trip links');
-      
+
       for (const link of links) {
         let domain = '';
         try {
@@ -467,13 +486,15 @@ async function fetchPlaces(
 async function fetchBroadcasts(supabase: SupabaseClient, tripId: string) {
   const { data: broadcasts, error } = await supabase
     .from('broadcasts')
-    .select(`
+    .select(
+      `
       id,
       created_at,
       priority,
       message,
       sender:profiles!created_by(display_name)
-    `)
+    `,
+    )
     .eq('trip_id', tripId)
     .eq('is_sent', true)
     .order('created_at', { ascending: false });
@@ -501,28 +522,39 @@ function mapPriority(priority: string | null): 'Low' | 'Normal' | 'High' {
   return 'Normal';
 }
 
-function classifyAttachmentType(opts: { filename?: string; mimeType?: string; rawType?: string }): string {
+function classifyAttachmentType(opts: {
+  filename?: string;
+  mimeType?: string;
+  rawType?: string;
+}): string {
   const mime = (opts.mimeType || '').toLowerCase();
   const raw = (opts.rawType || '').toLowerCase();
   const filename = (opts.filename || '').toLowerCase();
   const ext = filename.includes('.') ? filename.split('.').pop() : '';
 
   if (mime === 'application/pdf' || raw === 'pdf' || ext === 'pdf') return 'PDF';
-  if (mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '')) return 'Image';
+  if (mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || ''))
+    return 'Image';
   if (['doc', 'docx'].includes(ext || '') || raw.includes('doc')) return 'DOC';
-  if (['xls', 'xlsx', 'csv'].includes(ext || '') || raw.includes('xls') || raw.includes('csv')) return 'Spreadsheet';
+  if (['xls', 'xlsx', 'csv'].includes(ext || '') || raw.includes('xls') || raw.includes('csv'))
+    return 'Spreadsheet';
   if (['ppt', 'pptx'].includes(ext || '') || raw.includes('ppt')) return 'Slides';
   if (mime.startsWith('video/') || ['mp4', 'mov', 'webm'].includes(ext || '')) return 'Video';
   if (mime.startsWith('audio/') || ['mp3', 'wav', 'm4a'].includes(ext || '')) return 'Audio';
   return 'File';
 }
 
-async function fetchAttachments(supabase: SupabaseClient, tripId: string): Promise<AttachmentItem[]> {
+async function fetchAttachments(
+  supabase: SupabaseClient,
+  tripId: string,
+): Promise<AttachmentItem[]> {
   // NOTE: trip_files schema has evolved over time. We select a superset of columns
   // and normalize to a stable AttachmentItem shape.
   const { data: files, error } = await supabase
     .from('trip_files')
-    .select('id, created_at, uploaded_by, file_name, name, file_type, file_path, file_url, mime_type, file_size, size_bytes')
+    .select(
+      'id, created_at, uploaded_by, file_name, name, file_type, file_path, file_url, mime_type, file_size, size_bytes',
+    )
     .eq('trip_id', tripId)
     // Deterministic ordering: preserve upload order (oldest → newest)
     .order('created_at', { ascending: true });
@@ -533,11 +565,10 @@ async function fetchAttachments(supabase: SupabaseClient, tripId: string): Promi
   }
 
   return (files || []).map((f: any) => {
-    const displayName: string =
-      f.file_name || f.name || f.filename || 'Unknown file';
-    const rawType: string =
-      f.file_type || f.filetype || f.mime_type || '';
-    const mimeType: string | undefined = f.mime_type || (rawType.includes('/') ? rawType : undefined);
+    const displayName: string = f.file_name || f.name || f.filename || 'Unknown file';
+    const rawType: string = f.file_type || f.filetype || f.mime_type || '';
+    const mimeType: string | undefined =
+      f.mime_type || (rawType.includes('/') ? rawType : undefined);
     const typeLabel = classifyAttachmentType({ filename: displayName, mimeType, rawType });
 
     return {

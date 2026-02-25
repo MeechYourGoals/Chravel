@@ -3,7 +3,14 @@ export * from './ai';
 export * from './events';
 export * from './eventSetup';
 export * from './imports';
-export type { MediaMetadata, MediaItem, MediaGalleryItem, MediaUploadOptions, MediaGridProps, FileUploadResult } from './media';
+export type {
+  MediaMetadata,
+  MediaItem,
+  MediaGalleryItem,
+  MediaUploadOptions,
+  MediaGridProps,
+  FileUploadResult,
+} from './media';
 export * from './messages';
 export type { PaymentMethodId, PaymentMethodOption } from './paymentMethods';
 export * from './payments';

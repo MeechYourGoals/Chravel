@@ -60,23 +60,23 @@ export async function saveMessagesToCache(tripId: string, messages: ChatMessage[
     const db = await getDB();
     const tx = db.transaction('messages', 'readwrite');
     const now = Date.now();
-    
+
     // Filter messages to only cache last 30 days
     const thirtyDaysAgo = new Date(now - CACHE_EXPIRY_MS);
-    
+
     const messagesToCache = messages.filter(msg => {
       const msgDate = new Date(msg.created_at);
       return msgDate >= thirtyDaysAgo;
     });
 
     await Promise.all(
-      messagesToCache.map(msg => 
-        tx.store.put({ 
-          ...msg, 
+      messagesToCache.map(msg =>
+        tx.store.put({
+          ...msg,
           trip_id: tripId,
-          cached_at: now // Track when cached for expiry
-        })
-      )
+          cached_at: now, // Track when cached for expiry
+        }),
+      ),
     );
     await tx.done;
 
@@ -121,8 +121,8 @@ export async function loadMessagesFromCache(tripId: string): Promise<ChatMessage
       return msgDate.getTime() >= expiredCutoff;
     });
 
-    return validMessages.sort((a, b) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    return validMessages.sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
   } catch (error) {
     console.error('Failed to load cached messages:', error);
@@ -157,13 +157,13 @@ export async function getCacheStats(tripId: string): Promise<{
   try {
     const db = await getDB();
     const messages = await db.getAllFromIndex('messages', 'by-trip', tripId);
-    
+
     if (messages.length === 0) {
       return { totalMessages: 0 };
     }
 
     const sortedMessages = messages.sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
 
     return {

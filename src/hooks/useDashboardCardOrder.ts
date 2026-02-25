@@ -49,9 +49,7 @@ export function useDashboardCardOrder(userId: string | undefined, dashboardType:
       const newItems = items.filter(item => !savedIdSet.has(getId(item)));
       // Saved-order items
       const itemMap = new Map(items.map(item => [getId(item), item]));
-      const orderedItems = validSavedIds
-        .map(id => itemMap.get(id))
-        .filter(Boolean) as T[];
+      const orderedItems = validSavedIds.map(id => itemMap.get(id)).filter(Boolean) as T[];
 
       return [...newItems, ...orderedItems];
     },
