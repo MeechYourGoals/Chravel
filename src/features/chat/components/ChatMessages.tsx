@@ -4,6 +4,7 @@ import { ChatMessage } from './types';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { ChatMessageWithGrounding } from '@/types/grounding';
 import { MessageRenderer } from './MessageRenderer';
+import { PlaceResultCards } from './PlaceResultCards';
 
 interface ChatMessagesProps {
   messages: (ChatMessage | ChatMessageWithGrounding)[];
@@ -30,6 +31,13 @@ export const ChatMessages = ({ messages, isTyping, showMapWidgets = false, onDel
         return (
           <div key={message.id} id={`msg-${message.id}`} className="space-y-2 group/msg relative">
             <MessageRenderer message={message} showMapWidgets={showMapWidgets} />
+            
+            {/* Rich place cards from function_call results (searchPlaces / getPlaceDetails) */}
+            {(message as any).functionCallPlaces && (message as any).functionCallPlaces.length > 0 && (
+              <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}>
+                <PlaceResultCards places={(message as any).functionCallPlaces} className="max-w-xs lg:max-w-md" />
+              </div>
+            )}
             {onDeleteMessage && (
               <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}>
                 <button

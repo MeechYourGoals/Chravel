@@ -458,7 +458,8 @@ async function streamGeminiToSSE(
   if (state.functionCallParts.length > 0) {
     const functionCallResults: any[] = [];
 
-    for (const part of state.functionCallParts) {
+    // Parallelize independent function calls (e.g. multiple getPlaceDetails)
+    const callTasks = state.functionCallParts.map(async (part) => {
       const fc = part.functionCall;
       let parsedArgs: Record<string, unknown> = {};
       if (typeof fc.args === 'string') {
@@ -491,8 +492,13 @@ async function streamGeminiToSSE(
         };
       }
 
-      functionCallResults.push({ name: fc.name, response: result });
-      controller.enqueue(sseEvent({ type: 'function_call', name: fc.name, result }));
+      return { name: fc.name, response: result };
+    });
+
+    const results = await Promise.all(callTasks);
+    for (const r of results) {
+      functionCallResults.push(r);
+      controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
     }
 
     // Follow-up streaming call with function results

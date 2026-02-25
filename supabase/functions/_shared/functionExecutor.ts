@@ -183,7 +183,7 @@ async function _executeImpl(
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
           'X-Goog-FieldMask':
-            'places.id,places.displayName,places.formattedAddress,places.rating,places.priceLevel,places.googleMapsUri,places.photos',
+            'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.googleMapsUri,places.photos',
         },
         body: JSON.stringify({
           textQuery: query,
@@ -193,8 +193,9 @@ async function _executeImpl(
                   circle: { center: { latitude: lat, longitude: lng }, radius: 5000 },
                 }
               : undefined,
-          maxResultCount: 5,
+          maxResultCount: 3,
         }),
+        signal: AbortSignal.timeout(8_000),
       });
 
       if (!placesResponse.ok) {
@@ -209,6 +210,7 @@ async function _executeImpl(
           name: p.displayName?.text || 'Unknown',
           address: p.formattedAddress || '',
           rating: p.rating || null,
+          userRatingCount: p.userRatingCount || null,
           priceLevel: p.priceLevel || null,
           mapsUrl: p.googleMapsUri || null,
           photoCount: p.photos?.length || 0,

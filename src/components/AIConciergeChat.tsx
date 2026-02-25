@@ -64,6 +64,18 @@ export interface ChatMessage {
     source?: string;
   }>;
   googleMapsWidget?: string;
+  /** Rich place results from searchPlaces / getPlaceDetails tool calls */
+  functionCallPlaces?: Array<{
+    placeId?: string | null;
+    name: string;
+    address?: string;
+    rating?: number | null;
+    userRatingCount?: number | null;
+    priceLevel?: string | null;
+    mapsUrl?: string | null;
+    previewPhotoUrl?: string | null;
+    photoUrls?: string[];
+  }>;
 }
 
 interface ConciergeInvokePayload {
@@ -605,8 +617,36 @@ export const AIConciergeChat = ({
               }
               updateStreamMsg(msg => ({ content: msg.content + text }));
             },
-            onMetadata: (metadata: StreamMetadataEvent) => {
+            onFunctionCall: (name: string, result: Record<string, unknown>) => {
               if (!isMounted.current) return;
+              // Render place results immediately from searchPlaces or getPlaceDetails
+              if (name === 'searchPlaces' && result.places && Array.isArray(result.places)) {
+                updateStreamMsg(() => ({ functionCallPlaces: result.places as ChatMessage['functionCallPlaces'] }));
+              }
+              if (name === 'getPlaceDetails' && result.success) {
+                // Merge single place detail into existing places or create new entry
+                const detailPlace = {
+                  placeId: result.placeId as string,
+                  name: result.name as string,
+                  address: result.address as string,
+                  rating: result.rating as number | null,
+                  userRatingCount: result.userRatingCount as number | null,
+                  priceLevel: result.priceLevel as string | null,
+                  mapsUrl: result.mapsUrl as string | null,
+                  previewPhotoUrl: (result.photoUrls as string[])?.[0] || null,
+                  photoUrls: result.photoUrls as string[],
+                };
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === streamingMessageId);
+                  if (idx === -1) return prev;
+                  const existing = prev[idx].functionCallPlaces || [];
+                  const updated = [...prev];
+                  updated[idx] = { ...updated[idx], functionCallPlaces: [...existing, detailPlace] };
+                  return updated;
+                });
+              }
+            },
+            onMetadata: (metadata: StreamMetadataEvent) => {
               setAiStatus('connected');
               if (isLimitedPlan) void refreshUsage();
               updateStreamMsg(() => ({
