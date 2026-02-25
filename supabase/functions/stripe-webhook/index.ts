@@ -15,8 +15,31 @@ import {
 } from '../_shared/securityHeaders.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 
+const sanitizeDetails = (obj: unknown): unknown => {
+  if (!obj || typeof obj !== 'object') return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeDetails);
+  }
+
+  const sensitiveKeys = ['email', 'phone', 'name', 'line1', 'line2', 'city', 'state', 'postal_code', 'card', 'bank_account'];
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    if (sensitiveKeys.includes(key)) {
+      sanitized[key] = '***REDACTED***';
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeDetails(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
+
 const logStep = (step: string, details?: unknown) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  const sanitized = details ? sanitizeDetails(details) : undefined;
+  const detailsStr = sanitized ? ` - ${JSON.stringify(sanitized)}` : '';
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
