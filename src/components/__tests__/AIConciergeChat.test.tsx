@@ -129,16 +129,12 @@ describe('AIConciergeChat', () => {
       expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
     });
 
-    it('always renders the header microphone button', async () => {
+    it('always renders the dictation microphone button in the input area', async () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('header-voice-mic')).toBeInTheDocument();
+        expect(screen.getByLabelText('Tap to dictate')).toBeInTheDocument();
       });
-      expect(screen.getByTestId('header-voice-mic')).toHaveAttribute(
-        'aria-label',
-        'Voice concierge',
-      );
     });
 
     it('removes legacy status pills from header', () => {
