@@ -47,8 +47,8 @@ describe('ConciergeCacheService', () => {
     });
 
     it('should limit cached messages to last 200', () => {
-      // Add 210 messages
-      for (let i = 0; i < 210; i++) {
+      // Add 250 messages (exceeding the 200 limit)
+      for (let i = 0; i < 250; i++) {
         conciergeCacheService.cacheMessage(testTripId, `query ${i}`, {
           ...testMessage,
           id: `msg-${i}`,
