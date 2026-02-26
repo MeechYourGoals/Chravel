@@ -29,7 +29,7 @@ const MESSAGES_PREFIX = 'concierge_messages_';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days - aligns with documented TTL, maximises offline utility
 const SIMILARITY_THRESHOLD = 0.6; // Minimum similarity to use cached response
 const MAX_CACHED_RESPONSES = 100; // Per-trip response cache capacity
-const MAX_CACHED_MESSAGES = 200; // Per-trip message cache capacity
+const MAX_CACHED_MESSAGES = 100; // Per-trip message cache capacity
 
 class ConciergeCacheService {
   /**
