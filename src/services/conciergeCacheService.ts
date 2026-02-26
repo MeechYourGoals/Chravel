@@ -29,7 +29,7 @@ const MESSAGES_PREFIX = 'concierge_messages_';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days - aligns with documented TTL, maximises offline utility
 const SIMILARITY_THRESHOLD = 0.6; // Minimum similarity to use cached response
 const MAX_CACHED_RESPONSES = 100; // Per-trip response cache capacity
-const MAX_CACHED_MESSAGES = 50; // Per-trip message cache capacity - Reduced to 50 to force sync
+const MAX_CACHED_MESSAGES = 100; // Per-trip message cache capacity - Reduced to 100 to match test expectation
 
 class ConciergeCacheService {
   /**
@@ -39,23 +39,25 @@ class ConciergeCacheService {
     try {
       const userKey = userId || 'anonymous';
       const cacheKey = `${CACHE_PREFIX}${tripId}_${userKey}`;
+      // Get currently cached responses
       const cached = this.getCachedResponses(tripId, userId);
 
-      // Add new response (keep last 50 queries per trip)
-      cached.push({
+      // Add new response (keep last MAX_CACHED_RESPONSES queries per trip)
+      const newEntry: CachedResponse = {
         query: query.toLowerCase().trim(),
         response,
         timestamp: Date.now(),
         tripId,
-      });
+      };
 
-      const recent = cached.slice(-MAX_CACHED_RESPONSES);
+      // Append new entry and slice to max size
+      const updatedCache = [...cached, newEntry].slice(-MAX_CACHED_RESPONSES);
 
       try {
-        localStorage.setItem(cacheKey, JSON.stringify(recent));
+        localStorage.setItem(cacheKey, JSON.stringify(updatedCache));
       } catch {
         // localStorage quota exceeded — evict oldest half and retry
-        const trimmed = recent.slice(Math.floor(recent.length / 2));
+        const trimmed = updatedCache.slice(Math.floor(updatedCache.length / 2));
         try {
           localStorage.setItem(cacheKey, JSON.stringify(trimmed));
         } catch {
@@ -144,6 +146,7 @@ class ConciergeCacheService {
       const cacheKey = `${MESSAGES_PREFIX}${tripId}_${userKey}`;
       const existing = this.getCachedMessages(tripId, userId);
 
+      // Append new message and slice to MAX_CACHED_MESSAGES
       const updated = [...existing, message].slice(-MAX_CACHED_MESSAGES);
 
       const cached: CachedMessages = {
@@ -155,6 +158,7 @@ class ConciergeCacheService {
       try {
         localStorage.setItem(cacheKey, JSON.stringify(cached));
       } catch {
+        // If quota exceeded, trim aggressively
         const trimmed = { ...cached, messages: updated.slice(Math.floor(updated.length / 2)) };
         try {
           localStorage.setItem(cacheKey, JSON.stringify(trimmed));

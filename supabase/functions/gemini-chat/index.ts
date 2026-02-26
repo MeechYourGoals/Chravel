@@ -60,11 +60,17 @@ serve(async req => {
     // Check privacy settings if trip context is provided
     if (tripContext?.id) {
       try {
-        const { data: privacyConfig } = await supabase
+        const { data: privacyConfig, error: privacyError } = await supabase
           .from('trip_privacy_configs')
           .select('*')
           .eq('trip_id', tripContext.id)
-          .single();
+          .maybeSingle();
+
+        if (privacyError) {
+          console.error('Privacy check failed (DB error):', privacyError);
+          // Fail closed: if we can't check privacy, deny access
+          throw new Error('Access denied: Unable to verify trip privacy settings.');
+        }
 
         // AI can run in high privacy mode. Only block when explicitly disabled.
         if (privacyConfig?.ai_access_enabled === false) {
@@ -82,8 +88,12 @@ serve(async req => {
           );
         }
       } catch (privacyError) {
-        console.log('Privacy check failed, proceeding with default behavior:', privacyError);
-        // Continue with normal processing if privacy config check fails
+        console.error('Privacy check failed:', privacyError);
+        // Re-throw known access denied errors, otherwise wrap unknown errors
+        if (privacyError instanceof Error && privacyError.message.includes('Access denied')) {
+          throw privacyError;
+        }
+        throw new Error('Access denied: Unable to verify trip privacy settings.');
       }
     }
 
