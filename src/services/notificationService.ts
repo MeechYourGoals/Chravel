@@ -1,3 +1,5 @@
+import { isDespia, sendLocalPush } from '@/native/despia';
+
 import { supabase } from '../integrations/supabase/client';
 
 // VAPID public key from environment
@@ -368,6 +370,12 @@ export class NotificationService {
    * Send a local notification (directly via browser API)
    */
   async sendLocalNotification(payload: NotificationPayload): Promise<void> {
+    if (isDespia()) {
+      const url = typeof payload.data?.url === 'string' ? payload.data.url : '';
+      sendLocalPush(payload.title, payload.body, 0, url);
+      return;
+    }
+
     if (Notification.permission !== 'granted') {
       if (import.meta.env.DEV) {
         console.warn('[NotificationService] Notification permission not granted');

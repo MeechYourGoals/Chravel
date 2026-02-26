@@ -1,3 +1,5 @@
+import { isDespia, sendLocalPush } from '@/native/despia';
+
 import { supabase } from '../integrations/supabase/client';
 
 export interface NotificationPreference {
@@ -293,6 +295,12 @@ export class ProductionNotificationService {
   }
 
   async sendLocalNotification(payload: NotificationPayload): Promise<void> {
+    if (isDespia()) {
+      const url = typeof payload.data?.url === 'string' ? payload.data.url : '';
+      sendLocalPush(payload.title, payload.body, 0, url);
+      return;
+    }
+
     if (Notification.permission !== 'granted') {
       if (import.meta.env.DEV) console.warn('Notification permission not granted');
       return;
