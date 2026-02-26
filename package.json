@@ -158,6 +158,7 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
     "vitest": "^4.0.18"

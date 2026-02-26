@@ -46,9 +46,9 @@ describe('ConciergeCacheService', () => {
       );
     });
 
-    it('should limit cached messages to last 100', () => {
-      // Add 110 messages
-      for (let i = 0; i < 110; i++) {
+    it('should limit cached messages to last 200', () => {
+      // Add 210 messages
+      for (let i = 0; i < 210; i++) {
         conciergeCacheService.cacheMessage(testTripId, `query ${i}`, {
           ...testMessage,
           id: `msg-${i}`,
@@ -57,7 +57,8 @@ describe('ConciergeCacheService', () => {
       }
 
       const messages = conciergeCacheService.getCachedMessages(testTripId);
-      expect(messages.length).toBeLessThanOrEqual(100);
+      // MAX_CACHED_MESSAGES is 200
+      expect(messages.length).toBeLessThanOrEqual(200);
     });
   });
 
