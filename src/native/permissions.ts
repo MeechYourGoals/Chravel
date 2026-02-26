@@ -1,5 +1,4 @@
 import { Capacitor } from '@capacitor/core';
-import despia from 'despia-native';
 import * as NativePush from '@/native/push';
 
 export type PermissionId = 'notifications' | 'location' | 'microphone' | 'camera';
@@ -103,6 +102,8 @@ async function requestMicrophonePermission(): Promise<PermissionState> {
  */
 export async function openAppSettings(): Promise<boolean> {
   try {
+    // Dynamically import to avoid side effects during test/initialization
+    const { default: despia } = await import('despia-native');
     despia('settingsapp://');
     return true;
   } catch {
