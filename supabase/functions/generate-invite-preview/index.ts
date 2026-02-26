@@ -419,6 +419,9 @@ function generateInviteHTML(
       ? '🏢 Pro Trip Invitation'
       : "✨ You're Invited!";
 
+  const badgeTextColor = isEvent || isPro ? '#fff' : '#000';
+  const datesColor = isEvent && trip.themeColor ? trip.themeColor : '#a855f7';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -468,7 +471,7 @@ function generateInviteHTML(
     }
     .badge {
       ${badgeStyle}
-      color: ${isEvent || isPro ? '#fff' : '#000'};
+      color: ${badgeTextColor};
       text-align: center;
       padding: 8px;
       font-weight: 600;
@@ -491,7 +494,7 @@ function generateInviteHTML(
       margin-bottom: 8px;
     }
     .dates {
-      color: ${isEvent && trip.themeColor ? trip.themeColor : '#a855f7'};
+      color: ${datesColor};
       font-size: 14px;
       margin-bottom: 8px;
     }
@@ -515,7 +518,7 @@ function generateInviteHTML(
     .cta {
       display: block;
       ${badgeStyle}
-      color: ${isEvent || isPro ? '#fff' : '#000'};
+      color: ${badgeTextColor};
       text-align: center;
       padding: 14px;
       font-weight: 600;
