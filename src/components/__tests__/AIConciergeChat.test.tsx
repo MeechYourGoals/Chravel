@@ -129,16 +129,12 @@ describe('AIConciergeChat', () => {
       expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
     });
 
-    it('always renders the header microphone button', async () => {
+    it('does not render the header microphone button (moved to input)', async () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('header-voice-mic')).toBeInTheDocument();
+        expect(screen.queryByTestId('header-voice-mic')).not.toBeInTheDocument();
       });
-      expect(screen.getByTestId('header-voice-mic')).toHaveAttribute(
-        'aria-label',
-        'Voice concierge',
-      );
     });
 
     it('removes legacy status pills from header', () => {
