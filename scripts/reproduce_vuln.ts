@@ -42,11 +42,14 @@ async function reproduceVulnerability() {
   const targetTripId = '00000000-0000-0000-0000-000000000000'; // Random/Admin trip
   console.log(`Attempting to join arbitrary trip ID: ${targetTripId}`);
 
-  const { data, error } = await supabase.from('trip_members').insert({
-    trip_id: targetTripId,
-    user_id: user.id, // Policy only checks user_id = auth.uid()!
-    role: 'member',
-  }).select();
+  const { data, error } = await supabase
+    .from('trip_members')
+    .insert({
+      trip_id: targetTripId,
+      user_id: user.id, // Policy only checks user_id = auth.uid()!
+      role: 'member',
+    })
+    .select();
 
   if (error) {
     console.log('Insert failed (Vulnerability NOT present or other error):', error.message);
