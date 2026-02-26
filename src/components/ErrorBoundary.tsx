@@ -68,6 +68,14 @@ export class ErrorBoundary extends Component<Props, State> {
         fatal: false,
       });
     }
+
+    // Auto-recover from chunk errors on new deployments
+    if (isChunkError(error)) {
+      setTimeout(async () => {
+        await clearAllCaches();
+        window.location.reload();
+      }, 1000);
+    }
   }
 
   private handleReset = () => {
