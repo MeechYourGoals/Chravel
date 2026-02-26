@@ -5,6 +5,7 @@ import { BasecampProvider } from '@/contexts/BasecampContext';
 import { initNativeLifecycle } from '@/native/lifecycle';
 import { registerServiceWorker } from './utils/serviceWorkerRegistration';
 import { initRevenueCat } from '@/config/revenuecat';
+import { setupGlobalPurchaseListener } from '@/integrations/revenuecat/revenuecatClient';
 import App from './App.tsx';
 import './index.css';
 
@@ -31,6 +32,9 @@ initNativeLifecycle();
 
 // Initialize RevenueCat for subscription management
 initRevenueCat().catch(err => console.warn('[RevenueCat] Init failed:', err));
+
+// Initialize global listener for native purchases
+setupGlobalPurchaseListener();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
