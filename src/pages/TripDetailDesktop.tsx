@@ -28,6 +28,7 @@ import { useTripDetailData } from '../hooks/useTripDetailData';
 import { Message } from '../types/messages';
 import { ExportSection } from '../types/tripExport';
 import { openOrDownloadBlob } from '../utils/download';
+import { printPdf } from '../utils/print';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { toast } from 'sonner';
 import { demoModeService } from '../services/demoModeService';
@@ -353,6 +354,123 @@ export const TripDetailDesktop = () => {
     );
   }
 
+  const getExportData = async (sections: ExportSection[]) => {
+    const orderedSections = orderExportSections(sections);
+    const isMockTrip = tripId && /^\d+$/.test(tripId);
+
+    if (isMockTrip) {
+      const mockCalendar = demoModeService.getMockCalendarEvents(tripId || '1');
+      const mockAttachments = demoModeService.getMockAttachments(tripId || '1');
+      const mockPayments = demoModeService.getMockPayments(tripId || '1');
+      const mockPolls = demoModeService.getMockPolls(tripId || '1');
+      const mockMembers = demoModeService.getMockMembers(tripId || '1');
+      const mockTasks = demoModeService.getMockTasks(tripId || '1');
+      const mockPlaces = demoModeService.getMockPlaces(tripId || '1');
+
+      const sessionBasecamp = demoModeService.getSessionTripBasecamp(tripId || '1');
+      const actualBasecamp = sessionBasecamp || basecamp;
+
+      return {
+        tripId: tripId || '1',
+        tripTitle: tripWithUpdatedData.title,
+        destination: tripWithUpdatedData.location,
+        dateRange: tripWithUpdatedData.dateRange,
+        description: tripWithUpdatedData.description,
+        calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
+        payments:
+          orderedSections.includes('payments') && mockPayments.length > 0
+            ? {
+                items: mockPayments,
+                total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
+                currency: mockPayments[0]?.currency || 'USD',
+              }
+            : undefined,
+        polls: orderedSections.includes('polls') ? mockPolls : undefined,
+        tasks: orderedSections.includes('tasks')
+          ? mockTasks.map(task => ({
+              title: task.title,
+              description: task.description,
+              completed: task.completed,
+            }))
+          : undefined,
+        places: orderedSections.includes('places')
+          ? [
+              ...(actualBasecamp
+                ? [
+                    {
+                      name: `📍 Trip Base Camp: ${actualBasecamp.name || 'Main Location'}`,
+                      url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(actualBasecamp.address)}`,
+                      description: actualBasecamp.address,
+                      votes: 0,
+                    },
+                  ]
+                : []),
+              ...mockPlaces,
+            ]
+          : undefined,
+        roster: orderedSections.includes('roster')
+          ? mockMembers.map(m => ({
+              name: m.display_name,
+              email: undefined,
+              role: m.role,
+            }))
+          : undefined,
+        attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
+      };
+    } else {
+      const { getExportData: fetchExportData } = await import('../services/tripExportDataService');
+      const realData = await fetchExportData(tripId || '', orderedSections);
+      return {
+        tripId: tripId || '',
+        tripTitle: realData.trip.title,
+        destination: realData.trip.destination,
+        dateRange: realData.trip.dateRange,
+        description: realData.trip.description,
+        calendar: realData.calendar,
+        payments: realData.payments,
+        polls: realData.polls,
+        tasks: realData.tasks,
+        places: realData.places,
+        roster: realData.roster,
+        attachments: realData.attachments,
+      };
+    }
+  };
+
+  const handlePrint = async (sections: ExportSection[]) => {
+    try {
+      toast.info('Preparing print job...');
+      const orderedSections = orderExportSections(sections);
+      const data = await getExportData(sections);
+
+      const { generateClientPDF } = await import('../utils/exportPdfClient');
+      const blob = await generateClientPDF(data, orderedSections, {
+        customization: {
+          compress: true,
+          maxItemsPerSection: 100,
+        },
+        onProgress: progress => {
+          if (progress.stage === 'rendering') {
+            toast.info(`${progress.message} (${progress.current}/${progress.total})`);
+          }
+        },
+      });
+
+      const filename = `Trip_${tripWithUpdatedData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+      await printPdf(blob, filename, tripId);
+      toast.success('Print job sent!');
+    } catch (error) {
+      console.error('Print error details:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+      toast.error(
+        error instanceof Error ? `Print failed: ${error.message}` : 'Failed to print recap',
+      );
+      throw error;
+    }
+  };
+
   // Handle export functionality
   const handleExport = async (sections: ExportSection[]) => {
     const orderedSections = orderExportSections(sections);
@@ -380,124 +498,21 @@ export const TripDetailDesktop = () => {
       }
 
       toast.info('Creating Recap...');
-      const isMockTrip = tripId && /^\d+$/.test(tripId);
-      let blob: Blob;
+      const data = await getExportData(sections);
 
-      if (isMockTrip) {
-        const mockCalendar = demoModeService.getMockCalendarEvents(tripId || '1');
-        const mockAttachments = demoModeService.getMockAttachments(tripId || '1');
-        // ⚡ OPTIMIZATION: Use synchronous mock data methods (no await needed)
-        const mockPayments = demoModeService.getMockPayments(tripId || '1');
-        const mockPolls = demoModeService.getMockPolls(tripId || '1');
-        const mockMembers = demoModeService.getMockMembers(tripId || '1');
-        const mockTasks = demoModeService.getMockTasks(tripId || '1');
-        const mockPlaces = demoModeService.getMockPlaces(tripId || '1');
-
-        // Get session basecamp if set, otherwise use existing basecamp
-        const sessionBasecamp = demoModeService.getSessionTripBasecamp(tripId || '1');
-        const actualBasecamp = sessionBasecamp || basecamp;
-
-        // Lazy load PDF generation (only when export is clicked)
-        const { generateClientPDF } = await import('../utils/exportPdfClient');
-        blob = await generateClientPDF(
-          {
-            tripId: tripId || '1',
-            tripTitle: tripWithUpdatedData.title,
-            destination: tripWithUpdatedData.location,
-            dateRange: tripWithUpdatedData.dateRange,
-            description: tripWithUpdatedData.description,
-            calendar: orderedSections.includes('calendar') ? mockCalendar : undefined,
-            payments:
-              orderedSections.includes('payments') && mockPayments.length > 0
-                ? {
-                    items: mockPayments,
-                    total: mockPayments.reduce((sum, p) => sum + p.amount, 0),
-                    currency: mockPayments[0]?.currency || 'USD',
-                  }
-                : undefined,
-            polls: orderedSections.includes('polls') ? mockPolls : undefined,
-            tasks: orderedSections.includes('tasks')
-              ? mockTasks.map(task => ({
-                  title: task.title,
-                  description: task.description,
-                  completed: task.completed,
-                }))
-              : undefined,
-            places: orderedSections.includes('places')
-              ? [
-                  // Trip Basecamp first (from session or trip-specific data)
-                  ...(actualBasecamp
-                    ? [
-                        {
-                          name: `📍 Trip Base Camp: ${actualBasecamp.name || 'Main Location'}`,
-                          url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(actualBasecamp.address)}`,
-                          description: actualBasecamp.address,
-                          votes: 0,
-                        },
-                      ]
-                    : []),
-                  // Trip-specific places from tripSpecificMockDataService
-                  ...mockPlaces,
-                ]
-              : undefined,
-            roster: orderedSections.includes('roster')
-              ? mockMembers.map(m => ({
-                  name: m.display_name,
-                  email: undefined,
-                  role: m.role,
-                }))
-              : undefined,
-            attachments: orderedSections.includes('attachments') ? mockAttachments : undefined,
-          },
-          orderedSections,
-          {
-            customization: {
-              compress: true,
-              maxItemsPerSection: 100,
-            },
-            onProgress: progress => {
-              if (progress.stage === 'rendering') {
-                toast.info(`${progress.message} (${progress.current}/${progress.total})`);
-              }
-            },
-          },
-        );
-      } else {
-        // Fetch real data for Supabase trips
-        const { getExportData } = await import('../services/tripExportDataService');
-        const realData = await getExportData(tripId || '', orderedSections);
-
-        // Lazy load PDF generation (only when export is clicked)
-        const { generateClientPDF } = await import('../utils/exportPdfClient');
-        blob = await generateClientPDF(
-          {
-            tripId: tripId || '',
-            tripTitle: realData.trip.title,
-            destination: realData.trip.destination,
-            dateRange: realData.trip.dateRange,
-            description: realData.trip.description,
-            calendar: realData.calendar,
-            payments: realData.payments,
-            polls: realData.polls,
-            tasks: realData.tasks,
-            places: realData.places,
-            roster: realData.roster,
-            attachments: realData.attachments,
-          },
-          orderedSections,
-          {
-            customization: {
-              compress: true,
-              maxItemsPerSection: 100,
-            },
-            onProgress: progress => {
-              if (progress.stage === 'rendering') {
-                toast.info(`${progress.message} (${progress.current}/${progress.total})`);
-              }
-            },
-          },
-        );
-      }
+      // Lazy load PDF generation (only when export is clicked)
+      const { generateClientPDF } = await import('../utils/exportPdfClient');
+      const blob = await generateClientPDF(data, orderedSections, {
+        customization: {
+          compress: true,
+          maxItemsPerSection: 100,
+        },
+        onProgress: progress => {
+          if (progress.stage === 'rendering') {
+            toast.info(`${progress.message} (${progress.current}/${progress.total})`);
+          }
+        },
+      });
 
       // Download or open the PDF with cross-platform handling
       const filename = `Trip_${tripWithUpdatedData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
@@ -607,6 +622,7 @@ export const TripDetailDesktop = () => {
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
         onExport={handleExport}
+        onPrint={handlePrint}
         tripName={tripWithUpdatedData.title}
         tripId={tripId || '1'}
       />

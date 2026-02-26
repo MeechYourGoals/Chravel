@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, Download, Loader2, FileText, Crown, Gift, Sparkles } from 'lucide-react';
+import { X, Download, Loader2, FileText, Crown, Gift, Sparkles, Printer } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
@@ -10,6 +10,7 @@ interface TripExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onExport: (sections: ExportSection[]) => Promise<void>;
+  onPrint?: (sections: ExportSection[]) => Promise<void>;
   tripName: string;
   tripId: string;
   tripType?: 'consumer' | 'pro' | 'event';
@@ -39,6 +40,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   isOpen,
   onClose,
   onExport,
+  onPrint,
   tripName,
   tripId,
   tripType,
@@ -57,6 +59,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     sections.map(s => s.id),
   );
   const [isExporting, setIsExporting] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const toggleSection = (sectionId: ExportSection) => {
@@ -88,6 +91,32 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     }
   };
 
+  const handlePrint = async () => {
+    if (selectedSections.length === 0) {
+      setError('Please select at least one section for your recap');
+      return;
+    }
+
+    if (!onPrint) return;
+
+    setIsPrinting(true);
+    setError(null);
+
+    try {
+      await onPrint(selectedSections);
+      // Printing also counts as an export for usage limits if we want to be strict,
+      // but usually print is ephemeral. Let's not count it for now or assume parent handles it.
+      // If we want to count it:
+      // if (!isPaidUser) { recordExport(); }
+      // For now, we only count file downloads/exports.
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to print trip recap');
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   // Free users: 1 export per trip, Paid users: unlimited
@@ -115,7 +144,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors p-2 -m-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            disabled={isExporting}
+            disabled={isExporting || isPrinting}
           >
             <X size={20} />
           </button>
@@ -253,28 +282,44 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
           >
             <button
               onClick={onClose}
-              disabled={isExporting}
+              disabled={isExporting || isPrinting}
               className="px-4 py-2.5 text-sm rounded-lg text-gray-300 hover:text-white transition-colors disabled:opacity-50 min-h-[44px]"
             >
               Cancel
             </button>
-            <button
-              onClick={handleExport}
-              disabled={isExporting || selectedSections.length === 0}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
-            >
-              {isExporting ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Download size={16} />
-                  Create Recap
-                </>
+            <div className="flex gap-2">
+              {onPrint && (
+                <button
+                  onClick={handlePrint}
+                  disabled={isExporting || isPrinting || selectedSections.length === 0}
+                  className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2.5 text-sm rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+                  title="Print Recap"
+                >
+                  {isPrinting ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Printer size={16} />
+                  )}
+                </button>
               )}
-            </button>
+              <button
+                onClick={handleExport}
+                disabled={isExporting || isPrinting || selectedSections.length === 0}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+              >
+                {isExporting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} />
+                    Create Recap
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </div>

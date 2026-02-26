@@ -1,21 +1,3 @@
-/**
- * Despia Environment Detection & Utilities
- *
- * Provides environment detection for Despia native apps and
- * standardized wrappers for Despia-specific functionality.
- *
- * Despia userAgent patterns:
- * - iOS: "despia-iphone" or "despia-ipad"
- * - Android: "despia-android"
- *
- * Usage:
- *   import { isDespia, despiaDevice, safeDespia } from '@/native/despia';
- *
- *   if (isDespia()) {
- *     // Use native features
- *     await safeDespia('lighthaptic://');
- *   }
- */
 
 import { despia } from '@/lib/despia';
 
@@ -218,6 +200,18 @@ export function shareApp(message: string, url?: string): void {
   params.set('message', message);
   if (url) params.set('url', url);
   despiaIfNative(`shareapp://?${params.toString()}`);
+}
+
+/**
+ * Print a document or image using the native print dialog
+ * @param url - The HTTPS URL of the file to print (PDF, image)
+ * @param jobName - The name of the print job
+ */
+export function printDocument(url: string, jobName: string): void {
+  const params = new URLSearchParams();
+  params.set('jobName', jobName);
+  params.set('printItem', url);
+  despiaIfNative(`printitem://?${params.toString()}`);
 }
 
 // Re-export the core despia function for direct use
