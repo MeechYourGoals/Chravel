@@ -12,6 +12,11 @@ vi.mock('@/hooks/useWebSpeechVoice', () => ({
   }),
 }));
 
+// Mock despia-native to prevent issues in test environment
+vi.mock('despia-native', () => ({
+  default: vi.fn(),
+}));
+
 const buildProps = (overrides: Partial<React.ComponentProps<typeof AiChatInput>> = {}) => ({
   inputMessage: 'Test concierge message',
   onInputChange: vi.fn(),

@@ -34,3 +34,9 @@ global.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
 } as any;
+
+// Mock despia-native to prevent issues in test environment
+vi.mock('despia-native', () => ({
+  default: vi.fn(),
+  __esModule: true,
+}));
