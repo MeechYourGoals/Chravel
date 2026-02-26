@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { extractInviteCodeFromLink, isDemoInviteCode } from '@/lib/inviteLinkUtils';
+import { buildInviteLink } from '@/lib/unfurlConfig';
 
 interface UseInviteLinkProps {
   isOpen: boolean;
@@ -209,7 +210,7 @@ export const useInviteLink = ({
     // Use branded unfurl domain for rich OG previews
     if (isDemoMode) {
       const demoInviteCode = `demo-${actualTripId}-${Date.now().toString(36)}`;
-      setInviteLink(`https://p.chravel.app/j/${demoInviteCode}`);
+      setInviteLink(buildInviteLink(demoInviteCode));
       setLoading(false);
       toast.success('Demo invite link created!');
       return;
@@ -247,7 +248,7 @@ export const useInviteLink = ({
     }
 
     // Use branded unfurl domain for rich OG previews
-    setInviteLink(`https://p.chravel.app/j/${inviteCode}`);
+    setInviteLink(buildInviteLink(inviteCode));
     setLoading(false);
     toast.success('Invite link created!');
   };
