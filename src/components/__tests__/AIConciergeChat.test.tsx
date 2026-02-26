@@ -129,7 +129,7 @@ describe('AIConciergeChat', () => {
       expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
     });
 
-    it('does not render the header microphone button (moved to input)', async () => {
+    it('does not render header microphone button (moved to input)', async () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       // The microphone button has been moved to the input area, so it should not appear in the header
