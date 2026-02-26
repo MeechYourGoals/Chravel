@@ -21,6 +21,10 @@ import { despia } from '@/lib/despia';
 
 export type DespiaDevice = 'iphone' | 'ipad' | 'android' | 'web';
 
+export interface ContactMap {
+  [name: string]: string[];
+}
+
 /**
  * Check if running in Despia native environment
  */
@@ -168,14 +172,14 @@ export async function requestContactPermission(): Promise<boolean> {
 
 /**
  * Read device contacts
- * @returns Array of contacts or null if not available
+ * @returns Map of contact names to phone numbers or null if not available
  */
-export async function readContacts(): Promise<unknown[] | null> {
+export async function readContacts(): Promise<ContactMap | null> {
   if (!isDespia()) return null;
 
   try {
     const result = await despia('readcontacts://', ['contacts']);
-    return (result as { contacts?: unknown[] })?.contacts || null;
+    return (result as { contacts?: ContactMap })?.contacts || null;
   } catch {
     return null;
   }
