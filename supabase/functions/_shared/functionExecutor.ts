@@ -76,18 +76,26 @@ async function _executeImpl(
         .select()
         .single();
       if (error) throw error;
-      return { success: true, event: data, message: `Created event "${title}" on ${startTime}` };
+      return {
+        success: true,
+        event: data,
+        actionType: 'add_to_calendar',
+        message: `Created event "${title}" on ${startTime}`,
+      };
     }
 
     case 'createTask': {
-      const { content, assignee, dueDate } = args;
+      const { title, notes, dueDate, assignee } = args;
+      const taskTitle = String(title || '').trim();
+      if (!taskTitle) return { error: 'Task title is required' };
       const { data, error } = await supabase
         .from('trip_tasks')
         .insert({
           trip_id: tripId,
-          content,
-          created_by: userId || null,
-          due_date: dueDate || null,
+          title: taskTitle,
+          description: notes || null,
+          creator_id: userId || '',
+          due_at: dueDate || null,
         })
         .select()
         .single();
@@ -95,7 +103,8 @@ async function _executeImpl(
       return {
         success: true,
         task: data,
-        message: `Created task: "${content}"${assignee ? ` for ${assignee}` : ''}`,
+        actionType: 'create_task',
+        message: `Created task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}`,
       };
     }
 
@@ -121,6 +130,7 @@ async function _executeImpl(
       return {
         success: true,
         poll: data,
+        actionType: 'create_poll',
         message: `Created poll: "${question}" with ${options.length} options`,
       };
     }
@@ -581,6 +591,166 @@ async function _executeImpl(
         addressComplete: verdict?.addressComplete ?? null,
         hasUnconfirmedComponents: verdict?.hasUnconfirmedComponents ?? null,
         components: (addr?.addressComponents as unknown[]) ?? [],
+      };
+    }
+
+    // ========== TRIP WRITE TOOLS (Concierge Autonomous Actions) ==========
+
+    case 'savePlace': {
+      const { name, url, description, category } = args;
+      const placeName = String(name || '').trim();
+      if (!placeName) return { error: 'Place name is required' };
+
+      // Build a Google Maps search URL if no explicit URL provided
+      const placeUrl = url
+        ? String(url)
+        : `https://www.google.com/maps/search/${encodeURIComponent(placeName)}`;
+
+      const validCategories = new Set([
+        'attraction',
+        'accommodation',
+        'activity',
+        'appetite',
+        'other',
+      ]);
+      const safeCategory = validCategories.has(String(category)) ? String(category) : 'other';
+
+      const { data, error } = await supabase
+        .from('trip_links')
+        .insert({
+          trip_id: tripId,
+          title: placeName,
+          url: placeUrl,
+          description: description ? String(description).substring(0, 500) : null,
+          category: safeCategory,
+          added_by: userId || '',
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return {
+        success: true,
+        link: data,
+        actionType: 'save_place',
+        message: `Saved "${placeName}" to trip places (${safeCategory})`,
+      };
+    }
+
+    case 'setBasecamp': {
+      const { scope, name, address, lat, lng } = args;
+      const basecampName = String(name || '').trim();
+      const basecampAddress = String(address || '').trim();
+      if (!basecampAddress && !basecampName) {
+        return { error: 'Either name or address is required for basecamp' };
+      }
+
+      if (scope === 'personal') {
+        if (!userId) return { error: 'Authentication required to set personal basecamp' };
+
+        // Upsert personal basecamp
+        const { data: existing } = await supabase
+          .from('trip_personal_basecamps')
+          .select('id')
+          .eq('trip_id', tripId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (existing) {
+          const { data, error } = await supabase
+            .from('trip_personal_basecamps')
+            .update({
+              name: basecampName || null,
+              address: basecampAddress || basecampName,
+              latitude: lat != null ? Number(lat) : null,
+              longitude: lng != null ? Number(lng) : null,
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+          if (error) throw error;
+          return {
+            success: true,
+            basecamp: data,
+            actionType: 'set_basecamp',
+            scope: 'personal',
+            message: `Updated your personal basecamp to "${basecampName || basecampAddress}"`,
+          };
+        }
+
+        const { data, error } = await supabase
+          .from('trip_personal_basecamps')
+          .insert({
+            trip_id: tripId,
+            user_id: userId,
+            name: basecampName || null,
+            address: basecampAddress || basecampName,
+            latitude: lat != null ? Number(lat) : null,
+            longitude: lng != null ? Number(lng) : null,
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        return {
+          success: true,
+          basecamp: data,
+          actionType: 'set_basecamp',
+          scope: 'personal',
+          message: `Set your personal basecamp to "${basecampName || basecampAddress}"`,
+        };
+      }
+
+      // Trip basecamp - update the trips table directly
+      const updatePayload: Record<string, unknown> = {
+        basecamp_name: basecampName || null,
+        basecamp_address: basecampAddress || basecampName,
+      };
+      if (lat != null) updatePayload.basecamp_latitude = Number(lat);
+      if (lng != null) updatePayload.basecamp_longitude = Number(lng);
+
+      const { data, error } = await supabase
+        .from('trips')
+        .update(updatePayload)
+        .eq('id', tripId)
+        .select('id, basecamp_name, basecamp_address, basecamp_latitude, basecamp_longitude')
+        .single();
+      if (error) throw error;
+      return {
+        success: true,
+        basecamp: data,
+        actionType: 'set_basecamp',
+        scope: 'trip',
+        message: `Set trip basecamp to "${basecampName || basecampAddress}"`,
+      };
+    }
+
+    case 'addToAgenda': {
+      const { eventId, title, description, sessionDate, startTime, endTime, location, speakers } =
+        args;
+      const agendaTitle = String(title || '').trim();
+      if (!agendaTitle) return { error: 'Agenda session title is required' };
+      if (!eventId) return { error: 'Event ID is required for agenda items' };
+
+      const { data, error } = await supabase
+        .from('event_agenda_items')
+        .insert({
+          event_id: eventId,
+          title: agendaTitle,
+          description: description || null,
+          session_date: sessionDate || null,
+          start_time: startTime || null,
+          end_time: endTime || null,
+          location: location || null,
+          speakers: Array.isArray(speakers) ? speakers : null,
+          created_by: userId || null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return {
+        success: true,
+        agendaItem: data,
+        actionType: 'add_to_agenda',
+        message: `Added "${agendaTitle}" to event agenda`,
       };
     }
 

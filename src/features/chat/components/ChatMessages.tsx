@@ -5,12 +5,30 @@ import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { ChatMessageWithGrounding } from '@/types/grounding';
 import { MessageRenderer } from './MessageRenderer';
 import { PlaceResultCards } from './PlaceResultCards';
+import { ConciergeActionCard, ConciergeActionResult } from './ConciergeActionCard';
+
+/** Extended message shape that may carry rich function-call data from the concierge. */
+interface RichChatMessage extends ChatMessage {
+  functionCallPlaces?: Array<{
+    placeId?: string | null;
+    name: string;
+    address?: string;
+    rating?: number | null;
+    userRatingCount?: number | null;
+    priceLevel?: string | null;
+    mapsUrl?: string | null;
+    previewPhotoUrl?: string | null;
+    photoUrls?: string[];
+  }>;
+  conciergeActions?: ConciergeActionResult[];
+}
 
 interface ChatMessagesProps {
   messages: (ChatMessage | ChatMessageWithGrounding)[];
   isTyping: boolean;
   showMapWidgets?: boolean;
   onDeleteMessage?: (messageId: string) => void;
+  onTabChange?: (tab: string) => void;
 }
 
 export const ChatMessages = ({
@@ -18,6 +36,7 @@ export const ChatMessages = ({
   isTyping,
   showMapWidgets = false,
   onDeleteMessage,
+  onTabChange,
 }: ChatMessagesProps) => {
   if (messages.length === 0) {
     return (
@@ -33,22 +52,39 @@ export const ChatMessages = ({
     <>
       {messages.map(message => {
         const messageWithGrounding = message as ChatMessageWithGrounding;
+        const rich = message as RichChatMessage;
         return (
           <div key={message.id} id={`msg-${message.id}`} className="space-y-2 group/msg relative">
             <MessageRenderer message={message} showMapWidgets={showMapWidgets} />
 
             {/* Rich place cards from function_call results (searchPlaces / getPlaceDetails) */}
-            {(message as any).functionCallPlaces &&
-              (message as any).functionCallPlaces.length > 0 && (
-                <div
-                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
-                >
-                  <PlaceResultCards
-                    places={(message as any).functionCallPlaces}
-                    className="max-w-xs lg:max-w-md"
-                  />
+            {rich.functionCallPlaces && rich.functionCallPlaces.length > 0 && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <PlaceResultCards
+                  places={rich.functionCallPlaces}
+                  className="max-w-xs lg:max-w-md"
+                />
+              </div>
+            )}
+
+            {/* Concierge action result cards (createPoll, createTask, savePlace, etc.) */}
+            {rich.conciergeActions && rich.conciergeActions.length > 0 && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <div className="space-y-2 max-w-xs lg:max-w-md w-full">
+                  {rich.conciergeActions.map((action, idx) => (
+                    <ConciergeActionCard
+                      key={`action-${idx}`}
+                      action={action}
+                      onNavigate={onTabChange}
+                    />
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
             {onDeleteMessage && (
               <div
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
