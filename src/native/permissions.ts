@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import despia from 'despia-native';
 import * as NativePush from '@/native/push';
 
 export type PermissionId = 'notifications' | 'location' | 'microphone' | 'camera';
@@ -101,6 +102,13 @@ async function requestMicrophonePermission(): Promise<PermissionState> {
  * Only works when running inside a native shell (Capacitor).
  */
 export async function openAppSettings(): Promise<boolean> {
+  try {
+    despia('settingsapp://');
+    return true;
+  } catch {
+    // Fall through
+  }
+
   if (!isIOSNative()) return false;
 
   try {
