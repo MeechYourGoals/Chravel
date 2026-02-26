@@ -74,6 +74,15 @@ vi.mock('../../hooks/useOfflineStatus', () => ({
   }),
 }));
 
+// Mock useWebSpeechVoice to ensure predictable state for UI tests
+vi.mock('@/hooks/useWebSpeechVoice', () => ({
+  useWebSpeechVoice: () => ({
+    voiceState: 'idle',
+    toggleVoice: vi.fn(),
+    errorMessage: null,
+  }),
+}));
+
 vi.mock('../../contexts/BasecampContext', () => ({
   useBasecamp: () => ({
     basecamp: {

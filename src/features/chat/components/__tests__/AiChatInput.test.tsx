@@ -3,6 +3,15 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { AiChatInput } from '../AiChatInput';
 
+// Mock useWebSpeechVoice to ensure predictable state for UI tests and prevent timeouts
+vi.mock('@/hooks/useWebSpeechVoice', () => ({
+  useWebSpeechVoice: () => ({
+    voiceState: 'idle',
+    toggleVoice: vi.fn(),
+    errorMessage: null,
+  }),
+}));
+
 const buildProps = (overrides: Partial<React.ComponentProps<typeof AiChatInput>> = {}) => ({
   inputMessage: 'Test concierge message',
   onInputChange: vi.fn(),
