@@ -202,10 +202,17 @@ export async function getOneSignalPlayerId(): Promise<string | null> {
  * @param title - Notification title
  * @param body - Notification body
  * @param delaySeconds - Delay in seconds before showing
+ * @param url - Optional URL to open when tapped
  */
-export function sendLocalPush(title: string, body: string, delaySeconds: number = 0): void {
-  const encoded = encodeURIComponent(JSON.stringify({ title, body, delay: delaySeconds }));
-  despiaIfNative(`sendlocalpushmsg://${encoded}`);
+export function sendLocalPush(
+  title: string,
+  body: string,
+  delaySeconds: number = 0,
+  url: string = '',
+): void {
+  // Format: sendlocalpushmsg://push.send?s=${seconds}=msg!${message}&!#${title}&!#${url}
+  const command = `sendlocalpushmsg://push.send?s=${delaySeconds}=msg!${body}&!#${title}&!#${url}`;
+  despiaIfNative(command);
 }
 
 /**
