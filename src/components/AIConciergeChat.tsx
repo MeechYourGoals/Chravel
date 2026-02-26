@@ -988,6 +988,20 @@ export const AIConciergeChat = ({
             <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
               <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
 
+              {/* Voice button in header for always-on accessibility */}
+              <button
+                type="button"
+                onClick={handleVoiceToggle}
+                data-testid="header-voice-mic"
+                className={`size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20 ${
+                  dictationState === 'listening' ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-black' : ''
+                }`}
+                aria-label="Voice concierge"
+                title="Voice concierge"
+              >
+                <div className={`w-3 h-3 rounded-full ${dictationState === 'listening' ? 'bg-red-500 animate-pulse' : 'bg-white'}`} />
+              </button>
+
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
