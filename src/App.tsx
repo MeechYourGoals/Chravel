@@ -468,23 +468,9 @@ const App = () => {
         errorString.includes('Loading chunk');
 
       if (isChunkError && !toastShown) {
-        console.error('[App] Chunk loading error detected:', error);
+        console.error('[App] Chunk loading error detected, auto-recovering:', error);
         toastShown = true;
-
-        toast({
-          title: 'Loading Error',
-          description:
-            'Failed to load page. This usually happens after an app update. Clear cache to continue.',
-          action: (
-            <button
-              onClick={clearCachesAndReload}
-              className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Clear Cache & Reload
-            </button>
-          ),
-          duration: 20000,
-        });
+        clearCachesAndReload();
       }
     };
 
