@@ -57,6 +57,7 @@ describe('ConciergeCacheService', () => {
       }
 
       const messages = conciergeCacheService.getCachedMessages(testTripId);
+      // MAX_CACHED_MESSAGES is 200
       expect(messages.length).toBeLessThanOrEqual(200);
     });
   });

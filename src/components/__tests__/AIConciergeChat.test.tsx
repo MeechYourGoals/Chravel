@@ -74,6 +74,15 @@ vi.mock('../../hooks/useOfflineStatus', () => ({
   }),
 }));
 
+// Mock useWebSpeechVoice to ensure predictable state for UI tests
+vi.mock('@/hooks/useWebSpeechVoice', () => ({
+  useWebSpeechVoice: () => ({
+    voiceState: 'idle',
+    toggleVoice: vi.fn(),
+    errorMessage: null,
+  }),
+}));
+
 vi.mock('../../contexts/BasecampContext', () => ({
   useBasecamp: () => ({
     basecamp: {
@@ -132,6 +141,7 @@ describe('AIConciergeChat', () => {
     it('always renders the dictation microphone button in the input area', async () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
+      // The microphone button has been moved to the input area, so it should not appear in the header
       await waitFor(() => {
         expect(screen.getByLabelText('Tap to dictate')).toBeInTheDocument();
       });
