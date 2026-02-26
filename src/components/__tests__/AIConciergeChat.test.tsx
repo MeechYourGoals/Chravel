@@ -129,11 +129,10 @@ describe('AIConciergeChat', () => {
       expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
     });
 
-    it('does NOT render the header microphone button (dictation-only mode)', async () => {
+    it('does not render header microphone button (moved to input)', async () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
-      // Voice is now dictation-only, integrated into the input bar mic.
-      // The header mic (Gemini Live duplex) has been removed.
+      // The microphone button has been moved to the input area, so it should not appear in the header
       await waitFor(() => {
         expect(screen.queryByTestId('header-voice-mic')).not.toBeInTheDocument();
       });
