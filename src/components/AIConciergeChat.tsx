@@ -988,7 +988,7 @@ export const AIConciergeChat = ({
             <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
               <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
 
-              {/* Voice button in header for always-on accessibility */}
+              {/* Voice button in header for always-on accessibility - Force Update */}
               <button
                 type="button"
                 onClick={handleVoiceToggle}
