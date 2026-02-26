@@ -83,6 +83,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
             onClick={handleClick}
             className={`relative size-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${getStyle()}`}
             aria-label={getTooltip()}
+            data-testid="header-voice-mic"
           >
             {/* Animated pulse rings for listening/speaking — mimics Gemini's
                 live-conversation visual. Two concentric rings pulse outward at

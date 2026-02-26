@@ -137,7 +137,7 @@ describe('AIConciergeChat', () => {
       });
       expect(screen.getByTestId('header-voice-mic')).toHaveAttribute(
         'aria-label',
-        'Voice concierge',
+        'Tap to dictate',
       );
     });
 
