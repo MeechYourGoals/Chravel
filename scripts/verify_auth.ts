@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 import dotenv from 'dotenv';
@@ -57,9 +56,13 @@ async function runVerification() {
       password: password,
     });
 
-    const client1 = createClient(SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY, {
-        global: { headers: { Authorization: `Bearer ${session1.session?.access_token}` } }
-    });
+    const client1 = createClient(
+      SUPABASE_URL,
+      process.env.VITE_SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY,
+      {
+        global: { headers: { Authorization: `Bearer ${session1.session?.access_token}` } },
+      },
+    );
 
     // Use service role key if anon key is missing, but with user token header?
     // No, standard way is to use anon key and pass access token.
@@ -69,16 +72,26 @@ async function runVerification() {
     // I'll assume VITE_SUPABASE_ANON_KEY is available or user provides it.
 
     if (!process.env.VITE_SUPABASE_ANON_KEY) {
-        console.warn("Warning: VITE_SUPABASE_ANON_KEY not found. Using SERVICE_ROLE_KEY for client creation, which might bypass RLS if not careful, but we are passing user token.");
+      console.warn(
+        'Warning: VITE_SUPABASE_ANON_KEY not found. Using SERVICE_ROLE_KEY for client creation, which might bypass RLS if not careful, but we are passing user token.',
+      );
     }
 
-    const clientUser1 = createClient(SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: `Bearer ${session1.session?.access_token}` } },
-    });
+    const clientUser1 = createClient(
+      SUPABASE_URL,
+      process.env.VITE_SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY,
+      {
+        global: { headers: { Authorization: `Bearer ${session1.session?.access_token}` } },
+      },
+    );
 
-    const clientUser2 = createClient(SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: `Bearer ${session2.session?.access_token}` } },
-    });
+    const clientUser2 = createClient(
+      SUPABASE_URL,
+      process.env.VITE_SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY,
+      {
+        global: { headers: { Authorization: `Bearer ${session2.session?.access_token}` } },
+      },
+    );
 
     // 2. Create Trips
     console.log('Creating trips...');
@@ -103,8 +116,8 @@ async function runVerification() {
 
     // Set User 1 as Admin for Pro Trip (simulate app logic)
     await supabaseAdmin.from('trip_admins').insert({
-        trip_id: tripIdPro,
-        user_id: user1.user.id
+      trip_id: tripIdPro,
+      user_id: user1.user.id,
     });
 
     // Add User 2 as Member to both trips
@@ -169,40 +182,50 @@ async function runVerification() {
     // Case D: Role Escalation - Member (User 2) tries to update own role -> FAILURE
     console.log('Test Case D: Role Escalation - Member tries to update own role (Expect FAILURE)');
     const { error: errorD } = await clientUser2
-        .from('trip_members')
-        .update({ role: 'admin' })
-        .eq('trip_id', tripIdPro)
-        .eq('user_id', user2.user.id);
+      .from('trip_members')
+      .update({ role: 'admin' })
+      .eq('trip_id', tripIdPro)
+      .eq('user_id', user2.user.id);
 
     if (errorD) {
-        console.log('PASSED: User 2 was blocked from updating own role:', errorD.message);
+      console.log('PASSED: User 2 was blocked from updating own role:', errorD.message);
     } else {
-        console.error('FAILED: User 2 was ABLE to update own role!');
+      console.error('FAILED: User 2 was ABLE to update own role!');
     }
 
     // Case E: IDOR - Member of Consumer Trip tries to create event in Pro Trip (where they are NOT a member)
     // Create a 3rd user who is NOT in Pro Trip
     const user3Email = `test.user3.${randomUUID()}@example.com`;
-    await supabaseAdmin.auth.admin.createUser({ email: user3Email, password: password, email_confirm: true });
-    const { data: session3 } = await supabaseAdmin.auth.signInWithPassword({ email: user3Email, password: password });
-    const clientUser3 = createClient(SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: `Bearer ${session3.session?.access_token}` } },
+    await supabaseAdmin.auth.admin.createUser({
+      email: user3Email,
+      password: password,
+      email_confirm: true,
     });
+    const { data: session3 } = await supabaseAdmin.auth.signInWithPassword({
+      email: user3Email,
+      password: password,
+    });
+    const clientUser3 = createClient(
+      SUPABASE_URL,
+      process.env.VITE_SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY,
+      {
+        global: { headers: { Authorization: `Bearer ${session3.session?.access_token}` } },
+      },
+    );
 
     console.log('Test Case E: IDOR - Non-member tries to create event (Expect FAILURE)');
     const { error: errorE } = await clientUser3.from('trip_events').insert({
-        trip_id: tripIdPro,
-        title: 'IDOR Event',
-        start_time: new Date().toISOString(),
-        created_by: session3.user?.id
+      trip_id: tripIdPro,
+      title: 'IDOR Event',
+      start_time: new Date().toISOString(),
+      created_by: session3.user?.id,
     });
 
-     if (errorE) {
-        console.log('PASSED: Non-member was blocked from creating event:', errorE.message);
+    if (errorE) {
+      console.log('PASSED: Non-member was blocked from creating event:', errorE.message);
     } else {
-        console.error('FAILED: Non-member was ABLE to create event!');
+      console.error('FAILED: Non-member was ABLE to create event!');
     }
-
 
     // Cleanup
     console.log('Cleaning up...');
@@ -211,7 +234,6 @@ async function runVerification() {
     await supabaseAdmin.auth.admin.deleteUser(user1.user.id);
     await supabaseAdmin.auth.admin.deleteUser(user2.user.id);
     if (session3.user) await supabaseAdmin.auth.admin.deleteUser(session3.user.id);
-
   } catch (err) {
     console.error('Verification failed with error:', err);
   }
