@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 
+const EMPTY_IMAGES: File[] = [];
+
 interface AiChatInputProps {
   inputMessage: string;
   onInputChange: (message: string) => void;
@@ -45,7 +47,7 @@ export const AiChatInput = ({
   onVoiceToggle,
   onVoiceUpgrade,
   onImageAttach,
-  attachedImages = [],
+  attachedImages = EMPTY_IMAGES,
   onRemoveImage,
   showImageAttach = false,
 }: AiChatInputProps) => {

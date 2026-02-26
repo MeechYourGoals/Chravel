@@ -7,7 +7,6 @@ test.describe('Chat Functionality', () => {
 
   test('should display chat interface', async ({ page }) => {
     // Look for chat elements
-    const chatInput = page.getByPlaceholder(/type.*message|message/i);
     const chatContainer = page.locator('[data-testid="chat"]').or(page.locator('main')).first();
 
     // Verify chat UI elements exist

@@ -24,7 +24,7 @@ test.describe('Trip RLS Policies', () => {
 
     // User B tries to read the trip
     const clientB = await getClientAsUser(userB);
-    const { data, error } = await clientB.from('trips').select('*').eq('id', trip.id).single();
+    const { data } = await clientB.from('trips').select('*').eq('id', trip.id).single();
 
     // RLS should block access - data should be null or error
     expect(data).toBeNull();
@@ -48,7 +48,7 @@ test.describe('Trip RLS Policies', () => {
 
     // User B tries to read the trip
     const clientB = await getClientAsUser(userB);
-    const { data, error } = await clientB.from('trips').select('*').eq('id', trip.id).single();
+    const { data } = await clientB.from('trips').select('*').eq('id', trip.id).single();
 
     // Should have access
     expect(data).not.toBeNull();
@@ -90,7 +90,7 @@ test.describe('Trip RLS Policies', () => {
 
     // Member tries to update
     const clientMember = await getClientAsUser(member);
-    const { error } = await clientMember
+    await clientMember
       .from('trips')
       .update({ name: 'Hacked Name' })
       .eq('id', trip.id);
@@ -118,7 +118,7 @@ test.describe('Trip RLS Policies', () => {
 
     // Attacker tries to delete
     const clientAttacker = await getClientAsUser(attacker);
-    const { error } = await clientAttacker.from('trips').delete().eq('id', trip.id);
+    await clientAttacker.from('trips').delete().eq('id', trip.id);
 
     // Verify trip still exists
     const { data } = await supabaseAdmin.from('trips').select('id').eq('id', trip.id).single();
@@ -333,17 +333,16 @@ test.describe('Edge Function Permission Tests', () => {
   test('RLS-FUNC-001: join-trip requires valid invite', async ({
     createTestUser,
     createTestTrip,
-    supabaseAnon,
     getClientAsUser,
   }) => {
     const owner = await createTestUser({ displayName: 'Owner' });
     const joiner = await createTestUser({ displayName: 'Joiner' });
 
-    const trip = await createTestTrip(owner);
+    await createTestTrip(owner);
 
     // Joiner tries to join without invite
     const clientJoiner = await getClientAsUser(joiner);
-    const { data, error } = await clientJoiner.functions.invoke('join-trip', {
+    const { data } = await clientJoiner.functions.invoke('join-trip', {
       body: { inviteCode: 'invalid-code-12345' },
     });
 
