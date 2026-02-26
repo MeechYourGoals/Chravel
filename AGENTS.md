@@ -184,14 +184,30 @@ Rollback: <one sentence>
 
 ### 6.1 Query Key Discipline
 Always use `tripKeys.*` from `src/lib/queryKeys.ts`. Never hardcode query key strings.
+Always spread `QUERY_CACHE_CONFIG.<domain>` — it contains tuned stale/gc times per data type.
 
 ```ts
+import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+
 // ✅
 const { data } = useQuery({ queryKey: tripKeys.chat(tripId), ...QUERY_CACHE_CONFIG.chat });
 
-// ❌ — breaks cache invalidation
+// ❌ — breaks cache invalidation and loses tuned cache config
 const { data } = useQuery({ queryKey: ['chat', tripId] });
 ```
+
+**`QUERY_CACHE_CONFIG` stale times at a glance** (pick the right domain, never invent custom values):
+
+| Domain | `staleTime` | Notes |
+|---|---|---|
+| `trip` | 60s | refetchOnWindowFocus: true |
+| `members` | 30s | refetchOnWindowFocus: false |
+| `chat` | 10s | Realtime handles live updates |
+| `calendar` | 60s | refetchOnWindowFocus: true |
+| `tasks` | 30s | refetchOnWindowFocus: true |
+| `polls` | 60s | — |
+| `media` | 2min | Large payloads, no focus refetch |
+| `payments` | 30s | Verify often |
 
 ### 6.2 Field Name Mismatches → Stop-the-Line
 Chravel has had regressions from DB schema ↔ TS type ↔ UI prop ↔ query key mismatches.
@@ -346,6 +362,33 @@ useEffect(() => {
 │ [Chat][Media][Pay][⚙️]      │  ← fixed bottom tabs
 └─────────────────────────────┘
 ```
+
+### Adding a new route
+Every route in `App.tsx` requires two wrappers — missing either is a silent bug:
+
+```tsx
+// ✅ Public route (no auth required)
+const MyPage = lazy(() => retryImport(() => import('./pages/MyPage')));
+
+<Route path="/my-path" element={
+  <LazyRoute>        {/* error boundary + Suspense fallback */}
+    <MyPage />
+  </LazyRoute>
+} />
+
+// ✅ Auth-gated route
+<Route path="/protected" element={
+  <ProtectedRoute>  {/* redirects to /auth if not logged in */}
+    <LazyRoute>
+      <MyPage />
+    </LazyRoute>
+  </ProtectedRoute>
+} />
+```
+
+- `LazyRoute` (`src/components/LazyRoute.tsx`) — wraps `<Suspense>` + `<ErrorBoundary>`. Required for all lazy pages.
+- `ProtectedRoute` (`src/components/ProtectedRoute.tsx`) — redirects unauthenticated users to `/auth`. Accounts for demo mode and auth loading state.
+- Use `retryImport()` (already defined in `App.tsx`) for all `lazy()` calls — it retries chunk load failures with exponential backoff.
 
 ### Capacitor / iOS
 - Use `src/native/` modules for Capacitor APIs — never call `Capacitor.*` directly in components.
