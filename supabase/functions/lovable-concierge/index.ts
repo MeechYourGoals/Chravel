@@ -456,6 +456,7 @@ async function streamGeminiToSSE(
 
   // Handle function calls collected during the stream
   if (state.functionCallParts.length > 0) {
+    const toolPhaseStartMs = performance.now();
     const functionCallResults: any[] = [];
 
     // Parallelize independent function calls (e.g. multiple getPlaceDetails)
@@ -496,6 +497,10 @@ async function streamGeminiToSSE(
     });
 
     const results = await Promise.all(callTasks);
+    const toolExecMs = Math.round(performance.now() - toolPhaseStartMs);
+    console.log(
+      `[Timing] Tool execution phase: ${toolExecMs}ms for ${results.length} tool(s): ${executedFunctions.join(', ')}`,
+    );
     for (const r of results) {
       functionCallResults.push(r);
       controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
@@ -524,6 +529,7 @@ async function streamGeminiToSSE(
       safetySettings: followUpSafetySettings,
     };
 
+    const followUpStartMs = performance.now();
     const followUpResponse = await fetch(geminiStreamEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -535,7 +541,13 @@ async function streamGeminiToSSE(
       // Reset functionCallParts so the second stream doesn't re-collect
       state.functionCallParts = [];
       await readGeminiSSEStream(followUpResponse.body!, controller, true, state);
+      console.log(
+        `[Timing] Follow-up stream: ${Math.round(performance.now() - followUpStartMs)}ms`,
+      );
     } else {
+      console.warn(
+        `[Timing] Follow-up stream failed (${followUpResponse.status}) after ${Math.round(performance.now() - followUpStartMs)}ms`,
+      );
       const fallback = '\n\nAction completed. Check your trip tabs for the update.';
       controller.enqueue(sseEvent({ type: 'chunk', text: fallback }));
       state.fullText += fallback;
@@ -1150,11 +1162,12 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         parameters: {
           type: 'object',
           properties: {
-            content: { type: 'string', description: 'Task description' },
+            title: { type: 'string', description: 'Task title/description' },
+            notes: { type: 'string', description: 'Additional notes or details for the task' },
             assignee: { type: 'string', description: 'Name of the person to assign the task to' },
             dueDate: { type: 'string', description: 'Due date in ISO 8601 format' },
           },
-          required: ['content'],
+          required: ['title'],
         },
       },
       {
@@ -1328,6 +1341,77 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             address: { type: 'string', description: 'Address to validate and geocode' },
           },
           required: ['address'],
+        },
+      },
+      {
+        name: 'savePlace',
+        description:
+          'Save a place, link, or recommendation to the trip Explore/Places section. Use when user says "save this place", "add this to our trip", "bookmark this restaurant", or when recommending a great option the user wants to keep.',
+        parameters: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Name of the place or link' },
+            url: {
+              type: 'string',
+              description: 'URL for the place (website, Google Maps link, etc.)',
+            },
+            description: {
+              type: 'string',
+              description: 'Brief description of why this place is recommended',
+            },
+            category: {
+              type: 'string',
+              description:
+                'Category: attraction, accommodation, activity, appetite (food/drink), or other',
+            },
+          },
+          required: ['name'],
+        },
+      },
+      {
+        name: 'setBasecamp',
+        description:
+          'Set the trip basecamp (group hotel/accommodation) or personal basecamp (user\'s own accommodation). Use when user says "make this my hotel", "set our basecamp to...", "this is where I\'m staying", or "make this the trip basecamp".',
+        parameters: {
+          type: 'object',
+          properties: {
+            scope: {
+              type: 'string',
+              description:
+                '"trip" for group basecamp (shared accommodation) or "personal" for user\'s own accommodation',
+            },
+            name: { type: 'string', description: 'Name of the hotel/accommodation' },
+            address: { type: 'string', description: 'Full address of the accommodation' },
+            lat: { type: 'number', description: 'Latitude coordinate' },
+            lng: { type: 'number', description: 'Longitude coordinate' },
+          },
+          required: ['scope', 'name'],
+        },
+      },
+      {
+        name: 'addToAgenda',
+        description:
+          'Add a session or item to an event agenda. Use when user says "add this to the agenda", "schedule a session", or "put this on the event schedule". Requires an eventId (the parent event).',
+        parameters: {
+          type: 'object',
+          properties: {
+            eventId: {
+              type: 'string',
+              description: 'ID of the parent event to add the agenda item to',
+            },
+            title: { type: 'string', description: 'Title of the agenda session' },
+            description: { type: 'string', description: 'Session description or notes' },
+            sessionDate: { type: 'string', description: 'Date of the session (YYYY-MM-DD)' },
+            startTime: { type: 'string', description: 'Start time (HH:MM)' },
+            endTime: { type: 'string', description: 'End time (HH:MM)' },
+            location: { type: 'string', description: 'Room, venue, or location within the event' },
+            speakers: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Speaker or performer names',
+            },
+          },
+          required: ['eventId', 'title'],
         },
       },
     ];

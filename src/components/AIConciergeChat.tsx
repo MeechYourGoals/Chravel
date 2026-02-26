@@ -76,6 +76,15 @@ export interface ChatMessage {
     previewPhotoUrl?: string | null;
     photoUrls?: string[];
   }>;
+  /** Action results from concierge write tools (createPoll, createTask, etc.) */
+  conciergeActions?: Array<{
+    actionType: string;
+    success: boolean;
+    message: string;
+    entityId?: string;
+    entityName?: string;
+    scope?: string;
+  }>;
 }
 
 interface ConciergeInvokePayload {
@@ -117,8 +126,8 @@ interface FallbackTripContext {
 }
 
 const FAST_RESPONSE_TIMEOUT_MS = 60_000;
-const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB — keeps base64 under 6 MB server limit
-const ALLOWED_IMAGE_TYPES = new Set([
+const _MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB — keeps base64 under 6 MB server limit
+const _ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/gif',
@@ -128,7 +137,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
 ]);
 
 /** Simple unique ID generator for chat messages */
-const uniqueId = (prefix: string) =>
+const _uniqueId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
 const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
@@ -632,6 +641,8 @@ export const AIConciergeChat = ({
             },
             onFunctionCall: (name: string, result: Record<string, unknown>) => {
               if (!isMounted.current) return;
+              // Tool execution means the stream is alive — prevent timeout.
+              receivedAnyChunk = true;
               // Ensure the streaming message exists so place cards render immediately,
               // even before the first text chunk arrives (tools run before LLM response).
               const ensureAndPatch = (patch: Partial<ChatMessage>) => {
@@ -693,6 +704,53 @@ export const AIConciergeChat = ({
                       content: '',
                       timestamp: new Date().toISOString(),
                       functionCallPlaces: [detailPlace],
+                    },
+                  ];
+                });
+              }
+
+              // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
+              const writeActions = new Set([
+                'createPoll',
+                'createTask',
+                'addToCalendar',
+                'savePlace',
+                'setBasecamp',
+                'addToAgenda',
+              ]);
+              if (writeActions.has(name) && result.actionType) {
+                const actionResult = {
+                  actionType: result.actionType as string,
+                  success: !!result.success,
+                  message: (result.message as string) || (result.error as string) || '',
+                  entityId:
+                    ((result.poll as Record<string, unknown>)?.id as string) ||
+                    ((result.task as Record<string, unknown>)?.id as string) ||
+                    ((result.event as Record<string, unknown>)?.id as string) ||
+                    ((result.link as Record<string, unknown>)?.id as string) ||
+                    ((result.agendaItem as Record<string, unknown>)?.id as string) ||
+                    undefined,
+                  scope: result.scope as string | undefined,
+                };
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === streamingMessageId);
+                  if (idx !== -1) {
+                    const updated = [...prev];
+                    const existing = updated[idx].conciergeActions || [];
+                    updated[idx] = {
+                      ...updated[idx],
+                      conciergeActions: [...existing, actionResult],
+                    };
+                    return updated;
+                  }
+                  return [
+                    ...prev,
+                    {
+                      id: streamingMessageId,
+                      type: 'assistant' as const,
+                      content: '',
+                      timestamp: new Date().toISOString(),
+                      conciergeActions: [actionResult],
                     },
                   ];
                 });
@@ -1118,6 +1176,7 @@ export const AIConciergeChat = ({
               isTyping={isTyping}
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
+              onTabChange={onTabChange}
             />
           )}
         </div>
