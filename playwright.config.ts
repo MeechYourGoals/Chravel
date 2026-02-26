@@ -65,8 +65,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    // Force 8080 to match webServer config, ignoring potential misconfigured env vars in CI
-    baseURL: 'http://localhost:8080',
+    baseURL: 'http://localhost:5173',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -112,9 +111,9 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: process.env.CI
-      ? 'npm run build && npm run preview -- --host 127.0.0.1 --port 8080 --strictPort'
-      : 'npm run dev -- --host 127.0.0.1 --port 8080 --strictPort',
-    url: 'http://localhost:8080',
+      ? 'npm run build && npm run preview -- --host 127.0.0.1 --port 5173 --strictPort'
+      : 'npm run dev -- --host 127.0.0.1 --port 5173 --strictPort',
+    url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 180 * 1000,
   },
