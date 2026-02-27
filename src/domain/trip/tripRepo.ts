@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Trip, CreateTripData } from '@/services/tripService';
-import { tripKeys } from '@/lib/queryKeys';
 
 /**
  * Trip Repository (TDAL)
@@ -51,6 +50,11 @@ export const tripRepo = {
 
     // In a full refactor, we'd move the service logic here.
     // For this step, we'll implement direct DB access where possible.
+    const { data: userResponse } = await supabase.auth.getUser();
+    if (!userResponse.user?.id) {
+        throw new Error('User authentication required to create a trip.');
+    }
+
     const { data: newTrip, error } = await supabase
       .from('trips')
       .insert({
@@ -61,7 +65,7 @@ export const tripRepo = {
         destination: data.destination,
         cover_image_url: data.cover_image_url,
         trip_type: data.trip_type || 'consumer',
-        created_by: (await supabase.auth.getUser()).data.user?.id!,
+        created_by: userResponse.user.id,
       })
       .select()
       .single();
