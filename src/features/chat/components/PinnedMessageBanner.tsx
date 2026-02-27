@@ -26,24 +26,20 @@ export const PinnedMessageBanner: React.FC<PinnedMessageBannerProps> = ({ tripId
         onClick={() => setIsListOpen(true)}
       >
         <div className="bg-primary/20 p-1.5 rounded-full flex-shrink-0">
-            <Pin className="h-3.5 w-3.5 text-primary fill-primary" />
+          <Pin className="h-3.5 w-3.5 text-primary fill-primary" />
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col justify-center">
           <div className="flex items-center gap-2">
-             <span className="text-xs font-semibold text-primary truncate">
-                {latestPin.author_name}
-             </span>
-             <span className="text-[10px] text-muted-foreground/70">
-                Pinned
-             </span>
+            <span className="text-xs font-semibold text-primary truncate">
+              {latestPin.author_name}
+            </span>
+            <span className="text-[10px] text-muted-foreground/70">Pinned</span>
           </div>
 
           <div className="flex items-center gap-1.5 overflow-hidden">
-             {hasMedia && <ImageIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
-             <p className="text-sm text-foreground/90 truncate leading-tight">
-                {displayText}
-             </p>
+            {hasMedia && <ImageIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
+            <p className="text-sm text-foreground/90 truncate leading-tight">{displayText}</p>
           </div>
         </div>
 
@@ -59,8 +55,8 @@ export const PinnedMessageBanner: React.FC<PinnedMessageBannerProps> = ({ tripId
         onClose={() => setIsListOpen(false)}
         messages={pinnedMessages}
         onUnpin={() => {
-            // Refetch immediately on unpin action
-            refetch();
+          // Refetch immediately on unpin action
+          refetch();
         }}
       />
     </>

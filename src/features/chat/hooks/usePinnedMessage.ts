@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getPinnedMessages } from '@/services/chatService';
@@ -35,7 +36,7 @@ export const usePinnedMessage = (tripId: string) => {
           // Simplest strategy: Refetch on any change to chat messages in this trip
           // Optimization: Check if payload actually changed pinned status, but refetch is safe for now
           fetchPinned();
-        }
+        },
       )
       .subscribe();
 
@@ -47,6 +48,6 @@ export const usePinnedMessage = (tripId: string) => {
   return {
     pinnedMessages,
     loading,
-    refetch: fetchPinned
+    refetch: fetchPinned,
   };
 };

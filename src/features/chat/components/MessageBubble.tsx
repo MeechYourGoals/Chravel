@@ -300,11 +300,14 @@ export const MessageBubble = memo(
         } else {
           // It's regular text (potentially markdown)
           return (
-            <span key={index} className="inline prose prose-invert max-w-none prose-p:inline prose-p:m-0 prose-pre:bg-gray-800 prose-pre:p-2 prose-pre:rounded">
+            <span
+              key={index}
+              className="inline prose prose-invert max-w-none prose-p:inline prose-p:m-0 prose-pre:bg-gray-800 prose-pre:p-2 prose-pre:rounded"
+            >
               <ReactMarkdown
                 components={{
-                  p: (props) => <span {...props} />,
-                  a: (props) => (
+                  p: props => <span {...props} />,
+                  a: props => (
                     <a
                       {...props}
                       className="text-blue-400 hover:underline"
@@ -312,7 +315,7 @@ export const MessageBubble = memo(
                       rel="noopener noreferrer"
                     />
                   ),
-                  code: (props) => (
+                  code: props => (
                     <code
                       {...props}
                       className="bg-gray-800 px-1 py-0.5 rounded text-xs font-mono"

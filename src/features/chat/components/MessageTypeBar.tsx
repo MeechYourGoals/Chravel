@@ -37,7 +37,7 @@ export const MessageTypeBar = ({
   isPinVisible = false,
 }: MessageTypeBarProps) => {
   const pillBarRef = useRef<HTMLDivElement>(null);
-  const [pillBarWidth, setPillBarWidth] = useState(0);
+  const [_pillBarWidth, setPillBarWidth] = useState(0);
   const [channelPopoverOpen, setChannelPopoverOpen] = useState(false);
 
   // Measure pill bar width dynamically with ResizeObserver
@@ -225,7 +225,7 @@ export const MessageTypeBar = ({
                   ? 'text-primary hover:text-primary hover:bg-primary/10'
                   : 'text-white/50 hover:text-white hover:bg-white/5',
               )}
-              title={isPinVisible ? "Hide pinned message" : "Show pinned message"}
+              title={isPinVisible ? 'Hide pinned message' : 'Show pinned message'}
             >
               {isPinVisible ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
             </button>
@@ -244,7 +244,9 @@ export const MessageTypeBar = ({
             <Search className="w-4 h-4" />
             {/* Hide label on very small screens to save space if needed, but keeping consistent for now */}
             <span className="hidden sm:inline">Search</span>
-            <span className="sm:hidden"><Search className="w-4 h-4" /></span>
+            <span className="sm:hidden">
+              <Search className="w-4 h-4" />
+            </span>
           </button>
         </div>
       </div>

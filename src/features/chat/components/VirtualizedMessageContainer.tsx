@@ -172,12 +172,12 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
     // If scrolled up significantly OR if new messages arrived while scrolled up -> Show Badge.
 
     if (!isScrolledUp) {
-       setShowNewMessagesBadge(false);
+      setShowNewMessagesBadge(false);
     } else {
-       // Optional: You might want to always show it if scrolled up,
-       // or only if there's a reason. The plan asked for "always visible scroll-to-bottom FAB".
-       // So we set it to true if isScrolledUp is true.
-       setShowNewMessagesBadge(true);
+      // Optional: You might want to always show it if scrolled up,
+      // or only if there's a reason. The plan asked for "always visible scroll-to-bottom FAB".
+      // So we set it to true if isScrolledUp is true.
+      setShowNewMessagesBadge(true);
     }
 
     if (scrollTop < 200 && !isLoadingRef.current && !isLoading) {

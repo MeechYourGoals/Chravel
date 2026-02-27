@@ -21,9 +21,7 @@ type MessageInsert = Database['public']['Tables']['trip_chat_messages']['Insert'
 /**
  * Send a chat message. Accepts any fields matching the trip_chat_messages Insert type.
  */
-export async function sendChatMessage(
-  data: Record<string, unknown>,
-): Promise<MessageRow> {
+export async function sendChatMessage(data: Record<string, unknown>): Promise<MessageRow> {
   // Extract only known insert fields
   const insertData: MessageInsert = {
     trip_id: data.trip_id as string,
@@ -57,9 +55,7 @@ export async function sendChatMessage(
 /**
  * Send a rich chat message with client_message_id dedupe.
  */
-export async function sendRichChatMessage(
-  data: Record<string, unknown>,
-): Promise<MessageRow> {
+export async function sendRichChatMessage(data: Record<string, unknown>): Promise<MessageRow> {
   // Dedupe by client_message_id if provided
   if (data.client_message_id) {
     const { data: existing } = await supabase
@@ -244,10 +240,16 @@ export function subscribeToReactions(
         table: 'trip_chat_messages',
         filter: `trip_id=eq.${tripId}`,
       },
-      (change) => {
+      change => {
         // Detect reaction changes by comparing old vs new payload
-        const newPayload = (change.new as Record<string, unknown>)?.payload as Record<string, unknown> | null;
-        const oldPayload = (change.old as Record<string, unknown>)?.payload as Record<string, unknown> | null;
+        const newPayload = (change.new as Record<string, unknown>)?.payload as Record<
+          string,
+          unknown
+        > | null;
+        const oldPayload = (change.old as Record<string, unknown>)?.payload as Record<
+          string,
+          unknown
+        > | null;
         const newReactions = getReactionsFromPayload(newPayload);
         const oldReactions = getReactionsFromPayload(oldPayload);
 
@@ -325,7 +327,7 @@ export function subscribeToThreadReplies(
         table: 'trip_chat_messages',
         filter: `reply_to_id=eq.${parentMessageId}`,
       },
-      (change) => {
+      change => {
         callback(change.new as MessageRow);
       },
     )
@@ -350,7 +352,7 @@ export function subscribeToMediaUpdates(
         table: 'trip_chat_messages',
         filter: `trip_id=eq.${tripId}`,
       },
-      (change) => {
+      change => {
         const msg = change.new as MessageRow;
         if (msg.media_url || msg.media_type) {
           callback(msg);
@@ -364,7 +366,11 @@ export function subscribeToMediaUpdates(
 
 // ─── Pin / Unpin ────────────────────────────────────────────────────────────
 
-export async function pinMessage(messageId: string, userId: string, tripId?: string): Promise<boolean> {
+export async function pinMessage(
+  messageId: string,
+  userId: string,
+  tripId?: string,
+): Promise<boolean> {
   try {
     if (tripId) {
       const { data: existingPins } = await supabase

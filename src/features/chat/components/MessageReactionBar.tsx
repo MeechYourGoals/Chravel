@@ -64,7 +64,7 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
             ? 'bg-primary/20 border-primary/50 text-primary hover:bg-primary/30'
             : 'bg-background/20 border-border/30 text-muted-foreground hover:bg-background/40 hover:text-foreground'
         }`}
-        title={isPinned ? "Unpin message" : "Pin message"}
+        title={isPinned ? 'Unpin message' : 'Pin message'}
       >
         <AnimatePresence>
           {activeReaction === 'pin' && (
@@ -127,7 +127,9 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
               {reaction.emoji}
             </motion.span>
 
-            {count > 0 && <span className="text-[10px] font-medium min-w-[6px] text-center">{count}</span>}
+            {count > 0 && (
+              <span className="text-[10px] font-medium min-w-[6px] text-center">{count}</span>
+            )}
           </Button>
         );
       })}

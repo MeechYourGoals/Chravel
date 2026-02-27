@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { subscribeToMediaUpdates } from '@/services/chatService';
@@ -75,7 +76,7 @@ export function useMediaSync(tripId: string) {
         logEgress('trip_link_index', 'select', linksResult.data, { limit: MEDIA_FETCH_LIMIT });
 
         // Subscribe to real-time updates
-        subscription = subscribeToMediaUpdates(tripId, (row) => {
+        subscription = subscribeToMediaUpdates(tripId, row => {
           if (row.media_type === 'image') {
             setImages(prev => [row as any, ...prev]);
           } else if (row.media_type === 'video') {
