@@ -45,3 +45,10 @@
 - Validation: `npx eslint e2e/specs/events/event-recap-export.spec.ts` and `npm run typecheck` pass.
 - Playwright run attempted (`npx playwright test ... --project=chromium`) but browser binary is unavailable in container; install attempt failed due CDN 403, so runtime execution remains blocked by environment.
 - Risk: selector stability depends on current `aria-label`/button labels (`Create Event Recap`, `View event details`); changes to copy should update this spec intentionally.
+
+## New user onboarding UX audit
+- [x] Scope current anonymous → auth → onboarding → invite flow surfaces.
+- [x] Simulate first-time user journey on mobile viewport and capture friction points.
+- [x] Document confusion points, CTA clarity gaps, overloaded screens, empty-state gaps, and emotional friction.
+- [x] Propose targeted microcopy, micro-animation, and simplification improvements.
+- [x] Run required build gates and prepare PR notes.
