@@ -66,7 +66,12 @@ export const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({
 
   if (error || !preview) {
     // Graceful fallback: just show the domain/URL
-    const domain = new URL(url).hostname.replace('www.', '');
+    let domain: string;
+    try {
+      domain = new URL(url).hostname.replace('www.', '');
+    } catch {
+      domain = 'Link';
+    }
     return (
       <a
         href={url}
@@ -89,7 +94,12 @@ export const LinkPreviewCard: React.FC<LinkPreviewCardProps> = ({
   }
 
   const { title, description, imageUrl, faviconUrl, siteName, resolvedUrl } = preview;
-  const domain = new URL(resolvedUrl || url).hostname.replace('www.', '');
+  let domain: string;
+  try {
+    domain = new URL(resolvedUrl || url).hostname.replace('www.', '');
+  } catch {
+    domain = 'Link';
+  }
 
   // Heuristics for special types
   const isGoogleMaps = domain.includes('maps.google') || domain.includes('goo.gl/maps');

@@ -111,6 +111,15 @@ describe('linkPreviewService', () => {
     expect(supabase.functions.invoke).toHaveBeenCalled();
   });
 
+  it('should return error preview for invalid URL', async () => {
+    const result = await linkPreviewService.getLinkPreview('not-a-valid-url');
+
+    expect(result.status).toBe('error');
+    expect(result.errorReason).toContain('Invalid URL');
+    expect(supabase.functions.invoke).not.toHaveBeenCalled();
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
   it('should handle pending concurrent requests', async () => {
     const url = 'https://concurrent.com';
 

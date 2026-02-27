@@ -81,7 +81,8 @@ interface TripChatMessage {
   media_type?: string;
   media_url?: string;
   sentiment?: string;
-  link_preview?: any;
+  link_preview?: Record<string, unknown>;
+  attachments?: Array<{ type: string; ref_id: string; url?: string }>;
   privacy_mode?: string;
   privacy_encrypted?: boolean;
   message_type?: string;
@@ -328,6 +329,21 @@ export const TripChat = ({
       isPayment: message.message_type === 'payment',
       isEdited: message.is_edited || false,
       editedAt: message.edited_at,
+      // Rich media from DB (avoids re-fetch when link_preview exists)
+      mediaType: message.media_type,
+      mediaUrl: message.media_url,
+      linkPreview: message.link_preview
+        ? {
+            url: (message.link_preview as { url?: string })?.url ?? '',
+            title: (message.link_preview as { title?: string })?.title,
+            description: (message.link_preview as { description?: string })?.description,
+            image: (message.link_preview as { image?: string; image_url?: string })?.image ??
+              (message.link_preview as { image_url?: string })?.image_url,
+            domain: (message.link_preview as { domain?: string; site_name?: string })?.domain ??
+              (message.link_preview as { site_name?: string })?.site_name,
+          }
+        : undefined,
+      attachments: message.attachments,
       // Ensure system messages are never filtered out by dedupe/memoization layers
       // and can be rendered via the special system-message UI path.
       tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[]),

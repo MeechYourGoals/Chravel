@@ -22,7 +22,17 @@ export const linkPreviewService = {
    * Checks memory cache -> DB cache -> Edge Function.
    */
   async getLinkPreview(url: string): Promise<LinkPreview> {
-    const normalizedUrl = new URL(url).href; // Simple normalization
+    let normalizedUrl: string;
+    try {
+      normalizedUrl = new URL(url).href;
+    } catch {
+      const errorPreview: LinkPreview = {
+        url,
+        status: 'error',
+        errorReason: 'Invalid URL format',
+      };
+      return errorPreview;
+    }
 
     // 1. Memory Cache
     if (memoryCache.has(normalizedUrl)) {

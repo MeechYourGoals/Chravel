@@ -273,7 +273,19 @@ export const MessageBubble = memo(
       const rawUrls = text.match(urlRegex) || [];
 
       // Clean trailing punctuation that regex might have captured
-      const urls = rawUrls.map(u => u.replace(/[.,;!?)]+$/, ''));
+      const cleaned = rawUrls.map(u => u.replace(/[.,;!?)]+$/, ''));
+      // Filter invalid URLs and deduplicate by normalized href
+      const seen = new Set<string>();
+      const urls = cleaned.filter(u => {
+        try {
+          const normalized = new URL(u).href;
+          if (seen.has(normalized)) return false;
+          seen.add(normalized);
+          return true;
+        } catch {
+          return false;
+        }
+      });
 
       if (urls.length === 0) return null;
 
