@@ -78,18 +78,9 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
       parentMessage.id,
       row => {
         setReplies(prev => {
-          // Dedupe by id
           if (prev.some(r => r.id === row.id)) return prev;
           return [...prev, formatReply(row, tripMembers)];
         });
-      },
-      row => {
-        // Handle updates (e.g., edits, deletes)
-        if (row.is_deleted) {
-          setReplies(prev => prev.filter(r => r.id !== row.id));
-        } else {
-          setReplies(prev => prev.map(r => (r.id === row.id ? formatReply(row, tripMembers) : r)));
-        }
       },
     );
 
@@ -127,11 +118,13 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
 
     try {
       await sendThreadReply(
-        parentMessage.tripId,
         parentMessage.id,
-        replyContent.trim(),
-        authorName,
-        user?.id,
+        {
+          trip_id: parentMessage.tripId,
+          author_name: authorName,
+          content: replyContent.trim(),
+          user_id: user?.id,
+        },
       );
       setReplyContent('');
     } catch (error) {

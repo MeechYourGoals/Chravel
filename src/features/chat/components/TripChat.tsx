@@ -352,8 +352,8 @@ export const TripChat = ({
     return liveMessages.map(message => {
       // Resolve replyTo context if reply_to_id exists
       let replyTo;
-      if (message.reply_to_id) {
-          const parentMsg = messageMap.get(message.reply_to_id);
+      if ((message as any).reply_to_id) {
+          const parentMsg = messageMap.get((message as any).reply_to_id);
           if (parentMsg) {
               replyTo = {
                   id: parentMsg.id,
@@ -392,7 +392,7 @@ export const TripChat = ({
         // and can be rendered via the special system-message UI path.
         tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[]),
         replyTo, // Pass resolved reply context
-        isPinned: message.payload?.pinned === true, // Add pinned status
+        isPinned: (message as any).payload?.pinned === true,
       };
     });
   }, [liveMessages, demoMode.isDemoMode, tripMembers]);
