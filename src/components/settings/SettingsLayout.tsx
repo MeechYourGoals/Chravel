@@ -82,8 +82,8 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
           )}
         </div>
 
-        <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
-          <div className="p-3 md:p-4 min-w-0">{children}</div>
+        <div className="flex-1 min-w-0 overflow-y-auto">
+          <div className="p-3 md:p-4">{children}</div>
         </div>
       </div>
     );
@@ -113,8 +113,8 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
         </nav>
       </aside>
 
-      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
-        <div className="p-4 pb-16 min-w-0">{children}</div>
+      <main className="flex-1 min-w-0 overflow-y-auto">
+        <div className="p-4 pb-16">{children}</div>
       </main>
     </div>
   );

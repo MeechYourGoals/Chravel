@@ -1,3 +1,4 @@
+
 import assert from 'assert';
 
 // ----------------------------------------------------------------------
@@ -10,18 +11,7 @@ const sanitizeDetails = (obj: unknown): unknown => {
     return obj.map(sanitizeDetails);
   }
 
-  const sensitiveKeys = [
-    'email',
-    'phone',
-    'name',
-    'line1',
-    'line2',
-    'city',
-    'state',
-    'postal_code',
-    'card',
-    'bank_account',
-  ];
+  const sensitiveKeys = ['email', 'phone', 'name', 'line1', 'line2', 'city', 'state', 'postal_code', 'card', 'bank_account'];
   const sanitized: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
@@ -51,17 +41,17 @@ const event = {
       email: 'sensitive@example.com',
       name: 'John Doe',
       metadata: {
-        order_id: '123',
+        order_id: '123'
       },
       shipping: {
         address: {
           line1: '123 Main St',
-          city: 'New York',
+          city: 'New York'
         },
-        name: 'John Doe',
-      },
-    },
-  },
+        name: 'John Doe'
+      }
+    }
+  }
 };
 
 const sanitized = sanitizeDetails(event);
@@ -103,8 +93,6 @@ console.log('\nVerifying Idempotency Logic...');
 //   - Critical state (entitlements) IS idempotent.
 
 console.log('✅ Idempotency (State Consistency): PASS (relies on upsert/update)');
-console.log(
-  '⚠️ Idempotency (Notifications): Partial (Duplicate notifications possible on retry, low security risk)',
-);
+console.log('⚠️ Idempotency (Notifications): Partial (Duplicate notifications possible on retry, low security risk)');
 
 console.log('\nAll Security Verifications Passed.');

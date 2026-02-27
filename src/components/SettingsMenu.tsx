@@ -120,21 +120,19 @@ export const SettingsMenu = ({
         onClick={onClose}
       >
         <div
-          className="w-full h-full md:h-[85vh] md:max-w-6xl bg-black/90 md:bg-card/95 md:backdrop-blur-xl md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden min-w-0"
+          className="w-full h-full md:h-[85vh] md:max-w-6xl bg-black/90 md:bg-card/95 md:backdrop-blur-xl md:border md:border-white/10 md:rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden"
           onClick={e => e.stopPropagation()}
         >
           {/* Combined Header with Settings Type Toggle */}
           <div
-            className="flex-shrink-0 flex items-center justify-between p-3 md:px-4 md:py-3 border-b border-white/10 bg-black/20 gap-3 min-w-0 overflow-hidden"
+            className="flex-shrink-0 flex items-center justify-between p-3 md:px-4 md:py-3 border-b border-white/10 bg-black/20 gap-3"
             style={{ paddingTop: 'max(12px, calc(env(safe-area-inset-top, 0px) + 12px))' }}
           >
-            <h2 className="text-lg font-semibold text-white whitespace-nowrap flex-shrink-0">
-              Settings
-            </h2>
+            <h2 className="text-lg font-semibold text-white whitespace-nowrap">Settings</h2>
 
             {/* Settings Type Tabs */}
-            <ScrollArea className="flex-1 min-w-0">
-              <div className="flex items-center justify-center gap-1 md:gap-2 min-w-max">
+            <ScrollArea className="flex-1">
+              <div className="flex items-center justify-center gap-1 md:gap-2">
                 <button
                   onClick={() => setSettingsType('consumer')}
                   className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
@@ -198,16 +196,18 @@ export const SettingsMenu = ({
           )}
 
           {/* Auth Section - Show user info at top (Sign Out moved to Profile section) */}
-          <div className="flex-shrink-0 p-4 border-b border-white/10 bg-gradient-to-r from-primary/10 to-primary/5 min-w-0 overflow-hidden">
+          <div className="flex-shrink-0 p-4 border-b border-white/10 bg-gradient-to-r from-primary/10 to-primary/5">
             {user ? (
               // Logged In: Show user info only (Sign Out is in Profile > Account section)
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-primary/20 flex items-center justify-center">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                   <User className="h-5 w-5 text-primary" />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div>
                   <p className="text-xs text-gray-400">Signed in as</p>
-                  <p className="text-sm font-medium text-white truncate">{user.email}</p>
+                  <p className="text-sm font-medium text-white truncate max-w-[200px]">
+                    {user.email}
+                  </p>
                 </div>
               </div>
             ) : (
