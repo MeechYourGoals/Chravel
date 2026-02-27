@@ -142,9 +142,17 @@ serve(async req => {
 
     if (calendarResult.error) {
       console.error('[confirm-reservation-draft] Calendar insert failed:', calendarResult.error);
+      return new Response(JSON.stringify({ ok: false, error: 'Failed to create calendar event' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     if (taskResult.error) {
       console.error('[confirm-reservation-draft] Task insert failed:', taskResult.error);
+      return new Response(JSON.stringify({ ok: false, error: 'Failed to create task' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(

@@ -73,7 +73,7 @@ export const ReservationDraftCard: React.FC<ReservationDraftCardProps> = ({ draf
           window.open(url, '_blank', 'noopener,noreferrer');
         }
       } else {
-        toast.error('Failed to confirm reservation.');
+        toast.error((data as { error?: string })?.error || 'Failed to confirm reservation.');
       }
     } catch {
       toast.error('Something went wrong. Please try again.');
