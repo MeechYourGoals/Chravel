@@ -4,23 +4,18 @@ import { ChatMessage } from './types';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { ChatMessageWithGrounding } from '@/types/grounding';
 import { MessageRenderer } from './MessageRenderer';
-import { PlaceResultCards } from './PlaceResultCards';
+import { PlaceResultCards, PlaceResult } from './PlaceResultCards';
+import { FlightResultCards, FlightResult } from './FlightResultCards';
 import { ConciergeActionCard, ConciergeActionResult } from './ConciergeActionCard';
+import { ReservationDraftCard } from './ReservationDraftCard';
+import type { ReservationDraft } from '@/services/conciergeGateway';
 
 /** Extended message shape that may carry rich function-call data from the concierge. */
 interface RichChatMessage extends ChatMessage {
-  functionCallPlaces?: Array<{
-    placeId?: string | null;
-    name: string;
-    address?: string;
-    rating?: number | null;
-    userRatingCount?: number | null;
-    priceLevel?: string | null;
-    mapsUrl?: string | null;
-    previewPhotoUrl?: string | null;
-    photoUrls?: string[];
-  }>;
+  functionCallPlaces?: PlaceResult[];
+  functionCallFlights?: FlightResult[];
   conciergeActions?: ConciergeActionResult[];
+  reservationDrafts?: ReservationDraft[];
 }
 
 interface ChatMessagesProps {
@@ -29,6 +24,9 @@ interface ChatMessagesProps {
   showMapWidgets?: boolean;
   onDeleteMessage?: (messageId: string) => void;
   onTabChange?: (tab: string) => void;
+  onSavePlace?: (place: PlaceResult) => void;
+  onSaveFlight?: (flight: FlightResult) => void;
+  onEditReservation?: (prefill: string) => void;
 }
 
 export const ChatMessages = ({
@@ -37,6 +35,9 @@ export const ChatMessages = ({
   showMapWidgets = false,
   onDeleteMessage,
   onTabChange,
+  onSavePlace,
+  onSaveFlight,
+  onEditReservation,
 }: ChatMessagesProps) => {
   if (messages.length === 0) {
     return (
@@ -65,6 +66,20 @@ export const ChatMessages = ({
                 <PlaceResultCards
                   places={rich.functionCallPlaces}
                   className="max-w-xs lg:max-w-md"
+                  onSave={onSavePlace}
+                />
+              </div>
+            )}
+
+            {/* Rich flight cards from function_call results (searchFlights) */}
+            {rich.functionCallFlights && rich.functionCallFlights.length > 0 && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <FlightResultCards
+                  flights={rich.functionCallFlights}
+                  className="max-w-xs lg:max-w-md"
+                  onSave={onSaveFlight}
                 />
               </div>
             )}
@@ -81,6 +96,19 @@ export const ChatMessages = ({
                       action={action}
                       onNavigate={onTabChange}
                     />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Reservation draft cards */}
+            {rich.reservationDrafts && rich.reservationDrafts.length > 0 && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <div className="space-y-2">
+                  {rich.reservationDrafts.map(draft => (
+                    <ReservationDraftCard key={draft.id} draft={draft} onEdit={onEditReservation} />
                   ))}
                 </div>
               </div>

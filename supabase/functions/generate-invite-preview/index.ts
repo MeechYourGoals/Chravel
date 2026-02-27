@@ -575,7 +575,10 @@ serve(async (req: Request): Promise<Response> => {
     const appBaseUrl =
       url.searchParams.get('appBaseUrl') || Deno.env.get('SITE_URL') || 'https://chravel.app';
 
-    logStep('Request received', { code: inviteCode?.substring(0, 12) + '...', canonicalUrl: canonicalUrl?.substring(0, 40) });
+    logStep('Request received', {
+      code: inviteCode?.substring(0, 12) + '...',
+      canonicalUrl: canonicalUrl?.substring(0, 40),
+    });
 
     if (!inviteCode) {
       return new Response('Missing code parameter', {

@@ -21,6 +21,17 @@ vi.mock('../../integrations/supabase/client', () => ({
     functions: {
       invoke: vi.fn(),
     },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: null }),
+            order: () => Promise.resolve({ data: [] }),
+          }),
+          order: () => Promise.resolve({ data: [] }),
+        }),
+      }),
+    }),
   },
 }));
 
@@ -129,13 +140,18 @@ describe('AIConciergeChat', () => {
   };
 
   describe('Header Simplification', () => {
-    // Privacy text and allowance moved or removed in UI refresh
-    it.skip('shows privacy text and query allowance near title', async () => {
+    it('shows privacy text and query allowance near title', async () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       await waitFor(() => {
+        // Use test ID for robustness if text match is flaky
+        const header = screen.getByTestId('ai-concierge-header');
+        expect(header).toBeInTheDocument();
+        expect(header).toHaveTextContent(/ai concierge/i);
+
         expect(screen.getByText(/private convo/i)).toBeInTheDocument();
       });
+      // Usage info is now rendered as "5/10 Asks"
       expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
     });
 

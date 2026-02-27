@@ -1,9 +1,11 @@
 import React, { useState, memo } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { MessageReactionBar } from './MessageReactionBar';
 import { MessageActions } from './MessageActions';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { GroundingCitationCard } from './GroundingCitationCard';
 import { ImageLightbox } from './ImageLightbox';
+import { ReadReceipts } from './ReadReceipts';
 import { GroundingCitation } from '@/types/grounding';
 import {
   MapPin,
@@ -24,7 +26,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
 import { defaultAvatar } from '@/utils/mockAvatars';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
-import { LinkPreviewCard } from './LinkPreviewCard';
 
 export interface MessageBubbleProps {
   id: string;
@@ -71,6 +72,14 @@ export interface MessageBubbleProps {
   // 🆕 Message status for retry UI
   status?: 'sending' | 'sent' | 'failed';
   onRetry?: (messageId: string) => void;
+  // 🆕 Read Receipt Support
+  tripMembers?: Array<{ id: string; name: string; avatar?: string }>;
+  readStatuses?: any[];
+  currentUserId: string;
+  // 🆕 Inline Reply Support
+  replyTo?: { id: string; text: string; sender: string };
+  // 🆕 Pinning Support
+  isPinned?: boolean;
 }
 
 export const MessageBubble = memo(
@@ -101,6 +110,11 @@ export const MessageBubble = memo(
     allChatImages = [],
     status,
     onRetry,
+    tripMembers,
+    readStatuses,
+    currentUserId,
+    replyTo,
+    isPinned,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -231,110 +245,72 @@ export const MessageBubble = memo(
 
     // Render link preview
     const renderLinkPreview = () => {
-      // 1. Use existing preview from message prop if available (legacy or server-provided)
-      if (hasLinkPreview) {
-          const preview = linkPreview;
-          return (
-            <a
-              href={preview.url || text}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block bg-gray-800 hover:bg-gray-700 rounded-lg overflow-hidden transition-colors"
-            >
-              {preview.image && (
-                <img
-                  src={preview.image}
-                  alt={preview.title || 'Link preview'}
-                  className="w-full h-32 object-cover"
-                />
-              )}
-              <div className="p-3">
-                <div className="flex items-start gap-2">
-                  <Link size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium text-white truncate">
-                      {preview.title || preview.domain || 'Link'}
-                    </h4>
-                    {preview.description && (
-                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{preview.description}</p>
-                    )}
-                    {preview.domain && <p className="text-xs text-gray-500 mt-1">{preview.domain}</p>}
-                  </div>
-                  <ExternalLink size={14} className="text-gray-400 flex-shrink-0" />
-                </div>
-              </div>
-            </a>
-          );
-      }
+      if (!hasLinkPreview) return null;
 
-      // 2. Otherwise, extract URLs from text and fetch fresh previews via new service
-      // Updated regex to exclude trailing punctuation (dot, comma, paren, etc.)
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      const rawUrls = text.match(urlRegex) || [];
-
-      // Clean trailing punctuation that regex might have captured
-      const cleaned = rawUrls.map(u => u.replace(/[.,;!?)]+$/, ''));
-      // Filter invalid URLs and deduplicate by normalized href
-      const seen = new Set<string>();
-      const urls = cleaned.filter(u => {
-        try {
-          const normalized = new URL(u).href;
-          if (seen.has(normalized)) return false;
-          seen.add(normalized);
-          return true;
-        } catch {
-          return false;
-        }
-      });
-
-      if (urls.length === 0) return null;
-
-      // Limit to 2 previews to avoid clutter
-      const displayUrls = urls.slice(0, 2);
-      const remainingCount = urls.length - 2;
-
+      const preview = linkPreview;
       return (
-        <div className="mt-2 space-y-2">
-            {displayUrls.map((url, idx) => (
-                <LinkPreviewCard key={`${url}-${idx}`} url={url} />
-            ))}
-            {remainingCount > 0 && (
-                <div className="text-xs text-muted-foreground pl-1">
-                    + {remainingCount} more link{remainingCount > 1 ? 's' : ''}
-                </div>
-            )}
-        </div>
+        <a
+          href={preview.url || text}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 block bg-gray-800 hover:bg-gray-700 rounded-lg overflow-hidden transition-colors"
+        >
+          {preview.image && (
+            <img
+              src={preview.image}
+              alt={preview.title || 'Link preview'}
+              className="w-full h-32 object-cover"
+            />
+          )}
+          <div className="p-3">
+            <div className="flex items-start gap-2">
+              <Link size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-medium text-white truncate">
+                  {preview.title || preview.domain || 'Link'}
+                </h4>
+                {preview.description && (
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">{preview.description}</p>
+                )}
+                {preview.domain && <p className="text-xs text-gray-500 mt-1">{preview.domain}</p>}
+              </div>
+              <ExternalLink size={14} className="text-gray-400 flex-shrink-0" />
+            </div>
+          </div>
+        </a>
       );
     };
 
-    // Parse text and render @mentions with distinct styling
-    const renderTextWithMentions = (content: string) => {
-      // Regex to find @mentions (word characters after @)
-      const mentionRegex = /@(\w+(?:\s\w+)?)/g;
-      const parts: React.ReactNode[] = [];
-      let lastIndex = 0;
-      let match: RegExpExecArray | null;
+    // Parse text and render @mentions with distinct styling AND Markdown support
+    const renderContent = (content: string) => {
+      const mentionRegex = /(@\w+(?:\s\w+)?)/g;
+      const parts = content.split(mentionRegex);
 
-      while ((match = mentionRegex.exec(content)) !== null) {
-        // Add text before the mention
-        if (match.index > lastIndex) {
-          parts.push(content.slice(lastIndex, match.index));
+      return parts.map((part, index) => {
+        if (part.match(mentionRegex)) {
+            // It's a mention
+            return (
+                <span key={index} className="text-blue-400 font-medium bg-blue-500/10 px-1 rounded inline-block">
+                    {part}
+                </span>
+            );
+        } else {
+            // It's regular text (potentially markdown)
+            return (
+                <ReactMarkdown
+                    key={index}
+                    className="inline prose prose-invert max-w-none prose-p:inline prose-p:m-0 prose-pre:bg-gray-800 prose-pre:p-2 prose-pre:rounded"
+                    components={{
+                        p: ({node, ...props}) => <span {...props} />, // Render paragraphs as spans to avoid block layout issues in bubbles
+                        a: ({node, ...props}) => <a {...props} className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer" />,
+                        code: ({node, ...props}) => <code {...props} className="bg-gray-800 px-1 py-0.5 rounded text-xs font-mono" />,
+                    }}
+                >
+                    {part}
+                </ReactMarkdown>
+            );
         }
-        // Add the mention with styling
-        parts.push(
-          <span key={match.index} className="text-blue-400 font-medium bg-blue-500/10 px-1 rounded">
-            @{match[1]}
-          </span>,
-        );
-        lastIndex = match.index + match[0].length;
-      }
-
-      // Add remaining text
-      if (lastIndex < content.length) {
-        parts.push(content.slice(lastIndex));
-      }
-
-      return parts.length > 0 ? parts : content;
+      });
     };
 
     const formatTime = (timestamp: string) => {
@@ -386,6 +362,7 @@ export const MessageBubble = memo(
                 messageType={messageType}
                 isOwnMessage={isOwnMessage}
                 isDeleted={isDeleted}
+                isPinned={isPinned}
                 onEdit={onEdit}
                 onDelete={onDelete}
               />
@@ -403,8 +380,33 @@ export const MessageBubble = memo(
                 (hasMedia || hasLinkPreview) && !text && 'p-1 bg-transparent',
               )}
             >
-              {/* Text content - only show if not a pure media message */}
-              {text && <p className="whitespace-pre-wrap">{renderTextWithMentions(text)}</p>}
+              {/* Inline Reply Quote */}
+              {replyTo && (
+                <div
+                    className={cn(
+                        "mb-2 p-2 rounded-lg border-l-4 text-xs cursor-pointer",
+                        isOwnMessage
+                            ? "bg-black/20 border-white/50 text-white/80"
+                            : "bg-white/10 border-primary text-white/80"
+                    )}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        // Optional: Scroll to original message
+                        const el = document.querySelector(`[data-message-id="${replyTo.id}"]`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.classList.add('search-highlight-flash');
+                            setTimeout(() => el.classList.remove('search-highlight-flash'), 1000);
+                        }
+                    }}
+                >
+                    <p className="font-semibold mb-0.5">{replyTo.sender}</p>
+                    <p className="truncate opacity-90">{replyTo.text}</p>
+                </div>
+              )}
+
+              {/* Text content - with Markdown and Mentions */}
+              {text && <div className="whitespace-pre-wrap">{renderContent(text)}</div>}
 
               {/* Rich media content */}
               {renderMediaContent()}
@@ -497,6 +499,16 @@ export const MessageBubble = memo(
                   {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
                 </span>
               </button>
+            )}
+
+            {/* Read Receipts */}
+            {isOwnMessage && readStatuses && readStatuses.length > 0 && (
+               <ReadReceipts
+                 readStatuses={readStatuses}
+                 totalRecipients={tripMembers?.length ? tripMembers.length - 1 : 0}
+                 currentUserId={currentUserId}
+                 tripMembers={tripMembers}
+               />
             )}
           </div>
         </div>

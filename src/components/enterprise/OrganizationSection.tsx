@@ -37,27 +37,27 @@ export const OrganizationSection = ({
   const hasOrgs = organizations.length > 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-12 h-12 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
+    <div className="space-y-6 min-w-0 overflow-x-hidden">
+      <div className="flex items-center gap-3 mb-3 min-w-0">
+        <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
           <Building size={24} className="text-white" />
         </div>
-        <div>
-          <h3 className="text-2xl font-bold text-white">Organization Settings</h3>
-          <p className="text-gray-400">Manage your organization profile and details</p>
+        <div className="min-w-0">
+          <h3 className="text-2xl font-bold text-white break-words">Organization Settings</h3>
+          <p className="text-gray-400 break-words">Manage your organization profile and details</p>
         </div>
       </div>
 
-      {/* Add Organization CTA + Logo - 50/50 side by side */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-xl p-4">
-          <div className="flex flex-col gap-3">
+      {/* Add Organization CTA + Logo - stack on mobile, side-by-side on md+ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
+        <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-xl p-4 min-w-0">
+          <div className="flex flex-col gap-3 min-w-0">
             <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0" />
-            <div>
-              <h4 className="text-base font-semibold text-white mb-1">
+            <div className="min-w-0">
+              <h4 className="text-base font-semibold text-white mb-1 break-words">
                 {hasOrgs ? 'Add an additional organization' : 'Add Your Organization Profile'}
               </h4>
-              <p className="text-sm text-gray-300 mb-3">
+              <p className="text-sm text-gray-300 mb-3 break-words">
                 {hasOrgs
                   ? 'Fill out the form below to create an additional organization.'
                   : 'Fill out the form below to create your organization.'}
@@ -66,19 +66,19 @@ export const OrganizationSection = ({
                 <button
                   type="button"
                   onClick={onCreateOrganization}
-                  className="inline-flex items-center gap-2 bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                  className="inline-flex items-center gap-2 flex-shrink-0 bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm whitespace-nowrap"
                 >
-                  <Plus size={16} />
+                  <Plus size={16} className="flex-shrink-0" />
                   Create Organization
                 </button>
               )}
             </div>
           </div>
         </div>
-        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <h4 className="text-base font-semibold text-white mb-3">Organization Logo</h4>
-          <div className="flex items-center gap-4">
-            <div className="relative">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-0">
+          <h4 className="text-base font-semibold text-white mb-3 break-words">Organization Logo</h4>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 min-w-0">
+            <div className="relative flex-shrink-0">
               <div className="w-24 h-24 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
                 <Building size={32} className="text-white" />
               </div>
@@ -89,15 +89,17 @@ export const OrganizationSection = ({
                 <Camera size={16} />
               </button>
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <button
                 type="button"
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
               >
-                <Upload size={16} />
+                <Upload size={16} className="flex-shrink-0" />
                 Upload Logo
               </button>
-              <p className="text-sm text-gray-400 mt-2">PNG, SVG or JPG. Max size 2MB.</p>
+              <p className="text-sm text-gray-400 mt-2 break-words">
+                PNG, SVG or JPG. Max size 2MB.
+              </p>
             </div>
           </div>
         </div>
@@ -151,16 +153,16 @@ const OrganizationCard = ({ organization, badge, onSave }: OrganizationCardProps
   }, [organization]);
 
   return (
-    <div className="relative bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+    <div className="relative bg-white/5 border border-white/10 rounded-xl p-4 space-y-4 min-w-0">
       {badge !== undefined && (
         <div className="absolute top-4 right-4 w-7 h-7 rounded-full bg-glass-orange/30 flex items-center justify-center text-sm font-semibold text-glass-orange">
           {badge}
         </div>
       )}
 
-      <div>
+      <div className="min-w-0">
         <h4 className="text-base font-semibold text-white mb-3">Organization Details</h4>
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
           <div>
             <label className="block text-sm text-gray-300 mb-2">Organization Name</label>
             <input
@@ -208,10 +210,10 @@ const OrganizationCard = ({ organization, badge, onSave }: OrganizationCardProps
       {/* Primary Contact Section */}
       <div>
         <h4 className="text-base font-semibold text-white mb-3">Primary Contact</h4>
-        <p className="text-sm text-gray-400 mb-4">
+        <p className="text-sm text-gray-400 mb-4 break-words">
           The main point of contact for your organization
         </p>
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
           <div>
             <label className="block text-sm text-gray-300 mb-2">Contact Name</label>
             <input

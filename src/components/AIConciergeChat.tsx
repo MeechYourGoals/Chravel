@@ -15,6 +15,7 @@ import {
   invokeConcierge,
   invokeConciergeStream,
   type StreamMetadataEvent,
+  type ReservationDraft,
 } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
@@ -76,6 +77,15 @@ export interface ChatMessage {
     previewPhotoUrl?: string | null;
     photoUrls?: string[];
   }>;
+  /** Rich flight results from searchFlights tool calls */
+  functionCallFlights?: Array<{
+    origin: string;
+    destination: string;
+    departureDate: string;
+    returnDate?: string;
+    passengers: number;
+    deeplink: string;
+  }>;
   /** Action results from concierge write tools (createPoll, createTask, etc.) */
   conciergeActions?: Array<{
     actionType: string;
@@ -85,6 +95,8 @@ export interface ChatMessage {
     entityName?: string;
     scope?: string;
   }>;
+  /** Reservation draft cards from emitReservationDraft tool */
+  reservationDrafts?: ReservationDraft[];
 }
 
 interface ConciergeInvokePayload {
@@ -227,7 +239,6 @@ export const AIConciergeChat = ({
   const [aiStatus, setAiStatus] = useState<
     'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
   >('connected');
-  const [agentStatus, setAgentStatus] = useState<string | null>(null);
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
@@ -380,6 +391,31 @@ export const AIConciergeChat = ({
   }, [aiStatus, messages.length]);
 
   const isQueryLimitReached = Boolean(isLimitedPlan && usage?.isLimitReached);
+
+  const queryAllowanceText = useMemo(() => {
+    if (!usage) {
+      return 'Loading query allowance...';
+    }
+
+    if (usage.limit === null) {
+      return 'unlimited asks';
+    }
+
+    return `${usage.remaining}/${usage.limit} Asks`;
+  }, [usage]);
+
+  const queryAllowanceTone = useMemo(() => {
+    if (!usage || usage.limit === null) {
+      return 'text-gray-300';
+    }
+    if (usage.isLimitReached) {
+      return 'text-red-300';
+    }
+    if ((usage.remaining ?? 0) <= 2) {
+      return 'text-orange-300';
+    }
+    return 'text-gray-300';
+  }, [usage]);
 
   const showLimitReachedToast = useCallback((plan: 'free' | 'explorer') => {
     const message =
@@ -585,10 +621,7 @@ export const AIConciergeChat = ({
         };
 
         const streamHandle = invokeConciergeStream(
-          {
-            ...requestBody,
-            agentMode: import.meta.env.DEV || localStorage.getItem('chravel_agent_mode') === '1',
-          },
+          requestBody,
           {
             onChunk: (text: string) => {
               if (!isMounted.current) return;
@@ -617,20 +650,6 @@ export const AIConciergeChat = ({
                 return;
               }
               updateStreamMsg(msg => ({ content: msg.content + text }));
-            },
-            onAgentStatus: (status: string, iter?: number) => {
-              if (!isMounted.current) return;
-              receivedAnyChunk = true; // Status events count as activity
-
-              if (status === 'planning') {
-                setAgentStatus(`Thinking (Step ${iter ? iter + 1 : 1})...`);
-              } else if (status === 'executing_tools') {
-                setAgentStatus(`Taking action...`);
-              } else if (status === 'finalizing') {
-                setAgentStatus('Finalizing...');
-              } else {
-                setAgentStatus(null);
-              }
             },
             onFunctionCall: (name: string, result: Record<string, unknown>) => {
               if (!isMounted.current) return;
@@ -663,6 +682,19 @@ export const AIConciergeChat = ({
               if (name === 'searchPlaces' && result.places && Array.isArray(result.places)) {
                 ensureAndPatch({
                   functionCallPlaces: result.places as ChatMessage['functionCallPlaces'],
+                });
+              }
+              if (name === 'searchFlights' && result.success) {
+                const flightResult = {
+                  origin: result.origin as string,
+                  destination: result.destination as string,
+                  departureDate: result.departureDate as string,
+                  returnDate: result.returnDate as string | undefined,
+                  passengers: (result.passengers as number) || 1,
+                  deeplink: result.deeplink as string,
+                };
+                ensureAndPatch({
+                  functionCallFlights: [flightResult],
                 });
               }
               if (name === 'getPlaceDetails' && result.success) {
@@ -749,6 +781,32 @@ export const AIConciergeChat = ({
                 });
               }
             },
+            onReservationDraft: (draft: ReservationDraft) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true;
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                if (idx !== -1) {
+                  const updated = [...prev];
+                  const existing = updated[idx].reservationDrafts || [];
+                  updated[idx] = {
+                    ...updated[idx],
+                    reservationDrafts: [...existing, draft],
+                  };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: '',
+                    timestamp: new Date().toISOString(),
+                    reservationDrafts: [draft],
+                  },
+                ];
+              });
+            },
             onMetadata: (metadata: StreamMetadataEvent) => {
               setAiStatus('connected');
               if (isLimitedPlan) void refreshUsage();
@@ -765,7 +823,6 @@ export const AIConciergeChat = ({
               if (!isMounted.current) return;
               if (!receivedAnyChunk) {
                 setIsTyping(false);
-                setAgentStatus(null);
                 setAiStatus('degraded');
                 setMessages(prev => [
                   ...prev,
@@ -787,7 +844,6 @@ export const AIConciergeChat = ({
               streamAbortRef.current = null;
               if (!isMounted.current) return;
               setIsTyping(false);
-              setAgentStatus(null);
               if (!receivedAnyChunk) {
                 setMessages(prev => [
                   ...prev,
@@ -836,7 +892,6 @@ export const AIConciergeChat = ({
           if (!isMounted.current) return;
           setAiStatus('timeout');
           setIsTyping(false);
-          setAgentStatus(null);
           const timeoutContent = `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`;
           setMessages(prev => {
             const exists = prev.some(m => m.id === streamingMessageId);
@@ -944,7 +999,6 @@ export const AIConciergeChat = ({
     } finally {
       if (!streamingStarted) {
         setIsTyping(false);
-        setAgentStatus(null);
       }
     }
   };
@@ -1032,19 +1086,46 @@ export const AIConciergeChat = ({
             >
               <Search size={18} className="text-white" />
             </button>
-            <h3 className="text-lg font-semibold text-white flex-1 text-center min-w-0">
-              Concierge
-            </h3>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              data-testid="header-upload-btn"
-              className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
-              aria-label="Attach images"
-              title="Attach images"
+            <span
+              className={`text-xs whitespace-nowrap max-w-[140px] truncate ${queryAllowanceTone}`}
             >
-              <ImagePlus size={18} className="text-white" />
-            </button>
+              {queryAllowanceText}
+            </span>
+            <h3 className="text-lg font-semibold text-white flex-1 text-center min-w-0" data-testid="ai-concierge-header">
+              AI Concierge
+            </h3>
+            <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
+              <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
+
+              {/* Voice button in header for always-on accessibility - Force Update */}
+              <button
+                type="button"
+                onClick={handleVoiceToggle}
+                data-testid="header-voice-mic"
+                className={`size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20 ${
+                  dictationState === 'listening'
+                    ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-black'
+                    : ''
+                }`}
+                aria-label="Voice concierge"
+                title="Voice concierge"
+              >
+                <div
+                  className={`w-3 h-3 rounded-full ${dictationState === 'listening' ? 'bg-red-500 animate-pulse' : 'bg-white'}`}
+                />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                data-testid="header-upload-btn"
+                className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+                aria-label="Attach images"
+                title="Attach images"
+              >
+                <ImagePlus size={18} className="text-white" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1125,7 +1206,7 @@ export const AIConciergeChat = ({
         {messages.length === 0 && !isHistoryLoading && !isQueryLimitReached && (
           <div className="text-center py-6 px-4 flex-shrink-0">
             <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
-              Your Travel Concierge
+              Your AI Travel Concierge
             </h4>
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
               <p className="text-xs sm:text-sm mb-1.5">Ask me anything:</p>
@@ -1165,6 +1246,19 @@ export const AIConciergeChat = ({
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
               onTabChange={onTabChange}
+              onSavePlace={async place => {
+                // Trigger a message to the AI to save the place. The AI will use the `savePlace` tool.
+                const savePrompt = `Save "${place.name}" to trip places. URL: ${place.mapsUrl || ''}`;
+                handleSendMessage(savePrompt);
+              }}
+              onSaveFlight={async flight => {
+                // Trigger a message to the AI to save the flight. The AI will use `savePlace` (which handles links) to persist the flight URL.
+                const savePrompt = `Save flight from ${flight.origin} to ${flight.destination} departing ${flight.departureDate}. URL: ${flight.deeplink}`;
+                handleSendMessage(savePrompt);
+              }}
+              onEditReservation={(prefill: string) => {
+                setInputMessage(prefill);
+              }}
             />
           )}
         </div>
@@ -1197,15 +1291,6 @@ export const AIConciergeChat = ({
 
         {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
-
-          {/* Agent Status Indicator */}
-          {agentStatus && (
-            <div className="px-4 py-2 text-xs text-blue-300 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
-              <Sparkles size={12} className="animate-pulse" />
-              <span>{agentStatus}</span>
-            </div>
-          )}
-
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
