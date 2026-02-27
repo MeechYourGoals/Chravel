@@ -381,31 +381,6 @@ export const AIConciergeChat = ({
 
   const isQueryLimitReached = Boolean(isLimitedPlan && usage?.isLimitReached);
 
-  const queryAllowanceText = useMemo(() => {
-    if (!usage) {
-      return 'Loading query allowance...';
-    }
-
-    if (usage.limit === null) {
-      return 'unlimited asks';
-    }
-
-    return `${usage.remaining}/${usage.limit} Asks`;
-  }, [usage]);
-
-  const queryAllowanceTone = useMemo(() => {
-    if (!usage || usage.limit === null) {
-      return 'text-gray-300';
-    }
-    if (usage.isLimitReached) {
-      return 'text-red-300';
-    }
-    if ((usage.remaining ?? 0) <= 2) {
-      return 'text-orange-300';
-    }
-    return 'text-gray-300';
-  }, [usage]);
-
   const showLimitReachedToast = useCallback((plan: 'free' | 'explorer') => {
     const message =
       plan === 'free'
@@ -1057,42 +1032,19 @@ export const AIConciergeChat = ({
             >
               <Search size={18} className="text-white" />
             </button>
-            <span
-              className={`text-xs whitespace-nowrap max-w-[140px] truncate ${queryAllowanceTone}`}
-            >
-              {queryAllowanceText}
-            </span>
             <h3 className="text-lg font-semibold text-white flex-1 text-center min-w-0">
-              AI Concierge
+              Concierge
             </h3>
-            <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
-              <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
-
-              {/* Voice button in header for always-on accessibility - Force Update */}
-              <button
-                type="button"
-                onClick={handleVoiceToggle}
-                data-testid="header-voice-mic"
-                className={`size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20 ${
-                  dictationState === 'listening' ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-black' : ''
-                }`}
-                aria-label="Voice concierge"
-                title="Voice concierge"
-              >
-                <div className={`w-3 h-3 rounded-full ${dictationState === 'listening' ? 'bg-red-500 animate-pulse' : 'bg-white'}`} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                data-testid="header-upload-btn"
-                className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
-                aria-label="Attach images"
-                title="Attach images"
-              >
-                <ImagePlus size={18} className="text-white" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              data-testid="header-upload-btn"
+              className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+              aria-label="Attach images"
+              title="Attach images"
+            >
+              <ImagePlus size={18} className="text-white" />
+            </button>
           </div>
         </div>
 
@@ -1173,7 +1125,7 @@ export const AIConciergeChat = ({
         {messages.length === 0 && !isHistoryLoading && !isQueryLimitReached && (
           <div className="text-center py-6 px-4 flex-shrink-0">
             <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
-              Your AI Travel Concierge
+              Your Travel Concierge
             </h4>
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
               <p className="text-xs sm:text-sm mb-1.5">Ask me anything:</p>
