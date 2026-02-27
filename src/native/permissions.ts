@@ -101,6 +101,15 @@ async function requestMicrophonePermission(): Promise<PermissionState> {
  * Only works when running inside a native shell (Capacitor).
  */
 export async function openAppSettings(): Promise<boolean> {
+  try {
+    // Dynamically import to avoid side effects during test/initialization
+    const { default: despia } = await import('despia-native');
+    despia('settingsapp://');
+    return true;
+  } catch {
+    // Fall through
+  }
+
   if (!isIOSNative()) return false;
 
   try {
