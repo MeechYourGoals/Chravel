@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plane, Calendar, Users, ExternalLink, BookmarkPlus } from 'lucide-react';
+import { Plane, Calendar, Users, ExternalLink, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 
 export interface FlightResult {
   origin: string;
@@ -14,12 +14,16 @@ interface FlightResultCardsProps {
   flights: FlightResult[];
   className?: string;
   onSave?: (flight: FlightResult) => void;
+  isUrlSaved?: (url: string) => boolean;
+  isSaving?: boolean;
 }
 
 export const FlightResultCards: React.FC<FlightResultCardsProps> = ({
   flights,
   className,
   onSave,
+  isUrlSaved,
+  isSaving,
 }) => {
   if (!flights || flights.length === 0) return null;
 
@@ -68,16 +72,25 @@ export const FlightResultCards: React.FC<FlightResultCardsProps> = ({
               Check Availability
               <ExternalLink size={12} />
             </a>
-            {onSave && (
-              <button
-                type="button"
-                onClick={() => onSave(flight)}
-                className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 hover:text-white text-xs font-medium rounded-lg transition-colors"
-                title="Save Flight"
-              >
-                <BookmarkPlus size={16} />
-              </button>
-            )}
+            {onSave &&
+              (() => {
+                const saved = isUrlSaved ? isUrlSaved(flight.deeplink) : false;
+                return (
+                  <button
+                    type="button"
+                    onClick={() => onSave(flight)}
+                    disabled={saved || isSaving}
+                    className={`flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                      saved
+                        ? 'bg-emerald-500/20 text-emerald-300 cursor-default'
+                        : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 hover:text-white'
+                    }`}
+                    title={saved ? 'Saved' : 'Save Flight'}
+                  >
+                    {saved ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />}
+                  </button>
+                );
+              })()}
           </div>
         </div>
       ))}

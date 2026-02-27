@@ -23,6 +23,7 @@ import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
+import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -217,6 +218,17 @@ export const AIConciergeChat = ({
   const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
   const storeSession = storeSessionRaw ?? EMPTY_SESSION;
   const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
+
+  const handleNavigateToPlaces = useCallback(() => {
+    if (onTabChange) onTabChange('places');
+  }, [onTabChange]);
+
+  const { savePlace, saveFlight, isUrlSaved, isSaving } = useSaveToTripPlaces({
+    tripId,
+    userId: user?.id ?? 'anonymous',
+    isDemoMode,
+    onNavigateToPlaces: handleNavigateToPlaces,
+  });
 
   // Hydrate from Zustand store on mount (preserves messages across tab switches)
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
@@ -1065,7 +1077,13 @@ export const AIConciergeChat = ({
               className="text-lg font-semibold text-white flex-1 text-center min-w-0"
               data-testid="ai-concierge-header"
             >
-              Concierge
+              {queryAllowanceText}
+            </span>
+            <h3
+              className="text-lg font-semibold text-white flex-1 text-center min-w-0"
+              data-testid="ai-concierge-header"
+            >
+              AI Concierge
             </h3>
             <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
               <button
@@ -1199,16 +1217,10 @@ export const AIConciergeChat = ({
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
               onTabChange={onTabChange}
-              onSavePlace={async place => {
-                // Trigger a message to the AI to save the place. The AI will use the `savePlace` tool.
-                const savePrompt = `Save "${place.name}" to trip places. URL: ${place.mapsUrl || ''}`;
-                handleSendMessage(savePrompt);
-              }}
-              onSaveFlight={async flight => {
-                // Trigger a message to the AI to save the flight. The AI will use `savePlace` (which handles links) to persist the flight URL.
-                const savePrompt = `Save flight from ${flight.origin} to ${flight.destination} departing ${flight.departureDate}. URL: ${flight.deeplink}`;
-                handleSendMessage(savePrompt);
-              }}
+              onSavePlace={savePlace}
+              onSaveFlight={saveFlight}
+              isUrlSaved={isUrlSaved}
+              isSaving={isSaving}
               onEditReservation={(prefill: string) => {
                 setInputMessage(prefill);
               }}
