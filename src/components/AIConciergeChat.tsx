@@ -234,6 +234,7 @@ export const AIConciergeChat = ({
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     storeSession.messages.length > 0 ? (storeSession.messages as ChatMessage[]) : [],
   );
+  const messagesRef = useRef<ChatMessage[]>(messages);
   // True after the chat is hydrated from the server DB (not just cache/empty).
   // Used to show the "Picked up where you left off" chip.
   const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(
@@ -354,6 +355,7 @@ export const AIConciergeChat = ({
 
   // Sync messages to Zustand store so they persist across tab switches
   useEffect(() => {
+    messagesRef.current = messages;
     if (messages.length > 0) {
       setStoreMessages(
         tripId,
@@ -500,7 +502,7 @@ export const AIConciergeChat = ({
     }
 
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: _uniqueId('user'),
       type: 'user',
       content: userDisplayContent,
       timestamp: new Date().toISOString(),
@@ -590,7 +592,7 @@ export const AIConciergeChat = ({
 
       // ========== STREAMING PATH ==========
       if (!isDemoMode) {
-        const streamingMessageId = `stream-${Date.now()}`;
+        const streamingMessageId = _uniqueId('stream');
         let receivedAnyChunk = false;
         let accumulatedStreamContent = ''; // accumulates full text so we can cache after onDone
         const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
@@ -850,12 +852,17 @@ export const AIConciergeChat = ({
                 // Cache the completed response for offline fallback.
                 // Use the locally accumulated string — no setState read needed.
                 if (accumulatedStreamContent) {
-                  const cachedMsg: ChatMessage = {
-                    id: streamingMessageId,
-                    type: 'assistant',
-                    content: accumulatedStreamContent,
-                    timestamp: new Date().toISOString(),
-                  };
+                  const latestStreamingMessage = messagesRef.current.find(
+                    msg => msg.id === streamingMessageId,
+                  );
+                  const cachedMsg: ChatMessage = latestStreamingMessage
+                    ? { ...latestStreamingMessage, content: accumulatedStreamContent }
+                    : {
+                        id: streamingMessageId,
+                        type: 'assistant',
+                        content: accumulatedStreamContent,
+                        timestamp: new Date().toISOString(),
+                      };
                   conciergeCacheService.cacheMessage(
                     tripId,
                     currentInput,
@@ -920,7 +927,7 @@ export const AIConciergeChat = ({
         );
 
         const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: _uniqueId('assistant'),
           type: 'assistant',
           content: fallbackResponse,
           timestamp: new Date().toISOString(),
@@ -938,7 +945,7 @@ export const AIConciergeChat = ({
       }
 
       const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: _uniqueId('assistant'),
         type: 'assistant',
         content: data.response || 'Sorry, I encountered an error processing your request.',
         timestamp: new Date().toISOString(),
@@ -968,7 +975,7 @@ export const AIConciergeChat = ({
           basecampLocation,
         );
         const errorMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: _uniqueId('assistant'),
           type: 'assistant',
           content: `⚠️ **AI Service Temporarily Unavailable**\n\n${fallbackResponse}\n\n*Note: This is a basic response. Full AI features will return once the service is restored.*`,
           timestamp: new Date().toISOString(),
@@ -976,7 +983,7 @@ export const AIConciergeChat = ({
         setMessages(prev => [...prev, errorMessage]);
       } catch {
         const errorMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: _uniqueId('assistant'),
           type: 'assistant',
           content: `I'm having trouble connecting to my AI services right now. Please try again in a moment.`,
           timestamp: new Date().toISOString(),

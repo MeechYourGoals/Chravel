@@ -26,9 +26,9 @@ interface ChatMessagesProps {
   onTabChange?: (tab: string) => void;
   onSavePlace?: (place: PlaceResult) => void;
   onSaveFlight?: (flight: FlightResult) => void;
-  onEditReservation?: (prefill: string) => void;
   isUrlSaved?: (url: string) => boolean;
   isSaving?: boolean;
+  onEditReservation?: (prefill: string) => void;
 }
 
 export const ChatMessages = ({
@@ -39,9 +39,9 @@ export const ChatMessages = ({
   onTabChange,
   onSavePlace,
   onSaveFlight,
-  onEditReservation,
   isUrlSaved,
   isSaving,
+  onEditReservation,
 }: ChatMessagesProps) => {
   if (messages.length === 0) {
     return (
