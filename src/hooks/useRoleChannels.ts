@@ -64,7 +64,7 @@ const convertToRoleChannelMessage = (msg: ChannelMessage): RoleChannelMessage =>
   createdAt: msg.createdAt,
 });
 
-export const useRoleChannels = (tripId: string, userRole: string, roles?: string[]) => {
+export const useRoleChannels = (tripId: string, _userRole: string, roles?: string[]) => {
   const { isDemoMode } = useDemoMode();
   const [availableChannels, setAvailableChannels] = useState<TripChannel[]>([]);
   const [activeChannel, setActiveChannel] = useState<TripChannel | null>(null);
@@ -72,7 +72,7 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
   const [isLoading, setIsLoading] = useState(false);
   const [demoMessages, setDemoMessages] = useState<Map<string, ChannelMessage[]>>(new Map());
 
-  const isDemoTrip = DEMO_TRIP_IDS.includes(tripId);
+  const isDemoTrip = isDemoMode && DEMO_TRIP_IDS.includes(tripId);
 
   // Load channels for this trip
   const loadChannels = useCallback(async () => {
@@ -117,7 +117,7 @@ export const useRoleChannels = (tripId: string, userRole: string, roles?: string
     }
 
     setIsLoading(false);
-  }, [tripId, userRole, isDemoMode, isDemoTrip, roles]);
+  }, [tripId, isDemoMode, isDemoTrip, roles]);
 
   useEffect(() => {
     loadChannels();

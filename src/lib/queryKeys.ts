@@ -136,6 +136,11 @@ export const QUERY_CACHE_CONFIG = {
   },
 
   // Trip admins / roles - stable, realtime handles updates
+  channels: {
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  },
   tripAdmins: {
     staleTime: 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes

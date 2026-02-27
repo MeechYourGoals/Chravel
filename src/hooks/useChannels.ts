@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventChannelService } from '../services/eventChannelService';
 import { ChannelWithStats, CreateChannelRequest, UpdateChannelRequest } from '../types/channels';
+import { QUERY_CACHE_CONFIG, tripKeys } from '@/lib/queryKeys';
 
 export const useChannels = (tripId: string) => {
   const queryClient = useQueryClient();
+  const channelsQueryKey = tripKeys.channels(tripId);
 
   // Get channels
   const {
@@ -13,7 +15,7 @@ export const useChannels = (tripId: string) => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['channels', tripId],
+    queryKey: channelsQueryKey,
     queryFn: async () => {
       try {
         const baseChannels = await eventChannelService.getChannels(tripId);
@@ -50,7 +52,7 @@ export const useChannels = (tripId: string) => {
       }
     },
     enabled: !!tripId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    ...QUERY_CACHE_CONFIG.channels,
     retry: false, // Don't retry on error to prevent infinite loops
   });
 
@@ -58,7 +60,7 @@ export const useChannels = (tripId: string) => {
   const createChannelMutation = useMutation({
     mutationFn: (request: CreateChannelRequest) => eventChannelService.createChannel(request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
+      queryClient.invalidateQueries({ queryKey: channelsQueryKey });
     },
   });
 
@@ -67,7 +69,7 @@ export const useChannels = (tripId: string) => {
     mutationFn: ({ channelId, updates }: { channelId: string; updates: UpdateChannelRequest }) =>
       eventChannelService.updateChannel(channelId, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
+      queryClient.invalidateQueries({ queryKey: channelsQueryKey });
     },
   });
 
@@ -75,7 +77,7 @@ export const useChannels = (tripId: string) => {
   const archiveChannelMutation = useMutation({
     mutationFn: (channelId: string) => eventChannelService.archiveChannel(channelId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
+      queryClient.invalidateQueries({ queryKey: channelsQueryKey });
     },
   });
 
@@ -84,7 +86,7 @@ export const useChannels = (tripId: string) => {
     mutationFn: ({ channelId, userIds }: { channelId: string; userIds: string[] }) =>
       eventChannelService.addMembers(channelId, userIds),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
+      queryClient.invalidateQueries({ queryKey: channelsQueryKey });
     },
   });
 
@@ -93,7 +95,7 @@ export const useChannels = (tripId: string) => {
     mutationFn: ({ channelId, userId }: { channelId: string; userId: string }) =>
       eventChannelService.removeMember(channelId, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
+      queryClient.invalidateQueries({ queryKey: channelsQueryKey });
     },
   });
 
@@ -101,7 +103,7 @@ export const useChannels = (tripId: string) => {
   const createDefaultChannelsMutation = useMutation({
     mutationFn: () => eventChannelService.createDefaultRoleChannels(tripId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channels', tripId] });
+      queryClient.invalidateQueries({ queryKey: channelsQueryKey });
     },
   });
 
