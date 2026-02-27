@@ -4,6 +4,9 @@ import { mockPayments } from '@/mockData/payments';
 import { recordPaymentSplitPattern } from './chatAnalysisService';
 import { isDemoTrip } from '@/utils/demoUtils';
 import { toAppPayment } from '@/lib/adapters/paymentAdapter';
+import { paymentsRepo } from '@/domain/trip/paymentsRepo';
+import { membershipRepo } from '@/domain/trip/membershipRepo';
+import { Invariants } from '@/domain/invariants';
 
 interface MockPayment {
   id: string;
@@ -153,23 +156,41 @@ export const paymentService = {
         };
       }
 
-      // Use enhanced v2 function with audit trail and transaction safety
-      const { data: paymentId, error } = await supabase.rpc('create_payment_with_splits_v2', {
-        p_trip_id: tripId,
-        p_amount: paymentData.amount,
-        p_currency: paymentData.currency,
-        p_description: paymentData.description,
-        p_split_count: paymentData.splitCount,
-        p_split_participants: paymentData.splitParticipants,
-        p_payment_methods: paymentData.paymentMethods,
-        p_created_by: userId,
-      });
+      // 🔄 REFACTOR: Use TDAL (paymentsRepo) to create expense
+      // This enforces invariants (valid members, amount sums) automatically.
+      try {
+        const paymentId = await paymentsRepo.createExpense(tripId, userId, {
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          description: paymentData.description,
+          splitParticipants: paymentData.splitParticipants,
+          paymentMethods: paymentData.paymentMethods,
+        });
 
-      if (error) {
-        console.error('[paymentService] RPC error:', error);
+        // Record payment split patterns for ML-based suggestions (non-blocking)
+        if (paymentData.splitParticipants.length > 0) {
+          recordPaymentSplitPattern(tripId, userId, paymentData.splitParticipants).catch(err => {
+            console.debug('[paymentService] Failed to record split pattern:', err);
+          });
+        }
 
-        // Detect RLS violation
-        if (error.message?.includes('row-level security') || error.code === '42501') {
+        return { success: true, paymentId };
+      } catch (repoError: any) {
+        // Handle TDAL/Invariant errors specifically
+        console.error('[paymentService] TDAL error:', repoError);
+
+        if (repoError.message?.includes('Invariant Violation')) {
+           return {
+             success: false,
+             error: {
+               code: 'INVARIANT_VIOLATION',
+               message: repoError.message, // User-facing message from Invariant
+             }
+           };
+        }
+
+        // Map other known errors (RLS, Network)
+        if (repoError.message?.includes('row-level security') || repoError.code === '42501') {
           return {
             success: false,
             error: {
@@ -179,8 +200,7 @@ export const paymentService = {
           };
         }
 
-        // Detect network/connection issues
-        if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        if (repoError.message?.includes('network') || repoError.message?.includes('fetch')) {
           return {
             success: false,
             error: {
@@ -190,33 +210,9 @@ export const paymentService = {
           };
         }
 
-        return {
-          success: false,
-          error: {
-            code: 'UNKNOWN',
-            message: error.message || 'Failed to create payment. Please try again.',
-          },
-        };
+        throw repoError; // Re-throw unknown to catch block below
       }
 
-      if (!paymentId) {
-        return {
-          success: false,
-          error: {
-            code: 'UNKNOWN',
-            message: 'Payment creation failed. No payment ID returned.',
-          },
-        };
-      }
-
-      // Record payment split patterns for ML-based suggestions (non-blocking)
-      if (paymentData.splitParticipants.length > 0) {
-        recordPaymentSplitPattern(tripId, userId, paymentData.splitParticipants).catch(err => {
-          console.debug('[paymentService] Failed to record split pattern:', err);
-        });
-      }
-
-      return { success: true, paymentId };
     } catch (error) {
       console.error('[paymentService] Unexpected error creating payment:', error);
       return {
@@ -232,8 +228,6 @@ export const paymentService = {
   async getTripPaymentMessages(tripId: string): Promise<PaymentMessage[]> {
     try {
       // Quick synchronous demo check — avoids the async secureStorageService round-trip.
-      // All callers (usePayments, MobileTripPayments, prefetchTab) already gate on demo mode,
-      // so this is a defense-in-depth fallback only.
       let isDemoMode = false;
       try {
         isDemoMode = localStorage.getItem('TRIPS_DEMO_VIEW') === 'app-preview';
@@ -260,15 +254,8 @@ export const paymentService = {
           }));
       }
 
-      const { data, error } = await supabase
-        .from('trip_payment_messages')
-        .select('*')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      return data.map(toAppPayment);
+      // 🔄 REFACTOR: Use TDAL
+      return await paymentsRepo.getExpenses(tripId);
     } catch (error) {
       console.error('Error fetching payment messages:', error);
       return [];
@@ -278,34 +265,31 @@ export const paymentService = {
   // Payment Settlement
   async settlePayment(splitId: string, settlementMethod: string): Promise<boolean> {
     try {
-      // Get the split and its parent payment info
-      const { data: currentSplit, error: fetchError } = await supabase
+      // 🔄 REFACTOR: Use TDAL
+      // Check status first via Repo
+      const split = await paymentsRepo.getSplitStatus(splitId);
+      if (split.is_settled) {
+          throw new Error('Payment has already been settled by another user.');
+      }
+
+      // Perform settlement via Repo
+      await paymentsRepo.settleSplit(splitId, settlementMethod);
+
+      // Legacy side effect: Update parent status (could be moved to Trigger/Edge Function ideally)
+      // For now, we keep the service method helper as it handles business logic aggregation
+      // but the atomic write is in Repo.
+      // We need to fetch the payment_message_id from somewhere or change repo signature.
+      // Since repo.settleSplit is atomic, we can just re-read or assume success.
+      // To keep existing behavior of updating parent, we query parent ID:
+      const { data } = await supabase
         .from('payment_splits')
-        .select('is_settled, payment_message_id')
+        .select('payment_message_id')
         .eq('id', splitId)
         .single();
 
-      if (fetchError) throw fetchError;
-
-      if (currentSplit.is_settled) {
-        throw new Error('Payment has already been settled by another user.');
+      if (data) {
+        await this.updateParentPaymentSettledStatus(data.payment_message_id);
       }
-
-      // Mark split as settled
-      const { error } = await supabase
-        .from('payment_splits')
-        .update({
-          is_settled: true,
-          settled_at: new Date().toISOString(),
-          settlement_method: settlementMethod,
-        })
-        .eq('id', splitId)
-        .eq('is_settled', false);
-
-      if (error) return false;
-
-      // Check if all splits for this payment are now settled
-      await this.updateParentPaymentSettledStatus(currentSplit.payment_message_id);
 
       return true;
     } catch (error) {

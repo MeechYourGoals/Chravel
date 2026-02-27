@@ -1,25 +1,71 @@
+import { TripContext } from '../types/tripContext';
+import { conciergeRepo } from '@/domain/trip/conciergeRepo';
 import { Trip, getTripById, generateTripMockData } from '../data/tripsData';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripData } from '../types/pro';
-
-// Use the enhanced TripContext from types
-import { TripContext } from '../types/tripContext';
+import { isDemoTrip } from '@/utils/demoUtils'; // Ensure we have a util for checking demo IDs
 
 export type { TripContext };
 
 export class TripContextService {
-  static async getTripContext(tripId: string, isProTrip = false): Promise<TripContext> {
+
+  /**
+   * Get Trip Context.
+   * Delegates to TDAL (conciergeRepo) for real trips.
+   * Uses legacy mock data generators for Demo trips.
+   */
+  static async getTripContext(tripId: string, userIdOrIsPro?: string | boolean, isProTripOpt?: boolean): Promise<TripContext> {
     try {
-      if (isProTrip) {
-        return this.getProTripContext(tripId);
-      } else {
-        return this.getConsumerTripContext(tripId);
+      // Handle overload mapping:
+      // signature 1: (tripId: string, isProTrip?: boolean) -> legacy
+      // signature 2: (tripId: string, userId: string, isProTrip?: boolean) -> new
+      let userId: string | undefined;
+      let isProTrip = false;
+
+      if (typeof userIdOrIsPro === 'boolean') {
+          isProTrip = userIdOrIsPro;
+      } else if (typeof userIdOrIsPro === 'string') {
+          userId = userIdOrIsPro;
+          isProTrip = isProTripOpt || false;
       }
+
+      // 1. Check if Demo Trip
+      if (isDemoTrip(tripId)) {
+          if (isProTrip) {
+            return this.getProTripContext(tripId);
+          } else {
+            return this.getConsumerTripContext(tripId);
+          }
+      }
+
+      // 2. Resolve User ID if missing (Backward Compatibility)
+      if (!userId) {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { getCachedAuthUser } = await import('@/lib/authCache');
+
+          const cached = await getCachedAuthUser();
+          if (cached?.id) {
+              userId = cached.id;
+          } else {
+              const { data } = await supabase.auth.getUser();
+              userId = data.user?.id;
+          }
+      }
+
+      if (!userId) {
+          throw new Error('User authentication required to fetch trip context.');
+      }
+
+      // 3. Real Trip -> Use TDAL
+      return await conciergeRepo.buildContext(tripId, userId);
+
     } catch (error) {
       console.error('Error fetching trip context:', error);
       throw new Error('Failed to fetch trip context');
     }
   }
+
+  // --- Legacy Mock Methods (Preserved for Demo Mode) ---
 
   private static getConsumerTripContext(tripId: string): TripContext {
     const trip = getTripById(parseInt(tripId));
@@ -125,7 +171,7 @@ export class TripContextService {
       .map(event => `- ${event.title} at ${event.time} (${event.location})`)
       .join('\n');
 
-    const confirmationsList = Object.entries(context.confirmationNumbers)
+    const confirmationsList = Object.entries(context.confirmationNumbers || {})
       .map(([type, number]) => `- ${type.replace('_', ' ')}: ${number}`)
       .join('\n');
 
@@ -133,9 +179,9 @@ export class TripContextService {
 TRIP INFORMATION:
 - Trip: ${context.title}
 - Location: ${context.location}
-- Dates: ${context.dateRange}
+- Dates: ${typeof context.dateRange === 'string' ? context.dateRange : `${context.dateRange.start} to ${context.dateRange.end}`}
 - Participants: ${participantList}
-- Accommodation: ${context.accommodation || 'Not specified'}
+- Accommodation: ${typeof context.accommodation === 'string' ? context.accommodation : context.accommodation?.name || 'Not specified'}
 
 TODAY'S DATE: ${context.currentDate}
 

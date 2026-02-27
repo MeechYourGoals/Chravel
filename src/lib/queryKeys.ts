@@ -46,6 +46,11 @@ export const tripKeys = {
     ['tripPaymentBalances', tripId, userId] as const,
   broadcasts: (tripId: string) => ['tripBroadcasts', tripId] as const,
 
+  // Settings
+  settings: (tripId: string) => ['tripSettings', tripId] as const,
+  preferences: (tripId: string, userId: string) =>
+    ['tripPreferences', tripId, userId] as const,
+
   // Pro-specific
   roster: (tripId: string) => ['tripRoster', tripId] as const,
   channels: (tripId: string) => ['tripChannels', tripId] as const,
@@ -135,6 +140,13 @@ export const QUERY_CACHE_CONFIG = {
     refetchOnWindowFocus: false,
   },
 
+  // Settings
+  settings: {
+    staleTime: 5 * 60 * 1000, // 5 minutes (rarely changes)
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  },
+
   // Trip admins / roles - stable, realtime handles updates
   tripAdmins: {
     staleTime: 60 * 1000, // 1 minute
@@ -161,4 +173,5 @@ export const PREFETCH_PRIORITY = {
   media: 6, // Heavy, defer
   payments: 7, // Heavy, defer
   places: 8, // Heavy, defer
+  settings: 9, // Background
 } as const;
