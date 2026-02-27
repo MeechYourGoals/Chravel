@@ -45,3 +45,9 @@
 - Validation: `npx eslint e2e/specs/events/event-recap-export.spec.ts` and `npm run typecheck` pass.
 - Playwright run attempted (`npx playwright test ... --project=chromium`) but browser binary is unavailable in container; install attempt failed due CDN 403, so runtime execution remains blocked by environment.
 - Risk: selector stability depends on current `aria-label`/button labels (`Create Event Recap`, `View event details`); changes to copy should update this spec intentionally.
+
+## Design system consistency audit + standardization spec
+- [x] Scope audit dimensions (buttons, typography, spacing, colors, reusable components) and identify canonical design-system files.
+- [x] Run codebase scans to quantify current usage inconsistencies and duplication hotspots.
+- [x] Document findings with concrete evidence and propose a standardized token/component system.
+- [ ] Roll out implementation in phased follow-up PRs (tokens first, then component migration, then lint enforcement).
