@@ -344,71 +344,27 @@ export const calendarService = {
         return storedEvents;
       }
 
-      // Try to load from cache first for instant display
-      cachedEvents = await offlineSyncService.getCachedEntities(tripId, 'calendar_event');
-
-      // Use Supabase with timezone-aware function for authenticated users
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        // Fallback to direct query if no user
-        const { data, error } = await supabase
-          .from('trip_events')
-          .select('*')
-          .eq('trip_id', tripId)
-          .order('start_time', { ascending: true });
-
-        if (error) throw error;
-        return data || [];
+      // Try to load from cache first (non-blocking — swallow errors)
+      try {
+        cachedEvents = await offlineSyncService.getCachedEntities(tripId, 'calendar_event');
+      } catch {
+        cachedEvents = [];
       }
 
-      // Use timezone-aware function
-      const { data: timezoneData, error: tzError } = await supabase.rpc('get_events_in_user_tz', {
-        p_trip_id: tripId,
-        p_user_id: user.id,
-      });
-
-      if (tzError) {
-        // Fallback to direct query if timezone function fails
-        if (import.meta.env.DEV) {
-          console.warn('Timezone function failed, using direct query:', tzError);
-        }
-        const { data, error } = await supabase
-          .from('trip_events')
-          .select('*')
-          .eq('trip_id', tripId)
-          .order('start_time', { ascending: true });
-
-        if (error) throw error;
-        return data || [];
-      }
-
-      // Fetch full event details with creator info
-      if (!timezoneData || timezoneData.length === 0) {
-        return [];
-      }
-
-      const eventIds = timezoneData.map((e: any) => e.id);
-      const { data: fullEvents, error: fetchError } = await supabase
+      // Direct query — single round-trip, avoids RPC timeout risk
+      const { data, error } = await supabase
         .from('trip_events')
         .select('*')
-        .in('id', eventIds)
+        .eq('trip_id', tripId)
         .order('start_time', { ascending: true });
 
-      if (fetchError) throw fetchError;
+      if (error) throw error;
 
-      const events = fullEvents || [];
+      const events = data || [];
 
-      // Cache events for offline access
-      for (const event of events) {
-        await offlineSyncService.cacheEntity(
-          'calendar_event',
-          event.id,
-          event.trip_id,
-          event,
-          event.version || 1,
-        );
+      // Cache events for offline access (non-blocking — fire and forget)
+      if (events.length > 0) {
+        this.cacheEventsInBackground(events);
       }
 
       return events;
