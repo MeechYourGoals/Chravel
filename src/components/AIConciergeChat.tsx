@@ -16,7 +16,9 @@ import {
   invokeConciergeStream,
   type StreamMetadataEvent,
   type ReservationDraft,
+  type TripCard,
 } from '@/services/conciergeGateway';
+import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
@@ -86,7 +88,18 @@ export interface ChatMessage {
     returnDate?: string;
     passengers: number;
     deeplink: string;
+    provider?: string | null;
+    price?: { amount?: number | null; currency?: string | null; display?: string | null } | null;
+    airline?: string | null;
+    flightNumber?: string | null;
+    stops?: number | null;
+    durationMinutes?: number | null;
+    departTime?: string | null;
+    arriveTime?: string | null;
+    refundable?: boolean | null;
   }>;
+  /** Rich hotel results from searchHotels tool calls or trip_cards event */
+  functionCallHotels?: HotelResult[];
   /** Action results from concierge write tools (createPoll, createTask, etc.) */
   conciergeActions?: Array<{
     actionType: string;
@@ -223,7 +236,7 @@ export const AIConciergeChat = ({
     if (onTabChange) onTabChange('places');
   }, [onTabChange]);
 
-  const { savePlace, saveFlight, isUrlSaved, isSaving } = useSaveToTripPlaces({
+  const { savePlace, saveFlight, saveHotel, isUrlSaved, isSaving } = useSaveToTripPlaces({
     tripId,
     userId: user?.id ?? 'anonymous',
     isDemoMode,
@@ -681,9 +694,66 @@ export const AIConciergeChat = ({
                   returnDate: result.returnDate as string | undefined,
                   passengers: (result.passengers as number) || 1,
                   deeplink: result.deeplink as string,
+                  provider: result.provider as string | null,
+                  price:
+                    (result.price as {
+                      amount?: number | null;
+                      currency?: string | null;
+                      display?: string | null;
+                    } | null) ?? null,
+                  airline: result.airline as string | null,
+                  flightNumber: result.flightNumber as string | null,
+                  stops: result.stops as number | null,
+                  durationMinutes: result.durationMinutes as number | null,
+                  departTime: result.departTime as string | null,
+                  arriveTime: result.arriveTime as string | null,
+                  refundable: result.refundable as boolean | null,
                 };
                 ensureAndPatch({
                   functionCallFlights: [flightResult],
+                });
+              }
+              // searchHotels function call → hotel cards
+              if (name === 'searchHotels' && result.hotels && Array.isArray(result.hotels)) {
+                ensureAndPatch({
+                  functionCallHotels: result.hotels as HotelResult[],
+                });
+              }
+              // Single hotel detail from getHotelDetails
+              if (name === 'getHotelDetails' && result.success && result.title) {
+                const hotelResult: HotelResult = {
+                  id: result.id as string | null,
+                  provider: result.provider as string | null,
+                  title: result.title as string,
+                  subtitle: result.subtitle as string | null,
+                  badges: result.badges as string[] | undefined,
+                  price: result.price as HotelResult['price'],
+                  dates: result.dates as HotelResult['dates'],
+                  location: result.location as HotelResult['location'],
+                  details: result.details as HotelResult['details'],
+                  deep_links: result.deep_links as HotelResult['deep_links'],
+                };
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === streamingMessageId);
+                  if (idx !== -1) {
+                    const existing = prev[idx].functionCallHotels || [];
+                    const updated = [...prev];
+                    updated[idx] = {
+                      ...updated[idx],
+                      functionCallHotels: [...existing, hotelResult],
+                    };
+                    return updated;
+                  }
+                  return [
+                    ...prev,
+                    {
+                      id: streamingMessageId,
+                      type: 'assistant' as const,
+                      content: '',
+                      timestamp: new Date().toISOString(),
+                      functionCallHotels: [hotelResult],
+                    },
+                  ];
                 });
               }
               if (name === 'getPlaceDetails' && result.success) {
@@ -792,6 +862,91 @@ export const AIConciergeChat = ({
                     content: '',
                     timestamp: new Date().toISOString(),
                     reservationDrafts: [draft],
+                  },
+                ];
+              });
+            },
+            // Handles the structured JSON-envelope trip_cards event from the AI Concierge.
+            // Cards are split into hotels and flights and attached to the streaming message.
+            onTripCards: (cards: TripCard[], message: string | null) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true;
+
+              const hotelCards: HotelResult[] = [];
+              const flightCards: ChatMessage['functionCallFlights'] = [];
+
+              for (const card of cards) {
+                if (card.type === 'hotel') {
+                  hotelCards.push({
+                    id: card.id,
+                    provider: card.provider,
+                    title: card.title,
+                    subtitle: card.subtitle,
+                    badges: card.badges,
+                    price: card.price,
+                    dates: card.dates
+                      ? { check_in: card.dates.check_in, check_out: card.dates.check_out }
+                      : null,
+                    location: card.location
+                      ? {
+                          city: card.location.city,
+                          region: card.location.region,
+                          country: card.location.country,
+                        }
+                      : null,
+                    details: card.details
+                      ? {
+                          rating: card.details.rating,
+                          reviews_count: card.details.reviews_count,
+                          refundable: card.details.refundable,
+                          amenities: card.details.amenities,
+                        }
+                      : null,
+                    deep_links: card.deep_links,
+                  });
+                } else if (card.type === 'flight') {
+                  const airportCodes = card.location?.airport_codes ?? [];
+                  flightCards.push({
+                    origin: airportCodes[0] ?? '',
+                    destination: airportCodes[1] ?? '',
+                    departureDate: card.dates?.depart?.split('T')[0] ?? '',
+                    returnDate: undefined,
+                    passengers: 1,
+                    deeplink: card.deep_links?.primary ?? '',
+                    provider: card.provider,
+                    price: card.price,
+                    airline: card.details?.airline,
+                    flightNumber: card.details?.flight_number,
+                    stops: card.details?.stops,
+                    durationMinutes: card.details?.duration_minutes,
+                    departTime: card.dates?.depart ?? null,
+                    arriveTime: card.dates?.arrive ?? null,
+                    refundable: card.details?.refundable,
+                  });
+                }
+              }
+
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                const patch: Partial<ChatMessage> = {};
+                if (hotelCards.length > 0) patch.functionCallHotels = hotelCards;
+                if (flightCards.length > 0) patch.functionCallFlights = flightCards;
+                // If backend also sends a summary message string, use it as content
+                if (message) patch.content = message;
+
+                if (idx !== -1) {
+                  const updated = [...prev];
+                  updated[idx] = { ...updated[idx], ...patch };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: message ?? '',
+                    timestamp: new Date().toISOString(),
+                    ...patch,
                   },
                 ];
               });
@@ -1220,6 +1375,7 @@ export const AIConciergeChat = ({
               onTabChange={onTabChange}
               onSavePlace={savePlace}
               onSaveFlight={saveFlight}
+              onSaveHotel={saveHotel}
               isUrlSaved={isUrlSaved}
               isSaving={isSaving}
               onEditReservation={(prefill: string) => {

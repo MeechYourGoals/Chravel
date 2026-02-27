@@ -6,6 +6,7 @@ import { ChatMessageWithGrounding } from '@/types/grounding';
 import { MessageRenderer } from './MessageRenderer';
 import { PlaceResultCards, PlaceResult } from './PlaceResultCards';
 import { FlightResultCards, FlightResult } from './FlightResultCards';
+import { HotelResultCards, HotelResult } from './HotelResultCards';
 import { ConciergeActionCard, ConciergeActionResult } from './ConciergeActionCard';
 import { ReservationDraftCard } from './ReservationDraftCard';
 import type { ReservationDraft } from '@/services/conciergeGateway';
@@ -14,6 +15,7 @@ import type { ReservationDraft } from '@/services/conciergeGateway';
 interface RichChatMessage extends ChatMessage {
   functionCallPlaces?: PlaceResult[];
   functionCallFlights?: FlightResult[];
+  functionCallHotels?: HotelResult[];
   conciergeActions?: ConciergeActionResult[];
   reservationDrafts?: ReservationDraft[];
 }
@@ -26,6 +28,7 @@ interface ChatMessagesProps {
   onTabChange?: (tab: string) => void;
   onSavePlace?: (place: PlaceResult) => void;
   onSaveFlight?: (flight: FlightResult) => void;
+  onSaveHotel?: (hotel: HotelResult) => void;
   isUrlSaved?: (url: string) => boolean;
   isSaving?: boolean;
   onEditReservation?: (prefill: string) => void;
@@ -39,6 +42,7 @@ export const ChatMessages = ({
   onTabChange,
   onSavePlace,
   onSaveFlight,
+  onSaveHotel,
   isUrlSaved,
   isSaving,
   onEditReservation,
@@ -86,7 +90,22 @@ export const ChatMessages = ({
                   flights={rich.functionCallFlights}
                   className="max-w-xs lg:max-w-md"
                   onSave={onSaveFlight}
-                  isUrlSaved={isUrlSaved}
+                  isSaved={isUrlSaved}
+                  isSaving={isSaving}
+                />
+              </div>
+            )}
+
+            {/* Rich hotel cards from function_call results (searchHotels) or trip_cards event */}
+            {rich.functionCallHotels && rich.functionCallHotels.length > 0 && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <HotelResultCards
+                  hotels={rich.functionCallHotels}
+                  className="max-w-xs lg:max-w-md"
+                  onSave={onSaveHotel}
+                  isSaved={isUrlSaved}
                   isSaving={isSaving}
                 />
               </div>
