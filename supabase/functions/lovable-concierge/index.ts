@@ -1414,6 +1414,25 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           required: ['eventId', 'title'],
         },
       },
+      {
+        name: 'searchFlights',
+        description:
+          'Search for flights and get a deeplink to Google Flights. Use when user asks for flight options, prices, or availability.',
+        parameters: {
+          type: 'object',
+          properties: {
+            origin: { type: 'string', description: 'Origin airport code (e.g. SFO) or city name' },
+            destination: {
+              type: 'string',
+              description: 'Destination airport code (e.g. LHR) or city name',
+            },
+            departureDate: { type: 'string', description: 'Departure date (YYYY-MM-DD)' },
+            returnDate: { type: 'string', description: 'Return date (YYYY-MM-DD), optional' },
+            passengers: { type: 'number', description: 'Number of passengers (default 1)' },
+          },
+          required: ['origin', 'destination', 'departureDate'],
+        },
+      },
     ];
 
     // ========== BUILD GEMINI TOOLS ==========
