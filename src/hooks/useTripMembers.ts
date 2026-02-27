@@ -112,67 +112,18 @@ export const useTripMembers = (tripId?: string) => {
         setTripCreatorId(tripData.created_by);
       }
 
-      // Always try database first for authenticated trips
-      let dbMembers = await tripService.getTripMembers(tripId);
+      // 🔄 REFACTOR: Adopt TDAL for canonical source of truth
+      const { membershipRepo } = await import('@/domain/trip/membershipRepo');
 
-      // SAFETY CHECK: Ensure creator is always a member (collaborators, payments, tasks)
-      if (tripData?.created_by && !isDemoMode) {
-        const creatorInList = dbMembers?.some((m: any) => m.user_id === tripData.created_by);
-        if (!creatorInList) {
-          console.warn(
-            `[useTripMembers] Creator ${tripData.created_by} missing from trip ${tripId}. Auto-fixing...`,
-          );
+      // The Repo handles checking if the creator is in the list and applying the fallback
+      // logic if they are somehow missing but listed as created_by in the trip table.
+      const { members, creatorId } = await membershipRepo.getMembersWithCreator(tripId);
 
-          // 1. Attempt to add to DB (background operation)
-          tripService.addTripMember(tripId, tripData.created_by, 'admin').catch(console.error);
-
-          // 2. Fetch profile for local display (use fallback if profile missing)
-          const { data: creatorProfile } = await supabase
-            .from('profiles_public')
-            .select(
-              'user_id, display_name, first_name, last_name, resolved_display_name, avatar_url',
-            )
-            .eq('user_id', tripData.created_by)
-            .maybeSingle();
-
-          // 3. Always add creator to list — prefer profile, then auth user metadata, then generic fallback
-          let creatorProfileData = creatorProfile;
-          if (!creatorProfileData && user && user.id === tripData.created_by) {
-            // Use auth user metadata as fallback when profiles_public query returns null
-            const meta = (user as any).user_metadata || {};
-            const authName =
-              meta.display_name || meta.full_name || meta.name || user.email?.split('@')[0] || null;
-            creatorProfileData = {
-              user_id: tripData.created_by,
-              display_name: authName,
-              first_name: meta.first_name || null,
-              last_name: meta.last_name || null,
-              resolved_display_name: authName,
-              avatar_url: meta.avatar_url || null,
-            };
-          }
-          const tempMember = {
-            user_id: tripData.created_by,
-            role: 'admin',
-            created_at: new Date().toISOString(),
-            profiles: creatorProfileData || {
-              user_id: tripData.created_by,
-              display_name: 'Trip Creator',
-              first_name: null,
-              last_name: null,
-              resolved_display_name: 'Trip Creator',
-              avatar_url: null,
-            },
-            id: 'temp-fix-' + Date.now(),
-          };
-          dbMembers = [...(dbMembers || []), tempMember] as any;
+      if (members && members.length > 0) {
+        setTripMembers(members);
+        if (creatorId) {
+           setTripCreatorId(creatorId);
         }
-      }
-
-      if (dbMembers && dbMembers.length > 0) {
-        // Database has members - use them
-        const formattedMembers = formatTripMembers(dbMembers, tripData?.created_by);
-        setTripMembers(formattedMembers);
       } else if (isDemoMode) {
         // Demo mode + no DB members = use mock fallback
         const mockMembers = getMockFallbackMembers(tripId);

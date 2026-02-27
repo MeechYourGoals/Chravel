@@ -470,8 +470,20 @@ export class NotificationService {
     eventId?: string,
     excludeUserId?: string,
   ): Promise<boolean> {
+    // 🔄 REFACTOR: Use TDAL logic for audience resolution
+    const { notificationLogic } = await import('@/domain/notifications/notificationLogic');
+    const audience = await notificationLogic.resolveNotificationAudience({
+        tripId,
+        type: 'calendar',
+        actorId: excludeUserId
+    });
+
+    if (audience.push.length === 0) return true; // No one to notify
+
     return this.sendPushNotification({
+      userIds: audience.push, // Specifically target the resolved audience
       tripId,
+      // excludeUserId is already handled by resolveNotificationAudience, but keep for safety
       excludeUserId,
       type: 'itinerary_update',
       title: `${tripName} - Itinerary Updated`,
@@ -495,10 +507,23 @@ export class NotificationService {
     amount: string,
     description: string,
     paymentId: string,
-    userIds: string[],
+    userIds: string[], // These are the debtors (targets)
   ): Promise<boolean> {
+    // 🔄 REFACTOR: We already have the targeted userIds from the splits,
+    // but we still want to filter them through preferences (Quiet Hours, Mutes)
+    const { notificationLogic } = await import('@/domain/notifications/notificationLogic');
+    const audience = await notificationLogic.resolveNotificationAudience({
+        tripId,
+        type: 'payment',
+        entityId: paymentId
+    });
+
+    // Intersection of intended targets (debtors) and those who allow notifications
+    const finalTargets = userIds.filter(id => audience.push.includes(id));
+    if (finalTargets.length === 0) return true;
+
     return this.sendPushNotification({
-      userIds,
+      userIds: finalTargets,
       type: 'payment_request',
       title: '💰 Payment Request',
       body: `${requesterName} requested ${amount} for "${description}"`,
