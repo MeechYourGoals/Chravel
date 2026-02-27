@@ -1,5 +1,12 @@
 import React from 'react';
-import { MapPin, Star, ExternalLink, UtensilsCrossed, BookmarkPlus } from 'lucide-react';
+import {
+  MapPin,
+  Star,
+  ExternalLink,
+  UtensilsCrossed,
+  BookmarkPlus,
+  BookmarkCheck,
+} from 'lucide-react';
 
 export interface PlaceResult {
   placeId?: string | null;
@@ -17,7 +24,8 @@ interface PlaceResultCardsProps {
   places: PlaceResult[];
   className?: string;
   onSave?: (place: PlaceResult) => void;
-  isSaved?: (place: PlaceResult) => boolean;
+  isUrlSaved?: (url: string) => boolean;
+  isSaving?: boolean;
 }
 
 const toExternalHttpsUrl = (value?: string | null): string | null => {
@@ -48,7 +56,8 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
   places,
   className,
   onSave,
-  isSaved,
+  isUrlSaved,
+  isSaving,
 }) => {
   if (!places || places.length === 0) return null;
 
@@ -57,7 +66,12 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
       {places.slice(0, 3).map((place, idx) => {
         const photoSrc = place.previewPhotoUrl || place.photoUrls?.[0] || null;
         const mapsHref = toExternalHttpsUrl(place.mapsUrl);
-        const saved = isSaved?.(place) ?? false;
+        const placeUrl =
+          place.mapsUrl ||
+          (place.placeId
+            ? `https://www.google.com/maps/place/?q=place_id:${place.placeId}`
+            : `https://www.google.com/maps/search/${encodeURIComponent(place.name)}`);
+        const saved = isUrlSaved ? isUrlSaved(placeUrl) : false;
         // Only render known price levels — silently drop PRICE_LEVEL_UNSPECIFIED and other unknowns
         const priceLabel = place.priceLevel ? (PRICE_MAP[place.priceLevel] ?? null) : null;
 
@@ -140,10 +154,14 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
                   <button
                     type="button"
                     onClick={() => onSave(place)}
-                    disabled={saved}
-                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 transition-colors w-fit"
+                    disabled={saved || isSaving}
+                    className={`inline-flex items-center gap-1 text-[11px] transition-colors w-fit ${
+                      saved
+                        ? 'text-emerald-400 cursor-default'
+                        : 'text-primary hover:text-primary/80'
+                    }`}
                   >
-                    <BookmarkPlus size={10} />
+                    {saved ? <BookmarkCheck size={10} /> : <BookmarkPlus size={10} />}
                     {saved ? 'Saved ✓' : 'Save to Trip'}
                   </button>
                 )}

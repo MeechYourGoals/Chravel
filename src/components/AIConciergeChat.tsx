@@ -23,10 +23,7 @@ import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
-import { useQueryClient } from '@tanstack/react-query';
-import { saveConciergeCardToTrip } from '@/services/conciergeCardSaveService';
-import type { PlaceResult } from '@/features/chat/components/PlaceResultCards';
-import type { FlightResult } from '@/features/chat/components/FlightResultCards';
+import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -156,23 +153,6 @@ const _ALLOWED_IMAGE_TYPES = new Set([
 const _uniqueId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
-const normalizeExternalUrl = (value?: string | null): string => {
-  const trimmed = (value ?? '').trim();
-  if (!trimmed) return '';
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return `https://${trimmed}`;
-};
-
-const placeSaveKey = (place: PlaceResult): string => {
-  const url = normalizeExternalUrl(place.mapsUrl);
-  return `place::${place.placeId ?? place.name}::${url}`.toLowerCase();
-};
-
-const flightSaveKey = (flight: FlightResult): string => {
-  const url = normalizeExternalUrl(flight.deeplink);
-  return `flight::${flight.origin}-${flight.destination}-${flight.departureDate}-${flight.returnDate ?? ''}::${url}`.toLowerCase();
-};
-
 const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -238,7 +218,17 @@ export const AIConciergeChat = ({
   const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
   const storeSession = storeSessionRaw ?? EMPTY_SESSION;
   const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
-  const queryClient = useQueryClient();
+
+  const handleNavigateToPlaces = useCallback(() => {
+    if (onTabChange) onTabChange('places');
+  }, [onTabChange]);
+
+  const { savePlace, saveFlight, isUrlSaved, isSaving } = useSaveToTripPlaces({
+    tripId,
+    userId: user?.id ?? 'anonymous',
+    isDemoMode,
+    onNavigateToPlaces: handleNavigateToPlaces,
+  });
 
   // Hydrate from Zustand store on mount (preserves messages across tab switches)
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
@@ -264,7 +254,6 @@ export const AIConciergeChat = ({
   >('connected');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [savedCardKeys, setSavedCardKeys] = useState<Record<string, true>>({});
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
@@ -1033,81 +1022,6 @@ export const AIConciergeChat = ({
     }
   };
 
-  const markCardSaved = useCallback((key: string) => {
-    setSavedCardKeys(prev => ({ ...prev, [key]: true }));
-  }, []);
-
-  const saveCard = useCallback(
-    async (cardKey: string, title: string, url: string, type: string) => {
-      if (!user?.id) {
-        toast.error('Please sign in to save to trip');
-        return;
-      }
-
-      const normalizedUrl = normalizeExternalUrl(url);
-      if (!normalizedUrl || !title.trim()) {
-        toast.error('This card is missing a valid link');
-        return;
-      }
-
-      const result = await saveConciergeCardToTrip({
-        tripId,
-        createdBy: user.id,
-        isDemoMode,
-        card: {
-          title,
-          url: normalizedUrl,
-          type,
-        },
-      });
-
-      if (!result.ok) {
-        toast.error('Could not save to Places');
-        return;
-      }
-
-      markCardSaved(cardKey);
-
-      if (result.alreadySaved) {
-        toast.info('Already saved');
-      } else {
-        await queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId] });
-        await queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId, isDemoMode] });
-        toast.success('Saved to Places');
-      }
-    },
-    [isDemoMode, markCardSaved, queryClient, tripId, user?.id],
-  );
-
-  const handleSavePlace = useCallback(
-    async (place: PlaceResult) => {
-      const key = placeSaveKey(place);
-      const placeUrl = normalizeExternalUrl(place.mapsUrl);
-      await saveCard(key, place.name, placeUrl, 'place');
-    },
-    [saveCard],
-  );
-
-  const handleSaveFlight = useCallback(
-    async (flight: FlightResult) => {
-      const key = flightSaveKey(flight);
-      const flightUrl = normalizeExternalUrl(flight.deeplink);
-      const flightTitle = `${flight.origin.toUpperCase()} → ${flight.destination.toUpperCase()} (${flight.departureDate}${flight.returnDate ? ` to ${flight.returnDate}` : ''})`;
-      await saveCard(key, flightTitle, flightUrl, 'flight');
-    },
-    [saveCard],
-  );
-
-  const isPlaceSaved = useCallback(
-    (place: PlaceResult) => Boolean(savedCardKeys[placeSaveKey(place)]),
-    [savedCardKeys],
-  );
-
-  const isFlightSaved = useCallback(
-    (flight: FlightResult) => Boolean(savedCardKeys[flightSaveKey(flight)]),
-    [savedCardKeys],
-  );
-
   const generateFallbackResponse = (
     query: string,
     tripContext: FallbackTripContext,
@@ -1354,14 +1268,10 @@ export const AIConciergeChat = ({
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
               onTabChange={onTabChange}
-              onSavePlace={async place => {
-                await handleSavePlace(place);
-              }}
-              onSaveFlight={async flight => {
-                await handleSaveFlight(flight);
-              }}
-              isPlaceSaved={isPlaceSaved}
-              isFlightSaved={isFlightSaved}
+              onSavePlace={savePlace}
+              onSaveFlight={saveFlight}
+              isUrlSaved={isUrlSaved}
+              isSaving={isSaving}
               onEditReservation={(prefill: string) => {
                 setInputMessage(prefill);
               }}

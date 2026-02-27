@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plane, Calendar, Users, ExternalLink, BookmarkPlus } from 'lucide-react';
+import { Plane, Calendar, Users, ExternalLink, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 
 export interface FlightResult {
   origin: string;
@@ -14,7 +14,8 @@ interface FlightResultCardsProps {
   flights: FlightResult[];
   className?: string;
   onSave?: (flight: FlightResult) => void;
-  isSaved?: (flight: FlightResult) => boolean;
+  isUrlSaved?: (url: string) => boolean;
+  isSaving?: boolean;
 }
 
 const toExternalHttpsUrl = (value: string): string | null => {
@@ -36,7 +37,8 @@ export const FlightResultCards: React.FC<FlightResultCardsProps> = ({
   flights,
   className,
   onSave,
-  isSaved,
+  isUrlSaved,
+  isSaving,
 }) => {
   if (!flights || flights.length === 0) return null;
 
@@ -44,7 +46,7 @@ export const FlightResultCards: React.FC<FlightResultCardsProps> = ({
     <div className={`flex flex-col gap-2.5 ${className ?? ''}`}>
       {flights.map((flight, idx) => {
         const deeplink = toExternalHttpsUrl(flight.deeplink);
-        const saved = isSaved?.(flight) ?? false;
+        const saved = isUrlSaved ? isUrlSaved(flight.deeplink) : false;
 
         return (
           <div
@@ -99,11 +101,15 @@ export const FlightResultCards: React.FC<FlightResultCardsProps> = ({
                 <button
                   type="button"
                   onClick={() => onSave(flight)}
-                  disabled={saved}
-                  className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-80 text-blue-200 hover:text-white text-xs font-medium rounded-lg transition-colors"
-                  title="Save to Trip"
+                  disabled={saved || isSaving}
+                  className={`flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                    saved
+                      ? 'bg-emerald-500/20 text-emerald-300 cursor-default'
+                      : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 hover:text-white'
+                  }`}
+                  title={saved ? 'Saved' : 'Save to Trip'}
                 >
-                  <BookmarkPlus size={16} />
+                  {saved ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />}
                   {saved ? 'Saved ✓' : 'Save to Trip'}
                 </button>
               )}

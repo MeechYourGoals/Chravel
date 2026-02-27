@@ -46,6 +46,18 @@
 - Playwright run attempted (`npx playwright test ... --project=chromium`) but browser binary is unavailable in container; install attempt failed due CDN 403, so runtime execution remains blocked by environment.
 - Risk: selector stability depends on current `aria-label`/button labels (`Create Event Recap`, `View event details`); changes to copy should update this spec intentionally.
 
+## Pro trips Channels + Roles + Media launch-readiness audit
+- [x] Scope Pro trip channel/role/media architecture and locate source-of-truth hooks/services.
+- [x] Dogfood Pro trip flows in app-preview mode (chat/channels, team roles, media hub) and log runtime failures.
+- [x] Produce a launch-readiness deep-dive with bugs, edge cases, and MVP-safe high-impact feature recommendations.
+- [x] Run lint + typecheck + build gates before commit.
+- [x] Commit audit deliverable + open PR.
+
+## Pro channels/roles/media hardening implementation
+- [x] Scope smallest high-impact fixes from prior audit (cache keys, demo gating, message author fallback).
+- [x] Implement targeted code fixes in hooks/services only (no broad refactor).
+- [x] Validate with lint + typecheck + build.
+- [x] Commit changes and create PR.
 ## Tasks module launch-readiness deep dive
 - [x] Attempt requested Vercel dogfood workflow and record blockers/workaround.
 - [x] Audit Tasks UI/hooks/services/tests for launch-blocking bugs and edge cases.
