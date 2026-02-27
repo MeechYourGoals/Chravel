@@ -781,6 +781,102 @@ async function _executeImpl(
       };
     }
 
+    case 'emitReservationDraft': {
+      const { placeQuery, startTimeISO, partySize, reservationName, notes } = args;
+
+      const query = String(placeQuery || '').trim();
+      if (!query) return { error: 'placeQuery is required to build a reservation draft' };
+
+      // Internally search for the place to enrich the draft with real data
+      let placeId: string | null = null;
+      let placeName = query;
+      let address = '';
+      let lat: number | null = null;
+      let lng: number | null = null;
+      let phone: string | null = null;
+      let websiteUrl: string | null = null;
+      let bookingUrl: string | null = null;
+
+      try {
+        const searchResult = await _executeImpl(
+          supabase,
+          'searchPlaces',
+          { query },
+          tripId,
+          userId,
+          locationContext,
+        );
+        if (searchResult.success && searchResult.places?.length > 0) {
+          const topPlace = searchResult.places[0];
+          placeId = topPlace.placeId || null;
+          placeName = topPlace.name || placeName;
+          address = topPlace.address || '';
+        }
+
+        // Enrich with details (phone, website, coordinates)
+        if (placeId) {
+          const detailsResult = await _executeImpl(
+            supabase,
+            'getPlaceDetails',
+            { placeId },
+            tripId,
+            userId,
+            locationContext,
+          );
+          if (detailsResult.success) {
+            placeName = detailsResult.name || placeName;
+            address = detailsResult.address || address;
+            phone = detailsResult.phone || null;
+            websiteUrl = detailsResult.website || null;
+            bookingUrl = detailsResult.website || null;
+          }
+        }
+
+        // Get coordinates via address validation if not yet available
+        if (!lat && address) {
+          const addrResult = await _executeImpl(
+            supabase,
+            'validateAddress',
+            { address },
+            tripId,
+            userId,
+            locationContext,
+          );
+          if (addrResult.success) {
+            lat = addrResult.lat ?? null;
+            lng = addrResult.lng ?? null;
+          }
+        }
+      } catch (enrichError) {
+        console.error('[emitReservationDraft] Place enrichment failed:', enrichError);
+        // Continue with partial data — the draft is still usable
+      }
+
+      const draft = {
+        id: crypto.randomUUID(),
+        tripId,
+        placeId,
+        placeName,
+        address,
+        lat,
+        lng,
+        phone,
+        websiteUrl,
+        bookingUrl,
+        startTimeISO: startTimeISO || null,
+        partySize: Number(partySize) || 2,
+        reservationName: String(reservationName || ''),
+        notes: String(notes || ''),
+      };
+
+      return {
+        success: true,
+        draft,
+        actionType: 'reservation_draft',
+        message: `Reservation draft created for ${placeName}`,
+      };
+    }
+
     default:
       return { error: `Unknown function: ${functionName}` };
   }
