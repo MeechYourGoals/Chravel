@@ -916,9 +916,7 @@ serve(async req => {
     const effectiveAgentMode = agentMode || isSuperAdmin;
 
     if (effectiveAgentMode) {
-      console.log(
-        `[Agent] Mode ENABLED for ${user?.email || 'unknown'} (requested: ${agentMode}, isAdmin: ${isSuperAdmin})`,
-      );
+      console.log(`[Agent] Mode ENABLED for ${user?.email || 'unknown'} (requested: ${agentMode}, isAdmin: ${isSuperAdmin})`);
     }
 
     // Membership gate
@@ -1062,8 +1060,7 @@ serve(async req => {
     // but still include full formatting instructions so responses are rich and link-heavy.
     let baseSystemPrompt: string;
 
-    const AGENT_INSTRUCTION = effectiveAgentMode
-      ? `
+    const AGENT_INSTRUCTION = effectiveAgentMode ? `
 
 === AGENT MODE ENABLED ===
 You are in AGENT MODE. You can execute multiple tools in sequence to complete complex requests.
@@ -1072,18 +1069,17 @@ You are in AGENT MODE. You can execute multiple tools in sequence to complete co
 - If you need the result of one tool to perform the next (e.g. searchPlaces -> getPlaceDetails), do it in steps.
 - Always provide a final summary of ALL actions taken.
 - Never fabricate tool results. If a tool fails, inform the user.
-<<<<<<< HEAD
 ` : '';
-=======
-`
-      : '';
+
+    // Flight saving instruction (from code review)
     const saveFlightInstruction = `
-**Handling "Save Flight" requests:**
-- If the user asks to "save a flight" or "save this flight", use the \`savePlace\` tool.
-- Set the \`url\` parameter to the flight deeplink provided.
-- Set the \`category\` to "activity" or "other".
-- Save it as a link object.`;
->>>>>>> 5d9ab2f9 (fix: agent mode cascading bugs from PR review)
+
+    If the user asks to save a flight or adds flight details:
+    - Use the 'savePlace' tool.
+    - Set category to 'activity' (or 'other' if activity is not suitable).
+    - In the description, include the flight number, departure/arrival times, and airports.
+    - Use a Google Flights link or the airline's website as the URL if possible.
+    `;
 
     if (!tripRelated || !comprehensiveContext) {
       baseSystemPrompt = `You are **Chravel Concierge**, a helpful AI travel and general assistant.
