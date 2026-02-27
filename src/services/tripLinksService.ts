@@ -131,6 +131,7 @@ function saveDemoLinks(tripId: string, links: TripLink[]): void {
 export async function createTripLink(
   params: CreateTripLinkParams,
   isDemoMode: boolean,
+  options: { suppressToast?: boolean } = {},
 ): Promise<TripLink | null> {
   console.info('[TripLinksService] Creating trip link', {
     tripId: params.tripId,
@@ -158,7 +159,9 @@ export async function createTripLink(
     saveDemoLinks(params.tripId, demoLinks);
 
     console.info('[TripLinksService] ✅ Demo link created', { linkId: demoLink.id });
-    toast.success('Link added to trip');
+    if (!options.suppressToast) {
+      toast.success('Link added to trip');
+    }
     return demoLink;
   }
 
@@ -177,16 +180,22 @@ export async function createTripLink(
 
     if (error) {
       console.error('[TripLinksService] ❌ Create error', error);
-      toast.error('Failed to add link');
+      if (!options.suppressToast) {
+        toast.error('Failed to add link');
+      }
       return null;
     }
 
     console.info('[TripLinksService] ✅ Link created', { linkId: data.id });
-    toast.success('Link added to trip');
+    if (!options.suppressToast) {
+      toast.success('Link added to trip');
+    }
     return data;
   } catch (error) {
     console.error('[TripLinksService] ❌ Unexpected error', error);
-    toast.error('Failed to add link');
+    if (!options.suppressToast) {
+      toast.error('Failed to add link');
+    }
     return null;
   }
 }

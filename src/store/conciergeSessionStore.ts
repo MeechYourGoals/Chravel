@@ -37,6 +37,25 @@ export interface ConciergeSessionMessage {
     source?: string;
   }>;
   googleMapsWidget?: string;
+  functionCallPlaces?: Array<{
+    placeId?: string | null;
+    name: string;
+    address?: string;
+    rating?: number | null;
+    userRatingCount?: number | null;
+    priceLevel?: string | null;
+    mapsUrl?: string | null;
+    previewPhotoUrl?: string | null;
+    photoUrls?: string[];
+  }>;
+  functionCallFlights?: Array<{
+    origin: string;
+    destination: string;
+    departureDate: string;
+    returnDate?: string;
+    passengers: number;
+    deeplink: string;
+  }>;
 }
 
 export interface ConciergeSession {

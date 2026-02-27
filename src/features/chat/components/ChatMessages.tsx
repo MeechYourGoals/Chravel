@@ -26,6 +26,8 @@ interface ChatMessagesProps {
   onTabChange?: (tab: string) => void;
   onSavePlace?: (place: PlaceResult) => void;
   onSaveFlight?: (flight: FlightResult) => void;
+  isPlaceSaved?: (place: PlaceResult) => boolean;
+  isFlightSaved?: (flight: FlightResult) => boolean;
   onEditReservation?: (prefill: string) => void;
 }
 
@@ -37,6 +39,8 @@ export const ChatMessages = ({
   onTabChange,
   onSavePlace,
   onSaveFlight,
+  isPlaceSaved,
+  isFlightSaved,
   onEditReservation,
 }: ChatMessagesProps) => {
   if (messages.length === 0) {
@@ -67,6 +71,7 @@ export const ChatMessages = ({
                   places={rich.functionCallPlaces}
                   className="max-w-xs lg:max-w-md"
                   onSave={onSavePlace}
+                  isSaved={isPlaceSaved}
                 />
               </div>
             )}
@@ -80,6 +85,7 @@ export const ChatMessages = ({
                   flights={rich.functionCallFlights}
                   className="max-w-xs lg:max-w-md"
                   onSave={onSaveFlight}
+                  isSaved={isFlightSaved}
                 />
               </div>
             )}

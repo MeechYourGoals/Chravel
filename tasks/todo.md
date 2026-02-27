@@ -51,3 +51,10 @@
 - [x] Audit Tasks UI/hooks/services/tests for launch-blocking bugs and edge cases.
 - [x] Produce actionable launch-readiness report with high-impact MVP feature adds.
 - [x] Run lint/typecheck/build gates before shipping findings.
+
+## AI concierge rich card persistence + save-to-trip hardening
+- [x] Scope concierge rich-card rendering + link-save path and identify root causes for disappearing flight cards / blocked links.
+- [x] Implement targeted chat model + renderer updates so rich cards persist per-message and flight links open reliably via hardened anchors.
+- [x] Add reusable concierge-card save mutation that writes simple link records to Places Explore with dedupe + saved state UX across rich cards.
+- [x] Add/adjust automated tests for rich card persistence and save CTA behavior.
+- [x] Run required quality gates (`npm run lint && npm run typecheck && npm run build`) and capture manual verification notes.

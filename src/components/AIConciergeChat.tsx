@@ -23,6 +23,10 @@ import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
+import { useQueryClient } from '@tanstack/react-query';
+import { saveConciergeCardToTrip } from '@/services/conciergeCardSaveService';
+import type { PlaceResult } from '@/features/chat/components/PlaceResultCards';
+import type { FlightResult } from '@/features/chat/components/FlightResultCards';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -152,6 +156,23 @@ const _ALLOWED_IMAGE_TYPES = new Set([
 const _uniqueId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
+const normalizeExternalUrl = (value?: string | null): string => {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+};
+
+const placeSaveKey = (place: PlaceResult): string => {
+  const url = normalizeExternalUrl(place.mapsUrl);
+  return `place::${place.placeId ?? place.name}::${url}`.toLowerCase();
+};
+
+const flightSaveKey = (flight: FlightResult): string => {
+  const url = normalizeExternalUrl(flight.deeplink);
+  return `flight::${flight.origin}-${flight.destination}-${flight.departureDate}-${flight.returnDate ?? ''}::${url}`.toLowerCase();
+};
+
 const fileToAttachmentPayload = async (file: File): Promise<ConciergeAttachment> => {
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -217,11 +238,13 @@ export const AIConciergeChat = ({
   const storeSessionRaw = useConciergeSessionStore(s => s.sessions[tripId]);
   const storeSession = storeSessionRaw ?? EMPTY_SESSION;
   const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
+  const queryClient = useQueryClient();
 
   // Hydrate from Zustand store on mount (preserves messages across tab switches)
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     storeSession.messages.length > 0 ? (storeSession.messages as ChatMessage[]) : [],
   );
+  const messagesRef = useRef<ChatMessage[]>(messages);
   // True after the chat is hydrated from the server DB (not just cache/empty).
   // Used to show the "Picked up where you left off" chip.
   const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(
@@ -241,6 +264,7 @@ export const AIConciergeChat = ({
   >('connected');
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [savedCardKeys, setSavedCardKeys] = useState<Record<string, true>>({});
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
@@ -342,6 +366,7 @@ export const AIConciergeChat = ({
 
   // Sync messages to Zustand store so they persist across tab switches
   useEffect(() => {
+    messagesRef.current = messages;
     if (messages.length > 0) {
       setStoreMessages(
         tripId,
@@ -513,7 +538,7 @@ export const AIConciergeChat = ({
     }
 
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: _uniqueId('user'),
       type: 'user',
       content: userDisplayContent,
       timestamp: new Date().toISOString(),
@@ -603,7 +628,7 @@ export const AIConciergeChat = ({
 
       // ========== STREAMING PATH ==========
       if (!isDemoMode) {
-        const streamingMessageId = `stream-${Date.now()}`;
+        const streamingMessageId = _uniqueId('stream');
         let receivedAnyChunk = false;
         let accumulatedStreamContent = ''; // accumulates full text so we can cache after onDone
         const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
@@ -863,12 +888,17 @@ export const AIConciergeChat = ({
                 // Cache the completed response for offline fallback.
                 // Use the locally accumulated string — no setState read needed.
                 if (accumulatedStreamContent) {
-                  const cachedMsg: ChatMessage = {
-                    id: streamingMessageId,
-                    type: 'assistant',
-                    content: accumulatedStreamContent,
-                    timestamp: new Date().toISOString(),
-                  };
+                  const latestStreamingMessage = messagesRef.current.find(
+                    msg => msg.id === streamingMessageId,
+                  );
+                  const cachedMsg: ChatMessage = latestStreamingMessage
+                    ? { ...latestStreamingMessage, content: accumulatedStreamContent }
+                    : {
+                        id: streamingMessageId,
+                        type: 'assistant',
+                        content: accumulatedStreamContent,
+                        timestamp: new Date().toISOString(),
+                      };
                   conciergeCacheService.cacheMessage(
                     tripId,
                     currentInput,
@@ -933,7 +963,7 @@ export const AIConciergeChat = ({
         );
 
         const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: _uniqueId('assistant'),
           type: 'assistant',
           content: fallbackResponse,
           timestamp: new Date().toISOString(),
@@ -951,7 +981,7 @@ export const AIConciergeChat = ({
       }
 
       const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: _uniqueId('assistant'),
         type: 'assistant',
         content: data.response || 'Sorry, I encountered an error processing your request.',
         timestamp: new Date().toISOString(),
@@ -981,7 +1011,7 @@ export const AIConciergeChat = ({
           basecampLocation,
         );
         const errorMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: _uniqueId('assistant'),
           type: 'assistant',
           content: `⚠️ **AI Service Temporarily Unavailable**\n\n${fallbackResponse}\n\n*Note: This is a basic response. Full AI features will return once the service is restored.*`,
           timestamp: new Date().toISOString(),
@@ -989,7 +1019,7 @@ export const AIConciergeChat = ({
         setMessages(prev => [...prev, errorMessage]);
       } catch {
         const errorMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: _uniqueId('assistant'),
           type: 'assistant',
           content: `I'm having trouble connecting to my AI services right now. Please try again in a moment.`,
           timestamp: new Date().toISOString(),
@@ -1002,6 +1032,81 @@ export const AIConciergeChat = ({
       }
     }
   };
+
+  const markCardSaved = useCallback((key: string) => {
+    setSavedCardKeys(prev => ({ ...prev, [key]: true }));
+  }, []);
+
+  const saveCard = useCallback(
+    async (cardKey: string, title: string, url: string, type: string) => {
+      if (!user?.id) {
+        toast.error('Please sign in to save to trip');
+        return;
+      }
+
+      const normalizedUrl = normalizeExternalUrl(url);
+      if (!normalizedUrl || !title.trim()) {
+        toast.error('This card is missing a valid link');
+        return;
+      }
+
+      const result = await saveConciergeCardToTrip({
+        tripId,
+        createdBy: user.id,
+        isDemoMode,
+        card: {
+          title,
+          url: normalizedUrl,
+          type,
+        },
+      });
+
+      if (!result.ok) {
+        toast.error('Could not save to Places');
+        return;
+      }
+
+      markCardSaved(cardKey);
+
+      if (result.alreadySaved) {
+        toast.info('Already saved');
+      } else {
+        await queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId] });
+        await queryClient.invalidateQueries({ queryKey: ['tripLinks', tripId, isDemoMode] });
+        toast.success('Saved to Places');
+      }
+    },
+    [isDemoMode, markCardSaved, queryClient, tripId, user?.id],
+  );
+
+  const handleSavePlace = useCallback(
+    async (place: PlaceResult) => {
+      const key = placeSaveKey(place);
+      const placeUrl = normalizeExternalUrl(place.mapsUrl);
+      await saveCard(key, place.name, placeUrl, 'place');
+    },
+    [saveCard],
+  );
+
+  const handleSaveFlight = useCallback(
+    async (flight: FlightResult) => {
+      const key = flightSaveKey(flight);
+      const flightUrl = normalizeExternalUrl(flight.deeplink);
+      const flightTitle = `${flight.origin.toUpperCase()} → ${flight.destination.toUpperCase()} (${flight.departureDate}${flight.returnDate ? ` to ${flight.returnDate}` : ''})`;
+      await saveCard(key, flightTitle, flightUrl, 'flight');
+    },
+    [saveCard],
+  );
+
+  const isPlaceSaved = useCallback(
+    (place: PlaceResult) => Boolean(savedCardKeys[placeSaveKey(place)]),
+    [savedCardKeys],
+  );
+
+  const isFlightSaved = useCallback(
+    (flight: FlightResult) => Boolean(savedCardKeys[flightSaveKey(flight)]),
+    [savedCardKeys],
+  );
 
   const generateFallbackResponse = (
     query: string,
@@ -1091,7 +1196,10 @@ export const AIConciergeChat = ({
             >
               {queryAllowanceText}
             </span>
-            <h3 className="text-lg font-semibold text-white flex-1 text-center min-w-0" data-testid="ai-concierge-header">
+            <h3
+              className="text-lg font-semibold text-white flex-1 text-center min-w-0"
+              data-testid="ai-concierge-header"
+            >
               AI Concierge
             </h3>
             <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
@@ -1247,15 +1355,13 @@ export const AIConciergeChat = ({
               onDeleteMessage={handleDeleteMessage}
               onTabChange={onTabChange}
               onSavePlace={async place => {
-                // Trigger a message to the AI to save the place. The AI will use the `savePlace` tool.
-                const savePrompt = `Save "${place.name}" to trip places. URL: ${place.mapsUrl || ''}`;
-                handleSendMessage(savePrompt);
+                await handleSavePlace(place);
               }}
               onSaveFlight={async flight => {
-                // Trigger a message to the AI to save the flight. The AI will use `savePlace` (which handles links) to persist the flight URL.
-                const savePrompt = `Save flight from ${flight.origin} to ${flight.destination} departing ${flight.departureDate}. URL: ${flight.deeplink}`;
-                handleSendMessage(savePrompt);
+                await handleSaveFlight(flight);
               }}
+              isPlaceSaved={isPlaceSaved}
+              isFlightSaved={isFlightSaved}
               onEditReservation={(prefill: string) => {
                 setInputMessage(prefill);
               }}

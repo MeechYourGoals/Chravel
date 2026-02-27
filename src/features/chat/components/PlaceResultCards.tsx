@@ -17,7 +17,24 @@ interface PlaceResultCardsProps {
   places: PlaceResult[];
   className?: string;
   onSave?: (place: PlaceResult) => void;
+  isSaved?: (place: PlaceResult) => boolean;
 }
+
+const toExternalHttpsUrl = (value?: string | null): string | null => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (/^https:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^http:\/\//i.test(trimmed)) {
+    return `https://${trimmed.slice('http://'.length)}`;
+  }
+
+  return null;
+};
 
 const PRICE_MAP: Record<string, string> = {
   PRICE_LEVEL_FREE: 'Free',
@@ -31,6 +48,7 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
   places,
   className,
   onSave,
+  isSaved,
 }) => {
   if (!places || places.length === 0) return null;
 
@@ -38,6 +56,8 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
     <div className={`flex flex-col gap-2.5 ${className ?? ''}`}>
       {places.slice(0, 3).map((place, idx) => {
         const photoSrc = place.previewPhotoUrl || place.photoUrls?.[0] || null;
+        const mapsHref = toExternalHttpsUrl(place.mapsUrl);
+        const saved = isSaved?.(place) ?? false;
         // Only render known price levels — silently drop PRICE_LEVEL_UNSPECIFIED and other unknowns
         const priceLabel = place.priceLevel ? (PRICE_MAP[place.priceLevel] ?? null) : null;
 
@@ -103,9 +123,9 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
               {/* Action Buttons */}
               <div className="flex items-center gap-3 mt-1.5">
                 {/* Open in Maps */}
-                {place.mapsUrl && (
+                {mapsHref && (
                   <a
-                    href={place.mapsUrl}
+                    href={mapsHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline w-fit"
@@ -118,11 +138,13 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
                 {/* Save to Trip */}
                 {onSave && (
                   <button
+                    type="button"
                     onClick={() => onSave(place)}
+                    disabled={saved}
                     className="inline-flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 transition-colors w-fit"
                   >
                     <BookmarkPlus size={10} />
-                    Save to Trip
+                    {saved ? 'Saved ✓' : 'Save to Trip'}
                   </button>
                 )}
               </div>
