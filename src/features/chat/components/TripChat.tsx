@@ -113,6 +113,7 @@ export const TripChat = ({
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
   const typingServiceRef = useRef<TypingIndicatorService | null>(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+  const [showPinnedMessage, setShowPinnedMessage] = useState(true); // Toggle state for pinned banner
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [activeThreadMessage, setActiveThreadMessage] = useState<{
     id: string;
@@ -473,36 +474,6 @@ export const TripChat = ({
       // Use actual privacy mode from trip config
       const effectivePrivacyMode = getEffectivePrivacyMode(privacyConfig);
 
-      // Note: We need to update sendTripMessage to accept replyToId if the hook supports it,
-      // OR we manually call the service. `useTripChat`'s sendMessageAsync calls `createMessageMutation`.
-      // The current `useTripChat` hook signature doesn't expose replyToId.
-      // We need to modify `useTripChat` to support it, OR pass it in message metadata if supported.
-      // For now, let's assume `useTripChat` will be updated or we can pass it as metadata/context.
-      // Actually `sendMessageAsync` in `useTripChat` takes specific args.
-      // We might need to update `useTripChat.ts` to accept `replyToId`.
-      // Wait, let's check `useTripChat.ts`. It seems to call `createMessageMutation`.
-      // `createMessageRequest` doesn't explicitly have `replyToId`.
-      // We should probably update `useTripChat` or pass it differently.
-
-      // Since I can't modify `useTripChat` in this specific file update step (I'm editing TripChat.tsx),
-      // I will assume for now we might miss the reply linkage in the DB unless I also update the hook.
-      // But the plan step says "Update TripChat.tsx to resolve reply_to_id".
-      // Let's assume the hook update is part of the "Service Layer" or "Hook" update which might be needed.
-      // Wait, I should check if `sendTripMessage` supports it.
-
-      // Looking at `useTripChat` signature in the file I read earlier:
-      // sendMessageAsync(content, authorName, mediaType, mediaUrl, userId, privacyMode, messageType)
-      // It does NOT take replyToId.
-      // However, `useChatComposer` DOES handle `replyingTo` state.
-      // The `message` object returned by `sendMessage` (from `useChatComposer`) DOES contain `replyTo`.
-
-      // I need to update `useTripChat` to support `replyToId`.
-      // But for this file `TripChat.tsx`, I am resolving `reply_to_id` for DISPLAY.
-      // Sending the reply ID needs to be done.
-
-      // Let's assume for this specific step of "Implement Inline Reply Quotes" (Display side),
-      // the focus is on resolving and displaying.
-
       await sendTripMessage(
         message.text,
         authorName,
@@ -583,7 +554,17 @@ export const TripChat = ({
 
       // In demo mode, just toggle local state
       if (demoMode.isDemoMode) {
-          setDemoMessages(prev => prev.map(m => m.id === messageId ? { ...m, isPinned: !m.isPinned } : m));
+          // Unpin any other message first
+          setDemoMessages(prev => prev.map(m => {
+            if (m.id === messageId) {
+                // Toggle clicked message
+                return { ...m, isPinned: !m.isPinned };
+            } else if (m.isPinned) {
+                // Unpin others
+                return { ...m, isPinned: false };
+            }
+            return m;
+          }));
           return;
       }
 
@@ -594,8 +575,10 @@ export const TripChat = ({
               await unpinMessage(messageId);
               toast.success("Message unpinned");
           } else {
-              await pinMessage(messageId, user.id);
+              // Pass tripId to enforce single pin
+              await pinMessage(messageId, user.id, resolvedTripId);
               toast.success("Message pinned");
+              setShowPinnedMessage(true); // Auto-show banner when pinning
           }
           // The subscription to trip_chat_messages (handled in PinnedMessageBanner)
           // or React Query invalidation should update the UI.
@@ -663,19 +646,6 @@ export const TripChat = ({
 
   // Handle opening a thread
   const handleOpenThread = (messageId: string) => {
-    // Instead of opening a thread drawer, we might want to just set it as "replying to".
-    // But the UI usually distinguishes between "Thread" (Slack style) and "Reply" (WhatsApp style).
-    // The request said "Inline reply quote bubble". This usually means WhatsApp style reply.
-    // So "Reply" action should call `setReply`.
-
-    // Check if we need to distinguish between "Reply" (inline) and "Thread" (drawer).
-    // The current UI has `handleOpenThread` which opens `ThreadView`.
-    // The `MessageItem` has `onReply`.
-    // If we want INLINE replies, we should probably change `onReply` to trigger `setReply`
-    // OR add a separate action.
-    // Typically "Reply" on mobile = Inline Quote. "Thread" = Separate view.
-    // Let's assume `onReply` in `MessageBubble` triggers the inline reply composer.
-
     const message =
       liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
     if (!message) return;
@@ -687,9 +657,6 @@ export const TripChat = ({
         : ((message as TripChatMessage).author_name || 'User'); // Fallback
 
     setReply(messageId, content, authorName);
-
-    // Original thread view logic (optional/alternative)
-    // setActiveThreadMessage(...)
   };
 
   // ⚡ PERFORMANCE: Synchronous demo message loading (no unnecessary async wrapper)
@@ -845,7 +812,7 @@ export const TripChat = ({
           className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative min-h-0"
         >
           {/* Pinned Messages Banner */}
-          <PinnedMessageBanner tripId={resolvedTripId} />
+          {showPinnedMessage && <PinnedMessageBanner tripId={resolvedTripId} />}
 
           {/* Filter Tabs */}
           <MessageTypeBar
@@ -862,6 +829,9 @@ export const TripChat = ({
               setActiveChannel(channel);
               setMessageFilter('channels');
             }}
+            // Pass props for pin toggle
+            onTogglePin={() => setShowPinnedMessage(prev => !prev)}
+            isPinVisible={showPinnedMessage}
           />
 
           {/* Conditional Content Area */}

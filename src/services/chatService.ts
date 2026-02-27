@@ -1,10 +1,34 @@
 
 /**
- * Pin a chat message
+ * Pin a chat message (Single Pin Rule: Unpins others in the same trip first)
  */
-export async function pinMessage(messageId: string, userId: string): Promise<boolean> {
+export async function pinMessage(messageId: string, userId: string, tripId: string): Promise<boolean> {
   try {
-    // Fetch current message payload
+    // 1. Unpin any currently pinned messages for this trip
+    // We fetch them first to get their IDs
+    const { data: existingPins } = await supabase
+      .from('trip_chat_messages')
+      .select('id, payload')
+      .eq('trip_id', tripId)
+      .eq('is_deleted', false)
+      .contains('payload', { pinned: true });
+
+    if (existingPins && existingPins.length > 0) {
+      for (const pin of existingPins) {
+        const payload = (pin.payload as Record<string, any>) || {};
+        const newPayload = { ...payload };
+        delete newPayload.pinned;
+        delete newPayload.pinned_at;
+        delete newPayload.pinned_by;
+
+        await supabase
+          .from('trip_chat_messages')
+          .update({ payload: newPayload })
+          .eq('id', pin.id);
+      }
+    }
+
+    // 2. Pin the new message
     const { data: message, error: fetchError } = await supabase
       .from('trip_chat_messages')
       .select('payload')
