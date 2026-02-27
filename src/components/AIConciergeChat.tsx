@@ -15,7 +15,6 @@ import {
   invokeConcierge,
   invokeConciergeStream,
   type StreamMetadataEvent,
-  type ReservationDraft,
 } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
@@ -77,15 +76,6 @@ export interface ChatMessage {
     previewPhotoUrl?: string | null;
     photoUrls?: string[];
   }>;
-  /** Rich flight results from searchFlights tool calls */
-  functionCallFlights?: Array<{
-    origin: string;
-    destination: string;
-    departureDate: string;
-    returnDate?: string;
-    passengers: number;
-    deeplink: string;
-  }>;
   /** Action results from concierge write tools (createPoll, createTask, etc.) */
   conciergeActions?: Array<{
     actionType: string;
@@ -95,8 +85,6 @@ export interface ChatMessage {
     entityName?: string;
     scope?: string;
   }>;
-  /** Reservation draft cards from emitReservationDraft tool */
-  reservationDrafts?: ReservationDraft[];
 }
 
 interface ConciergeInvokePayload {
@@ -239,6 +227,7 @@ export const AIConciergeChat = ({
   const [aiStatus, setAiStatus] = useState<
     'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
   >('connected');
+  const [agentStatus, setAgentStatus] = useState<string | null>(null);
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
@@ -596,7 +585,10 @@ export const AIConciergeChat = ({
         };
 
         const streamHandle = invokeConciergeStream(
-          requestBody,
+          {
+            ...requestBody,
+            agentMode: import.meta.env.DEV || localStorage.getItem('chravel_agent_mode') === '1',
+          },
           {
             onChunk: (text: string) => {
               if (!isMounted.current) return;
@@ -625,6 +617,20 @@ export const AIConciergeChat = ({
                 return;
               }
               updateStreamMsg(msg => ({ content: msg.content + text }));
+            },
+            onAgentStatus: (status: string, iter?: number) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true; // Status events count as activity
+
+              if (status === 'planning') {
+                setAgentStatus(`Thinking (Step ${iter ? iter + 1 : 1})...`);
+              } else if (status === 'executing_tools') {
+                setAgentStatus(`Taking action...`);
+              } else if (status === 'finalizing') {
+                setAgentStatus('Finalizing...');
+              } else {
+                setAgentStatus(null);
+              }
             },
             onFunctionCall: (name: string, result: Record<string, unknown>) => {
               if (!isMounted.current) return;
@@ -657,19 +663,6 @@ export const AIConciergeChat = ({
               if (name === 'searchPlaces' && result.places && Array.isArray(result.places)) {
                 ensureAndPatch({
                   functionCallPlaces: result.places as ChatMessage['functionCallPlaces'],
-                });
-              }
-              if (name === 'searchFlights' && result.success) {
-                const flightResult = {
-                  origin: result.origin as string,
-                  destination: result.destination as string,
-                  departureDate: result.departureDate as string,
-                  returnDate: result.returnDate as string | undefined,
-                  passengers: (result.passengers as number) || 1,
-                  deeplink: result.deeplink as string,
-                };
-                ensureAndPatch({
-                  functionCallFlights: [flightResult],
                 });
               }
               if (name === 'getPlaceDetails' && result.success) {
@@ -756,32 +749,6 @@ export const AIConciergeChat = ({
                 });
               }
             },
-            onReservationDraft: (draft: ReservationDraft) => {
-              if (!isMounted.current) return;
-              receivedAnyChunk = true;
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                if (idx !== -1) {
-                  const updated = [...prev];
-                  const existing = updated[idx].reservationDrafts || [];
-                  updated[idx] = {
-                    ...updated[idx],
-                    reservationDrafts: [...existing, draft],
-                  };
-                  return updated;
-                }
-                return [
-                  ...prev,
-                  {
-                    id: streamingMessageId,
-                    type: 'assistant' as const,
-                    content: '',
-                    timestamp: new Date().toISOString(),
-                    reservationDrafts: [draft],
-                  },
-                ];
-              });
-            },
             onMetadata: (metadata: StreamMetadataEvent) => {
               setAiStatus('connected');
               if (isLimitedPlan) void refreshUsage();
@@ -798,6 +765,7 @@ export const AIConciergeChat = ({
               if (!isMounted.current) return;
               if (!receivedAnyChunk) {
                 setIsTyping(false);
+                setAgentStatus(null);
                 setAiStatus('degraded');
                 setMessages(prev => [
                   ...prev,
@@ -819,6 +787,7 @@ export const AIConciergeChat = ({
               streamAbortRef.current = null;
               if (!isMounted.current) return;
               setIsTyping(false);
+              setAgentStatus(null);
               if (!receivedAnyChunk) {
                 setMessages(prev => [
                   ...prev,
@@ -867,6 +836,7 @@ export const AIConciergeChat = ({
           if (!isMounted.current) return;
           setAiStatus('timeout');
           setIsTyping(false);
+          setAgentStatus(null);
           const timeoutContent = `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`;
           setMessages(prev => {
             const exists = prev.some(m => m.id === streamingMessageId);
@@ -974,6 +944,7 @@ export const AIConciergeChat = ({
     } finally {
       if (!streamingStarted) {
         setIsTyping(false);
+        setAgentStatus(null);
       }
     }
   };
@@ -1194,19 +1165,6 @@ export const AIConciergeChat = ({
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
               onTabChange={onTabChange}
-              onSavePlace={async place => {
-                // Trigger a message to the AI to save the place. The AI will use the `savePlace` tool.
-                const savePrompt = `Save "${place.name}" to trip places. URL: ${place.mapsUrl || ''}`;
-                handleSendMessage(savePrompt);
-              }}
-              onSaveFlight={async flight => {
-                // Trigger a message to the AI to save the flight. The AI will use `savePlace` (which handles links) to persist the flight URL.
-                const savePrompt = `Save flight from ${flight.origin} to ${flight.destination} departing ${flight.departureDate}. URL: ${flight.deeplink}`;
-                handleSendMessage(savePrompt);
-              }}
-              onEditReservation={(prefill: string) => {
-                setInputMessage(prefill);
-              }}
             />
           )}
         </div>
@@ -1239,6 +1197,15 @@ export const AIConciergeChat = ({
 
         {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
+
+          {/* Agent Status Indicator */}
+          {agentStatus && (
+            <div className="px-4 py-2 text-xs text-blue-300 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+              <Sparkles size={12} className="animate-pulse" />
+              <span>{agentStatus}</span>
+            </div>
+          )}
+
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}

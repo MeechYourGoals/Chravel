@@ -186,7 +186,6 @@ async function _executeImpl(
       const lat = Number.isFinite(parsedLat) ? parsedLat : locationContext?.lat || null;
       const lng = Number.isFinite(parsedLng) ? parsedLng : locationContext?.lng || null;
 
-      // New Google Places API (Places Text Search)
       const url = `https://places.googleapis.com/v1/places:searchText`;
       const placesResponse = await fetch(url, {
         method: 'POST',
@@ -210,8 +209,6 @@ async function _executeImpl(
       });
 
       if (!placesResponse.ok) {
-        const errorText = await placesResponse.text().catch(() => 'Unknown error');
-        console.error(`[Tool] searchPlaces failed (${placesResponse.status}): ${errorText}`);
         return { error: 'Places search failed', status: placesResponse.status };
       }
 
@@ -330,7 +327,6 @@ async function _executeImpl(
         return { error: 'Google Maps API key not configured' };
       }
 
-      // New Google Places API (Place Details)
       const detailsUrl = `https://places.googleapis.com/v1/places/${placeId}`;
       const detailsResponse = await fetch(detailsUrl, {
         headers: {
@@ -342,8 +338,6 @@ async function _executeImpl(
       });
 
       if (!detailsResponse.ok) {
-        const errorText = await detailsResponse.text().catch(() => 'Unknown error');
-        console.error(`[Tool] getPlaceDetails failed (${detailsResponse.status}): ${errorText}`);
         return { error: `Place Details failed (${detailsResponse.status})` };
       }
 
@@ -757,123 +751,6 @@ async function _executeImpl(
         agendaItem: data,
         actionType: 'add_to_agenda',
         message: `Added "${agendaTitle}" to event agenda`,
-      };
-    }
-
-    case 'searchFlights': {
-      const { origin, destination, departureDate, returnDate, passengers } = args;
-
-      // Construct a Google Flights URL
-      // Format: https://www.google.com/travel/flights?q=Flights%20to%20DEST%20from%20ORIG%20on%20DATE
-      const q = `Flights to ${destination} from ${origin} on ${departureDate}${returnDate ? ` return ${returnDate}` : ''}`;
-      const encodedQ = encodeURIComponent(q);
-      const url = `https://www.google.com/travel/flights?q=${encodedQ}`;
-
-      return {
-        success: true,
-        origin,
-        destination,
-        departureDate,
-        returnDate,
-        passengers: passengers || 1,
-        deeplink: url,
-        message: `Found flight options from ${origin} to ${destination}`,
-      };
-    }
-
-    case 'emitReservationDraft': {
-      const { placeQuery, startTimeISO, partySize, reservationName, notes } = args;
-
-      const query = String(placeQuery || '').trim();
-      if (!query) return { error: 'placeQuery is required to build a reservation draft' };
-
-      // Internally search for the place to enrich the draft with real data
-      let placeId: string | null = null;
-      let placeName = query;
-      let address = '';
-      let lat: number | null = null;
-      let lng: number | null = null;
-      let phone: string | null = null;
-      let websiteUrl: string | null = null;
-      let bookingUrl: string | null = null;
-
-      try {
-        const searchResult = await _executeImpl(
-          supabase,
-          'searchPlaces',
-          { query },
-          tripId,
-          userId,
-          locationContext,
-        );
-        if (searchResult.success && searchResult.places?.length > 0) {
-          const topPlace = searchResult.places[0];
-          placeId = topPlace.placeId || null;
-          placeName = topPlace.name || placeName;
-          address = topPlace.address || '';
-        }
-
-        // Enrich with details (phone, website, coordinates)
-        if (placeId) {
-          const detailsResult = await _executeImpl(
-            supabase,
-            'getPlaceDetails',
-            { placeId },
-            tripId,
-            userId,
-            locationContext,
-          );
-          if (detailsResult.success) {
-            placeName = detailsResult.name || placeName;
-            address = detailsResult.address || address;
-            phone = detailsResult.phone || null;
-            websiteUrl = detailsResult.website || null;
-            bookingUrl = detailsResult.website || null;
-          }
-        }
-
-        // Get coordinates via address validation if not yet available
-        if (!lat && address) {
-          const addrResult = await _executeImpl(
-            supabase,
-            'validateAddress',
-            { address },
-            tripId,
-            userId,
-            locationContext,
-          );
-          if (addrResult.success) {
-            lat = addrResult.lat ?? null;
-            lng = addrResult.lng ?? null;
-          }
-        }
-      } catch (enrichError) {
-        console.error('[emitReservationDraft] Place enrichment failed:', enrichError);
-        // Continue with partial data — the draft is still usable
-      }
-
-      const draft = {
-        id: crypto.randomUUID(),
-        tripId,
-        placeId,
-        placeName,
-        address,
-        lat,
-        lng,
-        phone,
-        websiteUrl,
-        bookingUrl,
-        startTimeISO: startTimeISO || null,
-        partySize: Number(partySize) || 2,
-        reservationName: String(reservationName || ''),
-        notes: String(notes || ''),
-      };
-
-      return {
-        success: true,
-        draft,
-        actionType: 'reservation_draft',
-        message: `Reservation draft created for ${placeName}`,
       };
     }
 

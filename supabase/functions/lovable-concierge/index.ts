@@ -107,6 +107,7 @@ const LovableConciergeSchema = z.object({
     .optional(),
   isDemoMode: z.boolean().optional(),
   stream: z.boolean().optional(),
+  agentMode: z.boolean().optional(), // 🆕 Agent Mode flag
   config: z
     .object({
       model: z.string().max(100).optional(),
@@ -402,13 +403,12 @@ async function readGeminiSSEStream(
 /**
  * Stream a Gemini response as SSE chunks to the client.
  *
- * When the model returns function-call parts, this function executes them,
- * makes a second streaming call with the results, and continues streaming.
+ * Supports "Agent Mode" (multi-step tool loop).
  */
 async function streamGeminiToSSE(
   controller: ReadableStreamDefaultController,
   geminiRequestBody: any,
-  geminiContents: any[],
+  geminiContents: any[], // Mutable array of conversation turns
   systemInstruction: string,
   selectedModel: string,
   temperature: number,
@@ -417,6 +417,7 @@ async function streamGeminiToSSE(
   tripId: string,
   userId: string | undefined,
   locationData: any,
+  effectiveAgentMode: boolean,
 ): Promise<{
   fullText: string;
   groundingMetadata: any;
@@ -425,23 +426,14 @@ async function streamGeminiToSSE(
 }> {
   const geminiStreamEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
 
-  const response = await fetch(geminiStreamEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(geminiRequestBody),
-    signal: AbortSignal.timeout(50_000),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errMsg = errorData.error?.message || JSON.stringify(errorData);
-    // If Gemini returns 403 (unregistered callers / API key restrictions),
-    // signal the caller to fall back to the Lovable gateway instead of crashing.
-    if (response.status === 403) {
-      throw Object.assign(new Error(`Gemini 403: ${errMsg}`), { gemini403: true });
-    }
-    throw new Error(`Gemini streaming API Error: ${response.status} - ${errMsg}`);
-  }
+  const MAX_TOOL_ITERS = effectiveAgentMode ? 3 : 1;
+  const MAX_TOOL_CALLS_TOTAL = 8;
+  const followUpSafetySettings = [
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+  ];
 
   const state: GeminiStreamState = {
     fullText: '',
@@ -450,16 +442,78 @@ async function streamGeminiToSSE(
     functionCallParts: [],
   };
 
-  await readGeminiSSEStream(response.body!, controller, false, state);
-
   const executedFunctions: string[] = [];
+  const seenToolCalls = new Set<string>(); // Deduping: "name:args_json"
+  let totalToolCalls = 0;
+  let iteration = 0;
+  let currentRequestBody = geminiRequestBody;
 
-  // Handle function calls collected during the stream
-  if (state.functionCallParts.length > 0) {
+  // Agent Loop
+  while (iteration <= MAX_TOOL_ITERS) {
+    const isFirstPass = iteration === 0;
+
+    if (!isFirstPass) {
+      // If we are looping, we need to notify client we are planning/executing again
+      controller.enqueue(
+        sseEvent({
+          type: 'agent_status',
+          status: 'planning',
+          iter: iteration,
+        }),
+      );
+    }
+
+    const response = await fetch(geminiStreamEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentRequestBody),
+      signal: AbortSignal.timeout(50_000),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errMsg = errorData.error?.message || JSON.stringify(errorData);
+      if (response.status === 403) {
+        throw Object.assign(new Error(`Gemini 403: ${errMsg}`), { gemini403: true });
+      }
+      throw new Error(`Gemini streaming API Error: ${response.status} - ${errMsg}`);
+    }
+
+    // Reset function parts for this stream (state accumulates full text/usage, but we need fresh function calls)
+    state.functionCallParts = [];
+
+    // Read the stream
+    await readGeminiSSEStream(response.body!, controller, !isFirstPass, state);
+
+    // Check for function calls
+    if (state.functionCallParts.length === 0) {
+      // No more tools, we are done
+      if (!isFirstPass) {
+        controller.enqueue(sseEvent({ type: 'agent_status', status: 'finalizing' }));
+      }
+      break;
+    }
+
+    // Stop if we hit limits
+    if (iteration >= MAX_TOOL_ITERS) {
+      console.warn(`[Agent] Max iterations (${MAX_TOOL_ITERS}) reached. Stopping loop.`);
+      break;
+    }
+
+    if (totalToolCalls >= MAX_TOOL_CALLS_TOTAL) {
+      console.warn(`[Agent] Max total tool calls (${MAX_TOOL_CALLS_TOTAL}) reached. Stopping.`);
+      break;
+    }
+
+    // Process tool calls
+    controller.enqueue(
+      sseEvent({ type: 'agent_status', status: 'executing_tools', iter: iteration }),
+    );
+
     const toolPhaseStartMs = performance.now();
     const functionCallResults: any[] = [];
+    const validFunctionCallParts: any[] = []; // Only parts we actually execute (deduped)
 
-    // Parallelize independent function calls (e.g. multiple getPlaceDetails)
     const callTasks = state.functionCallParts.map(async part => {
       const fc = part.functionCall;
       let parsedArgs: Record<string, unknown> = {};
@@ -473,8 +527,18 @@ async function streamGeminiToSSE(
         parsedArgs = fc.args as Record<string, unknown>;
       }
 
+      // Dedupe check
+      const callSignature = `${fc.name}:${JSON.stringify(parsedArgs)}`;
+      if (seenToolCalls.has(callSignature)) {
+        console.warn(`[Agent] Skipping duplicate tool call: ${fc.name}`);
+        return null;
+      }
+      seenToolCalls.add(callSignature);
+      validFunctionCallParts.push(part); // We keep this for history
+
       console.log(`[Stream/FunctionCall] Executing: ${fc.name}`, parsedArgs);
       executedFunctions.push(fc.name);
+      totalToolCalls++;
 
       let result: any;
       try {
@@ -496,67 +560,45 @@ async function streamGeminiToSSE(
       return { name: fc.name, response: result };
     });
 
-    const results = await Promise.all(callTasks);
-    const toolExecMs = Math.round(performance.now() - toolPhaseStartMs);
-    console.log(
-      `[Timing] Tool execution phase: ${toolExecMs}ms for ${results.length} tool(s): ${executedFunctions.join(', ')}`,
-    );
-    for (const r of results) {
-      functionCallResults.push(r);
-      // Emit reservation drafts as a dedicated SSE event type
-      if (r.name === 'emitReservationDraft' && r.response?.success && r.response?.draft) {
-        controller.enqueue(sseEvent({ type: 'reservation_draft', draft: r.response.draft }));
-      } else {
-        controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
-      }
+    const resultsRaw = await Promise.all(callTasks);
+    const results = resultsRaw.filter(r => r !== null) as { name: string; response: any }[];
+
+    if (results.length === 0) {
+      // All were dupes or skipped? Break loop to avoid infinite spin
+      break;
     }
 
-    // Follow-up streaming call with function results
-    const followUpSafetySettings = [
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-    ];
-    const followUpBody = {
-      contents: [
-        ...geminiContents,
-        { role: 'model', parts: state.functionCallParts },
-        {
-          role: 'user',
-          parts: functionCallResults.map(r => ({
-            functionResponse: { name: r.name, response: r.response },
-          })),
-        },
-      ],
+    const toolExecMs = Math.round(performance.now() - toolPhaseStartMs);
+    console.log(
+      `[Agent] Iteration ${iteration + 1}: Executed ${results.length} tools in ${toolExecMs}ms`,
+    );
+
+    for (const r of results) {
+      functionCallResults.push(r);
+      controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
+    }
+
+    // Update history for next iteration
+    // 1. Add model's function calls
+    geminiContents.push({ role: 'model', parts: validFunctionCallParts });
+    // 2. Add user's function results
+    geminiContents.push({
+      role: 'user',
+      parts: functionCallResults.map(r => ({
+        functionResponse: { name: r.name, response: r.response },
+      })),
+    });
+
+    // Prepare next request body
+    currentRequestBody = {
+      contents: geminiContents,
       systemInstruction: { parts: [{ text: systemInstruction }] },
       generationConfig: { temperature, maxOutputTokens: maxTokens },
       safetySettings: followUpSafetySettings,
+      tools: geminiRequestBody.tools, // Keep tools available!
     };
 
-    const followUpStartMs = performance.now();
-    const followUpResponse = await fetch(geminiStreamEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(followUpBody),
-      signal: AbortSignal.timeout(40_000),
-    });
-
-    if (followUpResponse.ok) {
-      // Reset functionCallParts so the second stream doesn't re-collect
-      state.functionCallParts = [];
-      await readGeminiSSEStream(followUpResponse.body!, controller, true, state);
-      console.log(
-        `[Timing] Follow-up stream: ${Math.round(performance.now() - followUpStartMs)}ms`,
-      );
-    } else {
-      console.warn(
-        `[Timing] Follow-up stream failed (${followUpResponse.status}) after ${Math.round(performance.now() - followUpStartMs)}ms`,
-      );
-      const fallback = '\n\nAction completed. Check your trip tabs for the update.';
-      controller.enqueue(sseEvent({ type: 'chunk', text: fallback }));
-      state.fullText += fallback;
-    }
+    iteration++;
   }
 
   return {
@@ -639,6 +681,7 @@ serve(async req => {
       config = {},
       isDemoMode: requestedDemoMode = false,
       stream: requestedStream = false,
+      agentMode = false,
     } = validatedData;
 
     // 🆕 SAFETY: Content filtering and PII redaction
@@ -863,6 +906,19 @@ serve(async req => {
 
     // --- EVALUATE PARALLEL RESULTS ---
 
+    // 🆕 Admin / Agent Mode Logic
+    const SUPER_ADMIN_EMAILS = [
+      'ccamechi@gmail.com',
+      'christian@chravelapp.com',
+      'demo@chravelapp.com',
+    ];
+    const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email);
+    const effectiveAgentMode = agentMode || isSuperAdmin;
+
+    if (effectiveAgentMode) {
+      console.log(`[Agent] Mode ENABLED for ${user?.email || 'unknown'} (requested: ${agentMode}, isAdmin: ${isSuperAdmin})`);
+    }
+
     // Membership gate
     if (!serverDemoMode && user && hasTripId) {
       if (membershipResult.error || !membershipResult.data) {
@@ -1003,12 +1059,27 @@ serve(async req => {
     // Build context-aware system prompt. For general web queries, use a lean prompt for speed
     // but still include full formatting instructions so responses are rich and link-heavy.
     let baseSystemPrompt: string;
+
+    const AGENT_INSTRUCTION = effectiveAgentMode ? `
+
+=== AGENT MODE ENABLED ===
+You are in AGENT MODE. You can execute multiple tools in sequence to complete complex requests.
+- If a request requires multiple actions (e.g. "Create a poll AND a task"), call ALL of them.
+- Batch your tool calls when possible.
+- If you need the result of one tool to perform the next (e.g. searchPlaces -> getPlaceDetails), do it in steps.
+- Always provide a final summary of ALL actions taken.
+- Never fabricate tool results. If a tool fails, inform the user.
+` : '';
+
+    // Flight saving instruction (from code review)
     const saveFlightInstruction = `
-**Handling "Save Flight" requests:**
-- If the user asks to "save a flight" or "save this flight", use the \`savePlace\` tool.
-- Set the \`url\` parameter to the flight deeplink provided.
-- Set the \`category\` to "activity" or "other".
-- Save it as a link object.`;
+
+    If the user asks to save a flight or adds flight details:
+    - Use the 'savePlace' tool.
+    - Set category to 'activity' (or 'other' if activity is not suitable).
+    - In the description, include the flight number, departure/arrival times, and airports.
+    - Use a Google Flights link or the airline's website as the URL if possible.
+    `;
 
     if (!tripRelated || !comprehensiveContext) {
       baseSystemPrompt = `You are **Chravel Concierge**, a helpful AI travel and general assistant.
@@ -1023,12 +1094,13 @@ Answer the user's question accurately. Use web search for real-time info (weathe
 - Use **bold** for key names, dates, and important facts
 - Use bullet points (-) for lists; numbered lists for ranked items or steps
 - Keep responses concise but information-rich — quality over quantity
-- When citing sources from web search, reference them naturally in-text as hyperlinks${imageIntentAddendum}`;
+- When citing sources from web search, reference them naturally in-text as hyperlinks${imageIntentAddendum}${AGENT_INSTRUCTION}`;
     } else {
       baseSystemPrompt =
         buildSystemPrompt(comprehensiveContext, config.systemPrompt) +
         ragContext +
         imageIntentAddendum +
+        AGENT_INSTRUCTION +
         saveFlightInstruction;
     }
 
@@ -1427,54 +1499,6 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           required: ['eventId', 'title'],
         },
       },
-      {
-        name: 'searchFlights',
-        description:
-          'Search for flights and get a deeplink to Google Flights. Use when user asks for flight options, prices, or availability.',
-        parameters: {
-          type: 'object',
-          properties: {
-            origin: { type: 'string', description: 'Origin airport code (e.g. SFO) or city name' },
-            destination: {
-              type: 'string',
-              description: 'Destination airport code (e.g. LHR) or city name',
-            },
-            departureDate: { type: 'string', description: 'Departure date (YYYY-MM-DD)' },
-            returnDate: { type: 'string', description: 'Return date (YYYY-MM-DD), optional' },
-            passengers: { type: 'number', description: 'Number of passengers (default 1)' },
-          },
-          required: ['origin', 'destination', 'departureDate'],
-        },
-      },
-      {
-        name: 'emitReservationDraft',
-        description:
-          'Create a reservation draft card for the user to confirm. Use ONLY when the user explicitly asks to book/reserve/make a reservation at a restaurant, venue, or experience. Do NOT auto-book. The draft will be shown as a card the user can confirm. Internally searches for the place and enriches with phone, website, and address.',
-        parameters: {
-          type: 'object',
-          properties: {
-            placeQuery: {
-              type: 'string',
-              description: 'Name of the restaurant or venue to reserve (e.g. "Bestia Los Angeles")',
-            },
-            startTimeISO: {
-              type: 'string',
-              description:
-                'Requested reservation date/time in ISO 8601 format (e.g. "2026-03-07T19:00:00-08:00")',
-            },
-            partySize: { type: 'number', description: 'Number of guests (default 2)' },
-            reservationName: {
-              type: 'string',
-              description: 'Name the reservation should be under',
-            },
-            notes: {
-              type: 'string',
-              description: 'Special requests or notes (e.g. "outdoor seating", "birthday dinner")',
-            },
-          },
-          required: ['placeQuery'],
-        },
-      },
     ];
 
     // ========== BUILD GEMINI TOOLS ==========
@@ -1574,6 +1598,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
               tripId,
               user?.id,
               locationData,
+              effectiveAgentMode,
             );
 
             // Extract grounding citations
