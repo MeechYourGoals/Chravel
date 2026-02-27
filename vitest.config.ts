@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'despia-native': path.resolve(__dirname, './src/__mocks__/despia-native-mock.ts'),
     },
   },
   test: {
