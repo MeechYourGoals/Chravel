@@ -24,7 +24,7 @@ test.describe('Trip RLS Policies', () => {
 
     // User B tries to read the trip
     const clientB = await getClientAsUser(userB);
-    const { data, error } = await clientB.from('trips').select('*').eq('id', trip.id).single();
+    const { data } = await clientB.from('trips').select('*').eq('id', trip.id).single();
 
     // RLS should block access - data should be null or error
     expect(data).toBeNull();
@@ -48,7 +48,7 @@ test.describe('Trip RLS Policies', () => {
 
     // User B tries to read the trip
     const clientB = await getClientAsUser(userB);
-    const { data, error } = await clientB.from('trips').select('*').eq('id', trip.id).single();
+    const { data } = await clientB.from('trips').select('*').eq('id', trip.id).single();
 
     // Should have access
     expect(data).not.toBeNull();
@@ -333,17 +333,17 @@ test.describe('Edge Function Permission Tests', () => {
   test('RLS-FUNC-001: join-trip requires valid invite', async ({
     createTestUser,
     createTestTrip,
-    supabaseAnon,
     getClientAsUser,
   }) => {
     const owner = await createTestUser({ displayName: 'Owner' });
     const joiner = await createTestUser({ displayName: 'Joiner' });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const trip = await createTestTrip(owner);
 
     // Joiner tries to join without invite
     const clientJoiner = await getClientAsUser(joiner);
-    const { data, error } = await clientJoiner.functions.invoke('join-trip', {
+    const { data } = await clientJoiner.functions.invoke('join-trip', {
       body: { inviteCode: 'invalid-code-12345' },
     });
 
@@ -366,7 +366,7 @@ test.describe('Edge Function Permission Tests', () => {
 
     // Joiner uses valid invite
     const clientJoiner = await getClientAsUser(joiner);
-    const { data, error } = await clientJoiner.functions.invoke('join-trip', {
+    const { data } = await clientJoiner.functions.invoke('join-trip', {
       body: { inviteCode: invite.code },
     });
 

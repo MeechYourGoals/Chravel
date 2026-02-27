@@ -23,11 +23,7 @@ import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import {
-  markMessagesAsRead,
-  subscribeToReadReceipts,
-  getMessagesReadStatus,
-} from '@/services/readReceiptService';
+import { markMessagesAsRead, subscribeToReadReceipts } from '@/services/readReceiptService';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
@@ -125,9 +121,6 @@ export const TripChat = ({
   const [failedMessages, setFailedMessages] = useState<
     Array<{ id: string; text: string; authorName: string }>
   >([]);
-  const [readStatusesByMessage, setReadStatusesByMessage] = useState<
-    Record<string, Array<{ id: string; message_id: string; user_id: string; read_at: string }>>
-  >({});
 
   const { isOffline } = useOfflineStatus();
   const params = useParams<{ tripId?: string; proTripId?: string; eventId?: string }>();
@@ -280,23 +273,8 @@ export const TripChat = ({
   useEffect(() => {
     if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
 
-    const subscription = subscribeToReadReceipts(resolvedTripId, (newStatus: { message_id: string; user_id: string; read_at: string; id?: string }) => {
-      setReadStatusesByMessage(prev => {
-        const list = prev[newStatus.message_id] || [];
-        if (list.some(s => s.user_id === newStatus.user_id)) return prev;
-        return {
-          ...prev,
-          [newStatus.message_id]: [
-            ...list,
-            {
-              id: newStatus.id ?? `temp-${Date.now()}`,
-              message_id: newStatus.message_id,
-              user_id: newStatus.user_id,
-              read_at: newStatus.read_at,
-            },
-          ],
-        };
-      });
+    const subscription = subscribeToReadReceipts(resolvedTripId, () => {
+      // Read receipt updates handled via realtime
     });
 
     // Mark all messages from other users as read
@@ -408,18 +386,6 @@ export const TripChat = ({
 
     fetchReactions();
   }, [liveMessages.length, user?.id, demoMode.isDemoMode]);
-
-  // Fetch read statuses for owned messages (for avatar display)
-  useEffect(() => {
-    if (demoMode.isDemoMode || !user?.id || liveMessages.length === 0) return;
-
-    const ownMessageIds = liveMessages
-      .filter(m => m.user_id === user.id)
-      .map(m => m.id);
-    if (ownMessageIds.length === 0) return;
-
-    getMessagesReadStatus(ownMessageIds).then(setReadStatusesByMessage);
-  }, [liveMessages, user?.id, demoMode.isDemoMode]);
 
   // Subscribe to realtime reaction changes
   useEffect(() => {
@@ -882,8 +848,6 @@ export const TripChat = ({
                         onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
                         onRetry={handleRetryFailedMessage}
                         systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
-                        tripMembers={tripMembers}
-                        readStatuses={readStatusesByMessage[message.id]}
                       />
                     </div>
                   )}

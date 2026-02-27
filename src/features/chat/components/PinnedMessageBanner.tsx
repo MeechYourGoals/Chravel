@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Pin } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getPinnedMessages } from '@/services/chatService';
 import { PinnedMessagesList } from './PinnedMessagesList';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,9 +10,8 @@ interface PinnedMessageBannerProps {
 }
 
 export const PinnedMessageBanner: React.FC<PinnedMessageBannerProps> = ({ tripId }) => {
-  const [pinnedMessages, setPinnedMessages] = useState<Array<{ id: string; content: string; author_name: string; created_at: string; payload?: { pinned_at?: string } }>>([]);
+  const [pinnedMessages, setPinnedMessages] = useState<any[]>([]);
   const [isListOpen, setIsListOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchPinned = async () => {
@@ -44,7 +44,7 @@ export const PinnedMessageBanner: React.FC<PinnedMessageBannerProps> = ({ tripId
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tripId, refreshKey]);
+  }, [tripId]);
 
   if (pinnedMessages.length === 0) return null;
 
@@ -72,7 +72,9 @@ export const PinnedMessageBanner: React.FC<PinnedMessageBannerProps> = ({ tripId
         isOpen={isListOpen}
         onClose={() => setIsListOpen(false)}
         messages={pinnedMessages}
-        onUnpin={() => setRefreshKey(k => k + 1)}
+        onUnpin={() => {
+            // Optimistic update or just trigger refetch via subscription
+        }}
       />
     </>
   );

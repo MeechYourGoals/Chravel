@@ -168,9 +168,6 @@ test.describe('Authentication Flow - Session Management', () => {
     // Login
     await loginAsUser(page, user);
 
-    // Store current URL
-    const authenticatedUrl = page.url();
-
     // Reload page
     await page.reload();
 

@@ -133,8 +133,10 @@ describe('AIConciergeChat', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       await waitFor(() => {
+        // "Private Convo" is in the component as <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
         expect(screen.getByText(/private convo/i)).toBeInTheDocument();
       });
+      // Usage info is now rendered as "5/10 Asks"
       expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
     });
 
