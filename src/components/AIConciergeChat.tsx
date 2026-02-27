@@ -227,6 +227,7 @@ export const AIConciergeChat = ({
   const [aiStatus, setAiStatus] = useState<
     'checking' | 'connected' | 'limited' | 'error' | 'thinking' | 'offline' | 'degraded' | 'timeout'
   >('connected');
+  const [agentStatus, setAgentStatus] = useState<string | null>(null);
   const [attachedImages, setAttachedImages] = useState<File[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
@@ -609,7 +610,10 @@ export const AIConciergeChat = ({
         };
 
         const streamHandle = invokeConciergeStream(
-          requestBody,
+          {
+            ...requestBody,
+            agentMode: import.meta.env.DEV || localStorage.getItem('chravel_agent_mode') === '1',
+          },
           {
             onChunk: (text: string) => {
               if (!isMounted.current) return;
@@ -638,6 +642,20 @@ export const AIConciergeChat = ({
                 return;
               }
               updateStreamMsg(msg => ({ content: msg.content + text }));
+            },
+            onAgentStatus: (status: string, iter?: number) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true; // Status events count as activity
+
+              if (status === 'planning') {
+                setAgentStatus(`Thinking (Step ${iter ? iter + 1 : 1})...`);
+              } else if (status === 'executing_tools') {
+                setAgentStatus(`Taking action...`);
+              } else if (status === 'finalizing') {
+                setAgentStatus('Finalizing...');
+              } else {
+                setAgentStatus(null);
+              }
             },
             onFunctionCall: (name: string, result: Record<string, unknown>) => {
               if (!isMounted.current) return;
@@ -772,6 +790,7 @@ export const AIConciergeChat = ({
               if (!isMounted.current) return;
               if (!receivedAnyChunk) {
                 setIsTyping(false);
+                setAgentStatus(null);
                 setAiStatus('degraded');
                 setMessages(prev => [
                   ...prev,
@@ -793,6 +812,7 @@ export const AIConciergeChat = ({
               streamAbortRef.current = null;
               if (!isMounted.current) return;
               setIsTyping(false);
+              setAgentStatus(null);
               if (!receivedAnyChunk) {
                 setMessages(prev => [
                   ...prev,
@@ -841,6 +861,7 @@ export const AIConciergeChat = ({
           if (!isMounted.current) return;
           setAiStatus('timeout');
           setIsTyping(false);
+          setAgentStatus(null);
           const timeoutContent = `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`;
           setMessages(prev => {
             const exists = prev.some(m => m.id === streamingMessageId);
@@ -948,6 +969,7 @@ export const AIConciergeChat = ({
     } finally {
       if (!streamingStarted) {
         setIsTyping(false);
+        setAgentStatus(null);
       }
     }
   };
@@ -1223,6 +1245,15 @@ export const AIConciergeChat = ({
 
         {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
         <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
+
+          {/* Agent Status Indicator */}
+          {agentStatus && (
+            <div className="px-4 py-2 text-xs text-blue-300 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+              <Sparkles size={12} className="animate-pulse" />
+              <span>{agentStatus}</span>
+            </div>
+          )}
+
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}

@@ -61,6 +61,12 @@ export interface StreamMetadataEvent {
   functionCalls?: string[];
 }
 
+export interface StreamAgentStatusEvent {
+  type: 'agent_status';
+  status: 'planning' | 'executing_tools' | 'finalizing';
+  iter?: number;
+}
+
 export interface StreamErrorEvent {
   type: 'error';
   message: string;
@@ -74,6 +80,7 @@ export type ConciergeStreamEvent =
   | StreamChunkEvent
   | StreamFunctionCallEvent
   | StreamMetadataEvent
+  | StreamAgentStatusEvent
   | StreamErrorEvent
   | StreamDoneEvent;
 
@@ -81,6 +88,7 @@ export interface ConciergeStreamCallbacks {
   onChunk: (text: string) => void;
   onMetadata: (metadata: StreamMetadataEvent) => void;
   onFunctionCall?: (name: string, result: Record<string, unknown>) => void;
+  onAgentStatus?: (status: string, iter?: number) => void;
   onError: (error: string) => void;
   onDone: () => void;
 }
@@ -206,6 +214,9 @@ export function invokeConciergeStream(
                 break;
               case 'function_call':
                 callbacks.onFunctionCall?.(event.name, event.result);
+                break;
+              case 'agent_status':
+                callbacks.onAgentStatus?.(event.status, event.iter);
                 break;
               case 'error':
                 callbacks.onError(event.message);
