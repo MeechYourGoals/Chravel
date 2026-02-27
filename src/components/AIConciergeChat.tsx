@@ -15,7 +15,6 @@ import {
   invokeConcierge,
   invokeConciergeStream,
   type StreamMetadataEvent,
-  type ReservationDraft,
 } from '@/services/conciergeGateway';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
@@ -77,15 +76,6 @@ export interface ChatMessage {
     previewPhotoUrl?: string | null;
     photoUrls?: string[];
   }>;
-  /** Rich flight results from searchFlights tool calls */
-  functionCallFlights?: Array<{
-    origin: string;
-    destination: string;
-    departureDate: string;
-    returnDate?: string;
-    passengers: number;
-    deeplink: string;
-  }>;
   /** Action results from concierge write tools (createPoll, createTask, etc.) */
   conciergeActions?: Array<{
     actionType: string;
@@ -95,8 +85,6 @@ export interface ChatMessage {
     entityName?: string;
     scope?: string;
   }>;
-  /** Reservation draft cards from emitReservationDraft tool */
-  reservationDrafts?: ReservationDraft[];
 }
 
 interface ConciergeInvokePayload {
@@ -702,19 +690,6 @@ export const AIConciergeChat = ({
                   functionCallPlaces: result.places as ChatMessage['functionCallPlaces'],
                 });
               }
-              if (name === 'searchFlights' && result.success) {
-                const flightResult = {
-                  origin: result.origin as string,
-                  destination: result.destination as string,
-                  departureDate: result.departureDate as string,
-                  returnDate: result.returnDate as string | undefined,
-                  passengers: (result.passengers as number) || 1,
-                  deeplink: result.deeplink as string,
-                };
-                ensureAndPatch({
-                  functionCallFlights: [flightResult],
-                });
-              }
               if (name === 'getPlaceDetails' && result.success) {
                 const detailPlace = {
                   placeId: result.placeId as string,
@@ -798,32 +773,6 @@ export const AIConciergeChat = ({
                   ];
                 });
               }
-            },
-            onReservationDraft: (draft: ReservationDraft) => {
-              if (!isMounted.current) return;
-              receivedAnyChunk = true;
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === streamingMessageId);
-                if (idx !== -1) {
-                  const updated = [...prev];
-                  const existing = updated[idx].reservationDrafts || [];
-                  updated[idx] = {
-                    ...updated[idx],
-                    reservationDrafts: [...existing, draft],
-                  };
-                  return updated;
-                }
-                return [
-                  ...prev,
-                  {
-                    id: streamingMessageId,
-                    type: 'assistant' as const,
-                    content: '',
-                    timestamp: new Date().toISOString(),
-                    reservationDrafts: [draft],
-                  },
-                ];
-              });
             },
             onMetadata: (metadata: StreamMetadataEvent) => {
               setAiStatus('connected');
@@ -1125,16 +1074,12 @@ export const AIConciergeChat = ({
                 onClick={handleVoiceToggle}
                 data-testid="header-voice-mic"
                 className={`size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20 ${
-                  dictationState === 'listening'
-                    ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-black'
-                    : ''
+                  dictationState === 'listening' ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-black' : ''
                 }`}
                 aria-label="Voice concierge"
                 title="Voice concierge"
               >
-                <div
-                  className={`w-3 h-3 rounded-full ${dictationState === 'listening' ? 'bg-red-500 animate-pulse' : 'bg-white'}`}
-                />
+                <div className={`w-3 h-3 rounded-full ${dictationState === 'listening' ? 'bg-red-500 animate-pulse' : 'bg-white'}`} />
               </button>
 
               <button
@@ -1268,19 +1213,6 @@ export const AIConciergeChat = ({
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
               onTabChange={onTabChange}
-              onSavePlace={async place => {
-                // Trigger a message to the AI to save the place. The AI will use the `savePlace` tool.
-                const savePrompt = `Save "${place.name}" to trip places. URL: ${place.mapsUrl || ''}`;
-                handleSendMessage(savePrompt);
-              }}
-              onSaveFlight={async flight => {
-                // Trigger a message to the AI to save the flight. The AI will use `savePlace` (which handles links) to persist the flight URL.
-                const savePrompt = `Save flight from ${flight.origin} to ${flight.destination} departing ${flight.departureDate}. URL: ${flight.deeplink}`;
-                handleSendMessage(savePrompt);
-              }}
-              onEditReservation={(prefill: string) => {
-                setInputMessage(prefill);
-              }}
             />
           )}
         </div>

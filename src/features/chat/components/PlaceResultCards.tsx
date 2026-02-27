@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Star, ExternalLink, UtensilsCrossed, BookmarkPlus } from 'lucide-react';
+import { MapPin, Star, ExternalLink, UtensilsCrossed } from 'lucide-react';
 
 export interface PlaceResult {
   placeId?: string | null;
@@ -16,7 +16,6 @@ export interface PlaceResult {
 interface PlaceResultCardsProps {
   places: PlaceResult[];
   className?: string;
-  onSave?: (place: PlaceResult) => void;
 }
 
 const PRICE_MAP: Record<string, string> = {
@@ -27,11 +26,7 @@ const PRICE_MAP: Record<string, string> = {
   PRICE_LEVEL_VERY_EXPENSIVE: '$$$$',
 };
 
-export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
-  places,
-  className,
-  onSave,
-}) => {
+export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({ places, className }) => {
   if (!places || places.length === 0) return null;
 
   return (
@@ -100,32 +95,18 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
                 )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 mt-1.5">
-                {/* Open in Maps */}
-                {place.mapsUrl && (
-                  <a
-                    href={place.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline w-fit"
-                  >
-                    <ExternalLink size={10} />
-                    Open in Maps
-                  </a>
-                )}
-
-                {/* Save to Trip */}
-                {onSave && (
-                  <button
-                    onClick={() => onSave(place)}
-                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 transition-colors w-fit"
-                  >
-                    <BookmarkPlus size={10} />
-                    Save to Trip
-                  </button>
-                )}
-              </div>
+              {/* Open in Maps */}
+              {place.mapsUrl && (
+                <a
+                  href={place.mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline mt-1 w-fit"
+                >
+                  <ExternalLink size={10} />
+                  Open in Maps
+                </a>
+              )}
             </div>
           </div>
         );

@@ -22,18 +22,7 @@ const sanitizeDetails = (obj: unknown): unknown => {
     return obj.map(sanitizeDetails);
   }
 
-  const sensitiveKeys = [
-    'email',
-    'phone',
-    'name',
-    'line1',
-    'line2',
-    'city',
-    'state',
-    'postal_code',
-    'card',
-    'bank_account',
-  ];
+  const sensitiveKeys = ['email', 'phone', 'name', 'line1', 'line2', 'city', 'state', 'postal_code', 'card', 'bank_account'];
   const sanitized: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {

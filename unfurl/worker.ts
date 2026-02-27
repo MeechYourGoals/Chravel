@@ -35,9 +35,7 @@ function notFound(): Response {
   return textResponse('Not found', { status: 404 });
 }
 
-function parsePath(
-  pathname: string,
-): { type: 'trip'; id: string } | { type: 'invite'; code: string } | null {
+function parsePath(pathname: string): { type: 'trip'; id: string } | { type: 'invite'; code: string } | null {
   const parts = pathname.split('/').filter(Boolean);
   if (parts.length === 2) {
     if (parts[0] === 't' && parts[1]) return { type: 'trip', id: parts[1] };
@@ -46,7 +44,10 @@ function parsePath(
   return null;
 }
 
-async function proxyUpstream(upstreamUrl: URL, userAgent: string | null): Promise<Response> {
+async function proxyUpstream(
+  upstreamUrl: URL,
+  userAgent: string | null,
+): Promise<Response> {
   const upstream = await fetch(upstreamUrl.toString(), {
     method: 'GET',
     headers: {
