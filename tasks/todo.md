@@ -46,8 +46,9 @@
 - Playwright run attempted (`npx playwright test ... --project=chromium`) but browser binary is unavailable in container; install attempt failed due CDN 403, so runtime execution remains blocked by environment.
 - Risk: selector stability depends on current `aria-label`/button labels (`Create Event Recap`, `View event details`); changes to copy should update this spec intentionally.
 
-## Polls launch-readiness deep dive
-- [x] Attempt to run the requested Vercel dogfood skill workflow.
-- [x] Dogfood Polls flow locally via browser automation fallback.
-- [x] Audit Polls code paths (`PollComponent`, `Poll`, `useTripPolls`, poll storage/services) for launch risks.
-- [x] Document prioritized bugs, edge cases, and MVP-safe feature recommendations.
+## New user onboarding UX audit
+- [x] Scope current anonymous → auth → onboarding → invite flow surfaces.
+- [x] Simulate first-time user journey on mobile viewport and capture friction points.
+- [x] Document confusion points, CTA clarity gaps, overloaded screens, empty-state gaps, and emotional friction.
+- [x] Propose targeted microcopy, micro-animation, and simplification improvements.
+- [x] Run required build gates and prepare PR notes.
