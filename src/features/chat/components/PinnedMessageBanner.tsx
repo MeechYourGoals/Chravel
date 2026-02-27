@@ -13,12 +13,12 @@ export const PinnedMessageBanner: React.FC<PinnedMessageBannerProps> = ({ tripId
   const [pinnedMessages, setPinnedMessages] = useState<any[]>([]);
   const [isListOpen, setIsListOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchPinned = async () => {
-      const messages = await getPinnedMessages(tripId);
-      setPinnedMessages(messages);
-    };
+  const fetchPinned = async () => {
+    const messages = await getPinnedMessages(tripId);
+    setPinnedMessages(messages);
+  };
 
+  useEffect(() => {
     fetchPinned();
 
     // Subscribe to changes in chat messages (to update pins in real-time)
@@ -94,7 +94,8 @@ export const PinnedMessageBanner: React.FC<PinnedMessageBannerProps> = ({ tripId
         onClose={() => setIsListOpen(false)}
         messages={pinnedMessages}
         onUnpin={() => {
-            // Optimistic update or just trigger refetch via subscription
+            // Refetch immediately on unpin action
+            fetchPinned();
         }}
       />
     </>

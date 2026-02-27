@@ -23,7 +23,7 @@ import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import { markMessagesAsRead, subscribeToReadReceipts } from '@/services/readReceiptService';
+import { markMessagesAsRead, subscribeToReadReceipts, getMessagesReadStatus } from '@/services/readReceiptService';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
@@ -109,6 +109,7 @@ export const TripChat = ({
   const [reactions, setReactions] = useState<
     Record<string, Record<string, { count: number; userReacted: boolean }>>
   >({});
+  const [readStatusesByMessage, setReadStatusesByMessage] = useState<Record<string, any[]>>({});
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
   const typingServiceRef = useRef<TypingIndicatorService | null>(null);
@@ -274,12 +275,24 @@ export const TripChat = ({
     };
   }, [demoMode.isDemoMode, user?.id, resolvedTripId]);
 
-  // Mark messages as read when they come into view
+  // Mark messages as read when they come into view AND fetch read statuses
   useEffect(() => {
     if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
 
-    const subscription = subscribeToReadReceipts(resolvedTripId, () => {
-      // Read receipt updates handled via realtime
+    // Realtime subscription for read receipts (updates UI)
+    const subscription = subscribeToReadReceipts(resolvedTripId, (newStatus) => {
+      setReadStatusesByMessage((prev) => {
+        const msgId = newStatus.message_id;
+        const currentStatuses = prev[msgId] || [];
+        // Check if status already exists to avoid dupes
+        if (currentStatuses.some(s => s.user_id === newStatus.user_id)) {
+            return prev;
+        }
+        return {
+          ...prev,
+          [msgId]: [...currentStatuses, newStatus],
+        };
+      });
     });
 
     // Mark all messages from other users as read
@@ -295,6 +308,20 @@ export const TripChat = ({
             console.error(error);
           }
         });
+      }
+
+      // Also fetch read statuses for OWN messages to display receipts
+      const ownMessageIds = liveMessages
+        .filter(msg => msg.user_id === user.id)
+        .map(msg => msg.id);
+
+      if (ownMessageIds.length > 0) {
+         try {
+             const statuses = await getMessagesReadStatus(ownMessageIds);
+             setReadStatusesByMessage(statuses);
+         } catch (e) {
+             console.error("Failed to fetch read statuses", e);
+         }
       }
     };
 
@@ -861,6 +888,8 @@ export const TripChat = ({
                         onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
                         onRetry={handleRetryFailedMessage}
                         systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
+                        tripMembers={tripMembers} // Pass trip members
+                        readStatuses={readStatusesByMessage[message.id]} // Pass read statuses for this message
                       />
                     </div>
                   )}

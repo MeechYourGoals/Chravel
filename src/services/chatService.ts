@@ -5,7 +5,6 @@
 export async function pinMessage(messageId: string, userId: string, tripId: string): Promise<boolean> {
   try {
     // 1. Unpin any currently pinned messages for this trip
-    // We fetch them first to get their IDs
     const { data: existingPins } = await supabase
       .from('trip_chat_messages')
       .select('id, payload')
@@ -15,6 +14,9 @@ export async function pinMessage(messageId: string, userId: string, tripId: stri
 
     if (existingPins && existingPins.length > 0) {
       for (const pin of existingPins) {
+        // Skip if it's the message we are about to pin (though unlikely to be pinned already if we are pinning it)
+        if (pin.id === messageId) continue;
+
         const payload = (pin.payload as Record<string, any>) || {};
         const newPayload = { ...payload };
         delete newPayload.pinned;
