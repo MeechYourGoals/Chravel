@@ -113,6 +113,7 @@ export const MessageItem = memo(
             onReply={onReply}
             showSenderInfo={showSenderInfo}
             messageType="trip"
+            isPinned={message.isPinned}
             onEdit={handleEdit}
             onDelete={handleDelete}
             grounding={
