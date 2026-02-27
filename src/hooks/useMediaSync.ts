@@ -75,20 +75,20 @@ export function useMediaSync(tripId: string) {
         logEgress('trip_link_index', 'select', linksResult.data, { limit: MEDIA_FETCH_LIMIT });
 
         // Subscribe to real-time updates
-        subscription = subscribeToMediaUpdates(tripId, {
-          onMediaInsert: row => {
-            if (row.media_type === 'image') {
-              setImages(prev => [row, ...prev]);
-            } else if (row.media_type === 'video') {
-              setVideos(prev => [row, ...prev]);
-            }
-          },
-          onFileInsert: row => {
-            setFiles(prev => [row, ...prev]);
-          },
-          onLinkInsert: row => {
-            setLinks(prev => [row, ...prev]);
-          },
+        subscription = subscribeToMediaUpdates(tripId, (row) => {
+          if (row.media_type === 'image') {
+            setImages(prev => [row as any, ...prev]);
+          } else if (row.media_type === 'video') {
+            setVideos(prev => [row as any, ...prev]);
+          }
+          // Check for file attachments
+          if (row.attachments) {
+            setFiles(prev => [row as any, ...prev]);
+          }
+          // Check for link previews
+          if (row.link_preview) {
+            setLinks(prev => [row as any, ...prev]);
+          }
         });
       } catch (err) {
         console.error('Failed to load media:', err);

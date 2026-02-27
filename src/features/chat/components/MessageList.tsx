@@ -10,6 +10,8 @@ interface MessageListProps {
   emptyStateTitle?: string;
   emptyStateDescription?: string;
   onRetryMessage?: (messageId: string) => void;
+  tripMembers?: Array<{ id: string; name: string; avatar?: string }>; // Pass trip members
+  readStatuses?: Record<string, any[]>; // Pass read statuses map
 }
 
 export const MessageList = memo(
@@ -20,6 +22,8 @@ export const MessageList = memo(
     emptyStateTitle = 'Start the conversation',
     emptyStateDescription = 'Messages here are visible to everyone in the trip',
     onRetryMessage,
+    tripMembers,
+    readStatuses = {},
   }: MessageListProps) => {
     // Memoize message grouping for performance
     const messageGroups = useMemo(() => {
@@ -54,6 +58,8 @@ export const MessageList = memo(
               onReaction={onReaction}
               showSenderInfo={showSenderInfo}
               onRetry={onRetryMessage}
+              tripMembers={tripMembers}
+              readStatuses={readStatuses[message.id]}
             />
           </div>
         ))}

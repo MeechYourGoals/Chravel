@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Copy, Check, MapPin, Calendar, Users, Share2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
+import { buildTripPreviewLink } from '@/lib/unfurlConfig';
 interface Participant {
   id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
   name: string;
@@ -32,10 +33,9 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
   // Check if native share is available (iOS, Android, some desktop browsers)
   const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
 
-  // Generate branded preview link - hardcoded for reliability
-  // p.chravel.app is configured in Render/IONOS DNS to proxy to generate-trip-preview
+  // Generate branded preview link using centralized config
   const previewLink = useMemo(() => {
-    return `https://p.chravel.app/t/${encodeURIComponent(String(trip.id))}`;
+    return buildTripPreviewLink(trip.id);
   }, [trip.id]);
 
   // Generate share text for social media - ensure minimum of 1 Chraveler (creator always exists)

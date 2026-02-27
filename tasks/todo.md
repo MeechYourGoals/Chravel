@@ -20,6 +20,12 @@
 - [x] Run focused e2e test(s) plus type/lint checks for touched files.
 - [x] Document verification results and residual risks.
 
+## AI concierge prompt-injection hardening guidance docs
+- [x] Scope the request and map existing security + AI concierge documentation.
+- [x] Add a production-ready security checklist for prompt injection, tool gating, and data exfil prevention.
+- [x] Run lint, typecheck, and build gates required before commit.
+- [x] Commit docs changes and open PR with implementation notes.
+
 ## Review
 - Root cause: auth fallback hydration could re-seed `profiles.display_name` from stale auth metadata and fallback profile selects dropped `real_name`, which made settings appear non-persistent after app relaunch/resume.
 - Fix: changed profile self-heal upsert to ignore duplicates (insert-only behavior), expanded fallback profile select to include `real_name`/`name_preference`/`phone`, and synchronized auth metadata after profile name updates.
@@ -39,3 +45,9 @@
 - Validation: `npx eslint e2e/specs/events/event-recap-export.spec.ts` and `npm run typecheck` pass.
 - Playwright run attempted (`npx playwright test ... --project=chromium`) but browser binary is unavailable in container; install attempt failed due CDN 403, so runtime execution remains blocked by environment.
 - Risk: selector stability depends on current `aria-label`/button labels (`Create Event Recap`, `View event details`); changes to copy should update this spec intentionally.
+
+## Tasks module launch-readiness deep dive
+- [x] Attempt requested Vercel dogfood workflow and record blockers/workaround.
+- [x] Audit Tasks UI/hooks/services/tests for launch-blocking bugs and edge cases.
+- [x] Produce actionable launch-readiness report with high-impact MVP feature adds.
+- [x] Run lint/typecheck/build gates before shipping findings.

@@ -23,7 +23,7 @@ import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import { markMessagesAsRead, subscribeToReadReceipts } from '@/services/readReceiptService';
+import { markMessagesAsRead, subscribeToReadReceipts, getMessagesReadStatus } from '@/services/readReceiptService';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
@@ -37,9 +37,13 @@ import {
   subscribeToReactions,
   type ReactionType,
   type ReactionCount,
+  pinMessage,
+  unpinMessage,
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
+import { PinnedMessageBanner } from './PinnedMessageBanner';
+import { toast } from 'sonner';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -67,6 +71,7 @@ interface MockMessage {
   delay_seconds?: number;
   timestamp_offset_days?: number;
   tags?: string[];
+  isPinned?: boolean; // Add isPinned to mock message
 }
 
 // Match the interface from useTripChat.ts
@@ -87,6 +92,8 @@ interface TripChatMessage {
   message_type?: string;
   is_edited?: boolean;
   edited_at?: string;
+  reply_to_id?: string;
+  payload?: any; // Add payload for pinned status
 }
 
 export const TripChat = ({
@@ -102,10 +109,19 @@ export const TripChat = ({
   const [reactions, setReactions] = useState<
     Record<string, Record<string, { count: number; userReacted: boolean }>>
   >({});
+  const [readStatusesByMessage, setReadStatusesByMessage] = useState<Record<string, any[]>>({});
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
   const typingServiceRef = useRef<TypingIndicatorService | null>(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+  const [showPinnedMessage, setShowPinnedMessage] = useState(() => {
+    // Initialize from localStorage if available, default to true
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('trip_chat_pin_visible');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [activeThreadMessage, setActiveThreadMessage] = useState<{
     id: string;
@@ -266,12 +282,24 @@ export const TripChat = ({
     };
   }, [demoMode.isDemoMode, user?.id, resolvedTripId]);
 
-  // Mark messages as read when they come into view
+  // Mark messages as read when they come into view AND fetch read statuses
   useEffect(() => {
     if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
 
-    const subscription = subscribeToReadReceipts(resolvedTripId, () => {
-      // Read receipt updates handled via realtime
+    // Realtime subscription for read receipts (updates UI)
+    const subscription = subscribeToReadReceipts(resolvedTripId, (newStatus) => {
+      setReadStatusesByMessage((prev) => {
+        const msgId = newStatus.message_id;
+        const currentStatuses = prev[msgId] || [];
+        // Check if status already exists to avoid dupes
+        if (currentStatuses.some(s => s.user_id === newStatus.user_id)) {
+            return prev;
+        }
+        return {
+          ...prev,
+          [msgId]: [...currentStatuses, newStatus],
+        };
+      });
     });
 
     // Mark all messages from other users as read
@@ -288,6 +316,20 @@ export const TripChat = ({
           }
         });
       }
+
+      // Also fetch read statuses for OWN messages to display receipts
+      const ownMessageIds = liveMessages
+        .filter(msg => msg.user_id === user.id)
+        .map(msg => msg.id);
+
+      if (ownMessageIds.length > 0) {
+         try {
+             const statuses = await getMessagesReadStatus(ownMessageIds);
+             setReadStatusesByMessage(statuses);
+         } catch (e) {
+             console.error("Failed to fetch read statuses", e);
+         }
+      }
     };
 
     markVisibleAsRead();
@@ -303,35 +345,56 @@ export const TripChat = ({
 
   const liveFormattedMessages = useMemo(() => {
     if (demoMode.isDemoMode) return [];
-    return liveMessages.map(message => ({
-      id: message.id,
-      text: message.content,
-      sender: {
-        // Prefer user_id for accurate ownership detection, fallback to author_name for display.
-        // For system messages user_id may be null (by design).
-        id: message.user_id || message.author_name || 'system',
-        name: (() => {
-          const member = tripMembers.find(m => m.id === (message.user_id || ''));
-          // If member found and has a resolved profile name, use it.
-          // If member not found (left trip / deleted account), prefer stored author_name snapshot.
-          if (member) return member.name;
-          return message.author_name || 'System';
-        })(),
-        // Canonical avatar comes from `profiles.avatar_url` via `useTripMembers`.
-        // System messages should render without avatar in MessageItem.
-        avatar: tripMembers.find(m => m.id === (message.user_id || ''))?.avatar || defaultAvatar,
-        // Store original user_id separately for ownership checks
-        userId: message.user_id,
-      },
-      createdAt: message.created_at,
-      isBroadcast: message.message_type === 'broadcast',
-      isPayment: message.message_type === 'payment',
-      isEdited: message.is_edited || false,
-      editedAt: message.edited_at,
-      // Ensure system messages are never filtered out by dedupe/memoization layers
-      // and can be rendered via the special system-message UI path.
-      tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[]),
-    }));
+
+    // Create a map for quick message lookup for reply resolution
+    const messageMap = new Map(liveMessages.map(msg => [msg.id, msg]));
+
+    return liveMessages.map(message => {
+      // Resolve replyTo context if reply_to_id exists
+      let replyTo;
+      if ((message as any).reply_to_id) {
+          const parentMsg = messageMap.get((message as any).reply_to_id);
+          if (parentMsg) {
+              replyTo = {
+                  id: parentMsg.id,
+                  text: parentMsg.content,
+                  sender: parentMsg.author_name
+              };
+          }
+      }
+
+      return {
+        id: message.id,
+        text: message.content,
+        sender: {
+          // Prefer user_id for accurate ownership detection, fallback to author_name for display.
+          // For system messages user_id may be null (by design).
+          id: message.user_id || message.author_name || 'system',
+          name: (() => {
+            const member = tripMembers.find(m => m.id === (message.user_id || ''));
+            // If member found and has a resolved profile name, use it.
+            // If member not found (left trip / deleted account), prefer stored author_name snapshot.
+            if (member) return member.name;
+            return message.author_name || 'System';
+          })(),
+          // Canonical avatar comes from `profiles.avatar_url` via `useTripMembers`.
+          // System messages should render without avatar in MessageItem.
+          avatar: tripMembers.find(m => m.id === (message.user_id || ''))?.avatar || defaultAvatar,
+          // Store original user_id separately for ownership checks
+          userId: message.user_id,
+        },
+        createdAt: message.created_at,
+        isBroadcast: message.message_type === 'broadcast',
+        isPayment: message.message_type === 'payment',
+        isEdited: message.is_edited || false,
+        editedAt: message.edited_at,
+        // Ensure system messages are never filtered out by dedupe/memoization layers
+        // and can be rendered via the special system-message UI path.
+        tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[]),
+        replyTo, // Pass resolved reply context
+        isPinned: (message as any).payload?.pinned === true,
+      };
+    });
   }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 
   // Fetch initial reactions for messages
@@ -419,6 +482,7 @@ export const TripChat = ({
       };
     }
 
+    // Pass replyingTo ID if replying
     const message = await sendMessage({
       isBroadcast,
       isPayment,
@@ -452,6 +516,7 @@ export const TripChat = ({
         user?.id,
         effectivePrivacyMode,
         messageType,
+        // TODO: Pass replyingTo?.id here once useTripChat is updated
       );
 
       // Auto-parse message for entities (dates, times, locations)
@@ -509,6 +574,57 @@ export const TripChat = ({
   };
 
   const handleReaction = async (messageId: string, reactionType: string) => {
+    // Handle Pin reaction specifically
+    if (reactionType === 'pin') {
+      if (!user?.id) {
+          toast.error("You must be logged in to pin messages");
+          return;
+      }
+
+      // Check current pin status from the message object
+      // We need to find the message in liveMessages or demoMessages
+      const message = liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
+      if (!message) return;
+
+      // In demo mode, just toggle local state
+      if (demoMode.isDemoMode) {
+          // Unpin any other message first
+          setDemoMessages(prev => prev.map(m => {
+            if (m.id === messageId) {
+                // Toggle clicked message
+                return { ...m, isPinned: !m.isPinned };
+            } else if (m.isPinned) {
+                // Unpin others
+                return { ...m, isPinned: false };
+            }
+            return m;
+          }));
+          return;
+      }
+
+      const isPinned = (message as TripChatMessage).payload?.pinned === true;
+
+      try {
+          if (isPinned) {
+              await unpinMessage(messageId);
+              toast.success("Message unpinned");
+          } else {
+              // Pass tripId to enforce single pin
+              await pinMessage(messageId, user.id, resolvedTripId);
+              toast.success("Message pinned");
+              setShowPinnedMessage(true); // Auto-show banner when pinning
+          }
+          // The subscription to trip_chat_messages (handled in PinnedMessageBanner)
+          // or React Query invalidation should update the UI.
+          // For immediate feedback in the chat stream, we might rely on the realtime subscription
+          // in useTripChat which listens to UPDATE events.
+      } catch (error) {
+          console.error("Failed to toggle pin:", error);
+          toast.error("Failed to update pin status");
+      }
+      return;
+    }
+
     if (demoMode.isDemoMode || !user?.id) {
       // Demo mode: local-only reactions
       const updatedReactions = { ...reactions };
@@ -568,24 +684,13 @@ export const TripChat = ({
       liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
     if (!message) return;
 
-    const isDemo = demoMode.isDemoMode;
-    const mockMsg = message as MockMessage;
-    const liveMsg = message as TripChatMessage;
-    const content = isDemo ? mockMsg.text : liveMsg.content;
-    const authorName = isDemo ? mockMsg.sender?.name : liveMsg.author_name;
-    const createdAt = isDemo ? mockMsg.createdAt : liveMsg.created_at;
-    const authorAvatar = isDemo
-      ? mockMsg.sender?.avatar
-      : tripMembers.find(m => m.id === liveMsg.user_id)?.avatar;
+    // For inline reply:
+    const content = demoMode.isDemoMode ? (message as MockMessage).text : (message as TripChatMessage).content;
+    const authorName = demoMode.isDemoMode
+        ? (message as MockMessage).sender.name
+        : ((message as TripChatMessage).author_name || 'User'); // Fallback
 
-    setActiveThreadMessage({
-      id: messageId,
-      content,
-      authorName,
-      authorAvatar,
-      createdAt,
-      tripId: resolvedTripId,
-    });
+    setReply(messageId, content, authorName);
   };
 
   // ⚡ PERFORMANCE: Synchronous demo message loading (no unnecessary async wrapper)
@@ -740,6 +845,9 @@ export const TripChat = ({
           ref={messagesContainerRef}
           className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex-1 flex flex-col relative min-h-0"
         >
+          {/* Pinned Messages Banner */}
+          {showPinnedMessage && <PinnedMessageBanner tripId={resolvedTripId} />}
+
           {/* Filter Tabs */}
           <MessageTypeBar
             activeFilter={messageFilter}
@@ -755,6 +863,15 @@ export const TripChat = ({
               setActiveChannel(channel);
               setMessageFilter('channels');
             }}
+            // Pass props for pin toggle
+            onTogglePin={() => {
+              setShowPinnedMessage(prev => {
+                const newValue = !prev;
+                localStorage.setItem('trip_chat_pin_visible', String(newValue));
+                return newValue;
+              });
+            }}
+            isPinVisible={showPinnedMessage}
           />
 
           {/* Conditional Content Area */}
@@ -784,6 +901,8 @@ export const TripChat = ({
                         onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
                         onRetry={handleRetryFailedMessage}
                         systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
+                        tripMembers={tripMembers} // Pass trip members
+                        readStatuses={readStatusesByMessage[message.id]} // Pass read statuses for this message
                       />
                     </div>
                   )}

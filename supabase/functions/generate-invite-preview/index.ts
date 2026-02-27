@@ -383,8 +383,11 @@ function generateInviteHTML(
   },
   inviteCode: string,
   baseUrl: string,
+  canonicalUrl?: string | null,
 ): string {
   const joinUrl = `${baseUrl}/join/${inviteCode}`;
+  // Use canonical URL (the branded unfurl URL) for og:url when provided
+  const ogUrl = canonicalUrl || joinUrl;
 
   // Safe values for OG tags
   const safeTitle = escapeHtml(trip.title);
@@ -419,6 +422,9 @@ function generateInviteHTML(
       ? '🏢 Pro Trip Invitation'
       : "✨ You're Invited!";
 
+  const badgeTextColor = isEvent || isPro ? '#fff' : '#000';
+  const datesColor = isEvent && trip.themeColor ? trip.themeColor : '#a855f7';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -428,7 +434,7 @@ function generateInviteHTML(
   
   <!-- Open Graph Meta Tags -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="${escapeHtml(joinUrl)}">
+  <meta property="og:url" content="${escapeHtml(ogUrl)}">
   <meta property="og:title" content="${ogTitle}">
   <meta property="og:description" content="${ogDescription}">
   <meta property="og:image" content="${escapeHtml(trip.coverPhoto)}">
@@ -468,7 +474,7 @@ function generateInviteHTML(
     }
     .badge {
       ${badgeStyle}
-      color: ${isEvent || isPro ? '#fff' : '#000'};
+      color: ${badgeTextColor};
       text-align: center;
       padding: 8px;
       font-weight: 600;
@@ -491,7 +497,7 @@ function generateInviteHTML(
       margin-bottom: 8px;
     }
     .dates {
-      color: ${isEvent && trip.themeColor ? trip.themeColor : '#a855f7'};
+      color: ${datesColor};
       font-size: 14px;
       margin-bottom: 8px;
     }
@@ -515,7 +521,7 @@ function generateInviteHTML(
     .cta {
       display: block;
       ${badgeStyle}
-      color: ${isEvent || isPro ? '#fff' : '#000'};
+      color: ${badgeTextColor};
       text-align: center;
       padding: 14px;
       font-weight: 600;
@@ -565,10 +571,14 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const url = new URL(req.url);
     const inviteCode = url.searchParams.get('code');
+    const canonicalUrl = url.searchParams.get('canonicalUrl') || null;
     const appBaseUrl =
       url.searchParams.get('appBaseUrl') || Deno.env.get('SITE_URL') || 'https://chravel.app';
 
-    logStep('Request received', { code: inviteCode?.substring(0, 12) + '...' });
+    logStep('Request received', {
+      code: inviteCode?.substring(0, 12) + '...',
+      canonicalUrl: canonicalUrl?.substring(0, 40),
+    });
 
     if (!inviteCode) {
       return new Response('Missing code parameter', {
@@ -590,7 +600,7 @@ serve(async (req: Request): Promise<Response> => {
       // Check for direct trip ID match first
       if (demoTrips[tripId]) {
         logStep('Serving demo invite', { tripId });
-        const html = generateInviteHTML(demoTrips[tripId], inviteCode, baseUrl);
+        const html = generateInviteHTML(demoTrips[tripId], inviteCode, baseUrl, canonicalUrl);
         return new Response(html, {
           status: 200,
           headers: {
@@ -604,7 +614,7 @@ serve(async (req: Request): Promise<Response> => {
       // Fallback: try just the second part for simple numeric IDs
       if (parts[1] && demoTrips[parts[1]]) {
         logStep('Serving demo invite (numeric)', { tripId: parts[1] });
-        const html = generateInviteHTML(demoTrips[parts[1]], inviteCode, baseUrl);
+        const html = generateInviteHTML(demoTrips[parts[1]], inviteCode, baseUrl, canonicalUrl);
         return new Response(html, {
           status: 200,
           headers: {
@@ -710,7 +720,7 @@ serve(async (req: Request): Promise<Response> => {
     };
 
     logStep('Serving invite preview', { tripId: invite.trip_id, title: tripData.title });
-    const html = generateInviteHTML(tripData, inviteCode, baseUrl);
+    const html = generateInviteHTML(tripData, inviteCode, baseUrl, canonicalUrl);
 
     return new Response(html, {
       status: 200,

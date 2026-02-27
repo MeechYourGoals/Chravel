@@ -4,6 +4,7 @@ import { isSameDay } from 'date-fns';
 import { LoadMoreIndicator } from './LoadMoreIndicator';
 import { DateSeparator } from './DateSeparator';
 import { hapticService } from '@/services/hapticService';
+import { ArrowDown } from 'lucide-react';
 
 interface ChatMessageLike {
   id: string;
@@ -161,7 +162,23 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     const isScrolledUp = distanceFromBottom > 100;
     setUserIsScrolledUp(isScrolledUp);
-    if (!isScrolledUp) setShowNewMessagesBadge(false);
+
+    // Logic: If user is scrolled up more than 100px, show FAB regardless of new messages.
+    // If there are new messages, we definitely show it (handled by setShowNewMessagesBadge above)
+    // BUT we want to support "always visible scroll-to-bottom" when scrolled up.
+
+    // We'll use showNewMessagesBadge for the visual indicator, but maybe we should rename/refactor?
+    // For now, let's keep the logic simple:
+    // If scrolled up significantly OR if new messages arrived while scrolled up -> Show Badge.
+
+    if (!isScrolledUp) {
+       setShowNewMessagesBadge(false);
+    } else {
+       // Optional: You might want to always show it if scrolled up,
+       // or only if there's a reason. The plan asked for "always visible scroll-to-bottom FAB".
+       // So we set it to true if isScrolledUp is true.
+       setShowNewMessagesBadge(true);
+    }
 
     if (scrollTop < 200 && !isLoadingRef.current && !isLoading) {
       if (localHasMore) {
@@ -247,12 +264,14 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
       </div>
 
       {showNewMessagesBadge && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+        <div className="absolute bottom-20 right-4 z-10 md:bottom-24">
           <button
             onClick={scrollToBottom}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-full shadow-lg hover:bg-primary/90 transition-all animate-bounce text-sm font-medium"
+            className="bg-primary/90 text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary transition-all active:scale-95 flex items-center justify-center backdrop-blur-sm"
+            aria-label="Scroll to bottom"
           >
-            ↓ New messages
+            <ArrowDown className="w-5 h-5" />
+            {/* Optional: Add a badge count if we had tracked unread count since scroll */}
           </button>
         </div>
       )}

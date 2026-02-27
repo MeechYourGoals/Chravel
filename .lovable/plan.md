@@ -1,130 +1,135 @@
 
+Objective: Restore rich invite/trip unfurl previews to production reliability by eliminating current infrastructure breakpoints and adding code-level fallback + regression guards.
 
-# Deep Dive: Why Restaurant Photos Timed Out + Fix Plan
+What I found (root-cause evidence)
+1) Primary outage is on the branded unfurl host (p.chravel.app), not the Google sign-in label change.
+- Direct checks to both:
+  - https://p.chravel.app/j/chravel3wtwrigg
+  - https://p.chravel.app/t/1
+  return Cloudflare error 1001 (“unable to resolve origin”) and intermittent TLS failures.
+- This exactly matches the screenshot symptom: chat app falls back to plain domain card when OG HTML cannot be fetched.
 
-## Root Cause Analysis
+2) The OG generator functions themselves are healthy right now.
+- Direct calls to:
+  - https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-invite-preview?code=chravel3wtwrigg
+  - https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-trip-preview?tripId=1
+  return full HTML with og:title/og:description/og:image.
+- So metadata generation is working; delivery path is what’s failing.
 
-### What actually happened in the screenshot
+3) Architectural single-point-of-failure exists.
+- All shared links generated in app currently hardcode `https://p.chravel.app/...`:
+  - `src/hooks/useInviteLink.ts`
+  - `src/components/share/ShareTripModal.tsx`
+- If p.chravel.app breaks, virality/share previews fail globally.
 
-1. You asked: "restaurants nearby and can you show me photos of what the food looks like"
-2. Gemini correctly identified this as a trip-related query and invoked the `searchPlaces` tool
-3. `searchPlaces` returned results WITH `previewPhotoUrl` fields (proxied through `image-proxy`)
-4. The model then likely tried to call `getPlaceDetails` for each restaurant to get more photos (up to 5 photos per place)
-5. The follow-up LLM call (where Gemini writes the response incorporating tool results) has a 40-second timeout
-6. Total chain: LLM (5-8s) + searchPlaces API (2-3s) + follow-up LLM with tool results (5-10s) = 12-21s normally, but on a bad day the Places API or follow-up LLM can take 15-20s each, pushing past the combined server timeout
+4) There is routing inconsistency in unfurl infrastructure.
+- `unfurl/server.mjs` supports both `/t/:tripId` and `/j/:code`.
+- `unfurl/worker.ts` supports only `/t/:tripId` (no invite `/j/:code` path).
+- If the live p.chravel.app points to worker runtime, invite unfurls would fail even when DNS is fixed.
 
-### Three compounding problems
+5) Minor metadata correctness issue in invite OG function.
+- `generate-invite-preview` currently sets `og:url` to `https://chravel.app/join/:code` and ignores `canonicalUrl` query param.
+- For stable cache/unfurl behavior, `og:url` should match the scraped URL (`https://p.chravel.app/j/:code`) when provided.
 
-**Problem 1: No timeout budget management.** The streaming endpoint has a 50s outer timeout, the follow-up call has 40s, but the `searchPlaces` call has NO timeout at all. If Places API is slow (5-10s), the remaining budget for the follow-up LLM call shrinks, causing a cascade failure.
+Not the cause
+- Google sign-in branding text change is unrelated to OG unfurl behavior.
 
-**Problem 2: `onFunctionCall` is never wired on the client.** The `conciergeGateway.ts` properly parses `function_call` SSE events and calls `callbacks.onFunctionCall?.(name, result)`. But `AIConciergeChat.tsx` never passes an `onFunctionCall` callback when calling `invokeConciergeStream()`. This means tool results (which contain `previewPhotoUrl`, ratings, addresses) are received and immediately discarded. The client relies entirely on the follow-up LLM text to mention the photos as markdown `![image](url)` -- if that follow-up times out, everything is lost.
+Surgical remediation plan (regression-safe)
 
-**Problem 3: Photos require a two-step chain.** `searchPlaces` returns `previewPhotoUrl` (1 photo per place). But if the user asks for "food photos," the model may attempt `getPlaceDetails` per restaurant (sequential, not parallel) to get more photos, multiplying latency.
+Phase 0 — Immediate restore (infrastructure first, highest impact)
+A) Recover p.chravel.app origin/DNS/TLS
+- Validate DNS target for p.chravel.app points to active unfurl service.
+- Confirm origin health endpoint:
+  - `https://p.chravel.app/healthz` => 200 "ok"
+- Ensure Cloudflare proxy + SSL mode are consistent with origin cert.
+- Confirm no Cloudflare 1001 and no TLS handshake errors.
 
-### Key separation audit (GOOD NEWS)
+B) Ensure runtime behind p.chravel.app supports BOTH routes
+- Required behavior:
+  - `/t/:tripId` -> trip preview proxy
+  - `/j/:code` -> invite preview proxy
+- If currently on Worker, either:
+  1) add `/j/:code` support in worker, or
+  2) route p.chravel.app to Node unfurl service (`unfurl/server.mjs`) that already supports both.
 
-Your key separation is already correct:
-- `GEMINI_API_KEY` (secret) -- only used for LLM calls in `gemini.ts` and `lovable-concierge/index.ts`
-- `GOOGLE_MAPS_API_KEY` (secret) -- used server-side only in `functionExecutor.ts` and `image-proxy`
-- `VITE_GOOGLE_MAPS_API_KEY` (secret) -- browser-only, used for Maps JS API loading
+Phase 1 — Code hardening (prevents full outage next time)
+1) Add configurable unfurl base URL
+- Introduce `VITE_UNFURL_BASE_URL` (default `https://p.chravel.app`).
+- Update link generation to read from env (not hardcoded):
+  - `src/hooks/useInviteLink.ts`
+  - `src/components/share/ShareTripModal.tsx`
+- Keeps runtime flexibility if infra moves domains.
 
-No key leakage detected. The `image-proxy` edge function correctly keeps `GOOGLE_MAPS_API_KEY` server-side and never exposes it to the client. Photo URLs served to the client are proxied through `/functions/v1/image-proxy?placePhotoName=...`.
+2) Add graceful fallback URL strategy
+- If configured unfurl base is missing/disabled, fallback to a controlled app-host URL (temporary rescue mode).
+- This prevents total share outage while branded domain is being fixed.
 
-### API restrictions from your screenshot
+3) Fix canonical handling in invite generator
+- Update `supabase/functions/generate-invite-preview/index.ts`:
+  - read `canonicalUrl` from query
+  - set `<meta property="og:url">` to canonicalUrl when present
+- Align with `generate-trip-preview` behavior for deterministic unfurl caching.
 
-Your key has 27 APIs enabled including Places API (New), Geocoding, Directions, Routes, Distance Matrix, Time Zone, Maps Embed, Custom Search, and more. This covers everything needed. No missing APIs.
+4) Keep preview source priority intact
+- Preserve existing OG image priority behavior (cover photo first, branded fallback second).
+- No changes to trip media selection logic.
 
----
+Phase 2 — Regression-proof verification
+A) Edge function verification
+- Validate direct outputs for both functions include:
+  - `og:title`
+  - `og:description` with location + date
+  - `og:image`
+  - `og:url` matching canonical
+- Test both demo and real invite/trip IDs.
 
-## Fix Plan (4 changes)
+B) Branded domain verification
+- Validate:
+  - `https://p.chravel.app/j/<real_code>` returns OG HTML
+  - `https://p.chravel.app/t/<trip_id>` returns OG HTML
+- Confirm no Cloudflare error page content.
 
-### A) Wire `onFunctionCall` on the client to render tool results immediately
+C) End-to-end messaging app checks (critical)
+- Send both link types in iMessage + WhatsApp.
+- Confirm rich card renders:
+  - cover image
+  - trip title
+  - location
+  - dates
+- Confirm card remains after cache warm/cold retry.
 
-**File: `src/components/AIConciergeChat.tsx`**
+D) Automated guardrails
+- Extend test coverage:
+  - E2E spec for branded `/j/` and `/t/` unfurls (HTTP-level assertions on OG tags).
+  - Smoke check script in CI/deploy verifying p.chravel.app health + route availability.
+- Alerting:
+  - trigger alert on non-200 `/healthz`
+  - alert if response body contains Cloudflare 1001 markers.
 
-Currently, when `searchPlaces` returns results (with photo URLs, ratings, addresses), the SSE event arrives but is silently dropped. Fix: pass an `onFunctionCall` handler that renders place cards directly into the chat as a rich message, BEFORE waiting for the follow-up LLM response.
+Implementation scope (files/services likely touched)
+- Infra/runtime:
+  - `unfurl/worker.ts` (add `/j/:code` parity if worker is active runtime)
+  - `unfurl/server.mjs` (only if needed for parity updates)
+- Frontend share generation:
+  - `src/hooks/useInviteLink.ts`
+  - `src/components/share/ShareTripModal.tsx`
+- Supabase function:
+  - `supabase/functions/generate-invite-preview/index.ts` (canonicalUrl support)
+- Optional docs/runbook:
+  - deployment doc for unfurl DNS + health checks
 
-This means even if the follow-up LLM call times out, the user still sees the restaurant results with photos immediately.
+Risk, sequencing, rollback
+- Risk level: Medium (because infra + share paths touch virality-critical flow), Low code-risk if done in sequence.
+- Sequence dependency:
+  1) Restore p domain routing first
+  2) then harden app/share config + canonical fix
+  3) then run end-to-end checks
+- Rollback:
+  - Revert frontend link-base config change (single commit rollback)
+  - Repoint p.chravel.app back to previous known-good origin if route parity change fails.
 
-```text
-onFunctionCall: (name, result) => {
-  if (name === 'searchPlaces' && result.places) {
-    // Render place results as a structured message immediately
-    // Include previewPhotoUrl, rating, address, mapsUrl
-  }
-  if (name === 'getPlaceDetails' && result.photoUrls) {
-    // Append photo gallery to the existing stream message
-  }
-}
-```
-
-### B) Add timeout to `searchPlaces` in `functionExecutor.ts`
-
-**File: `supabase/functions/_shared/functionExecutor.ts`**
-
-The `searchPlaces` fetch has no `AbortSignal.timeout()`. Other tools (getDirectionsETA, getTimezone, getPlaceDetails) all have 8-10s timeouts, but searchPlaces does not. Add `signal: AbortSignal.timeout(8_000)` and reduce `maxResultCount` from 5 to 3 when the query mentions "restaurants" or "food" to keep the response fast.
-
-### C) Create a `PlaceResultCards` component for rich rendering
-
-**File: `src/features/chat/components/PlaceResultCards.tsx` (new)**
-
-A dedicated component that renders 2-3 restaurant cards inline in the chat bubble, each showing:
-- Place name (linked to Google Maps)
-- Star rating + review count
-- Price level indicator
-- Address
-- 1 thumbnail photo (from `previewPhotoUrl`, loaded via `image-proxy`)
-- "Open in Maps" link
-
-This component will be used by the `onFunctionCall` handler and also parsed from markdown `![](image-proxy?...)` patterns in the follow-up LLM response.
-
-### D) Parallelize photo fetches in the follow-up flow
-
-**File: `supabase/functions/lovable-concierge/index.ts`**
-
-When the streaming path processes multiple sequential function calls (e.g., `searchPlaces` then `getPlaceDetails` x3), they currently execute sequentially in a `for...of` loop. Change: if the model returns multiple function calls in a single response, execute them with `Promise.all` (with individual 8s timeouts). If any photo fetch fails, return the place data without photos rather than failing the entire request.
-
----
-
-## Files Changed Summary
-
-| File | Change | Priority |
-|---|---|---|
-| `src/components/AIConciergeChat.tsx` | Wire `onFunctionCall` callback to render tool results immediately | Critical |
-| `src/features/chat/components/PlaceResultCards.tsx` | New component for rich place/restaurant cards with photos | Critical |
-| `supabase/functions/_shared/functionExecutor.ts` | Add 8s timeout to `searchPlaces`; reduce maxResultCount to 3 | High |
-| `supabase/functions/lovable-concierge/index.ts` | Parallelize multi-function-call execution with `Promise.all` | High |
-| `src/features/chat/components/ChatMessages.tsx` | Detect and render `PlaceResultCards` from function_call data in messages | High |
-
-## What is NOT changed
-
-- `image-proxy` edge function -- already works correctly
-- `conciergeGateway.ts` -- already parses `function_call` events correctly
-- Key configuration -- already properly separated
-- `MessageRenderer.tsx` -- markdown image rendering already works (img component handles `image-proxy` URLs)
-- No new API keys or secrets needed
-- No database migrations needed
-
-## Env Vars / Deployment Checklist
-
-| Variable | Where Set | Purpose |
-|---|---|---|
-| `GEMINI_API_KEY` | Supabase secrets | LLM calls only |
-| `GOOGLE_MAPS_API_KEY` | Supabase secrets | Server-side Places/Routes/Maps/Photos |
-| `VITE_GOOGLE_MAPS_API_KEY` | Lovable secrets | Browser Maps JS API loading |
-| `LOVABLE_API_KEY` | Supabase secrets | Gateway fallback |
-| `GOOGLE_CUSTOM_SEARCH_CX` | Supabase secrets (if set) | Image/web search |
-
-**Browser key HTTP referrer restrictions should include:**
-- `chravel.lovable.app`
-- `*.lovable.app` (for preview URLs)
-- `localhost:*` (for local dev)
-- Your production domain when deployed
-
-## QA Test Cases
-
-1. "Find 2-3 restaurants near Crypto.com Arena with photos" -- should show place cards with thumbnails within 10s
-2. "How long from LAX to Crypto.com Arena by car" -- should show directions + map card
-3. If Places API is slow, place cards should still appear without photos (graceful degradation)
-4. If the follow-up LLM times out, the function_call results should already be visible in chat
-
+Success criteria (must all pass)
+1) p.chravel.app `/j` and `/t` are globally reachable (no 1001/TLS issues).
+2) Both routes return HTML containing OG tags for real links.
+3) iMessage and WhatsApp show rich cards for invite and trip links.
+4) Automated smoke checks detect future outages before users do.

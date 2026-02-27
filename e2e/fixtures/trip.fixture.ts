@@ -7,7 +7,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 
 import { test as authTest, TestUser } from './auth.fixture';
-import { SupabaseClient } from '@supabase/supabase-js';
 
 // Types
 interface TestTrip {

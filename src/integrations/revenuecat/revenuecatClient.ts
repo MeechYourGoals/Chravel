@@ -22,6 +22,8 @@ import type {
   DerivedPlan,
 } from './types';
 import type { SubscriptionTier } from '@/billing/types';
+import despia from 'despia-native';
+import { toast } from 'sonner';
 
 // Lazy import for RevenueCat plugin (only loaded on native platforms)
 let Purchases: typeof import('@revenuecat/purchases-capacitor').Purchases | null = null;
@@ -400,4 +402,27 @@ export function derivePlanFromCustomerInfo(customerInfo: RevenueCatCustomerInfo)
     source: 'revenuecat',
     entitlements: entitlementIds,
   };
+}
+
+/**
+ * Setup global purchase listener for native runtime
+ */
+export function setupGlobalPurchaseListener() {
+  if (typeof window !== 'undefined') {
+    window.onRevenueCatPurchase = () => {
+      console.log('[Native] Purchase completed successfully');
+      toast.success('Subscription Updated', {
+        description: 'Your purchase was successful! Features are unlocking...',
+      });
+      // Force reload entitlements if needed, or rely on realtime updates
+    };
+  }
+}
+
+/**
+ * Launch native paywall via despia-native
+ */
+export function launchNativePaywall(userId: string, offeringId: string = 'default') {
+  console.log('[Native] Launching paywall for user:', userId);
+  despia(`revenuecat://launchPaywall?external_id=${userId}&offering=${offeringId}`);
 }
