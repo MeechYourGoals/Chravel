@@ -85,7 +85,7 @@ test.describe('Trip Viewing', () => {
     loginAsUser,
   }) => {
     const user = await createTestUser({ displayName: 'Trip Viewer' });
-    const trip = await createTestTrip(user, { name: 'Visible Trip' });
+    await createTestTrip(user, { name: 'Visible Trip' });
 
     await loginAsUser(page, user);
 
@@ -133,7 +133,7 @@ test.describe('Trip Viewing', () => {
     loginAsUser,
   }) => {
     const user = await createTestUser({ displayName: 'Card Checker' });
-    const trip = await createTestTrip(user, {
+    await createTestTrip(user, {
       name: 'Card Info Trip',
       destination: 'Barcelona, Spain',
     });

@@ -37,28 +37,7 @@ export const MessageTypeBar = ({
   isPinVisible = false,
 }: MessageTypeBarProps) => {
   const pillBarRef = useRef<HTMLDivElement>(null);
-  const [_pillBarWidth, setPillBarWidth] = useState(0);
   const [channelPopoverOpen, setChannelPopoverOpen] = useState(false);
-
-  // Measure pill bar width dynamically with ResizeObserver
-  useEffect(() => {
-    if (!pillBarRef.current) return;
-
-    const updateWidth = () => {
-      if (pillBarRef.current) {
-        setPillBarWidth(pillBarRef.current.offsetWidth);
-      }
-    };
-
-    // Initial measurement
-    updateWidth();
-
-    // ResizeObserver for dynamic updates
-    const resizeObserver = new ResizeObserver(updateWidth);
-    resizeObserver.observe(pillBarRef.current);
-
-    return () => resizeObserver.disconnect();
-  }, []);
 
   // Auto-open channels popover when switching to channels filter
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Crown, Sparkles, ImagePlus } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
@@ -1073,12 +1073,6 @@ export const AIConciergeChat = ({
             >
               <Search size={18} className="text-white" />
             </button>
-            <h3
-              className="text-lg font-semibold text-white flex-1 text-center min-w-0"
-              data-testid="ai-concierge-header"
-            >
-              {queryAllowanceText}
-            </span>
             <h3
               className="text-lg font-semibold text-white flex-1 text-center min-w-0"
               data-testid="ai-concierge-header"
