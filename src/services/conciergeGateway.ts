@@ -218,6 +218,9 @@ export function invokeConciergeStream(
               case 'agent_status':
                 callbacks.onAgentStatus?.(event.status, event.iter);
                 break;
+              case 'reservation_draft':
+                callbacks.onReservationDraft?.(event.draft);
+                break;
               case 'error':
                 callbacks.onError(event.message);
                 break;
