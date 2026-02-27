@@ -1,9 +1,11 @@
 import React, { useState, memo } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { MessageReactionBar } from './MessageReactionBar';
 import { MessageActions } from './MessageActions';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { GroundingCitationCard } from './GroundingCitationCard';
 import { ImageLightbox } from './ImageLightbox';
+import { ReadReceipts } from './ReadReceipts';
 import { GroundingCitation } from '@/types/grounding';
 import {
   MapPin,
@@ -70,6 +72,14 @@ export interface MessageBubbleProps {
   // 🆕 Message status for retry UI
   status?: 'sending' | 'sent' | 'failed';
   onRetry?: (messageId: string) => void;
+  // 🆕 Read Receipt Support
+  tripMembers?: Array<{ id: string; name: string; avatar?: string }>;
+  readStatuses?: any[];
+  currentUserId: string;
+  // 🆕 Inline Reply Support
+  replyTo?: { id: string; text: string; sender: string };
+  // 🆕 Pinning Support
+  isPinned?: boolean;
 }
 
 export const MessageBubble = memo(
@@ -100,6 +110,11 @@ export const MessageBubble = memo(
     allChatImages = [],
     status,
     onRetry,
+    tripMembers,
+    readStatuses,
+    currentUserId,
+    replyTo,
+    isPinned,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -266,34 +281,36 @@ export const MessageBubble = memo(
       );
     };
 
-    // Parse text and render @mentions with distinct styling
-    const renderTextWithMentions = (content: string) => {
-      // Regex to find @mentions (word characters after @)
-      const mentionRegex = /@(\w+(?:\s\w+)?)/g;
-      const parts: React.ReactNode[] = [];
-      let lastIndex = 0;
-      let match: RegExpExecArray | null;
+    // Parse text and render @mentions with distinct styling AND Markdown support
+    const renderContent = (content: string) => {
+      const mentionRegex = /(@\w+(?:\s\w+)?)/g;
+      const parts = content.split(mentionRegex);
 
-      while ((match = mentionRegex.exec(content)) !== null) {
-        // Add text before the mention
-        if (match.index > lastIndex) {
-          parts.push(content.slice(lastIndex, match.index));
+      return parts.map((part, index) => {
+        if (part.match(mentionRegex)) {
+            // It's a mention
+            return (
+                <span key={index} className="text-blue-400 font-medium bg-blue-500/10 px-1 rounded inline-block">
+                    {part}
+                </span>
+            );
+        } else {
+            // It's regular text (potentially markdown)
+            return (
+                <ReactMarkdown
+                    key={index}
+                    className="inline prose prose-invert max-w-none prose-p:inline prose-p:m-0 prose-pre:bg-gray-800 prose-pre:p-2 prose-pre:rounded"
+                    components={{
+                        p: ({node, ...props}) => <span {...props} />, // Render paragraphs as spans to avoid block layout issues in bubbles
+                        a: ({node, ...props}) => <a {...props} className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer" />,
+                        code: ({node, ...props}) => <code {...props} className="bg-gray-800 px-1 py-0.5 rounded text-xs font-mono" />,
+                    }}
+                >
+                    {part}
+                </ReactMarkdown>
+            );
         }
-        // Add the mention with styling
-        parts.push(
-          <span key={match.index} className="text-blue-400 font-medium bg-blue-500/10 px-1 rounded">
-            @{match[1]}
-          </span>,
-        );
-        lastIndex = match.index + match[0].length;
-      }
-
-      // Add remaining text
-      if (lastIndex < content.length) {
-        parts.push(content.slice(lastIndex));
-      }
-
-      return parts.length > 0 ? parts : content;
+      });
     };
 
     const formatTime = (timestamp: string) => {
@@ -345,6 +362,7 @@ export const MessageBubble = memo(
                 messageType={messageType}
                 isOwnMessage={isOwnMessage}
                 isDeleted={isDeleted}
+                isPinned={isPinned}
                 onEdit={onEdit}
                 onDelete={onDelete}
               />
@@ -362,8 +380,33 @@ export const MessageBubble = memo(
                 (hasMedia || hasLinkPreview) && !text && 'p-1 bg-transparent',
               )}
             >
-              {/* Text content - only show if not a pure media message */}
-              {text && <p className="whitespace-pre-wrap">{renderTextWithMentions(text)}</p>}
+              {/* Inline Reply Quote */}
+              {replyTo && (
+                <div
+                    className={cn(
+                        "mb-2 p-2 rounded-lg border-l-4 text-xs cursor-pointer",
+                        isOwnMessage
+                            ? "bg-black/20 border-white/50 text-white/80"
+                            : "bg-white/10 border-primary text-white/80"
+                    )}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        // Optional: Scroll to original message
+                        const el = document.querySelector(`[data-message-id="${replyTo.id}"]`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.classList.add('search-highlight-flash');
+                            setTimeout(() => el.classList.remove('search-highlight-flash'), 1000);
+                        }
+                    }}
+                >
+                    <p className="font-semibold mb-0.5">{replyTo.sender}</p>
+                    <p className="truncate opacity-90">{replyTo.text}</p>
+                </div>
+              )}
+
+              {/* Text content - with Markdown and Mentions */}
+              {text && <div className="whitespace-pre-wrap">{renderContent(text)}</div>}
 
               {/* Rich media content */}
               {renderMediaContent()}
@@ -456,6 +499,16 @@ export const MessageBubble = memo(
                   {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
                 </span>
               </button>
+            )}
+
+            {/* Read Receipts */}
+            {isOwnMessage && readStatuses && readStatuses.length > 0 && (
+               <ReadReceipts
+                 readStatuses={readStatuses}
+                 totalRecipients={tripMembers?.length ? tripMembers.length - 1 : 0}
+                 currentUserId={currentUserId}
+                 tripMembers={tripMembers}
+               />
             )}
           </div>
         </div>

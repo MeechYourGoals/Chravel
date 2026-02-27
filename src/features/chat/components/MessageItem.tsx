@@ -9,9 +9,10 @@ import {
   DEFAULT_SYSTEM_MESSAGE_CATEGORIES,
   SystemMessageCategoryPrefs,
 } from '@/utils/systemMessageCategory';
+import { ReadReceipts } from './ReadReceipts';
 
 interface MessageItemProps {
-  message: ChatMessage & { status?: 'sending' | 'sent' | 'failed'; replyCount?: number };
+  message: ChatMessage & { status?: 'sending' | 'sent' | 'failed'; replyCount?: number; isPinned?: boolean };
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
   onReply?: (messageId: string) => void;
@@ -24,6 +25,8 @@ interface MessageItemProps {
     showSystemMessages: boolean;
     categories: SystemMessageCategoryPrefs;
   };
+  tripMembers?: Array<{ id: string; name: string; avatar?: string }>;
+  readStatuses?: any[];
 }
 
 export const MessageItem = memo(
@@ -37,6 +40,8 @@ export const MessageItem = memo(
     onEdit,
     onDelete,
     systemMessagePrefs,
+    tripMembers,
+    readStatuses,
   }: MessageItemProps) => {
     const { user } = useAuth();
     const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
@@ -88,39 +93,49 @@ export const MessageItem = memo(
     }
 
     return (
-      <MessageBubble
-        id={message.id}
-        text={message.text}
-        senderName={message.sender.name}
-        senderAvatar={message.sender.avatar}
-        timestamp={message.createdAt}
-        isBroadcast={message.isBroadcast}
-        isPayment={message.isPayment || message.tags?.includes('payment')}
-        isOwnMessage={isOwnMessage}
-        isEdited={(message as any).isEdited || false}
-        reactions={reactions}
-        onReaction={onReaction}
-        replyCount={message.replyCount || 0}
-        onReply={onReply}
-        showSenderInfo={showSenderInfo}
-        messageType="trip"
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        grounding={
-          messageWithGrounding.sources || messageWithGrounding.googleMapsWidget
-            ? {
-                sources: messageWithGrounding.sources,
-                googleMapsWidget: messageWithGrounding.googleMapsWidget,
-              }
-            : undefined
-        }
-        mediaType={messageWithMedia.mediaType}
-        mediaUrl={messageWithMedia.mediaUrl}
-        linkPreview={messageWithMedia.linkPreview}
-        attachments={messageWithMedia.attachments}
-        status={message.status}
-        onRetry={onRetry}
-      />
+      <div className={message.isPinned ? "relative" : ""}>
+        {message.isPinned && (
+            <div className="absolute -left-3 top-0 bottom-0 w-1 bg-primary/50 rounded-full" title="Pinned Message" />
+        )}
+        <MessageBubble
+            id={message.id}
+            text={message.text}
+            senderName={message.sender.name}
+            senderAvatar={message.sender.avatar}
+            timestamp={message.createdAt}
+            isBroadcast={message.isBroadcast}
+            isPayment={message.isPayment || message.tags?.includes('payment')}
+            isOwnMessage={isOwnMessage}
+            isEdited={(message as any).isEdited || false}
+            reactions={reactions}
+            onReaction={onReaction}
+            replyCount={message.replyCount || 0}
+            onReply={onReply}
+            showSenderInfo={showSenderInfo}
+            messageType="trip"
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            grounding={
+            messageWithGrounding.sources || messageWithGrounding.googleMapsWidget
+                ? {
+                    sources: messageWithGrounding.sources,
+                    googleMapsWidget: messageWithGrounding.googleMapsWidget,
+                }
+                : undefined
+            }
+            mediaType={messageWithMedia.mediaType}
+            mediaUrl={messageWithMedia.mediaUrl}
+            linkPreview={messageWithMedia.linkPreview}
+            attachments={messageWithMedia.attachments}
+            status={message.status}
+            onRetry={onRetry}
+            tripMembers={tripMembers}
+            readStatuses={readStatuses}
+            currentUserId={user?.id || ''}
+            // Pass the resolved replyTo context if available
+            replyTo={message.replyTo}
+        />
+      </div>
     );
   },
 );
