@@ -29,7 +29,6 @@ import { ExitDemoButton } from './components/demo';
 import { attachNavigator, onNativeResume, setNativeBadgeCount } from '@/native/lifecycle';
 import { useDeepLinks } from '@/hooks/useDeepLinks';
 
-import { toast } from '@/hooks/use-toast';
 import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
 import { safeReload } from '@/utils/safeReload';
 import { parseJwtPayload } from '@/utils/tokenValidation';

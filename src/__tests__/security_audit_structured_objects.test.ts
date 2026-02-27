@@ -1,4 +1,4 @@
-
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -34,7 +34,10 @@ describe('Security Audit: Structured Objects (Calendar, Polls, Tasks)', () => {
 
     // Helper to create a user and get a client for them
     const createUser = async (email: string) => {
-      const { data: { user }, error } = await serviceClient.auth.admin.createUser({
+      const {
+        data: { user },
+        error,
+      } = await serviceClient.auth.admin.createUser({
         email,
         password: 'test-password-123',
         email_confirm: true,
@@ -75,13 +78,11 @@ describe('Security Audit: Structured Objects (Calendar, Polls, Tasks)', () => {
     testTripId = trip.id;
 
     // Add Member to Trip
-    const { error: memberError } = await serviceClient
-      .from('trip_members')
-      .insert({
-        trip_id: testTripId,
-        user_id: memberUser.id,
-        role: 'member',
-      });
+    const { error: memberError } = await serviceClient.from('trip_members').insert({
+      trip_id: testTripId,
+      user_id: memberUser.id,
+      role: 'member',
+    });
     if (memberError) throw memberError;
   });
 
@@ -112,7 +113,7 @@ describe('Security Audit: Structured Objects (Calendar, Polls, Tasks)', () => {
           trip_id: testTripId,
           title: 'Member Event',
           start_time: new Date().toISOString(),
-          created_by: memberUser.id
+          created_by: memberUser.id,
         })
         .select()
         .single();
@@ -122,60 +123,54 @@ describe('Security Audit: Structured Objects (Calendar, Polls, Tasks)', () => {
     });
 
     it('Member cannot delete Owner event', async () => {
-       // Create event as Owner
-       const { data: ownerEvent } = await ownerClient
-         .from('trip_events')
-         .insert({
-           trip_id: testTripId,
-           title: 'Owner Event',
-           start_time: new Date().toISOString(),
-           created_by: ownerUser.id
-         })
-         .select()
-         .single();
+      // Create event as Owner
+      const { data: ownerEvent } = await ownerClient
+        .from('trip_events')
+        .insert({
+          trip_id: testTripId,
+          title: 'Owner Event',
+          start_time: new Date().toISOString(),
+          created_by: ownerUser.id,
+        })
+        .select()
+        .single();
 
-       const { error } = await memberClient
-         .from('trip_events')
-         .delete()
-         .eq('id', ownerEvent.id);
+      const { error } = await memberClient.from('trip_events').delete().eq('id', ownerEvent.id);
 
-       // Verify it still exists
-       const { data: check } = await serviceClient
-         .from('trip_events')
-         .select('*')
-         .eq('id', ownerEvent.id);
+      // Verify it still exists
+      const { data: check } = await serviceClient
+        .from('trip_events')
+        .select('*')
+        .eq('id', ownerEvent.id);
 
-       expect(check).toHaveLength(1);
+      expect(check).toHaveLength(1);
     });
 
     it('Owner (Admin) can delete Member event', async () => {
-        // Create event as Member
-        const { data: memberEvent } = await memberClient
-            .from('trip_events')
-            .insert({
-            trip_id: testTripId,
-            title: 'Member Event To Delete',
-            start_time: new Date().toISOString(),
-            created_by: memberUser.id
-            })
-            .select()
-            .single();
+      // Create event as Member
+      const { data: memberEvent } = await memberClient
+        .from('trip_events')
+        .insert({
+          trip_id: testTripId,
+          title: 'Member Event To Delete',
+          start_time: new Date().toISOString(),
+          created_by: memberUser.id,
+        })
+        .select()
+        .single();
 
-        // Delete as Owner
-        const { error } = await ownerClient
-            .from('trip_events')
-            .delete()
-            .eq('id', memberEvent.id);
+      // Delete as Owner
+      const { error } = await ownerClient.from('trip_events').delete().eq('id', memberEvent.id);
 
-        expect(error).toBeNull();
+      expect(error).toBeNull();
 
-        // Verify it's gone
-        const { data: check } = await serviceClient
-            .from('trip_events')
-            .select('*')
-            .eq('id', memberEvent.id);
+      // Verify it's gone
+      const { data: check } = await serviceClient
+        .from('trip_events')
+        .select('*')
+        .eq('id', memberEvent.id);
 
-        expect(check).toHaveLength(0);
+      expect(check).toHaveLength(0);
     });
   });
 
@@ -195,7 +190,7 @@ describe('Security Audit: Structured Objects (Calendar, Polls, Tasks)', () => {
         .insert({
           trip_id: testTripId,
           title: 'Member Task',
-          creator_id: memberUser.id // Note: creator_id
+          creator_id: memberUser.id, // Note: creator_id
         })
         .select()
         .single();
@@ -205,53 +200,47 @@ describe('Security Audit: Structured Objects (Calendar, Polls, Tasks)', () => {
     });
 
     it('Member cannot delete Owner task', async () => {
-       const { data: ownerTask } = await ownerClient
-         .from('trip_tasks')
-         .insert({
-           trip_id: testTripId,
-           title: 'Owner Task',
-           creator_id: ownerUser.id
-         })
-         .select()
-         .single();
+      const { data: ownerTask } = await ownerClient
+        .from('trip_tasks')
+        .insert({
+          trip_id: testTripId,
+          title: 'Owner Task',
+          creator_id: ownerUser.id,
+        })
+        .select()
+        .single();
 
-       const { error } = await memberClient
-         .from('trip_tasks')
-         .delete()
-         .eq('id', ownerTask.id);
+      const { error } = await memberClient.from('trip_tasks').delete().eq('id', ownerTask.id);
 
-       const { data: check } = await serviceClient
-         .from('trip_tasks')
-         .select('*')
-         .eq('id', ownerTask.id);
+      const { data: check } = await serviceClient
+        .from('trip_tasks')
+        .select('*')
+        .eq('id', ownerTask.id);
 
-       expect(check).toHaveLength(1);
+      expect(check).toHaveLength(1);
     });
 
     it('Owner (Admin) can delete Member task', async () => {
-        const { data: memberTask } = await memberClient
-            .from('trip_tasks')
-            .insert({
-            trip_id: testTripId,
-            title: 'Member Task To Delete',
-            creator_id: memberUser.id
-            })
-            .select()
-            .single();
+      const { data: memberTask } = await memberClient
+        .from('trip_tasks')
+        .insert({
+          trip_id: testTripId,
+          title: 'Member Task To Delete',
+          creator_id: memberUser.id,
+        })
+        .select()
+        .single();
 
-        const { error } = await ownerClient
-            .from('trip_tasks')
-            .delete()
-            .eq('id', memberTask.id);
+      const { error } = await ownerClient.from('trip_tasks').delete().eq('id', memberTask.id);
 
-        expect(error).toBeNull();
+      expect(error).toBeNull();
 
-        const { data: check } = await serviceClient
-            .from('trip_tasks')
-            .select('*')
-            .eq('id', memberTask.id);
+      const { data: check } = await serviceClient
+        .from('trip_tasks')
+        .select('*')
+        .eq('id', memberTask.id);
 
-        expect(check).toHaveLength(0);
+      expect(check).toHaveLength(0);
     });
   });
 
@@ -271,7 +260,7 @@ describe('Security Audit: Structured Objects (Calendar, Polls, Tasks)', () => {
         .insert({
           trip_id: testTripId,
           question: 'Member Poll',
-          created_by: memberUser.id // Note: created_by
+          created_by: memberUser.id, // Note: created_by
         })
         .select()
         .single();
@@ -281,53 +270,47 @@ describe('Security Audit: Structured Objects (Calendar, Polls, Tasks)', () => {
     });
 
     it('Member cannot delete Owner poll', async () => {
-       const { data: ownerPoll } = await ownerClient
-         .from('trip_polls')
-         .insert({
-           trip_id: testTripId,
-           question: 'Owner Poll',
-           created_by: ownerUser.id
-         })
-         .select()
-         .single();
+      const { data: ownerPoll } = await ownerClient
+        .from('trip_polls')
+        .insert({
+          trip_id: testTripId,
+          question: 'Owner Poll',
+          created_by: ownerUser.id,
+        })
+        .select()
+        .single();
 
-       const { error } = await memberClient
-         .from('trip_polls')
-         .delete()
-         .eq('id', ownerPoll.id);
+      const { error } = await memberClient.from('trip_polls').delete().eq('id', ownerPoll.id);
 
-       const { data: check } = await serviceClient
-         .from('trip_polls')
-         .select('*')
-         .eq('id', ownerPoll.id);
+      const { data: check } = await serviceClient
+        .from('trip_polls')
+        .select('*')
+        .eq('id', ownerPoll.id);
 
-       expect(check).toHaveLength(1);
+      expect(check).toHaveLength(1);
     });
 
     it('Owner (Admin) can delete Member poll', async () => {
-        const { data: memberPoll } = await memberClient
-            .from('trip_polls')
-            .insert({
-            trip_id: testTripId,
-            question: 'Member Poll To Delete',
-            created_by: memberUser.id
-            })
-            .select()
-            .single();
+      const { data: memberPoll } = await memberClient
+        .from('trip_polls')
+        .insert({
+          trip_id: testTripId,
+          question: 'Member Poll To Delete',
+          created_by: memberUser.id,
+        })
+        .select()
+        .single();
 
-        const { error } = await ownerClient
-            .from('trip_polls')
-            .delete()
-            .eq('id', memberPoll.id);
+      const { error } = await ownerClient.from('trip_polls').delete().eq('id', memberPoll.id);
 
-        expect(error).toBeNull();
+      expect(error).toBeNull();
 
-        const { data: check } = await serviceClient
-            .from('trip_polls')
-            .select('*')
-            .eq('id', memberPoll.id);
+      const { data: check } = await serviceClient
+        .from('trip_polls')
+        .select('*')
+        .eq('id', memberPoll.id);
 
-        expect(check).toHaveLength(0);
+      expect(check).toHaveLength(0);
     });
   });
 });

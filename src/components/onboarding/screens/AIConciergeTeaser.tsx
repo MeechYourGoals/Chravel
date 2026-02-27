@@ -42,7 +42,7 @@ export const AIConciergeTeaser = () => {
           <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-accent" />
           </div>
-          <span className="text-sm font-medium text-foreground">AI Concierge</span>
+          <span className="text-sm font-medium text-foreground">Concierge</span>
         </div>
 
         {/* User message */}
