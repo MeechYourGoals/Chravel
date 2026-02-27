@@ -45,3 +45,10 @@
 - Validation: `npx eslint e2e/specs/events/event-recap-export.spec.ts` and `npm run typecheck` pass.
 - Playwright run attempted (`npx playwright test ... --project=chromium`) but browser binary is unavailable in container; install attempt failed due CDN 403, so runtime execution remains blocked by environment.
 - Risk: selector stability depends on current `aria-label`/button labels (`Create Event Recap`, `View event details`); changes to copy should update this spec intentionally.
+
+## Pro trips Channels/Roles/Media launch audit + dogfooding
+- [x] Attempt dogfooding flow using the requested Vercel agent-browser skill (or closest available fallback if blocked).
+- [x] Trace Pro channels/roles code paths for auth, role assignment, channel access, realtime, and permissions edge cases.
+- [x] Trace media upload/render/delete flows for Pro trips and identify dependency/runtime failure modes.
+- [x] Produce launch-readiness audit with prioritized bugs, edge cases, and MVP-safe high-impact feature recommendations.
+- [x] Run required build gates and commit audit artifacts.
