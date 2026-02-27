@@ -300,31 +300,29 @@ export const MessageBubble = memo(
         } else {
           // It's regular text (potentially markdown)
           return (
-            <ReactMarkdown
-              key={index}
-              className="inline prose prose-invert max-w-none prose-p:inline prose-p:m-0 prose-pre:bg-gray-800 prose-pre:p-2 prose-pre:rounded"
-              components={{
-                p: ({ _node, ...props }: { _node?: unknown; [key: string]: unknown }) => (
-                  <span {...props} />
-                ),
-                a: ({ _node, ...props }: { _node?: unknown; [key: string]: unknown }) => (
-                  <a
-                    {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
-                    className="text-blue-400 hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  />
-                ),
-                code: ({ _node, ...props }: { _node?: unknown; [key: string]: unknown }) => (
-                  <code
-                    {...(props as React.HTMLAttributes<HTMLElement>)}
-                    className="bg-gray-800 px-1 py-0.5 rounded text-xs font-mono"
-                  />
-                ),
-              }}
-            >
-              {part}
-            </ReactMarkdown>
+            <span key={index} className="inline prose prose-invert max-w-none prose-p:inline prose-p:m-0 prose-pre:bg-gray-800 prose-pre:p-2 prose-pre:rounded">
+              <ReactMarkdown
+                components={{
+                  p: (props) => <span {...props} />,
+                  a: (props) => (
+                    <a
+                      {...props}
+                      className="text-blue-400 hover:underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  ),
+                  code: (props) => (
+                    <code
+                      {...props}
+                      className="bg-gray-800 px-1 py-0.5 rounded text-xs font-mono"
+                    />
+                  ),
+                }}
+              >
+                {part}
+              </ReactMarkdown>
+            </span>
           );
         }
       });
