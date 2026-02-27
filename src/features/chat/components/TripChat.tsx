@@ -37,10 +37,13 @@ import {
   subscribeToReactions,
   type ReactionType,
   type ReactionCount,
+  pinMessage,
+  unpinMessage,
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 import { PinnedMessageBanner } from './PinnedMessageBanner';
+import { toast } from 'sonner';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -68,6 +71,7 @@ interface MockMessage {
   delay_seconds?: number;
   timestamp_offset_days?: number;
   tags?: string[];
+  isPinned?: boolean; // Add isPinned to mock message
 }
 
 // Match the interface from useTripChat.ts
@@ -565,6 +569,45 @@ export const TripChat = ({
   };
 
   const handleReaction = async (messageId: string, reactionType: string) => {
+    // Handle Pin reaction specifically
+    if (reactionType === 'pin') {
+      if (!user?.id) {
+          toast.error("You must be logged in to pin messages");
+          return;
+      }
+
+      // Check current pin status from the message object
+      // We need to find the message in liveMessages or demoMessages
+      const message = liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
+      if (!message) return;
+
+      // In demo mode, just toggle local state
+      if (demoMode.isDemoMode) {
+          setDemoMessages(prev => prev.map(m => m.id === messageId ? { ...m, isPinned: !m.isPinned } : m));
+          return;
+      }
+
+      const isPinned = (message as TripChatMessage).payload?.pinned === true;
+
+      try {
+          if (isPinned) {
+              await unpinMessage(messageId);
+              toast.success("Message unpinned");
+          } else {
+              await pinMessage(messageId, user.id);
+              toast.success("Message pinned");
+          }
+          // The subscription to trip_chat_messages (handled in PinnedMessageBanner)
+          // or React Query invalidation should update the UI.
+          // For immediate feedback in the chat stream, we might rely on the realtime subscription
+          // in useTripChat which listens to UPDATE events.
+      } catch (error) {
+          console.error("Failed to toggle pin:", error);
+          toast.error("Failed to update pin status");
+      }
+      return;
+    }
+
     if (demoMode.isDemoMode || !user?.id) {
       // Demo mode: local-only reactions
       const updatedReactions = { ...reactions };

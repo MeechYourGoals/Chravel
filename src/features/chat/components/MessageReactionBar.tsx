@@ -14,6 +14,7 @@ interface MessageReactionBarProps {
   onReaction?: (messageId: string, reactionType: string) => void;
   onReactMessage?: (reactionType: string) => void;
   className?: string;
+  isPinned?: boolean; // New prop to show pinned state
 }
 
 const REACTIONS: Reaction[] = [
@@ -35,6 +36,7 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
   onReaction,
   onReactMessage,
   className = '',
+  isPinned = false,
 }) => {
   const [activeReaction, setActiveReaction] = useState<string | null>(null);
 
@@ -52,14 +54,46 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
 
   return (
     <div className={`flex flex-wrap items-center gap-1 mt-1 ${className}`}>
+      {/* Pin Button - Separated as requested */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleReaction('pin')}
+        className={`h-6 px-1.5 py-0.5 text-xs rounded-full border transition-all duration-200 relative overflow-hidden mr-1 ${
+          isPinned
+            ? 'bg-primary/20 border-primary/50 text-primary hover:bg-primary/30'
+            : 'bg-background/20 border-border/30 text-muted-foreground hover:bg-background/40 hover:text-foreground'
+        }`}
+        title={isPinned ? "Unpin message" : "Pin message"}
+      >
+        <AnimatePresence>
+          {activeReaction === 'pin' && (
+            <motion.span
+              initial={{ scale: 1, opacity: 0.5 }}
+              animate={{ scale: 2, opacity: 0 }}
+              exit={{ scale: 1, opacity: 0 }}
+              className="absolute inset-0 bg-current rounded-full"
+            />
+          )}
+        </AnimatePresence>
+
+        <motion.span
+          className="text-sm"
+          animate={activeReaction === 'pin' ? { scale: [1, 1.3, 1] } : {}}
+          transition={{ duration: 0.3 }}
+        >
+          📌
+        </motion.span>
+      </Button>
+
+      {/* Vertical Separator */}
+      <div className="w-px h-4 bg-border/50 mx-1" />
+
+      {/* Standard Reactions */}
       {REACTIONS.map(reaction => {
         const reactionData = reactions[reaction.id];
         const count = reactionData?.count || 0;
         const userReacted = reactionData?.userReacted || false;
-
-        // Only show reaction button if it has counts or if it's one of the primary 4 (for quick access)
-        // OR if we want to show all (configurable, but for now let's show all small like Slack)
-        // Actually, the request was to expand the set. Let's show them all but compact.
 
         return (
           <Button
