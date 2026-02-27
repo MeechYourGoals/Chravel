@@ -1091,7 +1091,7 @@ export const AIConciergeChat = ({
             >
               {queryAllowanceText}
             </span>
-            <h3 className="text-lg font-semibold text-white flex-1 text-center min-w-0">
+            <h3 className="text-lg font-semibold text-white flex-1 text-center min-w-0" data-testid="ai-concierge-header">
               AI Concierge
             </h3>
             <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">

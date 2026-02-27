@@ -21,6 +21,17 @@ vi.mock('../../integrations/supabase/client', () => ({
     functions: {
       invoke: vi.fn(),
     },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: null }),
+            order: () => Promise.resolve({ data: [] }),
+          }),
+          order: () => Promise.resolve({ data: [] }),
+        }),
+      }),
+    }),
   },
 }));
 
@@ -133,7 +144,11 @@ describe('AIConciergeChat', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       await waitFor(() => {
-        // "Private Convo" is in the component as <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
+        // Use test ID for robustness if text match is flaky
+        const header = screen.getByTestId('ai-concierge-header');
+        expect(header).toBeInTheDocument();
+        expect(header).toHaveTextContent(/ai concierge/i);
+
         expect(screen.getByText(/private convo/i)).toBeInTheDocument();
       });
       // Usage info is now rendered as "5/10 Asks"
