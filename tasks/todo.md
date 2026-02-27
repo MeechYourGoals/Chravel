@@ -45,3 +45,9 @@
 - Validation: `npx eslint e2e/specs/events/event-recap-export.spec.ts` and `npm run typecheck` pass.
 - Playwright run attempted (`npx playwright test ... --project=chromium`) but browser binary is unavailable in container; install attempt failed due CDN 403, so runtime execution remains blocked by environment.
 - Risk: selector stability depends on current `aria-label`/button labels (`Create Event Recap`, `View event details`); changes to copy should update this spec intentionally.
+
+## Tasks module launch-readiness deep dive
+- [x] Attempt requested Vercel dogfood workflow and record blockers/workaround.
+- [x] Audit Tasks UI/hooks/services/tests for launch-blocking bugs and edge cases.
+- [x] Produce actionable launch-readiness report with high-impact MVP feature adds.
+- [x] Run lint/typecheck/build gates before shipping findings.
