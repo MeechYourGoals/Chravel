@@ -31,8 +31,6 @@ interface AiChatInputProps {
   showImageAttach?: boolean;
 }
 
-const DEFAULT_IMAGES: File[] = [];
-
 export const AiChatInput = ({
   inputMessage,
   onInputChange,
@@ -47,7 +45,7 @@ export const AiChatInput = ({
   onVoiceToggle,
   onVoiceUpgrade,
   onImageAttach,
-  attachedImages = DEFAULT_IMAGES,
+  attachedImages = [],
   onRemoveImage,
   showImageAttach = false,
 }: AiChatInputProps) => {

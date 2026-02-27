@@ -26,7 +26,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
 import { defaultAvatar } from '@/utils/mockAvatars';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
-import { LinkPreviewCard } from './LinkPreviewCard';
 
 export interface MessageBubbleProps {
   id: string;
@@ -246,79 +245,39 @@ export const MessageBubble = memo(
 
     // Render link preview
     const renderLinkPreview = () => {
-      // 1. Use existing preview from message prop if available (legacy or server-provided)
-      if (hasLinkPreview) {
-          const preview = linkPreview;
-          return (
-            <a
-              href={preview.url || text}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block bg-gray-800 hover:bg-gray-700 rounded-lg overflow-hidden transition-colors"
-            >
-              {preview.image && (
-                <img
-                  src={preview.image}
-                  alt={preview.title || 'Link preview'}
-                  className="w-full h-32 object-cover"
-                />
-              )}
-              <div className="p-3">
-                <div className="flex items-start gap-2">
-                  <Link size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium text-white truncate">
-                      {preview.title || preview.domain || 'Link'}
-                    </h4>
-                    {preview.description && (
-                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{preview.description}</p>
-                    )}
-                    {preview.domain && <p className="text-xs text-gray-500 mt-1">{preview.domain}</p>}
-                  </div>
-                  <ExternalLink size={14} className="text-gray-400 flex-shrink-0" />
-                </div>
-              </div>
-            </a>
-          );
-      }
+      if (!hasLinkPreview) return null;
 
-      // 2. Otherwise, extract URLs from text and fetch fresh previews via new service
-      // Updated regex to exclude trailing punctuation (dot, comma, paren, etc.)
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      const rawUrls = text.match(urlRegex) || [];
-
-      // Clean trailing punctuation that regex might have captured
-      const cleaned = rawUrls.map(u => u.replace(/[.,;!?)]+$/, ''));
-      // Filter invalid URLs and deduplicate by normalized href
-      const seen = new Set<string>();
-      const urls = cleaned.filter(u => {
-        try {
-          const normalized = new URL(u).href;
-          if (seen.has(normalized)) return false;
-          seen.add(normalized);
-          return true;
-        } catch {
-          return false;
-        }
-      });
-
-      if (urls.length === 0) return null;
-
-      // Limit to 2 previews to avoid clutter
-      const displayUrls = urls.slice(0, 2);
-      const remainingCount = urls.length - 2;
-
+      const preview = linkPreview;
       return (
-        <div className="mt-2 space-y-2">
-            {displayUrls.map((url, idx) => (
-                <LinkPreviewCard key={`${url}-${idx}`} url={url} />
-            ))}
-            {remainingCount > 0 && (
-                <div className="text-xs text-muted-foreground pl-1">
-                    + {remainingCount} more link{remainingCount > 1 ? 's' : ''}
-                </div>
-            )}
-        </div>
+        <a
+          href={preview.url || text}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 block bg-gray-800 hover:bg-gray-700 rounded-lg overflow-hidden transition-colors"
+        >
+          {preview.image && (
+            <img
+              src={preview.image}
+              alt={preview.title || 'Link preview'}
+              className="w-full h-32 object-cover"
+            />
+          )}
+          <div className="p-3">
+            <div className="flex items-start gap-2">
+              <Link size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-medium text-white truncate">
+                  {preview.title || preview.domain || 'Link'}
+                </h4>
+                {preview.description && (
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">{preview.description}</p>
+                )}
+                {preview.domain && <p className="text-xs text-gray-500 mt-1">{preview.domain}</p>}
+              </div>
+              <ExternalLink size={14} className="text-gray-400 flex-shrink-0" />
+            </div>
+          </div>
+        </a>
       );
     };
 

@@ -1,50 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Pin, FileText, Image as ImageIcon } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { getPinnedMessages } from '@/services/chatService';
+import React, { useState } from 'react';
+import { Pin, Image as ImageIcon } from 'lucide-react';
 import { PinnedMessagesList } from './PinnedMessagesList';
-import { supabase } from '@/integrations/supabase/client';
+import { usePinnedMessage } from '../hooks/usePinnedMessage';
 
 interface PinnedMessageBannerProps {
   tripId: string;
 }
 
 export const PinnedMessageBanner: React.FC<PinnedMessageBannerProps> = ({ tripId }) => {
-  const [pinnedMessages, setPinnedMessages] = useState<any[]>([]);
+  const { pinnedMessages, refetch } = usePinnedMessage(tripId);
   const [isListOpen, setIsListOpen] = useState(false);
-
-  const fetchPinned = async () => {
-    const messages = await getPinnedMessages(tripId);
-    setPinnedMessages(messages);
-  };
-
-  useEffect(() => {
-    fetchPinned();
-
-    // Subscribe to changes in chat messages (to update pins in real-time)
-    // We filter locally for now since we can't easily filter by JSONB change in realtime
-    const channel = supabase
-      .channel(`pinned_messages:${tripId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'trip_chat_messages',
-          filter: `trip_id=eq.${tripId}`,
-        },
-        () => {
-          // Simplest strategy: Refetch on any change to chat messages in this trip
-          // Optimization: Check if payload actually changed pinned status, but refetch is safe for now
-          fetchPinned();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [tripId]);
 
   if (pinnedMessages.length === 0) return null;
 
@@ -95,7 +60,7 @@ export const PinnedMessageBanner: React.FC<PinnedMessageBannerProps> = ({ tripId
         messages={pinnedMessages}
         onUnpin={() => {
             // Refetch immediately on unpin action
-            fetchPinned();
+            refetch();
         }}
       />
     </>

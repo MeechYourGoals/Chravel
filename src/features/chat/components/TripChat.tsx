@@ -86,8 +86,7 @@ interface TripChatMessage {
   media_type?: string;
   media_url?: string;
   sentiment?: string;
-  link_preview?: Record<string, unknown>;
-  attachments?: Array<{ type: string; ref_id: string; url?: string }>;
+  link_preview?: any;
   privacy_mode?: string;
   privacy_encrypted?: boolean;
   message_type?: string;
@@ -115,7 +114,14 @@ export const TripChat = ({
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
   const typingServiceRef = useRef<TypingIndicatorService | null>(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
-  const [showPinnedMessage, setShowPinnedMessage] = useState(true); // Toggle state for pinned banner
+  const [showPinnedMessage, setShowPinnedMessage] = useState(() => {
+    // Initialize from localStorage if available, default to true
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('trip_chat_pin_visible');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [activeThreadMessage, setActiveThreadMessage] = useState<{
     id: string;
@@ -347,27 +353,34 @@ export const TripChat = ({
       // Resolve replyTo context if reply_to_id exists
       let replyTo;
       if (message.reply_to_id) {
-        const parentMsg = messageMap.get(message.reply_to_id);
-        if (parentMsg) {
-          replyTo = {
-            id: parentMsg.id,
-            text: parentMsg.content,
-            sender: parentMsg.author_name,
-          };
-        }
+          const parentMsg = messageMap.get(message.reply_to_id);
+          if (parentMsg) {
+              replyTo = {
+                  id: parentMsg.id,
+                  text: parentMsg.content,
+                  sender: parentMsg.author_name
+              };
+          }
       }
 
       return {
         id: message.id,
         text: message.content,
         sender: {
+          // Prefer user_id for accurate ownership detection, fallback to author_name for display.
+          // For system messages user_id may be null (by design).
           id: message.user_id || message.author_name || 'system',
           name: (() => {
             const member = tripMembers.find(m => m.id === (message.user_id || ''));
+            // If member found and has a resolved profile name, use it.
+            // If member not found (left trip / deleted account), prefer stored author_name snapshot.
             if (member) return member.name;
             return message.author_name || 'System';
           })(),
+          // Canonical avatar comes from `profiles.avatar_url` via `useTripMembers`.
+          // System messages should render without avatar in MessageItem.
           avatar: tripMembers.find(m => m.id === (message.user_id || ''))?.avatar || defaultAvatar,
+          // Store original user_id separately for ownership checks
           userId: message.user_id,
         },
         createdAt: message.created_at,
@@ -375,23 +388,11 @@ export const TripChat = ({
         isPayment: message.message_type === 'payment',
         isEdited: message.is_edited || false,
         editedAt: message.edited_at,
-        mediaType: message.media_type,
-        mediaUrl: message.media_url,
-        linkPreview: message.link_preview
-          ? {
-              url: (message.link_preview as { url?: string })?.url ?? '',
-              title: (message.link_preview as { title?: string })?.title,
-              description: (message.link_preview as { description?: string })?.description,
-              image: (message.link_preview as { image?: string; image_url?: string })?.image ??
-                (message.link_preview as { image_url?: string })?.image_url,
-              domain: (message.link_preview as { domain?: string; site_name?: string })?.domain ??
-                (message.link_preview as { site_name?: string })?.site_name,
-            }
-          : undefined,
-        attachments: message.attachments,
+        // Ensure system messages are never filtered out by dedupe/memoization layers
+        // and can be rendered via the special system-message UI path.
         tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[]),
-        replyTo,
-        isPinned: message.payload?.pinned === true,
+        replyTo, // Pass resolved reply context
+        isPinned: message.payload?.pinned === true, // Add pinned status
       };
     });
   }, [liveMessages, demoMode.isDemoMode, tripMembers]);
@@ -863,7 +864,13 @@ export const TripChat = ({
               setMessageFilter('channels');
             }}
             // Pass props for pin toggle
-            onTogglePin={() => setShowPinnedMessage(prev => !prev)}
+            onTogglePin={() => {
+              setShowPinnedMessage(prev => {
+                const newValue = !prev;
+                localStorage.setItem('trip_chat_pin_visible', String(newValue));
+                return newValue;
+              });
+            }}
             isPinVisible={showPinnedMessage}
           />
 

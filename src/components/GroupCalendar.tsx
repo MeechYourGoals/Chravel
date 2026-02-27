@@ -19,6 +19,7 @@ import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import type { CalendarEvent } from '@/types/calendar';
 import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
+import { CalendarEmptyState } from '@/features/calendar/components/CalendarEmptyState';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -292,68 +293,63 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         onImport={handleImport}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:h-[420px]">
-        <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-2 flex items-center h-full">
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            className="w-full"
-            modifiers={{
-              hasEvents: datesWithEvents,
-            }}
-            modifiersStyles={{
-              hasEvents: {
-                backgroundColor: 'hsl(var(--primary) / 0.3)',
-                color: 'hsl(var(--primary-foreground))',
-                fontWeight: 'bold',
-              },
-            }}
-          />
+      {isError ? (
+        <CalendarErrorState
+          error={error instanceof Error ? error : error ? new Error(String(error)) : undefined}
+          onRetry={refreshEvents}
+        />
+      ) : isLoading ? (
+        <div className="flex justify-center items-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:h-[420px]">
+          <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-2 flex items-center h-full">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="w-full"
+              modifiers={{
+                hasEvents: datesWithEvents,
+              }}
+              modifiersStyles={{
+                hasEvents: {
+                  backgroundColor: 'hsl(var(--primary) / 0.3)',
+                  color: 'hsl(var(--primary-foreground))',
+                  fontWeight: 'bold',
+                },
+              }}
+            />
+          </div>
 
-        <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 flex flex-col h-full">
-          <h3 className="text-white font-medium mb-3">
-            {selectedDate
-              ? `Events for ${format(selectedDate, 'EEEE, MMM d')}`
-              : 'Select a date to view events'}
-          </h3>
+          <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 flex flex-col h-full">
+            <h3 className="text-white font-medium mb-3">
+              {selectedDate
+                ? `Events for ${format(selectedDate, 'EEEE, MMM d')}`
+                : 'Select a date to view events'}
+            </h3>
 
-          <div className="flex-1 overflow-y-auto">
-            {isError ? (
-              <div className="flex flex-col items-center justify-center h-full text-center py-4">
-                <p className="text-red-400 text-sm mb-3">
-                  {error instanceof Error ? error.message : 'Failed to load events'}
+            <div className="flex-1 overflow-y-auto">
+              {selectedDateEvents.length > 0 ? (
+                <EventList
+                  events={selectedDateEvents}
+                  onEdit={handleEdit}
+                  onDelete={deleteEvent}
+                  emptyMessage=""
+                  isDeleting={isSaving}
+                />
+              ) : (
+                <p className="text-gray-400 text-sm mt-6 text-center">
+                  {selectedDate
+                    ? 'No events scheduled for this day.'
+                    : 'Select a date to view events.'}
                 </p>
-                <button
-                  onClick={() => refreshEvents()}
-                  className="text-sm text-blue-400 hover:text-blue-300 underline"
-                >
-                  Try again
-                </button>
-              </div>
-            ) : isLoading ? (
-              <div className="flex justify-center items-center h-full">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-              </div>
-            ) : selectedDateEvents.length > 0 ? (
-              <EventList
-                events={selectedDateEvents}
-                onEdit={handleEdit}
-                onDelete={deleteEvent}
-                emptyMessage=""
-                isDeleting={isSaving}
-              />
-            ) : (
-              <p className="text-gray-400 text-sm mt-6 text-center">
-                {selectedDate
-                  ? 'No events scheduled for this day.'
-                  : 'Select a date to view events.'}
-              </p>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Add Event Modal */}
       <AddEventModal

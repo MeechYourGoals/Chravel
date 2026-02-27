@@ -38,6 +38,8 @@ import { hasPaidAccess } from '@/utils/paidAccess';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import type { TripEvent } from '@/services/calendarService';
 import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
+import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
+import { CalendarEmptyState } from '@/features/calendar/components/CalendarEmptyState';
 
 interface CalendarEvent {
   id: string;
@@ -333,6 +335,15 @@ export const MobileGroupCalendar = ({
         <div className="px-4 py-4">
           <CalendarSkeleton />
         </div>
+      ) : isError ? (
+        <CalendarErrorState
+          error={error instanceof Error ? error : new Error(String(error))}
+          onRetry={refreshEvents}
+        />
+      ) : events.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <CalendarEmptyState onCreateEvent={handleAddEvent} />
+        </div>
       ) : (
         <>
           {/* Month Navigation */}
@@ -353,21 +364,6 @@ export const MobileGroupCalendar = ({
               <ChevronRight size={20} className="text-white" />
             </button>
           </div>
-
-          {/* Inline error banner — non-blocking, calendar UI still renders below */}
-          {isError && (
-            <div className="mx-4 mt-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-between">
-              <p className="text-red-400 text-xs">
-                {error instanceof Error ? error.message : 'Failed to load events'}
-              </p>
-              <button
-                onClick={() => refreshEvents()}
-                className="text-xs text-blue-400 hover:text-blue-300 underline ml-2 shrink-0"
-              >
-                Retry
-              </button>
-            </div>
-          )}
 
           {/* DAY VIEW (list mode): Events at TOP, compact calendar at BOTTOM */}
           {currentViewMode === 'list' && (
@@ -391,6 +387,12 @@ export const MobileGroupCalendar = ({
                     <div className="text-center py-8">
                       <Clock size={40} className="text-gray-600 mx-auto mb-2" />
                       <p className="text-gray-400 text-sm">No events scheduled</p>
+                      <button
+                        onClick={handleAddEvent}
+                        className="mt-3 text-sm text-blue-400 hover:text-blue-300"
+                      >
+                        Add an event
+                      </button>
                     </div>
                   ) : (
                     eventsForSelectedDate.map(event => (
