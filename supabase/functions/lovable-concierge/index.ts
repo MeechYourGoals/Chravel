@@ -1003,12 +1003,6 @@ serve(async req => {
     // Build context-aware system prompt. For general web queries, use a lean prompt for speed
     // but still include full formatting instructions so responses are rich and link-heavy.
     let baseSystemPrompt: string;
-    const saveFlightInstruction = `
-**Handling "Save Flight" requests:**
-- If the user asks to "save a flight" or "save this flight", use the \`savePlace\` tool.
-- Set the \`url\` parameter to the flight deeplink provided.
-- Set the \`category\` to "activity" or "other".
-- Save it as a link object.`;
 
     if (!tripRelated || !comprehensiveContext) {
       baseSystemPrompt = `You are **Chravel Concierge**, a helpful AI travel and general assistant.
@@ -1025,26 +1019,27 @@ Answer the user's question accurately. Use web search for real-time info (weathe
 - Keep responses concise but information-rich — quality over quantity
 - When citing sources from web search, reference them naturally in-text as hyperlinks${imageIntentAddendum}`;
     } else {
+      // Compressed prompt — save flight instruction is covered by the tool list.
+      // buildEnhancedSystemPrompt is now a passthrough (few-shot & CoT removed for speed).
       baseSystemPrompt =
         buildSystemPrompt(comprehensiveContext, config.systemPrompt) +
-        ragContext +
-        imageIntentAddendum +
-        saveFlightInstruction;
+        (ragContext ? '\n' + ragContext : '') +
+        imageIntentAddendum;
     }
 
-    // 🆕 ENHANCED PROMPTS: Add few-shot examples and chain-of-thought (skip for general web queries)
     const systemPrompt =
       tripRelated && comprehensiveContext
         ? buildEnhancedSystemPrompt(baseSystemPrompt, useChainOfThought, true)
         : baseSystemPrompt;
 
-    // 🆕 EXPLICIT CONTEXT WINDOW MANAGEMENT
-    // Limit chat history to prevent token overflow
+    // CONTEXT WINDOW MANAGEMENT
+    // The compressed prompt builder saves ~2,000+ chars vs the previous version,
+    // giving more budget for actual trip data and history.
     const MAX_CHAT_HISTORY_MESSAGES = 10;
-    const MAX_SYSTEM_PROMPT_LENGTH = 8000; // Characters, not tokens (rough estimate)
-    const MAX_TOTAL_CONTEXT_LENGTH = 12000; // Characters
-    const MAX_HISTORY_MSG_LENGTH = 2500; // Per-message char cap before trimming
-    const MAX_HISTORY_TOTAL_LENGTH = 8000; // Total char budget for history
+    const MAX_SYSTEM_PROMPT_LENGTH = 8000;
+    const MAX_TOTAL_CONTEXT_LENGTH = 14000;
+    const MAX_HISTORY_MSG_LENGTH = 2500;
+    const MAX_HISTORY_TOTAL_LENGTH = 8000;
 
     // Step 1: Per-message truncation — prevents a single long response from blowing context.
     const perMessageTruncated = mergedChatHistory.map(msg => {
@@ -1359,7 +1354,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       {
         name: 'savePlace',
         description:
-          'Save a place, link, or recommendation to the trip Explore/Places section. Use when user says "save this place", "add this to our trip", "bookmark this restaurant", or when recommending a great option the user wants to keep.',
+          'Save a place, link, or recommendation to the trip Explore/Places section. Use when user says "save this place", "add this to our trip", "bookmark this restaurant", or when recommending a great option the user wants to keep. For "save this flight", set url to the flight deeplink and category to "activity".',
         parameters: {
           type: 'object',
           properties: {

@@ -250,81 +250,27 @@ export function redactPII(
 }
 
 /**
- * Build enhanced system prompt with few-shot examples and chain-of-thought
+ * Build enhanced system prompt.
+ *
+ * Previously appended ~1,800 chars of few-shot examples and chain-of-thought
+ * scaffolding. These were removed because:
+ *   1. Gemini Flash/Pro already produce high-quality structured responses
+ *      without explicit few-shot examples — the base prompt formatting rules
+ *      are sufficient.
+ *   2. Chain-of-thought scaffolding adds tokens Gemini must read before it can
+ *      start generating, increasing time-to-first-token by ~200-400ms.
+ *   3. The 8,000-char system prompt budget is better spent on actual trip data
+ *      than on examples the model doesn't need.
+ *
+ * This function is kept as a passthrough for backward compatibility so callers
+ * don't need to change.
  */
 export function buildEnhancedSystemPrompt(
   basePrompt: string,
-  useChainOfThought: boolean = false,
-  includeFewShot: boolean = true,
+  _useChainOfThought: boolean = false,
+  _includeFewShot: boolean = true,
 ): string {
-  let enhancedPrompt = basePrompt;
-
-  if (includeFewShot) {
-    enhancedPrompt += `\n\n=== FEW-SHOT EXAMPLES ===
-    
-**Example 1: Payment Query**
-User: "Who do I owe money to?"
-Assistant: "Based on the trip's payment history, you currently owe money to:
-- **Sarah Chen**: $45.00 (for dinner at Sakura Restaurant)
-- **Mike Johnson**: $12.50 (for taxi to airport)
-
-Total owed: **$57.50**
-
-You can settle these payments directly in the Payments tab. 💰"
-
-**Example 2: Location Query**
-User: "What are the best restaurants near our hotel?"
-Assistant: "Here are some great options near **The Little Nell Hotel**:
-
-🍽️ **Fine Dining:**
-- **Element 47** (0.2 miles) - Contemporary American, $$$$
-- **Ajax Tavern** (0.1 miles) - Casual American, $$$
-
-🍕 **Casual:**
-- **Pizza Republic** (0.3 miles) - Wood-fired pizza, $$
-- **The Wild Fig** (0.4 miles) - Mediterranean, $$$
-
-All within walking distance! Would you like me to check availability or make reservations?"
-
-**Example 3: Task Query**
-User: "What tasks am I responsible for?"
-Assistant: "You have **3 pending tasks**:
-
-✅ **High Priority:**
-- Confirm dinner reservations (due: Today)
-- Pack swimwear for beach day (due: Tomorrow)
-
-📋 **Medium Priority:**
-- Review itinerary with group (due: This week)
-
-Would you like me to help you complete any of these?"
-`;
-  }
-
-  if (useChainOfThought) {
-    enhancedPrompt += `\n\n=== CHAIN-OF-THOUGHT REASONING ===
-
-For complex queries, use this reasoning structure:
-
-1. **Understand**: What is the user really asking?
-2. **Context**: What relevant trip information do I have?
-3. **Analyze**: What are the key factors to consider?
-4. **Synthesize**: How do I combine context and analysis?
-5. **Respond**: Provide clear, actionable answer
-
-Example reasoning:
-User: "Should we change our dinner reservation to 8pm?"
-
-Reasoning:
-1. Understand: User wants to know if changing reservation time is advisable
-2. Context: Current reservation at 7pm, group has activity ending at 6:30pm, restaurant is 15 min away
-3. Analyze: 8pm gives more buffer time, but may conflict with evening plans
-4. Synthesize: 8pm is better given timing constraints
-5. Respond: "Yes, 8pm works better! Your activity ends at 6:30pm, and with 15 minutes travel time, 8pm gives you a comfortable buffer..."
-`;
-  }
-
-  return enhancedPrompt;
+  return basePrompt;
 }
 
 /**
