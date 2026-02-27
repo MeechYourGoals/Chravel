@@ -6,6 +6,7 @@ import { getTripLinks } from '@/services/tripLinksService';
 import { tripKeys } from '@/lib/queryKeys';
 import type { PlaceResult } from '@/features/chat/components/PlaceResultCards';
 import type { FlightResult } from '@/features/chat/components/FlightResultCards';
+import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import type { Database } from '@/integrations/supabase/types';
 
 type TripLink = Database['public']['Tables']['trip_links']['Row'];
@@ -39,6 +40,31 @@ function normalizePlaceToPayload(place: PlaceResult): SavePayload {
     url,
     description: descParts.join(' \u00b7 '),
     category: 'attraction',
+  };
+}
+
+function normalizeHotelToPayload(hotel: HotelResult): SavePayload {
+  const url =
+    hotel.deep_links?.primary?.trim() ||
+    `https://www.google.com/search?q=${encodeURIComponent(hotel.title + ' hotel')}`;
+
+  const descParts: string[] = [];
+  if (hotel.subtitle) descParts.push(hotel.subtitle);
+  if (hotel.price?.display) descParts.push(hotel.price.display);
+  if (hotel.dates?.check_in) {
+    const datePart = hotel.dates.check_out
+      ? `${hotel.dates.check_in} \u2013 ${hotel.dates.check_out}`
+      : hotel.dates.check_in;
+    descParts.push(datePart);
+  }
+  if (hotel.details?.rating != null) descParts.push(`Rating: ${hotel.details.rating}`);
+  descParts.push('Source: AI Concierge');
+
+  return {
+    title: hotel.title,
+    url,
+    description: descParts.join(' \u00b7 '),
+    category: 'accommodation',
   };
 }
 
@@ -231,6 +257,21 @@ export function useSaveToTripPlaces({
     [mutation, savedUrls],
   );
 
+  const saveHotel = useCallback(
+    (hotel: HotelResult) => {
+      const payload = normalizeHotelToPayload(hotel);
+      const key = dedupeKey(payload.url);
+
+      if (savedUrls.has(key)) {
+        toast('Already saved', { icon: '\u2713' });
+        return;
+      }
+
+      mutation.mutate(payload);
+    },
+    [mutation, savedUrls],
+  );
+
   const isUrlSaved = useCallback(
     (url: string): boolean => savedUrls.has(dedupeKey(url)),
     [savedUrls],
@@ -239,6 +280,7 @@ export function useSaveToTripPlaces({
   return {
     savePlace,
     saveFlight,
+    saveHotel,
     isUrlSaved,
     isSaving: mutation.isPending,
   };

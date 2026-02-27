@@ -92,19 +92,72 @@ export interface StreamReservationDraftEvent {
   draft: ReservationDraft;
 }
 
+/**
+ * Structured trip card payload emitted by the AI Concierge when the backend
+ * returns the JSON-envelope format with hotel or flight cards.
+ * The `cards` array matches the schema described in the AI Concierge system prompt.
+ */
+export interface TripCard {
+  id?: string | null;
+  type: 'hotel' | 'flight';
+  provider?: string | null;
+  title: string;
+  subtitle?: string | null;
+  badges?: string[];
+  price?: {
+    amount?: number | null;
+    currency?: string | null;
+    display?: string | null;
+  } | null;
+  dates?: {
+    check_in?: string | null;
+    check_out?: string | null;
+    depart?: string | null;
+    arrive?: string | null;
+  } | null;
+  location?: {
+    city?: string | null;
+    region?: string | null;
+    country?: string | null;
+    airport_codes?: string[];
+  } | null;
+  details?: {
+    rating?: number | null;
+    reviews_count?: number | null;
+    airline?: string | null;
+    flight_number?: string | null;
+    stops?: number | null;
+    duration_minutes?: number | null;
+    refundable?: boolean | null;
+    amenities?: string[];
+  } | null;
+  deep_links?: {
+    primary?: string | null;
+    secondary?: string | null;
+  } | null;
+}
+
+export interface StreamTripCardsEvent {
+  type: 'trip_cards';
+  message?: string | null;
+  cards: TripCard[];
+}
+
 export type ConciergeStreamEvent =
   | StreamChunkEvent
   | StreamFunctionCallEvent
   | StreamMetadataEvent
   | StreamErrorEvent
   | StreamDoneEvent
-  | StreamReservationDraftEvent;
+  | StreamReservationDraftEvent
+  | StreamTripCardsEvent;
 
 export interface ConciergeStreamCallbacks {
   onChunk: (text: string) => void;
   onMetadata: (metadata: StreamMetadataEvent) => void;
   onFunctionCall?: (name: string, result: Record<string, unknown>) => void;
   onReservationDraft?: (draft: ReservationDraft) => void;
+  onTripCards?: (cards: TripCard[], message: string | null) => void;
   onError: (error: string) => void;
   onDone: () => void;
 }
@@ -233,6 +286,9 @@ export function invokeConciergeStream(
                 break;
               case 'reservation_draft':
                 callbacks.onReservationDraft?.(event.draft);
+                break;
+              case 'trip_cards':
+                callbacks.onTripCards?.(event.cards, event.message ?? null);
                 break;
               case 'error':
                 callbacks.onError(event.message);
