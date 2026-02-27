@@ -70,17 +70,41 @@ export interface StreamDoneEvent {
   type: 'done';
 }
 
+export interface ReservationDraft {
+  id: string;
+  tripId: string;
+  placeId: string | null;
+  placeName: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  phone: string | null;
+  websiteUrl: string | null;
+  bookingUrl: string | null;
+  startTimeISO: string | null;
+  partySize: number;
+  reservationName: string;
+  notes: string;
+}
+
+export interface StreamReservationDraftEvent {
+  type: 'reservation_draft';
+  draft: ReservationDraft;
+}
+
 export type ConciergeStreamEvent =
   | StreamChunkEvent
   | StreamFunctionCallEvent
   | StreamMetadataEvent
   | StreamErrorEvent
-  | StreamDoneEvent;
+  | StreamDoneEvent
+  | StreamReservationDraftEvent;
 
 export interface ConciergeStreamCallbacks {
   onChunk: (text: string) => void;
   onMetadata: (metadata: StreamMetadataEvent) => void;
   onFunctionCall?: (name: string, result: Record<string, unknown>) => void;
+  onReservationDraft?: (draft: ReservationDraft) => void;
   onError: (error: string) => void;
   onDone: () => void;
 }
@@ -206,6 +230,9 @@ export function invokeConciergeStream(
                 break;
               case 'function_call':
                 callbacks.onFunctionCall?.(event.name, event.result);
+                break;
+              case 'reservation_draft':
+                callbacks.onReservationDraft?.(event.draft);
                 break;
               case 'error':
                 callbacks.onError(event.message);

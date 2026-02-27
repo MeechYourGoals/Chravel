@@ -503,7 +503,12 @@ async function streamGeminiToSSE(
     );
     for (const r of results) {
       functionCallResults.push(r);
-      controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
+      // Emit reservation drafts as a dedicated SSE event type
+      if (r.name === 'emitReservationDraft' && r.response?.success && r.response?.draft) {
+        controller.enqueue(sseEvent({ type: 'reservation_draft', draft: r.response.draft }));
+      } else {
+        controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
+      }
     }
 
     // Follow-up streaming call with function results
@@ -1439,6 +1444,35 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             passengers: { type: 'number', description: 'Number of passengers (default 1)' },
           },
           required: ['origin', 'destination', 'departureDate'],
+        },
+      },
+      {
+        name: 'emitReservationDraft',
+        description:
+          'Create a reservation draft card for the user to confirm. Use ONLY when the user explicitly asks to book/reserve/make a reservation at a restaurant, venue, or experience. Do NOT auto-book. The draft will be shown as a card the user can confirm. Internally searches for the place and enriches with phone, website, and address.',
+        parameters: {
+          type: 'object',
+          properties: {
+            placeQuery: {
+              type: 'string',
+              description: 'Name of the restaurant or venue to reserve (e.g. "Bestia Los Angeles")',
+            },
+            startTimeISO: {
+              type: 'string',
+              description:
+                'Requested reservation date/time in ISO 8601 format (e.g. "2026-03-07T19:00:00-08:00")',
+            },
+            partySize: { type: 'number', description: 'Number of guests (default 2)' },
+            reservationName: {
+              type: 'string',
+              description: 'Name the reservation should be under',
+            },
+            notes: {
+              type: 'string',
+              description: 'Special requests or notes (e.g. "outdoor seating", "birthday dinner")',
+            },
+          },
+          required: ['placeQuery'],
         },
       },
     ];
