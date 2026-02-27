@@ -575,7 +575,12 @@ async function streamGeminiToSSE(
 
     for (const r of results) {
       functionCallResults.push(r);
-      controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
+      // Emit reservation drafts as a dedicated SSE event type
+      if (r.name === 'emitReservationDraft' && r.response?.success && r.response?.draft) {
+        controller.enqueue(sseEvent({ type: 'reservation_draft', draft: r.response.draft }));
+      } else {
+        controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
+      }
     }
 
     // Update history for next iteration
@@ -1070,6 +1075,12 @@ You are in AGENT MODE. You can execute multiple tools in sequence to complete co
 - Always provide a final summary of ALL actions taken.
 - Never fabricate tool results. If a tool fails, inform the user.
 ` : '';
+    const saveFlightInstruction = `
+**Handling "Save Flight" requests:**
+- If the user asks to "save a flight" or "save this flight", use the \`savePlace\` tool.
+- Set the \`url\` parameter to the flight deeplink provided.
+- Set the \`category\` to "activity" or "other".
+- Save it as a link object.`;
 
     if (!tripRelated || !comprehensiveContext) {
       baseSystemPrompt = `You are **Chravel Concierge**, a helpful AI travel and general assistant.
@@ -1091,6 +1102,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         ragContext +
         imageIntentAddendum +
         AGENT_INSTRUCTION;
+        saveFlightInstruction;
     }
 
     // 🆕 ENHANCED PROMPTS: Add few-shot examples and chain-of-thought (skip for general web queries)
@@ -1486,6 +1498,54 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             },
           },
           required: ['eventId', 'title'],
+        },
+      },
+      {
+        name: 'searchFlights',
+        description:
+          'Search for flights and get a deeplink to Google Flights. Use when user asks for flight options, prices, or availability.',
+        parameters: {
+          type: 'object',
+          properties: {
+            origin: { type: 'string', description: 'Origin airport code (e.g. SFO) or city name' },
+            destination: {
+              type: 'string',
+              description: 'Destination airport code (e.g. LHR) or city name',
+            },
+            departureDate: { type: 'string', description: 'Departure date (YYYY-MM-DD)' },
+            returnDate: { type: 'string', description: 'Return date (YYYY-MM-DD), optional' },
+            passengers: { type: 'number', description: 'Number of passengers (default 1)' },
+          },
+          required: ['origin', 'destination', 'departureDate'],
+        },
+      },
+      {
+        name: 'emitReservationDraft',
+        description:
+          'Create a reservation draft card for the user to confirm. Use ONLY when the user explicitly asks to book/reserve/make a reservation at a restaurant, venue, or experience. Do NOT auto-book. The draft will be shown as a card the user can confirm. Internally searches for the place and enriches with phone, website, and address.',
+        parameters: {
+          type: 'object',
+          properties: {
+            placeQuery: {
+              type: 'string',
+              description: 'Name of the restaurant or venue to reserve (e.g. "Bestia Los Angeles")',
+            },
+            startTimeISO: {
+              type: 'string',
+              description:
+                'Requested reservation date/time in ISO 8601 format (e.g. "2026-03-07T19:00:00-08:00")',
+            },
+            partySize: { type: 'number', description: 'Number of guests (default 2)' },
+            reservationName: {
+              type: 'string',
+              description: 'Name the reservation should be under',
+            },
+            notes: {
+              type: 'string',
+              description: 'Special requests or notes (e.g. "outdoor seating", "birthday dinner")',
+            },
+          },
+          required: ['placeQuery'],
         },
       },
     ];

@@ -1,8 +1,11 @@
 // Unregister stale service workers from old hosts on first load
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    registrations.forEach(reg => reg.unregister());
-  }).catch(() => {});
+  navigator.serviceWorker
+    .getRegistrations()
+    .then(registrations => {
+      registrations.forEach(reg => reg.unregister());
+    })
+    .catch(() => {});
 }
 
 // Version-based cache busting: clear caches when app version changes
@@ -12,7 +15,10 @@ const storedVersion = localStorage.getItem(STORED_VERSION_KEY);
 if (storedVersion !== null && storedVersion !== currentVersion) {
   // Version changed — clear all caches and reload
   if ('caches' in window) {
-    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).catch(() => {});
+    caches
+      .keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .catch(() => {});
   }
   localStorage.setItem(STORED_VERSION_KEY, currentVersion);
   window.location.reload();
