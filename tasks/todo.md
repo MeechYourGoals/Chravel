@@ -58,3 +58,8 @@
 - [x] Implement targeted code fixes in hooks/services only (no broad refactor).
 - [x] Validate with lint + typecheck + build.
 - [x] Commit changes and create PR.
+## Tasks module launch-readiness deep dive
+- [x] Attempt requested Vercel dogfood workflow and record blockers/workaround.
+- [x] Audit Tasks UI/hooks/services/tests for launch-blocking bugs and edge cases.
+- [x] Produce actionable launch-readiness report with high-impact MVP feature adds.
+- [x] Run lint/typecheck/build gates before shipping findings.

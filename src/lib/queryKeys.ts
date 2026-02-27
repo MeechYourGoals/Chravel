@@ -41,6 +41,10 @@ export const tripKeys = {
     isDemoMode !== undefined
       ? (['tripPlaces', tripId, isDemoMode] as const)
       : (['tripPlaces', tripId] as const),
+  tripLinks: (tripId: string, isDemoMode?: boolean) =>
+    isDemoMode !== undefined
+      ? (['tripLinks', tripId, isDemoMode] as const)
+      : (['tripLinks', tripId] as const),
   payments: (tripId: string) => ['tripPayments', tripId] as const,
   paymentBalances: (tripId: string, userId: string) =>
     ['tripPaymentBalances', tripId, userId] as const,

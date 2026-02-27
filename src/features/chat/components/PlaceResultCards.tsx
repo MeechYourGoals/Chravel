@@ -1,5 +1,12 @@
 import React from 'react';
-import { MapPin, Star, ExternalLink, UtensilsCrossed, BookmarkPlus } from 'lucide-react';
+import {
+  MapPin,
+  Star,
+  ExternalLink,
+  UtensilsCrossed,
+  BookmarkPlus,
+  BookmarkCheck,
+} from 'lucide-react';
 
 export interface PlaceResult {
   placeId?: string | null;
@@ -17,6 +24,8 @@ interface PlaceResultCardsProps {
   places: PlaceResult[];
   className?: string;
   onSave?: (place: PlaceResult) => void;
+  isUrlSaved?: (url: string) => boolean;
+  isSaving?: boolean;
 }
 
 const PRICE_MAP: Record<string, string> = {
@@ -31,6 +40,8 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
   places,
   className,
   onSave,
+  isUrlSaved,
+  isSaving,
 }) => {
   if (!places || places.length === 0) return null;
 
@@ -116,15 +127,29 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
                 )}
 
                 {/* Save to Trip */}
-                {onSave && (
-                  <button
-                    onClick={() => onSave(place)}
-                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 transition-colors w-fit"
-                  >
-                    <BookmarkPlus size={10} />
-                    Save to Trip
-                  </button>
-                )}
+                {onSave &&
+                  (() => {
+                    const placeUrl =
+                      place.mapsUrl ||
+                      (place.placeId
+                        ? `https://www.google.com/maps/place/?q=place_id:${place.placeId}`
+                        : `https://www.google.com/maps/search/${encodeURIComponent(place.name)}`);
+                    const saved = isUrlSaved ? isUrlSaved(placeUrl) : false;
+                    return (
+                      <button
+                        onClick={() => onSave(place)}
+                        disabled={saved || isSaving}
+                        className={`inline-flex items-center gap-1 text-[11px] transition-colors w-fit ${
+                          saved
+                            ? 'text-emerald-400 cursor-default'
+                            : 'text-primary hover:text-primary/80'
+                        }`}
+                      >
+                        {saved ? <BookmarkCheck size={10} /> : <BookmarkPlus size={10} />}
+                        {saved ? 'Saved' : 'Save to Trip'}
+                      </button>
+                    );
+                  })()}
               </div>
             </div>
           </div>
