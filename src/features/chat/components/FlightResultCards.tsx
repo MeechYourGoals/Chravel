@@ -27,7 +27,7 @@ export const FlightResultCards: React.FC<FlightResultCardsProps> = ({
     <div className={`flex flex-col gap-2.5 ${className ?? ''}`}>
       {flights.map((flight, idx) => (
         <div
-          key={idx}
+          key={`${flight.origin}-${flight.destination}-${flight.departureDate}-${idx}`}
           className="flex flex-col gap-3 rounded-xl border border-blue-500/20 bg-blue-500/10 p-3.5 backdrop-blur-sm overflow-hidden"
         >
           <div className="flex items-center gap-3">

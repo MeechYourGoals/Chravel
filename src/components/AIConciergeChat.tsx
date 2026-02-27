@@ -1214,14 +1214,12 @@ export const AIConciergeChat = ({
               onDeleteMessage={handleDeleteMessage}
               onTabChange={onTabChange}
               onSavePlace={async place => {
-                // Optimistically add to UI, then call savePlace tool or backend
-                // For now, we'll trigger a message to the AI to save it
+                // Trigger a message to the AI to save the place. The AI will use the `savePlace` tool.
                 const savePrompt = `Save "${place.name}" to trip places. URL: ${place.mapsUrl || ''}`;
                 handleSendMessage(savePrompt);
               }}
               onSaveFlight={async flight => {
-                // Optimistically add to UI, then call savePlace tool or backend
-                // For now, we'll trigger a message to the AI to save it
+                // Trigger a message to the AI to save the flight. The AI will use `savePlace` (which handles links) to persist the flight URL.
                 const savePrompt = `Save flight from ${flight.origin} to ${flight.destination} departing ${flight.departureDate}. URL: ${flight.deeplink}`;
                 handleSendMessage(savePrompt);
               }}
