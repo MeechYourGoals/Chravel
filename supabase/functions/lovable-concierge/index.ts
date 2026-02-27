@@ -998,6 +998,13 @@ serve(async req => {
     // Build context-aware system prompt. For general web queries, use a lean prompt for speed
     // but still include full formatting instructions so responses are rich and link-heavy.
     let baseSystemPrompt: string;
+    const saveFlightInstruction = `
+**Handling "Save Flight" requests:**
+- If the user asks to "save a flight" or "save this flight", use the \`savePlace\` tool.
+- Set the \`url\` parameter to the flight deeplink provided.
+- Set the \`category\` to "activity" or "other".
+- Save it as a link object.`;
+
     if (!tripRelated || !comprehensiveContext) {
       baseSystemPrompt = `You are **Chravel Concierge**, a helpful AI travel and general assistant.
 Current date: ${new Date().toISOString().split('T')[0]}
@@ -1016,7 +1023,8 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       baseSystemPrompt =
         buildSystemPrompt(comprehensiveContext, config.systemPrompt) +
         ragContext +
-        imageIntentAddendum;
+        imageIntentAddendum +
+        saveFlightInstruction;
     }
 
     // 🆕 ENHANCED PROMPTS: Add few-shot examples and chain-of-thought (skip for general web queries)
@@ -1412,6 +1420,25 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             },
           },
           required: ['eventId', 'title'],
+        },
+      },
+      {
+        name: 'searchFlights',
+        description:
+          'Search for flights and get a deeplink to Google Flights. Use when user asks for flight options, prices, or availability.',
+        parameters: {
+          type: 'object',
+          properties: {
+            origin: { type: 'string', description: 'Origin airport code (e.g. SFO) or city name' },
+            destination: {
+              type: 'string',
+              description: 'Destination airport code (e.g. LHR) or city name',
+            },
+            departureDate: { type: 'string', description: 'Departure date (YYYY-MM-DD)' },
+            returnDate: { type: 'string', description: 'Return date (YYYY-MM-DD), optional' },
+            passengers: { type: 'number', description: 'Number of passengers (default 1)' },
+          },
+          required: ['origin', 'destination', 'departureDate'],
         },
       },
     ];

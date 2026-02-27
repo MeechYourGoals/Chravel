@@ -76,6 +76,15 @@ export interface ChatMessage {
     previewPhotoUrl?: string | null;
     photoUrls?: string[];
   }>;
+  /** Rich flight results from searchFlights tool calls */
+  functionCallFlights?: Array<{
+    origin: string;
+    destination: string;
+    departureDate: string;
+    returnDate?: string;
+    passengers: number;
+    deeplink: string;
+  }>;
   /** Action results from concierge write tools (createPoll, createTask, etc.) */
   conciergeActions?: Array<{
     actionType: string;
@@ -672,6 +681,19 @@ export const AIConciergeChat = ({
                   functionCallPlaces: result.places as ChatMessage['functionCallPlaces'],
                 });
               }
+              if (name === 'searchFlights' && result.success) {
+                const flightResult = {
+                  origin: result.origin as string,
+                  destination: result.destination as string,
+                  departureDate: result.departureDate as string,
+                  returnDate: result.returnDate as string | undefined,
+                  passengers: (result.passengers as number) || 1,
+                  deeplink: result.deeplink as string,
+                };
+                ensureAndPatch({
+                  functionCallFlights: [flightResult],
+                });
+              }
               if (name === 'getPlaceDetails' && result.success) {
                 const detailPlace = {
                   placeId: result.placeId as string,
@@ -1191,6 +1213,16 @@ export const AIConciergeChat = ({
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
               onTabChange={onTabChange}
+              onSavePlace={async place => {
+                // Trigger a message to the AI to save the place. The AI will use the `savePlace` tool.
+                const savePrompt = `Save "${place.name}" to trip places. URL: ${place.mapsUrl || ''}`;
+                handleSendMessage(savePrompt);
+              }}
+              onSaveFlight={async flight => {
+                // Trigger a message to the AI to save the flight. The AI will use `savePlace` (which handles links) to persist the flight URL.
+                const savePrompt = `Save flight from ${flight.origin} to ${flight.destination} departing ${flight.departureDate}. URL: ${flight.deeplink}`;
+                handleSendMessage(savePrompt);
+              }}
             />
           )}
         </div>

@@ -186,6 +186,7 @@ async function _executeImpl(
       const lat = Number.isFinite(parsedLat) ? parsedLat : locationContext?.lat || null;
       const lng = Number.isFinite(parsedLng) ? parsedLng : locationContext?.lng || null;
 
+      // New Google Places API (Places Text Search)
       const url = `https://places.googleapis.com/v1/places:searchText`;
       const placesResponse = await fetch(url, {
         method: 'POST',
@@ -209,6 +210,8 @@ async function _executeImpl(
       });
 
       if (!placesResponse.ok) {
+        const errorText = await placesResponse.text().catch(() => 'Unknown error');
+        console.error(`[Tool] searchPlaces failed (${placesResponse.status}): ${errorText}`);
         return { error: 'Places search failed', status: placesResponse.status };
       }
 
@@ -327,6 +330,7 @@ async function _executeImpl(
         return { error: 'Google Maps API key not configured' };
       }
 
+      // New Google Places API (Place Details)
       const detailsUrl = `https://places.googleapis.com/v1/places/${placeId}`;
       const detailsResponse = await fetch(detailsUrl, {
         headers: {
@@ -338,6 +342,8 @@ async function _executeImpl(
       });
 
       if (!detailsResponse.ok) {
+        const errorText = await detailsResponse.text().catch(() => 'Unknown error');
+        console.error(`[Tool] getPlaceDetails failed (${detailsResponse.status}): ${errorText}`);
         return { error: `Place Details failed (${detailsResponse.status})` };
       }
 
@@ -751,6 +757,27 @@ async function _executeImpl(
         agendaItem: data,
         actionType: 'add_to_agenda',
         message: `Added "${agendaTitle}" to event agenda`,
+      };
+    }
+
+    case 'searchFlights': {
+      const { origin, destination, departureDate, returnDate, passengers } = args;
+
+      // Construct a Google Flights URL
+      // Format: https://www.google.com/travel/flights?q=Flights%20to%20DEST%20from%20ORIG%20on%20DATE
+      const q = `Flights to ${destination} from ${origin} on ${departureDate}${returnDate ? ` return ${returnDate}` : ''}`;
+      const encodedQ = encodeURIComponent(q);
+      const url = `https://www.google.com/travel/flights?q=${encodedQ}`;
+
+      return {
+        success: true,
+        origin,
+        destination,
+        departureDate,
+        returnDate,
+        passengers: passengers || 1,
+        deeplink: url,
+        message: `Found flight options from ${origin} to ${destination}`,
       };
     }
 
