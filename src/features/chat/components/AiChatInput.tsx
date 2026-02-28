@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Send, Sparkles, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { VoiceButton } from './VoiceButton';
+import type { VoiceMode } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 
 interface AiChatInputProps {
@@ -21,6 +22,12 @@ interface AiChatInputProps {
   isVoiceEligible?: boolean;
   onVoiceToggle?: () => void;
   onVoiceUpgrade?: () => void;
+  /** Current voice mode */
+  voiceMode?: VoiceMode;
+  /** Callback to switch voice mode */
+  onVoiceModeSwitch?: () => void;
+  /** Whether to show the mode switcher UI (requires Gemini Live support) */
+  showVoiceModeSwitch?: boolean;
   /** Multimodal: callback when user selects images */
   onImageAttach?: (files: File[]) => void;
   /** Multimodal: currently attached image previews */
@@ -44,6 +51,9 @@ export const AiChatInput = ({
   isVoiceEligible = false,
   onVoiceToggle,
   onVoiceUpgrade,
+  voiceMode = 'dictation',
+  onVoiceModeSwitch,
+  showVoiceModeSwitch = false,
   onImageAttach,
   attachedImages = [],
   onRemoveImage,
@@ -133,14 +143,36 @@ export const AiChatInput = ({
       )}
 
       <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
-        {/* Microphone (left) — tap to start Gemini Live or Web Speech voice */}
+        {/* Mic button + compact mode label */}
         {onVoiceToggle && (
-          <VoiceButton
-            voiceState={voiceState}
-            isEligible={isVoiceEligible}
-            onToggle={onVoiceToggle}
-            onUpgrade={onVoiceUpgrade}
-          />
+          <div className="flex flex-col items-center gap-0.5 shrink-0">
+            <VoiceButton
+              voiceState={voiceState}
+              isEligible={isVoiceEligible}
+              onToggle={onVoiceToggle}
+              onUpgrade={onVoiceUpgrade}
+              voiceMode={voiceMode}
+              onModeSwitch={onVoiceModeSwitch}
+              showModeSwitch={showVoiceModeSwitch}
+            />
+            {/* Compact mode label — tappable, sits snugly under mic */}
+            {showVoiceModeSwitch && onVoiceModeSwitch && voiceState === 'idle' && (
+              <button
+                type="button"
+                onClick={onVoiceModeSwitch}
+                className="flex items-center gap-1 text-[9px] leading-none font-medium tracking-wide uppercase text-white/35 hover:text-white/55 active:scale-95 transition-colors touch-manipulation select-none py-0.5"
+                aria-label={`Voice: ${voiceMode}. Tap to switch.`}
+              >
+                <span
+                  aria-hidden
+                  className={`w-1 h-1 rounded-full transition-colors ${
+                    voiceMode === 'conversation' ? 'bg-blue-400' : 'bg-emerald-400'
+                  }`}
+                />
+                {voiceMode === 'conversation' ? 'Live' : 'Dict'}
+              </button>
+            )}
+          </div>
         )}
 
         {/* Input Textarea */}
