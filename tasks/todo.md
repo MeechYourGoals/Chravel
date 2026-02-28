@@ -26,6 +26,13 @@
 - [x] Run lint, typecheck, and build gates required before commit.
 - [x] Commit docs changes and open PR with implementation notes.
 
+## Design system consistency audit + standardization proposal
+- [x] Scope current design-system implementation and identify canonical styling sources.
+- [x] Audit button variants, typography scale, spacing rhythm, and color-token adoption with codebase-wide evidence.
+- [x] Identify reusable component opportunities with highest consistency ROI.
+- [x] Publish a standardized design-system proposal with phased migration guidance.
+- [x] Run lint, typecheck, and build gates required before commit.
+
 ## Review
 - Root cause: auth fallback hydration could re-seed `profiles.display_name` from stale auth metadata and fallback profile selects dropped `real_name`, which made settings appear non-persistent after app relaunch/resume.
 - Fix: changed profile self-heal upsert to ignore duplicates (insert-only behavior), expanded fallback profile select to include `real_name`/`name_preference`/`phone`, and synchronized auth metadata after profile name updates.
