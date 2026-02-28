@@ -32,7 +32,7 @@ describe.skip('Chat Message Send → Receive Flow', () => {
     supabaseMockHelpers.setMockData('trip_messages', [message]);
 
     const TestComponent = () => {
-      const [messages, setMessages] = React.useState<any[]>([]);
+      const [messages, setMessages] = React.useState<Record<string, unknown>[]>([]);
       const [status, setStatus] = React.useState('idle');
 
       const handleSendMessage = async () => {
@@ -87,7 +87,7 @@ describe.skip('Chat Message Send → Receive Flow', () => {
     supabaseMockHelpers.setMockData('trip_messages', initialMessages);
 
     const TestComponent = () => {
-      const [messages, setMessages] = React.useState<any[]>([]);
+      const [messages, setMessages] = React.useState<Record<string, unknown>[]>([]);
 
       React.useEffect(() => {
         const loadMessages = async () => {
@@ -130,7 +130,7 @@ describe.skip('Chat Message Send → Receive Flow', () => {
     const trip = testFactories.createTrip();
     const error = { message: 'Failed to send message', code: 'NETWORK_ERROR' };
 
-    supabaseMockHelpers.setMockError('trip_messages', error as any);
+    supabaseMockHelpers.setMockError('trip_messages', error as unknown as Error);
 
     const TestComponent = () => {
       const [error, setError] = React.useState<string | null>(null);
@@ -181,7 +181,7 @@ describe.skip('Chat Message Send → Receive Flow', () => {
     supabaseMockHelpers.setMockData('message_reactions', [reaction]);
 
     const TestComponent = () => {
-      const [reactions, setReactions] = React.useState<any[]>([]);
+      const [reactions, setReactions] = React.useState<Record<string, unknown>[]>([]);
 
       const handleAddReaction = async () => {
         const { data } = await mockSupabase
