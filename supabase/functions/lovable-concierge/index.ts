@@ -1041,8 +1041,8 @@ Answer the user's question accurately. Use web search for real-time info (weathe
     // 🆕 EXPLICIT CONTEXT WINDOW MANAGEMENT
     // Limit chat history to prevent token overflow
     const MAX_CHAT_HISTORY_MESSAGES = 10;
-    const MAX_SYSTEM_PROMPT_LENGTH = 8000; // Characters, not tokens (rough estimate)
-    const MAX_TOTAL_CONTEXT_LENGTH = 12000; // Characters
+    const MAX_SYSTEM_PROMPT_LENGTH = 10000; // Increased — compressed prompt leaves more room for trip data
+    const MAX_TOTAL_CONTEXT_LENGTH = 14000; // Increased — less truncation needed
     const MAX_HISTORY_MSG_LENGTH = 2500; // Per-message char cap before trimming
     const MAX_HISTORY_TOTAL_LENGTH = 8000; // Total char budget for history
 
@@ -1359,7 +1359,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       {
         name: 'savePlace',
         description:
-          'Save a place, link, or recommendation to the trip Explore/Places section. Use when user says "save this place", "add this to our trip", "bookmark this restaurant", or when recommending a great option the user wants to keep.',
+          'Save a place, link, or recommendation to the trip Explore/Places section. Use when user says "save this place", "add this to our trip", "bookmark this restaurant", or when recommending a great option the user wants to keep. For "save this flight" requests, set url to the flight deeplink and category to "activity".',
         parameters: {
           type: 'object',
           properties: {
