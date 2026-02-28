@@ -231,7 +231,7 @@ export const test = authTest.extend<TripFixtures>({
         throw new Error(`Failed to create invite link: ${error.message}`);
       }
 
-      const baseUrl = process.env.BASE_URL || 'http://localhost:5173';
+      const baseUrl = process.env.PLAYWRIGHT_TEST_BASE_URL || process.env.BASE_URL || 'http://localhost:8080';
 
       return {
         id: invite.id,
