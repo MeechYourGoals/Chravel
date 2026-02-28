@@ -130,7 +130,7 @@ describe.skip('Chat Message Send → Receive Flow', () => {
     const trip = testFactories.createTrip();
     const error = { message: 'Failed to send message', code: 'NETWORK_ERROR' };
 
-    supabaseMockHelpers.setMockError('trip_messages', error as any);
+    supabaseMockHelpers.setMockError('trip_messages', error as unknown);
 
     const TestComponent = () => {
       const [error, setError] = React.useState<string | null>(null);
@@ -146,7 +146,7 @@ describe.skip('Chat Message Send → Receive Flow', () => {
           if (insertError) {
             setError(insertError.message);
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           setError(err.message);
         }
       };
