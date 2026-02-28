@@ -34,12 +34,12 @@ async function isSmsEntitled(userId: string, userEmail?: string): Promise<boolea
     return true;
   }
 
-  // Super-admin / enterprise admin bypass via role (enterprise_admin always in enum)
+  // Super-admin / enterprise admin bypass via role
   const { data: adminRole } = await supabase
     .from('user_roles')
     .select('role')
     .eq('user_id', userId)
-    .in('role', ['enterprise_admin'])
+    .in('role', ['enterprise_admin', 'super_admin'])
     .maybeSingle();
 
   if (adminRole) {
