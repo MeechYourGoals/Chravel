@@ -8,7 +8,6 @@ import {
   isOpen as isCircuitBreakerOpen,
   reset as resetCircuitBreaker,
 } from '@/voice/circuitBreaker';
-import { createWebSocketTransport } from '@/voice/transport/createTransport';
 import {
   logAudioContextParams,
   checkCaptureSampleRate,
