@@ -115,7 +115,7 @@ export const AgendaModal = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showImportModal, setShowImportModal] = useState(false);
-  const { pendingResult, startImport, clearResult } = useBackgroundAgendaImport();
+  const { pendingResult, startImport, clearResult } = useBackgroundAgendaImport(eventId);
 
   // In demo mode, allow all management actions
   const canCreateSessions = isDemoMode || permissions.canCreate;

@@ -6,29 +6,28 @@
  * for the AgendaImportModal to consume.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { toast } from 'sonner';
-import { parseAgendaURL, AgendaParseResult } from '@/utils/agendaImportParsers';
+import { parseAgendaURL } from '@/utils/agendaImportParsers';
+import { useBackgroundImportStore } from '../stores/useBackgroundImportStore';
+import { useNavigate } from 'react-router-dom';
 
-interface BackgroundAgendaImportState {
-  isImporting: boolean;
-  pendingResult: AgendaParseResult | null;
-  sourceUrl: string | null;
-}
+export function useBackgroundAgendaImport(eventId?: string) {
+  const navigate = useNavigate();
 
-export function useBackgroundAgendaImport() {
-  const [state, setState] = useState<BackgroundAgendaImportState>({
-    isImporting: false,
-    pendingResult: null,
-    sourceUrl: null,
-  });
-
-  const toastIdRef = useRef<string | number | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const {
+    isAgendaImporting: isImporting,
+    agendaPendingResult: pendingResult,
+    agendaSourceUrl: sourceUrl,
+    agendaToastId: toastId,
+    agendaAbortController: abortController,
+    setAgendaImportState: setState,
+    clearAgendaResult: clearResult,
+  } = useBackgroundImportStore();
 
   const startImport = useCallback(
     (url: string, onComplete?: () => void) => {
-      if (state.isImporting) {
+      if (useBackgroundImportStore.getState().isAgendaImporting) {
         toast.warning('An import is already in progress');
         return;
       }
@@ -40,23 +39,32 @@ export function useBackgroundAgendaImport() {
         // Use raw URL as fallback
       }
 
-      setState({ isImporting: true, pendingResult: null, sourceUrl: url });
+      const currentController = new AbortController();
 
-      const abortController = new AbortController();
-      abortRef.current = abortController;
-
-      toastIdRef.current = toast.loading(`Scanning ${domain} for agenda sessions...`, {
+      const newToastId = toast.loading(`Scanning ${domain} for agenda sessions...`, {
         duration: Infinity,
         description: "You can navigate away — we'll notify you when it's done.",
       });
 
+      setState({
+        isAgendaImporting: true,
+        agendaPendingResult: null,
+        agendaSourceUrl: url,
+        agendaToastId: newToastId,
+        agendaAbortController: currentController,
+      });
+
       parseAgendaURL(url)
         .then(result => {
-          if (abortController.signal.aborted) return;
+          if (currentController.signal.aborted) return;
 
-          setState({ isImporting: false, pendingResult: result, sourceUrl: url });
+          setState({
+            isAgendaImporting: false,
+            agendaPendingResult: result,
+            agendaSourceUrl: url,
+          });
 
-          if (toastIdRef.current) toast.dismiss(toastIdRef.current);
+          toast.dismiss(newToastId);
 
           if (result.isValid && result.sessions.length > 0) {
             toast.success(
@@ -64,7 +72,17 @@ export function useBackgroundAgendaImport() {
               {
                 description: 'Review and import them into your agenda.',
                 duration: Infinity,
-                action: onComplete ? { label: 'Review Sessions', onClick: onComplete } : undefined,
+                action: {
+                  label: 'Review Sessions',
+                  onClick: () => {
+                    // Navigate to the event agenda page if not there
+                    if (eventId && !window.location.pathname.includes(`/events/${eventId}`)) {
+                      navigate(`/events/${eventId}?tab=agenda&import=true`);
+                    } else if (onComplete) {
+                      onComplete();
+                    }
+                  },
+                },
               },
             );
           } else {
@@ -75,11 +93,15 @@ export function useBackgroundAgendaImport() {
           }
         })
         .catch(err => {
-          if (abortController.signal.aborted) return;
+          if (currentController.signal.aborted) return;
 
-          setState({ isImporting: false, pendingResult: null, sourceUrl: null });
+          setState({
+            isAgendaImporting: false,
+            agendaPendingResult: null,
+            agendaSourceUrl: null,
+          });
 
-          if (toastIdRef.current) toast.dismiss(toastIdRef.current);
+          toast.dismiss(newToastId);
 
           toast.error('Import failed', {
             description: err instanceof Error ? err.message : 'Unknown error occurred',
@@ -87,30 +109,24 @@ export function useBackgroundAgendaImport() {
           });
         });
     },
-    [state.isImporting],
+    [setState, eventId, navigate],
   );
 
-  const clearResult = useCallback(() => {
-    setState({ isImporting: false, pendingResult: null, sourceUrl: null });
-  }, []);
-
   const cancelImport = useCallback(() => {
-    if (abortRef.current) {
-      abortRef.current.abort();
-      abortRef.current = null;
+    if (abortController) {
+      abortController.abort();
     }
-    if (toastIdRef.current) {
-      toast.dismiss(toastIdRef.current);
-      toastIdRef.current = null;
+    if (toastId) {
+      toast.dismiss(toastId);
     }
-    setState({ isImporting: false, pendingResult: null, sourceUrl: null });
+    clearResult();
     toast.info('Import cancelled');
-  }, []);
+  }, [abortController, toastId, clearResult]);
 
   return {
-    isBackgroundImporting: state.isImporting,
-    pendingResult: state.pendingResult,
-    sourceUrl: state.sourceUrl,
+    isBackgroundImporting: isImporting,
+    pendingResult,
+    sourceUrl,
     startImport,
     clearResult,
     cancelImport,

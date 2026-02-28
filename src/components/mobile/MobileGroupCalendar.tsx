@@ -98,7 +98,7 @@ export const MobileGroupCalendar = ({
     pendingResult: backgroundPendingResult,
     startImport: startBackgroundImport,
     clearResult: clearBackgroundResult,
-  } = useBackgroundImport();
+  } = useBackgroundImport(tripId);
 
   const handleBackgroundImportComplete = useCallback(() => {
     setIsImportModalOpen(true);
