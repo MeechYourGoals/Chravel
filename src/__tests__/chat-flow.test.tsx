@@ -32,7 +32,7 @@ describe.skip('Chat Message Send → Receive Flow', () => {
     supabaseMockHelpers.setMockData('trip_messages', [message]);
 
     const TestComponent = () => {
-      const [messages, setMessages] = React.useState<any[]>([]);
+      const [messages, setMessages] = React.useState<unknown[]>([]);
       const [status, setStatus] = React.useState('idle');
 
       const handleSendMessage = async () => {
@@ -87,7 +87,7 @@ describe.skip('Chat Message Send → Receive Flow', () => {
     supabaseMockHelpers.setMockData('trip_messages', initialMessages);
 
     const TestComponent = () => {
-      const [messages, setMessages] = React.useState<any[]>([]);
+      const [messages, setMessages] = React.useState<unknown[]>([]);
 
       React.useEffect(() => {
         const loadMessages = async () => {
@@ -181,7 +181,7 @@ describe.skip('Chat Message Send → Receive Flow', () => {
     supabaseMockHelpers.setMockData('message_reactions', [reaction]);
 
     const TestComponent = () => {
-      const [reactions, setReactions] = React.useState<any[]>([]);
+      const [reactions, setReactions] = React.useState<unknown[]>([]);
 
       const handleAddReaction = async () => {
         const { data } = await mockSupabase

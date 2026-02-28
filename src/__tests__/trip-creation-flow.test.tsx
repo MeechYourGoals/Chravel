@@ -50,7 +50,7 @@ describe.skip('Trip Creation → Invite → Join Flow', () => {
       });
 
       const TestComponent = () => {
-        const [trip, setTrip] = React.useState<any>(null);
+        const [trip, setTrip] = React.useState<unknown>(null);
         const [status, setStatus] = React.useState('idle');
 
         const handleCreateTrip = async () => {
@@ -161,7 +161,7 @@ describe.skip('Trip Creation → Invite → Join Flow', () => {
       ]);
 
       const TestComponent = () => {
-        const [collaborators, setCollaborators] = React.useState<any[]>([]);
+        const [collaborators, setCollaborators] = React.useState<unknown[]>([]);
 
         const handleAddCollaborator = async () => {
           const { data } = await mockSupabase
