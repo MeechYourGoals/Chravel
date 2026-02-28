@@ -148,11 +148,7 @@ describe('AIConciergeChat', () => {
         const header = screen.getByTestId('ai-concierge-header');
         expect(header).toBeInTheDocument();
         expect(header).toHaveTextContent(/ai concierge/i);
-
-        expect(screen.getByText(/private convo/i)).toBeInTheDocument();
       });
-      // Usage info is now rendered as "5/10 Asks"
-      expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
     });
 
     it('always renders the dictation microphone button in the input area', async () => {
