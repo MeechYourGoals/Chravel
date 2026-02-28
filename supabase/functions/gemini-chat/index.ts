@@ -140,7 +140,7 @@ serve(async req => {
         usage,
         sentimentScore,
         success: true,
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3-flash-preview', // informational label; actual model is resolved by lovable-concierge
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

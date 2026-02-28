@@ -61,7 +61,7 @@ const ENABLE_LOVABLE_FALLBACK =
   (Deno.env.get('GEMINI_ENABLE_LOVABLE_FALLBACK') || 'true').toLowerCase() !== 'false';
 
 const DEFAULT_FLASH_MODEL = 'gemini-3-flash-preview';
-const DEFAULT_PRO_MODEL = 'gemini-3-pro-preview';
+const DEFAULT_PRO_MODEL = 'gemini-3.1-pro-preview';
 const DEFAULT_EMBEDDING_MODEL = 'text-embedding-004';
 const DEFAULT_CHAT_TIMEOUT_MS = 45_000;
 const DEFAULT_EMBED_TIMEOUT_MS = 30_000;
@@ -73,6 +73,9 @@ const CHAT_MODEL_ALIASES: Record<string, string> = {
   'google/gemini-2.5-pro': DEFAULT_PRO_MODEL,
   'gemini-1.5-pro': DEFAULT_PRO_MODEL,
   'google/gemini-1.5-pro': DEFAULT_PRO_MODEL,
+  // gemini-3-pro-preview deprecated March 9 2026 → route to 3.1
+  'gemini-3-pro-preview': DEFAULT_PRO_MODEL,
+  'google/gemini-3-pro-preview': DEFAULT_PRO_MODEL,
 };
 
 export function normalizeGeminiModel(

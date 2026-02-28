@@ -5,8 +5,9 @@ import { TripContextBuilder } from '../_shared/contextBuilder.ts';
 import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-// Using gemini-2.0-flash-exp as the stable default for Live API (bidirectional audio)
-const GEMINI_LIVE_MODEL = Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-2.0-flash-exp';
+// gemini-2.0-flash-exp retires June 1 2026 — using stable native-audio model for Live API
+const GEMINI_LIVE_MODEL =
+  Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-live-2.5-flash-native-audio';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -242,7 +243,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
 ];
 
 // Feature flag: enable native Google Search grounding in voice alongside function declarations.
-// gemini-2.0-flash-exp supports this; text-only flash models do not.
+// gemini-live-2.5-flash-native-audio supports this; text-only flash models do not.
 // Set ENABLE_VOICE_GROUNDING=false in Supabase secrets to disable if the model rejects it.
 const ENABLE_VOICE_GROUNDING =
   (Deno.env.get('ENABLE_VOICE_GROUNDING') || 'true').toLowerCase() !== 'false';
@@ -308,7 +309,7 @@ async function createEphemeralToken(params: {
       tools: [
         { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
         // Native Google Search grounding — lets the model cite live web info directly.
-        // Only supported by gemini-2.0-flash-exp and newer Live models.
+        // Supported by gemini-live-2.5-flash-native-audio and newer Live models.
         // Falls back gracefully if unsupported (token request will fail with 400; handled below).
         ...(ENABLE_VOICE_GROUNDING ? [{ googleSearch: {} }] : []),
       ],

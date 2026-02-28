@@ -1482,7 +1482,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
     // This mirrors the voice session setup which always includes both tools.
     // Trip-related queries additionally get function declarations for trip actions
     // (addToCalendar, createTask, createPoll, searchPlaces, getPaymentSummary).
-    // gemini-3-flash-preview does NOT support combining functionDeclarations
+    // gemini-3-flash-preview / gemini-3.1-pro-preview do NOT support combining functionDeclarations
     // with googleSearch in the same tools array (400: "Tool use with function
     // calling is unsupported by the model"). Use one or the other.
     const geminiTools: any[] = [];
