@@ -97,7 +97,7 @@ export const EnhancedAgendaTab = ({
   });
 
   const [showImportModal, setShowImportModal] = useState(false);
-  const { pendingResult, startImport, clearResult } = useBackgroundAgendaImport();
+  const { pendingResult, startImport, clearResult } = useBackgroundAgendaImport(eventId);
 
   const [isAddingSession, setIsAddingSession] = useState(false);
   const [editingSession, setEditingSession] = useState<EventAgendaItem | null>(null);

@@ -6,39 +6,30 @@
  * stores the result for the CalendarImportModal to consume.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { parseURLSchedule, SmartParseResult } from '@/utils/calendarImportParsers';
+import { useBackgroundImportStore } from '../stores/useBackgroundImportStore';
+import { useNavigate } from 'react-router-dom';
 
-interface BackgroundImportState {
-  /** Whether a background import is currently running */
-  isImporting: boolean;
-  /** The completed result (null until finished) */
-  pendingResult: SmartParseResult | null;
-  /** The URL that was imported */
-  sourceUrl: string | null;
-}
+export function useBackgroundImport(tripId?: string) {
+  const navigate = useNavigate();
 
-export function useBackgroundImport() {
-  const [state, setState] = useState<BackgroundImportState>({
-    isImporting: false,
-    pendingResult: null,
-    sourceUrl: null,
-  });
-
-  // Track the active toast ID so we can update it
-  const toastIdRef = useRef<string | number | null>(null);
-  // AbortController for cancellation
-  const abortRef = useRef<AbortController | null>(null);
-  // Ref for duplicate-import guard (avoids stale closure on double-click)
-  const importingRef = useRef(false);
+  const {
+    isCalendarImporting: isImporting,
+    calendarPendingResult: pendingResult,
+    calendarSourceUrl: sourceUrl,
+    calendarToastId: toastId,
+    calendarAbortController: abortController,
+    setCalendarImportState: setState,
+    clearCalendarResult: clearResult,
+  } = useBackgroundImportStore();
 
   const startImport = useCallback((url: string, onComplete?: () => void) => {
-    if (importingRef.current) {
+    if (useBackgroundImportStore.getState().isCalendarImporting) {
       toast.warning('An import is already in progress');
       return;
     }
-    importingRef.current = true;
 
     // Extract domain for display
     let domain = url;
@@ -48,38 +39,34 @@ export function useBackgroundImport() {
       // Use raw URL as fallback
     }
 
-    // Clear any previous result
-    setState({
-      isImporting: true,
-      pendingResult: null,
-      sourceUrl: url,
-    });
-
-    // Create abort controller
-    const abortController = new AbortController();
-    abortRef.current = abortController;
+    const currentController = new AbortController();
 
     // Show persistent loading toast
-    toastIdRef.current = toast.loading(`Scanning ${domain} for schedule...`, {
+    const newToastId = toast.loading(`Scanning ${domain} for schedule...`, {
       duration: Infinity,
       description: "You can navigate away — we'll notify you when it's done.",
+    });
+
+    setState({
+      isCalendarImporting: true,
+      calendarPendingResult: null,
+      calendarSourceUrl: url,
+      calendarToastId: newToastId,
+      calendarAbortController: currentController,
     });
 
     // Run the import in the background (not awaited)
     parseURLSchedule(url)
       .then(result => {
-        if (abortController.signal.aborted) return;
+        if (currentController.signal.aborted) return;
 
-        importingRef.current = false;
         setState({
-          isImporting: false,
-          pendingResult: result,
-          sourceUrl: url,
+          isCalendarImporting: false,
+          calendarPendingResult: result,
+          calendarSourceUrl: url,
         });
 
-        if (toastIdRef.current) {
-          toast.dismiss(toastIdRef.current);
-        }
+        toast.dismiss(newToastId);
 
         if (result.isValid && result.events.length > 0) {
           toast.success(
@@ -87,12 +74,17 @@ export function useBackgroundImport() {
             {
               description: 'Open the import modal to review and add them to your calendar.',
               duration: Infinity,
-              action: onComplete
-                ? {
-                    label: 'View Events',
-                    onClick: onComplete,
+              action: {
+                label: 'View Events',
+                onClick: () => {
+                  // If we are given a tripId, we navigate to the trip page if not already there
+                  if (tripId && !window.location.pathname.includes(`/trips/${tripId}`)) {
+                    navigate(`/trips/${tripId}?tab=calendar&import=true`);
+                  } else if (onComplete) {
+                    onComplete();
                   }
-                : undefined,
+                },
+              },
             },
           );
         } else {
@@ -104,59 +96,41 @@ export function useBackgroundImport() {
         }
       })
       .catch(err => {
-        if (abortController.signal.aborted) return;
+        if (currentController.signal.aborted) return;
 
-        importingRef.current = false;
         setState({
-          isImporting: false,
-          pendingResult: null,
-          sourceUrl: null,
+          isCalendarImporting: false,
+          calendarPendingResult: null,
+          calendarSourceUrl: null,
         });
 
-        if (toastIdRef.current) {
-          toast.dismiss(toastIdRef.current);
-        }
+        toast.dismiss(newToastId);
 
         toast.error('Import failed', {
           description: err instanceof Error ? err.message : 'Unknown error occurred',
           duration: 8000,
         });
       });
-  }, []);
-
-  const clearResult = useCallback(() => {
-    setState({
-      isImporting: false,
-      pendingResult: null,
-      sourceUrl: null,
-    });
-  }, []);
+  }, [setState, tripId, navigate]);
 
   const cancelImport = useCallback(() => {
-    importingRef.current = false;
-    if (abortRef.current) {
-      abortRef.current.abort();
-      abortRef.current = null;
+    if (abortController) {
+      abortController.abort();
     }
 
-    if (toastIdRef.current) {
-      toast.dismiss(toastIdRef.current);
-      toastIdRef.current = null;
+    if (toastId) {
+      toast.dismiss(toastId);
     }
 
-    setState({
-      isImporting: false,
-      pendingResult: null,
-      sourceUrl: null,
-    });
+    clearResult();
 
     toast.info('Import cancelled');
-  }, []);
+  }, [abortController, toastId, clearResult]);
 
   return {
-    isBackgroundImporting: state.isImporting,
-    pendingResult: state.pendingResult,
-    sourceUrl: state.sourceUrl,
+    isBackgroundImporting: isImporting,
+    pendingResult,
+    sourceUrl,
     startImport,
     clearResult,
     cancelImport,

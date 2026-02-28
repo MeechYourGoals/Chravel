@@ -65,7 +65,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     pendingResult: backgroundPendingResult,
     startImport: startBackgroundImport,
     clearResult: clearBackgroundResult,
-  } = useBackgroundImport();
+  } = useBackgroundImport(tripId);
 
   // ICS Import modal state
   const [showImportModal, setShowImportModal] = useState(false);
