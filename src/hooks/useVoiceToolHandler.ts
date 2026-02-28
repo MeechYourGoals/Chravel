@@ -161,7 +161,7 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
                 created_by: currentUserId,
                 question,
                 options: pollOptions,
-                status: 'open',
+                status: 'active',
               })
               .select('id, question')
               .single();
@@ -181,9 +181,9 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
           }
 
           case 'getPaymentSummary': {
-            const { data: expenses, error } = await supabase
-              .from('trip_expenses')
-              .select('id, amount, description, paid_by, created_at, is_settled')
+            const { data: payments, error } = await supabase
+              .from('trip_payment_messages')
+              .select('id, amount, description, created_by, created_at, is_settled')
               .eq('trip_id', currentTripId)
               .order('created_at', { ascending: false })
               .limit(20);
@@ -195,15 +195,14 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
               };
             }
 
-            const total = (expenses ?? []).reduce(
-              (sum: number, e: { amount: number }) => sum + (e.amount || 0),
+            const rows = payments ?? [];
+            const total = rows.reduce(
+              (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
               0,
             );
-            const unsettled = (expenses ?? []).filter(
-              (e: { is_settled: boolean | null }) => !e.is_settled,
-            );
+            const unsettled = rows.filter((e: { is_settled: boolean | null }) => !e.is_settled);
             const unsettledTotal = unsettled.reduce(
-              (sum: number, e: { amount: number }) => sum + (e.amount || 0),
+              (sum: number, e: { amount: number }) => sum + (Number(e.amount) || 0),
               0,
             );
 
@@ -212,13 +211,17 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
               totalExpenses: total,
               unsettledCount: unsettled.length,
               unsettledTotal,
-              recentExpenses: (expenses ?? [])
+              recentExpenses: rows
                 .slice(0, 5)
                 .map(
-                  (e: { description: string | null; amount: number; paid_by: string | null }) => ({
+                  (e: {
+                    description: string | null;
+                    amount: number;
+                    created_by: string | null;
+                  }) => ({
                     description: e.description,
-                    amount: e.amount,
-                    paidBy: e.paid_by,
+                    amount: Number(e.amount),
+                    paidBy: e.created_by,
                   }),
                 ),
             };
