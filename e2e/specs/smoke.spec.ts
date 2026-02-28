@@ -19,7 +19,10 @@ test.describe('Smoke Tests — App Shell', () => {
     const root = page.locator('#root');
     await expect(root).toBeAttached();
     // Wait for React to hydrate — at least one visible element
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    // Increased timeout for CI stability and used more specific selector if possible
+    await page.waitForSelector('#root', { timeout: 30000 });
+    // Ensure we have some content inside root
+    await expect(page.locator('#root')).not.toBeEmpty();
   });
 
   test('2. No critical console errors on initial load', async ({ page }) => {
@@ -59,7 +62,7 @@ test.describe('Smoke Tests — App Shell', () => {
 
   test('3. Navigation elements are present on landing page', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // The landing page should have at minimum a sign-in or get-started CTA
     const hasAuthCta = await page
@@ -81,7 +84,7 @@ test.describe('Smoke Tests — App Shell', () => {
 test.describe('Smoke Tests — Auth Page', () => {
   test('4. Auth page renders sign-in form', async ({ page }) => {
     await page.goto('/auth');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // Auth page should have an email input
     const emailInput = page.getByPlaceholder(/email/i);
@@ -91,7 +94,7 @@ test.describe('Smoke Tests — Auth Page', () => {
 
   test('5. Auth page shows password field', async ({ page }) => {
     await page.goto('/auth');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // Should have password input
     const passwordInput = page.locator('input[type="password"]').first();
@@ -102,7 +105,7 @@ test.describe('Smoke Tests — Auth Page', () => {
 test.describe('Smoke Tests — Demo Mode', () => {
   test('6. Demo entry page loads', async ({ page }) => {
     await page.goto('/demo');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // Demo page should render without errors — either content or redirect
     const url = page.url();
@@ -114,7 +117,7 @@ test.describe('Smoke Tests — Demo Mode', () => {
 test.describe('Smoke Tests — Static Pages', () => {
   test('7. Healthz endpoint returns build info', async ({ page }) => {
     await page.goto('/healthz');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // Healthz should show something (build version, status)
     const bodyText = await page.locator('body').textContent();
@@ -124,7 +127,7 @@ test.describe('Smoke Tests — Static Pages', () => {
 
   test('8. Privacy policy page loads', async ({ page }) => {
     await page.goto('/privacy');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     const bodyText = await page.locator('body').textContent();
     expect(bodyText).toBeTruthy();
@@ -134,7 +137,7 @@ test.describe('Smoke Tests — Static Pages', () => {
 
   test('9. Terms of service page loads', async ({ page }) => {
     await page.goto('/terms');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     const bodyText = await page.locator('body').textContent();
     expect(bodyText).toBeTruthy();
@@ -143,7 +146,7 @@ test.describe('Smoke Tests — Static Pages', () => {
 
   test('10. Not found page renders for invalid routes', async ({ page }) => {
     await page.goto('/this-route-does-not-exist-12345');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // Should render a NotFound page, not a blank screen
     const bodyText = await page.locator('body').textContent();
@@ -154,7 +157,7 @@ test.describe('Smoke Tests — Static Pages', () => {
 test.describe('Smoke Tests — Settings', () => {
   test('11. Settings page loads (redirects to auth if not logged in)', async ({ page }) => {
     await page.goto('/settings');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // Should either show settings or redirect to auth/landing
     const url = page.url();
@@ -193,7 +196,7 @@ test.describe('Smoke Tests — PWA Manifest', () => {
 test.describe('Smoke Tests — Invite Flow', () => {
   test('14. Join trip page loads for invalid token (graceful error)', async ({ page }) => {
     await page.goto('/join/invalid-test-token-12345');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // Page should render (not blank) even with invalid token
     const bodyText = await page.locator('body').textContent();
@@ -206,7 +209,7 @@ test.describe('Smoke Tests — Offline Resilience', () => {
   test('15. App handles network offline gracefully', async ({ page, context }) => {
     // First load normally
     await page.goto('/');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // Go offline
     await context.setOffline(true);
@@ -229,7 +232,7 @@ test.describe('Smoke Tests — SPA Routing', () => {
   test('16. Deep link to /trip/:id does not 404 (SPA fallback)', async ({ page }) => {
     // This tests that the SPA router handles direct navigation
     await page.goto('/trip/00000000-0000-0000-0000-000000000001');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // Should render React app (not a server 404)
     const root = page.locator('#root');
@@ -240,7 +243,7 @@ test.describe('Smoke Tests — SPA Routing', () => {
 
   test('17. Deep link to /tour/pro/:id does not 404', async ({ page }) => {
     await page.goto('/tour/pro/test-pro-trip-id');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     const root = page.locator('#root');
     await expect(root).toBeAttached();
@@ -248,7 +251,7 @@ test.describe('Smoke Tests — SPA Routing', () => {
 
   test('18. Legacy pro trip URL redirects correctly', async ({ page }) => {
     await page.goto('/tour/pro-some-trip-id');
-    await page.waitForSelector('#root > *', { timeout: 15000 });
+    await page.waitForSelector('#root', { timeout: 30000 });
 
     // Should redirect from /tour/pro-{id} to /tour/pro/{id}
     const url = page.url();

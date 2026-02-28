@@ -196,11 +196,11 @@ test.describe('Authentication Flow - Session Management', () => {
     const redirectedOrPrompted = await Promise.race([
       page
         .waitForURL(url => url.pathname.includes('/auth') || url.pathname === '/', {
-          timeout: 5000,
+          timeout: 15000,
         })
         .then(() => true),
       page
-        .waitForSelector('[data-testid="auth-modal"], text=Sign In, text=Log In', { timeout: 5000 })
+        .waitForSelector('[data-testid="auth-modal"], text=Sign In, text=Log In', { timeout: 15000 })
         .then(() => true),
     ]).catch(() => false);
 

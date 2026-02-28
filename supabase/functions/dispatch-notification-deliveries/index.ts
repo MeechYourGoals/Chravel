@@ -101,7 +101,15 @@ function getDisplayName(profile?: ProfileRow): string {
   );
 }
 
-function isUserSmsEntitled(entitlement?: EntitlementRow): boolean {
+function isUserSmsEntitled(
+  entitlement?: EntitlementRow,
+  adminRole?: { role: string } | null,
+): boolean {
+  // Super-admin / enterprise admin bypass via role
+  if (adminRole && ['super_admin', 'enterprise_admin'].includes(adminRole.role)) {
+    return true;
+  }
+
   if (!entitlement) return false;
   if (!['active', 'trialing'].includes((entitlement.status || '').toLowerCase())) return false;
 
@@ -313,9 +321,19 @@ async function sendSms(
 
   try {
     const parsed = JSON.parse(responseText);
-    return { ok: true, providerMessageId: parsed.sid };
-  } catch {
-    return { ok: true };
+    const messageSid = parsed.sid;
+
+    // Truth-based: only success if we have a valid Message SID (SM...)
+    if (!messageSid || typeof messageSid !== 'string' || !messageSid.startsWith('SM')) {
+      return {
+        ok: false,
+        error: `Invalid Message SID from Twilio: ${messageSid || 'none'}`,
+      };
+    }
+
+    return { ok: true, providerMessageId: messageSid };
+  } catch (err) {
+    return { ok: false, error: `Failed to parse Twilio response: ${String(err)}` };
   }
 }
 
@@ -509,6 +527,7 @@ serve(async req => {
     const [
       { data: preferenceRows },
       { data: entitlementRows },
+      { data: adminRoleRows },
       { data: smsOptInRows },
       { data: tripRows },
       { data: profileRows },
@@ -520,6 +539,11 @@ serve(async req => {
         .from('user_entitlements')
         .select('user_id, plan, status, current_period_end')
         .in('user_id', recipientIds),
+      supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', recipientIds)
+        .in('role', ['super_admin', 'enterprise_admin']),
       supabase
         .from('sms_opt_in')
         .select('user_id, phone_e164, verified, opted_in')
@@ -557,6 +581,12 @@ serve(async req => {
 
     const entitlementsByUser = new Map<string, EntitlementRow>(
       ((entitlementRows || []) as EntitlementRow[]).map(row => [row.user_id, row]),
+    );
+    const adminRolesByUser = new Map<string, { role: string }>(
+      ((adminRoleRows || []) as { user_id: string; role: string }[]).map(row => [
+        row.user_id,
+        { role: row.role },
+      ]),
     );
     const smsOptInByUser = new Map<string, SmsOptInRow>(
       ((smsOptInRows || []) as SmsOptInRow[]).map(row => [row.user_id, row]),
@@ -877,7 +907,8 @@ serve(async req => {
       }
 
       const entitlement = entitlementsByUser.get(userId);
-      if (!isUserSmsEntitled(entitlement)) {
+      const adminRole = adminRolesByUser.get(userId);
+      if (!isUserSmsEntitled(entitlement, adminRole)) {
         await markDelivery(supabase, delivery.id, {
           status: 'skipped',
           error: 'sms_not_entitled',
