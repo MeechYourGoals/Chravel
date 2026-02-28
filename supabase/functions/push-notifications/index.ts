@@ -40,6 +40,7 @@ async function isSmsEntitled(userId: string, userEmail?: string): Promise<boolea
     .select('role')
     .eq('user_id', userId)
     .in('role', ['enterprise_admin', 'super_admin'])
+    .limit(1)
     .maybeSingle();
 
   if (adminRole) {
