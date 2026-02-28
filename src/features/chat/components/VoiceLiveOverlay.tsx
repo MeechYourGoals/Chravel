@@ -52,7 +52,14 @@ export function VoiceLiveOverlay({
   const isThinking = state === 'sending' || state === 'requesting_mic';
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black/90 backdrop-blur-xl overscroll-none touch-none">
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black/90 backdrop-blur-xl overscroll-none"
+      style={{
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+      }}
+    >
       {/* Header — status + close button */}
       <div
         className="w-full flex items-center justify-between px-4 pt-4"
@@ -122,9 +129,9 @@ export function VoiceLiveOverlay({
             />
           )}
 
-          {/* Core orb — 88px on mobile, 96px on larger screens */}
+          {/* Core orb — 88px on mobile, 96px on sm+ screens */}
           <div
-            className={`relative w-22 h-22 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all duration-500 ${
+            className={`relative rounded-full flex items-center justify-center transition-all duration-500 w-[5.5rem] h-[5.5rem] sm:w-24 sm:h-24 ${
               isListening
                 ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/40'
                 : isSpeaking
@@ -135,7 +142,6 @@ export function VoiceLiveOverlay({
                       ? 'bg-gradient-to-br from-red-500 to-rose-600 shadow-lg shadow-red-500/40'
                       : 'bg-gradient-to-br from-neutral-600 to-neutral-700'
             }`}
-            style={{ width: '5.5rem', height: '5.5rem' }}
           >
             {state === 'error' || circuitBreakerOpen ? (
               <AlertCircle size={30} className="text-white" />

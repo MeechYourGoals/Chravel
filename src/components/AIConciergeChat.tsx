@@ -1509,7 +1509,7 @@ export const AIConciergeChat = ({
         </div>
 
         {/* Voice listening indicator (dictation mode only) */}
-        {!VOICE_LIVE_ENABLED && dictationState === 'listening' && (
+        {voiceMode === 'dictation' && dictationState === 'listening' && (
           <div
             className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
             role="alert"
@@ -1548,7 +1548,10 @@ export const AIConciergeChat = ({
         )}
 
         {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
-        <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
+        <div
+          className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
+        >
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}

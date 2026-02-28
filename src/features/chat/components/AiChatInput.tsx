@@ -142,38 +142,37 @@ export const AiChatInput = ({
         </div>
       )}
 
-      {/* Voice mode label — tappable indicator above the input row */}
-      {showVoiceModeSwitch && onVoiceModeSwitch && voiceState === 'idle' && (
-        <div className="flex items-center px-1">
-          <button
-            type="button"
-            onClick={onVoiceModeSwitch}
-            className="flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-white/40 hover:text-white/60 transition-colors active:scale-95"
-            aria-label={`Voice mode: ${voiceMode}. Tap to switch.`}
-          >
-            <span
-              aria-hidden
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                voiceMode === 'conversation' ? 'bg-blue-400' : 'bg-emerald-400'
-              }`}
-            />
-            {voiceMode === 'conversation' ? 'Conversation' : 'Dictation'}
-          </button>
-        </div>
-      )}
-
       <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
-        {/* Microphone (left) — tap to activate, long-press to switch mode */}
+        {/* Mic button + compact mode label */}
         {onVoiceToggle && (
-          <VoiceButton
-            voiceState={voiceState}
-            isEligible={isVoiceEligible}
-            onToggle={onVoiceToggle}
-            onUpgrade={onVoiceUpgrade}
-            voiceMode={voiceMode}
-            onModeSwitch={onVoiceModeSwitch}
-            showModeSwitch={showVoiceModeSwitch}
-          />
+          <div className="flex flex-col items-center gap-0.5 shrink-0">
+            <VoiceButton
+              voiceState={voiceState}
+              isEligible={isVoiceEligible}
+              onToggle={onVoiceToggle}
+              onUpgrade={onVoiceUpgrade}
+              voiceMode={voiceMode}
+              onModeSwitch={onVoiceModeSwitch}
+              showModeSwitch={showVoiceModeSwitch}
+            />
+            {/* Compact mode label — tappable, sits snugly under mic */}
+            {showVoiceModeSwitch && onVoiceModeSwitch && voiceState === 'idle' && (
+              <button
+                type="button"
+                onClick={onVoiceModeSwitch}
+                className="flex items-center gap-1 text-[9px] leading-none font-medium tracking-wide uppercase text-white/35 hover:text-white/55 active:scale-95 transition-colors touch-manipulation select-none py-0.5"
+                aria-label={`Voice: ${voiceMode}. Tap to switch.`}
+              >
+                <span
+                  aria-hidden
+                  className={`w-1 h-1 rounded-full transition-colors ${
+                    voiceMode === 'conversation' ? 'bg-blue-400' : 'bg-emerald-400'
+                  }`}
+                />
+                {voiceMode === 'conversation' ? 'Live' : 'Dict'}
+              </button>
+            )}
+          </div>
         )}
 
         {/* Input Textarea */}
