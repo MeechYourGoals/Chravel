@@ -989,6 +989,8 @@ serve(async req => {
       if (smsResult.ok) {
         // Increment local counter for batch consistency (persistence handled by RPC below)
         prefs.sms_sent_today = (prefs.sms_sent_today || 0) + 1;
+        // Make sure to also persist the reset date so check doesn't fail again immediately in next iteration
+        prefs.last_sms_reset_date = new Date().toISOString().split('T')[0];
 
         await markDelivery(supabase, delivery.id, {
           status: 'sent',
