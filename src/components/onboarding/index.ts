@@ -5,7 +5,6 @@
 export { OnboardingCarousel } from './OnboardingCarousel';
 export { OnboardingProgressDots } from './OnboardingProgressDots';
 export { WelcomeScreen } from './screens/WelcomeScreen';
-export { TripCreationDemo } from './screens/TripCreationDemo';
-export { ChatPreviewScreen } from './screens/ChatPreviewScreen';
-export { AIConciergeTeaser } from './screens/AIConciergeTeaser';
+export { FeatureReelScreen } from './screens/FeatureReelScreen';
+export { InviteCrewScreen } from './screens/InviteCrewScreen';
 export { FinalCTAScreen } from './screens/FinalCTAScreen';
