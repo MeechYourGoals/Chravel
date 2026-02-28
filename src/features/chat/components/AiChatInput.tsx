@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Send, Sparkles, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { VoiceButton } from './VoiceButton';
+import type { VoiceMode } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 
 interface AiChatInputProps {
@@ -21,6 +22,12 @@ interface AiChatInputProps {
   isVoiceEligible?: boolean;
   onVoiceToggle?: () => void;
   onVoiceUpgrade?: () => void;
+  /** Current voice mode */
+  voiceMode?: VoiceMode;
+  /** Callback to switch voice mode */
+  onVoiceModeSwitch?: () => void;
+  /** Whether to show the mode switcher UI (requires Gemini Live support) */
+  showVoiceModeSwitch?: boolean;
   /** Multimodal: callback when user selects images */
   onImageAttach?: (files: File[]) => void;
   /** Multimodal: currently attached image previews */
@@ -44,6 +51,9 @@ export const AiChatInput = ({
   isVoiceEligible = false,
   onVoiceToggle,
   onVoiceUpgrade,
+  voiceMode = 'dictation',
+  onVoiceModeSwitch,
+  showVoiceModeSwitch = false,
   onImageAttach,
   attachedImages = [],
   onRemoveImage,
@@ -132,14 +142,37 @@ export const AiChatInput = ({
         </div>
       )}
 
+      {/* Voice mode label — tappable indicator above the input row */}
+      {showVoiceModeSwitch && onVoiceModeSwitch && voiceState === 'idle' && (
+        <div className="flex items-center px-1">
+          <button
+            type="button"
+            onClick={onVoiceModeSwitch}
+            className="flex items-center gap-1.5 text-[11px] font-medium tracking-wide text-white/40 hover:text-white/60 transition-colors active:scale-95"
+            aria-label={`Voice mode: ${voiceMode}. Tap to switch.`}
+          >
+            <span
+              aria-hidden
+              className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                voiceMode === 'conversation' ? 'bg-blue-400' : 'bg-emerald-400'
+              }`}
+            />
+            {voiceMode === 'conversation' ? 'Conversation' : 'Dictation'}
+          </button>
+        </div>
+      )}
+
       <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
-        {/* Microphone (left) — tap to start Gemini Live or Web Speech voice */}
+        {/* Microphone (left) — tap to activate, long-press to switch mode */}
         {onVoiceToggle && (
           <VoiceButton
             voiceState={voiceState}
             isEligible={isVoiceEligible}
             onToggle={onVoiceToggle}
             onUpgrade={onVoiceUpgrade}
+            voiceMode={voiceMode}
+            onModeSwitch={onVoiceModeSwitch}
+            showModeSwitch={showVoiceModeSwitch}
           />
         )}
 

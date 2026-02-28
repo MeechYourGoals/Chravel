@@ -1,23 +1,72 @@
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import { Mic, MicOff, Loader2, Volume2, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+
+export type VoiceMode = 'dictation' | 'conversation';
 
 interface VoiceButtonProps {
   voiceState: VoiceState;
   isEligible: boolean;
   onToggle: () => void;
   onUpgrade?: () => void;
+  /** Current voice mode — dictation (text-to-input) or conversation (Gemini Live) */
+  voiceMode?: VoiceMode;
+  /** Callback to switch voice mode. Fired on long press (500 ms). */
+  onModeSwitch?: () => void;
+  /** Whether Gemini Live is available (feature-flagged). Hides mode switching when false. */
+  showModeSwitch?: boolean;
 }
 
-export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: VoiceButtonProps) => {
-  const handleClick = () => {
+const LONG_PRESS_MS = 500;
+
+export const VoiceButton = ({
+  voiceState,
+  isEligible,
+  onToggle,
+  onUpgrade,
+  voiceMode = 'dictation',
+  onModeSwitch,
+  showModeSwitch = false,
+}: VoiceButtonProps) => {
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
+
+  // --- Long press gesture for mode switching ---
+  const clearTimer = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handlePressStart = useCallback(() => {
+    if (!isEligible || !showModeSwitch || !onModeSwitch) return;
+    didLongPress.current = false;
+
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      longPressTimer.current = null;
+      onModeSwitch();
+    }, LONG_PRESS_MS);
+  }, [isEligible, showModeSwitch, onModeSwitch]);
+
+  const handlePressEnd = useCallback(() => {
+    clearTimer();
+  }, [clearTimer]);
+
+  const handleClick = useCallback(() => {
+    // If a long-press just fired, swallow the click
+    if (didLongPress.current) {
+      didLongPress.current = false;
+      return;
+    }
     if (!isEligible) {
       onUpgrade?.();
       return;
     }
     onToggle();
-  };
+  }, [isEligible, onToggle, onUpgrade]);
 
   const getIcon = () => {
     if (!isEligible) return <MicOff size={16} className="opacity-70" />;
@@ -51,17 +100,22 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
       case 'error':
         return 'bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30';
       default:
-        return 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white hover:opacity-90 shadow-lg shadow-emerald-500/25';
+        // Idle state — subtle color hint for current mode
+        return voiceMode === 'conversation'
+          ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 shadow-lg shadow-blue-500/25'
+          : 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white hover:opacity-90 shadow-lg shadow-emerald-500/25';
     }
   };
 
   const getTooltip = () => {
-    if (!isEligible) return 'Dictation — Upgrade to use';
+    if (!isEligible) return 'Voice — Upgrade to use';
     switch (voiceState) {
       case 'connecting':
         return 'Starting mic...';
       case 'listening':
-        return 'Listening — tap to stop';
+        return voiceMode === 'conversation'
+          ? 'In conversation — tap to stop'
+          : 'Listening — tap to stop';
       case 'thinking':
         return 'Processing...';
       case 'speaking':
@@ -69,7 +123,12 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
       case 'error':
         return 'Tap to retry';
       default:
-        return 'Tap to dictate';
+        if (showModeSwitch) {
+          return voiceMode === 'conversation'
+            ? 'Tap for conversation · Hold to switch'
+            : 'Tap to dictate · Hold to switch';
+        }
+        return voiceMode === 'conversation' ? 'Tap for conversation' : 'Tap to dictate';
     }
   };
 
@@ -81,12 +140,16 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
         <TooltipTrigger asChild>
           <button
             onClick={handleClick}
-            className={`relative size-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 ${getStyle()}`}
+            onTouchStart={handlePressStart}
+            onTouchEnd={handlePressEnd}
+            onTouchCancel={handlePressEnd}
+            onMouseDown={handlePressStart}
+            onMouseUp={handlePressEnd}
+            onMouseLeave={handlePressEnd}
+            className={`relative size-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
             aria-label={getTooltip()}
           >
-            {/* Animated pulse rings for listening/speaking — mimics Gemini's
-                live-conversation visual. Two concentric rings pulse outward at
-                staggered delays using the voice-pulse keyframe. */}
+            {/* Animated pulse rings for listening/speaking */}
             {isActive && (
               <>
                 <span
@@ -116,6 +179,16 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
                 className="absolute -top-0.5 -right-0.5 text-amber-400/90 drop-shadow-md z-10"
               />
             )}
+            {/* Mode indicator dot — conversation mode shows a blue dot */}
+            {isEligible &&
+              showModeSwitch &&
+              voiceMode === 'conversation' &&
+              voiceState === 'idle' && (
+                <span
+                  aria-hidden
+                  className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-blue-400 ring-1 ring-black/40 z-10"
+                />
+              )}
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">

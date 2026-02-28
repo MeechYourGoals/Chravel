@@ -28,6 +28,7 @@ import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
 import { VOICE_LIVE_ENABLED } from '@/config/voiceFeatureFlags';
 import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
+import type { VoiceMode } from '@/features/chat/components/VoiceButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
@@ -305,8 +306,11 @@ export const AIConciergeChat = ({
   const hasHydratedRef = useRef(false);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
-  // When VOICE_LIVE_ENABLED=true: Gemini Live bidirectional voice
-  // When VOICE_LIVE_ENABLED=false: Web Speech API dictation (text only)
+  // Runtime voice mode: user can toggle between dictation and conversation.
+  // When VOICE_LIVE_ENABLED is false, mode is locked to 'dictation' (no Gemini Live).
+  const [voiceMode, setVoiceMode] = useState<VoiceMode>(
+    VOICE_LIVE_ENABLED ? 'conversation' : 'dictation',
+  );
   const [liveOverlayOpen, setLiveOverlayOpen] = useState(false);
 
   // Dictation fallback (Web Speech API) — always initialized so hooks order is stable
@@ -373,16 +377,15 @@ export const AIConciergeChat = ({
   });
 
   // Map the active voice engine's state to VoiceButton's VoiceState
-  const effectiveVoiceState: VoiceState = VOICE_LIVE_ENABLED
-    ? mapLiveStateToVoiceState(liveState)
-    : dictationState;
+  const effectiveVoiceState: VoiceState =
+    voiceMode === 'conversation' ? mapLiveStateToVoiceState(liveState) : dictationState;
 
   // Show dictation errors as toasts (only when in dictation mode)
   useEffect(() => {
-    if (!VOICE_LIVE_ENABLED && dictationError) {
+    if (voiceMode === 'dictation' && dictationError) {
       toast.error('Voice error', { description: dictationError });
     }
-  }, [dictationError]);
+  }, [voiceMode, dictationError]);
 
   // Close overlay when live session ends or errors
   useEffect(() => {
@@ -394,7 +397,7 @@ export const AIConciergeChat = ({
   }, [liveState, liveOverlayOpen]);
 
   const handleVoiceToggle = useCallback(() => {
-    if (VOICE_LIVE_ENABLED) {
+    if (voiceMode === 'conversation') {
       if (liveState === 'idle' || liveState === 'error') {
         setLiveOverlayOpen(true);
         void startLiveSession();
@@ -404,7 +407,24 @@ export const AIConciergeChat = ({
     } else {
       toggleDictation();
     }
-  }, [liveState, startLiveSession, endLiveSession, toggleDictation]);
+  }, [voiceMode, liveState, startLiveSession, endLiveSession, toggleDictation]);
+
+  const handleVoiceModeSwitch = useCallback(() => {
+    setVoiceMode(prev => {
+      const next = prev === 'dictation' ? 'conversation' : 'dictation';
+      toast(
+        next === 'conversation' ? 'Switched to Conversation mode' : 'Switched to Dictation mode',
+        {
+          description:
+            next === 'conversation'
+              ? 'Tap mic for live voice chat with your concierge'
+              : 'Tap mic to dictate text into the message box',
+          duration: 2000,
+        },
+      );
+      return next;
+    });
+  }, []);
 
   const handleEndLiveSession = useCallback(() => {
     endLiveSession();
@@ -1515,7 +1535,7 @@ export const AIConciergeChat = ({
         )}
 
         {/* Gemini Live voice overlay — full-screen during bidirectional session */}
-        {VOICE_LIVE_ENABLED && liveOverlayOpen && (
+        {voiceMode === 'conversation' && liveOverlayOpen && (
           <VoiceLiveOverlay
             state={liveState}
             userTranscript={liveUserTranscript}
@@ -1553,6 +1573,9 @@ export const AIConciergeChat = ({
             voiceState={effectiveVoiceState}
             isVoiceEligible={true}
             onVoiceToggle={handleVoiceToggle}
+            voiceMode={voiceMode}
+            onVoiceModeSwitch={VOICE_LIVE_ENABLED ? handleVoiceModeSwitch : undefined}
+            showVoiceModeSwitch={VOICE_LIVE_ENABLED}
           />
         </div>
       </div>
