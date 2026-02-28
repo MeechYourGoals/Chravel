@@ -9,11 +9,27 @@
  * - Error recovery and retry logic
  */
 
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AIConciergeChat } from '../AIConciergeChat';
 import { conciergeCacheService } from '../../services/conciergeCacheService';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Test wrapper with QueryClientProvider (AIConciergeChat uses useAIConciergePreferences → useQuery)
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+      mutations: { retry: false },
+    },
+  });
+
+function renderWithProviders(ui: React.ReactElement) {
+  const queryClient = createTestQueryClient();
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 // Mock dependencies
 vi.mock('../../integrations/supabase/client', () => ({
