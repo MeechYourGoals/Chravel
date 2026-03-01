@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Wand2, Compass, Upload, ScrollText, DollarSign, BarChart3 } from 'lucide-react';
-import aiConcierge from '@/assets/app-screenshots/ai-concierge.png';
-import placesMaps from '@/assets/app-screenshots/places-maps.png';
+import { Wand2, Compass, Upload, ScrollText, DollarSign, Bot } from 'lucide-react';
+import aiConcierge from '@/assets/ai-concierge-screenshot.png';
+import placesMaps from '@/assets/places-basecamps-screenshot.png';
 
 export const AiFeaturesSection = () => {
   // Group 1 - aligned with AI Concierge screenshot
@@ -10,7 +10,8 @@ export const AiFeaturesSection = () => {
     {
       icon: <Wand2 className="text-accent" size={28} />,
       title: 'Context-Aware Concierge',
-      description: 'AI that understands your trip — not just your question.',
+      description:
+        'Loads your full trip — itinerary, tasks, payments, places, and group — before every answer. Responses are grounded in your actual trip data, not generic travel advice. Live web search included for real-time hours, prices, and availability.',
     },
     {
       icon: <DollarSign className="text-primary" size={28} />,
@@ -18,9 +19,10 @@ export const AiFeaturesSection = () => {
       description: 'Keep track of who owes what, without the spreadsheets',
     },
     {
-      icon: <BarChart3 className="text-accent" size={28} />,
-      title: 'Decision Lock-In',
-      description: 'Persistent Poll View: No more scrolling to see who voted on what 3 weeks ago.',
+      icon: <Bot className="text-accent" size={28} />,
+      title: 'Chravel Agent',
+      description:
+        'Your AI assistant takes action — add places to BaseCamps, save links, create polls, update calendars, assign tasks, plus pull flights, hotels, and activity suggestions.',
     },
   ];
 
@@ -85,8 +87,8 @@ export const AiFeaturesSection = () => {
           className="text-lg sm:text-xl md:text-2xl text-white/90 font-medium max-w-3xl mx-auto"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
         >
-          It reads your itinerary, places, tasks, and group decisions—so answers are actually
-          useful.
+          Full trip context. Live web search. Payment awareness. Group decisions. Every answer is
+          grounded in your actual trip — not just your question.
         </p>
       </motion.div>
 
@@ -96,7 +98,7 @@ export const AiFeaturesSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 tablet:gap-8 items-stretch">
           {/* Left: AI Concierge Screenshot */}
           <motion.div
-            className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300 min-h-[300px] lg:min-h-[380px]"
+            className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-primary/30 transition-all duration-300 min-h-[300px] lg:min-h-[380px] bg-card flex items-center"
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -105,7 +107,7 @@ export const AiFeaturesSection = () => {
             <img
               src={aiConcierge}
               alt="AI Concierge providing personalized recommendations"
-              className="w-full h-full object-cover object-top"
+              className="w-full h-auto object-contain"
             />
           </motion.div>
 
@@ -145,7 +147,7 @@ export const AiFeaturesSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 tablet:gap-8 items-stretch">
           {/* Left: Places Screenshot */}
           <motion.div
-            className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-accent/30 transition-all duration-300 min-h-[300px] lg:min-h-[380px]"
+            className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-accent/30 transition-all duration-300 min-h-[300px] lg:min-h-[380px] bg-card flex items-center"
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -153,8 +155,8 @@ export const AiFeaturesSection = () => {
           >
             <img
               src={placesMaps}
-              alt="Interactive maps and places discovery"
-              className="w-full h-full object-cover object-top"
+              alt="BaseCamps and Places exploration with maps"
+              className="w-full h-auto object-contain"
             />
           </motion.div>
 

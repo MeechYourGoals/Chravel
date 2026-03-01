@@ -78,8 +78,6 @@ export interface MessageBubbleProps {
   currentUserId: string;
   // 🆕 Inline Reply Support
   replyTo?: { id: string; text: string; sender: string };
-  // 🆕 Pinning Support
-  isPinned?: boolean;
 }
 
 export const MessageBubble = memo(
@@ -114,7 +112,6 @@ export const MessageBubble = memo(
     readStatuses,
     currentUserId,
     replyTo,
-    isPinned,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -380,7 +377,6 @@ export const MessageBubble = memo(
                 messageType={messageType}
                 isOwnMessage={isOwnMessage}
                 isDeleted={isDeleted}
-                isPinned={isPinned}
                 onEdit={onEdit}
                 onDelete={onDelete}
               />
@@ -389,8 +385,8 @@ export const MessageBubble = memo(
               className={cn(
                 'px-3 py-2 md:px-4 md:py-2.5 rounded-2xl break-words',
                 'text-sm md:text-base',
-                isOwnMessage ? 'bg-chat-own text-chat-own-foreground' : 'bg-muted/80 text-white',
-                isBroadcast && 'border-2 border-red-500/50 bg-gray-800',
+                isOwnMessage && !isBroadcast ? 'bg-chat-own text-chat-own-foreground' : !isBroadcast ? 'bg-muted/80 text-white' : '',
+                isBroadcast && 'bg-orange-500 text-white',
                 isPayment && 'border-2 border-green-500/50',
                 status === 'failed' && 'opacity-70 border-2 border-destructive/50',
                 status === 'sending' && 'opacity-80',

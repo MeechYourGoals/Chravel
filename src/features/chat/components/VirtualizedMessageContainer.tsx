@@ -264,14 +264,14 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
       </div>
 
       {showNewMessagesBadge && (
-        <div className="absolute bottom-20 right-4 z-10 md:bottom-24">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
           <button
             onClick={scrollToBottom}
-            className="bg-primary/90 text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary transition-all active:scale-95 flex items-center justify-center backdrop-blur-sm"
+            className="bg-muted/50 text-muted-foreground px-4 py-1.5 rounded-full text-xs flex items-center justify-center gap-1.5 hover:bg-muted/70 transition-all active:scale-95"
             aria-label="Scroll to bottom"
           >
-            <ArrowDown className="w-5 h-5" />
-            {/* Optional: Add a badge count if we had tracked unread count since scroll */}
+            <ArrowDown className="w-3.5 h-3.5" />
+            New messages
           </button>
         </div>
       )}

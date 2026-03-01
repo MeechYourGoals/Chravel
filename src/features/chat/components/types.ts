@@ -3,6 +3,12 @@ export interface ChatMessage {
   type: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  /**
+   * True while this message is being streamed live from a Gemini Live voice session.
+   * Used by MessageRenderer to display a pulsing "Speaking…" indicator below the bubble.
+   * Cleared when the turn finalises and the completed message replaces this transient one.
+   */
+  isStreamingVoice?: boolean;
 }
 
 export interface GeminiAPIConfig {

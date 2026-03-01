@@ -1,0 +1,177 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - main [ref=e4]:
+    - generic [ref=e6]:
+      - link "Go to Dashboard" [ref=e7] [cursor=pointer]:
+        - /url: /
+        - button "Go to Dashboard" [ref=e8]:
+          - img
+          - text: Go to Dashboard
+      - generic [ref=e9]:
+        - heading "Privacy Policy" [level=1] [ref=e10]
+        - paragraph [ref=e11]:
+          - strong [ref=e12]: "Last Updated:"
+          - text: March 1, 2026
+        - generic [ref=e13]:
+          - heading "1. Introduction" [level=2] [ref=e14]
+          - paragraph [ref=e15]: Welcome to Chravel ("we," "our," or "us"). We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, disclose, and safeguard your information when you use our platform.
+        - generic [ref=e16]:
+          - heading "2. Information We Collect" [level=2] [ref=e17]
+          - heading "2.1 Information You Provide" [level=3] [ref=e18]
+          - list [ref=e19]:
+            - listitem [ref=e20]: Account information (name, email, phone number)
+            - listitem [ref=e21]: Profile information (avatar, bio, timezone)
+            - listitem [ref=e22]: Trip information (destinations, dates, itineraries)
+            - listitem [ref=e23]: Messages, photos, and media you share
+            - listitem [ref=e24]: Payment information processed securely through our payment partners
+          - heading "2.2 Automatically Collected Information" [level=3] [ref=e25]
+          - list [ref=e26]:
+            - listitem [ref=e27]: Device information (type, operating system, browser)
+            - listitem [ref=e28]: Usage data (features used, time spent)
+            - listitem [ref=e29]: Location data (with your permission)
+            - listitem [ref=e30]: Cookies and similar tracking technologies
+        - generic [ref=e31]:
+          - heading "3. How We Use Your Information" [level=2] [ref=e32]
+          - list [ref=e33]:
+            - listitem [ref=e34]: Provide, maintain, and improve our services
+            - listitem [ref=e35]: Process transactions and send related information
+            - listitem [ref=e36]: Send administrative messages and updates
+            - listitem [ref=e37]: Respond to your comments and questions
+            - listitem [ref=e38]: Provide customer support
+            - listitem [ref=e39]: Personalize your experience with AI-powered features (see Section 3A below for details)
+            - listitem [ref=e40]: Monitor and analyze usage patterns
+            - listitem [ref=e41]: Detect, prevent, and address technical issues and fraud
+        - generic [ref=e42]:
+          - heading "3A. AI Features and Data Usage" [level=2] [ref=e43]
+          - heading "AI-Powered Features" [level=3] [ref=e44]
+          - paragraph [ref=e45]: Chravel uses artificial intelligence to power several features in the app, including the AI Concierge (text and voice), smart search, document and receipt parsing, trip planning suggestions, and agenda extraction. These features are powered by Google's Gemini AI models, accessed through Google's Generative Language API.
+          - heading "Data Sent to AI Services" [level=3] [ref=e46]
+          - paragraph [ref=e47]: "When you use AI-powered features, the following categories of data may be sent to Google's Gemini API for processing:"
+          - list [ref=e48]:
+            - listitem [ref=e49]:
+              - strong [ref=e50]: "User-provided content:"
+              - text: Text prompts, search queries, and voice input you provide to the AI Concierge.
+            - listitem [ref=e51]:
+              - strong [ref=e52]: "Trip context:"
+              - text: Information from your trip, including calendar events, task lists, group messages, polls, saved places, shared links, and payment summaries. This context helps the AI provide relevant, trip-specific responses.
+            - listitem [ref=e53]:
+              - strong [ref=e54]: "Uploaded files:"
+              - text: Documents, images, and receipts you submit for AI-powered parsing or attach to concierge conversations.
+            - listitem [ref=e55]:
+              - strong [ref=e56]: "Voice audio:"
+              - text: When using the voice concierge feature, real-time audio from your microphone is streamed directly to Google's Gemini Live API for speech-to-text and response generation.
+            - listitem [ref=e57]:
+              - strong [ref=e58]: "User preferences:"
+              - text: If you are a paid subscriber, your saved preferences (such as dietary restrictions, travel style, and budget level) may be included to personalize AI recommendations.
+          - paragraph [ref=e59]: We do not send your email address, password, user ID, device identifiers, IP address, or payment card information to AI services. We apply automated redaction to remove email addresses and phone numbers from text before it is sent to AI models.
+          - heading "Purpose of AI Processing" [level=3] [ref=e60]
+          - paragraph [ref=e61]: "Data is sent to AI services solely to provide the requested functionality, including: generating conversational responses, answering questions about your trip, searching trip data, parsing documents and receipts, extracting event schedules from web pages, and providing personalized travel recommendations."
+          - heading "Third-Party AI Provider" [level=3] [ref=e62]
+          - paragraph [ref=e63]:
+            - text: AI features are powered by Google's Gemini models, accessed via the Google Generative Language API. Data shared with Google is processed in accordance with
+            - link "Google's Gemini API Terms of Service" [ref=e64] [cursor=pointer]:
+              - /url: https://ai.google.dev/gemini-api/terms
+            - text: and
+            - link "Google's Privacy Policy" [ref=e65] [cursor=pointer]:
+              - /url: https://policies.google.com/privacy
+            - text: . Under Google's API terms, data submitted through the API is not used by Google to train its foundation models for other customers.
+          - heading "Storage of AI Interactions" [level=3] [ref=e66]
+          - paragraph [ref=e67]: We store your AI concierge queries and the AI-generated responses in our database to provide chat history, enable search across past conversations, and track usage for subscription metering. This data is associated with your user account and the relevant trip. Voice audio is processed in real time and is not stored on our servers.
+          - paragraph [ref=e68]: Stored AI interaction data is retained for as long as your account is active or until you delete it. We may use aggregated, de-identified AI usage data (such as query counts and response times) for service improvement and analytics. We do not perform human review of individual AI conversations except when required for abuse investigation, legal compliance, or at your request for customer support.
+          - heading "User Choices and Controls" [level=3] [ref=e69]
+          - list [ref=e70]:
+            - listitem [ref=e71]:
+              - strong [ref=e72]: "Delete individual messages:"
+              - text: You can delete specific AI concierge messages and responses from within the chat interface at any time.
+            - listitem [ref=e73]:
+              - strong [ref=e74]: "Delete all AI data:"
+              - text: When you delete your account, all stored AI queries and responses are permanently removed within 30 days.
+            - listitem [ref=e75]:
+              - strong [ref=e76]: "Export your data:"
+              - text: You can request a copy of your AI interaction history through the data export feature in your account settings.
+            - listitem [ref=e77]:
+              - strong [ref=e78]: "Limit AI context:"
+              - text: AI features use trip data you have already shared with your trip group. You can control what information the AI accesses by managing your trip content.
+          - paragraph [ref=e79]: AI features are an integral part of the Chravel experience. While you can choose not to use the AI Concierge or voice features, some AI processing (such as document parsing and smart search) is part of core functionality and cannot be individually disabled.
+        - generic [ref=e80]:
+          - heading "4. Information Sharing and Disclosure" [level=2] [ref=e81]
+          - paragraph [ref=e82]: "We may share your information in the following circumstances:"
+          - list [ref=e83]:
+            - listitem [ref=e84]:
+              - strong [ref=e85]: "With Trip Members:"
+              - text: Information you share within a trip is visible to other trip members
+            - listitem [ref=e86]:
+              - strong [ref=e87]: "With Service Providers:"
+              - text: Third-party vendors who assist in operating our platform
+            - listitem [ref=e88]:
+              - strong [ref=e89]: "With AI Service Providers:"
+              - text: Certain data is shared with Google's Gemini AI services to power AI features as described in Section 3A. Google processes this data under its API terms and does not use it to train models for other customers.
+            - listitem [ref=e90]:
+              - strong [ref=e91]: "For Legal Reasons:"
+              - text: When required by law or to protect our rights
+            - listitem [ref=e92]:
+              - strong [ref=e93]: "Business Transfers:"
+              - text: In connection with a merger, acquisition, or sale of assets
+            - listitem [ref=e94]:
+              - strong [ref=e95]: "With Your Consent:"
+              - text: When you explicitly agree to share information
+          - paragraph [ref=e96]:
+            - strong [ref=e97]: We never sell your personal information to third parties.
+        - generic [ref=e98]:
+          - heading "5. Data Security" [level=2] [ref=e99]
+          - paragraph [ref=e100]: "We implement appropriate technical and organizational measures to protect your personal information, including:"
+          - list [ref=e101]:
+            - listitem [ref=e102]: Encryption of data in transit and at rest
+            - listitem [ref=e103]: Regular security assessments
+            - listitem [ref=e104]: Access controls and authentication
+            - listitem [ref=e105]: Secure data centers with physical security
+        - generic [ref=e106]:
+          - heading "6. Your Rights and Choices" [level=2] [ref=e107]
+          - paragraph [ref=e108]: "You have the following rights regarding your personal information:"
+          - list [ref=e109]:
+            - listitem [ref=e110]:
+              - strong [ref=e111]: "Access:"
+              - text: Request a copy of your personal data
+            - listitem [ref=e112]:
+              - strong [ref=e113]: "Correction:"
+              - text: Update or correct inaccurate information
+            - listitem [ref=e114]:
+              - strong [ref=e115]: "Deletion:"
+              - text: Request deletion of your personal data
+            - listitem [ref=e116]:
+              - strong [ref=e117]: "Export:"
+              - text: Receive your data in a portable format
+            - listitem [ref=e118]:
+              - strong [ref=e119]: "Opt-out:"
+              - text: Unsubscribe from marketing communications
+            - listitem [ref=e120]:
+              - strong [ref=e121]: "Withdraw Consent:"
+              - text: Revoke previously given consent
+        - generic [ref=e122]:
+          - heading "7. Data Retention" [level=2] [ref=e123]
+          - paragraph [ref=e124]: We retain your information for as long as necessary to provide our services and comply with legal obligations. When you delete your account, we will delete or anonymize your personal information within 30 days, except where we are required to retain it for legal purposes.
+        - generic [ref=e125]:
+          - heading "8. Children's Privacy" [level=2] [ref=e126]
+          - paragraph [ref=e127]: Our services are not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately.
+        - generic [ref=e128]:
+          - heading "9. International Data Transfers" [level=2] [ref=e129]
+          - paragraph [ref=e130]: Your information may be transferred to and processed in countries other than your country of residence. We ensure appropriate safeguards are in place to protect your data in accordance with this privacy policy.
+        - generic [ref=e131]:
+          - heading "10. Changes to This Policy" [level=2] [ref=e132]
+          - paragraph [ref=e133]: We may update this privacy policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the "Last Updated" date.
+        - generic [ref=e134]:
+          - heading "11. Contact Us" [level=2] [ref=e135]
+          - paragraph [ref=e136]: "If you have any questions about this privacy policy or our practices, please contact us at:"
+          - list [ref=e137]:
+            - listitem [ref=e138]:
+              - strong [ref=e139]: "Email:"
+              - text: support@chravelapp.com
+            - listitem [ref=e140]:
+              - strong [ref=e141]: "Mail:"
+              - text: Chravel Privacy Team, 130 N Broadway STE 32415, Los Angeles, CA 90012
+```

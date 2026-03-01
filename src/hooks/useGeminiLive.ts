@@ -2,18 +2,16 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AudioPlaybackQueue } from '@/lib/geminiLive/audioPlayback';
 import { startAudioCapture, type AudioCaptureHandle } from '@/lib/geminiLive/audioCapture';
-import { VOICE_LIVE_ENABLED, VOICE_DIAGNOSTICS_ENABLED } from '@/config/voiceFeatureFlags';
+import { VOICE_DIAGNOSTICS_ENABLED } from '@/config/voiceFeatureFlags';
 import {
   recordFailure,
+  recordSuccess as recordCircuitBreakerSuccess,
   isOpen as isCircuitBreakerOpen,
   reset as resetCircuitBreaker,
 } from '@/voice/circuitBreaker';
-import { createWebSocketTransport } from '@/voice/transport/createTransport';
 import {
   logAudioContextParams,
   checkCaptureSampleRate,
-  assertChunkFraming,
-  ensureAudioContextResumed,
   AUDIO_CONTRACT,
 } from '@/voice/audioContract';
 
@@ -71,7 +69,13 @@ interface UseGeminiLiveReturn {
   assistantTranscript: string;
   diagnostics: VoiceDiagnostics;
   startSession: () => Promise<void>;
-  endSession: () => void;
+  /**
+   * End the voice session and release all audio resources.
+   * Returns a Promise that resolves once the AudioContext is fully closed
+   * and MediaStream tracks are stopped, so callers can safely await before
+   * starting a new audio session (e.g. switching to dictation mode).
+   */
+  endSession: () => Promise<void>;
   interruptPlayback: () => void;
   sendImage: (mimeType: string, base64Data: string) => void;
   isSupported: boolean;
@@ -82,11 +86,13 @@ interface UseGeminiLiveReturn {
 }
 
 const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
-const SESSION_TIMEOUT_MS = 30_000;
-const WEBSOCKET_SETUP_TIMEOUT_MS = 15_000;
+const SESSION_TIMEOUT_MS = 60_000; // 60s — generous buffer for edge function cold starts + context build + token
+const WEBSOCKET_SETUP_TIMEOUT_MS = 25_000; // 25s — buffer for Gemini Live setup delay
 const THINKING_DELAY_MS = 1_500;
 const BARGE_IN_RMS_THRESHOLD = 0.035;
 const EPHEMERAL_TOKEN_WARN_MS = 25 * 60 * 1000; // Warn 5 min before 30-min default expiry
+const WS_KEEPALIVE_INTERVAL_MS = 15_000; // 15s keepalive ping to detect dead connections
+const AUTO_RECONNECT_DELAY_MS = 2_000; // 2s backoff before auto-reconnect attempt
 
 /** Structured debug logging — enabled in dev mode or when VITE_VOICE_DEBUG=true */
 const VOICE_DEBUG =
@@ -242,6 +248,12 @@ export function useGeminiLive({
   const turnStartedAtRef = useRef<number | null>(null);
   const cancelStartedAtRef = useRef<number | null>(null);
   const sessionExpiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keepaliveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Tracks whether we should auto-reconnect on next failure (one attempt per session start).
+  const autoReconnectAllowedRef = useRef(true);
+  const autoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards against re-entrant cleanup calls (e.g. endSession + ws.onclose both calling cleanup).
+  const isCleaningUpRef = useRef(false);
 
   const userTranscriptAccRef = useRef('');
   const assistantTranscriptAccRef = useRef('');
@@ -313,30 +325,54 @@ export function useGeminiLive({
     });
   }, [patchMetrics]);
 
-  const cleanup = useCallback(() => {
+  const cleanup = useCallback(async () => {
+    // Idempotency guard — prevents double-cleanup from concurrent calls
+    // (e.g. endSession() and ws.onclose both triggering cleanup at the same time).
+    if (isCleaningUpRef.current) return;
+    isCleaningUpRef.current = true;
+
     isStartingRef.current = false;
     clearThinkingTimer();
     if (sessionExpiryTimerRef.current) {
       clearTimeout(sessionExpiryTimerRef.current);
       sessionExpiryTimerRef.current = null;
     }
+    if (keepaliveIntervalRef.current) {
+      clearInterval(keepaliveIntervalRef.current);
+      keepaliveIntervalRef.current = null;
+    }
+    if (autoReconnectTimerRef.current) {
+      clearTimeout(autoReconnectTimerRef.current);
+      autoReconnectTimerRef.current = null;
+    }
 
+    // Stop audio capture first — prevents onaudioprocess from firing during teardown.
     captureHandleRef.current?.stop();
     captureHandleRef.current = null;
 
+    // Stop all MediaStream tracks synchronously so the mic indicator goes away immediately.
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
 
+    // Destroy playback queue (stops & disconnects all buffer sources).
     playbackQueueRef.current?.destroy();
     playbackQueueRef.current = null;
 
-    if (audioCtxRef.current?.state !== 'closed') {
-      audioCtxRef.current?.close().catch(() => {});
-    }
+    // Close AudioContext — this is async. We capture the context and null the ref first
+    // so new sessions can create a fresh context while this one finishes closing.
+    const ctxToClose = audioCtxRef.current;
     audioCtxRef.current = null;
+    if (ctxToClose && ctxToClose.state !== 'closed') {
+      try {
+        await ctxToClose.close();
+      } catch {
+        // Non-fatal — browser may have already closed it.
+      }
+    }
 
+    // Close WebSocket — null handlers first to prevent re-entrant onclose → cleanup.
     if (wsRef.current) {
       wsRef.current.onopen = null;
       wsRef.current.onmessage = null;
@@ -357,9 +393,16 @@ export function useGeminiLive({
       audioSampleRate: null,
       micRms: 0,
     });
+
+    isCleaningUpRef.current = false;
   }, [clearThinkingTimer, patchDiagnostics]);
 
-  useEffect(() => () => cleanup(), [cleanup]);
+  useEffect(
+    () => () => {
+      void cleanup();
+    },
+    [cleanup],
+  );
 
   const prevTripIdRef = useRef(tripId);
   useEffect(() => {
@@ -369,7 +412,7 @@ export function useGeminiLive({
       if (pendingUser || pendingAssistant) {
         onTurnCompleteRef.current?.(pendingUser, pendingAssistant);
       }
-      cleanup();
+      void cleanup();
       transition('idle', 'trip_changed');
       setError(null);
       setUserTranscript('');
@@ -457,11 +500,10 @@ export function useGeminiLive({
     );
   }, []);
 
-  const startSession = useCallback(async () => {
-    if (!VOICE_LIVE_ENABLED) {
-      return; // Feature flag: no voice init
-    }
+  // Ref always pointing to latest startSession (for safe self-referential auto-reconnect).
+  const startSessionRef = useRef<() => Promise<void>>(async () => {});
 
+  const startSession = useCallback(async () => {
     if (isCircuitBreakerOpen()) {
       setCircuitBreakerOpen(true);
       setError('Voice is temporarily unavailable. Tap "Try voice again" to retry.');
@@ -492,7 +534,9 @@ export function useGeminiLive({
       setError(null);
       resetTurnAccumulators();
       resetMetricsForNewTurn();
-      voiceLog('session:start', { tripId, voice });
+      const sessionId = uniqueId('vs');
+      const sessionStartedAt = performance.now();
+      voiceLog('session:start', { sessionId, tripId, voice });
 
       if (!SafeAudioContext) {
         throw new Error('Audio is not supported in this browser.');
@@ -570,11 +614,14 @@ export function useGeminiLive({
         throw new Error(errMsg);
       }
       voiceLog('session:tokenReceived', {
+        sessionId,
         hasToken: true,
         model: sessionData?.model,
         voice: sessionData?.voice,
         hasWebsocketUrl: !!sessionData?.websocketUrl,
+        _rid: (sessionData as { _rid?: string })?._rid,
       });
+      voiceLog('timing:token', { ms: Math.round(performance.now() - sessionStartedAt) });
 
       let stream: MediaStream;
       try {
@@ -609,6 +656,7 @@ export function useGeminiLive({
           settings: t.getSettings(),
         })),
       });
+      voiceLog('timing:mic', { ms: Math.round(performance.now() - sessionStartedAt) });
 
       const track = stream.getAudioTracks()[0];
       patchDiagnostics({ micDeviceLabel: track?.label || null });
@@ -655,6 +703,7 @@ export function useGeminiLive({
 
       const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
       voiceLog('ws:connecting', {
+        sessionId,
         endpoint: websocketUrl.split('/').pop(),
         audioContextState: audioCtxRef.current?.state,
         audioContextSampleRate: audioCtxRef.current?.sampleRate,
@@ -674,14 +723,31 @@ export function useGeminiLive({
         patchDiagnostics({ connectionStatus: 'open' });
         debugLog('ws_open', {});
         voiceLog('ws:opened', { readyState: ws.readyState });
+        voiceLog('timing:wsOpen', { ms: Math.round(performance.now() - sessionStartedAt) });
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
             const msg = 'Voice connection timed out. Please try again.';
             recordVoiceFailure(msg);
+
+            // Auto-reconnect once on setup timeout (covers slow Gemini setup)
+            if (autoReconnectAllowedRef.current && !isCircuitBreakerOpen()) {
+              autoReconnectAllowedRef.current = false;
+              voiceLog('auto_reconnect:setup_timeout', { delayMs: AUTO_RECONNECT_DELAY_MS });
+              transition('requesting_mic', 'auto_reconnect_pending');
+              setError(null);
+              void cleanup().then(() => {
+                autoReconnectTimerRef.current = setTimeout(() => {
+                  autoReconnectTimerRef.current = null;
+                  void startSessionRef.current();
+                }, AUTO_RECONNECT_DELAY_MS);
+              });
+              return;
+            }
+
             onErrorRef.current?.(msg);
             setError(msg);
             transition('error', 'setup_timeout');
-            cleanup();
+            void cleanup();
           }
         }, WEBSOCKET_SETUP_TIMEOUT_MS);
       };
@@ -706,7 +772,7 @@ export function useGeminiLive({
             setError(userMsg);
             patchDiagnostics({ lastError: userMsg, connectionStatus: 'error' });
             transition('error', 'server_error');
-            cleanup();
+            void cleanup();
             return;
           }
 
@@ -717,8 +783,12 @@ export function useGeminiLive({
 
           if (setupComplete) {
             voiceLog('ws:setupComplete', {
+              sessionId,
               audioContextState: audioCtxRef.current?.state,
               hasMediaStream: !!mediaStreamRef.current,
+            });
+            voiceLog('timing:setupComplete', {
+              ms: Math.round(performance.now() - sessionStartedAt),
             });
             clearSetupTimeout();
             isStartingRef.current = false;
@@ -728,46 +798,88 @@ export function useGeminiLive({
               onErrorRef.current?.('Voice session expiring soon. Please restart to continue.');
               patchDiagnostics({ lastError: 'Session nearing expiry' });
             }, EPHEMERAL_TOKEN_WARN_MS);
+
+            // Start keepalive ping — sends an empty audio chunk periodically to keep
+            // the WebSocket alive and detect dead connections before the browser's
+            // built-in timeout (often 60s+). If the WS is no longer open, the
+            // interval self-clears.
+            keepaliveIntervalRef.current = setInterval(() => {
+              if (ws.readyState !== WebSocket.OPEN) {
+                if (keepaliveIntervalRef.current) {
+                  clearInterval(keepaliveIntervalRef.current);
+                  keepaliveIntervalRef.current = null;
+                }
+                return;
+              }
+              // Gemini Live treats empty realtime_input as a no-op keepalive
+              ws.send(JSON.stringify({ realtimeInput: { mediaChunks: [] } }));
+              voiceLog('keepalive:sent', {});
+            }, WS_KEEPALIVE_INTERVAL_MS);
+
             transition('ready', 'setup_complete');
 
             if (audioCtxRef.current && mediaStreamRef.current) {
-              captureHandleRef.current = startAudioCapture(
-                mediaStreamRef.current,
-                audioCtxRef.current,
-                (base64PCM: string) => {
-                  if (ws.readyState !== WebSocket.OPEN) return;
-                  if (
-                    turnStartedAtRef.current &&
-                    diagnosticsRef.current.metrics.firstAudioChunkSentMs === null
-                  ) {
-                    patchMetrics({
-                      firstAudioChunkSentMs: performance.now() - turnStartedAtRef.current,
-                    });
-                  }
-                  if (stateRef.current === 'ready' || stateRef.current === 'listening') {
-                    transition('sending', 'audio_chunk_sent');
-                  }
-                  ws.send(
-                    JSON.stringify({
-                      realtimeInput: {
-                        mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: base64PCM }],
-                      },
-                    }),
+              // startAudioCapture is async — it prefers AudioWorklet (requires addModule),
+              // falling back to ScriptProcessor. Use an IIFE so the rest of the message
+              // handler stays synchronous. Transition to 'listening' happens inside
+              // the async block so it fires only after capture is ready.
+              void (async () => {
+                try {
+                  captureHandleRef.current = await startAudioCapture(
+                    mediaStreamRef.current!,
+                    audioCtxRef.current!,
+                    (base64PCM: string) => {
+                      if (ws.readyState !== WebSocket.OPEN) return;
+                      if (
+                        turnStartedAtRef.current &&
+                        diagnosticsRef.current.metrics.firstAudioChunkSentMs === null
+                      ) {
+                        patchMetrics({
+                          firstAudioChunkSentMs: performance.now() - turnStartedAtRef.current,
+                        });
+                      }
+                      if (stateRef.current === 'ready' || stateRef.current === 'listening') {
+                        transition('sending', 'audio_chunk_sent');
+                      }
+                      ws.send(
+                        JSON.stringify({
+                          realtimeInput: {
+                            mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: base64PCM }],
+                          },
+                        }),
+                      );
+                    },
+                    rms => {
+                      patchDiagnostics({ micRms: rms });
+                      if (rms > BARGE_IN_RMS_THRESHOLD && modelRespondingRef.current) {
+                        flushModelOutput();
+                        sendCancelSignal();
+                        transition('interrupted', 'barge_in_detected');
+                        transition('listening', 'resume_after_interrupt');
+                      }
+                    },
+                    { diagnosticsEnabled: VOICE_DIAGNOSTICS_ENABLED },
                   );
-                },
-                rms => {
-                  patchDiagnostics({ micRms: rms });
-                  if (rms > BARGE_IN_RMS_THRESHOLD && modelRespondingRef.current) {
-                    flushModelOutput();
-                    sendCancelSignal();
-                    transition('interrupted', 'barge_in_detected');
-                    transition('listening', 'resume_after_interrupt');
-                  }
-                },
-                { diagnosticsEnabled: VOICE_DIAGNOSTICS_ENABLED },
-              );
+                  // Successful capture → close the circuit breaker if it was in half-open state
+                  recordCircuitBreakerSuccess();
+                  // Reset auto-reconnect allowance now that session is fully working
+                  autoReconnectAllowedRef.current = true;
+                  transition('listening', 'capture_started');
+                } catch (captureErr) {
+                  const msg =
+                    captureErr instanceof Error
+                      ? captureErr.message
+                      : 'Failed to start audio capture';
+                  recordVoiceFailure(msg);
+                  onErrorRef.current?.(msg);
+                  setError(msg);
+                  transition('error', 'capture_failed');
+                  void cleanup();
+                }
+              })();
+            } else {
+              transition('listening', 'capture_started');
             }
-            transition('listening', 'capture_started');
             return;
           }
 
@@ -891,7 +1003,7 @@ export function useGeminiLive({
       };
 
       ws.onerror = ev => {
-        voiceLog('ws:error', { type: (ev as ErrorEvent).message ?? 'unknown' });
+        voiceLog('ws:error', { sessionId, type: (ev as ErrorEvent).message ?? 'unknown' });
         clearSetupTimeout();
         patchDiagnostics({ connectionStatus: 'error' });
       };
@@ -914,6 +1026,24 @@ export function useGeminiLive({
 
         if (msg) {
           recordVoiceFailure(msg);
+
+          // Auto-reconnect once on first failure (not on clean close or circuit breaker open).
+          // This transparently retries after edge function cold starts / transient network drops.
+          if (autoReconnectAllowedRef.current && !isCircuitBreakerOpen()) {
+            autoReconnectAllowedRef.current = false;
+            voiceLog('auto_reconnect:scheduling', { delayMs: AUTO_RECONNECT_DELAY_MS });
+            transition('requesting_mic', 'auto_reconnect_pending');
+            setError(null);
+            void cleanup().then(() => {
+              autoReconnectTimerRef.current = setTimeout(() => {
+                autoReconnectTimerRef.current = null;
+                voiceLog('auto_reconnect:starting', {});
+                void startSessionRef.current();
+              }, AUTO_RECONNECT_DELAY_MS);
+            });
+            return;
+          }
+
           onErrorRef.current?.(msg);
           setError(msg);
           patchDiagnostics({ lastError: msg });
@@ -921,16 +1051,36 @@ export function useGeminiLive({
         } else {
           transition('idle', 'ws_closed_cleanly');
         }
-        cleanup();
+        void cleanup();
       };
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to start voice session.';
       recordVoiceFailure(errMsg);
+
+      // Auto-reconnect once on first failure (covers cold start timeouts).
+      if (autoReconnectAllowedRef.current && !isCircuitBreakerOpen()) {
+        autoReconnectAllowedRef.current = false;
+        voiceLog('auto_reconnect:scheduling_from_catch', {
+          errMsg,
+          delayMs: AUTO_RECONNECT_DELAY_MS,
+        });
+        transition('requesting_mic', 'auto_reconnect_pending');
+        setError(null);
+        void cleanup().then(() => {
+          autoReconnectTimerRef.current = setTimeout(() => {
+            autoReconnectTimerRef.current = null;
+            voiceLog('auto_reconnect:starting', {});
+            void startSessionRef.current();
+          }, AUTO_RECONNECT_DELAY_MS);
+        });
+        return;
+      }
+
       onErrorRef.current?.(errMsg);
       setError(errMsg);
       patchDiagnostics({ lastError: errMsg, connectionStatus: 'error' });
       transition('error', 'start_failed');
-      cleanup();
+      void cleanup();
     }
   }, [
     isSupported,
@@ -950,6 +1100,11 @@ export function useGeminiLive({
     recordVoiceFailure,
   ]);
 
+  // Keep ref in sync so auto-reconnect setTimeout always calls the latest version
+  useEffect(() => {
+    startSessionRef.current = startSession;
+  }, [startSession]);
+
   const interruptPlayback = useCallback(() => {
     flushModelOutput();
     sendCancelSignal();
@@ -964,7 +1119,7 @@ export function useGeminiLive({
     transition('listening', 'post_manual_interrupt');
   }, [flushModelOutput, resetTurnAccumulators, sendCancelSignal, transition]);
 
-  const endSession = useCallback(() => {
+  const endSession = useCallback(async () => {
     const pendingUser = userTranscriptAccRef.current.trim();
     const pendingAssistant = assistantTranscriptAccRef.current.trim();
     if (pendingUser || pendingAssistant) onTurnCompleteRef.current?.(pendingUser, pendingAssistant);
@@ -972,7 +1127,10 @@ export function useGeminiLive({
     resetTurnAccumulators();
     setError(null);
     transition('idle', 'user_end_session');
-    cleanup();
+    // Await cleanup so callers (e.g. switching to dictation mode) can be confident
+    // the AudioContext is fully closed and MediaStream tracks are released before
+    // the next audio session starts. This prevents mic-in-use conflicts on iOS/Android.
+    await cleanup();
   }, [cleanup, resetTurnAccumulators, transition]);
 
   const handleResetCircuitBreaker = useCallback(() => {

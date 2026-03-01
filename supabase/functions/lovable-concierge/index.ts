@@ -459,6 +459,20 @@ async function streamGeminiToSSE(
     const toolPhaseStartMs = performance.now();
     const functionCallResults: any[] = [];
 
+    // Emit progress events for Smart Import tool calls
+    const hasSmartImport = state.functionCallParts.some(
+      (p: any) => p.functionCall?.name === 'emitSmartImportPreview',
+    );
+    if (hasSmartImport) {
+      controller.enqueue(
+        sseEvent({
+          type: 'smart_import_status',
+          status: 'extracting',
+          message: 'Extracting events from your document...',
+        }),
+      );
+    }
+
     // Parallelize independent function calls (e.g. multiple getPlaceDetails)
     const callTasks = state.functionCallParts.map(async part => {
       const fc = part.functionCall;
@@ -475,6 +489,17 @@ async function streamGeminiToSSE(
 
       console.log(`[Stream/FunctionCall] Executing: ${fc.name}`, parsedArgs);
       executedFunctions.push(fc.name);
+
+      // Emit checking_duplicates status for Smart Import
+      if (fc.name === 'emitSmartImportPreview') {
+        controller.enqueue(
+          sseEvent({
+            type: 'smart_import_status',
+            status: 'checking_duplicates',
+            message: 'Checking for duplicate events...',
+          }),
+        );
+      }
 
       let result: any;
       try {
@@ -506,6 +531,35 @@ async function streamGeminiToSSE(
       // Emit reservation drafts as a dedicated SSE event type
       if (r.name === 'emitReservationDraft' && r.response?.success && r.response?.draft) {
         controller.enqueue(sseEvent({ type: 'reservation_draft', draft: r.response.draft }));
+      } else if (
+        r.name === 'emitSmartImportPreview' &&
+        r.response?.success &&
+        r.response?.previewEvents
+      ) {
+        // Emit ready status before preview
+        controller.enqueue(
+          sseEvent({
+            type: 'smart_import_status',
+            status: 'ready',
+            message: `Found ${r.response.totalEvents} event(s)`,
+          }),
+        );
+
+        // Detect first lodging event name for basecamp prompt
+        const firstLodging = r.response.previewEvents.find(
+          (e: { category: string }) => e.category === 'lodging',
+        );
+
+        controller.enqueue(
+          sseEvent({
+            type: 'smart_import_preview',
+            previewEvents: r.response.previewEvents,
+            tripId: r.response.tripId,
+            totalEvents: r.response.totalEvents,
+            duplicateCount: r.response.duplicateCount,
+            lodgingName: firstLodging?.title || undefined,
+          }),
+        );
       } else {
         controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
       }
@@ -1447,6 +1501,55 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         },
       },
       {
+        name: 'emitSmartImportPreview',
+        description:
+          'Extract calendar events from attached images/screenshots/PDFs (hotel reservations, boarding passes, flight confirmations, itineraries) and show a preview card for the user to confirm before adding to calendar. Call this when user attaches a travel document and says "add to calendar", "import this", "save this to the trip", or similar. YOU must analyze the attached image and extract the event details yourself, then pass them as the events array.',
+        parameters: {
+          type: 'object',
+          properties: {
+            events: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  title: {
+                    type: 'string',
+                    description:
+                      'Event title (e.g. "Flight AA1234 LAX→JFK", "Hilton Garden Inn Check-in")',
+                  },
+                  datetime: {
+                    type: 'string',
+                    description: 'Start date/time in ISO 8601 format',
+                  },
+                  endDatetime: {
+                    type: 'string',
+                    description: 'End date/time in ISO 8601 (checkout date, arrival time, etc.)',
+                  },
+                  location: {
+                    type: 'string',
+                    description: 'Location name or address',
+                  },
+                  category: {
+                    type: 'string',
+                    description:
+                      'Event category: dining, lodging, activity, transportation, entertainment, or other',
+                  },
+                  notes: {
+                    type: 'string',
+                    description:
+                      'Confirmation number, booking reference, seat number, or other details',
+                  },
+                },
+                required: ['title', 'datetime'],
+              },
+              description:
+                'Array of calendar events extracted from the attached document. Extract ALL events visible.',
+            },
+          },
+          required: ['events'],
+        },
+      },
+      {
         name: 'emitReservationDraft',
         description:
           'Create a reservation draft card for the user to confirm. Use ONLY when the user explicitly asks to book/reserve/make a reservation at a restaurant, venue, or experience. Do NOT auto-book. The draft will be shown as a card the user can confirm. Internally searches for the place and enriches with phone, website, and address.',
@@ -1482,7 +1585,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
     // This mirrors the voice session setup which always includes both tools.
     // Trip-related queries additionally get function declarations for trip actions
     // (addToCalendar, createTask, createPoll, searchPlaces, getPaymentSummary).
-    // gemini-3-flash-preview does NOT support combining functionDeclarations
+    // gemini-3-flash-preview / gemini-3.1-pro-preview do NOT support combining functionDeclarations
     // with googleSearch in the same tools array (400: "Tool use with function
     // calling is unsupported by the model"). Use one or the other.
     const geminiTools: any[] = [];
@@ -2248,6 +2351,7 @@ async function storeConversation(
       query_text: userMessage,
       response_text: aiResponse,
       source_count: metadata?.grounding_sources || 0,
+      metadata: metadata || null,
       created_at: new Date().toISOString(),
     });
   } catch (error) {

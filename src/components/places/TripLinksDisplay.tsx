@@ -52,6 +52,7 @@ import {
 import { calendarService } from '@/services/calendarService';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { tripKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 import type { AddToCalendarData } from '@/types/calendar';
@@ -175,7 +176,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
   // ⚡ TanStack Query — cached across remounts, prefetchable, stale-while-revalidate
   // Guard: finite loading — retry: 1 prevents infinite retry loops; 15s timeout prevents indefinite hangs
-  const FETCH_TIMEOUT_MS = 15000;
+  const FETCH_TIMEOUT_MS = 10000;
   const {
     data: links = [],
     isLoading: loading,
@@ -183,7 +184,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     error,
     refetch,
   } = useQuery({
-    queryKey: ['tripLinks', tripId, isDemoMode],
+    queryKey: tripKeys.tripLinks(tripId, isDemoMode),
     queryFn: async () => {
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(
@@ -196,8 +197,9 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     enabled: !!tripId,
-    retry: 1,
-    retryDelay: 2000,
+    retry: 2,
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 8000),
+    refetchOnWindowFocus: true,
   });
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -372,11 +374,14 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div
-          className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"
-          aria-label="Loading links"
-          data-testid="trip-links-loading"
-        />
+        <div className="flex flex-col items-center gap-3">
+          <div
+            className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"
+            aria-label="Loading links"
+            data-testid="trip-links-loading"
+          />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }

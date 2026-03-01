@@ -781,6 +781,75 @@ async function _executeImpl(
       };
     }
 
+    case 'emitSmartImportPreview': {
+      const { events: extractedEvents } = args;
+      if (!Array.isArray(extractedEvents) || extractedEvents.length === 0) {
+        return { error: 'No events provided for import preview' };
+      }
+
+      // Fetch existing trip events to detect duplicates
+      const { data: existingEvents } = await supabase
+        .from('trip_events')
+        .select('title, start_time, end_time')
+        .eq('trip_id', tripId);
+
+      const existingSet = new Set(
+        (existingEvents || []).map(
+          (e: { title: string; start_time: string }) =>
+            `${e.title.toLowerCase().trim()}|${new Date(e.start_time).toISOString()}`,
+        ),
+      );
+
+      const previewEvents = extractedEvents.map(
+        (evt: {
+          title: string;
+          datetime: string;
+          endDatetime?: string;
+          location?: string;
+          category?: string;
+          notes?: string;
+        }) => {
+          const startIso = new Date(evt.datetime).toISOString();
+          const endIso = evt.endDatetime
+            ? new Date(evt.endDatetime).toISOString()
+            : new Date(new Date(evt.datetime).getTime() + 60 * 60 * 1000).toISOString();
+
+          const dupeKey = `${evt.title.toLowerCase().trim()}|${startIso}`;
+          const isDuplicate = existingSet.has(dupeKey);
+
+          const validCategories = new Set([
+            'dining',
+            'lodging',
+            'activity',
+            'transportation',
+            'entertainment',
+            'other',
+          ]);
+          const category = validCategories.has(evt.category || '') ? evt.category : 'other';
+
+          return {
+            title: evt.title,
+            startTime: startIso,
+            endTime: endIso,
+            location: evt.location || null,
+            category,
+            notes: evt.notes || null,
+            isDuplicate,
+          };
+        },
+      );
+
+      return {
+        success: true,
+        previewEvents,
+        tripId,
+        totalEvents: previewEvents.length,
+        duplicateCount: previewEvents.filter((e: { isDuplicate: boolean }) => e.isDuplicate).length,
+        actionType: 'smart_import_preview',
+        message: `Found ${previewEvents.length} event(s) to import`,
+      };
+    }
+
     case 'emitReservationDraft': {
       const { placeQuery, startTimeISO, partySize, reservationName, notes } = args;
 

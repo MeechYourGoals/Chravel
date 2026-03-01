@@ -92,6 +92,34 @@ export interface StreamReservationDraftEvent {
   draft: ReservationDraft;
 }
 
+export interface SmartImportPreviewEvent {
+  title: string;
+  startTime: string;
+  endTime: string;
+  location: string | null;
+  category: string;
+  notes: string | null;
+  isDuplicate: boolean;
+}
+
+export interface StreamSmartImportPreviewEvent {
+  type: 'smart_import_preview';
+  previewEvents: SmartImportPreviewEvent[];
+  tripId: string;
+  totalEvents: number;
+  duplicateCount: number;
+  /** If any lodging events were extracted, include the first hotel name for basecamp prompt */
+  lodgingName?: string;
+}
+
+export type SmartImportStatus = 'parsing' | 'extracting' | 'checking_duplicates' | 'ready';
+
+export interface StreamSmartImportStatusEvent {
+  type: 'smart_import_status';
+  status: SmartImportStatus;
+  message: string;
+}
+
 /**
  * Structured trip card payload emitted by the AI Concierge when the backend
  * returns the JSON-envelope format with hotel or flight cards.
@@ -150,7 +178,9 @@ export type ConciergeStreamEvent =
   | StreamErrorEvent
   | StreamDoneEvent
   | StreamReservationDraftEvent
-  | StreamTripCardsEvent;
+  | StreamTripCardsEvent
+  | StreamSmartImportPreviewEvent
+  | StreamSmartImportStatusEvent;
 
 export interface ConciergeStreamCallbacks {
   onChunk: (text: string) => void;
@@ -158,6 +188,8 @@ export interface ConciergeStreamCallbacks {
   onFunctionCall?: (name: string, result: Record<string, unknown>) => void;
   onReservationDraft?: (draft: ReservationDraft) => void;
   onTripCards?: (cards: TripCard[], message: string | null) => void;
+  onSmartImportPreview?: (preview: StreamSmartImportPreviewEvent) => void;
+  onSmartImportStatus?: (status: SmartImportStatus, message: string) => void;
   onError: (error: string) => void;
   onDone: () => void;
 }
@@ -190,6 +222,7 @@ export function invokeConciergeStream(
 
   // Fire-and-forget the async read loop; errors are routed through callbacks.
   (async () => {
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
     try {
       // Get the current session token for auth
       const {
@@ -244,15 +277,31 @@ export function invokeConciergeStream(
         return;
       }
 
-      // Parse the SSE stream
+      // Parse the SSE stream.
+      // A 30-second idle timer auto-aborts the stream if no data arrives,
+      // preventing the UI from hanging indefinitely on a stalled connection.
+      const STREAM_IDLE_TIMEOUT_MS = 30_000;
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      // idleTimer declared above try block for catch-block access
+
+      const resetIdleTimer = () => {
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+          abortController.abort();
+          callbacks.onError('Stream timed out after 30 seconds of inactivity.');
+          callbacks.onDone();
+        }, STREAM_IDLE_TIMEOUT_MS);
+      };
+
+      resetIdleTimer(); // start the initial timer
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
+        resetIdleTimer(); // reset on every chunk received
         buffer += decoder.decode(value, { stream: true });
 
         // Split on double newlines (SSE event boundary)
@@ -290,10 +339,17 @@ export function invokeConciergeStream(
               case 'trip_cards':
                 callbacks.onTripCards?.(event.cards, event.message ?? null);
                 break;
+              case 'smart_import_preview':
+                callbacks.onSmartImportPreview?.(event as StreamSmartImportPreviewEvent);
+                break;
+              case 'smart_import_status':
+                callbacks.onSmartImportStatus?.(event.status, event.message);
+                break;
               case 'error':
                 callbacks.onError(event.message);
                 break;
               case 'done':
+                if (idleTimer) clearTimeout(idleTimer);
                 callbacks.onDone();
                 return;
             }
@@ -302,8 +358,10 @@ export function invokeConciergeStream(
       }
 
       // Stream ended without an explicit done event — still call onDone
+      if (idleTimer) clearTimeout(idleTimer);
       callbacks.onDone();
     } catch (err) {
+      if (idleTimer) clearTimeout(idleTimer);
       if (abortController.signal.aborted) return;
       callbacks.onError(err instanceof Error ? err.message : 'Stream connection failed');
       callbacks.onDone();

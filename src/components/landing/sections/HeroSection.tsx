@@ -62,10 +62,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
 
         {/* Brand Name */}
         <div
-          className="inline-block px-5 py-2 rounded-xl animate-fade-in"
+          className="inline-block animate-fade-in"
           style={{
-            backgroundColor: 'rgba(128, 128, 128, 0.15)',
-            backdropFilter: 'blur(4px)',
+            animationDelay: '0.05s',
           }}
         >
           <h2
@@ -114,11 +113,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSignUp }) => {
       <div className="flex-shrink-0 flex flex-col items-center">
         {/* Secondary tagline */}
         <div
-          className="inline-block px-5 py-2 rounded-xl animate-fade-in"
+          className="inline-block animate-fade-in"
           style={{
             animationDelay: '0.1s',
-            backgroundColor: 'rgba(128, 128, 128, 0.15)',
-            backdropFilter: 'blur(4px)',
           }}
         >
           <h3

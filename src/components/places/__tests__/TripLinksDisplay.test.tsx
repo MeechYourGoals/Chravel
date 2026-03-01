@@ -93,12 +93,14 @@ describe('TripLinksDisplay', () => {
     );
   });
 
-  it('retry button refetches on error', { timeout: 25000 }, async () => {
-    // First 2 calls fail (initial + auto-retry), 3rd (manual Retry) succeeds
+  it('retry button refetches on error', { timeout: 30000 }, async () => {
+    // Component has retry: 2, so 3 failures (initial + 2 auto-retries) before error state
+    // Then manual Retry click triggers 4th call which succeeds
     const getTripLinksSpy = vi
       .spyOn(tripLinksService, 'getTripLinks')
       .mockRejectedValueOnce(new Error('First attempt failed'))
-      .mockRejectedValueOnce(new Error('Retry failed'))
+      .mockRejectedValueOnce(new Error('Retry 1 failed'))
+      .mockRejectedValueOnce(new Error('Retry 2 failed'))
       .mockResolvedValueOnce([]);
 
     render(<TripLinksDisplay tripId="trip-1" />, {
@@ -109,14 +111,14 @@ describe('TripLinksDisplay', () => {
       () => {
         expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
       },
-      { timeout: 10000 },
+      { timeout: 20000 },
     );
 
     await userEvent.click(screen.getByRole('button', { name: /retry/i }));
 
     await waitFor(
       () => {
-        expect(getTripLinksSpy).toHaveBeenCalledTimes(3);
+        expect(getTripLinksSpy).toHaveBeenCalledTimes(4);
         expect(screen.getByText('Explore')).toBeInTheDocument();
       },
       { timeout: 5000 },

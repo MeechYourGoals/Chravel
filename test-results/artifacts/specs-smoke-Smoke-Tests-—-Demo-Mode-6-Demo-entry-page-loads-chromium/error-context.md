@@ -1,0 +1,489 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - button "Exit Demo" [ref=e3] [cursor=pointer]:
+    - img [ref=e4]
+    - generic [ref=e7]: Exit Demo
+  - main [ref=e9]:
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - group [ref=e16]:
+          - radio "My Trips" [checked] [ref=e17] [cursor=pointer]:
+            - generic [ref=e18]: My Trips
+          - radio "Pro" [ref=e19] [cursor=pointer]
+          - radio "Events" [ref=e20] [cursor=pointer]
+          - radio "Recs" [ref=e21] [cursor=pointer]
+        - generic [ref=e22]:
+          - button "Create New Trip" [ref=e23] [cursor=pointer]:
+            - generic [ref=e24]: New Trip
+          - button "Alerts" [ref=e25] [cursor=pointer]:
+            - generic [ref=e26]: Alerts
+            - generic [ref=e27]: "8"
+          - button "Settings" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: Settings
+          - generic [ref=e31]:
+            - img
+            - textbox "Search..." [ref=e32]
+      - generic [ref=e35]:
+        - button "12 Total" [ref=e36] [cursor=pointer]:
+          - generic [ref=e37]: "12"
+          - generic [ref=e38]: Total
+        - button "9 Upcoming" [ref=e39] [cursor=pointer]:
+          - generic [ref=e40]: "9"
+          - generic [ref=e41]: Upcoming
+        - button "1 Completed" [ref=e42] [cursor=pointer]:
+          - generic [ref=e43]: "1"
+          - generic [ref=e44]: Completed
+        - button "2 Active" [ref=e45] [cursor=pointer]:
+          - generic [ref=e46]: "2"
+          - generic [ref=e48]: Active
+        - button "3 Requests" [ref=e49] [cursor=pointer]:
+          - generic [ref=e50]: "3"
+          - generic [ref=e52]: Requests
+      - generic [ref=e55]:
+        - generic [ref=e56]:
+          - button "Drag to reorder" [ref=e57]:
+            - img [ref=e58]
+          - generic [ref=e66]:
+            - generic [ref=e67]:
+              - img "Spring Break Cancun 2026 – Fraternity Trip cover" [ref=e69]
+              - generic [ref=e71]:
+                - generic [ref=e72]:
+                  - generic [ref=e74]:
+                    - heading "Spring Break Cancun 2026 – Fraternity Trip" [level=3] [ref=e75]
+                    - generic [ref=e77]:
+                      - img [ref=e78]
+                      - text: Active
+                  - generic [ref=e81]:
+                    - img [ref=e82]
+                    - generic [ref=e85]: Cancun, Mexico
+                  - generic [ref=e86]:
+                    - img [ref=e87]
+                    - generic [ref=e89]: Mar 15 - Mar 22, 2026
+                - button [ref=e90] [cursor=pointer]:
+                  - img [ref=e91]
+            - generic [ref=e95]:
+              - generic [ref=e96]:
+                - generic [ref=e97]:
+                  - generic [ref=e98]: "14"
+                  - generic [ref=e99]: People
+                - generic [ref=e100]:
+                  - generic [ref=e101]: "8"
+                  - generic [ref=e102]: Days
+                - generic [ref=e103]:
+                  - generic [ref=e104]: "15"
+                  - generic [ref=e105]: Places
+              - generic [ref=e106]:
+                - button "Recap" [ref=e107] [cursor=pointer]:
+                  - img [ref=e108]
+                  - text: Recap
+                - button "Invite" [ref=e112] [cursor=pointer]:
+                  - img [ref=e113]
+                  - text: Invite
+                - button "View" [ref=e116] [cursor=pointer]
+                - button "Share" [ref=e117] [cursor=pointer]
+        - generic [ref=e118]:
+          - button "Drag to reorder" [ref=e119]:
+            - img [ref=e120]
+          - generic [ref=e128]:
+            - generic [ref=e129]:
+              - img "Tokyo Adventure cover" [ref=e131]
+              - generic [ref=e133]:
+                - generic [ref=e134]:
+                  - heading "Tokyo Adventure" [level=3] [ref=e137]
+                  - generic [ref=e138]:
+                    - img [ref=e139]
+                    - generic [ref=e142]: Tokyo, Japan
+                  - generic [ref=e143]:
+                    - img [ref=e144]
+                    - generic [ref=e146]: Oct 5 - Oct 15, 2026
+                - button [ref=e147] [cursor=pointer]:
+                  - img [ref=e148]
+            - generic [ref=e152]:
+              - generic [ref=e153]:
+                - generic [ref=e154]:
+                  - generic [ref=e155]: "12"
+                  - generic [ref=e156]: People
+                - generic [ref=e157]:
+                  - generic [ref=e158]: "11"
+                  - generic [ref=e159]: Days
+                - generic [ref=e160]:
+                  - generic [ref=e161]: "9"
+                  - generic [ref=e162]: Places
+              - generic [ref=e163]:
+                - button "Recap" [ref=e164] [cursor=pointer]:
+                  - img [ref=e165]
+                  - text: Recap
+                - button "Invite" [ref=e169] [cursor=pointer]:
+                  - img [ref=e170]
+                  - text: Invite
+                - button "View" [ref=e173] [cursor=pointer]
+                - button "Share" [ref=e174] [cursor=pointer]
+        - generic [ref=e175]:
+          - button "Drag to reorder" [ref=e176]:
+            - img [ref=e177]
+          - generic [ref=e185]:
+            - generic [ref=e186]:
+              - img "The Tyler's Tie The Knot cover" [ref=e188]
+              - generic [ref=e190]:
+                - generic [ref=e191]:
+                  - heading "The Tyler's Tie The Knot" [level=3] [ref=e194]
+                  - generic [ref=e195]:
+                    - img [ref=e196]
+                    - generic [ref=e199]: Bali, Indonesia
+                  - generic [ref=e200]:
+                    - img [ref=e201]
+                    - generic [ref=e203]: Dec 10 - Dec 12, 2026
+                - button [ref=e204] [cursor=pointer]:
+                  - img [ref=e205]
+            - generic [ref=e209]:
+              - generic [ref=e210]:
+                - generic [ref=e211]:
+                  - generic [ref=e212]: "63"
+                  - generic [ref=e213]: People
+                - generic [ref=e214]:
+                  - generic [ref=e215]: "3"
+                  - generic [ref=e216]: Days
+                - generic [ref=e217]:
+                  - generic [ref=e218]: "4"
+                  - generic [ref=e219]: Places
+              - generic [ref=e220]:
+                - button "Recap" [ref=e221] [cursor=pointer]:
+                  - img [ref=e222]
+                  - text: Recap
+                - button "Invite" [ref=e226] [cursor=pointer]:
+                  - img [ref=e227]
+                  - text: Invite
+                - button "View" [ref=e230] [cursor=pointer]
+                - button "Share" [ref=e231] [cursor=pointer]
+        - generic [ref=e232]:
+          - button "Drag to reorder" [ref=e233]:
+            - img [ref=e234]
+          - generic [ref=e242]:
+            - generic [ref=e243]:
+              - img "Kristen Goldberg's Bachelorette Party cover" [ref=e245]
+              - generic [ref=e247]:
+                - generic [ref=e248]:
+                  - generic [ref=e250]:
+                    - heading "Kristen Goldberg's Bachelorette Party" [level=3] [ref=e251]
+                    - generic [ref=e253]:
+                      - img [ref=e254]
+                      - text: Hot
+                  - generic [ref=e256]:
+                    - img [ref=e257]
+                    - generic [ref=e260]: Nashville, TN
+                  - generic [ref=e261]:
+                    - img [ref=e262]
+                    - generic [ref=e264]: Nov 8 - Nov 10, 2026
+                - button [ref=e265] [cursor=pointer]:
+                  - img [ref=e266]
+            - generic [ref=e270]:
+              - generic [ref=e271]:
+                - generic [ref=e272]:
+                  - generic [ref=e273]: "22"
+                  - generic [ref=e274]: People
+                - generic [ref=e275]:
+                  - generic [ref=e276]: "3"
+                  - generic [ref=e277]: Days
+                - generic [ref=e278]:
+                  - generic [ref=e279]: "7"
+                  - generic [ref=e280]: Places
+              - generic [ref=e281]:
+                - button "Recap" [ref=e282] [cursor=pointer]:
+                  - img [ref=e283]
+                  - text: Recap
+                - button "Invite" [ref=e287] [cursor=pointer]:
+                  - img [ref=e288]
+                  - text: Invite
+                - button "View" [ref=e291] [cursor=pointer]
+                - button "Share" [ref=e292] [cursor=pointer]
+        - generic [ref=e293]:
+          - button "Drag to reorder" [ref=e294]:
+            - img [ref=e295]
+          - generic [ref=e303]:
+            - generic [ref=e304]:
+              - img "Coachella Squad 2026 cover" [ref=e306]
+              - generic [ref=e308]:
+                - generic [ref=e309]:
+                  - heading "Coachella Squad 2026" [level=3] [ref=e312]
+                  - generic [ref=e313]:
+                    - img [ref=e314]
+                    - generic [ref=e317]: Indio, CA
+                  - generic [ref=e318]:
+                    - img [ref=e319]
+                    - generic [ref=e321]: Apr 10 - Apr 13, 2026
+                - button [ref=e322] [cursor=pointer]:
+                  - img [ref=e323]
+            - generic [ref=e327]:
+              - generic [ref=e328]:
+                - generic [ref=e329]:
+                  - generic [ref=e330]: "22"
+                  - generic [ref=e331]: People
+                - generic [ref=e332]:
+                  - generic [ref=e333]: "4"
+                  - generic [ref=e334]: Days
+                - generic [ref=e335]:
+                  - generic [ref=e336]: "7"
+                  - generic [ref=e337]: Places
+              - generic [ref=e338]:
+                - button "Recap" [ref=e339] [cursor=pointer]:
+                  - img [ref=e340]
+                  - text: Recap
+                - button "Invite" [ref=e344] [cursor=pointer]:
+                  - img [ref=e345]
+                  - text: Invite
+                - button "View" [ref=e348] [cursor=pointer]
+                - button "Share" [ref=e349] [cursor=pointer]
+        - generic [ref=e350]:
+          - button "Drag to reorder" [ref=e351]:
+            - img [ref=e352]
+          - generic [ref=e360]:
+            - generic [ref=e361]:
+              - img "Cameron Knight's Dubai Birthday cover" [ref=e363]
+              - generic [ref=e365]:
+                - generic [ref=e366]:
+                  - heading "Cameron Knight's Dubai Birthday" [level=3] [ref=e369]
+                  - generic [ref=e370]:
+                    - img [ref=e371]
+                    - generic [ref=e374]: Dubai, UAE
+                  - generic [ref=e375]:
+                    - img [ref=e376]
+                    - generic [ref=e378]: Jul 5 - Jul 9, 2026
+                - button [ref=e379] [cursor=pointer]:
+                  - img [ref=e380]
+            - generic [ref=e384]:
+              - generic [ref=e385]:
+                - generic [ref=e386]:
+                  - generic [ref=e387]: "8"
+                  - generic [ref=e388]: People
+                - generic [ref=e389]:
+                  - generic [ref=e390]: "5"
+                  - generic [ref=e391]: Days
+                - generic [ref=e392]:
+                  - generic [ref=e393]: "4"
+                  - generic [ref=e394]: Places
+              - generic [ref=e395]:
+                - button "Recap" [ref=e396] [cursor=pointer]:
+                  - img [ref=e397]
+                  - text: Recap
+                - button "Invite" [ref=e401] [cursor=pointer]:
+                  - img [ref=e402]
+                  - text: Invite
+                - button "View" [ref=e405] [cursor=pointer]
+                - button "Share" [ref=e406] [cursor=pointer]
+        - generic [ref=e407]:
+          - button "Drag to reorder" [ref=e408]:
+            - img [ref=e409]
+          - generic [ref=e417]:
+            - generic [ref=e423]:
+              - generic [ref=e424]:
+                - heading "Fantasy Football Chat's Annual Golf Outing" [level=3] [ref=e427]
+                - generic [ref=e428]:
+                  - img [ref=e429]
+                  - generic [ref=e432]: Phoenix, Arizona
+                - generic [ref=e433]:
+                  - img [ref=e434]
+                  - generic [ref=e436]: Feb 20 - Feb 23, 2026
+              - button [ref=e437] [cursor=pointer]:
+                - img [ref=e438]
+            - generic [ref=e442]:
+              - generic [ref=e443]:
+                - generic [ref=e444]:
+                  - generic [ref=e445]: "6"
+                  - generic [ref=e446]: People
+                - generic [ref=e447]:
+                  - generic [ref=e448]: "4"
+                  - generic [ref=e449]: Days
+                - generic [ref=e450]:
+                  - generic [ref=e451]: "6"
+                  - generic [ref=e452]: Places
+              - generic [ref=e453]:
+                - button "Recap" [ref=e454] [cursor=pointer]:
+                  - img [ref=e455]
+                  - text: Recap
+                - button "Invite" [ref=e459] [cursor=pointer]:
+                  - img [ref=e460]
+                  - text: Invite
+                - button "View" [ref=e463] [cursor=pointer]
+                - button "Share" [ref=e464] [cursor=pointer]
+        - generic [ref=e465]:
+          - button "Drag to reorder" [ref=e466]:
+            - img [ref=e467]
+          - generic [ref=e475]:
+            - generic [ref=e481]:
+              - generic [ref=e482]:
+                - heading "Tulum Wellness Retreat" [level=3] [ref=e485]
+                - generic [ref=e486]:
+                  - img [ref=e487]
+                  - generic [ref=e490]: Tulum, Mexico
+                - generic [ref=e491]:
+                  - img [ref=e492]
+                  - generic [ref=e494]: Nov 10 - Nov 23, 2026
+              - button [ref=e495] [cursor=pointer]:
+                - img [ref=e496]
+            - generic [ref=e500]:
+              - generic [ref=e501]:
+                - generic [ref=e502]:
+                  - generic [ref=e503]: "34"
+                  - generic [ref=e504]: People
+                - generic [ref=e505]:
+                  - generic [ref=e506]: "14"
+                  - generic [ref=e507]: Days
+                - generic [ref=e508]:
+                  - generic [ref=e509]: "10"
+                  - generic [ref=e510]: Places
+              - generic [ref=e511]:
+                - button "Recap" [ref=e512] [cursor=pointer]:
+                  - img [ref=e513]
+                  - text: Recap
+                - button "Invite" [ref=e517] [cursor=pointer]:
+                  - img [ref=e518]
+                  - text: Invite
+                - button "View" [ref=e521] [cursor=pointer]
+                - button "Share" [ref=e522] [cursor=pointer]
+        - generic [ref=e523]:
+          - button "Drag to reorder" [ref=e524]:
+            - img [ref=e525]
+          - generic [ref=e533]:
+            - generic [ref=e539]:
+              - generic [ref=e540]:
+                - heading "Sarah Gardelin's Promotion Celebration" [level=3] [ref=e543]
+                - generic [ref=e544]:
+                  - img [ref=e545]
+                  - generic [ref=e548]: Napa Valley, CA
+                - generic [ref=e549]:
+                  - img [ref=e550]
+                  - generic [ref=e552]: May 2 - May 5, 2026
+              - button [ref=e553] [cursor=pointer]:
+                - img [ref=e554]
+            - generic [ref=e558]:
+              - generic [ref=e559]:
+                - generic [ref=e560]:
+                  - generic [ref=e561]: "6"
+                  - generic [ref=e562]: People
+                - generic [ref=e563]:
+                  - generic [ref=e564]: "4"
+                  - generic [ref=e565]: Days
+                - generic [ref=e566]:
+                  - generic [ref=e567]: "8"
+                  - generic [ref=e568]: Places
+              - generic [ref=e569]:
+                - button "Recap" [ref=e570] [cursor=pointer]:
+                  - img [ref=e571]
+                  - text: Recap
+                - button "Invite" [ref=e575] [cursor=pointer]:
+                  - img [ref=e576]
+                  - text: Invite
+                - button "View" [ref=e579] [cursor=pointer]
+                - button "Share" [ref=e580] [cursor=pointer]
+        - generic [ref=e581]:
+          - button "Drag to reorder" [ref=e582]:
+            - img [ref=e583]
+          - generic [ref=e591]:
+            - generic [ref=e597]:
+              - generic [ref=e598]:
+                - heading "Corporate Holiday Ski Trip – Aspen" [level=3] [ref=e601]
+                - generic [ref=e602]:
+                  - img [ref=e603]
+                  - generic [ref=e606]: Aspen, CO
+                - generic [ref=e607]:
+                  - img [ref=e608]
+                  - generic [ref=e610]: Dec 12 - Dec 15, 2026
+              - button [ref=e611] [cursor=pointer]:
+                - img [ref=e612]
+            - generic [ref=e616]:
+              - generic [ref=e617]:
+                - generic [ref=e618]:
+                  - generic [ref=e619]: "44"
+                  - generic [ref=e620]: People
+                - generic [ref=e621]:
+                  - generic [ref=e622]: "4"
+                  - generic [ref=e623]: Days
+                - generic [ref=e624]:
+                  - generic [ref=e625]: "3"
+                  - generic [ref=e626]: Places
+              - generic [ref=e627]:
+                - button "Recap" [ref=e628] [cursor=pointer]:
+                  - img [ref=e629]
+                  - text: Recap
+                - button "Invite" [ref=e633] [cursor=pointer]:
+                  - img [ref=e634]
+                  - text: Invite
+                - button "View" [ref=e637] [cursor=pointer]
+                - button "Share" [ref=e638] [cursor=pointer]
+        - generic [ref=e639]:
+          - button "Drag to reorder" [ref=e640]:
+            - img [ref=e641]
+          - generic [ref=e649]:
+            - generic [ref=e655]:
+              - generic [ref=e656]:
+                - heading "Disney Cruise Family Vacation" [level=3] [ref=e659]
+                - generic [ref=e660]:
+                  - img [ref=e661]
+                  - generic [ref=e664]: Port Canaveral, FL
+                - generic [ref=e665]:
+                  - img [ref=e666]
+                  - generic [ref=e668]: Jun 15 - Jun 22, 2026
+              - button [ref=e669] [cursor=pointer]:
+                - img [ref=e670]
+            - generic [ref=e674]:
+              - generic [ref=e675]:
+                - generic [ref=e676]:
+                  - generic [ref=e677]: "7"
+                  - generic [ref=e678]: People
+                - generic [ref=e679]:
+                  - generic [ref=e680]: "8"
+                  - generic [ref=e681]: Days
+                - generic [ref=e682]:
+                  - generic [ref=e683]: "10"
+                  - generic [ref=e684]: Places
+              - generic [ref=e685]:
+                - button "Recap" [ref=e686] [cursor=pointer]:
+                  - img [ref=e687]
+                  - text: Recap
+                - button "Invite" [ref=e691] [cursor=pointer]:
+                  - img [ref=e692]
+                  - text: Invite
+                - button "View" [ref=e695] [cursor=pointer]
+                - button "Share" [ref=e696] [cursor=pointer]
+        - generic [ref=e697]:
+          - button "Drag to reorder" [ref=e698]:
+            - img [ref=e699]
+          - generic [ref=e707]:
+            - generic [ref=e713]:
+              - generic [ref=e714]:
+                - heading "Yellowstone National-Park Hiking Adventure" [level=3] [ref=e717]
+                - generic [ref=e718]:
+                  - img [ref=e719]
+                  - generic [ref=e722]: Yellowstone, WY
+                - generic [ref=e723]:
+                  - img [ref=e724]
+                  - generic [ref=e726]: Jul 10 - Jul 17, 2026
+              - button [ref=e727] [cursor=pointer]:
+                - img [ref=e728]
+            - generic [ref=e732]:
+              - generic [ref=e733]:
+                - generic [ref=e734]:
+                  - generic [ref=e735]: "5"
+                  - generic [ref=e736]: People
+                - generic [ref=e737]:
+                  - generic [ref=e738]: "8"
+                  - generic [ref=e739]: Days
+                - generic [ref=e740]:
+                  - generic [ref=e741]: "14"
+                  - generic [ref=e742]: Places
+              - generic [ref=e743]:
+                - button "Recap" [ref=e744] [cursor=pointer]:
+                  - img [ref=e745]
+                  - text: Recap
+                - button "Invite" [ref=e749] [cursor=pointer]:
+                  - img [ref=e750]
+                  - text: Invite
+                - button "View" [ref=e753] [cursor=pointer]
+                - button "Share" [ref=e754] [cursor=pointer]
+        - status [ref=e755]
+```

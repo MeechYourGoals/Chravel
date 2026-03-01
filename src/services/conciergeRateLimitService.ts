@@ -38,15 +38,6 @@ class ConciergeRateLimitService {
   }
 
   /**
-   * @deprecated Use getTripLimit instead. Kept for backwards compatibility.
-   * @see getTripLimit
-   * TODO: Remove in v2.0 after all consumers migrated
-   */
-  getDailyLimit(userTier: 'free' | 'plus' | 'pro'): number {
-    return this.getTripLimit(userTier);
-  }
-
-  /**
    * Get current usage for user in specific trip/event - DATABASE-BACKED
    * Note: This counts ALL queries for the trip (no daily reset)
    */
@@ -196,21 +187,6 @@ class ConciergeRateLimitService {
 
     const usage = await this.getUsage(userId, eventId, userTier);
     return Math.max(0, usage.tripLimit - usage.queriesUsed);
-  }
-
-  /**
-   * Get time until limit resets
-   * @deprecated Per-trip limits do not reset. Returns empty string.
-   * @see getRemainingQueries for current usage info
-   * TODO: Remove in v2.0 after all consumers migrated
-   */
-  async getTimeUntilReset(
-    _userId: string,
-    _eventId: string,
-    _userTier: 'free' | 'plus' | 'pro',
-  ): Promise<string> {
-    // Per-trip limits do not reset - they persist for the lifetime of the trip
-    return '';
   }
 
   /**

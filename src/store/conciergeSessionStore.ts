@@ -11,6 +11,7 @@
  */
 
 import { create } from 'zustand';
+import { supabase } from '@/integrations/supabase/client';
 
 export type VoiceSessionState =
   | 'idle'
@@ -83,6 +84,8 @@ interface ConciergeSessionStore {
   setHistoryLoadedFromServer: (tripId: string, loaded: boolean) => void;
   hydrateMessages: (tripId: string, messages: ConciergeSessionMessage[]) => void;
   clearSession: (tripId: string) => void;
+  /** Clear every trip session — called on logout to prevent cross-user message leaks. */
+  clearAllSessions: () => void;
 }
 
 function createEmptySession(tripId: string): ConciergeSession {
@@ -224,4 +227,17 @@ export const useConciergeSessionStore = create<ConciergeSessionStore>((set, get)
       return { sessions: next };
     });
   },
+
+  clearAllSessions: () => {
+    set({ sessions: {} });
+  },
 }));
+
+// Subscribe to Supabase auth state changes and wipe all session messages on logout.
+// This prevents a second user logging in on the same tab from momentarily seeing
+// the previous user's messages during the history-hydration gap.
+supabase.auth.onAuthStateChange(event => {
+  if (event === 'SIGNED_OUT') {
+    useConciergeSessionStore.getState().clearAllSessions();
+  }
+});
