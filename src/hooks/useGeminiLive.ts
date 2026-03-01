@@ -81,8 +81,8 @@ interface UseGeminiLiveReturn {
 }
 
 const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
-const SESSION_TIMEOUT_MS = 30_000;
-const WEBSOCKET_SETUP_TIMEOUT_MS = 15_000;
+const SESSION_TIMEOUT_MS = 45_000; // 45s — buffer for edge function cold starts (was 30s)
+const WEBSOCKET_SETUP_TIMEOUT_MS = 20_000; // 20s — buffer for Gemini Live setup delay (was 15s)
 const THINKING_DELAY_MS = 1_500;
 const BARGE_IN_RMS_THRESHOLD = 0.035;
 const EPHEMERAL_TOKEN_WARN_MS = 25 * 60 * 1000; // Warn 5 min before 30-min default expiry
@@ -487,7 +487,9 @@ export function useGeminiLive({
       setError(null);
       resetTurnAccumulators();
       resetMetricsForNewTurn();
-      voiceLog('session:start', { tripId, voice });
+      const sessionId = uniqueId('vs');
+      const sessionStartedAt = performance.now();
+      voiceLog('session:start', { sessionId, tripId, voice });
 
       if (!SafeAudioContext) {
         throw new Error('Audio is not supported in this browser.');
@@ -565,11 +567,14 @@ export function useGeminiLive({
         throw new Error(errMsg);
       }
       voiceLog('session:tokenReceived', {
+        sessionId,
         hasToken: true,
         model: sessionData?.model,
         voice: sessionData?.voice,
         hasWebsocketUrl: !!sessionData?.websocketUrl,
+        _rid: (sessionData as { _rid?: string })?._rid,
       });
+      voiceLog('timing:token', { ms: Math.round(performance.now() - sessionStartedAt) });
 
       let stream: MediaStream;
       try {
@@ -604,6 +609,7 @@ export function useGeminiLive({
           settings: t.getSettings(),
         })),
       });
+      voiceLog('timing:mic', { ms: Math.round(performance.now() - sessionStartedAt) });
 
       const track = stream.getAudioTracks()[0];
       patchDiagnostics({ micDeviceLabel: track?.label || null });
@@ -650,6 +656,7 @@ export function useGeminiLive({
 
       const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
       voiceLog('ws:connecting', {
+        sessionId,
         endpoint: websocketUrl.split('/').pop(),
         audioContextState: audioCtxRef.current?.state,
         audioContextSampleRate: audioCtxRef.current?.sampleRate,
@@ -669,6 +676,7 @@ export function useGeminiLive({
         patchDiagnostics({ connectionStatus: 'open' });
         debugLog('ws_open', {});
         voiceLog('ws:opened', { readyState: ws.readyState });
+        voiceLog('timing:wsOpen', { ms: Math.round(performance.now() - sessionStartedAt) });
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
             const msg = 'Voice connection timed out. Please try again.';
@@ -712,8 +720,12 @@ export function useGeminiLive({
 
           if (setupComplete) {
             voiceLog('ws:setupComplete', {
+              sessionId,
               audioContextState: audioCtxRef.current?.state,
               hasMediaStream: !!mediaStreamRef.current,
+            });
+            voiceLog('timing:setupComplete', {
+              ms: Math.round(performance.now() - sessionStartedAt),
             });
             clearSetupTimeout();
             isStartingRef.current = false;
@@ -886,7 +898,7 @@ export function useGeminiLive({
       };
 
       ws.onerror = ev => {
-        voiceLog('ws:error', { type: (ev as ErrorEvent).message ?? 'unknown' });
+        voiceLog('ws:error', { sessionId, type: (ev as ErrorEvent).message ?? 'unknown' });
         clearSetupTimeout();
         patchDiagnostics({ connectionStatus: 'error' });
       };

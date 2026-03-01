@@ -12,22 +12,32 @@ interface VoiceLiveOverlayProps {
   onResetCircuitBreaker: () => void;
 }
 
-const STATE_LABELS: Record<GeminiLiveState, string> = {
+const STATE_LABEL: Record<GeminiLiveState, string> = {
   idle: '',
-  requesting_mic: 'Connecting...',
+  requesting_mic: 'Connecting',
   ready: 'Connected',
-  listening: 'Listening...',
-  sending: 'Thinking...',
-  playing: 'Speaking...',
-  interrupted: 'Listening...',
+  listening: 'Listening',
+  sending: 'Thinking',
+  playing: 'Speaking',
+  interrupted: 'Listening',
   error: 'Error',
+};
+
+const STATE_DETAIL: Record<GeminiLiveState, string> = {
+  idle: '',
+  requesting_mic: 'Establishing voice session\u2026',
+  ready: 'Speak now',
+  listening: 'Speak now',
+  sending: 'Processing\u2026',
+  playing: 'AI is speaking',
+  interrupted: 'Speak now',
+  error: '',
 };
 
 /**
  * Inline voice banner for Gemini Live bidirectional voice sessions.
  * Sits above the chat input — chat messages remain visible and scrollable.
- * Compact orb + status + live transcript + end button.
- * Like ChatGPT / Grok voice mode: you see both the conversation and the voice UI.
+ * Single-line status: "Status • Detail". Close X is on the LEFT (above waveform button).
  */
 export function VoiceLiveOverlay({
   state,
@@ -51,6 +61,12 @@ export function VoiceLiveOverlay({
   const isListening = state === 'listening' || state === 'interrupted' || state === 'ready';
   const isSpeaking = state === 'playing';
   const isThinking = state === 'sending' || state === 'requesting_mic';
+  const isError = state === 'error' || circuitBreakerOpen;
+
+  const statusLabel = STATE_LABEL[state];
+  const statusDetail = isError
+    ? error || 'Voice connection failed. Tap to retry.'
+    : STATE_DETAIL[state];
 
   return (
     <div
@@ -58,8 +74,18 @@ export function VoiceLiveOverlay({
       role="region"
       aria-label="Voice conversation active"
     >
-      {/* Top row: orb + status + end button */}
+      {/* Top row: close X (left, above waveform) + orb + status + retry */}
       <div className="flex items-center gap-3 px-3 py-2">
+        {/* End session button — LEFT side, aligned above VoiceButton */}
+        <button
+          type="button"
+          onClick={onEnd}
+          className="size-9 min-h-[44px] min-w-[44px] rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center hover:bg-red-500/25 active:scale-95 transition-all touch-manipulation shrink-0"
+          aria-label="End voice session"
+        >
+          <X size={16} className="text-red-400" />
+        </button>
+
         {/* Mini orb with state-based animations */}
         <div className="relative flex items-center justify-center shrink-0">
           {/* Pulse rings */}
@@ -104,12 +130,12 @@ export function VoiceLiveOverlay({
                   ? 'bg-gradient-to-br from-blue-500 to-cyan-600 shadow-md shadow-blue-500/30'
                   : isThinking
                     ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/30'
-                    : state === 'error'
+                    : isError
                       ? 'bg-gradient-to-br from-red-500 to-rose-600 shadow-md shadow-red-500/30'
                       : 'bg-gradient-to-br from-neutral-600 to-neutral-700'
             }`}
           >
-            {state === 'error' || circuitBreakerOpen ? (
+            {isError ? (
               <AlertCircle size={16} className="text-white" />
             ) : isSpeaking ? (
               <AudioLines size={16} className="text-white" />
@@ -122,21 +148,37 @@ export function VoiceLiveOverlay({
           </div>
         </div>
 
-        {/* Status text + live transcript preview */}
+        {/* Single-line status: "Status • Detail" */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold tracking-wide uppercase text-blue-400">
-              Live
+          <div className="flex items-baseline gap-1.5 min-w-0">
+            <span
+              className={`text-xs font-semibold shrink-0 ${
+                isError
+                  ? 'text-red-400'
+                  : isListening
+                    ? 'text-emerald-400'
+                    : isSpeaking
+                      ? 'text-blue-400'
+                      : isThinking
+                        ? 'text-amber-400'
+                        : 'text-white/60'
+              }`}
+            >
+              {statusLabel}
             </span>
-            <span className="text-xs text-white/50">{STATE_LABELS[state]}</span>
+            {statusDetail && (
+              <>
+                <span className="text-white/25 text-xs shrink-0">&bull;</span>
+                <span className="text-xs text-white/50 truncate">{statusDetail}</span>
+              </>
+            )}
           </div>
           {/* Streaming transcript preview — single line, truncated */}
-          {(assistantTranscript || userTranscript) && (
+          {(assistantTranscript || userTranscript) && !isError && (
             <p className="text-xs text-white/70 truncate mt-0.5 leading-snug">
-              {assistantTranscript || (userTranscript ? `"${userTranscript}"` : '')}
+              {assistantTranscript || (userTranscript ? `\u201c${userTranscript}\u201d` : '')}
             </p>
           )}
-          {error && <p className="text-xs text-red-400 truncate mt-0.5">{error}</p>}
         </div>
 
         {/* Circuit breaker retry */}
@@ -145,25 +187,16 @@ export function VoiceLiveOverlay({
             type="button"
             onClick={onResetCircuitBreaker}
             className="flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-full bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-white text-xs touch-manipulation shrink-0"
+            aria-label="Retry voice connection"
           >
             <RefreshCw size={12} />
             Retry
           </button>
         )}
-
-        {/* End session button */}
-        <button
-          type="button"
-          onClick={onEnd}
-          className="size-9 min-h-[44px] min-w-[44px] rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center hover:bg-red-500/25 active:scale-95 transition-all touch-manipulation shrink-0"
-          aria-label="End voice session"
-        >
-          <X size={16} className="text-red-400" />
-        </button>
       </div>
 
       {/* Expanded transcript area — shows when there's content, scrollable */}
-      {(assistantTranscript || userTranscript) && (
+      {(assistantTranscript || userTranscript) && !isError && (
         <div ref={transcriptRef} className="max-h-24 overflow-y-auto px-3 pb-2 scrollbar-none">
           {userTranscript && (
             <p className="text-xs text-white/50 italic leading-relaxed">
