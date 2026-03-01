@@ -3,6 +3,7 @@ import { AudioLines, Lock, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+import { CTA_GRADIENT, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
 /** Voice mode for the composer — derived from active engine state. */
 export type VoiceMode = 'none' | 'dictation' | 'conversation';
@@ -79,8 +80,8 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
     if (voiceState === 'error') {
       return 'bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30';
     }
-    // Idle — match send button gradient
-    return 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 shadow-lg shadow-blue-500/25';
+    // Idle — canonical CTA gradient (shared with Search, Upload, Send)
+    return CTA_GRADIENT;
   };
 
   const getTooltip = () => {
@@ -127,9 +128,9 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
             )}
             <span className="relative z-10">
               {isConnecting ? (
-                <Loader2 size={18} className="animate-spin" />
+                <Loader2 size={CTA_ICON_SIZE} className="animate-spin" />
               ) : (
-                <AudioLines size={18} />
+                <AudioLines size={CTA_ICON_SIZE} />
               )}
             </span>
             {!isEligible && (
