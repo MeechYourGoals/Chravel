@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Send, Sparkles, X } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Send, Sparkles, X, Mic, MicOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 import { VoiceButton } from './VoiceButton';
-import type { VoiceMode } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+
+const LONG_PRESS_MS = 500;
 
 interface AiChatInputProps {
   inputMessage: string;
@@ -18,16 +21,18 @@ interface AiChatInputProps {
     color: string;
   };
   onUpgradeClick?: () => void;
-  voiceState?: VoiceState;
+  /** Conversation mode state (Gemini Live waveform button) */
+  convoVoiceState?: VoiceState;
+  /** Toggle conversation mode on/off */
+  onConvoToggle?: () => void;
+  /** Dictation mode state (mic inside input) */
+  dictationVoiceState?: VoiceState;
+  /** Toggle dictation on/off */
+  onDictationToggle?: () => void;
+  /** Whether voice features are available */
   isVoiceEligible?: boolean;
-  onVoiceToggle?: () => void;
+  /** Upgrade prompt for ineligible users */
   onVoiceUpgrade?: () => void;
-  /** Current voice mode */
-  voiceMode?: VoiceMode;
-  /** Callback to switch voice mode */
-  onVoiceModeSwitch?: () => void;
-  /** Whether to show the mode switcher UI (requires Gemini Live support) */
-  showVoiceModeSwitch?: boolean;
   /** Multimodal: callback when user selects images */
   onImageAttach?: (files: File[]) => void;
   /** Multimodal: currently attached image previews */
@@ -47,13 +52,12 @@ export const AiChatInput = ({
   disabled = false,
   usageStatus,
   onUpgradeClick,
-  voiceState = 'idle',
+  convoVoiceState = 'idle',
+  onConvoToggle,
+  dictationVoiceState = 'idle',
+  onDictationToggle,
   isVoiceEligible = false,
-  onVoiceToggle,
   onVoiceUpgrade,
-  voiceMode = 'dictation',
-  onVoiceModeSwitch,
-  showVoiceModeSwitch = false,
   onImageAttach,
   attachedImages = [],
   onRemoveImage,
@@ -64,7 +68,6 @@ export const AiChatInput = ({
   useEffect(() => {
     const urls = attachedImages.map(file => URL.createObjectURL(file));
     setPreviewUrls(urls);
-
     return () => {
       urls.forEach(url => URL.revokeObjectURL(url));
     };
@@ -84,7 +87,59 @@ export const AiChatInput = ({
     void onSendMessage();
   };
 
+  // --- Dictation mic long-press toast (mobile helper) ---
+  const dictLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dictDidLongPress = useRef(false);
+
+  const handleDictPressStart = useCallback(() => {
+    dictDidLongPress.current = false;
+    dictLongPressTimer.current = setTimeout(() => {
+      dictDidLongPress.current = true;
+      dictLongPressTimer.current = null;
+      toast('Dictate text', {
+        description: 'Talk to type — your words go into the text box',
+        duration: 2000,
+      });
+    }, LONG_PRESS_MS);
+  }, []);
+
+  const handleDictPressEnd = useCallback(() => {
+    if (dictLongPressTimer.current) {
+      clearTimeout(dictLongPressTimer.current);
+      dictLongPressTimer.current = null;
+    }
+  }, []);
+
+  const handleDictClick = useCallback(() => {
+    if (dictDidLongPress.current) {
+      dictDidLongPress.current = false;
+      return;
+    }
+    if (!isVoiceEligible) {
+      onVoiceUpgrade?.();
+      return;
+    }
+    onDictationToggle?.();
+  }, [isVoiceEligible, onVoiceUpgrade, onDictationToggle]);
+
   const isLimitReached = usageStatus?.status === 'limit_reached';
+
+  // Derived conversation active state
+  const isConvoActive =
+    isVoiceEligible && convoVoiceState !== 'idle' && convoVoiceState !== 'error';
+
+  // Derived dictation active state
+  const isDictating =
+    isVoiceEligible &&
+    (dictationVoiceState === 'listening' || dictationVoiceState === 'connecting');
+
+  // Dynamic placeholder based on active mode
+  const getPlaceholder = () => {
+    if (isLimitReached) return 'Upgrade to continue chatting...';
+    if (isConvoActive) return 'Conversation active\u2026';
+    if (isDictating) return 'Dictating\u2026 speak now';
+    return 'Ask me anything...';
+  };
 
   return (
     <div className="space-y-2">
@@ -142,49 +197,89 @@ export const AiChatInput = ({
         </div>
       )}
 
+      {/* Conversation active badge — shows above the input row */}
+      {isConvoActive && (
+        <div className="flex items-center gap-2 px-1">
+          <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase text-blue-400">
+            <span aria-hidden className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+            Live conversation
+          </span>
+        </div>
+      )}
+
       <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
-        {/* Mic button + compact mode label */}
-        {onVoiceToggle && (
-          <div className="flex flex-col items-center gap-0.5 shrink-0">
-            <VoiceButton
-              voiceState={voiceState}
-              isEligible={isVoiceEligible}
-              onToggle={onVoiceToggle}
-              onUpgrade={onVoiceUpgrade}
-              voiceMode={voiceMode}
-              onModeSwitch={onVoiceModeSwitch}
-              showModeSwitch={showVoiceModeSwitch}
-            />
-            {/* Compact mode label — tappable, sits snugly under mic */}
-            {showVoiceModeSwitch && onVoiceModeSwitch && voiceState === 'idle' && (
-              <button
-                type="button"
-                onClick={onVoiceModeSwitch}
-                className="flex items-center gap-1 text-[9px] leading-none font-medium tracking-wide uppercase text-white/35 hover:text-white/55 active:scale-95 transition-colors touch-manipulation select-none py-0.5"
-                aria-label={`Voice: ${voiceMode}. Tap to switch.`}
-              >
-                <span
-                  aria-hidden
-                  className={`w-1 h-1 rounded-full transition-colors ${
-                    voiceMode === 'conversation' ? 'bg-blue-400' : 'bg-emerald-400'
-                  }`}
-                />
-                {voiceMode === 'conversation' ? 'Live' : 'Dict'}
-              </button>
-            )}
-          </div>
+        {/* Waveform / Conversation button (primary voice CTA) */}
+        {onConvoToggle && (
+          <VoiceButton
+            voiceState={convoVoiceState}
+            isEligible={isVoiceEligible}
+            onToggle={onConvoToggle}
+            onUpgrade={onVoiceUpgrade}
+          />
         )}
 
-        {/* Input Textarea */}
-        <textarea
-          value={inputMessage}
-          onChange={e => onInputChange(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder={isLimitReached ? 'Upgrade to continue chatting...' : 'Ask me anything...'}
-          rows={2}
-          disabled={disabled || isLimitReached}
-          className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-        />
+        {/* Input container — textarea with inline dictation mic */}
+        <div className="relative flex-1 min-w-0">
+          <textarea
+            value={inputMessage}
+            onChange={e => onInputChange(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={getPlaceholder()}
+            rows={2}
+            disabled={disabled || isLimitReached}
+            className={`w-full bg-white/5 border rounded-2xl pl-4 pr-12 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+              isDictating
+                ? 'border-emerald-500/40 bg-emerald-500/5'
+                : isConvoActive
+                  ? 'border-blue-500/30 bg-blue-500/5'
+                  : 'border-white/10'
+            }`}
+          />
+
+          {/* Dictation mic — inside input, right side */}
+          {onDictationToggle && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={handleDictClick}
+                    onTouchStart={handleDictPressStart}
+                    onTouchEnd={handleDictPressEnd}
+                    onTouchCancel={handleDictPressEnd}
+                    onMouseDown={handleDictPressStart}
+                    onMouseUp={handleDictPressEnd}
+                    onMouseLeave={handleDictPressEnd}
+                    disabled={disabled || isLimitReached || isConvoActive}
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center size-8 rounded-full transition-all duration-200 active:scale-90 touch-manipulation select-none ${
+                      isDictating
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : isConvoActive
+                          ? 'text-white/15 cursor-not-allowed'
+                          : 'text-white/35 hover:text-white/60 hover:bg-white/5'
+                    } disabled:opacity-30 disabled:cursor-not-allowed`}
+                    style={{ minWidth: 44, minHeight: 44 }}
+                    aria-label="Dictate text"
+                  >
+                    {isDictating ? <Mic size={15} className="animate-pulse" /> : <Mic size={15} />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {isDictating ? 'Stop dictation' : 'Dictate text'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          {/* Dictating pill — small indicator inside input */}
+          {isDictating && (
+            <span className="absolute left-3 top-1 text-[9px] font-semibold tracking-wider uppercase text-emerald-400/70 pointer-events-none select-none">
+              Dictating&hellip;
+            </span>
+          )}
+        </div>
+
+        {/* Send button */}
         <button
           type="button"
           onClick={handleSendClick}

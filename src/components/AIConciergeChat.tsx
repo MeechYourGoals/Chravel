@@ -26,9 +26,7 @@ import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
-import { VOICE_LIVE_ENABLED } from '@/config/voiceFeatureFlags';
 import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
-import type { VoiceMode } from '@/features/chat/components/VoiceButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
@@ -45,7 +43,7 @@ const EMPTY_SESSION: ConciergeSession = {
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
-// Voice mode: VOICE_LIVE_ENABLED=true → Gemini Live (bidirectional), false → Web Speech dictation
+// Voice: Conversation (waveform → Gemini Live) + Dictation (mic-in-input → Web Speech API)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Map GeminiLiveState → VoiceState for VoiceButton visuals */
@@ -306,14 +304,13 @@ export const AIConciergeChat = ({
   const hasHydratedRef = useRef(false);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
-  // Runtime voice mode: user can toggle between dictation and conversation.
-  // When VOICE_LIVE_ENABLED is false, mode is locked to 'dictation' (no Gemini Live).
-  const [voiceMode, setVoiceMode] = useState<VoiceMode>(
-    VOICE_LIVE_ENABLED ? 'conversation' : 'dictation',
-  );
+  // Two separate voice affordances:
+  //   1. Conversation mode (waveform button) → Gemini Live bidirectional
+  //   2. Dictation mode (mic inside input) → Web Speech API, text-to-input
+  // Mutual exclusion: starting one stops the other automatically.
   const [liveOverlayOpen, setLiveOverlayOpen] = useState(false);
 
-  // Dictation fallback (Web Speech API) — always initialized so hooks order is stable
+  // Dictation (Web Speech API) — always initialized so hooks order is stable
   const handleDictationResult = useCallback((text: string) => {
     if (!text.trim()) return;
     setInputMessage(prev => (prev ? prev + ' ' + text.trim() : text.trim()));
@@ -322,6 +319,7 @@ export const AIConciergeChat = ({
   const {
     voiceState: dictationState,
     toggleVoice: toggleDictation,
+    stopVoice: stopDictation,
     errorMessage: dictationError,
   } = useWebSpeechVoice(handleDictationResult);
 
@@ -332,7 +330,6 @@ export const AIConciergeChat = ({
   });
 
   const handleLiveTurnComplete = useCallback((userText: string, assistantText: string) => {
-    // Save completed voice turns to the chat message history
     const now = new Date().toISOString();
     const newMessages: ChatMessage[] = [];
     if (userText) {
@@ -376,55 +373,47 @@ export const AIConciergeChat = ({
     onError: handleLiveError,
   });
 
-  // Map the active voice engine's state to VoiceButton's VoiceState
-  const effectiveVoiceState: VoiceState =
-    voiceMode === 'conversation' ? mapLiveStateToVoiceState(liveState) : dictationState;
+  // Conversation-mode VoiceState (mapped from Gemini Live states)
+  const convoVoiceState: VoiceState = mapLiveStateToVoiceState(liveState);
 
-  // Show dictation errors as toasts (only when in dictation mode)
+  // Show dictation errors as toasts
   useEffect(() => {
-    if (voiceMode === 'dictation' && dictationError) {
+    if (dictationError) {
       toast.error('Voice error', { description: dictationError });
     }
-  }, [voiceMode, dictationError]);
+  }, [dictationError]);
 
-  // Close overlay when live session ends or errors
+  // Close overlay when live session ends
   useEffect(() => {
     if (liveState === 'idle' && liveOverlayOpen) {
-      // Small delay so user sees final state before overlay closes
       const timer = setTimeout(() => setLiveOverlayOpen(false), 300);
       return () => clearTimeout(timer);
     }
   }, [liveState, liveOverlayOpen]);
 
-  const handleVoiceToggle = useCallback(() => {
-    if (voiceMode === 'conversation') {
-      if (liveState === 'idle' || liveState === 'error') {
-        setLiveOverlayOpen(true);
-        void startLiveSession();
-      } else {
-        endLiveSession();
-      }
-    } else {
-      toggleDictation();
+  // Conversation toggle — stops dictation first if active
+  const handleConvoToggle = useCallback(() => {
+    // Stop dictation if it's running (mutual exclusion)
+    if (dictationState === 'listening' || dictationState === 'connecting') {
+      stopDictation();
     }
-  }, [voiceMode, liveState, startLiveSession, endLiveSession, toggleDictation]);
+    if (liveState === 'idle' || liveState === 'error') {
+      setLiveOverlayOpen(true);
+      void startLiveSession();
+    } else {
+      endLiveSession();
+    }
+  }, [dictationState, stopDictation, liveState, startLiveSession, endLiveSession]);
 
-  const handleVoiceModeSwitch = useCallback(() => {
-    setVoiceMode(prev => {
-      const next = prev === 'dictation' ? 'conversation' : 'dictation';
-      toast(
-        next === 'conversation' ? 'Switched to Conversation mode' : 'Switched to Dictation mode',
-        {
-          description:
-            next === 'conversation'
-              ? 'Tap mic for live voice chat with your concierge'
-              : 'Tap mic to dictate text into the message box',
-          duration: 2000,
-        },
-      );
-      return next;
-    });
-  }, []);
+  // Dictation toggle — stops conversation first if active
+  const handleDictationToggle = useCallback(() => {
+    const isConvoActive = liveState !== 'idle' && liveState !== 'error';
+    if (isConvoActive) {
+      endLiveSession();
+      setLiveOverlayOpen(false);
+    }
+    toggleDictation();
+  }, [liveState, endLiveSession, toggleDictation]);
 
   const handleEndLiveSession = useCallback(() => {
     endLiveSession();
@@ -1508,8 +1497,8 @@ export const AIConciergeChat = ({
           )}
         </div>
 
-        {/* Voice listening indicator (dictation mode only) */}
-        {voiceMode === 'dictation' && dictationState === 'listening' && (
+        {/* Voice listening indicator (dictation mode) */}
+        {dictationState === 'listening' && (
           <div
             className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
             role="alert"
@@ -1525,7 +1514,7 @@ export const AIConciergeChat = ({
             </div>
             <button
               type="button"
-              onClick={toggleDictation}
+              onClick={stopDictation}
               className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
               aria-label="Stop listening"
             >
@@ -1535,7 +1524,7 @@ export const AIConciergeChat = ({
         )}
 
         {/* Gemini Live voice overlay — full-screen during bidirectional session */}
-        {voiceMode === 'conversation' && liveOverlayOpen && (
+        {liveOverlayOpen && (
           <VoiceLiveOverlay
             state={liveState}
             userTranscript={liveUserTranscript}
@@ -1573,12 +1562,11 @@ export const AIConciergeChat = ({
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
                 : undefined
             }
-            voiceState={effectiveVoiceState}
+            convoVoiceState={convoVoiceState}
+            onConvoToggle={handleConvoToggle}
+            dictationVoiceState={dictationState}
+            onDictationToggle={handleDictationToggle}
             isVoiceEligible={true}
-            onVoiceToggle={handleVoiceToggle}
-            voiceMode={voiceMode}
-            onVoiceModeSwitch={VOICE_LIVE_ENABLED ? handleVoiceModeSwitch : undefined}
-            showVoiceModeSwitch={VOICE_LIVE_ENABLED}
           />
         </div>
       </div>
