@@ -86,11 +86,13 @@ interface UseGeminiLiveReturn {
 }
 
 const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
-const SESSION_TIMEOUT_MS = 45_000; // 45s — buffer for edge function cold starts (was 30s)
-const WEBSOCKET_SETUP_TIMEOUT_MS = 20_000; // 20s — buffer for Gemini Live setup delay (was 15s)
+const SESSION_TIMEOUT_MS = 60_000; // 60s — generous buffer for edge function cold starts + context build + token
+const WEBSOCKET_SETUP_TIMEOUT_MS = 25_000; // 25s — buffer for Gemini Live setup delay
 const THINKING_DELAY_MS = 1_500;
 const BARGE_IN_RMS_THRESHOLD = 0.035;
 const EPHEMERAL_TOKEN_WARN_MS = 25 * 60 * 1000; // Warn 5 min before 30-min default expiry
+const WS_KEEPALIVE_INTERVAL_MS = 15_000; // 15s keepalive ping to detect dead connections
+const AUTO_RECONNECT_DELAY_MS = 2_000; // 2s backoff before auto-reconnect attempt
 
 /** Structured debug logging — enabled in dev mode or when VITE_VOICE_DEBUG=true */
 const VOICE_DEBUG =
@@ -246,6 +248,10 @@ export function useGeminiLive({
   const turnStartedAtRef = useRef<number | null>(null);
   const cancelStartedAtRef = useRef<number | null>(null);
   const sessionExpiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keepaliveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Tracks whether we should auto-reconnect on next failure (one attempt per session start).
+  const autoReconnectAllowedRef = useRef(true);
+  const autoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guards against re-entrant cleanup calls (e.g. endSession + ws.onclose both calling cleanup).
   const isCleaningUpRef = useRef(false);
 
@@ -330,6 +336,14 @@ export function useGeminiLive({
     if (sessionExpiryTimerRef.current) {
       clearTimeout(sessionExpiryTimerRef.current);
       sessionExpiryTimerRef.current = null;
+    }
+    if (keepaliveIntervalRef.current) {
+      clearInterval(keepaliveIntervalRef.current);
+      keepaliveIntervalRef.current = null;
+    }
+    if (autoReconnectTimerRef.current) {
+      clearTimeout(autoReconnectTimerRef.current);
+      autoReconnectTimerRef.current = null;
     }
 
     // Stop audio capture first — prevents onaudioprocess from firing during teardown.
@@ -485,6 +499,9 @@ export function useGeminiLive({
       JSON.stringify({ realtimeInput: { mediaChunks: [{ mimeType, data: base64Data }] } }),
     );
   }, []);
+
+  // Ref always pointing to latest startSession (for safe self-referential auto-reconnect).
+  const startSessionRef = useRef<() => Promise<void>>(async () => {});
 
   const startSession = useCallback(async () => {
     if (isCircuitBreakerOpen()) {
@@ -711,6 +728,22 @@ export function useGeminiLive({
           if (ws.readyState === WebSocket.OPEN) {
             const msg = 'Voice connection timed out. Please try again.';
             recordVoiceFailure(msg);
+
+            // Auto-reconnect once on setup timeout (covers slow Gemini setup)
+            if (autoReconnectAllowedRef.current && !isCircuitBreakerOpen()) {
+              autoReconnectAllowedRef.current = false;
+              voiceLog('auto_reconnect:setup_timeout', { delayMs: AUTO_RECONNECT_DELAY_MS });
+              transition('requesting_mic', 'auto_reconnect_pending');
+              setError(null);
+              void cleanup().then(() => {
+                autoReconnectTimerRef.current = setTimeout(() => {
+                  autoReconnectTimerRef.current = null;
+                  void startSessionRef.current();
+                }, AUTO_RECONNECT_DELAY_MS);
+              });
+              return;
+            }
+
             onErrorRef.current?.(msg);
             setError(msg);
             transition('error', 'setup_timeout');
@@ -765,6 +798,24 @@ export function useGeminiLive({
               onErrorRef.current?.('Voice session expiring soon. Please restart to continue.');
               patchDiagnostics({ lastError: 'Session nearing expiry' });
             }, EPHEMERAL_TOKEN_WARN_MS);
+
+            // Start keepalive ping — sends an empty audio chunk periodically to keep
+            // the WebSocket alive and detect dead connections before the browser's
+            // built-in timeout (often 60s+). If the WS is no longer open, the
+            // interval self-clears.
+            keepaliveIntervalRef.current = setInterval(() => {
+              if (ws.readyState !== WebSocket.OPEN) {
+                if (keepaliveIntervalRef.current) {
+                  clearInterval(keepaliveIntervalRef.current);
+                  keepaliveIntervalRef.current = null;
+                }
+                return;
+              }
+              // Gemini Live treats empty realtime_input as a no-op keepalive
+              ws.send(JSON.stringify({ realtimeInput: { mediaChunks: [] } }));
+              voiceLog('keepalive:sent', {});
+            }, WS_KEEPALIVE_INTERVAL_MS);
+
             transition('ready', 'setup_complete');
 
             if (audioCtxRef.current && mediaStreamRef.current) {
@@ -811,6 +862,8 @@ export function useGeminiLive({
                   );
                   // Successful capture → close the circuit breaker if it was in half-open state
                   recordCircuitBreakerSuccess();
+                  // Reset auto-reconnect allowance now that session is fully working
+                  autoReconnectAllowedRef.current = true;
                   transition('listening', 'capture_started');
                 } catch (captureErr) {
                   const msg =
@@ -973,6 +1026,24 @@ export function useGeminiLive({
 
         if (msg) {
           recordVoiceFailure(msg);
+
+          // Auto-reconnect once on first failure (not on clean close or circuit breaker open).
+          // This transparently retries after edge function cold starts / transient network drops.
+          if (autoReconnectAllowedRef.current && !isCircuitBreakerOpen()) {
+            autoReconnectAllowedRef.current = false;
+            voiceLog('auto_reconnect:scheduling', { delayMs: AUTO_RECONNECT_DELAY_MS });
+            transition('requesting_mic', 'auto_reconnect_pending');
+            setError(null);
+            void cleanup().then(() => {
+              autoReconnectTimerRef.current = setTimeout(() => {
+                autoReconnectTimerRef.current = null;
+                voiceLog('auto_reconnect:starting', {});
+                void startSessionRef.current();
+              }, AUTO_RECONNECT_DELAY_MS);
+            });
+            return;
+          }
+
           onErrorRef.current?.(msg);
           setError(msg);
           patchDiagnostics({ lastError: msg });
@@ -985,6 +1056,26 @@ export function useGeminiLive({
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to start voice session.';
       recordVoiceFailure(errMsg);
+
+      // Auto-reconnect once on first failure (covers cold start timeouts).
+      if (autoReconnectAllowedRef.current && !isCircuitBreakerOpen()) {
+        autoReconnectAllowedRef.current = false;
+        voiceLog('auto_reconnect:scheduling_from_catch', {
+          errMsg,
+          delayMs: AUTO_RECONNECT_DELAY_MS,
+        });
+        transition('requesting_mic', 'auto_reconnect_pending');
+        setError(null);
+        void cleanup().then(() => {
+          autoReconnectTimerRef.current = setTimeout(() => {
+            autoReconnectTimerRef.current = null;
+            voiceLog('auto_reconnect:starting', {});
+            void startSessionRef.current();
+          }, AUTO_RECONNECT_DELAY_MS);
+        });
+        return;
+      }
+
       onErrorRef.current?.(errMsg);
       setError(errMsg);
       patchDiagnostics({ lastError: errMsg, connectionStatus: 'error' });
@@ -1008,6 +1099,11 @@ export function useGeminiLive({
     transition,
     recordVoiceFailure,
   ]);
+
+  // Keep ref in sync so auto-reconnect setTimeout always calls the latest version
+  useEffect(() => {
+    startSessionRef.current = startSession;
+  }, [startSession]);
 
   const interruptPlayback = useCallback(() => {
     flushModelOutput();

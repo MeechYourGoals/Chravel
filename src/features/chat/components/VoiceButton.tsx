@@ -5,9 +5,6 @@ import { toast } from 'sonner';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_GRADIENT, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
-/** Voice mode for the composer — derived from active engine state. */
-export type VoiceMode = 'none' | 'dictation' | 'conversation';
-
 interface VoiceButtonProps {
   /** Conversation engine state (mapped from Gemini Live) */
   voiceState: VoiceState;

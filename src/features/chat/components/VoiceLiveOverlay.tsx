@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { X, Mic, AlertCircle, RefreshCw, AudioLines } from 'lucide-react';
+import { X, AlertCircle, RefreshCw, AudioLines } from 'lucide-react';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 
 interface VoiceLiveOverlayProps {
@@ -39,7 +39,9 @@ const STATE_DETAIL: Record<GeminiLiveState, string> = {
 /**
  * Inline voice banner for Gemini Live bidirectional voice sessions.
  * Sits above the chat input — chat messages remain visible and scrollable.
- * Single-line status: "Status • Detail". Close X is on the LEFT (above waveform button).
+ *
+ * Layout: X close button is centered above the VoiceButton (left column),
+ * with the status orb + text in the main row beside it.
  */
 export function VoiceLiveOverlay({
   state,
@@ -68,7 +70,7 @@ export function VoiceLiveOverlay({
 
   const statusLabel = STATE_LABEL[state];
   const statusDetail = isError
-    ? error || 'Voice connection failed. Tap to retry.'
+    ? error || 'Voice connection failed. Tap Reconnect.'
     : STATE_DETAIL[state];
 
   return (
@@ -77,19 +79,21 @@ export function VoiceLiveOverlay({
       role="region"
       aria-label="Voice conversation active"
     >
-      {/* Top row: close X (left, above waveform) + orb + status + retry */}
+      {/* Main row: X (centered above waveform) | orb + status | action */}
       <div className="flex items-center gap-3 px-3 py-2">
-        {/* End session button — LEFT side, aligned above VoiceButton */}
-        <button
-          type="button"
-          onClick={onEnd}
-          className="size-9 min-h-[44px] min-w-[44px] rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center hover:bg-red-500/25 active:scale-95 transition-all touch-manipulation shrink-0"
-          aria-label="End voice session"
-        >
-          <X size={16} className="text-red-400" />
-        </button>
+        {/* Close button — centered in its column to sit above VoiceButton */}
+        <div className="flex flex-col items-center shrink-0" style={{ width: 44 }}>
+          <button
+            type="button"
+            onClick={onEnd}
+            className="size-9 min-h-[44px] min-w-[44px] rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center hover:bg-red-500/25 active:scale-95 transition-all touch-manipulation"
+            aria-label="End voice session"
+          >
+            <X size={16} className="text-red-400" />
+          </button>
+        </div>
 
-        {/* Mini orb with state-based animations */}
+        {/* Orb with state-based animations — no Mic icon, AudioLines only */}
         <div className="relative flex items-center justify-center shrink-0">
           {/* Pulse rings */}
           {isListening && (
@@ -119,12 +123,12 @@ export function VoiceLiveOverlay({
           {isThinking && (
             <span
               aria-hidden
-              className="absolute w-10 h-10 rounded-full border border-amber-400/30 animate-spin"
+              className="absolute w-10 h-10 rounded-full border border-blue-400/30 animate-spin"
               style={{ animationDuration: '3s' }}
             />
           )}
 
-          {/* Core orb — 36px */}
+          {/* Core orb — 36px, uses AudioLines consistently */}
           <div
             className={`relative size-9 rounded-full flex items-center justify-center transition-all duration-500 ${
               isListening
@@ -132,7 +136,7 @@ export function VoiceLiveOverlay({
                 : isSpeaking
                   ? 'bg-gradient-to-br from-blue-500 to-cyan-600 shadow-md shadow-blue-500/30'
                   : isThinking
-                    ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/30'
+                    ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/30'
                     : isError
                       ? 'bg-gradient-to-br from-red-500 to-rose-600 shadow-md shadow-red-500/30'
                       : 'bg-gradient-to-br from-neutral-600 to-neutral-700'
@@ -140,10 +144,8 @@ export function VoiceLiveOverlay({
           >
             {isError ? (
               <AlertCircle size={16} className="text-white" />
-            ) : isSpeaking ? (
-              <AudioLines size={16} className="text-white" />
             ) : (
-              <Mic
+              <AudioLines
                 size={16}
                 className={`text-white transition-opacity ${isActive ? 'opacity-100' : 'opacity-50'}`}
               />
@@ -151,7 +153,7 @@ export function VoiceLiveOverlay({
           </div>
         </div>
 
-        {/* Single-line status: "Status • Detail" */}
+        {/* Single-line status: "Status  Detail" */}
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1.5 min-w-0">
             <span
@@ -163,7 +165,7 @@ export function VoiceLiveOverlay({
                     : isSpeaking
                       ? 'text-blue-400'
                       : isThinking
-                        ? 'text-amber-400'
+                        ? 'text-blue-400'
                         : 'text-white/60'
               }`}
             >
