@@ -205,6 +205,19 @@ const _ALLOWED_IMAGE_TYPES = new Set([
   'image/heif',
 ]);
 
+/** Extract rich card metadata from a ChatMessage for persistence to ai_queries.metadata */
+function extractRichMetadata(msg: ChatMessage | undefined | null): Record<string, unknown> | null {
+  if (!msg) return null;
+  const meta: Record<string, unknown> = {};
+  if (msg.functionCallPlaces?.length) meta.functionCallPlaces = msg.functionCallPlaces;
+  if (msg.functionCallFlights?.length) meta.functionCallFlights = msg.functionCallFlights;
+  if (msg.functionCallHotels?.length) meta.functionCallHotels = msg.functionCallHotels;
+  if (msg.googleMapsWidget) meta.googleMapsWidget = msg.googleMapsWidget;
+  if (msg.conciergeActions?.length) meta.conciergeActions = msg.conciergeActions;
+  if (msg.sources?.length) meta.sources = msg.sources;
+  return Object.keys(meta).length > 0 ? meta : null;
+}
+
 /** Simple unique ID generator for chat messages */
 const _uniqueId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -404,13 +417,18 @@ export const AIConciergeChat = ({
       // navigates away or starts a new turn, preventing silent data loss.
       if (userText && assistantText && user?.id) {
         try {
+          // Find the assistant message we just created to extract rich card metadata
+          const voiceAssistantMsg = newMessages.find(m => m.type === 'assistant');
+          const richMeta = extractRichMetadata(voiceAssistantMsg);
+
           const { error: persistError } = await supabase.from('ai_queries').insert({
             trip_id: tripId,
             user_id: user.id,
             query_text: userText,
             response_text: assistantText,
             created_at: now,
-          });
+            ...(richMeta ? { metadata: richMeta } : {}),
+          } as any);
 
           if (persistError) {
             console.error('[Voice] Failed to persist voice turn:', persistError.message);
@@ -1379,6 +1397,24 @@ export const AIConciergeChat = ({
                     cachedMsg,
                     user?.id ?? 'anonymous',
                   );
+
+                  // Persist rich card metadata to the ai_queries row that the
+                  // edge function already inserted.  We update the most recent
+                  // row matching this user + trip + query text.
+                  const richMeta = extractRichMetadata(latestStreamingMessage);
+                  if (richMeta && user?.id) {
+                    supabase
+                      .from('ai_queries')
+                      .update({ metadata: richMeta } as any)
+                      .eq('trip_id', tripId)
+                      .eq('user_id', user.id)
+                      .eq('query_text', currentInput)
+                      .order('created_at', { ascending: false })
+                      .limit(1)
+                      .then(({ error: metaErr }) => {
+                        if (metaErr) console.warn('[Concierge] Failed to persist rich metadata:', metaErr.message);
+                      });
+                  }
                 }
               }
             },

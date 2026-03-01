@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 
 /**
  * Shape that AIConciergeChat uses internally for messages.
@@ -11,6 +12,56 @@ export interface ConciergeChatMessage {
   type: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  /** Rich place results restored from persisted metadata */
+  functionCallPlaces?: Array<{
+    placeId?: string | null;
+    name: string;
+    address?: string;
+    rating?: number | null;
+    userRatingCount?: number | null;
+    priceLevel?: string | null;
+    mapsUrl?: string | null;
+    previewPhotoUrl?: string | null;
+    photoUrls?: string[];
+  }>;
+  /** Rich flight results restored from persisted metadata */
+  functionCallFlights?: Array<{
+    origin: string;
+    destination: string;
+    departureDate: string;
+    returnDate?: string;
+    passengers: number;
+    deeplink: string;
+    provider?: string | null;
+    price?: { amount?: number | null; currency?: string | null; display?: string | null } | null;
+    airline?: string | null;
+    flightNumber?: string | null;
+    stops?: number | null;
+    durationMinutes?: number | null;
+    departTime?: string | null;
+    arriveTime?: string | null;
+    refundable?: boolean | null;
+  }>;
+  /** Rich hotel results restored from persisted metadata */
+  functionCallHotels?: HotelResult[];
+  /** Google Maps widget token restored from persisted metadata */
+  googleMapsWidget?: string;
+  /** Concierge action results restored from persisted metadata */
+  conciergeActions?: Array<{
+    actionType: string;
+    success: boolean;
+    message: string;
+    entityId?: string;
+    entityName?: string;
+    scope?: string;
+  }>;
+  /** Grounding sources restored from persisted metadata */
+  sources?: Array<{
+    title: string;
+    url: string;
+    snippet: string;
+    source?: string;
+  }>;
 }
 
 const VALID_TRIP_ID = /^[a-zA-Z0-9_-]{1,50}$/;
@@ -44,7 +95,7 @@ export function useConciergeHistory(tripId: string): {
 
       const { data: rows, error: queryError } = await supabase
         .from('ai_queries')
-        .select('id, query_text, response_text, created_at')
+        .select('id, query_text, response_text, created_at, metadata')
         .eq('trip_id', tripId)
         .eq('user_id', user.id)
         .order('created_at', { ascending: true })
@@ -73,14 +124,24 @@ export function useConciergeHistory(tripId: string): {
           });
         }
 
-        // Assistant response
+        // Assistant response — restore rich card data from metadata
         if (row.response_text) {
-          messages.push({
+          const meta = (row as any).metadata as Record<string, unknown> | null;
+          const assistantMsg: ConciergeChatMessage = {
             id: `history-assistant-${row.id}-${idx}`,
             type: 'assistant',
             content: row.response_text,
             timestamp: ts,
-          });
+          };
+          if (meta) {
+            if (Array.isArray(meta.functionCallPlaces)) assistantMsg.functionCallPlaces = meta.functionCallPlaces as ConciergeChatMessage['functionCallPlaces'];
+            if (Array.isArray(meta.functionCallFlights)) assistantMsg.functionCallFlights = meta.functionCallFlights as ConciergeChatMessage['functionCallFlights'];
+            if (Array.isArray(meta.functionCallHotels)) assistantMsg.functionCallHotels = meta.functionCallHotels as ConciergeChatMessage['functionCallHotels'];
+            if (typeof meta.googleMapsWidget === 'string') assistantMsg.googleMapsWidget = meta.googleMapsWidget;
+            if (Array.isArray(meta.conciergeActions)) assistantMsg.conciergeActions = meta.conciergeActions as ConciergeChatMessage['conciergeActions'];
+            if (Array.isArray(meta.sources)) assistantMsg.sources = meta.sources as ConciergeChatMessage['sources'];
+          }
+          messages.push(assistantMsg);
         }
       });
 
