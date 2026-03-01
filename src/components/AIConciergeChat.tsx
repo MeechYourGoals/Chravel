@@ -23,6 +23,10 @@ import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+import { useGeminiLive } from '@/hooks/useGeminiLive';
+import type { GeminiLiveState } from '@/hooks/useGeminiLive';
+import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
+import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
@@ -39,8 +43,28 @@ const EMPTY_SESSION: ConciergeSession = {
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
-// Voice is now dictation-only (Web Speech API). Gemini Live duplex is disabled.
+// Voice: Conversation (waveform → Gemini Live) + Dictation (mic-in-input → Web Speech API)
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** Map GeminiLiveState → VoiceState for VoiceButton visuals */
+const mapLiveStateToVoiceState = (s: GeminiLiveState): VoiceState => {
+  switch (s) {
+    case 'requesting_mic':
+      return 'connecting';
+    case 'ready':
+    case 'listening':
+    case 'interrupted':
+      return 'listening';
+    case 'sending':
+      return 'thinking';
+    case 'playing':
+      return 'speaking';
+    case 'error':
+      return 'error';
+    default:
+      return 'idle';
+  }
+};
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -279,23 +303,78 @@ export const AIConciergeChat = ({
   // read from a stale closure but the user has already submitted a message.
   const hasHydratedRef = useRef(false);
 
-  // ─── Voice (Dictation-Only — Web Speech API) ─────────────────────────────
-  // Microphone captures speech → text → populates input field (auto-sends).
-  // No model audio output. No duplex WebSocket. No barge-in.
+  // ─── Voice ─────────────────────────────────────────────────────────────────
+  // Two separate voice affordances:
+  //   1. Conversation mode (waveform button) → Gemini Live bidirectional
+  //   2. Dictation mode (mic inside input) → Web Speech API, text-to-input
+  // Mutual exclusion: starting one stops the other automatically.
+  const [liveOverlayOpen, setLiveOverlayOpen] = useState(false);
+
+  // Dictation (Web Speech API) — always initialized so hooks order is stable
   const handleDictationResult = useCallback((text: string) => {
     if (!text.trim()) return;
-    // Insert text into input field only — user reviews and sends manually
     setInputMessage(prev => (prev ? prev + ' ' + text.trim() : text.trim()));
   }, []);
 
   const {
     voiceState: dictationState,
     toggleVoice: toggleDictation,
+    stopVoice: stopDictation,
     errorMessage: dictationError,
   } = useWebSpeechVoice(handleDictationResult);
 
-  // Map dictation state to the VoiceState type used by VoiceButton
-  const effectiveVoiceState: VoiceState = dictationState;
+  // Gemini Live bidirectional voice — always initialized (hooks rules)
+  const { handleToolCall } = useVoiceToolHandler({
+    tripId,
+    userId: user?.id ?? '',
+  });
+
+  const handleLiveTurnComplete = useCallback((userText: string, assistantText: string) => {
+    const now = new Date().toISOString();
+    const newMessages: ChatMessage[] = [];
+    if (userText) {
+      newMessages.push({
+        id: `voice-user-${Date.now()}`,
+        type: 'user',
+        content: userText,
+        timestamp: now,
+      });
+    }
+    if (assistantText) {
+      newMessages.push({
+        id: `voice-assistant-${Date.now()}`,
+        type: 'assistant',
+        content: assistantText,
+        timestamp: now,
+      });
+    }
+    if (newMessages.length > 0) {
+      setMessages(prev => [...prev, ...newMessages]);
+    }
+  }, []);
+
+  const handleLiveError = useCallback((msg: string) => {
+    toast.error('Voice error', { description: msg });
+  }, []);
+
+  const {
+    state: liveState,
+    error: liveError,
+    userTranscript: liveUserTranscript,
+    assistantTranscript: liveAssistantTranscript,
+    startSession: startLiveSession,
+    endSession: endLiveSession,
+    circuitBreakerOpen: liveCircuitBreakerOpen,
+    resetCircuitBreaker: resetLiveCircuitBreaker,
+  } = useGeminiLive({
+    tripId,
+    onToolCall: handleToolCall,
+    onTurnComplete: handleLiveTurnComplete,
+    onError: handleLiveError,
+  });
+
+  // Conversation-mode VoiceState (mapped from Gemini Live states)
+  const convoVoiceState: VoiceState = mapLiveStateToVoiceState(liveState);
 
   // Show dictation errors as toasts
   useEffect(() => {
@@ -304,9 +383,42 @@ export const AIConciergeChat = ({
     }
   }, [dictationError]);
 
-  const handleVoiceToggle = useCallback(() => {
+  // Close overlay when live session ends
+  useEffect(() => {
+    if (liveState === 'idle' && liveOverlayOpen) {
+      const timer = setTimeout(() => setLiveOverlayOpen(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [liveState, liveOverlayOpen]);
+
+  // Conversation toggle — stops dictation first if active
+  const handleConvoToggle = useCallback(() => {
+    // Stop dictation if it's running (mutual exclusion)
+    if (dictationState === 'listening' || dictationState === 'connecting') {
+      stopDictation();
+    }
+    if (liveState === 'idle' || liveState === 'error') {
+      setLiveOverlayOpen(true);
+      void startLiveSession();
+    } else {
+      endLiveSession();
+    }
+  }, [dictationState, stopDictation, liveState, startLiveSession, endLiveSession]);
+
+  // Dictation toggle — stops conversation first if active
+  const handleDictationToggle = useCallback(() => {
+    const isConvoActive = liveState !== 'idle' && liveState !== 'error';
+    if (isConvoActive) {
+      endLiveSession();
+      setLiveOverlayOpen(false);
+    }
     toggleDictation();
-  }, [toggleDictation]);
+  }, [liveState, endLiveSession, toggleDictation]);
+
+  const handleEndLiveSession = useCallback(() => {
+    endLiveSession();
+    setLiveOverlayOpen(false);
+  }, [endLiveSession]);
   // ── End voice ────────────────────────────────────────────────────────────
 
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
@@ -1402,7 +1514,7 @@ export const AIConciergeChat = ({
             </div>
             <button
               type="button"
-              onClick={toggleDictation}
+              onClick={stopDictation}
               className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
               aria-label="Stop listening"
             >
@@ -1411,8 +1523,23 @@ export const AIConciergeChat = ({
           </div>
         )}
 
-        {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
-        <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
+        {/* Input area — sticky bottom with inline voice banner above input */}
+        <div
+          className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
+        >
+          {/* Gemini Live voice banner — inline above input, chat stays visible */}
+          {liveOverlayOpen && (
+            <VoiceLiveOverlay
+              state={liveState}
+              userTranscript={liveUserTranscript}
+              assistantTranscript={liveAssistantTranscript}
+              error={liveError}
+              circuitBreakerOpen={liveCircuitBreakerOpen}
+              onEnd={handleEndLiveSession}
+              onResetCircuitBreaker={resetLiveCircuitBreaker}
+            />
+          )}
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
@@ -1434,9 +1561,11 @@ export const AIConciergeChat = ({
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
                 : undefined
             }
-            voiceState={effectiveVoiceState}
+            convoVoiceState={convoVoiceState}
+            onConvoToggle={handleConvoToggle}
+            dictationVoiceState={dictationState}
+            onDictationToggle={handleDictationToggle}
             isVoiceEligible={true}
-            onVoiceToggle={handleVoiceToggle}
           />
         </div>
       </div>

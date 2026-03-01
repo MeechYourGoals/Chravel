@@ -8,10 +8,8 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { OnboardingProgressDots } from './OnboardingProgressDots';
 import { WelcomeScreen } from './screens/WelcomeScreen';
-import { TripCreationDemo } from './screens/TripCreationDemo';
-import { ChatPreviewScreen } from './screens/ChatPreviewScreen';
-import { BasecampTourCard } from './screens/BasecampTourCard';
-import { AIConciergeTeaser } from './screens/AIConciergeTeaser';
+import { FeatureReelScreen } from './screens/FeatureReelScreen';
+import { InviteCrewScreen } from './screens/InviteCrewScreen';
 import { FinalCTAScreen } from './screens/FinalCTAScreen';
 import * as haptics from '@/native/haptics';
 import { onboardingEvents } from '@/telemetry/events';
@@ -23,7 +21,7 @@ interface OnboardingCarouselProps {
   onCreateTrip: () => void;
 }
 
-const TOTAL_SCREENS = 6;
+const TOTAL_SCREENS = 4;
 
 const slideVariants = {
   enter: (direction: number) => ({
@@ -120,14 +118,10 @@ export const OnboardingCarousel = ({
       case 0:
         return <WelcomeScreen />;
       case 1:
-        return <TripCreationDemo />;
+        return <FeatureReelScreen />;
       case 2:
-        return <ChatPreviewScreen />;
+        return <InviteCrewScreen />;
       case 3:
-        return <BasecampTourCard />;
-      case 4:
-        return <AIConciergeTeaser />;
-      case 5:
         return (
           <FinalCTAScreen
             onCreateTrip={handleCreateTrip}
