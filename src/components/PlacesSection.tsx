@@ -222,7 +222,8 @@ export const PlacesSection = ({
           />
         </div>
 
-        <div style={{ display: activeTab === 'links' ? 'block' : 'none' }}>
+        {/* Explore — conditional render so tab-switch remounts & retries failed queries */}
+        {activeTab === 'links' && (
           <LinksPanel
             tripId={tripId}
             places={places}
@@ -244,7 +245,7 @@ export const PlacesSection = ({
               // Event added to calendar (reserved for future use)
             }}
           />
-        </div>
+        )}
       </div>
     </div>
   );
