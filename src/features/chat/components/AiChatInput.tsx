@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Send, Sparkles, X, Mic } from 'lucide-react';
+import { Send, Sparkles, X, Mic, CalendarPlus, Bookmark, ListChecks } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -30,6 +30,8 @@ interface AiChatInputProps {
   dictationVoiceState?: VoiceState;
   /** Toggle dictation on/off */
   onDictationToggle?: () => void;
+  /** Live transcript while dictating */
+  dictationTranscript?: string;
   /** Whether voice features are available */
   isVoiceEligible?: boolean;
   /** Upgrade prompt for ineligible users */
@@ -42,6 +44,8 @@ interface AiChatInputProps {
   onRemoveImage?: (index: number) => void;
   /** Whether image attach is enabled */
   showImageAttach?: boolean;
+  /** Callback when a Smart Import quick action chip is tapped */
+  onQuickAction?: (action: string) => void;
 }
 
 export const AiChatInput = ({
@@ -57,12 +61,14 @@ export const AiChatInput = ({
   onConvoToggle,
   dictationVoiceState = 'idle',
   onDictationToggle,
+  dictationTranscript = '',
   isVoiceEligible = false,
   onVoiceUpgrade,
   onImageAttach,
   attachedImages = [],
   onRemoveImage,
   showImageAttach = false,
+  onQuickAction,
 }: AiChatInputProps) => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
@@ -134,6 +140,11 @@ export const AiChatInput = ({
     isVoiceEligible &&
     (dictationVoiceState === 'listening' || dictationVoiceState === 'connecting');
 
+  // Compute text box value, appending live transcript if active
+  const displayValue = isDictating && dictationTranscript
+    ? inputMessage + (inputMessage && !inputMessage.endsWith(' ') ? ' ' : '') + dictationTranscript
+    : inputMessage;
+
   // Dynamic placeholder based on active mode
   const getPlaceholder = () => {
     if (isLimitReached) return 'Upgrade to continue chatting...';
@@ -198,6 +209,27 @@ export const AiChatInput = ({
         </div>
       )}
 
+      {/* Smart Import quick action chips — shown when images are attached */}
+      {attachedImages.length > 0 && onQuickAction && (
+        <div className="flex gap-2 px-1 overflow-x-auto">
+          {[
+            { key: 'add_to_calendar', label: 'Add to calendar', icon: CalendarPlus },
+            { key: 'save_to_trip', label: 'Save to trip', icon: Bookmark },
+            { key: 'create_tasks', label: 'Create tasks', icon: ListChecks },
+          ].map(chip => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={() => onQuickAction(chip.key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/30 transition-colors whitespace-nowrap"
+            >
+              <chip.icon size={12} />
+              {chip.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Conversation active badge — shows above the input row */}
       {isConvoActive && (
         <div className="flex items-center gap-2 px-1">
@@ -222,8 +254,11 @@ export const AiChatInput = ({
         {/* Input container — textarea with inline dictation mic */}
         <div className="relative flex-1 min-w-0">
           <textarea
-            value={inputMessage}
-            onChange={e => onInputChange(e.target.value)}
+            value={displayValue}
+            onChange={e => {
+              if (isDictating) return; // Disallow manual edit while actively dictating
+              onInputChange(e.target.value);
+            }}
             onKeyPress={handleKeyPress}
             placeholder={getPlaceholder()}
             rows={2}

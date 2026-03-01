@@ -92,6 +92,34 @@ export interface StreamReservationDraftEvent {
   draft: ReservationDraft;
 }
 
+export interface SmartImportPreviewEvent {
+  title: string;
+  startTime: string;
+  endTime: string;
+  location: string | null;
+  category: string;
+  notes: string | null;
+  isDuplicate: boolean;
+}
+
+export interface StreamSmartImportPreviewEvent {
+  type: 'smart_import_preview';
+  previewEvents: SmartImportPreviewEvent[];
+  tripId: string;
+  totalEvents: number;
+  duplicateCount: number;
+  /** If any lodging events were extracted, include the first hotel name for basecamp prompt */
+  lodgingName?: string;
+}
+
+export type SmartImportStatus = 'parsing' | 'extracting' | 'checking_duplicates' | 'ready';
+
+export interface StreamSmartImportStatusEvent {
+  type: 'smart_import_status';
+  status: SmartImportStatus;
+  message: string;
+}
+
 /**
  * Structured trip card payload emitted by the AI Concierge when the backend
  * returns the JSON-envelope format with hotel or flight cards.
@@ -150,7 +178,9 @@ export type ConciergeStreamEvent =
   | StreamErrorEvent
   | StreamDoneEvent
   | StreamReservationDraftEvent
-  | StreamTripCardsEvent;
+  | StreamTripCardsEvent
+  | StreamSmartImportPreviewEvent
+  | StreamSmartImportStatusEvent;
 
 export interface ConciergeStreamCallbacks {
   onChunk: (text: string) => void;
@@ -158,6 +188,8 @@ export interface ConciergeStreamCallbacks {
   onFunctionCall?: (name: string, result: Record<string, unknown>) => void;
   onReservationDraft?: (draft: ReservationDraft) => void;
   onTripCards?: (cards: TripCard[], message: string | null) => void;
+  onSmartImportPreview?: (preview: StreamSmartImportPreviewEvent) => void;
+  onSmartImportStatus?: (status: SmartImportStatus, message: string) => void;
   onError: (error: string) => void;
   onDone: () => void;
 }
@@ -289,6 +321,12 @@ export function invokeConciergeStream(
                 break;
               case 'trip_cards':
                 callbacks.onTripCards?.(event.cards, event.message ?? null);
+                break;
+              case 'smart_import_preview':
+                callbacks.onSmartImportPreview?.(event as StreamSmartImportPreviewEvent);
+                break;
+              case 'smart_import_status':
+                callbacks.onSmartImportStatus?.(event.status, event.message);
                 break;
               case 'error':
                 callbacks.onError(event.message);

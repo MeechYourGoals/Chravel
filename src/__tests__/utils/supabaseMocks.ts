@@ -18,7 +18,7 @@ const mockDataStorage = new Map<string, any[]>();
 export function setMockData<T extends Record<string, any>>(
   table: string,
   data: T[],
-  filter?: { column: string; value: any },
+  filter?: { column: string; value: unknown },
 ): void {
   if (filter) {
     // Store under specific filter key
@@ -38,7 +38,7 @@ export function setMockData<T extends Record<string, any>>(
           const filterKey = `${table}:${column}:${value}`;
           const existing = mockDataStorage.get(filterKey) || [];
           // Avoid duplicates
-          if (!existing.some((r: any) => r.id === record.id)) {
+          if (!existing.some((r: unknown) => r.id === record.id)) {
             mockDataStorage.set(filterKey, [...existing, record]);
           }
         }
@@ -53,7 +53,7 @@ export function setMockData<T extends Record<string, any>>(
  */
 export function getMockData<T = any>(
   table: string,
-  filter?: { column: string; value: any },
+  filter?: { column: string; value: unknown },
 ): T[] | undefined {
   if (filter) {
     const filterKey = `${table}:${filter.column}:${filter.value}`;
@@ -64,7 +64,7 @@ export function getMockData<T = any>(
     // Fall back to :all and filter in memory
     const allData = mockDataStorage.get(`${table}:all`);
     if (allData) {
-      return allData.filter((record: any) => record[filter.column] === filter.value) as T[];
+      return allData.filter((record: unknown) => record[filter.column] === filter.value) as T[];
     }
   } else {
     return mockDataStorage.get(`${table}:all`) as T[] | undefined;
@@ -139,10 +139,10 @@ export function createMockSupabaseClient(): SupabaseClient<Database> {
 function createQueryBuilderWithStorage(table: string) {
   let currentFilter: {
     column: string;
-    value: any;
+    value: unknown;
     operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte';
   } | null = null;
-  let currentData: any[] | null = null;
+  let currentData: unknown[] | null = null;
 
   const like = vi.fn().mockReturnThis();
   const ilike = vi.fn().mockReturnThis();
@@ -192,61 +192,61 @@ function createQueryBuilderWithStorage(table: string) {
   const updateReturn = vi.fn().mockResolvedValue({ data: null, error: null });
   const deleteReturn = vi.fn().mockResolvedValue({ data: null, error: null });
 
-  const eq = vi.fn((column: string, value: any) => {
+  const eq = vi.fn((column: string, value: unknown) => {
     currentFilter = { column, value, operator: 'eq' };
     currentData = getMockData(table, { column, value }) || [];
     return createFilteredChain();
   });
 
-  const neq = vi.fn((column: string, value: any) => {
+  const neq = vi.fn((column: string, value: unknown) => {
     currentFilter = { column, value, operator: 'neq' };
     const allData = getMockData(table);
     if (allData) {
-      currentData = allData.filter((record: any) => record[column] !== value);
+      currentData = allData.filter((record: unknown) => record[column] !== value);
     } else {
       currentData = [];
     }
     return createFilteredChain();
   });
 
-  const gt = vi.fn((column: string, value: any) => {
+  const gt = vi.fn((column: string, value: unknown) => {
     currentFilter = { column, value, operator: 'gt' };
     const allData = getMockData(table);
     if (allData) {
-      currentData = allData.filter((record: any) => record[column] > value);
+      currentData = allData.filter((record: unknown) => record[column] > value);
     } else {
       currentData = [];
     }
     return createFilteredChain();
   });
 
-  const gte = vi.fn((column: string, value: any) => {
+  const gte = vi.fn((column: string, value: unknown) => {
     currentFilter = { column, value, operator: 'gte' };
     const allData = getMockData(table);
     if (allData) {
-      currentData = allData.filter((record: any) => record[column] >= value);
+      currentData = allData.filter((record: unknown) => record[column] >= value);
     } else {
       currentData = [];
     }
     return createFilteredChain();
   });
 
-  const lt = vi.fn((column: string, value: any) => {
+  const lt = vi.fn((column: string, value: unknown) => {
     currentFilter = { column, value, operator: 'lt' };
     const allData = getMockData(table);
     if (allData) {
-      currentData = allData.filter((record: any) => record[column] < value);
+      currentData = allData.filter((record: unknown) => record[column] < value);
     } else {
       currentData = [];
     }
     return createFilteredChain();
   });
 
-  const lte = vi.fn((column: string, value: any) => {
+  const lte = vi.fn((column: string, value: unknown) => {
     currentFilter = { column, value, operator: 'lte' };
     const allData = getMockData(table);
     if (allData) {
-      currentData = allData.filter((record: any) => record[column] <= value);
+      currentData = allData.filter((record: unknown) => record[column] <= value);
     } else {
       currentData = [];
     }
@@ -271,7 +271,7 @@ function createQueryBuilderWithStorage(table: string) {
     range,
     single,
     maybeSingle,
-    then: async (resolve: any) => {
+    then: async (resolve: unknown) => {
       const data = resolveData();
       return resolve({ data, error: null });
     },
@@ -286,19 +286,19 @@ function createQueryBuilderWithStorage(table: string) {
 
   const insert = vi.fn().mockReturnValue({
     select: insertReturn,
-    then: async (resolve: any) => resolve({ data: null, error: null }),
+    then: async (resolve: unknown) => resolve({ data: null, error: null }),
   });
 
   const update = vi.fn().mockReturnValue({
     eq,
     select: updateReturn,
-    then: async (resolve: any) => resolve({ data: null, error: null }),
+    then: async (resolve: unknown) => resolve({ data: null, error: null }),
   });
 
   const deleteFn = vi.fn().mockReturnValue({
     eq,
     select: deleteReturn,
-    then: async (resolve: any) => resolve({ data: null, error: null }),
+    then: async (resolve: unknown) => resolve({ data: null, error: null }),
   });
 
   return {
@@ -380,24 +380,24 @@ export function createQueryBuilderMock<T = any>(
     range,
     single,
     maybeSingle,
-    then: (resolve: any) => resolve({ data: mockData, error }),
+    then: (resolve: unknown) => resolve({ data: mockData, error }),
   });
 
   insert.mockReturnValue({
     select: insertReturn,
-    then: (resolve: any) => resolve({ data: mockData, error }),
+    then: (resolve: unknown) => resolve({ data: mockData, error }),
   });
 
   update.mockReturnValue({
     eq,
     select: updateReturn,
-    then: (resolve: any) => resolve({ data: mockData, error }),
+    then: (resolve: unknown) => resolve({ data: mockData, error }),
   });
 
   deleteFn.mockReturnValue({
     eq,
     select: deleteReturn,
-    then: (resolve: any) => resolve({ data: mockData, error }),
+    then: (resolve: unknown) => resolve({ data: mockData, error }),
   });
 
   return {
@@ -456,7 +456,7 @@ export const mockSession = {
 export const mockSupabase = createMockSupabaseClient();
 
 export const supabaseMockHelpers = {
-  setUser: (user: any) => {
+  setUser: (user: unknown) => {
     mockSupabase.auth.getUser = vi.fn().mockResolvedValue({ data: { user }, error: null });
   },
   clearMocks: () => {
