@@ -153,7 +153,7 @@ export const AiChatInput = ({
     if (isLimitReached) return 'Upgrade to continue chatting...';
     if (isConvoActive) return 'Conversation active\u2026';
     if (isDictating) return 'Dictating\u2026 speak now';
-    return 'Ask me anything...';
+    return '';
   };
 
   return (

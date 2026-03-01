@@ -1656,7 +1656,7 @@ export const AIConciergeChat = ({
               className="text-lg font-semibold text-white flex-1 text-center min-w-0"
               data-testid="ai-concierge-header"
             >
-              AI Concierge
+              Concierge AI | Chravel Agent
             </h3>
             <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
               <button
@@ -1753,7 +1753,7 @@ export const AIConciergeChat = ({
               Your Travel Concierge
             </h4>
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
-              <p className="text-xs sm:text-sm mb-1.5">Ask me anything:</p>
+              <p className="text-xs sm:text-sm mb-1.5">Try asking:</p>
               <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
                 <p>• "What's the Lakers schedule this week?"</p>
                 <p>• "Suggest activities based on our preferences"</p>
