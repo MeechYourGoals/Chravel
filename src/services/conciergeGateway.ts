@@ -108,6 +108,16 @@ export interface StreamSmartImportPreviewEvent {
   tripId: string;
   totalEvents: number;
   duplicateCount: number;
+  /** If any lodging events were extracted, include the first hotel name for basecamp prompt */
+  lodgingName?: string;
+}
+
+export type SmartImportStatus = 'parsing' | 'extracting' | 'checking_duplicates' | 'ready';
+
+export interface StreamSmartImportStatusEvent {
+  type: 'smart_import_status';
+  status: SmartImportStatus;
+  message: string;
 }
 
 /**
@@ -169,7 +179,8 @@ export type ConciergeStreamEvent =
   | StreamDoneEvent
   | StreamReservationDraftEvent
   | StreamTripCardsEvent
-  | StreamSmartImportPreviewEvent;
+  | StreamSmartImportPreviewEvent
+  | StreamSmartImportStatusEvent;
 
 export interface ConciergeStreamCallbacks {
   onChunk: (text: string) => void;
@@ -178,6 +189,7 @@ export interface ConciergeStreamCallbacks {
   onReservationDraft?: (draft: ReservationDraft) => void;
   onTripCards?: (cards: TripCard[], message: string | null) => void;
   onSmartImportPreview?: (preview: StreamSmartImportPreviewEvent) => void;
+  onSmartImportStatus?: (status: SmartImportStatus, message: string) => void;
   onError: (error: string) => void;
   onDone: () => void;
 }
@@ -312,6 +324,9 @@ export function invokeConciergeStream(
                 break;
               case 'smart_import_preview':
                 callbacks.onSmartImportPreview?.(event as StreamSmartImportPreviewEvent);
+                break;
+              case 'smart_import_status':
+                callbacks.onSmartImportStatus?.(event.status, event.message);
                 break;
               case 'error':
                 callbacks.onError(event.message);

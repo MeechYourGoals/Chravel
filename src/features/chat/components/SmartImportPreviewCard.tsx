@@ -49,6 +49,8 @@ export interface SmartImportPreviewCardProps {
   tripId: string;
   totalEvents: number;
   duplicateCount: number;
+  /** If a lodging event was detected, include hotel name for basecamp prompt */
+  lodgingName?: string;
   onConfirm: (events: SmartImportPreviewEvent[]) => void;
   onDismiss: () => void;
   isImporting?: boolean;
@@ -59,6 +61,7 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
   previewEvents,
   totalEvents,
   duplicateCount,
+  lodgingName,
   onConfirm,
   onDismiss,
   isImporting = false,
@@ -90,7 +93,7 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
   // Show success state
   if (importResult) {
     return (
-      <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4">
+      <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4 space-y-2">
         <div className="flex items-center gap-2">
           <Check size={18} className="text-green-400" />
           <p className="text-sm font-medium text-green-300">
@@ -98,9 +101,19 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
           </p>
         </div>
         {importResult.failed > 0 && (
-          <p className="text-xs text-red-400 mt-1">
+          <p className="text-xs text-red-400">
             {importResult.failed} event{importResult.failed !== 1 ? 's' : ''} failed to import
           </p>
+        )}
+        {lodgingName && importResult.imported > 0 && (
+          <div className="flex items-center gap-2 pt-1 border-t border-green-500/20">
+            <Hotel size={14} className="text-amber-400 shrink-0" />
+            <p className="text-xs text-gray-300">
+              Tip: Say{' '}
+              <span className="text-amber-300 font-medium">"Make {lodgingName} the basecamp"</span>{' '}
+              to set it as your trip base.
+            </p>
+          </div>
         )}
       </div>
     );
