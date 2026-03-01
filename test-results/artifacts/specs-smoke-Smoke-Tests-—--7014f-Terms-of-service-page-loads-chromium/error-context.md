@@ -1,0 +1,111 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - main [ref=e4]:
+    - generic [ref=e6]:
+      - link "Go to Dashboard" [ref=e7] [cursor=pointer]:
+        - /url: /
+        - button "Go to Dashboard" [ref=e8]:
+          - img
+          - text: Go to Dashboard
+      - generic [ref=e9]:
+        - heading "Terms of Service" [level=1] [ref=e10]
+        - paragraph [ref=e11]:
+          - strong [ref=e12]: "Last Updated:"
+          - text: March 1, 2026
+        - generic [ref=e13]:
+          - heading "1. Agreement to Terms" [level=2] [ref=e14]
+          - paragraph [ref=e15]: By accessing or using Chravel ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use the Service.
+        - generic [ref=e16]:
+          - heading "2. Description of Service" [level=2] [ref=e17]
+          - paragraph [ref=e18]: "Chravel is a collaborative platform for planning and managing group trips, events, and activities. Our services include:"
+          - list [ref=e19]:
+            - listitem [ref=e20]: Group messaging and communication tools
+            - listitem [ref=e21]: Shared calendars and itinerary planning
+            - listitem [ref=e22]: Photo and media storage
+            - listitem [ref=e23]: Payment splitting and expense tracking
+            - listitem [ref=e24]: AI-powered travel recommendations
+            - listitem [ref=e25]: Team and organization management features
+        - generic [ref=e26]:
+          - heading "3. User Accounts" [level=2] [ref=e27]
+          - heading "3.1 Registration" [level=3] [ref=e28]
+          - paragraph [ref=e29]: To use certain features, you must create an account. You agree to provide accurate, current, and complete information during registration and keep your account information updated.
+          - heading "3.2 Account Security" [level=3] [ref=e30]
+          - paragraph [ref=e31]: You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorized access to your account.
+          - heading "3.3 Account Termination" [level=3] [ref=e32]
+          - paragraph [ref=e33]: We reserve the right to suspend or terminate your account if you violate these Terms or engage in fraudulent, illegal, or harmful activities.
+        - generic [ref=e34]:
+          - heading "4. Acceptable Use" [level=2] [ref=e35]
+          - paragraph [ref=e36]: "You agree not to:"
+          - list [ref=e37]:
+            - listitem [ref=e38]: Use the Service for any illegal purpose or in violation of any laws
+            - listitem [ref=e39]: Post or transmit harmful, threatening, abusive, or offensive content
+            - listitem [ref=e40]: Harass, intimidate, or harm other users
+            - listitem [ref=e41]: Impersonate any person or entity
+            - listitem [ref=e42]: Attempt to gain unauthorized access to the Service or other users' accounts
+            - listitem [ref=e43]: Interfere with or disrupt the Service or servers
+            - listitem [ref=e44]: Use automated systems (bots, scrapers) without permission
+            - listitem [ref=e45]: Reverse engineer or attempt to extract source code
+            - listitem [ref=e46]: Violate any intellectual property rights
+        - generic [ref=e47]:
+          - heading "5. Content and Intellectual Property" [level=2] [ref=e48]
+          - heading "5.1 Your Content" [level=3] [ref=e49]
+          - paragraph [ref=e50]: You retain ownership of all content you post on Chravel. By posting content, you grant us a non-exclusive, worldwide, royalty-free license to use, store, and display your content solely to provide and improve the Service.
+          - heading "5.2 Our Content" [level=3] [ref=e51]
+          - paragraph [ref=e52]: The Service, including all text, graphics, logos, icons, images, and software, is owned by Chravel or its licensors and is protected by copyright, trademark, and other intellectual property laws.
+          - heading "5.3 Content Responsibility" [level=3] [ref=e53]
+          - paragraph [ref=e54]: You are solely responsible for content you post. We do not endorse or guarantee the accuracy of user-generated content. We reserve the right to remove content that violates these Terms.
+        - generic [ref=e55]:
+          - heading "6. Payments and Subscriptions" [level=2] [ref=e56]
+          - heading "6.1 Pricing" [level=3] [ref=e57]
+          - paragraph [ref=e58]: Certain features require a paid subscription. Subscription fees are charged in advance on a recurring basis. All fees are non-refundable except as required by law.
+          - heading "6.2 Payment Processing" [level=3] [ref=e59]
+          - paragraph [ref=e60]: Payments are processed by third-party payment processors. You agree to their terms and conditions. We do not store your credit card information.
+          - heading "6.3 Cancellation" [level=3] [ref=e61]
+          - paragraph [ref=e62]: You may cancel your subscription at any time. Cancellation takes effect at the end of the current billing period.
+        - generic [ref=e63]:
+          - heading "7. Privacy" [level=2] [ref=e64]
+          - paragraph [ref=e65]:
+            - text: Your privacy is important to us. Please review our
+            - link "Privacy Policy" [ref=e66] [cursor=pointer]:
+              - /url: /privacy
+            - text: to understand how we collect, use, and protect your information.
+        - generic [ref=e67]:
+          - heading "8. Disclaimers" [level=2] [ref=e68]
+          - paragraph [ref=e69]: THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, SECURE, OR ERROR-FREE. YOUR USE OF THE SERVICE IS AT YOUR OWN RISK.
+        - generic [ref=e70]:
+          - heading "9. Limitation of Liability" [level=2] [ref=e71]
+          - paragraph [ref=e72]: TO THE MAXIMUM EXTENT PERMITTED BY LAW, CHRAVEL SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, DATA, OR USE, ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICE.
+        - generic [ref=e73]:
+          - heading "10. Indemnification" [level=2] [ref=e74]
+          - paragraph [ref=e75]: You agree to indemnify and hold harmless Chravel and its affiliates from any claims, damages, losses, and expenses (including legal fees) arising from your use of the Service or violation of these Terms.
+        - generic [ref=e76]:
+          - heading "11. Third-Party Services" [level=2] [ref=e77]
+          - paragraph [ref=e78]: The Service may contain links to third-party websites or services. We are not responsible for the content, privacy policies, or practices of third-party sites. Your use of third-party services is at your own risk.
+        - generic [ref=e79]:
+          - heading "12. Modifications to the Service" [level=2] [ref=e80]
+          - paragraph [ref=e81]: We reserve the right to modify, suspend, or discontinue the Service (or any part thereof) at any time without notice. We are not liable for any modification, suspension, or discontinuation.
+        - generic [ref=e82]:
+          - heading "13. Changes to Terms" [level=2] [ref=e83]
+          - paragraph [ref=e84]: We may update these Terms from time to time. We will notify you of material changes by posting the new Terms on this page and updating the "Last Updated" date. Your continued use of the Service constitutes acceptance of the updated Terms.
+        - generic [ref=e85]:
+          - heading "14. Governing Law" [level=2] [ref=e86]
+          - paragraph [ref=e87]: These Terms are governed by the laws of Delaware without regard to conflict of law principles. Any disputes shall be resolved in the courts of Delaware.
+        - generic [ref=e88]:
+          - heading "15. Contact Information" [level=2] [ref=e89]
+          - paragraph [ref=e90]: "If you have questions about these Terms, please contact us:"
+          - list [ref=e91]:
+            - listitem [ref=e92]:
+              - strong [ref=e93]: "Email:"
+              - text: support@chravelapp.com
+            - listitem [ref=e94]:
+              - strong [ref=e95]: "Mail:"
+              - text: Chravel Legal Department, 130 N Broadway STE 32415, Los Angeles, CA 90012
+        - generic [ref=e96]:
+          - heading "16. Entire Agreement" [level=2] [ref=e97]
+          - paragraph [ref=e98]: These Terms, together with our Privacy Policy, constitute the entire agreement between you and Chravel regarding the Service and supersede all prior agreements.
+```

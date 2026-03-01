@@ -30,6 +30,8 @@ interface AiChatInputProps {
   dictationVoiceState?: VoiceState;
   /** Toggle dictation on/off */
   onDictationToggle?: () => void;
+  /** Live transcript while dictating */
+  dictationTranscript?: string;
   /** Whether voice features are available */
   isVoiceEligible?: boolean;
   /** Upgrade prompt for ineligible users */
@@ -59,6 +61,7 @@ export const AiChatInput = ({
   onConvoToggle,
   dictationVoiceState = 'idle',
   onDictationToggle,
+  dictationTranscript = '',
   isVoiceEligible = false,
   onVoiceUpgrade,
   onImageAttach,
@@ -136,6 +139,11 @@ export const AiChatInput = ({
   const isDictating =
     isVoiceEligible &&
     (dictationVoiceState === 'listening' || dictationVoiceState === 'connecting');
+
+  // Compute text box value, appending live transcript if active
+  const displayValue = isDictating && dictationTranscript
+    ? inputMessage + (inputMessage && !inputMessage.endsWith(' ') ? ' ' : '') + dictationTranscript
+    : inputMessage;
 
   // Dynamic placeholder based on active mode
   const getPlaceholder = () => {
@@ -246,8 +254,11 @@ export const AiChatInput = ({
         {/* Input container — textarea with inline dictation mic */}
         <div className="relative flex-1 min-w-0">
           <textarea
-            value={inputMessage}
-            onChange={e => onInputChange(e.target.value)}
+            value={displayValue}
+            onChange={e => {
+              if (isDictating) return; // Disallow manual edit while actively dictating
+              onInputChange(e.target.value);
+            }}
             onKeyPress={handleKeyPress}
             placeholder={getPlaceholder()}
             rows={2}
