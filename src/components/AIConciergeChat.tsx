@@ -1702,7 +1702,10 @@ export const AIConciergeChat = ({
                   &bull; &ldquo;Show flights for LAX to JFK on May 22 and let me save one&rdquo;
                 </p>
                 <p>&bull; &ldquo;Summarize tasks due this week and assign owners&rdquo;</p>
-                <p>&bull; &ldquo;What payments are owed and who hasn&rsquo;t paid yet?&rdquo;</p>
+                <p>
+                  &bull; &ldquo;I have a hotel confirmation screenshot &mdash; import it to our
+                  trip&rdquo;
+                </p>
               </div>
               <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
                 I can search, show rich cards, and write directly to your trip
