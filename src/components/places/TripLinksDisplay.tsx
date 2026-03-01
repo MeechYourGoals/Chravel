@@ -52,6 +52,7 @@ import {
 import { calendarService } from '@/services/calendarService';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { tripKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 import type { AddToCalendarData } from '@/types/calendar';
@@ -183,7 +184,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     error,
     refetch,
   } = useQuery({
-    queryKey: ['tripLinks', tripId, isDemoMode],
+    queryKey: tripKeys.tripLinks(tripId, isDemoMode),
     queryFn: async () => {
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(
@@ -197,7 +198,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     gcTime: 10 * 60 * 1000, // 10 minutes
     enabled: !!tripId,
     retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 8000),
     refetchOnWindowFocus: true,
   });
 
