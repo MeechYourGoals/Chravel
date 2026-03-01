@@ -239,6 +239,186 @@ const VOICE_FUNCTION_DECLARATIONS = [
       required: ['address'],
     },
   },
+  // ========== NEW AGENTIC TOOLS ==========
+  {
+    name: 'updateCalendarEvent',
+    description:
+      'Update an existing trip calendar event. Use for "change dinner to 8pm", "move the meeting".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        eventId: { type: 'STRING', description: 'ID of the event to update' },
+        title: { type: 'STRING', description: 'New event title' },
+        datetime: { type: 'STRING', description: 'New start time in ISO 8601' },
+        endDatetime: { type: 'STRING', description: 'New end time in ISO 8601' },
+        location: { type: 'STRING', description: 'New location' },
+        notes: { type: 'STRING', description: 'New description' },
+      },
+      required: ['eventId'],
+    },
+  },
+  {
+    name: 'deleteCalendarEvent',
+    description:
+      'Delete an event from the trip calendar. Use for "remove dinner from calendar", "cancel the meeting".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        eventId: { type: 'STRING', description: 'ID of the event to delete' },
+      },
+      required: ['eventId'],
+    },
+  },
+  {
+    name: 'updateTask',
+    description:
+      'Update an existing trip task. Use for "mark task as done", "change the due date".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        taskId: { type: 'STRING', description: 'ID of the task to update' },
+        title: { type: 'STRING', description: 'New task title' },
+        completed: { type: 'BOOLEAN', description: 'Set true to mark complete' },
+        dueDate: { type: 'STRING', description: 'New due date in ISO 8601' },
+      },
+      required: ['taskId'],
+    },
+  },
+  {
+    name: 'deleteTask',
+    description:
+      'Delete a task from the trip. Use for "remove that task", "delete the packing task".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        taskId: { type: 'STRING', description: 'ID of the task to delete' },
+      },
+      required: ['taskId'],
+    },
+  },
+  {
+    name: 'searchTripData',
+    description:
+      'Search across all trip data — calendar, tasks, polls, places, payments. Use for "find anything about dinner".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        query: { type: 'STRING', description: 'Search query' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'detectCalendarConflicts',
+    description:
+      'Check if a time slot conflicts with existing events. Use for "am I free at 7pm?", "do we have anything at that time?".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        datetime: { type: 'STRING', description: 'Proposed time in ISO 8601' },
+        endDatetime: { type: 'STRING', description: 'Proposed end time (defaults to +1 hour)' },
+      },
+      required: ['datetime'],
+    },
+  },
+  {
+    name: 'createBroadcast',
+    description:
+      'Send a broadcast to all trip members. Use for "announce to everyone", "let the group know".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        message: { type: 'STRING', description: 'Broadcast message' },
+        priority: { type: 'STRING', description: '"normal" or "urgent"' },
+      },
+      required: ['message'],
+    },
+  },
+  {
+    name: 'getWeatherForecast',
+    description:
+      'Get weather forecast. Use for "what\'s the weather like?", "will it rain?", "should I pack a jacket?".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        location: { type: 'STRING', description: 'City or location' },
+        date: { type: 'STRING', description: 'Date for forecast' },
+      },
+      required: ['location'],
+    },
+  },
+  {
+    name: 'convertCurrency',
+    description:
+      'Convert between currencies with live rates. Use for "how much is 100 dollars in euros?".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        amount: { type: 'NUMBER', description: 'Amount to convert' },
+        from: { type: 'STRING', description: 'Source currency code (e.g. USD)' },
+        to: { type: 'STRING', description: 'Target currency code (e.g. EUR)' },
+      },
+      required: ['amount', 'from', 'to'],
+    },
+  },
+  {
+    name: 'browseWebsite',
+    description:
+      'Browse a website to extract travel info, menus, booking links. Use when user shares a URL.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        url: { type: 'STRING', description: 'Full URL to browse' },
+        instruction: { type: 'STRING', description: 'What to look for on the page' },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'makeReservation',
+    description:
+      'Research and prepare a reservation as a travel agent. Finds venue, browses their site for booking info, adds to calendar.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        venue: { type: 'STRING', description: 'Restaurant, hotel, or venue name' },
+        datetime: { type: 'STRING', description: 'Desired date/time in ISO 8601' },
+        partySize: { type: 'NUMBER', description: 'Number of guests' },
+        name: { type: 'STRING', description: 'Name for the reservation' },
+        specialRequests: { type: 'STRING', description: 'Special requests' },
+      },
+      required: ['venue'],
+    },
+  },
+  {
+    name: 'settleExpense',
+    description:
+      'Mark a payment split as settled. Use for "I paid John back", "mark that as settled".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        splitId: { type: 'STRING', description: 'ID of the payment split' },
+        method: { type: 'STRING', description: 'Payment method used (Venmo, cash, etc.)' },
+      },
+      required: ['splitId'],
+    },
+  },
+  {
+    name: 'generateTripImage',
+    description:
+      'Generate a custom AI image for the trip. Use for "create a trip cover photo", "make a header image".',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        prompt: { type: 'STRING', description: 'Image description' },
+        style: {
+          type: 'STRING',
+          description: 'Style: photo, illustration, watercolor, minimal, vibrant',
+        },
+      },
+      required: ['prompt'],
+    },
+  },
 ];
 
 // Feature flag: enable native Google Search grounding in voice alongside function declarations.

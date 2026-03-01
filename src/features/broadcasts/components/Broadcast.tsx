@@ -71,7 +71,7 @@ export const Broadcast = ({
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
             <span className="text-xs font-medium text-white">{sender.charAt(0).toUpperCase()}</span>
           </div>
-           <span className="font-medium text-white">{sender}</span>
+          <span className="font-medium text-white">{sender}</span>
           <span className="text-xs text-white/60 capitalize">{category}</span>
         </div>
         <div className="flex items-center gap-1 text-white/60 text-xs">

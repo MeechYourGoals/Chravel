@@ -1578,6 +1578,292 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           required: ['placeQuery'],
         },
       },
+      // ========== NEW AGENTIC TOOLS ==========
+      {
+        name: 'updateCalendarEvent',
+        description:
+          'Update an existing trip calendar event. Use when user says "change dinner to 8pm", "move the meeting to Friday", "update the location of [event]". Requires the eventId from trip context or a previous search.',
+        parameters: {
+          type: 'object',
+          properties: {
+            eventId: {
+              type: 'string',
+              description: 'ID of the event to update (from trip context)',
+            },
+            title: { type: 'string', description: 'New event title' },
+            datetime: { type: 'string', description: 'New start date/time in ISO 8601' },
+            endDatetime: { type: 'string', description: 'New end date/time in ISO 8601' },
+            location: { type: 'string', description: 'New location or address' },
+            notes: { type: 'string', description: 'New description or notes' },
+          },
+          required: ['eventId'],
+        },
+      },
+      {
+        name: 'deleteCalendarEvent',
+        description:
+          'Delete an event from the trip calendar. Use when user says "remove dinner from calendar", "cancel the meeting", "delete that event". Requires the eventId.',
+        parameters: {
+          type: 'object',
+          properties: {
+            eventId: {
+              type: 'string',
+              description: 'ID of the event to delete (from trip context)',
+            },
+          },
+          required: ['eventId'],
+        },
+      },
+      {
+        name: 'updateTask',
+        description:
+          'Update an existing trip task. Use for "mark task as done", "change the due date", "rename the task". Requires taskId.',
+        parameters: {
+          type: 'object',
+          properties: {
+            taskId: { type: 'string', description: 'ID of the task to update (from trip context)' },
+            title: { type: 'string', description: 'New task title' },
+            description: { type: 'string', description: 'Updated description/notes' },
+            dueDate: { type: 'string', description: 'New due date in ISO 8601' },
+            completed: { type: 'boolean', description: 'Set to true to mark task as complete' },
+          },
+          required: ['taskId'],
+        },
+      },
+      {
+        name: 'deleteTask',
+        description:
+          'Delete a task from the trip. Use when user says "remove that task", "delete the packing task". Requires taskId.',
+        parameters: {
+          type: 'object',
+          properties: {
+            taskId: { type: 'string', description: 'ID of the task to delete (from trip context)' },
+          },
+          required: ['taskId'],
+        },
+      },
+      {
+        name: 'searchTripData',
+        description:
+          'Search across all trip data — calendar events, tasks, polls, places/links, and payments. Use for "find anything about dinner", "search for museum", or when the user wants to find something in the trip but you don\'t know which section it\'s in.',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Search query' },
+            types: {
+              type: 'array',
+              items: { type: 'string' },
+              description:
+                'Which data types to search: calendar, task, poll, link, payment. Defaults to all.',
+            },
+          },
+          required: ['query'],
+        },
+      },
+      {
+        name: 'detectCalendarConflicts',
+        description:
+          'Check if a proposed time slot conflicts with existing calendar events. Use before adding an event when the time might overlap, or when user asks "am I free at 7pm?" or "do we have anything at that time?".',
+        parameters: {
+          type: 'object',
+          properties: {
+            datetime: { type: 'string', description: 'Proposed start time in ISO 8601' },
+            endDatetime: {
+              type: 'string',
+              description: 'Proposed end time in ISO 8601 (defaults to +1 hour)',
+            },
+          },
+          required: ['datetime'],
+        },
+      },
+      {
+        name: 'createBroadcast',
+        description:
+          'Send a broadcast announcement to all trip members. Use when user says "announce to the group", "broadcast that...", "send everyone a message about...", "let everyone know". For urgent announcements, set priority to "urgent".',
+        parameters: {
+          type: 'object',
+          properties: {
+            message: { type: 'string', description: 'The broadcast message to send' },
+            priority: {
+              type: 'string',
+              description: '"normal" (default) or "urgent" for time-sensitive announcements',
+            },
+          },
+          required: ['message'],
+        },
+      },
+      {
+        name: 'createNotification',
+        description:
+          'Send an in-app notification to specific trip members or all members. Use for reminders, alerts, or targeted messages.',
+        parameters: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', description: 'Notification title (short)' },
+            message: { type: 'string', description: 'Notification body message' },
+            targetUserIds: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Specific user IDs to notify. If omitted, notifies all trip members.',
+            },
+            type: { type: 'string', description: 'Notification type (default: concierge)' },
+          },
+          required: ['title', 'message'],
+        },
+      },
+      {
+        name: 'getWeatherForecast',
+        description:
+          'Get weather forecast for a location. Use when user asks "what\'s the weather like?", "will it rain?", "should I pack a jacket?", "temperature in [city]".',
+        parameters: {
+          type: 'object',
+          properties: {
+            location: { type: 'string', description: 'City or location name' },
+            date: {
+              type: 'string',
+              description: 'Date for forecast (e.g. "tomorrow", "March 15")',
+            },
+          },
+          required: ['location'],
+        },
+      },
+      {
+        name: 'convertCurrency',
+        description:
+          'Convert between currencies with live exchange rates. Use for "how much is 100 USD in EUR?", "convert to local currency", or when discussing costs in international trips.',
+        parameters: {
+          type: 'object',
+          properties: {
+            amount: { type: 'number', description: 'Amount to convert' },
+            from: { type: 'string', description: 'Source currency code (e.g. USD, EUR, GBP)' },
+            to: { type: 'string', description: 'Target currency code (e.g. JPY, MXN, COP)' },
+          },
+          required: ['amount', 'from', 'to'],
+        },
+      },
+      {
+        name: 'generateTripImage',
+        description:
+          'Generate a custom AI image based on the trip context. Use when user says "create a trip image", "generate a cover photo", "make a header image for the trip", "design a trip banner". Creates a beautiful travel-themed image that can be set as the trip header.',
+        parameters: {
+          type: 'object',
+          properties: {
+            prompt: {
+              type: 'string',
+              description:
+                'Description of the desired image (e.g. "sunset over Santorini with blue domes", "vibrant street market in Bangkok")',
+            },
+            style: {
+              type: 'string',
+              description:
+                'Image style: photo (realistic), illustration, watercolor, minimal, or vibrant. Default: photo',
+            },
+          },
+          required: ['prompt'],
+        },
+      },
+      {
+        name: 'setTripHeaderImage',
+        description:
+          'Set a generated or uploaded image as the trip header/cover photo. Use after generateTripImage or when user provides an image URL to use as the trip banner.',
+        parameters: {
+          type: 'object',
+          properties: {
+            imageUrl: { type: 'string', description: 'URL of the image to set as trip header' },
+          },
+          required: ['imageUrl'],
+        },
+      },
+      {
+        name: 'browseWebsite',
+        description:
+          "Browse a website and extract travel-relevant information. Use when the user shares a URL and wants you to analyze it, or when you need to check a restaurant's menu, hours, availability, or booking options. Acts as a travel agent reading the page.",
+        parameters: {
+          type: 'object',
+          properties: {
+            url: {
+              type: 'string',
+              description: 'Full URL to browse (must start with http:// or https://)',
+            },
+            instruction: {
+              type: 'string',
+              description:
+                'What to look for on the page (e.g. "find the reservation link", "extract the menu and prices", "check availability for Saturday")',
+            },
+          },
+          required: ['url'],
+        },
+      },
+      {
+        name: 'makeReservation',
+        description:
+          'Act as a travel agent to research and prepare a reservation. Searches for the venue, browses their website for booking info, finds reservation links (OpenTable, Resy, etc.), and adds to calendar. More thorough than emitReservationDraft — use when user wants you to actually find how to book.',
+        parameters: {
+          type: 'object',
+          properties: {
+            venue: { type: 'string', description: 'Name of the restaurant, hotel, or venue' },
+            datetime: { type: 'string', description: 'Desired date/time in ISO 8601' },
+            partySize: { type: 'number', description: 'Number of guests (default 2)' },
+            name: { type: 'string', description: 'Name for the reservation' },
+            phone: { type: 'string', description: 'Contact phone number' },
+            specialRequests: {
+              type: 'string',
+              description: 'Special requests (allergies, seating preference, etc.)',
+            },
+            bookingUrl: { type: 'string', description: 'Direct booking URL if known' },
+          },
+          required: ['venue'],
+        },
+      },
+      {
+        name: 'settleExpense',
+        description:
+          'Mark a payment split as settled/paid. Use when user says "I paid John back", "mark that expense as settled", "settle the dinner split".',
+        parameters: {
+          type: 'object',
+          properties: {
+            splitId: { type: 'string', description: 'ID of the payment split to settle' },
+            amount: { type: 'number', description: 'Amount settled (for partial settlements)' },
+            method: {
+              type: 'string',
+              description: 'Payment method used (Venmo, Zelle, cash, etc.)',
+            },
+          },
+          required: ['splitId'],
+        },
+      },
+      {
+        name: 'getDeepLink',
+        description:
+          'Generate a deep link to a specific trip item (event, task, poll, link, payment). Use when sharing a specific item or directing user to it in the app.',
+        parameters: {
+          type: 'object',
+          properties: {
+            entityType: {
+              type: 'string',
+              description: 'Type of item: event, task, poll, link, payment, or broadcast',
+            },
+            entityId: { type: 'string', description: 'ID of the specific item' },
+          },
+          required: ['entityType', 'entityId'],
+        },
+      },
+      {
+        name: 'explainPermission',
+        description:
+          'Explain why an action was or would be blocked. Use when user asks "why can\'t I...?", "who can edit this?", or after a permission error.',
+        parameters: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              description:
+                'The action to check permissions for (e.g. addToCalendar, setBasecamp, setTripHeaderImage)',
+            },
+          },
+          required: ['action'],
+        },
+      },
     ];
 
     // ========== BUILD GEMINI TOOLS ==========
