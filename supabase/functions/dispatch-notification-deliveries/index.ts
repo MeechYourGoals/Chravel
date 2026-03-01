@@ -85,6 +85,7 @@ const sendGridFromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') || 'support@chrave
 const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
 const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
 const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+const twilioMessagingServiceSid = Deno.env.get('TWILIO_MESSAGING_SERVICE_SID');
 const internalSecret = Deno.env.get('NOTIFICATION_DISPATCH_SECRET');
 
 const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
@@ -200,6 +201,22 @@ function buildSmsTemplateData(
     (typeof metadata.start_time === 'string' && metadata.start_time) ||
     undefined;
 
+  let deepLink = undefined;
+  if (notification.trip_id) {
+    const baseUrl = 'https://chravel.app';
+    if (category === 'broadcasts')
+      deepLink = `${baseUrl}/trip/${notification.trip_id}?tab=broadcasts`;
+    else if (category === 'calendar_events')
+      deepLink = `${baseUrl}/trip/${notification.trip_id}?tab=calendar`;
+    else if (category === 'polls') deepLink = `${baseUrl}/trip/${notification.trip_id}?tab=polls`;
+    else if (category === 'tasks') deepLink = `${baseUrl}/trip/${notification.trip_id}?tab=tasks`;
+    else if (category === 'payments')
+      deepLink = `${baseUrl}/trip/${notification.trip_id}?tab=payments`;
+    else if (category === 'basecamp_updates')
+      deepLink = `${baseUrl}/trip/${notification.trip_id}?tab=places`;
+    else deepLink = `${baseUrl}/trip/${notification.trip_id}`;
+  }
+
   return {
     tripName,
     senderName,
@@ -229,6 +246,7 @@ function buildSmsTemplateData(
     taskTitle: typeof metadata.task_title === 'string' ? metadata.task_title : notification.title,
     pollQuestion:
       typeof metadata.poll_question === 'string' ? metadata.poll_question : notification.title,
+    deepLink,
   };
 }
 
@@ -282,8 +300,19 @@ async function sendSms(
   providerMessageId?: string;
   error?: string;
 }> {
-  if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+  if (!twilioAccountSid || !twilioAuthToken || (!twilioPhoneNumber && !twilioMessagingServiceSid)) {
     return { ok: false, error: 'Twilio credentials are not configured' };
+  }
+
+  const twilioBody = new URLSearchParams({
+    To: phoneNumber,
+    Body: message,
+  });
+
+  if (twilioMessagingServiceSid) {
+    twilioBody.append('MessagingServiceSid', twilioMessagingServiceSid);
+  } else if (twilioPhoneNumber) {
+    twilioBody.append('From', twilioPhoneNumber);
   }
 
   const credentials = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
@@ -295,11 +324,7 @@ async function sendSms(
         Authorization: `Basic ${credentials}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        From: twilioPhoneNumber,
-        To: phoneNumber,
-        Body: message,
-      }),
+      body: twilioBody,
     },
   );
 
@@ -441,29 +466,45 @@ serve(async req => {
     const limit = Math.min(Math.max(body.limit || 100, 1), 500);
     const nowIso = new Date().toISOString();
 
-    let deliveriesQuery = supabase
-      .from('notification_deliveries')
-      .select('id, notification_id, recipient_user_id, channel, attempts')
-      .eq('status', 'queued')
-      .lte('next_attempt_at', nowIso)
-      .order('created_at', { ascending: true })
-      .limit(limit);
+    let queuedRows: DeliveryRow[] | null = null;
 
-    if (body.deliveryIds?.length) {
-      deliveriesQuery = deliveriesQuery.in('id', body.deliveryIds);
-    }
+    // If specific IDs or channels are requested, fallback to a standard SELECT (this is usually for manual testing/retries)
+    // Otherwise, use the atomic claim RPC for the general background queue processing
+    if (body.deliveryIds?.length || body.notificationIds?.length || body.channels?.length) {
+      let deliveriesQuery = supabase
+        .from('notification_deliveries')
+        .select('id, notification_id, recipient_user_id, channel, attempts')
+        .eq('status', 'queued')
+        .lte('next_attempt_at', nowIso)
+        .order('created_at', { ascending: true })
+        .limit(limit);
 
-    if (body.notificationIds?.length) {
-      deliveriesQuery = deliveriesQuery.in('notification_id', body.notificationIds);
-    }
+      if (body.deliveryIds?.length) deliveriesQuery = deliveriesQuery.in('id', body.deliveryIds);
+      if (body.notificationIds?.length)
+        deliveriesQuery = deliveriesQuery.in('notification_id', body.notificationIds);
+      if (body.channels?.length) deliveriesQuery = deliveriesQuery.in('channel', body.channels);
 
-    if (body.channels?.length) {
-      deliveriesQuery = deliveriesQuery.in('channel', body.channels);
-    }
+      const { data, error: deliveriesError } = await deliveriesQuery;
+      if (deliveriesError) throw deliveriesError;
+      queuedRows = data;
 
-    const { data: queuedRows, error: deliveriesError } = await deliveriesQuery;
-    if (deliveriesError) {
-      throw deliveriesError;
+      // Mark them as processing
+      if (queuedRows && queuedRows.length > 0) {
+        await supabase
+          .from('notification_deliveries')
+          .update({ status: 'processing', updated_at: nowIso })
+          .in(
+            'id',
+            queuedRows.map(r => r.id),
+          );
+      }
+    } else {
+      // Atomic claim for the standard background cron run
+      const { data, error: claimError } = await supabase.rpc('claim_notification_deliveries', {
+        p_limit: limit,
+      });
+      if (claimError) throw claimError;
+      queuedRows = data as DeliveryRow[];
     }
 
     const deliveries = (queuedRows || []) as DeliveryRow[];
@@ -1012,22 +1053,45 @@ serve(async req => {
           metadata: { category },
         });
       } else {
-        await markDelivery(supabase, delivery.id, {
-          status: 'failed',
-          error: smsResult.error || 'sms_delivery_failed',
-          attempts: delivery.attempts + 1,
-        });
-        summary.failed.sms++;
-        await logDeliveryAttempt(supabase, {
-          userId,
-          channel: 'sms',
-          title: notification.title,
-          body: smsMessage,
-          recipient: smsPhone,
-          status: 'failed',
-          error: smsResult.error,
-          metadata: { category },
-        });
+        const attempts = delivery.attempts + 1;
+        const maxAttempts = 3;
+        const isRetryable =
+          smsResult.error?.includes('429') ||
+          smsResult.error?.includes('500') ||
+          smsResult.error?.includes('503') ||
+          smsResult.error?.includes('timeout') ||
+          smsResult.error?.toLowerCase().includes('failed to fetch');
+
+        if (isRetryable && attempts < maxAttempts) {
+          // Exponential backoff: 2 min, 5 min
+          const delayMinutes = attempts === 1 ? 2 : 5;
+          const nextAttemptAt = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString();
+
+          await markDelivery(supabase, delivery.id, {
+            status: 'queued',
+            error: smsResult.error || 'sms_delivery_failed_retry',
+            attempts,
+            next_attempt_at: nextAttemptAt,
+          });
+          summary.deferred++;
+        } else {
+          await markDelivery(supabase, delivery.id, {
+            status: 'failed',
+            error: smsResult.error || 'sms_delivery_failed',
+            attempts,
+          });
+          summary.failed.sms++;
+          await logDeliveryAttempt(supabase, {
+            userId,
+            channel: 'sms',
+            title: notification.title,
+            body: smsMessage,
+            recipient: smsPhone,
+            status: 'failed',
+            error: smsResult.error,
+            metadata: { category },
+          });
+        }
       }
     }
 
