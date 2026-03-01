@@ -1024,7 +1024,7 @@ async function _executeImpl(
     }
 
     case 'updateTask': {
-      const { taskId, title, description, assignee, dueDate, completed } = args;
+      const { taskId, title, description, dueDate, completed } = args;
       if (!taskId) return { error: 'taskId is required' };
 
       // Verify task belongs to this trip
@@ -1048,7 +1048,9 @@ async function _executeImpl(
       }
 
       if (Object.keys(updatePayload).length === 0) {
-        return { error: 'No fields to update' };
+        return {
+          error: 'No fields to update. Supported fields: title, description, dueDate, completed.',
+        };
       }
 
       const { data, error } = await supabase
@@ -1760,6 +1762,38 @@ async function _executeImpl(
         return { error: 'Payment not found in this trip' };
       }
 
+      // Handle partial vs full settlement
+      const settlementAmount = amount != null ? Number(amount) : null;
+      const isPartial =
+        settlementAmount != null &&
+        Number.isFinite(settlementAmount) &&
+        settlementAmount > 0 &&
+        settlementAmount < (split.amount_owed || 0);
+
+      if (isPartial) {
+        // Partial payment: reduce amount_owed by the settled amount, keep is_settled false
+        const remainingOwed = Math.round(((split.amount_owed || 0) - settlementAmount) * 100) / 100;
+        const { data, error } = await supabase
+          .from('payment_splits')
+          .update({ amount_owed: remainingOwed })
+          .eq('id', splitId)
+          .select()
+          .single();
+        if (error) throw error;
+
+        return {
+          success: true,
+          split: data,
+          settledAmount: settlementAmount,
+          remainingOwed,
+          isPartial: true,
+          method: method || 'partial_payment',
+          actionType: 'settle_expense',
+          message: `Partial payment of $${settlementAmount} applied. $${remainingOwed} remaining.`,
+        };
+      }
+
+      // Full settlement
       const { data, error } = await supabase
         .from('payment_splits')
         .update({ is_settled: true })
@@ -1771,9 +1805,12 @@ async function _executeImpl(
       return {
         success: true,
         split: data,
+        settledAmount: split.amount_owed,
+        remainingOwed: 0,
+        isPartial: false,
         method: method || 'marked_settled',
         actionType: 'settle_expense',
-        message: `Marked expense of $${split.amount_owed} as settled`,
+        message: `Marked expense of $${split.amount_owed} as fully settled`,
       };
     }
 

@@ -1617,14 +1617,13 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       {
         name: 'updateTask',
         description:
-          'Update an existing trip task. Use for "mark task as done", "change the due date", "reassign the task", "rename the task". Requires taskId.',
+          'Update an existing trip task. Use for "mark task as done", "change the due date", "rename the task". Requires taskId.',
         parameters: {
           type: 'object',
           properties: {
             taskId: { type: 'string', description: 'ID of the task to update (from trip context)' },
             title: { type: 'string', description: 'New task title' },
             description: { type: 'string', description: 'Updated description/notes' },
-            assignee: { type: 'string', description: 'New assignee name' },
             dueDate: { type: 'string', description: 'New due date in ISO 8601' },
             completed: { type: 'boolean', description: 'Set to true to mark task as complete' },
           },

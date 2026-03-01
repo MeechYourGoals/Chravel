@@ -227,8 +227,9 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
             };
           }
 
-          // Google Maps / Web tools — execute via the server-side bridge so voice
-          // mode returns real data that Gemini can speak aloud (place names, ETAs, etc.).
+          // Server-side bridge tools — execute via the execute-concierge-tool edge
+          // function so voice mode returns real data that Gemini can speak aloud.
+          // Includes Google Maps/Web tools and all new agentic tools.
           // RLS is enforced via the user's JWT on the edge function.
           case 'searchPlaces':
           case 'getPlaceDetails':
@@ -238,7 +239,21 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
           case 'searchWeb':
           case 'searchImages':
           case 'getDistanceMatrix':
-          case 'validateAddress': {
+          case 'validateAddress':
+          // falls through — new agentic tools (routed through server-side functionExecutor)
+          case 'updateCalendarEvent':
+          case 'deleteCalendarEvent':
+          case 'updateTask':
+          case 'deleteTask':
+          case 'searchTripData':
+          case 'detectCalendarConflicts':
+          case 'createBroadcast':
+          case 'getWeatherForecast':
+          case 'convertCurrency':
+          case 'browseWebsite':
+          case 'makeReservation':
+          case 'settleExpense':
+          case 'generateTripImage': {
             const { data: toolData, error: toolError } = await supabase.functions.invoke(
               'execute-concierge-tool',
               {
