@@ -422,10 +422,11 @@ const VOICE_FUNCTION_DECLARATIONS = [
 ];
 
 // Feature flag: enable native Google Search grounding in voice alongside function declarations.
-// gemini-live-2.5-flash-native-audio supports this; text-only flash models do not.
-// Set ENABLE_VOICE_GROUNDING=false in Supabase secrets to disable if the model rejects it.
+// DISABLED BY DEFAULT: Gemini does not support combining functionDeclarations with googleSearch
+// in the same request (causes silent WS setup failure — no setupComplete, hangs until timeout).
+// Set ENABLE_VOICE_GROUNDING=true in Supabase secrets to re-enable if future models support it.
 const ENABLE_VOICE_GROUNDING =
-  (Deno.env.get('ENABLE_VOICE_GROUNDING') || 'true').toLowerCase() !== 'false';
+  (Deno.env.get('ENABLE_VOICE_GROUNDING') || 'false').toLowerCase() !== 'false';
 
 /** Voice-specific addendum appended to the full system prompt */
 const VOICE_ADDENDUM = `
