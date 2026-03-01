@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { X, Mic, AlertCircle, RefreshCw } from 'lucide-react';
+import { X, Mic, AlertCircle, RefreshCw, AudioLines } from 'lucide-react';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 
 interface VoiceLiveOverlayProps {
@@ -14,7 +14,7 @@ interface VoiceLiveOverlayProps {
 
 const STATE_LABELS: Record<GeminiLiveState, string> = {
   idle: '',
-  requesting_mic: 'Starting microphone...',
+  requesting_mic: 'Connecting...',
   ready: 'Connected',
   listening: 'Listening...',
   sending: 'Thinking...',
@@ -24,9 +24,10 @@ const STATE_LABELS: Record<GeminiLiveState, string> = {
 };
 
 /**
- * Full-screen overlay for Gemini Live bidirectional voice sessions.
- * Mobile-optimized with safe-area insets, minimum touch targets,
- * and responsive transcript sizing.
+ * Inline voice banner for Gemini Live bidirectional voice sessions.
+ * Sits above the chat input — chat messages remain visible and scrollable.
+ * Compact orb + status + live transcript + end button.
+ * Like ChatGPT / Grok voice mode: you see both the conversation and the voice UI.
  */
 export function VoiceLiveOverlay({
   state,
@@ -37,14 +38,14 @@ export function VoiceLiveOverlay({
   onEnd,
   onResetCircuitBreaker,
 }: VoiceLiveOverlayProps) {
-  const assistantScrollRef = useRef<HTMLDivElement>(null);
+  const transcriptRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll assistant transcript as it streams in
+  // Auto-scroll transcript as it streams in
   useEffect(() => {
-    if (assistantScrollRef.current) {
-      assistantScrollRef.current.scrollTop = assistantScrollRef.current.scrollHeight;
+    if (transcriptRef.current) {
+      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
     }
-  }, [assistantTranscript]);
+  }, [assistantTranscript, userTranscript]);
 
   const isActive = state !== 'idle' && state !== 'error';
   const isListening = state === 'listening' || state === 'interrupted' || state === 'ready';
@@ -53,59 +54,24 @@ export function VoiceLiveOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black/90 backdrop-blur-xl overscroll-none"
-      style={{
-        WebkitTouchCallout: 'none',
-        WebkitUserSelect: 'none',
-        userSelect: 'none',
-      }}
+      className="w-full border-t border-white/10 bg-gradient-to-b from-black/60 to-black/40 backdrop-blur-md flex-shrink-0 animate-in slide-in-from-bottom-2 duration-200"
+      role="region"
+      aria-label="Voice conversation active"
     >
-      {/* Header — status + close button */}
-      <div
-        className="w-full flex items-center justify-between px-4 pt-4"
-        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-white/50 font-medium tracking-wide uppercase">
-            {STATE_LABELS[state] || 'Conversation'}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={onEnd}
-          className="size-11 min-h-[44px] min-w-[44px] rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 active:scale-95 transition-all touch-manipulation"
-          aria-label="End voice session"
-        >
-          <X size={20} className="text-white" />
-        </button>
-      </div>
-
-      {/* Center — animated orb + transcripts */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 sm:gap-6 px-5 sm:px-6 max-w-lg w-full min-h-0">
-        {/* Assistant transcript — scrollable area above the orb */}
-        {assistantTranscript && (
-          <div
-            ref={assistantScrollRef}
-            className="w-full max-h-[25vh] sm:max-h-32 overflow-y-auto text-center px-2 scrollbar-none"
-          >
-            <p className="text-white/90 text-base sm:text-lg leading-relaxed">
-              {assistantTranscript}
-            </p>
-          </div>
-        )}
-
-        {/* Animated orb */}
-        <div className="relative flex items-center justify-center">
-          {/* Outer pulse rings */}
+      {/* Top row: orb + status + end button */}
+      <div className="flex items-center gap-3 px-3 py-2">
+        {/* Mini orb with state-based animations */}
+        <div className="relative flex items-center justify-center shrink-0">
+          {/* Pulse rings */}
           {isListening && (
             <>
               <span
                 aria-hidden
-                className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-emerald-500/20 animate-[voice-pulse_2s_ease-out_infinite]"
+                className="absolute w-10 h-10 rounded-full bg-emerald-500/20 animate-[voice-pulse_2s_ease-out_infinite]"
               />
               <span
                 aria-hidden
-                className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-emerald-500/10 animate-[voice-pulse_2s_ease-out_0.6s_infinite]"
+                className="absolute w-10 h-10 rounded-full bg-emerald-500/10 animate-[voice-pulse_2s_ease-out_0.6s_infinite]"
               />
             </>
           )}
@@ -113,89 +79,102 @@ export function VoiceLiveOverlay({
             <>
               <span
                 aria-hidden
-                className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-blue-500/20 animate-[voice-pulse_1.5s_ease-out_infinite]"
+                className="absolute w-10 h-10 rounded-full bg-blue-500/20 animate-[voice-pulse_1.5s_ease-out_infinite]"
               />
               <span
                 aria-hidden
-                className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-cyan-500/10 animate-[voice-pulse_1.5s_ease-out_0.5s_infinite]"
+                className="absolute w-10 h-10 rounded-full bg-cyan-500/10 animate-[voice-pulse_1.5s_ease-out_0.5s_infinite]"
               />
             </>
           )}
           {isThinking && (
             <span
               aria-hidden
-              className="absolute w-28 h-28 sm:w-32 sm:h-32 rounded-full border-2 border-amber-400/30 animate-spin"
+              className="absolute w-10 h-10 rounded-full border border-amber-400/30 animate-spin"
               style={{ animationDuration: '3s' }}
             />
           )}
 
-          {/* Core orb — 88px on mobile, 96px on sm+ screens */}
+          {/* Core orb — 36px */}
           <div
-            className={`relative rounded-full flex items-center justify-center transition-all duration-500 w-[5.5rem] h-[5.5rem] sm:w-24 sm:h-24 ${
+            className={`relative size-9 rounded-full flex items-center justify-center transition-all duration-500 ${
               isListening
-                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/40'
+                ? 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-md shadow-emerald-500/30'
                 : isSpeaking
-                  ? 'bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg shadow-blue-500/40'
+                  ? 'bg-gradient-to-br from-blue-500 to-cyan-600 shadow-md shadow-blue-500/30'
                   : isThinking
-                    ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/40'
+                    ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/30'
                     : state === 'error'
-                      ? 'bg-gradient-to-br from-red-500 to-rose-600 shadow-lg shadow-red-500/40'
+                      ? 'bg-gradient-to-br from-red-500 to-rose-600 shadow-md shadow-red-500/30'
                       : 'bg-gradient-to-br from-neutral-600 to-neutral-700'
             }`}
           >
             {state === 'error' || circuitBreakerOpen ? (
-              <AlertCircle size={30} className="text-white" />
+              <AlertCircle size={16} className="text-white" />
+            ) : isSpeaking ? (
+              <AudioLines size={16} className="text-white" />
             ) : (
               <Mic
-                size={30}
+                size={16}
                 className={`text-white transition-opacity ${isActive ? 'opacity-100' : 'opacity-50'}`}
               />
             )}
           </div>
         </div>
 
-        {/* User transcript */}
-        {userTranscript && (
-          <div className="w-full text-center px-2">
-            <p className="text-white/60 text-sm leading-relaxed italic">
-              &ldquo;{userTranscript}&rdquo;
+        {/* Status text + live transcript preview */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold tracking-wide uppercase text-blue-400">
+              Live
+            </span>
+            <span className="text-xs text-white/50">{STATE_LABELS[state]}</span>
+          </div>
+          {/* Streaming transcript preview — single line, truncated */}
+          {(assistantTranscript || userTranscript) && (
+            <p className="text-xs text-white/70 truncate mt-0.5 leading-snug">
+              {assistantTranscript || (userTranscript ? `"${userTranscript}"` : '')}
             </p>
-          </div>
-        )}
-
-        {/* Error message */}
-        {error && (
-          <div className="w-full text-center px-4">
-            <p className="text-red-400 text-sm">{error}</p>
-          </div>
-        )}
+          )}
+          {error && <p className="text-xs text-red-400 truncate mt-0.5">{error}</p>}
+        </div>
 
         {/* Circuit breaker retry */}
         {circuitBreakerOpen && (
           <button
             type="button"
             onClick={onResetCircuitBreaker}
-            className="flex items-center gap-2 px-5 py-3 min-h-[44px] rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white text-sm touch-manipulation"
+            className="flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-full bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-white text-xs touch-manipulation shrink-0"
           >
-            <RefreshCw size={14} />
-            Try voice again
+            <RefreshCw size={12} />
+            Retry
           </button>
         )}
-      </div>
 
-      {/* Footer — end session button */}
-      <div
-        className="w-full px-6 pb-6"
-        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)' }}
-      >
+        {/* End session button */}
         <button
           type="button"
           onClick={onEnd}
-          className="w-full py-3.5 min-h-[48px] rounded-full bg-red-500/20 border border-red-500/30 text-red-300 text-sm font-medium hover:bg-red-500/30 active:scale-[0.98] transition-all touch-manipulation"
+          className="size-9 min-h-[44px] min-w-[44px] rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center hover:bg-red-500/25 active:scale-95 transition-all touch-manipulation shrink-0"
+          aria-label="End voice session"
         >
-          {isActive ? 'End Voice Session' : 'Close'}
+          <X size={16} className="text-red-400" />
         </button>
       </div>
+
+      {/* Expanded transcript area — shows when there's content, scrollable */}
+      {(assistantTranscript || userTranscript) && (
+        <div ref={transcriptRef} className="max-h-24 overflow-y-auto px-3 pb-2 scrollbar-none">
+          {userTranscript && (
+            <p className="text-xs text-white/50 italic leading-relaxed">
+              &ldquo;{userTranscript}&rdquo;
+            </p>
+          )}
+          {assistantTranscript && (
+            <p className="text-sm text-white/85 leading-relaxed mt-1">{assistantTranscript}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

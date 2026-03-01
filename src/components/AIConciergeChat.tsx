@@ -26,7 +26,6 @@ import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
-import { VOICE_LIVE_ENABLED } from '@/config/voiceFeatureFlags';
 import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
@@ -1524,24 +1523,23 @@ export const AIConciergeChat = ({
           </div>
         )}
 
-        {/* Gemini Live voice overlay — full-screen during bidirectional session */}
-        {liveOverlayOpen && (
-          <VoiceLiveOverlay
-            state={liveState}
-            userTranscript={liveUserTranscript}
-            assistantTranscript={liveAssistantTranscript}
-            error={liveError}
-            circuitBreakerOpen={liveCircuitBreakerOpen}
-            onEnd={handleEndLiveSession}
-            onResetCircuitBreaker={resetLiveCircuitBreaker}
-          />
-        )}
-
-        {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
+        {/* Input area — sticky bottom with inline voice banner above input */}
         <div
           className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
+          {/* Gemini Live voice banner — inline above input, chat stays visible */}
+          {liveOverlayOpen && (
+            <VoiceLiveOverlay
+              state={liveState}
+              userTranscript={liveUserTranscript}
+              assistantTranscript={liveAssistantTranscript}
+              error={liveError}
+              circuitBreakerOpen={liveCircuitBreakerOpen}
+              onEnd={handleEndLiveSession}
+              onResetCircuitBreaker={resetLiveCircuitBreaker}
+            />
+          )}
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
@@ -1563,8 +1561,8 @@ export const AIConciergeChat = ({
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
                 : undefined
             }
-            convoVoiceState={VOICE_LIVE_ENABLED ? convoVoiceState : undefined}
-            onConvoToggle={VOICE_LIVE_ENABLED ? handleConvoToggle : undefined}
+            convoVoiceState={convoVoiceState}
+            onConvoToggle={handleConvoToggle}
             dictationVoiceState={dictationState}
             onDictationToggle={handleDictationToggle}
             isVoiceEligible={true}
