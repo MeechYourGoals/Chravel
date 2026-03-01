@@ -31,6 +31,12 @@ import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
+import { SmartImportChips } from '@/features/chat/components/SmartImportChips';
+import {
+  parseAttachmentForCalendar,
+  type ExtractedCalendarItem,
+} from '@/utils/conciergeSmartImport';
+import { calendarService } from '@/services/calendarService';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -136,6 +142,10 @@ export interface ChatMessage {
   }>;
   /** Reservation draft cards from emitReservationDraft tool */
   reservationDrafts?: ReservationDraft[];
+  /** Extracted calendar items from Smart Import (screenshot/PDF → calendar) */
+  smartImportItems?: ExtractedCalendarItem[];
+  /** Result after Smart Import confirm */
+  smartImportResult?: { imported: number; failed: number } | null;
 }
 
 interface ConciergeInvokePayload {
@@ -591,12 +601,262 @@ export const AIConciergeChat = ({
     [user?.id],
   );
 
+  // ── Smart Import (screenshot/PDF → calendar) ────────────────────────────
+  const [smartImportLoading, setSmartImportLoading] = useState<string | null>(null);
+
+  /**
+   * Detect whether the user's message + attachments indicate a Smart Import
+   * intent (e.g. "add to calendar", "import this", "save this to the trip").
+   */
+  const detectSmartImportIntent = useCallback(
+    (message: string, hasAttachments: boolean): 'calendar' | 'trip' | 'tasks' | null => {
+      if (!hasAttachments) return null;
+      const lower = message.toLowerCase();
+      const calendarPhrases = [
+        'add to calendar',
+        'save to calendar',
+        'import this',
+        'import to calendar',
+        'add this to the trip',
+        'save this to the trip',
+        'turn this into',
+        'create event',
+        'add event',
+        'put this on the calendar',
+        'schedule this',
+      ];
+      if (calendarPhrases.some(p => lower.includes(p))) return 'calendar';
+      return null;
+    },
+    [],
+  );
+
+  /**
+   * Run the Smart Import pipeline: parse attached images/PDFs, show a preview
+   * card in chat, and let the user confirm before writing to the calendar.
+   */
+  const handleSmartImport = useCallback(
+    async (action: 'calendar' | 'trip' | 'tasks', messageOverride?: string) => {
+      if (action !== 'calendar') {
+        // For non-calendar actions, just forward to the regular send flow
+        const prompt =
+          action === 'trip'
+            ? 'Save the details from this attachment to the trip'
+            : 'Create tasks from this attachment';
+        void handleSendMessageRef.current?.(messageOverride ?? prompt);
+        return;
+      }
+
+      const selectedImages = [...attachedImages];
+      if (selectedImages.length === 0) return;
+
+      const userDisplayContent = messageOverride?.trim() || 'Add to calendar';
+
+      // Add user message
+      const userMessage: ChatMessage = {
+        id: _uniqueId('user'),
+        type: 'user',
+        content: userDisplayContent,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, userMessage]);
+      setInputMessage('');
+      setAttachedImages([]);
+
+      // Show parsing state
+      const parsingMsgId = _uniqueId('parsing');
+      setMessages(prev => [
+        ...prev,
+        {
+          id: parsingMsgId,
+          type: 'assistant',
+          content: 'Scanning your attachment for events...',
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      setSmartImportLoading(parsingMsgId);
+
+      try {
+        // Convert the first image to base64 and parse
+        const file = selectedImages[0];
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result ?? ''));
+          reader.onerror = () => reject(new Error(`Failed to read "${file.name}"`));
+          reader.readAsDataURL(file);
+        });
+        const base64Index = dataUrl.indexOf('base64,');
+        if (base64Index < 0) throw new Error('Unable to encode file');
+        const base64Data = dataUrl.substring(base64Index + 'base64,'.length);
+
+        const result = await parseAttachmentForCalendar(base64Data, file.type, file.name, tripId);
+
+        if (result.items.length === 0) {
+          // No items found — update the parsing message
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === parsingMsgId
+                ? {
+                    ...m,
+                    content:
+                      result.errors.length > 0
+                        ? `Couldn't read that — ${result.errors[0]}. Try a clearer screenshot or upload the PDF.`
+                        : "Couldn't find any calendar events in this attachment. Try a clearer screenshot or upload the PDF directly.",
+                  }
+                : m,
+            ),
+          );
+          return;
+        }
+
+        // Check for duplicates — filter out items whose import_hash already exists
+        const existingEvents = await calendarService.getTripEvents(tripId);
+        const existingHashes = new Set<string>();
+        for (const evt of existingEvents) {
+          const sd = evt.source_data as Record<string, unknown> | null;
+          if (sd?.import_hash && typeof sd.import_hash === 'string') {
+            existingHashes.add(sd.import_hash);
+          }
+        }
+        const newItems = result.items.filter(
+          item => !item.importHash || !existingHashes.has(item.importHash),
+        );
+        const duplicateCount = result.items.length - newItems.length;
+
+        if (newItems.length === 0) {
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === parsingMsgId
+                ? {
+                    ...m,
+                    content: `All ${result.items.length} event${result.items.length !== 1 ? 's' : ''} from this attachment are already in your calendar.`,
+                  }
+                : m,
+            ),
+          );
+          return;
+        }
+
+        // Replace parsing message with preview card
+        const previewContent =
+          duplicateCount > 0
+            ? `Found ${result.items.length} event${result.items.length !== 1 ? 's' : ''} (${duplicateCount} already imported). Select the ones to add:`
+            : `Found ${newItems.length} event${newItems.length !== 1 ? 's' : ''}. Select the ones to add to your calendar:`;
+
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === parsingMsgId
+              ? {
+                  ...m,
+                  content: previewContent,
+                  smartImportItems: newItems,
+                }
+              : m,
+          ),
+        );
+      } catch (err) {
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === parsingMsgId
+              ? {
+                  ...m,
+                  content: `Failed to parse attachment: ${err instanceof Error ? err.message : 'Unknown error'}. Try a clearer screenshot.`,
+                }
+              : m,
+          ),
+        );
+      } finally {
+        setSmartImportLoading(null);
+      }
+    },
+    [attachedImages, tripId],
+  );
+
+  /**
+   * Write confirmed Smart Import items to the trip calendar.
+   */
+  const handleSmartImportConfirm = useCallback(
+    async (messageId: string, selectedItems: ExtractedCalendarItem[]) => {
+      if (selectedItems.length === 0) return;
+
+      setSmartImportLoading(messageId);
+
+      try {
+        const eventsToCreate = selectedItems.map(item => ({
+          trip_id: tripId,
+          title: item.title,
+          description: item.notes ?? undefined,
+          start_time: item.startDatetime,
+          end_time: item.endDatetime ?? undefined,
+          location: item.locationName ?? undefined,
+          event_category: item.category,
+          include_in_itinerary: true,
+          source_type: 'ai_extracted' as const,
+          source_data: {
+            import_hash: item.importHash,
+            source: item.source,
+            kind: item.kind,
+            confidence: item.confidence,
+          },
+        }));
+
+        const result = await calendarService.bulkCreateEvents(eventsToCreate);
+
+        // Update message with result
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  smartImportResult: {
+                    imported: result.imported,
+                    failed: result.failed,
+                  },
+                  smartImportItems: undefined,
+                }
+              : m,
+          ),
+        );
+
+        if (result.imported > 0) {
+          toast.success(
+            `Added ${result.imported} event${result.imported !== 1 ? 's' : ''} to Calendar`,
+            {
+              action: onTabChange
+                ? {
+                    label: 'View Calendar',
+                    onClick: () => onTabChange('calendar'),
+                  }
+                : undefined,
+            },
+          );
+        }
+      } catch (err) {
+        toast.error('Failed to import events', {
+          description: err instanceof Error ? err.message : 'Please try again',
+        });
+      } finally {
+        setSmartImportLoading(null);
+      }
+    },
+    [tripId, onTabChange],
+  );
+
   const handleSendMessage = async (messageOverride?: string) => {
     const typedMessage =
       typeof messageOverride === 'string' ? messageOverride.trim() : inputMessage.trim();
     const selectedImages = UPLOAD_ENABLED ? [...attachedImages] : [];
     const hasImageAttachments = selectedImages.length > 0;
     if ((!typedMessage && !hasImageAttachments) || isTyping) return;
+
+    // ── Smart Import intercept ──────────────────────────────────────────────
+    // If the user has attachments and their message indicates calendar import
+    // intent, run the Smart Import pipeline instead of sending to Gemini.
+    const importIntent = detectSmartImportIntent(typedMessage, hasImageAttachments);
+    if (importIntent === 'calendar') {
+      void handleSmartImport('calendar', typedMessage);
+      return;
+    }
 
     const messageToSend =
       typedMessage || `Please analyze the ${selectedImages.length} attached image(s).`;
@@ -1388,11 +1648,13 @@ export const AIConciergeChat = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
+          accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,application/pdf"
           multiple
           className="hidden"
           onChange={e => {
-            const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
+            const files = Array.from(e.target.files || []).filter(
+              f => f.type.startsWith('image/') || f.type === 'application/pdf',
+            );
             if (files.length > 0) setAttachedImages(prev => [...prev, ...files].slice(0, 4));
             if (fileInputRef.current) fileInputRef.current.value = '';
           }}
@@ -1456,6 +1718,7 @@ export const AIConciergeChat = ({
                 <p>• "What's in the calendar agenda for the rest of the week"</p>
                 <p>• "What tasks still need to be completed"</p>
                 <p>• "Can you summarize my payments owed?"</p>
+                <p>• Screenshot a boarding pass + "Add to calendar"</p>
               </div>
               <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
                 ✨ Powered by AI - ask me anything!
@@ -1494,6 +1757,8 @@ export const AIConciergeChat = ({
               onEditReservation={(prefill: string) => {
                 setInputMessage(prefill);
               }}
+              onSmartImportConfirm={handleSmartImportConfirm}
+              smartImportLoading={smartImportLoading}
             />
           )}
         </div>
@@ -1529,6 +1794,15 @@ export const AIConciergeChat = ({
           className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
+          {/* Smart Import quick-action chips — shown when images are attached */}
+          {attachedImages.length > 0 && !isTyping && !smartImportLoading && (
+            <SmartImportChips
+              onAction={action => {
+                void handleSmartImport(action, inputMessage.trim() || undefined);
+              }}
+              disabled={isQueryLimitReached}
+            />
+          )}
           {/* Gemini Live voice banner — inline above input, chat stays visible */}
           {liveOverlayOpen && (
             <VoiceLiveOverlay

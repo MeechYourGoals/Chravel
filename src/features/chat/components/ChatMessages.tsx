@@ -9,7 +9,9 @@ import { FlightResultCards, FlightResult } from './FlightResultCards';
 import { HotelResultCards, HotelResult } from './HotelResultCards';
 import { ConciergeActionCard, ConciergeActionResult } from './ConciergeActionCard';
 import { ReservationDraftCard } from './ReservationDraftCard';
+import { SmartImportPreviewCard } from './SmartImportPreviewCard';
 import type { ReservationDraft } from '@/services/conciergeGateway';
+import type { ExtractedCalendarItem } from '@/utils/conciergeSmartImport';
 
 /** Extended message shape that may carry rich function-call data from the concierge. */
 interface RichChatMessage extends ChatMessage {
@@ -18,6 +20,8 @@ interface RichChatMessage extends ChatMessage {
   functionCallHotels?: HotelResult[];
   conciergeActions?: ConciergeActionResult[];
   reservationDrafts?: ReservationDraft[];
+  smartImportItems?: ExtractedCalendarItem[];
+  smartImportResult?: { imported: number; failed: number } | null;
 }
 
 interface ChatMessagesProps {
@@ -32,6 +36,10 @@ interface ChatMessagesProps {
   isUrlSaved?: (url: string) => boolean;
   isSaving?: boolean;
   onEditReservation?: (prefill: string) => void;
+  /** Smart Import: confirm selected items to write to calendar */
+  onSmartImportConfirm?: (messageId: string, items: ExtractedCalendarItem[]) => void;
+  /** Smart Import: loading state (message ID being imported) */
+  smartImportLoading?: string | null;
 }
 
 export const ChatMessages = ({
@@ -46,6 +54,8 @@ export const ChatMessages = ({
   isUrlSaved,
   isSaving,
   onEditReservation,
+  onSmartImportConfirm,
+  smartImportLoading,
 }: ChatMessagesProps) => {
   if (messages.length === 0) {
     return (
@@ -138,6 +148,20 @@ export const ChatMessages = ({
                     <ReservationDraftCard key={draft.id} draft={draft} onEdit={onEditReservation} />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Smart Import preview / result cards */}
+            {(rich.smartImportItems || rich.smartImportResult) && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <SmartImportPreviewCard
+                  items={rich.smartImportItems ?? []}
+                  onConfirm={items => onSmartImportConfirm?.(message.id, items)}
+                  isImporting={smartImportLoading === message.id}
+                  importResult={rich.smartImportResult}
+                />
               </div>
             )}
             {onDeleteMessage && (
