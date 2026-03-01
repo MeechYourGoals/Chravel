@@ -70,7 +70,13 @@ interface UseGeminiLiveReturn {
   assistantTranscript: string;
   diagnostics: VoiceDiagnostics;
   startSession: () => Promise<void>;
-  endSession: () => void;
+  /**
+   * End the voice session and release all audio resources.
+   * Returns a Promise that resolves once the AudioContext is fully closed
+   * and MediaStream tracks are stopped, so callers can safely await before
+   * starting a new audio session (e.g. switching to dictation mode).
+   */
+  endSession: () => Promise<void>;
   interruptPlayback: () => void;
   sendImage: (mimeType: string, base64Data: string) => void;
   isSupported: boolean;
@@ -241,6 +247,8 @@ export function useGeminiLive({
   const turnStartedAtRef = useRef<number | null>(null);
   const cancelStartedAtRef = useRef<number | null>(null);
   const sessionExpiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards against re-entrant cleanup calls (e.g. endSession + ws.onclose both calling cleanup).
+  const isCleaningUpRef = useRef(false);
 
   const userTranscriptAccRef = useRef('');
   const assistantTranscriptAccRef = useRef('');
@@ -312,7 +320,12 @@ export function useGeminiLive({
     });
   }, [patchMetrics]);
 
-  const cleanup = useCallback(() => {
+  const cleanup = useCallback(async () => {
+    // Idempotency guard — prevents double-cleanup from concurrent calls
+    // (e.g. endSession() and ws.onclose both triggering cleanup at the same time).
+    if (isCleaningUpRef.current) return;
+    isCleaningUpRef.current = true;
+
     isStartingRef.current = false;
     clearThinkingTimer();
     if (sessionExpiryTimerRef.current) {
@@ -320,22 +333,33 @@ export function useGeminiLive({
       sessionExpiryTimerRef.current = null;
     }
 
+    // Stop audio capture first — prevents onaudioprocess from firing during teardown.
     captureHandleRef.current?.stop();
     captureHandleRef.current = null;
 
+    // Stop all MediaStream tracks synchronously so the mic indicator goes away immediately.
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
 
+    // Destroy playback queue (stops & disconnects all buffer sources).
     playbackQueueRef.current?.destroy();
     playbackQueueRef.current = null;
 
-    if (audioCtxRef.current?.state !== 'closed') {
-      audioCtxRef.current?.close().catch(() => {});
-    }
+    // Close AudioContext — this is async. We capture the context and null the ref first
+    // so new sessions can create a fresh context while this one finishes closing.
+    const ctxToClose = audioCtxRef.current;
     audioCtxRef.current = null;
+    if (ctxToClose && ctxToClose.state !== 'closed') {
+      try {
+        await ctxToClose.close();
+      } catch {
+        // Non-fatal — browser may have already closed it.
+      }
+    }
 
+    // Close WebSocket — null handlers first to prevent re-entrant onclose → cleanup.
     if (wsRef.current) {
       wsRef.current.onopen = null;
       wsRef.current.onmessage = null;
@@ -356,9 +380,16 @@ export function useGeminiLive({
       audioSampleRate: null,
       micRms: 0,
     });
+
+    isCleaningUpRef.current = false;
   }, [clearThinkingTimer, patchDiagnostics]);
 
-  useEffect(() => () => cleanup(), [cleanup]);
+  useEffect(
+    () => () => {
+      void cleanup();
+    },
+    [cleanup],
+  );
 
   const prevTripIdRef = useRef(tripId);
   useEffect(() => {
@@ -368,7 +399,7 @@ export function useGeminiLive({
       if (pendingUser || pendingAssistant) {
         onTurnCompleteRef.current?.(pendingUser, pendingAssistant);
       }
-      cleanup();
+      void cleanup();
       transition('idle', 'trip_changed');
       setError(null);
       setUserTranscript('');
@@ -684,7 +715,7 @@ export function useGeminiLive({
             onErrorRef.current?.(msg);
             setError(msg);
             transition('error', 'setup_timeout');
-            cleanup();
+            void cleanup();
           }
         }, WEBSOCKET_SETUP_TIMEOUT_MS);
       };
@@ -709,7 +740,7 @@ export function useGeminiLive({
             setError(userMsg);
             patchDiagnostics({ lastError: userMsg, connectionStatus: 'error' });
             transition('error', 'server_error');
-            cleanup();
+            void cleanup();
             return;
           }
 
@@ -928,7 +959,7 @@ export function useGeminiLive({
         } else {
           transition('idle', 'ws_closed_cleanly');
         }
-        cleanup();
+        void cleanup();
       };
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to start voice session.';
@@ -937,7 +968,7 @@ export function useGeminiLive({
       setError(errMsg);
       patchDiagnostics({ lastError: errMsg, connectionStatus: 'error' });
       transition('error', 'start_failed');
-      cleanup();
+      void cleanup();
     }
   }, [
     isSupported,
@@ -971,7 +1002,7 @@ export function useGeminiLive({
     transition('listening', 'post_manual_interrupt');
   }, [flushModelOutput, resetTurnAccumulators, sendCancelSignal, transition]);
 
-  const endSession = useCallback(() => {
+  const endSession = useCallback(async () => {
     const pendingUser = userTranscriptAccRef.current.trim();
     const pendingAssistant = assistantTranscriptAccRef.current.trim();
     if (pendingUser || pendingAssistant) onTurnCompleteRef.current?.(pendingUser, pendingAssistant);
@@ -979,7 +1010,10 @@ export function useGeminiLive({
     resetTurnAccumulators();
     setError(null);
     transition('idle', 'user_end_session');
-    cleanup();
+    // Await cleanup so callers (e.g. switching to dictation mode) can be confident
+    // the AudioContext is fully closed and MediaStream tracks are released before
+    // the next audio session starts. This prevents mic-in-use conflicts on iOS/Android.
+    await cleanup();
   }, [cleanup, resetTurnAccumulators, transition]);
 
   const handleResetCircuitBreaker = useCallback(() => {

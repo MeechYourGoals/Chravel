@@ -487,8 +487,8 @@ export const AIConciergeChat = ({
     const dictationActive = dictationState === 'listening' || dictationState === 'connecting';
 
     if (liveState !== 'idle' && liveState !== 'error') {
-      // Already in conversation — end it
-      endLiveSession();
+      // Already in conversation — end it (fire-and-forget; no need to sequence anything after)
+      void endLiveSession();
       return;
     }
 
@@ -508,25 +508,22 @@ export const AIConciergeChat = ({
     }
   }, [dictationState, stopDictation, liveState, startLiveSession, endLiveSession]);
 
-  // Dictation toggle — stops conversation first if active
-  const handleDictationToggle = useCallback(() => {
+  // Dictation toggle — stops conversation first if active.
+  // We await endLiveSession() before calling toggleDictation() so the AudioContext and
+  // MediaStream tracks from Gemini Live are fully released before Web Speech API tries to
+  // acquire the same mic device. The old setTimeout(200ms) approach was a best-effort
+  // workaround; awaiting the Promise is deterministic and handles slow AudioContext.close().
+  const handleDictationToggle = useCallback(async () => {
     const isConvoActive = liveState !== 'idle' && liveState !== 'error';
     if (isConvoActive) {
-      // End Gemini Live and wait 200ms for AudioContext + MediaStream tracks to
-      // stop fully before Web Speech API tries to acquire the same mic device.
-      // Without this delay, SpeechRecognition.start() gets denied (mic still locked).
-      endLiveSession();
+      await endLiveSession();
       setLiveOverlayOpen(false);
-      setTimeout(() => {
-        toggleDictation();
-      }, 200);
-      return;
     }
     toggleDictation();
   }, [liveState, endLiveSession, toggleDictation]);
 
   const handleEndLiveSession = useCallback(() => {
-    endLiveSession();
+    void endLiveSession();
     setLiveOverlayOpen(false);
   }, [endLiveSession]);
 
