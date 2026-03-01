@@ -33,3 +33,4 @@ dist-ssr
 # MCP Configuration (contains API keys)
 .mcp.json
 .cursor/mcp_config.json
+.claude/worktrees/
