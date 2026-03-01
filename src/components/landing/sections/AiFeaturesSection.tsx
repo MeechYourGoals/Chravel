@@ -147,7 +147,7 @@ export const AiFeaturesSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 tablet:gap-8 items-stretch">
           {/* Left: Places Screenshot */}
           <motion.div
-            className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-accent/30 transition-all duration-300 min-h-[300px] lg:min-h-[380px]"
+            className="rounded-2xl overflow-hidden shadow-2xl border border-border/50 hover:border-accent/30 transition-all duration-300 min-h-[300px] lg:min-h-[380px] bg-card flex items-center"
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -155,8 +155,8 @@ export const AiFeaturesSection = () => {
           >
             <img
               src={placesMaps}
-              alt="Interactive maps and places discovery"
-              className="w-full h-full object-cover object-top"
+              alt="BaseCamps and Places exploration with maps"
+              className="w-full h-auto object-contain"
             />
           </motion.div>
 
