@@ -51,6 +51,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          metadata: Json | null
           query_text: string | null
           response_text: string | null
           source_count: number | null
@@ -60,6 +61,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          metadata?: Json | null
           query_text?: string | null
           response_text?: string | null
           source_count?: number | null
@@ -69,6 +71,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          metadata?: Json | null
           query_text?: string | null
           response_text?: string | null
           source_count?: number | null

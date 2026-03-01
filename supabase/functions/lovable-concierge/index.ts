@@ -2351,6 +2351,7 @@ async function storeConversation(
       query_text: userMessage,
       response_text: aiResponse,
       source_count: metadata?.grounding_sources || 0,
+      metadata: metadata || null,
       created_at: new Date().toISOString(),
     });
   } catch (error) {
