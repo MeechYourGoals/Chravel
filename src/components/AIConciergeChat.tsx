@@ -465,6 +465,7 @@ export const AIConciergeChat = ({
     assistantTranscript: liveAssistantTranscript,
     startSession: startLiveSession,
     endSession: endLiveSession,
+    diagnostics: liveDiagnostics,
     circuitBreakerOpen: liveCircuitBreakerOpen,
     resetCircuitBreaker: resetLiveCircuitBreaker,
   } = useGeminiLive({
@@ -1814,6 +1815,7 @@ export const AIConciergeChat = ({
               onEnd={handleEndLiveSession}
               onResetCircuitBreaker={resetLiveCircuitBreaker}
               onReconnect={handleConvoToggle}
+              diagnostics={liveDiagnostics}
             />
           )}
           <AiChatInput

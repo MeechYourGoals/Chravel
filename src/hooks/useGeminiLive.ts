@@ -38,6 +38,8 @@ export interface VoiceDiagnostics {
   wsCloseReason: string | null;
   reconnectAttempts: number;
   lastError: string | null;
+  /** Substep label for incremental UI feedback */
+  substep: string | null;
   metrics: {
     firstAudioChunkSentMs: number | null;
     firstTokenReceivedMs: number | null;
@@ -69,30 +71,23 @@ interface UseGeminiLiveReturn {
   assistantTranscript: string;
   diagnostics: VoiceDiagnostics;
   startSession: () => Promise<void>;
-  /**
-   * End the voice session and release all audio resources.
-   * Returns a Promise that resolves once the AudioContext is fully closed
-   * and MediaStream tracks are stopped, so callers can safely await before
-   * starting a new audio session (e.g. switching to dictation mode).
-   */
   endSession: () => Promise<void>;
   interruptPlayback: () => void;
   sendImage: (mimeType: string, base64Data: string) => void;
   isSupported: boolean;
-  /** Circuit breaker tripped — voice disabled until reset. */
   circuitBreakerOpen: boolean;
-  /** Reset circuit breaker for "Try voice again". */
   resetCircuitBreaker: () => void;
 }
 
 const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
-const SESSION_TIMEOUT_MS = 60_000; // 60s — generous buffer for edge function cold starts + context build + token
-const WEBSOCKET_SETUP_TIMEOUT_MS = 25_000; // 25s — buffer for Gemini Live setup delay
+const SESSION_TIMEOUT_MS = 60_000;
+const WEBSOCKET_SETUP_TIMEOUT_MS = 12_000; // Gate 2: reduced from 25s to 12s
 const THINKING_DELAY_MS = 1_500;
 const BARGE_IN_RMS_THRESHOLD = 0.035;
-const EPHEMERAL_TOKEN_WARN_MS = 25 * 60 * 1000; // Warn 5 min before 30-min default expiry
-const WS_KEEPALIVE_INTERVAL_MS = 15_000; // 15s keepalive ping to detect dead connections
-const AUTO_RECONNECT_DELAY_MS = 2_000; // 2s backoff before auto-reconnect attempt
+const EPHEMERAL_TOKEN_WARN_MS = 25 * 60 * 1000;
+const WS_KEEPALIVE_INTERVAL_MS = 15_000;
+const AUTO_RECONNECT_DELAY_MS = 2_000;
+const MAX_AUTO_RECONNECT_RETRIES = 2; // Cap retries
 
 /** Structured debug logging — enabled in dev mode or when VITE_VOICE_DEBUG=true */
 const VOICE_DEBUG =
@@ -153,7 +148,7 @@ function mapSessionError(raw: string): string {
 
 function mapWsCloseError(code: number, reason: string): string | null {
   if (code === 1000 || code === 1005) return null;
-  if (reason) return reason;
+  if (reason) return `Voice disconnected: ${reason} (code ${code})`;
   const MESSAGES: Record<number, string> = {
     1001: 'Voice session ended (browser navigated away).',
     1002: 'Voice connection protocol error — please try again.',
@@ -179,6 +174,7 @@ const initialDiagnostics: VoiceDiagnostics = {
   wsCloseReason: null,
   reconnectAttempts: 0,
   lastError: null,
+  substep: null,
   metrics: {
     firstAudioChunkSentMs: null,
     firstTokenReceivedMs: null,
@@ -249,11 +245,14 @@ export function useGeminiLive({
   const cancelStartedAtRef = useRef<number | null>(null);
   const sessionExpiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keepaliveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Tracks whether we should auto-reconnect on next failure (one attempt per session start).
-  const autoReconnectAllowedRef = useRef(true);
+  // Auto-reconnect: disabled until first successful session (Gate fix)
+  const autoReconnectAllowedRef = useRef(false);
+  const autoReconnectCountRef = useRef(0);
   const autoReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Guards against re-entrant cleanup calls (e.g. endSession + ws.onclose both calling cleanup).
+  // Guards against re-entrant cleanup calls
   const isCleaningUpRef = useRef(false);
+  // Track whether we've ever had a successful session (for enabling auto-reconnect)
+  const hasHadSuccessfulSessionRef = useRef(false);
 
   const userTranscriptAccRef = useRef('');
   const assistantTranscriptAccRef = useRef('');
@@ -326,8 +325,6 @@ export function useGeminiLive({
   }, [patchMetrics]);
 
   const cleanup = useCallback(async () => {
-    // Idempotency guard — prevents double-cleanup from concurrent calls
-    // (e.g. endSession() and ws.onclose both triggering cleanup at the same time).
     if (isCleaningUpRef.current) return;
     isCleaningUpRef.current = true;
 
@@ -346,33 +343,27 @@ export function useGeminiLive({
       autoReconnectTimerRef.current = null;
     }
 
-    // Stop audio capture first — prevents onaudioprocess from firing during teardown.
     captureHandleRef.current?.stop();
     captureHandleRef.current = null;
 
-    // Stop all MediaStream tracks synchronously so the mic indicator goes away immediately.
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
 
-    // Destroy playback queue (stops & disconnects all buffer sources).
     playbackQueueRef.current?.destroy();
     playbackQueueRef.current = null;
 
-    // Close AudioContext — this is async. We capture the context and null the ref first
-    // so new sessions can create a fresh context while this one finishes closing.
     const ctxToClose = audioCtxRef.current;
     audioCtxRef.current = null;
     if (ctxToClose && ctxToClose.state !== 'closed') {
       try {
         await ctxToClose.close();
       } catch {
-        // Non-fatal — browser may have already closed it.
+        // Non-fatal
       }
     }
 
-    // Close WebSocket — null handlers first to prevent re-entrant onclose → cleanup.
     if (wsRef.current) {
       wsRef.current.onopen = null;
       wsRef.current.onmessage = null;
@@ -392,6 +383,7 @@ export function useGeminiLive({
       audioContextState: 'unavailable',
       audioSampleRate: null,
       micRms: 0,
+      substep: null,
     });
 
     isCleaningUpRef.current = false;
@@ -504,6 +496,11 @@ export function useGeminiLive({
   const startSessionRef = useRef<() => Promise<void>>(async () => {});
 
   const startSession = useCallback(async () => {
+    // ── Gate 0: sessionAttemptId for end-to-end correlation ──
+    const sessionAttemptId = crypto.randomUUID();
+    const t0 = performance.now();
+    console.warn('[VOICE:G0] tap_live', { sessionAttemptId, tripId, voice });
+
     if (isCircuitBreakerOpen()) {
       setCircuitBreakerOpen(true);
       setError('Voice is temporarily unavailable. Tap "Try voice again" to retry.');
@@ -530,19 +527,19 @@ export function useGeminiLive({
         wsCloseCode: null,
         wsCloseReason: null,
         lastError: null,
+        substep: 'Getting voice session…',
       });
       setError(null);
       resetTurnAccumulators();
       resetMetricsForNewTurn();
       const sessionId = uniqueId('vs');
       const sessionStartedAt = performance.now();
-      voiceLog('session:start', { sessionId, tripId, voice });
+      voiceLog('session:start', { sessionId, tripId, voice, sessionAttemptId });
 
       if (!SafeAudioContext) {
         throw new Error('Audio is not supported in this browser.');
       }
       try {
-        // Use system default sample rate for best compatibility (echo cancellation etc)
         audioCtxRef.current = new SafeAudioContext();
         voiceLog('audioContext:created', {
           sampleRate: audioCtxRef.current.sampleRate,
@@ -565,13 +562,19 @@ export function useGeminiLive({
         );
       }
 
-      // Kick off resume synchronously — no await, so we stay in the gesture frame.
-      // If already running (common on second open) this is a no-op.
+      // Kick off resume synchronously
       void audioCtxRef.current.resume().catch(() => {});
 
       patchDiagnostics({
         audioContextState: audioCtxRef.current.state,
         audioSampleRate: audioCtxRef.current.sampleRate,
+      });
+
+      // ── Gate 3: Log audio context state ──
+      console.warn('[VOICE:G3] audio_context_state', {
+        sessionAttemptId,
+        state: audioCtxRef.current.state,
+        sampleRate: audioCtxRef.current.sampleRate,
       });
 
       if (typeof navigator !== 'undefined' && 'permissions' in navigator) {
@@ -585,8 +588,11 @@ export function useGeminiLive({
         }
       }
 
+      // ── Gate 0: invoke edge function ──
+      console.warn('[VOICE:G0] invoke_start', { sessionAttemptId, msFromStart: Math.round(performance.now() - t0) });
+      const invokeT0 = performance.now();
       const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
-        body: { tripId, voice },
+        body: { tripId, voice, sessionAttemptId },
       });
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(
@@ -595,10 +601,33 @@ export function useGeminiLive({
         ),
       );
 
-      const { data: sessionData, error: sessionError } = (await Promise.race([
-        sessionPromise,
-        timeoutPromise,
-      ])) as Awaited<typeof sessionPromise>;
+      let invokeResult: Awaited<typeof sessionPromise>;
+      try {
+        invokeResult = (await Promise.race([
+          sessionPromise,
+          timeoutPromise,
+        ])) as Awaited<typeof sessionPromise>;
+      } catch (invokeErr) {
+        const invokeErrMsg = invokeErr instanceof Error ? invokeErr.message : String(invokeErr);
+        console.warn('[VOICE:G0] invoke_failed', {
+          sessionAttemptId,
+          error: invokeErrMsg,
+          durationMs: Math.round(performance.now() - invokeT0),
+        });
+        throw invokeErr;
+      }
+
+      const { data: sessionData, error: sessionError } = invokeResult;
+      const invokeDurationMs = Math.round(performance.now() - invokeT0);
+
+      console.warn('[VOICE:G0] invoke_done', {
+        sessionAttemptId,
+        durationMs: invokeDurationMs,
+        hasData: !!sessionData,
+        hasError: !!sessionError,
+        errorMessage: sessionError?.message,
+        dataKeys: sessionData ? Object.keys(sessionData) : [],
+      });
 
       const accessToken =
         typeof sessionData?.accessToken === 'string' ? sessionData.accessToken : null;
@@ -609,10 +638,20 @@ export function useGeminiLive({
 
       if (sessionError || !accessToken) {
         const errMsg = mapSessionError(sessionErrMsg || 'Failed to get voice session');
+        console.warn('[VOICE:G1] token_failed', { sessionAttemptId, error: errMsg });
         voiceLog('session:tokenError', { error: errMsg });
         onErrorRef.current?.(errMsg);
         throw new Error(errMsg);
       }
+
+      console.warn('[VOICE:G1] token_received', {
+        sessionAttemptId,
+        model: sessionData?.model,
+        voice: sessionData?.voice,
+        hasWebsocketUrl: !!sessionData?.websocketUrl,
+        _rid: (sessionData as { _rid?: string })?._rid,
+        durationMs: invokeDurationMs,
+      });
       voiceLog('session:tokenReceived', {
         sessionId,
         hasToken: true,
@@ -622,6 +661,9 @@ export function useGeminiLive({
         _rid: (sessionData as { _rid?: string })?._rid,
       });
       voiceLog('timing:token', { ms: Math.round(performance.now() - sessionStartedAt) });
+
+      // ── Gate 0 passed. Now get mic. ──
+      patchDiagnostics({ substep: 'Requesting microphone…' });
 
       let stream: MediaStream;
       try {
@@ -650,6 +692,12 @@ export function useGeminiLive({
         throw new Error(errMsg);
       }
       mediaStreamRef.current = stream;
+
+      const track = stream.getAudioTracks()[0];
+      console.warn('[VOICE:G3] mic_acquired', {
+        sessionAttemptId,
+        deviceLabel: track?.label || 'unknown',
+      });
       voiceLog('mic:acquired', {
         tracks: stream.getAudioTracks().map(t => ({
           label: t.label,
@@ -657,18 +705,12 @@ export function useGeminiLive({
         })),
       });
       voiceLog('timing:mic', { ms: Math.round(performance.now() - sessionStartedAt) });
-
-      const track = stream.getAudioTracks()[0];
       patchDiagnostics({ micDeviceLabel: track?.label || null });
 
-      // 3. AudioContext already created above.
-      // Resume again here in case it was suspended after the async gap.
-      // iOS Safari often suspends contexts; we must force-resume and verify.
+      // Resume AudioContext again after async gap (iOS Safari)
       if (audioCtxRef.current?.state === 'suspended') {
         await audioCtxRef.current.resume().catch(() => {});
       }
-      // If still suspended after resume attempt, try one more time with a small delay
-      // (iOS Safari sometimes needs a tick before the context unblocks).
       if (audioCtxRef.current?.state === 'suspended') {
         await new Promise(r => setTimeout(r, 100));
         await audioCtxRef.current.resume().catch(() => {});
@@ -686,14 +728,12 @@ export function useGeminiLive({
           diagnosticsRef.current.metrics.firstAudioFramePlayedMs === null
         ) {
           patchMetrics({ firstAudioFramePlayedMs: performance.now() - turnStartedAtRef.current });
+          console.warn('[VOICE:G3] first_audio_played', { sessionAttemptId });
         }
       });
 
-      // 4. Open WebSocket to Gemini Live (duplex transport required)
-      // 4. Open WebSocket to Gemini Live
-      // Ephemeral tokens MUST use BidiGenerateContentConstrained (not BidiGenerateContent).
-      // BidiGenerateContent expects ?key=<API_KEY> while BidiGenerateContentConstrained
-      // expects ?access_token=<EPHEMERAL_TOKEN>.
+      // ── Gate 2: Open WebSocket ──
+      patchDiagnostics({ substep: 'Opening audio channel…' });
       const CONSTRAINED_WS_URL =
         'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
       const websocketUrl =
@@ -702,6 +742,12 @@ export function useGeminiLive({
           : CONSTRAINED_WS_URL;
 
       const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
+      const wsHost = new URL(websocketUrl).host;
+      console.warn('[VOICE:G2] ws_connecting', {
+        sessionAttemptId,
+        host: wsHost,
+        msFromStart: Math.round(performance.now() - t0),
+      });
       voiceLog('ws:connecting', {
         sessionId,
         endpoint: websocketUrl.split('/').pop(),
@@ -710,6 +756,9 @@ export function useGeminiLive({
       });
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
+
+      // Track first N inbound WS messages for Gate 2 diagnostics
+      let wsMessageCount = 0;
 
       let setupTimeoutId: ReturnType<typeof setTimeout> | undefined;
       const clearSetupTimeout = () => {
@@ -721,18 +770,30 @@ export function useGeminiLive({
 
       ws.onopen = () => {
         patchDiagnostics({ connectionStatus: 'open' });
+        console.warn('[VOICE:G2] ws_opened', {
+          sessionAttemptId,
+          readyState: ws.readyState,
+          msFromStart: Math.round(performance.now() - t0),
+        });
         debugLog('ws_open', {});
         voiceLog('ws:opened', { readyState: ws.readyState });
         voiceLog('timing:wsOpen', { ms: Math.round(performance.now() - sessionStartedAt) });
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
-            const msg = 'Voice connection timed out. Please try again.';
+            const msg = `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s. Please try again.`;
+            console.warn('[VOICE:G2] ws_setup_timeout', { sessionAttemptId, wsMessageCount });
             recordVoiceFailure(msg);
 
-            // Auto-reconnect once on setup timeout (covers slow Gemini setup)
-            if (autoReconnectAllowedRef.current && !isCircuitBreakerOpen()) {
-              autoReconnectAllowedRef.current = false;
-              voiceLog('auto_reconnect:setup_timeout', { delayMs: AUTO_RECONNECT_DELAY_MS });
+            // Auto-reconnect only if we've had a prior successful session
+            if (
+              autoReconnectAllowedRef.current &&
+              autoReconnectCountRef.current < MAX_AUTO_RECONNECT_RETRIES &&
+              !isCircuitBreakerOpen()
+            ) {
+              autoReconnectCountRef.current += 1;
+              const attempt = autoReconnectCountRef.current;
+              voiceLog('auto_reconnect:setup_timeout', { attempt, max: MAX_AUTO_RECONNECT_RETRIES });
+              patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
               transition('requesting_mic', 'auto_reconnect_pending');
               setError(null);
               void cleanup().then(() => {
@@ -755,6 +816,18 @@ export function useGeminiLive({
       ws.onmessage = event => {
         try {
           const data = JSON.parse(event.data);
+          wsMessageCount += 1;
+
+          // Gate 2: Log first 5 inbound message types
+          if (wsMessageCount <= 5) {
+            const frameKeys = Object.keys(data).filter(k => k !== 'serverContent' || wsMessageCount <= 3);
+            console.warn(`[VOICE:G2] ws_message_${wsMessageCount}`, {
+              sessionAttemptId,
+              keys: Object.keys(data),
+              hasSetupComplete: Object.prototype.hasOwnProperty.call(data, 'setupComplete'),
+              hasError: !!data.error,
+            });
+          }
 
           if (data.error) {
             voiceLog('ws:serverError', { code: data.error?.code, message: data.error?.message });
@@ -782,6 +855,10 @@ export function useGeminiLive({
               Object.prototype.hasOwnProperty.call(data.serverContent, 'setupComplete'));
 
           if (setupComplete) {
+            console.warn('[VOICE:G2] ws_setup_complete', {
+              sessionAttemptId,
+              msFromStart: Math.round(performance.now() - t0),
+            });
             voiceLog('ws:setupComplete', {
               sessionId,
               audioContextState: audioCtxRef.current?.state,
@@ -793,7 +870,7 @@ export function useGeminiLive({
             clearSetupTimeout();
             isStartingRef.current = false;
 
-            // Start session expiry countdown — warn user before the ephemeral token expires
+            // Start session expiry countdown
             sessionExpiryTimerRef.current = setTimeout(() => {
               onErrorRef.current?.('Voice session expiring soon. Please restart to continue.');
               patchDiagnostics({ lastError: 'Session nearing expiry' });
@@ -811,18 +888,14 @@ export function useGeminiLive({
                 }
                 return;
               }
-              // Gemini Live treats empty realtime_input as a no-op keepalive
               ws.send(JSON.stringify({ realtimeInput: { mediaChunks: [] } }));
               voiceLog('keepalive:sent', {});
             }, WS_KEEPALIVE_INTERVAL_MS);
 
             transition('ready', 'setup_complete');
+            patchDiagnostics({ substep: null });
 
             if (audioCtxRef.current && mediaStreamRef.current) {
-              // startAudioCapture is async — it prefers AudioWorklet (requires addModule),
-              // falling back to ScriptProcessor. Use an IIFE so the rest of the message
-              // handler stays synchronous. Transition to 'listening' happens inside
-              // the async block so it fires only after capture is ready.
               void (async () => {
                 try {
                   captureHandleRef.current = await startAudioCapture(
@@ -837,6 +910,7 @@ export function useGeminiLive({
                         patchMetrics({
                           firstAudioChunkSentMs: performance.now() - turnStartedAtRef.current,
                         });
+                        console.warn('[VOICE:G3] first_audio_sent', { sessionAttemptId });
                       }
                       if (stateRef.current === 'ready' || stateRef.current === 'listening') {
                         transition('sending', 'audio_chunk_sent');
@@ -860,10 +934,11 @@ export function useGeminiLive({
                     },
                     { diagnosticsEnabled: VOICE_DIAGNOSTICS_ENABLED },
                   );
-                  // Successful capture → close the circuit breaker if it was in half-open state
+                  // Successful capture → mark session successful
                   recordCircuitBreakerSuccess();
-                  // Reset auto-reconnect allowance now that session is fully working
+                  hasHadSuccessfulSessionRef.current = true;
                   autoReconnectAllowedRef.current = true;
+                  autoReconnectCountRef.current = 0;
                   transition('listening', 'capture_started');
                 } catch (captureErr) {
                   const msg =
@@ -928,6 +1003,7 @@ export function useGeminiLive({
                 patchMetrics({
                   firstTokenReceivedMs: performance.now() - turnStartedAtRef.current,
                 });
+                console.warn('[VOICE:G3] first_audio_received', { sessionAttemptId });
               }
             }
 
@@ -1003,12 +1079,22 @@ export function useGeminiLive({
       };
 
       ws.onerror = ev => {
+        console.warn('[VOICE:G2] ws_error', {
+          sessionAttemptId,
+          type: (ev as ErrorEvent).message ?? 'unknown',
+        });
         voiceLog('ws:error', { sessionId, type: (ev as ErrorEvent).message ?? 'unknown' });
         clearSetupTimeout();
         patchDiagnostics({ connectionStatus: 'error' });
       };
 
       ws.onclose = event => {
+        console.warn('[VOICE:G2] ws_closed', {
+          sessionAttemptId,
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+        });
         voiceLog('ws:closed', { code: event.code, reason: event.reason, wasClean: event.wasClean });
         clearSetupTimeout();
         const msg = mapWsCloseError(event.code, event.reason);
@@ -1027,11 +1113,16 @@ export function useGeminiLive({
         if (msg) {
           recordVoiceFailure(msg);
 
-          // Auto-reconnect once on first failure (not on clean close or circuit breaker open).
-          // This transparently retries after edge function cold starts / transient network drops.
-          if (autoReconnectAllowedRef.current && !isCircuitBreakerOpen()) {
-            autoReconnectAllowedRef.current = false;
-            voiceLog('auto_reconnect:scheduling', { delayMs: AUTO_RECONNECT_DELAY_MS });
+          // Auto-reconnect only if we've had a successful session before and retries remain
+          if (
+            autoReconnectAllowedRef.current &&
+            autoReconnectCountRef.current < MAX_AUTO_RECONNECT_RETRIES &&
+            !isCircuitBreakerOpen()
+          ) {
+            autoReconnectCountRef.current += 1;
+            const attempt = autoReconnectCountRef.current;
+            voiceLog('auto_reconnect:scheduling', { attempt, max: MAX_AUTO_RECONNECT_RETRIES });
+            patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
             transition('requesting_mic', 'auto_reconnect_pending');
             setError(null);
             void cleanup().then(() => {
@@ -1057,13 +1148,20 @@ export function useGeminiLive({
       const errMsg = err instanceof Error ? err.message : 'Failed to start voice session.';
       recordVoiceFailure(errMsg);
 
-      // Auto-reconnect once on first failure (covers cold start timeouts).
-      if (autoReconnectAllowedRef.current && !isCircuitBreakerOpen()) {
-        autoReconnectAllowedRef.current = false;
+      // Auto-reconnect only if we've had a successful session before
+      if (
+        autoReconnectAllowedRef.current &&
+        autoReconnectCountRef.current < MAX_AUTO_RECONNECT_RETRIES &&
+        !isCircuitBreakerOpen()
+      ) {
+        autoReconnectCountRef.current += 1;
+        const attempt = autoReconnectCountRef.current;
         voiceLog('auto_reconnect:scheduling_from_catch', {
           errMsg,
-          delayMs: AUTO_RECONNECT_DELAY_MS,
+          attempt,
+          max: MAX_AUTO_RECONNECT_RETRIES,
         });
+        patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
         transition('requesting_mic', 'auto_reconnect_pending');
         setError(null);
         void cleanup().then(() => {
@@ -1127,9 +1225,6 @@ export function useGeminiLive({
     resetTurnAccumulators();
     setError(null);
     transition('idle', 'user_end_session');
-    // Await cleanup so callers (e.g. switching to dictation mode) can be confident
-    // the AudioContext is fully closed and MediaStream tracks are released before
-    // the next audio session starts. This prevents mic-in-use conflicts on iOS/Android.
     await cleanup();
   }, [cleanup, resetTurnAccumulators, transition]);
 
@@ -1138,6 +1233,7 @@ export function useGeminiLive({
     setCircuitBreakerOpen(false);
     setError(null);
     setState('idle');
+    autoReconnectCountRef.current = 0;
   }, []);
 
   return {
