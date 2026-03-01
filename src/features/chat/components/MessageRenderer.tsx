@@ -146,10 +146,10 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   return (
     <div className={cn('flex w-full gap-2', isOwnMessage ? 'justify-end' : 'justify-start')}>
-      {/* AI Avatar for assistant messages - bluish-green gradient to match Chravel branding */}
+      {/* CA Avatar for assistant messages — Concierge AI / Chravel Agent */}
       {!isOwnMessage && (
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
-          <span className="text-xs text-white font-medium">AI</span>
+          <span className="text-xs text-white font-medium">CA</span>
         </div>
       )}
 
