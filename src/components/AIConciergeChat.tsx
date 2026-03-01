@@ -27,6 +27,7 @@ import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
 import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
+import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
@@ -1343,10 +1344,10 @@ export const AIConciergeChat = ({
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+              className={CTA_BUTTON}
               aria-label="Search concierge"
             >
-              <Search size={18} className="text-white" />
+              <Search size={CTA_ICON_SIZE} className="text-white" />
             </button>
             <h3
               className="text-lg font-semibold text-white flex-1 text-center min-w-0"
@@ -1359,11 +1360,11 @@ export const AIConciergeChat = ({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 data-testid="header-upload-btn"
-                className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+                className={CTA_BUTTON}
                 aria-label="Attach images"
                 title="Attach images"
               >
-                <ImagePlus size={18} className="text-white" />
+                <ImagePlus size={CTA_ICON_SIZE} className="text-white" />
               </button>
             </div>
           </div>

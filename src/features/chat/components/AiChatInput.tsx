@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Send, Sparkles, X, Mic, MicOff } from 'lucide-react';
+import { Send, Sparkles, X, Mic } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
 const LONG_PRESS_MS = 500;
 
@@ -238,7 +239,7 @@ export const AiChatInput = ({
             placeholder={getPlaceholder()}
             rows={2}
             disabled={disabled || isLimitReached}
-            className={`w-full bg-white/5 border rounded-2xl pl-4 pr-12 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+            className={`w-full bg-white/5 border rounded-2xl pl-14 pr-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
               isDictating
                 ? 'border-emerald-500/40 bg-emerald-500/5'
                 : isConvoActive
@@ -247,7 +248,7 @@ export const AiChatInput = ({
             }`}
           />
 
-          {/* Dictation mic — inside input, right side */}
+          {/* Dictation mic — inside input, left side (adjacent to waveform outside) */}
           {onDictationToggle && (
             <TooltipProvider>
               <Tooltip>
@@ -262,7 +263,7 @@ export const AiChatInput = ({
                     onMouseUp={handleDictPressEnd}
                     onMouseLeave={handleDictPressEnd}
                     disabled={disabled || isLimitReached || isConvoActive}
-                    className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center size-8 rounded-full transition-all duration-200 active:scale-90 touch-manipulation select-none ${
+                    className={`absolute left-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center size-9 rounded-full transition-all duration-200 active:scale-90 touch-manipulation select-none ${
                       isDictating
                         ? 'bg-emerald-500/20 text-emerald-400'
                         : isConvoActive
@@ -272,7 +273,11 @@ export const AiChatInput = ({
                     style={{ minWidth: 44, minHeight: 44 }}
                     aria-label="Dictate text"
                   >
-                    {isDictating ? <Mic size={15} className="animate-pulse" /> : <Mic size={15} />}
+                    {isDictating ? (
+                      <Mic size={CTA_ICON_SIZE} className="animate-pulse" />
+                    ) : (
+                      <Mic size={CTA_ICON_SIZE} />
+                    )}
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
@@ -282,9 +287,9 @@ export const AiChatInput = ({
             </TooltipProvider>
           )}
 
-          {/* Dictating pill — small indicator inside input */}
+          {/* Dictating pill — small indicator inside input (top-left, offset from mic) */}
           {isDictating && (
-            <span className="absolute left-3 top-1 text-[9px] font-semibold tracking-wider uppercase text-emerald-400/70 pointer-events-none select-none">
+            <span className="absolute left-14 top-1 text-[9px] font-semibold tracking-wider uppercase text-emerald-400/70 pointer-events-none select-none">
               Dictating&hellip;
             </span>
           )}
@@ -301,9 +306,9 @@ export const AiChatInput = ({
             isLimitReached
           }
           aria-label="Send message"
-          className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:opacity-90 text-white size-11 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shrink-0"
+          className={`size-11 rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`}
         >
-          <Send size={18} />
+          <Send size={CTA_ICON_SIZE} />
         </button>
       </div>
     </div>
