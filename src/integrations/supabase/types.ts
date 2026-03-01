@@ -43,34 +43,37 @@ export type Database = {
       };
       ai_queries: {
         Row: {
-          created_at: string | null;
-          id: string;
-          query_text: string | null;
-          response_text: string | null;
-          source_count: number | null;
-          trip_id: string | null;
-          user_id: string | null;
-        };
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          query_text: string | null
+          response_text: string | null
+          source_count: number | null
+          trip_id: string | null
+          user_id: string | null
+        }
         Insert: {
-          created_at?: string | null;
-          id?: string;
-          query_text?: string | null;
-          response_text?: string | null;
-          source_count?: number | null;
-          trip_id?: string | null;
-          user_id?: string | null;
-        };
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          query_text?: string | null
+          response_text?: string | null
+          source_count?: number | null
+          trip_id?: string | null
+          user_id?: string | null
+        }
         Update: {
-          created_at?: string | null;
-          id?: string;
-          query_text?: string | null;
-          response_text?: string | null;
-          source_count?: number | null;
-          trip_id?: string | null;
-          user_id?: string | null;
-        };
-        Relationships: [];
-      };
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          query_text?: string | null
+          response_text?: string | null
+          source_count?: number | null
+          trip_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       broadcast_reactions: {
         Row: {
           broadcast_id: string;

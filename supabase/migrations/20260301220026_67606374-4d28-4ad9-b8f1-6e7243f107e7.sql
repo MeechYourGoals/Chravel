@@ -1,0 +1,1 @@
+ALTER TABLE ai_queries ADD COLUMN metadata jsonb DEFAULT NULL;
