@@ -1,116 +1,80 @@
 
 
-# Fix Places Explore Tab: Loading Spinner + Performance
+# Marketing Page Updates + Build Error Fixes
 
-## Problem Summary
-Three issues identified in the Places > Explore tab:
+## Overview
 
-1. **White spinner instead of yellow/gold** -- `TripLinksDisplay.tsx` uses a plain white `border-white` spinner while every other tab uses the branded `border-primary` (gold) spinner
-2. **Slow loading / timeout** -- The Explore sub-tab fetches from `trip_links` table with a 15-second timeout, and this query appears to be timing out for real trips
-3. **Tab switching doesn't help** -- PlacesSection keeps both sub-tabs mounted via `display: none`, so switching away never unmounts/remounts the Explore tab. The failed query with `retry: 1` stays in error state permanently
+Three marketing page updates plus two pre-existing build errors that need fixing.
 
-## Root Cause
+---
 
-- `TripLinksDisplay.tsx` line 372-381: Custom white spinner (`border-b-2 border-white`) instead of the standard branded spinner
-- `PlacesSection.tsx` line 225: `display: none` keeps LinksPanel/TripLinksDisplay alive even when viewing Base Camps, preventing recovery via tab switching
-- `TripLinksDisplay.tsx` line 199: `retry: 1` means after initial failure + 1 retry, the query is permanently stuck in error state until manual refetch
+## 1. Replace "Create New Trip" Screenshot (How It Works)
 
-## Fix Plan
+**File**: `src/components/landing/sections/ProblemSolutionSection.tsx`
 
-### 1. Fix the loading spinner color (TripLinksDisplay.tsx)
+The current screenshot (`create-trip-modal-final.png`) shows the old styling. The user has uploaded a new screenshot (IMG_3776.jpeg) showing the updated Create New Trip modal with the streamlined dark UI.
 
-Replace the white spinner (lines 374-379) with the standard branded spinner matching `DefaultTabSkeleton`:
+**Steps**:
+- Copy uploaded image `user-uploads://IMG_3776.jpeg` to `src/assets/app-screenshots/create-trip-modal-v2.png`
+- Update the import in `ProblemSolutionSection.tsx` from `create-trip-modal-final.png` to `create-trip-modal-v2.png`
 
-```text
-Before:  border-b-2 border-white
-After:   border-4 border-primary/30 border-t-primary
-```
+---
 
-Also add "Loading..." text below for consistency with other tabs.
+## 2. Fix AI Concierge Screenshot Cutoff (Travel Intelligence)
 
-### 2. Add refetch-on-tab-switch for Explore (PlacesSection.tsx)
+**File**: `src/components/landing/sections/AiFeaturesSection.tsx`
 
-When the user switches to the "links" (Explore) tab and the query is in error state, automatically trigger a refetch. This makes tab-switching a recovery mechanism:
+The AI Concierge screenshot (`ai-concierge.png`) is displayed with `object-cover object-top` (line 109), which crops the right side -- cutting off the tab bar (Chat, Calendar, Concierge, Media, Payments, Places, Polls, Tasks). The full tab bar and chat input are not visible.
 
-- Pass a `isActive` prop or use a callback so that when `activeTab` changes to `'links'`, if the TripLinksDisplay query is in error state, it refetches
-- Alternatively, add `refetchOnMount: 'always'` or switch from `display: none` to conditional rendering for the Explore tab only (since it doesn't benefit from staying mounted like Base Camps does)
+**Fix**: Change `object-cover object-top` to `object-contain` and adjust the container to ensure the full-width screenshot is visible without cropping. Add a dark background (`bg-card`) to the container so letterboxing blends with the card aesthetic.
 
-The simplest approach: keep `display: none` for Base Camps (which has map state worth preserving) but use conditional rendering for Explore (which is just a list). This way switching tabs remounts TripLinksDisplay and triggers a fresh query.
+---
 
-### 3. Improve error recovery (TripLinksDisplay.tsx)
+## 3. Add "Chravel Agent" Feature Pill (Travel Intelligence)
 
-- Increase `retry` from 1 to 2 for better resilience
-- Add `refetchOnWindowFocus: true` so returning to the browser retries
-- Reduce timeout from 15s to 10s for faster error surfacing
+**File**: `src/components/landing/sections/AiFeaturesSection.tsx`
 
-## Files to Change
+Add a new feature pill to the `aiFeatures1` array (or replace an existing less-important one) highlighting **Chravel Agent** capabilities:
+
+- **Title**: "Chravel Agent"
+- **Description**: Something like: "Your AI assistant takes action -- add places to BaseCamps, save links, create polls, update calendars, assign tasks, plus pull flights, hotels, and activity suggestions."
+- **Icon**: A `Bot` or `Sparkles` icon from lucide-react
+
+Since `aiFeatures1` currently has 3 items (matching a 3-row grid), the simplest approach is to either:
+- Replace one of the existing pills (e.g., "Decision Lock-In" is less impactful) with Chravel Agent
+- Or add a 4th row, which requires adjusting the grid from `grid-rows-3` to `grid-rows-4` (but this changes layout parity with the Places row)
+
+Recommendation: Replace "Decision Lock-In" (Polls) with "Chravel Agent" since agent capabilities are a bigger differentiator. Polls can be mentioned in the agent description or elsewhere.
+
+---
+
+## 4. Fix Build Errors (Pre-existing, Unrelated to Marketing)
+
+### 4a. `src/services/conciergeGateway.ts` -- `idleTimer` scope error
+
+`idleTimer` is declared at line 286 inside the SSE-handling block, but the `catch` block at line 362 references it from an outer scope where it doesn't exist.
+
+**Fix**: Move the `let idleTimer` declaration above the `try` block (or to the top of the async IIFE) so it's visible in both the `try` body and the `catch` handler. Initialize it as `undefined`.
+
+### 4b. `src/__tests__/utils/supabaseMocks.ts` -- Type errors
+
+- Line 41: `r.id` on `unknown` -- needs a type assertion: `(r as any).id` or `(r as Record<string, unknown>).id`
+- Lines 276, 289, 295, 301, 383, 388, 394, 400: `resolve` typed as `unknown` but called as a function -- needs typing as `(value: any) => any` or `Function`
+
+**Fix**: Cast `resolve` parameters to `(value: any) => any` and add a type assertion for the `.id` access.
+
+---
+
+## Files Changed Summary
 
 | File | Change |
 |---|---|
-| `src/components/places/TripLinksDisplay.tsx` | Fix spinner color; adjust retry/timeout config |
-| `src/components/PlacesSection.tsx` | Switch Explore from `display: none` to conditional render for remount recovery |
-
-## Technical Details
-
-### TripLinksDisplay.tsx spinner fix (line 372-381)
-
-Replace the loading block with:
-```tsx
-if (loading) {
-  return (
-    <div className="flex items-center justify-center py-12">
-      <div className="flex flex-col items-center gap-3">
-        <div
-          className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"
-          aria-label="Loading links"
-          data-testid="trip-links-loading"
-        />
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    </div>
-  );
-}
-```
-
-### TripLinksDisplay.tsx query config (line 185-201)
-
-```tsx
-retry: 2,
-retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
-refetchOnWindowFocus: true,
-```
-
-Reduce `FETCH_TIMEOUT_MS` from 15000 to 10000.
-
-### PlacesSection.tsx tab rendering (lines 225-247)
-
-Change Explore from `display: none` to conditional rendering:
-
-```tsx
-{/* Base Camps -- keep mounted via display:none (preserves map state) */}
-<div style={{ display: activeTab === 'basecamps' ? 'block' : 'none' }}>
-  <BasecampsPanel ... />
-</div>
-
-{/* Explore -- conditional render (remounts on tab switch for recovery) */}
-{activeTab === 'links' && (
-  <LinksPanel ... />
-)}
-```
-
-## Invariants Preserved
-- Auth-gated trip access unchanged
-- RLS policies unchanged
-- No new network calls on mount (Explore only fetches when its tab is active)
-- Base Camps still preserves state via display:none
-- Demo mode behavior unchanged
-
-## Manual Test Checklist
-- [ ] Click Places tab, then Explore -- spinner should be gold/yellow, not white
-- [ ] If Explore times out, switch to Base Camps and back -- should retry automatically
-- [ ] Logged-in user: Explore loads links from trip_links table
-- [ ] Demo mode: Explore loads mock links correctly
-- [ ] Base Camps state (map, basecamp selections) preserved when switching sub-tabs
+| `src/assets/app-screenshots/create-trip-modal-v2.png` | New file (copied from upload) |
+| `src/components/landing/sections/ProblemSolutionSection.tsx` | Update screenshot import |
+| `src/components/landing/sections/AiFeaturesSection.tsx` | Fix concierge screenshot cropping; add Chravel Agent pill |
+| `src/services/conciergeGateway.ts` | Move `idleTimer` declaration to fix scope |
+| `src/__tests__/utils/supabaseMocks.ts` | Fix type assertions for `unknown` calls |
 
 ## Regression Risk: LOW
-Rollback: Revert the 2 files to restore previous behavior.
+All changes are isolated -- marketing page visuals, one variable scope fix, and test utility type fixes.
+
