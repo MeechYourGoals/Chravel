@@ -11,7 +11,6 @@ interface MessageItemProps {
   message: ChatMessage & {
     status?: 'sending' | 'sent' | 'failed';
     replyCount?: number;
-    isPinned?: boolean;
   };
   reactions?: Record<string, { count: number; userReacted: boolean }>;
   onReaction: (messageId: string, reactionType: string) => void;
@@ -93,13 +92,7 @@ export const MessageItem = memo(
     }
 
     return (
-      <div className={message.isPinned ? 'relative' : ''}>
-        {message.isPinned && (
-          <div
-            className="absolute -left-3 top-0 bottom-0 w-1 bg-primary/50 rounded-full"
-            title="Pinned Message"
-          />
-        )}
+      <div>
         <MessageBubble
           id={message.id}
           text={message.text}

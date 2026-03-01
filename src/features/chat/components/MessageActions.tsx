@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Edit, Trash2, MoreVertical, Pin, PinOff } from 'lucide-react';
+import { Edit, Trash2, MoreVertical } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,21 +32,15 @@ import {
   editChannelMessage,
   deleteChatMessage,
   deleteChannelMessage,
-  pinMessage,
-  unpinMessage,
 } from '@/services/chatService';
-import { useAuth } from '@/hooks/useAuth';
-
 export interface MessageActionsProps {
   messageId: string;
   messageContent: string;
   messageType: 'channel' | 'trip';
   isOwnMessage: boolean;
   isDeleted?: boolean;
-  isPinned?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
-  onPin?: (messageId: string, pinned: boolean) => void;
 }
 
 export const MessageActions: React.FC<MessageActionsProps> = ({
@@ -55,16 +49,13 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   messageType,
   isOwnMessage,
   isDeleted = false,
-  isPinned = false,
   onEdit,
   onDelete,
-  onPin,
 }) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editedContent, setEditedContent] = useState(messageContent);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
 
   // Hide actions if message is deleted
   if (isDeleted) {
@@ -127,32 +118,6 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     }
   };
 
-  const handlePin = async () => {
-    if (!user) return;
-
-    setIsSubmitting(true);
-    try {
-      let success = false;
-      if (isPinned) {
-        success = await unpinMessage(messageId);
-      } else {
-        success = await pinMessage(messageId, user.id);
-      }
-
-      if (success) {
-        toast.success(isPinned ? 'Message unpinned' : 'Message pinned');
-        onPin?.(messageId, !isPinned);
-      } else {
-        toast.error(isPinned ? 'Failed to unpin message' : 'Failed to pin message');
-      }
-    } catch (error) {
-      console.error('Error toggling pin:', error);
-      toast.error('Failed to update pin status');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <>
       <DropdownMenu>
@@ -166,13 +131,6 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          {messageType === 'trip' && (
-            <DropdownMenuItem onClick={handlePin}>
-              {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
-              {isPinned ? 'Unpin' : 'Pin'}
-            </DropdownMenuItem>
-          )}
-
           {isOwnMessage && (
             <>
               <DropdownMenuItem
