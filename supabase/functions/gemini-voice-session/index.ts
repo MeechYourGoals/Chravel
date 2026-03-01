@@ -10,7 +10,6 @@ const GEMINI_LIVE_MODEL =
   Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-live-2.5-flash-native-audio';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
 // Ephemeral tokens MUST use BidiGenerateContentConstrained (not BidiGenerateContent).
@@ -468,6 +467,12 @@ serve(async req => {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
+    // Correlation ID + wall-clock anchor for timing diagnostics at each pipeline stage.
+    // Match _rid in client voiceLog('session:tokenReceived') to tie client + server logs.
+    const requestId = crypto.randomUUID().slice(0, 8);
+    const t0 = Date.now();
+    const tag = `[gemini-voice-session:${requestId}]`;
+
     // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -493,34 +498,35 @@ serve(async req => {
       });
     }
 
-    const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
-      ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-      : supabase;
     // Voice is free for all authenticated users — no subscription gate
-    console.log('[gemini-voice-session] Authenticated user, proceeding', { userId: user.id });
+    console.log(`${tag} Authenticated`, { userId: user.id, elapsedMs: Date.now() - t0 });
 
     const body = await req.json();
     const requestedVoice = typeof body?.voice === 'string' ? body.voice : 'Puck';
     const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : 'Puck';
     const tripId = typeof body?.tripId === 'string' ? body.tripId : undefined;
 
-    // Build full system instruction using shared context builder + prompt builder
+    // Build full system instruction using shared context builder + prompt builder.
+    // Guarded by a 15s timeout — TripContextBuilder runs multiple DB queries and can
+    // be slow on trips with lots of data. Without this guard it can consume the entire
+    // client-side SESSION_TIMEOUT_MS budget (45s) before the Gemini token fetch starts.
     let systemInstruction: string;
 
     if (tripId) {
       try {
-        // Voice is pro-only (checked above), so always include preferences
-        const tripContext = await TripContextBuilder.buildContextWithCache(
-          tripId,
-          user.id,
-          authHeader,
-          true,
+        const contextTimeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('context_build_timeout')), 15_000),
         );
+        const tripContext = await Promise.race([
+          TripContextBuilder.buildContextWithCache(tripId, user.id, authHeader, true),
+          contextTimeout,
+        ]);
         systemInstruction = buildSystemPrompt(tripContext);
+        console.log(`${tag} Context built`, { elapsedMs: Date.now() - t0 });
       } catch (contextError) {
-        console.error(
-          '[gemini-voice-session] Failed to build full context, using minimal:',
-          contextError,
+        const errMsg = contextError instanceof Error ? contextError.message : String(contextError);
+        console.warn(
+          `${tag} Context failed (${Date.now() - t0}ms): ${errMsg}. Using minimal prompt.`,
         );
         systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
       }
@@ -531,13 +537,15 @@ serve(async req => {
     // Append voice-specific delivery guidelines
     systemInstruction += VOICE_ADDENDUM;
 
-    console.log('[gemini-voice-session] Creating ephemeral token', {
+    console.log(`${tag} Creating ephemeral token`, {
       model: GEMINI_LIVE_MODEL,
       voice,
       toolCount: VOICE_FUNCTION_DECLARATIONS.length,
       hasTripContext: !!tripId,
+      elapsedMs: Date.now() - t0,
     });
 
+    const tokenT0 = Date.now();
     let ephemeral: { token: string; expireTime?: string; newSessionExpireTime?: string };
     try {
       ephemeral = await createEphemeralToken({
@@ -545,30 +553,35 @@ serve(async req => {
         systemInstruction,
         voice,
       });
-      console.log('[gemini-voice-session] Token created successfully', {
+      console.log(`${tag} Token created`, {
+        tokenMs: Date.now() - tokenT0,
+        totalMs: Date.now() - t0,
         expireTime: ephemeral.expireTime,
-        websocketUrl: LIVE_WEBSOCKET_URL,
       });
     } catch (tokenErr) {
       const tokenErrMsg = tokenErr instanceof Error ? tokenErr.message : String(tokenErr);
-      console.error('[gemini-voice-session] Token creation failed', { error: tokenErrMsg });
+      console.error(`${tag} Token creation failed`, {
+        error: tokenErrMsg,
+        elapsedMs: Date.now() - t0,
+      });
 
       // If the model does not support Google Search grounding alongside function
       // declarations, retry once without grounding. Some Gemini Live models reject
       // the combination with a 400 or 500 status.
       if (ENABLE_VOICE_GROUNDING && tokenErrMsg.includes('400')) {
-        console.warn(
-          '[gemini-voice-session] Retrying token creation without Google Search grounding',
-        );
+        console.warn(`${tag} Retrying token creation without Google Search grounding`);
         try {
           ephemeral = await createEphemeralTokenWithoutGrounding({
             model: GEMINI_LIVE_MODEL,
             systemInstruction,
             voice,
           });
-          console.log('[gemini-voice-session] Token created (no grounding) successfully');
+          console.log(`${tag} Token created (no grounding)`, {
+            tokenMs: Date.now() - tokenT0,
+            totalMs: Date.now() - t0,
+          });
         } catch (retryErr) {
-          console.error('[gemini-voice-session] Retry without grounding also failed', {
+          console.error(`${tag} Retry without grounding also failed`, {
             error: retryErr instanceof Error ? retryErr.message : String(retryErr),
           });
           throw retryErr;
@@ -590,6 +603,7 @@ serve(async req => {
         model: GEMINI_LIVE_MODEL,
         voice,
         websocketUrl: LIVE_WEBSOCKET_URL,
+        _rid: requestId, // Correlation ID — match with client voiceLog('session:tokenReceived')._rid
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -1,9 +1,15 @@
 /**
  * Circuit breaker for Gemini Live voice — prevents infinite reconnect loops.
  *
- * After N failures within T minutes, voice is disabled for the session.
- * State is stored in memory + localStorage (per device) with expiry.
- * Provides "Try voice again" reset.
+ * States:
+ *   closed   — normal operation, failures accumulate
+ *   open     — voice disabled after N failures within T minutes
+ *   half-open — window expired; ONE probe request is allowed through.
+ *               If that probe succeeds (recordSuccess), circuit closes.
+ *               If it fails (recordFailure), window resets.
+ *
+ * State is persisted in memory + localStorage (per device) with expiry.
+ * Provides "Try voice again" reset and graceful half-open recovery.
  */
 
 const STORAGE_KEY = 'chravel_voice_circuit_breaker';
@@ -16,8 +22,13 @@ export interface CircuitBreakerConfig {
   windowMs: number;
 }
 
+export type CircuitBreakerPhase = 'closed' | 'open' | 'half-open';
+
 export interface CircuitBreakerState {
+  /** Backward-compatible: true when circuit is open or half-open and probe is taken */
   isOpen: boolean;
+  /** Detailed phase for UI rendering */
+  phase: CircuitBreakerPhase;
   failureCount: number;
   firstFailureAt: number | null;
   lastError: string | null;
@@ -36,10 +47,18 @@ const defaultConfig: CircuitBreakerConfig = {
 
 let memoryState: CircuitBreakerState = {
   isOpen: false,
+  phase: 'closed',
   failureCount: 0,
   firstFailureAt: null,
   lastError: null,
 };
+
+/**
+ * Half-open probe gate: once the window expires on an open circuit,
+ * the FIRST caller to isOpen() sees false (allowed to probe).
+ * All subsequent callers see true until recordSuccess() is called.
+ */
+let halfOpenProbeConsumed = false;
 
 function loadFromStorage(): Partial<StoredState> | null {
   try {
@@ -76,14 +95,33 @@ function hydrateFromStorage(): void {
     const firstFailureAt = stored.firstFailureAt ?? now;
     const windowExpired = now - firstFailureAt > DEFAULT_WINDOW_MS;
     if (windowExpired) {
-      memoryState = { isOpen: false, failureCount: 0, firstFailureAt: null, lastError: null };
-      localStorage.removeItem(STORAGE_KEY);
+      // Window expired — circuit moves to half-open (probe allowed)
+      if (stored.failureCount >= DEFAULT_FAILURE_THRESHOLD) {
+        memoryState = {
+          isOpen: true,
+          phase: 'half-open',
+          failureCount: stored.failureCount,
+          firstFailureAt,
+          lastError: memoryState.lastError,
+        };
+      } else {
+        memoryState = {
+          isOpen: false,
+          phase: 'closed',
+          failureCount: 0,
+          firstFailureAt: null,
+          lastError: null,
+        };
+        localStorage.removeItem(STORAGE_KEY);
+      }
     } else {
+      const wasOpen = stored.failureCount >= DEFAULT_FAILURE_THRESHOLD;
       memoryState = {
-        isOpen: stored.failureCount >= DEFAULT_FAILURE_THRESHOLD,
+        isOpen: wasOpen,
+        phase: wasOpen ? 'open' : 'closed',
         failureCount: stored.failureCount,
         firstFailureAt,
-        lastError: null,
+        lastError: memoryState.lastError,
       };
     }
   }
@@ -103,16 +141,20 @@ export function recordFailure(
 
   let nextState: CircuitBreakerState;
   if (windowExpired) {
+    // Window expired: if we were in half-open and the probe failed, reset window
     nextState = {
       isOpen: false,
+      phase: 'closed',
       failureCount: 1,
       firstFailureAt: now,
       lastError: errorMessage,
     };
   } else {
     const newCount = memoryState.failureCount + 1;
+    const nowOpen = newCount >= failureThreshold;
     nextState = {
-      isOpen: newCount >= failureThreshold,
+      isOpen: nowOpen,
+      phase: nowOpen ? 'open' : 'closed',
       failureCount: newCount,
       firstFailureAt,
       lastError: errorMessage,
@@ -120,15 +162,64 @@ export function recordFailure(
   }
 
   const justOpened = !memoryState.isOpen && nextState.isOpen;
+  // Reset half-open probe gate on any new failure
+  halfOpenProbeConsumed = false;
   memoryState = nextState;
   saveToStorage(nextState);
   return justOpened;
 }
 
-/** Check if circuit is open (voice should be disabled). */
+/**
+ * Record a successful voice connection.
+ * Closes the circuit if it was in half-open state (probe succeeded).
+ */
+export function recordSuccess(): void {
+  hydrateFromStorage();
+  if (memoryState.phase === 'half-open' || memoryState.isOpen) {
+    memoryState = {
+      isOpen: false,
+      phase: 'closed',
+      failureCount: 0,
+      firstFailureAt: null,
+      lastError: null,
+    };
+    halfOpenProbeConsumed = false;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Non-critical
+    }
+  }
+}
+
+/**
+ * Check if circuit is open (voice should be disabled).
+ *
+ * Half-open logic: when the failure window has expired on an open circuit,
+ * the FIRST caller gets false (allowed through as a test probe). All
+ * subsequent callers get true until recordSuccess() is called.
+ */
 export function isOpen(): boolean {
   hydrateFromStorage();
-  return memoryState.isOpen;
+
+  if (!memoryState.isOpen) return false;
+
+  // Circuit was open — check if window has expired (half-open transition)
+  const now = Date.now();
+  const firstFailureAt = memoryState.firstFailureAt;
+  if (firstFailureAt && now - firstFailureAt > DEFAULT_WINDOW_MS) {
+    // Window expired: half-open state
+    if (!halfOpenProbeConsumed) {
+      // Allow first caller through as probe; block all others until success/failure
+      halfOpenProbeConsumed = true;
+      memoryState = { ...memoryState, phase: 'half-open' };
+      return false;
+    }
+    // Probe already dispatched — block until we hear back
+    return true;
+  }
+
+  return true;
 }
 
 /** Get current state for UI. */
@@ -141,10 +232,12 @@ export function getState(): CircuitBreakerState {
 export function reset(): void {
   memoryState = {
     isOpen: false,
+    phase: 'closed',
     failureCount: 0,
     firstFailureAt: null,
     lastError: null,
   };
+  halfOpenProbeConsumed = false;
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch {

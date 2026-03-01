@@ -230,16 +230,6 @@ export const AiChatInput = ({
         </div>
       )}
 
-      {/* Conversation active badge — shows above the input row */}
-      {isConvoActive && (
-        <div className="flex items-center gap-2 px-1">
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase text-blue-400">
-            <span aria-hidden className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            Live conversation
-          </span>
-        </div>
-      )}
-
       <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
         {/* Waveform / Conversation button (primary voice CTA) */}
         {onConvoToggle && (

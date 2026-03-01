@@ -227,62 +227,39 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
             };
           }
 
-          // Google Maps tools — return a message directing to the chat.
-          // The model will still speak a useful response based on context.
+          // Google Maps / Web tools — execute via the server-side bridge so voice
+          // mode returns real data that Gemini can speak aloud (place names, ETAs, etc.).
+          // RLS is enforced via the user's JWT on the edge function.
           case 'searchPlaces':
-            return {
-              success: true,
-              message: `Search noted. Voice mode has limited place search — try asking in the text chat for full results with photos and maps.`,
-              places: [],
-            };
-
           case 'getPlaceDetails':
-            return {
-              success: true,
-              message: `For detailed place info with photos, hours, and reviews, try the text chat.`,
-            };
-
           case 'getDirectionsETA':
-            return {
-              success: true,
-              message: `For detailed directions with a map, try asking in the text chat. I can give you a general idea based on what I know.`,
-            };
-
           case 'getTimezone':
-            return {
-              success: true,
-              message: `Timezone lookup is available in the text chat.`,
-            };
-
           case 'getStaticMapUrl':
-            return {
-              success: true,
-              message: `Map images are displayed in the text chat. Try asking there for a visual map.`,
-            };
-
           case 'searchWeb':
-            return {
-              success: true,
-              message: `Web search results are best viewed in the text chat where I can show source links.`,
-            };
-
           case 'searchImages':
-            return {
-              success: true,
-              message: `Image search results are displayed in the text chat.`,
-            };
-
           case 'getDistanceMatrix':
-            return {
-              success: true,
-              message: `Distance comparisons are best viewed in the text chat.`,
-            };
+          case 'validateAddress': {
+            const { data: toolData, error: toolError } = await supabase.functions.invoke(
+              'execute-concierge-tool',
+              {
+                body: {
+                  toolName: name,
+                  args,
+                  tripId: currentTripId,
+                },
+              },
+            );
 
-          case 'validateAddress':
-            return {
-              success: true,
-              message: `Address validation is available in the text chat.`,
-            };
+            if (toolError) {
+              return {
+                success: false,
+                error: `Tool "${name}" failed: ${toolError.message ?? 'Unknown error'}`,
+              };
+            }
+
+            // The edge function returns the tool result directly; pass it through.
+            return (toolData as Record<string, unknown>) ?? { success: true };
+          }
 
           default:
             return {

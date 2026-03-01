@@ -75,7 +75,6 @@ interface AIConciergeChatProps {
   basecamp?: { name: string; address: string };
   preferences?: TripPreferences;
   isDemoMode?: boolean;
-  isEvent?: boolean;
   onTabChange?: (tab: string) => void;
 }
 
@@ -149,6 +148,12 @@ export interface ChatMessage {
   };
   /** Smart Import status messages (parsing progress) */
   smartImportStatus?: { status: SmartImportStatus; message: string };
+  /**
+   * True while this message is the live-streaming voice response from Gemini
+   * Live (Fix 2).  Rendered with a pulsing ring so the user sees the assistant
+   * is still speaking.  Cleared by handleLiveTurnComplete when the turn ends.
+   */
+  isStreamingVoice?: boolean;
 }
 
 interface ConciergeInvokePayload {
@@ -261,7 +266,8 @@ export const AIConciergeChat = ({
   onTabChange,
 }: AIConciergeChatProps) => {
   const { basecamp: globalBasecamp } = useBasecamp();
-  const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
+  const { usage, refreshUsage, incrementUsageOnSuccess, isLimitedPlan, userPlan, upgradeUrl } =
+    useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const { user } = useAuth();
   const loadedPreferences = useAIConciergePreferences();
@@ -324,6 +330,36 @@ export const AIConciergeChat = ({
   // Mutual exclusion: starting one stops the other automatically.
   const [liveOverlayOpen, setLiveOverlayOpen] = useState(false);
 
+  /**
+   * Fix 2 — streaming voice response bubble.
+   *
+   * While Gemini Live is in 'playing' state (assistant speaking), we maintain
+   * a transient ChatMessage here so the chat scroll area shows a live-updating
+   * bubble — matching ChatGPT / Grok behaviour where the assistant's turn is
+   * visible in the chat *while* it is being spoken, not only in the compact
+   * VoiceLiveOverlay banner.
+   *
+   * Lifecycle:
+   *   liveAssistantTranscript updates + liveState === 'playing'  → set here
+   *   handleLiveTurnComplete fires (turn finalised)              → set to null
+   *   liveState goes to idle/error/ready without a complete turn → set to null
+   */
+  const [streamingVoiceMessage, setStreamingVoiceMessage] = useState<ChatMessage | null>(null);
+
+  /**
+   * Live user speech-to-text bubble.
+   *
+   * While Gemini Live is listening or sending (user is speaking), we show a
+   * transient user-side bubble with the interim STT transcript so the user can
+   * see their own words appearing in chat — the "I'm hearing you" indicator.
+   *
+   * Lifecycle:
+   *   liveUserTranscript updates + liveState === 'listening'|'sending'|'interrupted'  → set here
+   *   handleLiveTurnComplete fires (user utterance finalised)                           → set to null
+   *   liveState goes to idle/error/ready/playing without turn completion                → set to null
+   */
+  const [streamingUserMessage, setStreamingUserMessage] = useState<ChatMessage | null>(null);
+
   // Dictation (Web Speech API) — always initialized so hooks order is stable
   const handleDictationResult = useCallback((text: string) => {
     if (!text.trim()) return;
@@ -343,29 +379,70 @@ export const AIConciergeChat = ({
     userId: user?.id ?? '',
   });
 
-  const handleLiveTurnComplete = useCallback((userText: string, assistantText: string) => {
-    const now = new Date().toISOString();
-    const newMessages: ChatMessage[] = [];
-    if (userText) {
-      newMessages.push({
-        id: `voice-user-${Date.now()}`,
-        type: 'user',
-        content: userText,
-        timestamp: now,
-      });
-    }
-    if (assistantText) {
-      newMessages.push({
-        id: `voice-assistant-${Date.now()}`,
-        type: 'assistant',
-        content: assistantText,
-        timestamp: now,
-      });
-    }
-    if (newMessages.length > 0) {
-      setMessages(prev => [...prev, ...newMessages]);
-    }
-  }, []);
+  const handleLiveTurnComplete = useCallback(
+    (userText: string, assistantText: string) => {
+      const now = new Date().toISOString();
+      const newMessages: ChatMessage[] = [];
+      if (userText) {
+        newMessages.push({
+          id: `voice-user-${Date.now()}`,
+          type: 'user',
+          content: userText,
+          timestamp: now,
+        });
+      }
+      if (assistantText) {
+        newMessages.push({
+          id: `voice-assistant-${Date.now()}`,
+          type: 'assistant',
+          content: assistantText,
+          timestamp: now,
+        });
+      }
+      if (newMessages.length > 0) {
+        // Immediate in-memory update — keeps the UI responsive.
+        setMessages(prev => [...prev, ...newMessages]);
+      }
+
+      // Clear both streaming bubbles now that the finalised messages have been
+      // appended to `messages` above. This prevents any flash of the transient
+      // bubbles before the permanent messages appear.
+      setStreamingVoiceMessage(null);
+      setStreamingUserMessage(null);
+
+      // Fix 1: Persist the completed voice turn to Supabase (ai_queries table).
+      // We store both sides as a single row: query_text = user utterance,
+      // response_text = assistant reply.  Only persists when both sides are
+      // present and the user is authenticated.
+      //
+      // NOTE: The ai_queries schema does not have a dedicated `source` column
+      // to flag voice vs. text turns.  A future migration adding
+      // `source VARCHAR DEFAULT 'text'` would let the history hook differentiate
+      // voice interactions without changing this call site.
+      if (userText && assistantText && user?.id) {
+        supabase
+          .from('ai_queries')
+          .insert({
+            trip_id: tripId,
+            user_id: user.id,
+            query_text: userText,
+            response_text: assistantText,
+            created_at: now,
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error('[Voice] Failed to persist voice turn:', error.message);
+              toast.warning('Voice turn not saved', {
+                description: 'Your voice conversation could not be saved to history.',
+              });
+            }
+          });
+      }
+    },
+    // user?.id and tripId are the only external values used inside.
+
+    [user?.id, tripId],
+  );
 
   const handleLiveError = useCallback((msg: string) => {
     toast.error('Voice error', { description: msg });
@@ -407,32 +484,105 @@ export const AIConciergeChat = ({
 
   // Conversation toggle — stops dictation first if active
   const handleConvoToggle = useCallback(() => {
-    // Stop dictation if it's running (mutual exclusion)
-    if (dictationState === 'listening' || dictationState === 'connecting') {
-      stopDictation();
+    const dictationActive = dictationState === 'listening' || dictationState === 'connecting';
+
+    if (liveState !== 'idle' && liveState !== 'error') {
+      // Already in conversation — end it (fire-and-forget; no need to sequence anything after)
+      void endLiveSession();
+      return;
     }
-    if (liveState === 'idle' || liveState === 'error') {
+
+    if (dictationActive) {
+      // Stop dictation (.abort() fires immediately, releasing the mic) then wait for iOS
+      // to yield the AVAudioSession slot before getUserMedia is called.
+      // 350ms covers A12-era iPhones (iPhone XS/XR) where the OS can take up to
+      // ~300ms to fully release the hardware mic after SpeechRecognition.abort().
+      stopDictation();
+      setLiveOverlayOpen(true);
+      setTimeout(() => {
+        void startLiveSession();
+      }, 350);
+    } else {
       setLiveOverlayOpen(true);
       void startLiveSession();
-    } else {
-      endLiveSession();
     }
   }, [dictationState, stopDictation, liveState, startLiveSession, endLiveSession]);
 
-  // Dictation toggle — stops conversation first if active
-  const handleDictationToggle = useCallback(() => {
+  // Dictation toggle — stops conversation first if active.
+  //
+  // We await endLiveSession() so the AudioContext and MediaStream tracks from Gemini Live
+  // are fully released before Web Speech API tries to acquire the same mic device.
+  //
+  // IMPORTANT iOS timing note: AudioContext.close() resolves its Promise before iOS has
+  // fully released the AVAudioSession hardware slot. On A12 and older chips (iPhone XS/XR
+  // era) the OS can take an additional 150-500ms after the Promise resolves. We add a
+  // 200ms post-close buffer before calling toggleDictation() so SpeechRecognition.start()
+  // does not fire into a still-locked mic, which would produce NotAllowedError or a silent
+  // "network" error on iOS Safari.
+  const handleDictationToggle = useCallback(async () => {
     const isConvoActive = liveState !== 'idle' && liveState !== 'error';
     if (isConvoActive) {
-      endLiveSession();
+      await endLiveSession();
       setLiveOverlayOpen(false);
+      // Post-close buffer: AudioContext.close() Promise resolving ≠ iOS AVAudioSession
+      // slot freed. Give the OS time to fully release the hardware mic before Web Speech
+      // API calls SpeechRecognition.start(). 200ms covers most devices; A12 chips may
+      // still be borderline — see the retry logic in useWebSpeechVoice for the safety net.
+      await new Promise<void>(resolve => setTimeout(resolve, 200));
     }
     toggleDictation();
   }, [liveState, endLiveSession, toggleDictation]);
 
   const handleEndLiveSession = useCallback(() => {
-    endLiveSession();
+    void endLiveSession();
     setLiveOverlayOpen(false);
   }, [endLiveSession]);
+
+  // Fix 2: Keep the streaming voice bubble in sync with liveAssistantTranscript.
+  // While Gemini Live is in 'playing' state, update the transient bubble so the
+  // chat shows the assistant's response growing in real-time (like ChatGPT/Grok).
+  // When the turn completes, handleLiveTurnComplete clears it and appends the
+  // finalised message to `messages`, so there is no duplication.
+  useEffect(() => {
+    if (liveState === 'playing' && liveAssistantTranscript) {
+      setStreamingVoiceMessage({
+        id: 'voice-streaming-live',
+        type: 'assistant',
+        content: liveAssistantTranscript,
+        timestamp: new Date().toISOString(),
+        isStreamingVoice: true,
+      });
+    } else if (liveState === 'idle' || liveState === 'error' || liveState === 'ready') {
+      // Session ended or reset without a completed turn — clear any leftover bubble.
+      setStreamingVoiceMessage(null);
+    }
+  }, [liveState, liveAssistantTranscript]);
+
+  // Keep the live user STT bubble in sync with liveUserTranscript.
+  // While Gemini Live is listening/sending, show the interim user transcript as a
+  // user-side bubble so the speaker can see their words appearing in the chat
+  // (the "I'm hearing you" indicator).  Cleared when the turn finalises.
+  useEffect(() => {
+    const isUserSpeaking =
+      liveState === 'listening' || liveState === 'sending' || liveState === 'interrupted';
+
+    if (isUserSpeaking && liveUserTranscript) {
+      setStreamingUserMessage({
+        id: 'voice-user-streaming-live',
+        type: 'user',
+        content: liveUserTranscript,
+        timestamp: new Date().toISOString(),
+        isStreamingVoice: true,
+      });
+    } else if (liveState === 'idle' || liveState === 'error' || liveState === 'ready') {
+      // Session ended — clear any leftover user bubble.
+      setStreamingUserMessage(null);
+    } else if (liveState === 'playing') {
+      // Assistant started speaking — user turn is complete, clear user bubble.
+      setStreamingUserMessage(null);
+    }
+  }, [liveState, liveUserTranscript]);
+
   // ── End voice ────────────────────────────────────────────────────────────
 
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
@@ -503,12 +653,16 @@ export const AIConciergeChat = ({
     }
   }, [messages, tripId, setStoreMessages]);
 
-  // Auto-scroll to bottom when new messages or typing indicator appear
+  // Auto-scroll to bottom when new messages, typing indicator, or streaming voice
+  // bubbles appear/update — keeps the live transcript visible as it grows.
   useEffect(() => {
-    if (chatScrollRef.current && (messages.length > 0 || isTyping)) {
+    if (
+      chatScrollRef.current &&
+      (messages.length > 0 || isTyping || streamingVoiceMessage || streamingUserMessage)
+    ) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [messages.length, isTyping, messages]);
+  }, [messages.length, isTyping, messages, streamingVoiceMessage, streamingUserMessage]);
 
   // Failsafe: if a stream callback never finalizes, release typing state so
   // users can still send a follow-up without needing a hard refresh.
@@ -726,17 +880,25 @@ export const AIConciergeChat = ({
     setAiStatus('thinking');
 
     if (isLimitedPlan) {
-      const latestUsage = await refreshUsage();
-
-      if (!latestUsage) {
+      // Atomically check AND increment usage via a single DB RPC call.
+      // This prevents the non-atomic race where two concurrent browser tabs both
+      // pass a read-only `refreshUsage()` check and both consume a query slot.
+      // If the limit is already reached, the RPC returns incremented=false without
+      // incrementing — the gate is enforced at the Postgres level, not the client.
+      // Trade-off: if the subsequent AI call fails (network, server error), one quota
+      // unit is consumed. This is preferable to the double-spend concurrency bug.
+      let incrementResult;
+      try {
+        incrementResult = await incrementUsageOnSuccess();
+      } catch {
         toast.error('Unable to verify Concierge query allowance right now. Please try again.');
         setMessages(prev => prev.filter(m => m.id !== userMessage.id));
         setIsTyping(false);
         return;
       }
 
-      if (latestUsage.isLimitReached && latestUsage.limit !== null) {
-        showLimitReachedToast(latestUsage.plan === 'explorer' ? 'explorer' : 'free');
+      if (!incrementResult.incremented) {
+        showLimitReachedToast(incrementResult.plan === 'explorer' ? 'explorer' : 'free');
         setMessages(prev => prev.filter(m => m.id !== userMessage.id));
         setIsTyping(false);
         return;
@@ -1199,7 +1361,6 @@ export const AIConciergeChat = ({
             },
             onMetadata: (metadata: StreamMetadataEvent) => {
               setAiStatus('connected');
-              if (isLimitedPlan) void refreshUsage();
               updateStreamMsg(() => ({
                 usage: metadata.usage,
                 sources: metadata.sources as ChatMessage['sources'],
@@ -1340,10 +1501,6 @@ export const AIConciergeChat = ({
       }
 
       setAiStatus('connected');
-
-      if (isLimitedPlan) {
-        void refreshUsage();
-      }
 
       const assistantMessage: ChatMessage = {
         id: _uniqueId('assistant'),
@@ -1612,9 +1769,20 @@ export const AIConciergeChat = ({
               <div className="flex-1 h-px bg-white/10" />
             </div>
           )}
-          {messages.length > 0 && (
+          {/* Merge transient streaming bubbles into the message list so both the
+               user's live STT and the assistant's live TTS are visible in the
+               chat while Gemini Live is active.  Order: persisted messages →
+               user interim bubble (while listening) → assistant streaming bubble
+               (while playing).  handleLiveTurnComplete clears both transient
+               entries and appends the finalised messages, so there is no
+               duplication or flash. */}
+          {(messages.length > 0 || !!streamingVoiceMessage || !!streamingUserMessage) && (
             <ChatMessages
-              messages={messages}
+              messages={[
+                ...messages,
+                ...(streamingUserMessage ? [streamingUserMessage] : []),
+                ...(streamingVoiceMessage ? [streamingVoiceMessage] : []),
+              ]}
               isTyping={isTyping}
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
@@ -1675,6 +1843,7 @@ export const AIConciergeChat = ({
               circuitBreakerOpen={liveCircuitBreakerOpen}
               onEnd={handleEndLiveSession}
               onResetCircuitBreaker={resetLiveCircuitBreaker}
+              onReconnect={handleConvoToggle}
             />
           )}
           <AiChatInput

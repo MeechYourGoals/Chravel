@@ -16,6 +16,8 @@ interface CachedResponse {
   response: ChatMessage;
   timestamp: number;
   tripId: string;
+  /** Per-entry TTL in milliseconds (allows trip-context entries to expire sooner). */
+  ttl?: number;
 }
 
 interface CachedMessages {
@@ -26,14 +28,33 @@ interface CachedMessages {
 
 const CACHE_PREFIX = 'concierge_cache_';
 const MESSAGES_PREFIX = 'concierge_messages_';
-const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days - aligns with documented TTL, maximises offline utility
+/** 7 days — general knowledge queries (weather patterns, packing tips, cultural info) */
+const GENERAL_TTL = 7 * 24 * 60 * 60 * 1000;
+/** 1 hour — trip-context queries (calendar, tasks, payments, places, who's going) */
+const TRIP_CONTEXT_TTL = 60 * 60 * 1000;
+// Backward-compat alias used by existing callers that don't specify a TTL
+const CACHE_TTL = GENERAL_TTL;
 const SIMILARITY_THRESHOLD = 0.6; // Minimum similarity to use cached response
 const MAX_CACHED_RESPONSES = 100; // Per-trip response cache capacity
 const MAX_CACHED_MESSAGES = 100; // Per-trip message cache capacity - Reduced to 100 to match test expectation
 
+/**
+ * Keywords that indicate the query touches live trip data.
+ * These responses have a short 1-hour TTL to avoid serving stale info
+ * after group members make changes.
+ */
+const TRIP_CONTEXT_KEYWORDS =
+  /\b(calendar|event|task|payment|expense|poll|hotel|flight|itinerary|schedule|basecamp|who|member|going|reservation|book|checkin|checkout|cost|budget|owe|paid)\b/i;
+
 class ConciergeCacheService {
+  /** Returns true if the query touches live trip data (short TTL applies). */
+  private isContextualQuery(query: string): boolean {
+    return TRIP_CONTEXT_KEYWORDS.test(query);
+  }
+
   /**
-   * Cache an AI response for a query (user-isolated)
+   * Cache an AI response for a query (user-isolated).
+   * Trip-context queries use a 1-hour TTL; general queries use 7 days.
    */
   cacheMessage(tripId: string, query: string, response: ChatMessage, userId?: string): void {
     try {
@@ -42,12 +63,16 @@ class ConciergeCacheService {
       // Get currently cached responses
       const cached = this.getCachedResponses(tripId, userId);
 
+      // Choose TTL based on whether the query touches live trip data
+      const entryTtl = this.isContextualQuery(query) ? TRIP_CONTEXT_TTL : GENERAL_TTL;
+
       // Add new response (keep last MAX_CACHED_RESPONSES queries per trip)
       const newEntry: CachedResponse = {
         query: query.toLowerCase().trim(),
         response,
         timestamp: Date.now(),
         tripId,
+        ttl: entryTtl,
       };
 
       // Append new entry and slice to max size
@@ -86,8 +111,9 @@ class ConciergeCacheService {
       let bestSimilarity = 0;
 
       for (const item of cached) {
-        // Check if expired
-        if (Date.now() - item.timestamp > CACHE_TTL) {
+        // Respect per-entry TTL (trip-context = 1h, general = 7d)
+        const itemTtl = item.ttl ?? CACHE_TTL;
+        if (Date.now() - item.timestamp > itemTtl) {
           continue;
         }
 
@@ -184,9 +210,9 @@ class ConciergeCacheService {
 
       const cached: CachedResponse[] = JSON.parse(data);
 
-      // Filter out expired entries
+      // Filter out expired entries, respecting per-entry TTL
       const now = Date.now();
-      const valid = cached.filter(item => now - item.timestamp <= CACHE_TTL);
+      const valid = cached.filter(item => now - item.timestamp <= (item.ttl ?? CACHE_TTL));
 
       // Update cache if we filtered anything
       if (valid.length !== cached.length) {
@@ -219,6 +245,48 @@ class ConciergeCacheService {
     // Jaccard similarity
     const union = new Set([...words1, ...words2]).size;
     return matches / union;
+  }
+
+  /**
+   * Invalidate ALL users' trip-context cache entries for a trip.
+   *
+   * Call this when trip data changes (calendar update, new task, payment settled, etc.)
+   * so the next query re-fetches fresh data instead of returning stale cached responses.
+   *
+   * This scans localStorage for all keys matching the trip prefix and removes entries
+   * whose TTL is TRIP_CONTEXT_TTL (i.e., they were cached as contextual queries).
+   * General knowledge entries (7-day TTL) are left intact.
+   */
+  invalidateForTrip(tripId: string): void {
+    try {
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        if (!key.startsWith(CACHE_PREFIX) && !key.startsWith(MESSAGES_PREFIX)) continue;
+        // Only process keys for this specific trip
+        if (!key.includes(tripId)) continue;
+
+        if (key.startsWith(CACHE_PREFIX)) {
+          // For response caches: remove individual contextual entries instead of full wipe
+          // so general knowledge answers survive.
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          try {
+            const entries: CachedResponse[] = JSON.parse(raw);
+            const filtered = entries.filter(e => (e.ttl ?? GENERAL_TTL) !== TRIP_CONTEXT_TTL);
+            if (filtered.length !== entries.length) {
+              localStorage.setItem(key, JSON.stringify(filtered));
+            }
+          } catch {
+            localStorage.removeItem(key);
+          }
+        } else {
+          // Messages cache: always wipe for this trip (messages can reference stale data)
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {
+      // Non-critical
+    }
   }
 
   /**
