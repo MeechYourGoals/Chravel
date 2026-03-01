@@ -38,7 +38,7 @@ export function setMockData<T extends Record<string, any>>(
           const filterKey = `${table}:${column}:${value}`;
           const existing = mockDataStorage.get(filterKey) || [];
           // Avoid duplicates
-          if (!existing.some((r: unknown) => r.id === record.id)) {
+          if (!existing.some((r: unknown) => (r as any).id === record.id)) {
             mockDataStorage.set(filterKey, [...existing, record]);
           }
         }
@@ -271,7 +271,7 @@ function createQueryBuilderWithStorage(table: string) {
     range,
     single,
     maybeSingle,
-    then: async (resolve: unknown) => {
+    then: async (resolve: (value: any) => any) => {
       const data = resolveData();
       return resolve({ data, error: null });
     },
@@ -286,19 +286,19 @@ function createQueryBuilderWithStorage(table: string) {
 
   const insert = vi.fn().mockReturnValue({
     select: insertReturn,
-    then: async (resolve: unknown) => resolve({ data: null, error: null }),
+    then: async (resolve: (value: any) => any) => resolve({ data: null, error: null }),
   });
 
   const update = vi.fn().mockReturnValue({
     eq,
     select: updateReturn,
-    then: async (resolve: unknown) => resolve({ data: null, error: null }),
+    then: async (resolve: (value: any) => any) => resolve({ data: null, error: null }),
   });
 
   const deleteFn = vi.fn().mockReturnValue({
     eq,
     select: deleteReturn,
-    then: async (resolve: unknown) => resolve({ data: null, error: null }),
+    then: async (resolve: (value: any) => any) => resolve({ data: null, error: null }),
   });
 
   return {
@@ -380,24 +380,24 @@ export function createQueryBuilderMock<T = any>(
     range,
     single,
     maybeSingle,
-    then: (resolve: unknown) => resolve({ data: mockData, error }),
+    then: (resolve: (value: any) => any) => resolve({ data: mockData, error }),
   });
 
   insert.mockReturnValue({
     select: insertReturn,
-    then: (resolve: unknown) => resolve({ data: mockData, error }),
+    then: (resolve: (value: any) => any) => resolve({ data: mockData, error }),
   });
 
   update.mockReturnValue({
     eq,
     select: updateReturn,
-    then: (resolve: unknown) => resolve({ data: mockData, error }),
+    then: (resolve: (value: any) => any) => resolve({ data: mockData, error }),
   });
 
   deleteFn.mockReturnValue({
     eq,
     select: deleteReturn,
-    then: (resolve: unknown) => resolve({ data: mockData, error }),
+    then: (resolve: (value: any) => any) => resolve({ data: mockData, error }),
   });
 
   return {

@@ -222,6 +222,7 @@ export function invokeConciergeStream(
 
   // Fire-and-forget the async read loop; errors are routed through callbacks.
   (async () => {
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
     try {
       // Get the current session token for auth
       const {
@@ -283,7 +284,7 @@ export function invokeConciergeStream(
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let idleTimer: ReturnType<typeof setTimeout> | undefined;
+      // idleTimer declared above try block for catch-block access
 
       const resetIdleTimer = () => {
         if (idleTimer) clearTimeout(idleTimer);
