@@ -5,6 +5,7 @@ import { startAudioCapture, type AudioCaptureHandle } from '@/lib/geminiLive/aud
 import { VOICE_DIAGNOSTICS_ENABLED } from '@/config/voiceFeatureFlags';
 import {
   recordFailure,
+  recordSuccess as recordCircuitBreakerSuccess,
   isOpen as isCircuitBreakerOpen,
   reset as resetCircuitBreaker,
 } from '@/voice/circuitBreaker';
@@ -767,43 +768,65 @@ export function useGeminiLive({
             transition('ready', 'setup_complete');
 
             if (audioCtxRef.current && mediaStreamRef.current) {
-              captureHandleRef.current = startAudioCapture(
-                mediaStreamRef.current,
-                audioCtxRef.current,
-                (base64PCM: string) => {
-                  if (ws.readyState !== WebSocket.OPEN) return;
-                  if (
-                    turnStartedAtRef.current &&
-                    diagnosticsRef.current.metrics.firstAudioChunkSentMs === null
-                  ) {
-                    patchMetrics({
-                      firstAudioChunkSentMs: performance.now() - turnStartedAtRef.current,
-                    });
-                  }
-                  if (stateRef.current === 'ready' || stateRef.current === 'listening') {
-                    transition('sending', 'audio_chunk_sent');
-                  }
-                  ws.send(
-                    JSON.stringify({
-                      realtimeInput: {
-                        mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: base64PCM }],
-                      },
-                    }),
+              // startAudioCapture is async — it prefers AudioWorklet (requires addModule),
+              // falling back to ScriptProcessor. Use an IIFE so the rest of the message
+              // handler stays synchronous. Transition to 'listening' happens inside
+              // the async block so it fires only after capture is ready.
+              void (async () => {
+                try {
+                  captureHandleRef.current = await startAudioCapture(
+                    mediaStreamRef.current!,
+                    audioCtxRef.current!,
+                    (base64PCM: string) => {
+                      if (ws.readyState !== WebSocket.OPEN) return;
+                      if (
+                        turnStartedAtRef.current &&
+                        diagnosticsRef.current.metrics.firstAudioChunkSentMs === null
+                      ) {
+                        patchMetrics({
+                          firstAudioChunkSentMs: performance.now() - turnStartedAtRef.current,
+                        });
+                      }
+                      if (stateRef.current === 'ready' || stateRef.current === 'listening') {
+                        transition('sending', 'audio_chunk_sent');
+                      }
+                      ws.send(
+                        JSON.stringify({
+                          realtimeInput: {
+                            mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: base64PCM }],
+                          },
+                        }),
+                      );
+                    },
+                    rms => {
+                      patchDiagnostics({ micRms: rms });
+                      if (rms > BARGE_IN_RMS_THRESHOLD && modelRespondingRef.current) {
+                        flushModelOutput();
+                        sendCancelSignal();
+                        transition('interrupted', 'barge_in_detected');
+                        transition('listening', 'resume_after_interrupt');
+                      }
+                    },
+                    { diagnosticsEnabled: VOICE_DIAGNOSTICS_ENABLED },
                   );
-                },
-                rms => {
-                  patchDiagnostics({ micRms: rms });
-                  if (rms > BARGE_IN_RMS_THRESHOLD && modelRespondingRef.current) {
-                    flushModelOutput();
-                    sendCancelSignal();
-                    transition('interrupted', 'barge_in_detected');
-                    transition('listening', 'resume_after_interrupt');
-                  }
-                },
-                { diagnosticsEnabled: VOICE_DIAGNOSTICS_ENABLED },
-              );
+                  // Successful capture → close the circuit breaker if it was in half-open state
+                  recordCircuitBreakerSuccess();
+                  transition('listening', 'capture_started');
+                } catch (captureErr) {
+                  const msg =
+                    captureErr instanceof Error
+                      ? captureErr.message
+                      : 'Failed to start audio capture';
+                  recordVoiceFailure(msg);
+                  onErrorRef.current?.(msg);
+                  setError(msg);
+                  transition('error', 'capture_failed');
+                  void cleanup();
+                }
+              })();
+            } else {
+              transition('listening', 'capture_started');
             }
-            transition('listening', 'capture_started');
             return;
           }
 

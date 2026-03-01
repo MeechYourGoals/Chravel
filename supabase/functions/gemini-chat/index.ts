@@ -165,14 +165,22 @@ async function storeConversation(
   tripId: string,
   userMessage: string,
   aiResponse: string,
-  type: string,
+  _type: string,
 ) {
   try {
-    await supabase.from('ai_conversations').insert({
+    // Write to ai_queries (same table as useConciergeHistory reads) so history
+    // is visible to the client regardless of which edge function handled the request.
+    // Requires the user's JWT to be present in the supabase client for RLS.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) return;
+
+    await supabase.from('ai_queries').insert({
       trip_id: tripId,
-      user_message: userMessage,
-      ai_response: aiResponse,
-      conversation_type: type,
+      user_id: user.id,
+      query_text: userMessage,
+      response_text: aiResponse,
       created_at: new Date().toISOString(),
     });
   } catch (error) {

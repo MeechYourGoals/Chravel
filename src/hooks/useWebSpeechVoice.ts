@@ -221,6 +221,22 @@ export function useWebSpeechVoice(
       }, 2000);
     };
 
+    // onnomatch fires when the speech was detected but couldn't be matched to words.
+    // On iOS this rarely fires — onend handles restarts there.
+    // On Chrome desktop it fires after a no-match utterance, so we restart if active.
+    recognition.onnomatch = () => {
+      if (!activeRef.current || intentionalStopRef.current) return;
+      // If we have accumulated text, finalize it; otherwise wait for onend to handle restart.
+      if (accumulatedTranscriptRef.current.trim()) {
+        finalizeTranscript();
+      }
+      // On non-iOS: clear the no-audio timer since audio WAS detected (just not matched)
+      if (!isIOS && noAudioTimerRef.current) {
+        clearTimeout(noAudioTimerRef.current);
+        noAudioTimerRef.current = null;
+      }
+    };
+
     recognition.onerror = (event: any) => {
       if (!activeRef.current) return;
       const errType = event.error;

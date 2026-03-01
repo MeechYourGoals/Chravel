@@ -266,7 +266,8 @@ export const AIConciergeChat = ({
   onTabChange,
 }: AIConciergeChatProps) => {
   const { basecamp: globalBasecamp } = useBasecamp();
-  const { usage, refreshUsage, isLimitedPlan, userPlan, upgradeUrl } = useConciergeUsage(tripId);
+  const { usage, refreshUsage, incrementUsageOnSuccess, isLimitedPlan, userPlan, upgradeUrl } =
+    useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const { user } = useAuth();
   const loadedPreferences = useAIConciergePreferences();
@@ -879,17 +880,25 @@ export const AIConciergeChat = ({
     setAiStatus('thinking');
 
     if (isLimitedPlan) {
-      const latestUsage = await refreshUsage();
-
-      if (!latestUsage) {
+      // Atomically check AND increment usage via a single DB RPC call.
+      // This prevents the non-atomic race where two concurrent browser tabs both
+      // pass a read-only `refreshUsage()` check and both consume a query slot.
+      // If the limit is already reached, the RPC returns incremented=false without
+      // incrementing — the gate is enforced at the Postgres level, not the client.
+      // Trade-off: if the subsequent AI call fails (network, server error), one quota
+      // unit is consumed. This is preferable to the double-spend concurrency bug.
+      let incrementResult;
+      try {
+        incrementResult = await incrementUsageOnSuccess();
+      } catch {
         toast.error('Unable to verify Concierge query allowance right now. Please try again.');
         setMessages(prev => prev.filter(m => m.id !== userMessage.id));
         setIsTyping(false);
         return;
       }
 
-      if (latestUsage.isLimitReached && latestUsage.limit !== null) {
-        showLimitReachedToast(latestUsage.plan === 'explorer' ? 'explorer' : 'free');
+      if (!incrementResult.incremented) {
+        showLimitReachedToast(incrementResult.plan === 'explorer' ? 'explorer' : 'free');
         setMessages(prev => prev.filter(m => m.id !== userMessage.id));
         setIsTyping(false);
         return;
@@ -1352,7 +1361,6 @@ export const AIConciergeChat = ({
             },
             onMetadata: (metadata: StreamMetadataEvent) => {
               setAiStatus('connected');
-              if (isLimitedPlan) void refreshUsage();
               updateStreamMsg(() => ({
                 usage: metadata.usage,
                 sources: metadata.sources as ChatMessage['sources'],
@@ -1493,10 +1501,6 @@ export const AIConciergeChat = ({
       }
 
       setAiStatus('connected');
-
-      if (isLimitedPlan) {
-        void refreshUsage();
-      }
 
       const assistantMessage: ChatMessage = {
         id: _uniqueId('assistant'),
@@ -1839,6 +1843,7 @@ export const AIConciergeChat = ({
               circuitBreakerOpen={liveCircuitBreakerOpen}
               onEnd={handleEndLiveSession}
               onResetCircuitBreaker={resetLiveCircuitBreaker}
+              onReconnect={handleConvoToggle}
             />
           )}
           <AiChatInput

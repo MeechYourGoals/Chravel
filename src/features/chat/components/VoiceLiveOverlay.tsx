@@ -10,6 +10,8 @@ interface VoiceLiveOverlayProps {
   circuitBreakerOpen: boolean;
   onEnd: () => void;
   onResetCircuitBreaker: () => void;
+  /** Called to close the error overlay and immediately restart a fresh voice session. */
+  onReconnect?: () => void;
 }
 
 const STATE_LABEL: Record<GeminiLiveState, string> = {
@@ -47,6 +49,7 @@ export function VoiceLiveOverlay({
   circuitBreakerOpen,
   onEnd,
   onResetCircuitBreaker,
+  onReconnect,
 }: VoiceLiveOverlayProps) {
   const transcriptRef = useRef<HTMLDivElement>(null);
 
@@ -181,16 +184,29 @@ export function VoiceLiveOverlay({
           )}
         </div>
 
-        {/* Circuit breaker retry */}
+        {/* Single-failure reconnect: error state but circuit breaker not yet open */}
+        {state === 'error' && !circuitBreakerOpen && onReconnect && (
+          <button
+            type="button"
+            onClick={onReconnect}
+            className="flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-full bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-white text-xs touch-manipulation shrink-0"
+            aria-label="Reconnect voice"
+          >
+            <RefreshCw size={12} />
+            Reconnect
+          </button>
+        )}
+
+        {/* Circuit breaker retry — shown after N consecutive failures */}
         {circuitBreakerOpen && (
           <button
             type="button"
             onClick={onResetCircuitBreaker}
             className="flex items-center gap-1 px-3 py-1.5 min-h-[36px] rounded-full bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-white text-xs touch-manipulation shrink-0"
-            aria-label="Retry voice connection"
+            aria-label="Reset circuit breaker and retry voice"
           >
             <RefreshCw size={12} />
-            Retry
+            Try again
           </button>
         )}
       </div>
