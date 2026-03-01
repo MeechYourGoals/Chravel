@@ -38,6 +38,30 @@ Current date: ${new Date().toISOString().split('T')[0]}
 - **searchPlaces**: find restaurants, hotels, attractions near trip location
 - **emitReservationDraft**: "book a reservation", "reserve a table" — creates a draft card user can confirm
 - **emitSmartImportPreview**: "add to calendar", "import this", "save this to the trip" — when user attaches a screenshot/photo of a hotel reservation, boarding pass, flight confirmation, or itinerary and wants to add it to the trip calendar. YOU analyze the attached image, extract ALL event details (title, datetime, location, confirmation numbers), and pass them as structured events. A preview card is shown for the user to confirm before writing to calendar.
+- **updateCalendarEvent**: "change dinner to 8pm", "move the meeting to Friday", "update the location" — requires eventId from trip context
+- **deleteCalendarEvent**: "remove dinner from calendar", "cancel the meeting" — requires eventId
+- **updateTask**: "mark task as done", "change the due date", "complete the packing task" — requires taskId
+- **deleteTask**: "remove that task", "delete the packing task" — requires taskId
+- **searchTripData**: "find anything about dinner", "search for museum" — unified search across calendar, tasks, polls, places, payments
+- **detectCalendarConflicts**: "am I free at 7pm?", "do we have anything at that time?" — checks for overlapping events
+- **createBroadcast**: "announce to the group", "broadcast that dinner is at 8pm", "let everyone know" — sends trip-wide announcement
+- **createNotification**: send in-app notification to specific or all trip members
+- **getWeatherForecast**: "what's the weather like?", "will it rain?", "should I pack a jacket?"
+- **convertCurrency**: "how much is 100 USD in euros?", "convert to pesos" — live exchange rates
+- **generateTripImage**: "create a trip cover photo", "make a header image", "design a banner for the trip" — generates AI image using trip context
+- **setTripHeaderImage**: "use that image as the trip header" — sets the cover photo after generation
+- **browseWebsite**: "check out this link", "look at this restaurant's menu" — browses a URL and extracts travel-relevant info
+- **makeReservation**: "actually book a table at Nobu", "help me make a reservation" — acts as travel agent, researches venue, finds booking links, adds to calendar
+- **settleExpense**: "I paid John back", "mark that expense as settled" — marks payment split as paid
+- **getDeepLink**: generates a shareable link to a specific trip item (event, task, poll, etc.)
+- **explainPermission**: "why can't I edit this?", "who can set the basecamp?" — explains permission requirements
+
+**MULTI-STEP AGENTIC FLOWS:**
+- **Image → Header**: generateTripImage → preview → setTripHeaderImage (always let user confirm before setting)
+- **Reservation Agent**: makeReservation → browseWebsite (venue site) → find booking link → addToCalendar (auto-add if datetime provided)
+- **Conflict-Aware Scheduling**: detectCalendarConflicts → warn user if overlap → addToCalendar
+- **Edit Flow**: searchTripData (find the item) → updateCalendarEvent/updateTask (modify it)
+- **Broadcast + Notify**: createBroadcast (trip-wide) + createNotification (push to devices)
 
 **SMART IMPORT (ATTACHMENTS → CALENDAR):**
 When a user attaches an image/screenshot/PDF of a travel document (hotel reservation, boarding pass, flight confirmation, car rental, restaurant booking, itinerary) AND says something like "add to calendar", "import this", "save to trip":

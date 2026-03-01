@@ -1,5 +1,6 @@
 const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 const GOOGLE_CUSTOM_SEARCH_CX = Deno.env.get('GOOGLE_CUSTOM_SEARCH_CX');
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
 // Resolve the Supabase functions base URL for building proxy URLs.
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -943,6 +944,936 @@ async function _executeImpl(
         draft,
         actionType: 'reservation_draft',
         message: `Reservation draft created for ${placeName}`,
+      };
+    }
+
+    // ========== UPDATE / DELETE TOOLS ==========
+
+    case 'updateCalendarEvent': {
+      const { eventId, title, datetime, endDatetime, location, notes } = args;
+      if (!eventId) return { error: 'eventId is required' };
+
+      // Verify event belongs to this trip before updating
+      const { data: existing, error: fetchErr } = await supabase
+        .from('trip_events')
+        .select('id, trip_id, created_by')
+        .eq('id', eventId)
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !existing) {
+        return { error: 'Event not found in this trip' };
+      }
+
+      const updatePayload: Record<string, unknown> = {};
+      if (title) updatePayload.title = String(title);
+      if (datetime) {
+        updatePayload.start_time = new Date(datetime).toISOString();
+      }
+      if (endDatetime) {
+        updatePayload.end_time = new Date(endDatetime).toISOString();
+      }
+      if (location !== undefined) updatePayload.location = location || null;
+      if (notes !== undefined) updatePayload.description = notes || null;
+
+      if (Object.keys(updatePayload).length === 0) {
+        return { error: 'No fields to update' };
+      }
+
+      const { data, error } = await supabase
+        .from('trip_events')
+        .update(updatePayload)
+        .eq('id', eventId)
+        .eq('trip_id', tripId)
+        .select()
+        .single();
+      if (error) throw error;
+      return {
+        success: true,
+        event: data,
+        actionType: 'update_calendar_event',
+        message: `Updated event "${data.title}"`,
+      };
+    }
+
+    case 'deleteCalendarEvent': {
+      const { eventId } = args;
+      if (!eventId) return { error: 'eventId is required' };
+
+      // Verify event belongs to this trip
+      const { data: existing, error: fetchErr } = await supabase
+        .from('trip_events')
+        .select('id, title, trip_id')
+        .eq('id', eventId)
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !existing) {
+        return { error: 'Event not found in this trip' };
+      }
+
+      const { error } = await supabase
+        .from('trip_events')
+        .delete()
+        .eq('id', eventId)
+        .eq('trip_id', tripId);
+      if (error) throw error;
+      return {
+        success: true,
+        actionType: 'delete_calendar_event',
+        message: `Deleted event "${existing.title}"`,
+      };
+    }
+
+    case 'updateTask': {
+      const { taskId, title, description, assignee, dueDate, completed } = args;
+      if (!taskId) return { error: 'taskId is required' };
+
+      // Verify task belongs to this trip
+      const { data: existing, error: fetchErr } = await supabase
+        .from('trip_tasks')
+        .select('id, trip_id, title')
+        .eq('id', taskId)
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !existing) {
+        return { error: 'Task not found in this trip' };
+      }
+
+      const updatePayload: Record<string, unknown> = {};
+      if (title) updatePayload.title = String(title);
+      if (description !== undefined) updatePayload.description = description || null;
+      if (dueDate !== undefined) updatePayload.due_at = dueDate || null;
+      if (completed !== undefined) {
+        updatePayload.completed = Boolean(completed);
+        updatePayload.completed_at = completed ? new Date().toISOString() : null;
+      }
+
+      if (Object.keys(updatePayload).length === 0) {
+        return { error: 'No fields to update' };
+      }
+
+      const { data, error } = await supabase
+        .from('trip_tasks')
+        .update(updatePayload)
+        .eq('id', taskId)
+        .eq('trip_id', tripId)
+        .select()
+        .single();
+      if (error) throw error;
+      return {
+        success: true,
+        task: data,
+        actionType: 'update_task',
+        message: `Updated task "${data.title}"${completed ? ' (marked complete)' : ''}`,
+      };
+    }
+
+    case 'deleteTask': {
+      const { taskId } = args;
+      if (!taskId) return { error: 'taskId is required' };
+
+      const { data: existing, error: fetchErr } = await supabase
+        .from('trip_tasks')
+        .select('id, title, trip_id')
+        .eq('id', taskId)
+        .eq('trip_id', tripId)
+        .single();
+      if (fetchErr || !existing) {
+        return { error: 'Task not found in this trip' };
+      }
+
+      const { error } = await supabase
+        .from('trip_tasks')
+        .delete()
+        .eq('id', taskId)
+        .eq('trip_id', tripId);
+      if (error) throw error;
+      return {
+        success: true,
+        actionType: 'delete_task',
+        message: `Deleted task "${existing.title}"`,
+      };
+    }
+
+    // ========== UNIFIED TRIP SEARCH ==========
+
+    case 'searchTripData': {
+      const { query, types } = args;
+      const searchQuery = String(query || '')
+        .trim()
+        .toLowerCase();
+      if (!searchQuery) return { error: 'Search query is required' };
+
+      const searchTypes: string[] = Array.isArray(types)
+        ? types.map(String)
+        : ['calendar', 'task', 'poll', 'link', 'payment'];
+
+      const results: Record<string, unknown[]> = {};
+
+      // Search calendar events
+      if (searchTypes.includes('calendar')) {
+        const { data: events } = await supabase
+          .from('trip_events')
+          .select('id, title, start_time, end_time, location, description')
+          .eq('trip_id', tripId)
+          .or(
+            `title.ilike.%${searchQuery}%,location.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`,
+          )
+          .order('start_time', { ascending: true })
+          .limit(10);
+        results.calendar = events || [];
+      }
+
+      // Search tasks
+      if (searchTypes.includes('task')) {
+        const { data: tasks } = await supabase
+          .from('trip_tasks')
+          .select('id, title, description, completed, due_at')
+          .eq('trip_id', tripId)
+          .or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
+          .limit(10);
+        results.tasks = tasks || [];
+      }
+
+      // Search polls
+      if (searchTypes.includes('poll')) {
+        const { data: polls } = await supabase
+          .from('trip_polls')
+          .select('id, question, options, status')
+          .eq('trip_id', tripId)
+          .ilike('question', `%${searchQuery}%`)
+          .limit(10);
+        results.polls = polls || [];
+      }
+
+      // Search trip links
+      if (searchTypes.includes('link')) {
+        const { data: links } = await supabase
+          .from('trip_links')
+          .select('id, title, url, description, category')
+          .eq('trip_id', tripId)
+          .or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
+          .limit(10);
+        results.links = links || [];
+      }
+
+      // Search payments
+      if (searchTypes.includes('payment')) {
+        const { data: payments } = await supabase
+          .from('trip_payment_messages')
+          .select('id, description, amount, currency, created_at')
+          .eq('trip_id', tripId)
+          .ilike('description', `%${searchQuery}%`)
+          .limit(10);
+        results.payments = payments || [];
+      }
+
+      const totalResults = Object.values(results).reduce(
+        (sum, arr) => sum + (arr as unknown[]).length,
+        0,
+      );
+
+      return {
+        success: true,
+        query: searchQuery,
+        totalResults,
+        results,
+        message: `Found ${totalResults} result(s) for "${searchQuery}"`,
+      };
+    }
+
+    // ========== CALENDAR CONFLICT DETECTION ==========
+
+    case 'detectCalendarConflicts': {
+      const { datetime, endDatetime } = args;
+      if (!datetime) return { error: 'datetime is required' };
+
+      const startTime = new Date(datetime).toISOString();
+      const endTime = endDatetime
+        ? new Date(endDatetime).toISOString()
+        : new Date(new Date(datetime).getTime() + 60 * 60 * 1000).toISOString();
+
+      // Find overlapping events: starts before proposed end AND ends after proposed start
+      const { data: conflicts, error } = await supabase
+        .from('trip_events')
+        .select('id, title, start_time, end_time, location')
+        .eq('trip_id', tripId)
+        .lt('start_time', endTime)
+        .gt('end_time', startTime)
+        .order('start_time', { ascending: true });
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        hasConflicts: (conflicts || []).length > 0,
+        conflicts: conflicts || [],
+        proposedStart: startTime,
+        proposedEnd: endTime,
+        message:
+          (conflicts || []).length > 0
+            ? `Found ${conflicts!.length} conflicting event(s)`
+            : 'No conflicts found',
+      };
+    }
+
+    // ========== BROADCAST TOOL ==========
+
+    case 'createBroadcast': {
+      const { message, priority } = args;
+      const broadcastMessage = String(message || '').trim();
+      if (!broadcastMessage) return { error: 'Broadcast message is required' };
+      if (!userId) return { error: 'Authentication required to send broadcasts' };
+
+      const validPriorities = new Set(['normal', 'urgent']);
+      const safePriority = validPriorities.has(String(priority)) ? String(priority) : 'normal';
+
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .insert({
+          trip_id: tripId,
+          created_by: userId,
+          message: broadcastMessage,
+          priority: safePriority,
+          is_sent: true,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return {
+        success: true,
+        broadcast: data,
+        actionType: 'create_broadcast',
+        message: `Broadcast sent: "${broadcastMessage.substring(0, 80)}"${safePriority === 'urgent' ? ' (URGENT)' : ''}`,
+      };
+    }
+
+    // ========== NOTIFICATION TOOL ==========
+
+    case 'createNotification': {
+      const { title, message, targetUserIds, type } = args;
+      const notifTitle = String(title || '').trim();
+      const notifMessage = String(message || '').trim();
+      if (!notifTitle || !notifMessage) {
+        return { error: 'Both title and message are required' };
+      }
+
+      // If no target users specified, notify all trip members
+      let userIds: string[] = [];
+      if (Array.isArray(targetUserIds) && targetUserIds.length > 0) {
+        userIds = targetUserIds.map(String);
+      } else {
+        const { data: members } = await supabase
+          .from('trip_members')
+          .select('user_id')
+          .eq('trip_id', tripId);
+        userIds = (members || []).map((m: { user_id: string }) => m.user_id);
+      }
+
+      if (userIds.length === 0) {
+        return { error: 'No target users found' };
+      }
+
+      const notifications = userIds.map((uid: string) => ({
+        user_id: uid,
+        trip_id: tripId,
+        title: notifTitle,
+        message: notifMessage,
+        type: type || 'concierge',
+        metadata: { source: 'ai_concierge', created_by: userId },
+      }));
+
+      const { error } = await supabase.from('notifications').insert(notifications);
+      if (error) throw error;
+
+      return {
+        success: true,
+        actionType: 'create_notification',
+        recipientCount: userIds.length,
+        message: `Notification sent to ${userIds.length} member(s): "${notifTitle}"`,
+      };
+    }
+
+    // ========== WEATHER FORECAST ==========
+
+    case 'getWeatherForecast': {
+      const { location, date } = args;
+      if (!location) return { error: 'Location is required' };
+
+      // Use web search to get weather data (free, no additional API key needed)
+      const dateStr = date || 'today';
+      const weatherQuery = `weather forecast ${location} ${dateStr}`;
+
+      const searchResult = await _executeImpl(
+        supabase,
+        'searchWeb',
+        { query: weatherQuery, count: 3 },
+        tripId,
+        userId,
+        locationContext,
+      );
+
+      return {
+        success: true,
+        location,
+        date: dateStr,
+        searchResults: searchResult.success ? searchResult.results : [],
+        message: `Weather results for ${location} (${dateStr})`,
+      };
+    }
+
+    // ========== CURRENCY CONVERSION ==========
+
+    case 'convertCurrency': {
+      const { amount, from, to } = args;
+      if (!amount || !from || !to) {
+        return { error: 'amount, from, and to currency codes are required' };
+      }
+
+      const numAmount = Number(amount);
+      if (!Number.isFinite(numAmount) || numAmount <= 0) {
+        return { error: 'Amount must be a positive number' };
+      }
+
+      // Use the free exchangerate API
+      const rateUrl = `https://open.er-api.com/v6/latest/${encodeURIComponent(String(from).toUpperCase())}`;
+      const rateResponse = await fetch(rateUrl, { signal: AbortSignal.timeout(8_000) });
+
+      if (!rateResponse.ok) {
+        return { error: `Currency API failed (${rateResponse.status})` };
+      }
+
+      const rateData = await rateResponse.json();
+      if (rateData.result !== 'success') {
+        return { error: `Currency conversion failed: ${rateData['error-type'] || 'unknown'}` };
+      }
+
+      const toCurrency = String(to).toUpperCase();
+      const rate = rateData.rates?.[toCurrency];
+      if (!rate) {
+        return { error: `Unknown currency code: ${toCurrency}` };
+      }
+
+      const converted = Math.round(numAmount * rate * 100) / 100;
+      return {
+        success: true,
+        originalAmount: numAmount,
+        originalCurrency: String(from).toUpperCase(),
+        convertedAmount: converted,
+        targetCurrency: toCurrency,
+        exchangeRate: rate,
+        rateDate: rateData.time_last_update_utc || null,
+        message: `${numAmount} ${String(from).toUpperCase()} = ${converted} ${toCurrency}`,
+      };
+    }
+
+    // ========== IMAGE GENERATION (Trip Header) ==========
+
+    case 'generateTripImage': {
+      const { prompt, style } = args;
+      if (!GEMINI_API_KEY) {
+        return { error: 'Gemini API key not configured for image generation' };
+      }
+
+      // Build a travel-specific image prompt
+      const safeStyles = new Set(['photo', 'illustration', 'watercolor', 'minimal', 'vibrant']);
+      const imageStyle = safeStyles.has(String(style)) ? String(style) : 'photo';
+
+      const imagePrompt = `Generate a beautiful, high-quality ${imageStyle}-style travel image: ${String(prompt).substring(0, 500)}. The image should be suitable as a trip cover photo — wide landscape format, vibrant colors, no text overlays, no watermarks.`;
+
+      // Use Gemini's image generation via Imagen
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_API_KEY}`;
+      const geminiResponse = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instances: [{ prompt: imagePrompt }],
+          parameters: {
+            sampleCount: 1,
+            aspectRatio: '16:9',
+            safetyFilterLevel: 'block_medium_and_above',
+          },
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      if (!geminiResponse.ok) {
+        const errText = await geminiResponse.text().catch(() => '');
+        console.error(`[Tool] generateTripImage failed (${geminiResponse.status}): ${errText}`);
+        return {
+          error: `Image generation failed (${geminiResponse.status})`,
+          suggestion: 'Try a simpler prompt or different style',
+        };
+      }
+
+      const geminiData = await geminiResponse.json();
+      const prediction = geminiData.predictions?.[0];
+
+      if (!prediction?.bytesBase64Encoded) {
+        return { error: 'No image was generated. Try a different prompt.' };
+      }
+
+      // Store image in Supabase Storage
+      const imageBytes = Uint8Array.from(atob(prediction.bytesBase64Encoded), (c: string) =>
+        c.charCodeAt(0),
+      );
+      const fileName = `trip-headers/${tripId}/${crypto.randomUUID()}.png`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('trip-media')
+        .upload(fileName, imageBytes, {
+          contentType: 'image/png',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[Tool] generateTripImage upload failed:', uploadError);
+        return { error: 'Image generated but upload failed' };
+      }
+
+      const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(fileName);
+      const publicUrl = urlData?.publicUrl || '';
+
+      return {
+        success: true,
+        imageUrl: publicUrl,
+        storagePath: fileName,
+        prompt: String(prompt).substring(0, 200),
+        style: imageStyle,
+        actionType: 'generate_trip_image',
+        message: `Generated trip image. You can preview it and set it as your trip header.`,
+      };
+    }
+
+    case 'setTripHeaderImage': {
+      const { imageUrl } = args;
+      if (!imageUrl) return { error: 'imageUrl is required' };
+
+      const { data, error } = await supabase
+        .from('trips')
+        .update({ cover_image_url: String(imageUrl) })
+        .eq('id', tripId)
+        .select('id, cover_image_url')
+        .single();
+      if (error) throw error;
+
+      return {
+        success: true,
+        trip: data,
+        actionType: 'set_trip_header',
+        message: 'Trip header image updated!',
+      };
+    }
+
+    // ========== WEB BROWSING / TRAVEL AGENT ==========
+
+    case 'browseWebsite': {
+      const { url, instruction } = args;
+      if (!url) return { error: 'URL is required' };
+      if (!GEMINI_API_KEY) {
+        return { error: 'Gemini API key not configured for web browsing' };
+      }
+
+      const targetUrl = String(url).trim();
+      // Basic URL validation
+      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        return { error: 'URL must start with http:// or https://' };
+      }
+
+      // Fetch the page content
+      const pageResponse = await fetch(targetUrl, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+        signal: AbortSignal.timeout(15_000),
+        redirect: 'follow',
+      });
+
+      if (!pageResponse.ok) {
+        return {
+          error: `Failed to load page (${pageResponse.status})`,
+          url: targetUrl,
+        };
+      }
+
+      const html = await pageResponse.text();
+      // Extract text content (strip HTML tags for LLM consumption)
+      const textContent = html
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 15_000); // Cap at 15k chars for context window
+
+      // Extract links that might be useful (reservation links, booking links)
+      const linkMatches = html.match(/<a[^>]+href="([^"]+)"[^>]*>([^<]*)<\/a>/gi) || [];
+      const relevantLinks = linkMatches
+        .map((link: string) => {
+          const hrefMatch = link.match(/href="([^"]+)"/);
+          const textMatch = link.match(/>([^<]*)</);
+          return {
+            url: hrefMatch?.[1] || '',
+            text: (textMatch?.[1] || '').trim(),
+          };
+        })
+        .filter(
+          (l: { url: string; text: string }) =>
+            l.text.length > 2 &&
+            (l.url.startsWith('http') || l.url.startsWith('/')) &&
+            /reserv|book|order|menu|hour|schedule|ticket|price|avail/i.test(l.text + l.url),
+        )
+        .slice(0, 20);
+
+      const taskInstruction = instruction
+        ? String(instruction)
+        : 'Extract key information useful for travel planning';
+
+      // Use Gemini to analyze the page content
+      const analysisUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const analysisResponse = await fetch(analysisUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `You are a travel agent assistant. Analyze this webpage content and ${taskInstruction}.\n\nPage URL: ${targetUrl}\n\nPage content:\n${textContent}`,
+                },
+              ],
+            },
+          ],
+          generationConfig: { maxOutputTokens: 2000, temperature: 0.2 },
+        }),
+        signal: AbortSignal.timeout(20_000),
+      });
+
+      let analysis = '';
+      if (analysisResponse.ok) {
+        const analysisData = await analysisResponse.json();
+        analysis =
+          analysisData.candidates?.[0]?.content?.parts?.[0]?.text || 'Could not analyze page';
+      }
+
+      return {
+        success: true,
+        url: targetUrl,
+        pageTitle: (html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || 'Unknown').trim(),
+        analysis,
+        relevantLinks,
+        contentLength: textContent.length,
+        actionType: 'browse_website',
+        message: `Browsed ${targetUrl} — extracted travel-relevant information`,
+      };
+    }
+
+    case 'makeReservation': {
+      const { venue, datetime, partySize, name, phone, specialRequests, bookingUrl } = args;
+      if (!venue) return { error: 'Venue name is required' };
+
+      // Step 1: Search for the venue to get its details
+      let venueDetails: {
+        placeId: string | null;
+        name: string;
+        address: string;
+        phone: string | null;
+        website: string | null;
+      } = {
+        placeId: null,
+        name: String(venue),
+        address: '',
+        phone: null,
+        website: null,
+      };
+
+      try {
+        const searchResult = await _executeImpl(
+          supabase,
+          'searchPlaces',
+          { query: String(venue) },
+          tripId,
+          userId,
+          locationContext,
+        );
+        if (searchResult.success && searchResult.places?.length > 0) {
+          const top = searchResult.places[0];
+          venueDetails.placeId = top.placeId;
+          venueDetails.name = top.name;
+          venueDetails.address = top.address;
+        }
+
+        if (venueDetails.placeId) {
+          const details = await _executeImpl(
+            supabase,
+            'getPlaceDetails',
+            { placeId: venueDetails.placeId },
+            tripId,
+            userId,
+            locationContext,
+          );
+          if (details.success) {
+            venueDetails.phone = details.phone;
+            venueDetails.website = details.website;
+          }
+        }
+      } catch (_e) {
+        // Continue with partial data
+      }
+
+      // Step 2: If we have a booking URL, browse it for reservation instructions
+      let bookingInfo: { analysis: string; relevantLinks: unknown[] } | null = null;
+      const targetBookingUrl = bookingUrl || venueDetails.website;
+      if (targetBookingUrl) {
+        try {
+          const browseResult = await _executeImpl(
+            supabase,
+            'browseWebsite',
+            {
+              url: targetBookingUrl,
+              instruction:
+                'Find the reservation/booking page or form. Extract available times, party size limits, and how to complete a reservation. Look for OpenTable, Resy, or other booking platform links.',
+            },
+            tripId,
+            userId,
+            locationContext,
+          );
+          if (browseResult.success) {
+            bookingInfo = {
+              analysis: browseResult.analysis || '',
+              relevantLinks: browseResult.relevantLinks || [],
+            };
+          }
+        } catch (_e) {
+          // Browsing failed — that's fine
+        }
+      }
+
+      // Step 3: Also add to calendar if datetime is provided
+      let calendarEvent = null;
+      if (datetime) {
+        try {
+          const calResult = await _executeImpl(
+            supabase,
+            'addToCalendar',
+            {
+              title: `Reservation at ${venueDetails.name}`,
+              datetime,
+              location: venueDetails.address || venueDetails.name,
+              notes: `Party of ${partySize || 2}${name ? ` under ${name}` : ''}${specialRequests ? `. ${specialRequests}` : ''}`,
+            },
+            tripId,
+            userId,
+            locationContext,
+          );
+          if (calResult.success) {
+            calendarEvent = calResult.event;
+          }
+        } catch (_e) {
+          // Calendar add failed — not blocking
+        }
+      }
+
+      return {
+        success: true,
+        venue: venueDetails,
+        requestedDatetime: datetime || null,
+        partySize: partySize || 2,
+        reservationName: name || null,
+        contactPhone: phone || venueDetails.phone || null,
+        specialRequests: specialRequests || null,
+        bookingInfo,
+        calendarEvent,
+        actionType: 'make_reservation',
+        message: `Reservation details gathered for ${venueDetails.name}${bookingInfo ? '. Booking page analyzed — see instructions below.' : venueDetails.phone ? `. Call ${venueDetails.phone} to book.` : '. Visit their website to complete the booking.'}`,
+      };
+    }
+
+    // ========== DEEP LINK RESOLVER ==========
+
+    case 'getDeepLink': {
+      const { entityType, entityId } = args;
+      if (!entityType || !entityId) {
+        return { error: 'entityType and entityId are required' };
+      }
+
+      const SITE_URL = Deno.env.get('SITE_URL') || 'https://chravel.app';
+      const validTypes = new Set(['event', 'task', 'poll', 'link', 'payment', 'broadcast']);
+      if (!validTypes.has(String(entityType))) {
+        return { error: `Invalid entityType. Must be one of: ${[...validTypes].join(', ')}` };
+      }
+
+      // Map entity types to their trip tab paths
+      const tabMap: Record<string, string> = {
+        event: 'calendar',
+        task: 'tasks',
+        poll: 'polls',
+        link: 'explore',
+        payment: 'payments',
+        broadcast: 'broadcasts',
+      };
+
+      const tab = tabMap[String(entityType)] || 'calendar';
+      const deepLink = `${SITE_URL}/trip/${tripId}?tab=${tab}&item=${entityId}`;
+
+      return {
+        success: true,
+        deepLink,
+        entityType: String(entityType),
+        entityId: String(entityId),
+        message: `Deep link generated for ${entityType}`,
+      };
+    }
+
+    // ========== EXPENSE SETTLEMENT ==========
+
+    case 'settleExpense': {
+      const { splitId, amount, method } = args;
+      if (!splitId) return { error: 'splitId is required' };
+      if (!userId) return { error: 'Authentication required' };
+
+      // Verify the split belongs to this trip
+      const { data: split, error: fetchErr } = await supabase
+        .from('payment_splits')
+        .select('id, payment_message_id, debtor_user_id, amount_owed, is_settled')
+        .eq('id', splitId)
+        .single();
+
+      if (fetchErr || !split) {
+        return { error: 'Payment split not found' };
+      }
+
+      if (split.is_settled) {
+        return { error: 'This expense has already been settled' };
+      }
+
+      // Verify the payment_message belongs to this trip
+      const { data: payment } = await supabase
+        .from('trip_payment_messages')
+        .select('trip_id')
+        .eq('id', split.payment_message_id)
+        .eq('trip_id', tripId)
+        .single();
+
+      if (!payment) {
+        return { error: 'Payment not found in this trip' };
+      }
+
+      const { data, error } = await supabase
+        .from('payment_splits')
+        .update({ is_settled: true })
+        .eq('id', splitId)
+        .select()
+        .single();
+      if (error) throw error;
+
+      return {
+        success: true,
+        split: data,
+        method: method || 'marked_settled',
+        actionType: 'settle_expense',
+        message: `Marked expense of $${split.amount_owed} as settled`,
+      };
+    }
+
+    // ========== PERMISSION EXPLAINER ==========
+
+    case 'explainPermission': {
+      const { action } = args;
+      if (!action) return { error: 'action is required' };
+      if (!userId) return { error: 'Authentication required' };
+
+      // Check user's role in this trip
+      const { data: membership } = await supabase
+        .from('trip_members')
+        .select('role')
+        .eq('trip_id', tripId)
+        .eq('user_id', userId)
+        .single();
+
+      // Check if user is the trip creator
+      const { data: trip } = await supabase
+        .from('trips')
+        .select('created_by')
+        .eq('id', tripId)
+        .single();
+
+      const isCreator = trip?.created_by === userId;
+      const role = membership?.role || 'none';
+      const isMember = !!membership;
+
+      const permissions: Record<
+        string,
+        { allowed: boolean; reason: string; requiredRole: string }
+      > = {
+        addToCalendar: {
+          allowed: isMember,
+          reason: isMember ? 'Trip members can add events' : 'Must be a trip member',
+          requiredRole: 'member',
+        },
+        updateCalendarEvent: {
+          allowed: isMember,
+          reason: isMember
+            ? 'Trip members can update events they created'
+            : 'Must be a trip member',
+          requiredRole: 'member (own events)',
+        },
+        deleteCalendarEvent: {
+          allowed: isMember,
+          reason: isMember
+            ? 'Trip members can delete events they created'
+            : 'Must be a trip member',
+          requiredRole: 'member (own events)',
+        },
+        createTask: {
+          allowed: isMember,
+          reason: isMember ? 'Trip members can create tasks' : 'Must be a trip member',
+          requiredRole: 'member',
+        },
+        createPoll: {
+          allowed: isMember,
+          reason: isMember ? 'Trip members can create polls' : 'Must be a trip member',
+          requiredRole: 'member',
+        },
+        createBroadcast: {
+          allowed: isMember,
+          reason: isMember ? 'Trip members can send broadcasts' : 'Must be a trip member',
+          requiredRole: 'member',
+        },
+        setBasecamp: {
+          allowed: isCreator || role === 'admin',
+          reason: isCreator
+            ? 'Trip creator can set trip basecamp'
+            : role === 'admin'
+              ? 'Admins can set trip basecamp'
+              : 'Only trip creator or admin can set trip basecamp',
+          requiredRole: 'creator or admin',
+        },
+        setTripHeaderImage: {
+          allowed: isCreator || role === 'admin',
+          reason: isCreator
+            ? 'Trip creator can change the header image'
+            : 'Only trip creator or admin can change the header image',
+          requiredRole: 'creator or admin',
+        },
+      };
+
+      const actionKey = String(action);
+      const perm = permissions[actionKey];
+
+      return {
+        success: true,
+        action: actionKey,
+        userRole: role,
+        isCreator,
+        isMember,
+        allowed: perm?.allowed ?? isMember,
+        reason: perm?.reason ?? (isMember ? 'Allowed as trip member' : 'Must be a trip member'),
+        requiredRole: perm?.requiredRole ?? 'member',
+        message: perm
+          ? `${actionKey}: ${perm.reason}`
+          : `${actionKey}: ${isMember ? 'Allowed' : 'Not allowed — not a trip member'}`,
       };
     }
 
