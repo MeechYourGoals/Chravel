@@ -19,6 +19,7 @@ import {
   type TripCard,
   type StreamSmartImportPreviewEvent,
   type SmartImportPreviewEvent,
+  type SmartImportStatus,
 } from '@/services/conciergeGateway';
 import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { Button } from './ui/button';
@@ -144,7 +145,10 @@ export interface ChatMessage {
     tripId: string;
     totalEvents: number;
     duplicateCount: number;
+    lodgingName?: string;
   };
+  /** Smart Import status messages (parsing progress) */
+  smartImportStatus?: { status: SmartImportStatus; message: string };
 }
 
 interface ConciergeInvokePayload {
@@ -1065,6 +1069,7 @@ export const AIConciergeChat = ({
                   tripId: preview.tripId,
                   totalEvents: preview.totalEvents,
                   duplicateCount: preview.duplicateCount,
+                  lodgingName: preview.lodgingName,
                 };
                 if (idx !== -1) {
                   const updated = [...prev];
@@ -1079,6 +1084,30 @@ export const AIConciergeChat = ({
                     content: '',
                     timestamp: new Date().toISOString(),
                     smartImportPreview: previewData,
+                  },
+                ];
+              });
+            },
+            onSmartImportStatus: (status: SmartImportStatus, message: string) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true;
+              setIsTyping(false);
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                const statusData = { status, message };
+                if (idx !== -1) {
+                  const updated = [...prev];
+                  updated[idx] = { ...updated[idx], smartImportStatus: statusData };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: '',
+                    timestamp: new Date().toISOString(),
+                    smartImportStatus: statusData,
                   },
                 ];
               });

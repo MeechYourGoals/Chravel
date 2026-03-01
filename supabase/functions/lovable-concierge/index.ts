@@ -459,6 +459,20 @@ async function streamGeminiToSSE(
     const toolPhaseStartMs = performance.now();
     const functionCallResults: any[] = [];
 
+    // Emit progress events for Smart Import tool calls
+    const hasSmartImport = state.functionCallParts.some(
+      (p: any) => p.functionCall?.name === 'emitSmartImportPreview',
+    );
+    if (hasSmartImport) {
+      controller.enqueue(
+        sseEvent({
+          type: 'smart_import_status',
+          status: 'extracting',
+          message: 'Extracting events from your document...',
+        }),
+      );
+    }
+
     // Parallelize independent function calls (e.g. multiple getPlaceDetails)
     const callTasks = state.functionCallParts.map(async part => {
       const fc = part.functionCall;
@@ -475,6 +489,17 @@ async function streamGeminiToSSE(
 
       console.log(`[Stream/FunctionCall] Executing: ${fc.name}`, parsedArgs);
       executedFunctions.push(fc.name);
+
+      // Emit checking_duplicates status for Smart Import
+      if (fc.name === 'emitSmartImportPreview') {
+        controller.enqueue(
+          sseEvent({
+            type: 'smart_import_status',
+            status: 'checking_duplicates',
+            message: 'Checking for duplicate events...',
+          }),
+        );
+      }
 
       let result: any;
       try {
@@ -511,6 +536,20 @@ async function streamGeminiToSSE(
         r.response?.success &&
         r.response?.previewEvents
       ) {
+        // Emit ready status before preview
+        controller.enqueue(
+          sseEvent({
+            type: 'smart_import_status',
+            status: 'ready',
+            message: `Found ${r.response.totalEvents} event(s)`,
+          }),
+        );
+
+        // Detect first lodging event name for basecamp prompt
+        const firstLodging = r.response.previewEvents.find(
+          (e: { category: string }) => e.category === 'lodging',
+        );
+
         controller.enqueue(
           sseEvent({
             type: 'smart_import_preview',
@@ -518,6 +557,7 @@ async function streamGeminiToSSE(
             tripId: r.response.tripId,
             totalEvents: r.response.totalEvents,
             duplicateCount: r.response.duplicateCount,
+            lodgingName: firstLodging?.title || undefined,
           }),
         );
       } else {

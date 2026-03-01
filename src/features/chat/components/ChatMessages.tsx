@@ -10,7 +10,11 @@ import { HotelResultCards, HotelResult } from './HotelResultCards';
 import { ConciergeActionCard, ConciergeActionResult } from './ConciergeActionCard';
 import { ReservationDraftCard } from './ReservationDraftCard';
 import { SmartImportPreviewCard } from './SmartImportPreviewCard';
-import type { ReservationDraft, SmartImportPreviewEvent } from '@/services/conciergeGateway';
+import type {
+  ReservationDraft,
+  SmartImportPreviewEvent,
+  SmartImportStatus,
+} from '@/services/conciergeGateway';
 
 /** Extended message shape that may carry rich function-call data from the concierge. */
 interface RichChatMessage extends ChatMessage {
@@ -24,7 +28,9 @@ interface RichChatMessage extends ChatMessage {
     tripId: string;
     totalEvents: number;
     duplicateCount: number;
+    lodgingName?: string;
   };
+  smartImportStatus?: { status: SmartImportStatus; message: string };
 }
 
 interface ChatMessagesProps {
@@ -160,6 +166,18 @@ export const ChatMessages = ({
               </div>
             )}
 
+            {/* Smart Import status indicator (shown during parsing/extraction) */}
+            {rich.smartImportStatus && !rich.smartImportPreview && (
+              <div
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+              >
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-500/20 bg-blue-500/5 max-w-sm">
+                  <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <span className="text-xs text-blue-300">{rich.smartImportStatus.message}</span>
+                </div>
+              </div>
+            )}
+
             {/* Smart Import preview card */}
             {rich.smartImportPreview && rich.smartImportPreview.previewEvents.length > 0 && (
               <div
@@ -171,6 +189,7 @@ export const ChatMessages = ({
                     tripId={rich.smartImportPreview.tripId}
                     totalEvents={rich.smartImportPreview.totalEvents}
                     duplicateCount={rich.smartImportPreview.duplicateCount}
+                    lodgingName={rich.smartImportPreview.lodgingName}
                     onConfirm={events => onSmartImportConfirm?.(message.id, events)}
                     onDismiss={() => onSmartImportDismiss?.(message.id)}
                     isImporting={smartImportStates?.[message.id]?.isImporting}
