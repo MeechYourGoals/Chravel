@@ -141,9 +141,12 @@ export const AiChatInput = ({
     (dictationVoiceState === 'listening' || dictationVoiceState === 'connecting');
 
   // Compute text box value, appending live transcript if active
-  const displayValue = isDictating && dictationTranscript
-    ? inputMessage + (inputMessage && !inputMessage.endsWith(' ') ? ' ' : '') + dictationTranscript
-    : inputMessage;
+  const displayValue =
+    isDictating && dictationTranscript
+      ? inputMessage +
+        (inputMessage && !inputMessage.endsWith(' ') ? ' ' : '') +
+        dictationTranscript
+      : inputMessage;
 
   // Dynamic placeholder based on active mode
   const getPlaceholder = () => {
