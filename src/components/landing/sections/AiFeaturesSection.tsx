@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Wand2, Compass, Upload, ScrollText, DollarSign, Bot } from 'lucide-react';
-import aiConcierge from '@/assets/app-screenshots/ai-concierge.png';
+import aiConcierge from '@/assets/ai-concierge-screenshot.png';
 import placesMaps from '@/assets/app-screenshots/places-maps.png';
 
 export const AiFeaturesSection = () => {
