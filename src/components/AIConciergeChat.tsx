@@ -321,6 +321,7 @@ export const AIConciergeChat = ({
     toggleVoice: toggleDictation,
     stopVoice: stopDictation,
     errorMessage: dictationError,
+    userTranscript: dictationTranscript,
   } = useWebSpeechVoice(handleDictationResult);
 
   // Gemini Live bidirectional voice — always initialized (hooks rules)
@@ -1497,32 +1498,6 @@ export const AIConciergeChat = ({
           )}
         </div>
 
-        {/* Voice listening indicator (dictation mode) */}
-        {dictationState === 'listening' && (
-          <div
-            className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
-            role="alert"
-            aria-live="polite"
-            aria-label="Listening for dictation"
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
-                aria-hidden="true"
-              />
-              <span className="text-sm text-emerald-300">Listening...</span>
-            </div>
-            <button
-              type="button"
-              onClick={stopDictation}
-              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
-              aria-label="Stop listening"
-            >
-              Stop
-            </button>
-          </div>
-        )}
-
         {/* Input area — sticky bottom with inline voice banner above input */}
         <div
           className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
@@ -1565,6 +1540,7 @@ export const AIConciergeChat = ({
             onConvoToggle={handleConvoToggle}
             dictationVoiceState={dictationState}
             onDictationToggle={handleDictationToggle}
+            dictationTranscript={dictationTranscript}
             isVoiceEligible={true}
           />
         </div>
