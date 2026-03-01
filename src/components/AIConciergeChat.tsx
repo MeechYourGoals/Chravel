@@ -380,7 +380,7 @@ export const AIConciergeChat = ({
   });
 
   const handleLiveTurnComplete = useCallback(
-    (userText: string, assistantText: string) => {
+    async (userText: string, assistantText: string) => {
       const now = new Date().toISOString();
       const newMessages: ChatMessage[] = [];
       if (userText) {
@@ -410,38 +410,45 @@ export const AIConciergeChat = ({
       setStreamingVoiceMessage(null);
       setStreamingUserMessage(null);
 
-      // Fix 1: Persist the completed voice turn to Supabase (ai_queries table).
+      // Persist the completed voice turn to Supabase (ai_queries table).
       // We store both sides as a single row: query_text = user utterance,
       // response_text = assistant reply.  Only persists when both sides are
       // present and the user is authenticated.
       //
-      // NOTE: The ai_queries schema does not have a dedicated `source` column
-      // to flag voice vs. text turns.  A future migration adding
-      // `source VARCHAR DEFAULT 'text'` would let the history hook differentiate
-      // voice interactions without changing this call site.
+      // Awaited (not fire-and-forget) so the insert completes before the user
+      // navigates away or starts a new turn, preventing silent data loss.
       if (userText && assistantText && user?.id) {
-        supabase
-          .from('ai_queries')
-          .insert({
+        try {
+          const { error: persistError } = await supabase.from('ai_queries').insert({
             trip_id: tripId,
             user_id: user.id,
             query_text: userText,
             response_text: assistantText,
             created_at: now,
-          })
-          .then(({ error }) => {
-            if (error) {
-              console.error('[Voice] Failed to persist voice turn:', error.message);
-              toast.warning('Voice turn not saved', {
-                description: 'Your voice conversation could not be saved to history.',
-              });
-            }
           });
+
+          if (persistError) {
+            console.error('[Voice] Failed to persist voice turn:', persistError.message);
+            toast.warning('Voice turn not saved', {
+              description: 'Your voice conversation could not be saved to history.',
+            });
+          } else if (isLimitedPlan) {
+            // Increment usage counter for voice turns — matches text-mode behaviour.
+            try {
+              await incrementUsageOnSuccess();
+            } catch {
+              // Non-fatal: the turn was saved even if usage tracking failed.
+            }
+          }
+        } catch (err) {
+          console.error('[Voice] Unexpected error persisting voice turn:', err);
+          toast.warning('Voice turn not saved', {
+            description: 'Your voice conversation could not be saved to history.',
+          });
+        }
       }
     },
-    // user?.id and tripId are the only external values used inside.
-
-    [user?.id, tripId],
+    [user?.id, tripId, isLimitedPlan, incrementUsageOnSuccess],
   );
 
   const handleLiveError = useCallback((msg: string) => {
@@ -482,13 +489,17 @@ export const AIConciergeChat = ({
     }
   }, [liveState, liveOverlayOpen]);
 
-  // Conversation toggle — stops dictation first if active
-  const handleConvoToggle = useCallback(() => {
+  // Conversation toggle — stops dictation first if active.
+  // Awaited so that AudioContext / MediaStream cleanup finishes before a new
+  // session calls getUserMedia, preventing "device already in use" errors and
+  // false circuit-breaker trips on rapid on/off toggling.
+  const handleConvoToggle = useCallback(async () => {
     const dictationActive = dictationState === 'listening' || dictationState === 'connecting';
 
     if (liveState !== 'idle' && liveState !== 'error') {
-      // Already in conversation — end it (fire-and-forget; no need to sequence anything after)
-      void endLiveSession();
+      // Already in conversation — await cleanup before returning so that a
+      // subsequent toggle doesn't race with the in-flight cleanup.
+      await endLiveSession();
       return;
     }
 
@@ -499,12 +510,11 @@ export const AIConciergeChat = ({
       // ~300ms to fully release the hardware mic after SpeechRecognition.abort().
       stopDictation();
       setLiveOverlayOpen(true);
-      setTimeout(() => {
-        void startLiveSession();
-      }, 350);
+      await new Promise<void>(resolve => setTimeout(resolve, 350));
+      await startLiveSession();
     } else {
       setLiveOverlayOpen(true);
-      void startLiveSession();
+      await startLiveSession();
     }
   }, [dictationState, stopDictation, liveState, startLiveSession, endLiveSession]);
 
@@ -936,7 +946,11 @@ export const AIConciergeChat = ({
       }
 
       const MAX_MESSAGE_LENGTH = 3000;
-      const chatHistory = messages.slice(-6).map(msg => ({
+      // Slice the last 5 prior messages (not 6). The current user message is
+      // appended separately by the edge function, so 5 prior + 1 current = 6
+      // messages of context. Using -6 here previously caused an off-by-one where
+      // the most recent assistant reply was dropped from the context window.
+      const chatHistory = messages.slice(-5).map(msg => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
         content:
           msg.content.length > MAX_MESSAGE_LENGTH
