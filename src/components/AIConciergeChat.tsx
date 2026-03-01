@@ -24,7 +24,6 @@ import {
 import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
-import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
@@ -47,7 +46,8 @@ const EMPTY_SESSION: ConciergeSession = {
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
-// Voice: Conversation (waveform → Gemini Live) + Dictation (mic-in-input → Web Speech API)
+// Voice: Conversation mode only (waveform → Gemini Live bidirectional)
+// Dictation removed — users rely on native OS keyboard dictation.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Map GeminiLiveState → VoiceState for VoiceButton visuals */
@@ -324,10 +324,8 @@ export const AIConciergeChat = ({
   const hasHydratedRef = useRef(false);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
-  // Two separate voice affordances:
-  //   1. Conversation mode (waveform button) → Gemini Live bidirectional
-  //   2. Dictation mode (mic inside input) → Web Speech API, text-to-input
-  // Mutual exclusion: starting one stops the other automatically.
+  // Conversation mode only (waveform button → Gemini Live bidirectional).
+  // Dictation removed — users rely on native OS keyboard dictation.
   const [liveOverlayOpen, setLiveOverlayOpen] = useState(false);
 
   /**
@@ -359,19 +357,6 @@ export const AIConciergeChat = ({
    *   liveState goes to idle/error/ready/playing without turn completion                → set to null
    */
   const [streamingUserMessage, setStreamingUserMessage] = useState<ChatMessage | null>(null);
-
-  // Dictation (Web Speech API) — always initialized so hooks order is stable
-  const handleDictationResult = useCallback((text: string) => {
-    if (!text.trim()) return;
-    setInputMessage(prev => (prev ? prev + ' ' + text.trim() : text.trim()));
-  }, []);
-
-  const {
-    voiceState: dictationState,
-    toggleVoice: toggleDictation,
-    stopVoice: stopDictation,
-    errorMessage: dictationError,
-  } = useWebSpeechVoice(handleDictationResult);
 
   // Gemini Live bidirectional voice — always initialized (hooks rules)
   const { handleToolCall } = useVoiceToolHandler({
@@ -474,13 +459,6 @@ export const AIConciergeChat = ({
   // Conversation-mode VoiceState (mapped from Gemini Live states)
   const convoVoiceState: VoiceState = mapLiveStateToVoiceState(liveState);
 
-  // Show dictation errors as toasts
-  useEffect(() => {
-    if (dictationError) {
-      toast.error('Voice error', { description: dictationError });
-    }
-  }, [dictationError]);
-
   // Close overlay when live session ends
   useEffect(() => {
     if (liveState === 'idle' && liveOverlayOpen) {
@@ -489,59 +467,15 @@ export const AIConciergeChat = ({
     }
   }, [liveState, liveOverlayOpen]);
 
-  // Conversation toggle — stops dictation first if active.
-  // Awaited so that AudioContext / MediaStream cleanup finishes before a new
-  // session calls getUserMedia, preventing "device already in use" errors and
-  // false circuit-breaker trips on rapid on/off toggling.
+  // Conversation toggle — start or end the Gemini Live session.
   const handleConvoToggle = useCallback(async () => {
-    const dictationActive = dictationState === 'listening' || dictationState === 'connecting';
-
     if (liveState !== 'idle' && liveState !== 'error') {
-      // Already in conversation — await cleanup before returning so that a
-      // subsequent toggle doesn't race with the in-flight cleanup.
       await endLiveSession();
       return;
     }
-
-    if (dictationActive) {
-      // Stop dictation (.abort() fires immediately, releasing the mic) then wait for iOS
-      // to yield the AVAudioSession slot before getUserMedia is called.
-      // 350ms covers A12-era iPhones (iPhone XS/XR) where the OS can take up to
-      // ~300ms to fully release the hardware mic after SpeechRecognition.abort().
-      stopDictation();
-      setLiveOverlayOpen(true);
-      await new Promise<void>(resolve => setTimeout(resolve, 350));
-      await startLiveSession();
-    } else {
-      setLiveOverlayOpen(true);
-      await startLiveSession();
-    }
-  }, [dictationState, stopDictation, liveState, startLiveSession, endLiveSession]);
-
-  // Dictation toggle — stops conversation first if active.
-  //
-  // We await endLiveSession() so the AudioContext and MediaStream tracks from Gemini Live
-  // are fully released before Web Speech API tries to acquire the same mic device.
-  //
-  // IMPORTANT iOS timing note: AudioContext.close() resolves its Promise before iOS has
-  // fully released the AVAudioSession hardware slot. On A12 and older chips (iPhone XS/XR
-  // era) the OS can take an additional 150-500ms after the Promise resolves. We add a
-  // 200ms post-close buffer before calling toggleDictation() so SpeechRecognition.start()
-  // does not fire into a still-locked mic, which would produce NotAllowedError or a silent
-  // "network" error on iOS Safari.
-  const handleDictationToggle = useCallback(async () => {
-    const isConvoActive = liveState !== 'idle' && liveState !== 'error';
-    if (isConvoActive) {
-      await endLiveSession();
-      setLiveOverlayOpen(false);
-      // Post-close buffer: AudioContext.close() Promise resolving ≠ iOS AVAudioSession
-      // slot freed. Give the OS time to fully release the hardware mic before Web Speech
-      // API calls SpeechRecognition.start(). 200ms covers most devices; A12 chips may
-      // still be borderline — see the retry logic in useWebSpeechVoice for the safety net.
-      await new Promise<void>(resolve => setTimeout(resolve, 200));
-    }
-    toggleDictation();
-  }, [liveState, endLiveSession, toggleDictation]);
+    setLiveOverlayOpen(true);
+    await startLiveSession();
+  }, [liveState, startLiveSession, endLiveSession]);
 
   const handleEndLiveSession = useCallback(() => {
     void endLiveSession();
@@ -1755,14 +1689,23 @@ export const AIConciergeChat = ({
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
               <p className="text-xs sm:text-sm mb-1.5">Try asking:</p>
               <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
-                <p>• "What's the Lakers schedule this week?"</p>
-                <p>• "Suggest activities based on our preferences"</p>
-                <p>• "What's in the calendar agenda for the rest of the week"</p>
-                <p>• "What tasks still need to be completed"</p>
-                <p>• "Can you summarize my payments owed?"</p>
+                <p>&bull; &ldquo;Find 5 great hotels near our base camp and show me cards&rdquo;</p>
+                <p>&bull; &ldquo;What&rsquo;s on our calendar for the rest of the trip?&rdquo;</p>
+                <p>
+                  &bull; &ldquo;Add a dinner reservation to the calendar for Saturday at 7pm near
+                  base camp&rdquo;
+                </p>
+                <p>
+                  &bull; &ldquo;Create a poll: Saturday night plans with 4 options near us&rdquo;
+                </p>
+                <p>
+                  &bull; &ldquo;Show flights for LAX to JFK on May 22 and let me save one&rdquo;
+                </p>
+                <p>&bull; &ldquo;Summarize tasks due this week and assign owners&rdquo;</p>
+                <p>&bull; &ldquo;What payments are owed and who hasn&rsquo;t paid yet?&rdquo;</p>
               </div>
               <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
-                ✨ Powered by AI - ask me anything!
+                I can search, show rich cards, and write directly to your trip
               </div>
             </div>
           </div>
@@ -1816,32 +1759,6 @@ export const AIConciergeChat = ({
           )}
         </div>
 
-        {/* Voice listening indicator (dictation mode) */}
-        {dictationState === 'listening' && (
-          <div
-            className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex-shrink-0"
-            role="alert"
-            aria-live="polite"
-            aria-label="Listening for dictation"
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
-                aria-hidden="true"
-              />
-              <span className="text-sm text-emerald-300">Listening...</span>
-            </div>
-            <button
-              type="button"
-              onClick={stopDictation}
-              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
-              aria-label="Stop listening"
-            >
-              Stop
-            </button>
-          </div>
-        )}
-
         {/* Input area — sticky bottom with inline voice banner above input */}
         <div
           className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
@@ -1883,8 +1800,6 @@ export const AIConciergeChat = ({
             }
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
-            dictationVoiceState={dictationState}
-            onDictationToggle={handleDictationToggle}
             isVoiceEligible={true}
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
