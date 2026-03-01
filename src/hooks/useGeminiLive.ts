@@ -780,8 +780,8 @@ export function useGeminiLive({
         voiceLog('timing:wsOpen', { ms: Math.round(performance.now() - sessionStartedAt) });
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
-            const msg = `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s. Please try again.`;
-            console.warn('[VOICE:G2] ws_setup_timeout', { sessionAttemptId, wsMessageCount });
+            const msg = `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${wsMessageCount} messages). Please try again.`;
+            console.warn('[VOICE:G2] ws_setup_timeout', { sessionAttemptId, wsMessageCount, msFromStart: Math.round(performance.now() - t0) });
             recordVoiceFailure(msg);
 
             // Auto-reconnect only if we've had a prior successful session

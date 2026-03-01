@@ -88,14 +88,16 @@ export function VoiceLiveOverlay({
       role="region"
       aria-label="Voice conversation active"
     >
-      {/* 2-column grid: left = close + Live label, right = status + actions */}
-      <div className="grid items-center gap-3 px-3 py-2" style={{ gridTemplateColumns: '44px 1fr auto' }}>
-        {/* Left column: Close button + Live label — centered, fixed 44px */}
+      {/* 2-column grid: left = close + Live label, right = status + actions.
+          Left column is exactly 44px (size-11) to match VoiceButton width.
+          gap-2 matches AiChatInput flex gap. No px — parent provides padding. */}
+      <div className="grid items-center gap-2 py-2" style={{ gridTemplateColumns: '44px 1fr auto' }}>
+        {/* Left column: Close button + Live label — centered, fixed 44px to match VoiceButton */}
         <div className="flex flex-col items-center gap-0.5">
           <button
             type="button"
             onClick={onEnd}
-            className="size-9 min-h-[36px] min-w-[36px] rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center hover:bg-red-500/25 active:scale-95 transition-all touch-manipulation"
+            className="size-11 rounded-full bg-red-500/15 border border-red-500/25 flex items-center justify-center hover:bg-red-500/25 active:scale-95 transition-all touch-manipulation"
             aria-label="End voice session"
           >
             <X size={16} className="text-red-400" />
