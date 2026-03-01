@@ -41,6 +41,10 @@ export const tripKeys = {
     isDemoMode !== undefined
       ? (['tripPlaces', tripId, isDemoMode] as const)
       : (['tripPlaces', tripId] as const),
+  tripLinks: (tripId: string, isDemoMode?: boolean) =>
+    isDemoMode !== undefined
+      ? (['tripLinks', tripId, isDemoMode] as const)
+      : (['tripLinks', tripId] as const),
   payments: (tripId: string) => ['tripPayments', tripId] as const,
   paymentBalances: (tripId: string, userId: string) =>
     ['tripPaymentBalances', tripId, userId] as const,
@@ -136,6 +140,11 @@ export const QUERY_CACHE_CONFIG = {
   },
 
   // Trip admins / roles - stable, realtime handles updates
+  channels: {
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  },
   tripAdmins: {
     staleTime: 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes

@@ -16,7 +16,7 @@ test.describe('Trip Creation Flow', () => {
     await expect(page).toHaveURL('/');
   });
 
-  test('should validate trip form fields', async ({ page }) => {
+  test('should validate trip form fields', async ({ page: _page }) => {
     // Navigate to trip creation (requires auth)
     // Fill in form fields
     // Submit empty form
@@ -26,7 +26,7 @@ test.describe('Trip Creation Flow', () => {
     expect(true).toBe(true);
   });
 
-  test('should create a trip with valid data and multiple locations', async ({ page }) => {
+  test('should create a trip with valid data and multiple locations', async ({ page: _page }) => {
     // Note: This test requires authentication setup
     // Once auth is configured, this test will:
     // 1. Log in as a test user

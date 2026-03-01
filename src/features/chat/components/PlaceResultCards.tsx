@@ -1,5 +1,12 @@
 import React from 'react';
-import { MapPin, Star, ExternalLink, UtensilsCrossed, BookmarkPlus } from 'lucide-react';
+import {
+  MapPin,
+  Star,
+  ExternalLink,
+  UtensilsCrossed,
+  BookmarkPlus,
+  BookmarkCheck,
+} from 'lucide-react';
 
 export interface PlaceResult {
   placeId?: string | null;
@@ -17,7 +24,25 @@ interface PlaceResultCardsProps {
   places: PlaceResult[];
   className?: string;
   onSave?: (place: PlaceResult) => void;
+  isUrlSaved?: (url: string) => boolean;
+  isSaving?: boolean;
 }
+
+const toExternalHttpsUrl = (value?: string | null): string | null => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (/^https:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^http:\/\//i.test(trimmed)) {
+    return `https://${trimmed.slice('http://'.length)}`;
+  }
+
+  return null;
+};
 
 const PRICE_MAP: Record<string, string> = {
   PRICE_LEVEL_FREE: 'Free',
@@ -31,6 +56,8 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
   places,
   className,
   onSave,
+  isUrlSaved,
+  isSaving,
 }) => {
   if (!places || places.length === 0) return null;
 
@@ -38,6 +65,13 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
     <div className={`flex flex-col gap-2.5 ${className ?? ''}`}>
       {places.slice(0, 3).map((place, idx) => {
         const photoSrc = place.previewPhotoUrl || place.photoUrls?.[0] || null;
+        const mapsHref = toExternalHttpsUrl(place.mapsUrl);
+        const placeUrl =
+          place.mapsUrl ||
+          (place.placeId
+            ? `https://www.google.com/maps/place/?q=place_id:${place.placeId}`
+            : `https://www.google.com/maps/search/${encodeURIComponent(place.name)}`);
+        const saved = isUrlSaved ? isUrlSaved(placeUrl) : false;
         // Only render known price levels — silently drop PRICE_LEVEL_UNSPECIFIED and other unknowns
         const priceLabel = place.priceLevel ? (PRICE_MAP[place.priceLevel] ?? null) : null;
 
@@ -103,9 +137,9 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
               {/* Action Buttons */}
               <div className="flex items-center gap-3 mt-1.5">
                 {/* Open in Maps */}
-                {place.mapsUrl && (
+                {mapsHref && (
                   <a
-                    href={place.mapsUrl}
+                    href={mapsHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline w-fit"
@@ -118,11 +152,17 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
                 {/* Save to Trip */}
                 {onSave && (
                   <button
+                    type="button"
                     onClick={() => onSave(place)}
-                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 transition-colors w-fit"
+                    disabled={saved || isSaving}
+                    className={`inline-flex items-center gap-1 text-[11px] transition-colors w-fit ${
+                      saved
+                        ? 'text-emerald-400 cursor-default'
+                        : 'text-primary hover:text-primary/80'
+                    }`}
                   >
-                    <BookmarkPlus size={10} />
-                    Save to Trip
+                    {saved ? <BookmarkCheck size={10} /> : <BookmarkPlus size={10} />}
+                    {saved ? 'Saved ✓' : 'Save to Trip'}
                   </button>
                 )}
               </div>

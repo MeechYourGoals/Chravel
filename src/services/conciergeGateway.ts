@@ -92,19 +92,104 @@ export interface StreamReservationDraftEvent {
   draft: ReservationDraft;
 }
 
+export interface SmartImportPreviewEvent {
+  title: string;
+  startTime: string;
+  endTime: string;
+  location: string | null;
+  category: string;
+  notes: string | null;
+  isDuplicate: boolean;
+}
+
+export interface StreamSmartImportPreviewEvent {
+  type: 'smart_import_preview';
+  previewEvents: SmartImportPreviewEvent[];
+  tripId: string;
+  totalEvents: number;
+  duplicateCount: number;
+  /** If any lodging events were extracted, include the first hotel name for basecamp prompt */
+  lodgingName?: string;
+}
+
+export type SmartImportStatus = 'parsing' | 'extracting' | 'checking_duplicates' | 'ready';
+
+export interface StreamSmartImportStatusEvent {
+  type: 'smart_import_status';
+  status: SmartImportStatus;
+  message: string;
+}
+
+/**
+ * Structured trip card payload emitted by the AI Concierge when the backend
+ * returns the JSON-envelope format with hotel or flight cards.
+ * The `cards` array matches the schema described in the AI Concierge system prompt.
+ */
+export interface TripCard {
+  id?: string | null;
+  type: 'hotel' | 'flight';
+  provider?: string | null;
+  title: string;
+  subtitle?: string | null;
+  badges?: string[];
+  price?: {
+    amount?: number | null;
+    currency?: string | null;
+    display?: string | null;
+  } | null;
+  dates?: {
+    check_in?: string | null;
+    check_out?: string | null;
+    depart?: string | null;
+    arrive?: string | null;
+  } | null;
+  location?: {
+    city?: string | null;
+    region?: string | null;
+    country?: string | null;
+    airport_codes?: string[];
+  } | null;
+  details?: {
+    rating?: number | null;
+    reviews_count?: number | null;
+    airline?: string | null;
+    flight_number?: string | null;
+    stops?: number | null;
+    duration_minutes?: number | null;
+    refundable?: boolean | null;
+    amenities?: string[];
+  } | null;
+  deep_links?: {
+    primary?: string | null;
+    secondary?: string | null;
+  } | null;
+}
+
+export interface StreamTripCardsEvent {
+  type: 'trip_cards';
+  message?: string | null;
+  cards: TripCard[];
+}
+
 export type ConciergeStreamEvent =
   | StreamChunkEvent
   | StreamFunctionCallEvent
   | StreamMetadataEvent
   | StreamErrorEvent
   | StreamDoneEvent
-  | StreamReservationDraftEvent;
+  | StreamReservationDraftEvent
+  | StreamTripCardsEvent
+  | StreamSmartImportPreviewEvent
+  | StreamSmartImportStatusEvent;
 
 export interface ConciergeStreamCallbacks {
   onChunk: (text: string) => void;
   onMetadata: (metadata: StreamMetadataEvent) => void;
   onFunctionCall?: (name: string, result: Record<string, unknown>) => void;
   onReservationDraft?: (draft: ReservationDraft) => void;
+  onTripCards?: (cards: TripCard[], message: string | null) => void;
+  onSmartImportPreview?: (preview: StreamSmartImportPreviewEvent) => void;
+  onSmartImportStatus?: (status: SmartImportStatus, message: string) => void;
   onError: (error: string) => void;
   onDone: () => void;
 }
@@ -233,6 +318,15 @@ export function invokeConciergeStream(
                 break;
               case 'reservation_draft':
                 callbacks.onReservationDraft?.(event.draft);
+                break;
+              case 'trip_cards':
+                callbacks.onTripCards?.(event.cards, event.message ?? null);
+                break;
+              case 'smart_import_preview':
+                callbacks.onSmartImportPreview?.(event as StreamSmartImportPreviewEvent);
+                break;
+              case 'smart_import_status':
+                callbacks.onSmartImportStatus?.(event.status, event.message);
                 break;
               case 'error':
                 callbacks.onError(event.message);

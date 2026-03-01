@@ -90,7 +90,7 @@ test.describe('Trip RLS Policies', () => {
 
     // Member tries to update
     const clientMember = await getClientAsUser(member);
-    const { error } = await clientMember
+    const { error: _error } = await clientMember
       .from('trips')
       .update({ name: 'Hacked Name' })
       .eq('id', trip.id);
@@ -118,7 +118,7 @@ test.describe('Trip RLS Policies', () => {
 
     // Attacker tries to delete
     const clientAttacker = await getClientAsUser(attacker);
-    const { error } = await clientAttacker.from('trips').delete().eq('id', trip.id);
+    const { error: _error } = await clientAttacker.from('trips').delete().eq('id', trip.id);
 
     // Verify trip still exists
     const { data } = await supabaseAdmin.from('trips').select('id').eq('id', trip.id).single();

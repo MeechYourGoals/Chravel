@@ -163,7 +163,12 @@ class EventChannelService {
     try {
       let query = supabase
         .from('channel_messages')
-        .select('*')
+        .select(
+          `
+          *,
+          profiles!channel_messages_sender_id_fkey(display_name)
+        `,
+        )
         .eq('channel_id', channelId)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -175,7 +180,11 @@ class EventChannelService {
       const { data, error } = await query;
       if (error) throw error;
 
-      const messages = (data || []).map(msg => toAppChannelMessage(msg, { authorName: 'User' }));
+      const messages = (data || []).map(msg => {
+        const authorName =
+          (msg.profiles as { display_name?: string } | null)?.display_name?.trim() || 'User';
+        return toAppChannelMessage(msg, { authorName });
+      });
 
       return messages.reverse();
     } catch (error) {

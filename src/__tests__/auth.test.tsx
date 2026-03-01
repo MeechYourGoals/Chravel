@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 
 // Create mock using vi.hoisted to ensure it's available when vi.mock runs
+/* eslint-disable @typescript-eslint/no-explicit-any -- mock setup requires flexible types */
 const { mockSupabase, supabaseMockHelpers } = vi.hoisted(() => {
   const mockDataStorage = new Map<string, any[]>();
 

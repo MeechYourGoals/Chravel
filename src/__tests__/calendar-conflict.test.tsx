@@ -56,7 +56,7 @@ describe.skip('Calendar Event → Conflict Detection', () => {
     };
 
     // Mock RPC call
-    (mockSupabase.rpc as any).mockResolvedValueOnce({
+    (mockSupabase.rpc as unknown).mockResolvedValueOnce({
       data: conflictData,
       error: null,
     });
@@ -91,7 +91,7 @@ describe.skip('Calendar Event → Conflict Detection', () => {
       end_time: '2024-01-01T16:00:00Z',
     });
 
-    (mockSupabase.rpc as any).mockResolvedValueOnce({
+    (mockSupabase.rpc as unknown).mockResolvedValueOnce({
       data: newEvent.id,
       error: null,
     });
@@ -129,7 +129,7 @@ describe.skip('Calendar Event → Conflict Detection', () => {
       end_time: '2024-01-01T14:00:00Z',
     };
 
-    (mockSupabase.rpc as any).mockResolvedValueOnce({
+    (mockSupabase.rpc as unknown).mockResolvedValueOnce({
       data: 'event-2-id',
       error: null,
     });
@@ -164,7 +164,7 @@ describe.skip('Calendar Event → Conflict Detection', () => {
 
     // Note: This would require checking user's events across all trips
     // The actual implementation may vary based on requirements
-    (mockSupabase.rpc as any).mockResolvedValueOnce({
+    (mockSupabase.rpc as unknown).mockResolvedValueOnce({
       data: null,
       error: { message: 'Time conflict detected', code: 'CONFLICT' },
     });
@@ -185,7 +185,7 @@ describe.skip('Calendar Event → Conflict Detection', () => {
       is_busy: true,
     };
 
-    (mockSupabase.rpc as any).mockResolvedValueOnce({
+    (mockSupabase.rpc as unknown).mockResolvedValueOnce({
       data: 'all-day-event-id',
       error: null,
     });
@@ -199,7 +199,7 @@ describe.skip('Calendar Event → Conflict Detection', () => {
     const trip = testFactories.createTrip();
     const error = { message: 'Database error', code: 'DB_ERROR' };
 
-    (mockSupabase.rpc as any).mockResolvedValueOnce({
+    (mockSupabase.rpc as unknown).mockResolvedValueOnce({
       data: null,
       error,
     });

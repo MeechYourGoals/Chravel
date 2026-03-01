@@ -81,7 +81,7 @@ export const WelcomeScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >
-        Everything your crew needs in one place
+        Chat, plan, split costs, and get AI help — all in one place
       </motion.p>
     </div>
   );

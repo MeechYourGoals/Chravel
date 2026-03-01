@@ -134,7 +134,7 @@ export const DataExportSection: React.FC<DataExportSectionProps> = ({ className 
             <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
               <AlertDialogTrigger asChild>
                 <Button
-                  className="w-full bg-glass-orange hover:bg-glass-orange/90"
+                  className="w-full bg-black hover:bg-black/80 text-white"
                   disabled={isExporting}
                 >
                   <Download className="h-4 w-4 mr-2" />

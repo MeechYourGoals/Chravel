@@ -4,7 +4,6 @@
 
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import { Plane, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -15,32 +14,43 @@ interface FinalCTAScreenProps {
 
 export const FinalCTAScreen = ({ onCreateTrip, onExploreDemoTrip }: FinalCTAScreenProps) => {
   useEffect(() => {
-    // Trigger confetti on mount
-    const duration = 2000;
-    const end = Date.now() + duration;
+    let cancelled = false;
 
-    const frame = () => {
-      confetti({
-        particleCount: 3,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0, y: 0.7 },
-        colors: ['#3A60D0', '#F57C00', '#62D621'],
-      });
-      confetti({
-        particleCount: 3,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1, y: 0.7 },
-        colors: ['#3A60D0', '#F57C00', '#62D621'],
-      });
+    import('canvas-confetti').then(mod => {
+      if (cancelled) return;
+      const confetti = mod.default;
 
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
-      }
+      const duration = 2000;
+      const end = Date.now() + duration;
+
+      const frame = () => {
+        if (cancelled) return;
+        confetti({
+          particleCount: 3,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0, y: 0.7 },
+          colors: ['#3A60D0', '#F57C00', '#62D621'],
+        });
+        confetti({
+          particleCount: 3,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1, y: 0.7 },
+          colors: ['#3A60D0', '#F57C00', '#62D621'],
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      };
+
+      frame();
+    });
+
+    return () => {
+      cancelled = true;
     };
-
-    frame();
   }, []);
 
   return (

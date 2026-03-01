@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-type ReadStatus = {
+export type ReadStatus = {
   id: string;
   message_id: string;
   user_id: string;
@@ -31,7 +31,7 @@ interface ReadReceiptsProps {
 
 export const ReadReceipts: React.FC<ReadReceiptsProps> = ({
   readStatuses,
-  totalRecipients,
+  totalRecipients: _totalRecipients,
   currentUserId,
   tripMembers = [],
 }) => {
@@ -53,7 +53,7 @@ export const ReadReceipts: React.FC<ReadReceiptsProps> = ({
   return (
     <div className="flex items-center gap-1 mt-1 justify-end">
       <div className="flex -space-x-1.5 overflow-hidden">
-        {otherReaders.slice(0, 5).map((status) => {
+        {otherReaders.slice(0, 5).map(status => {
           const member = tripMembers.find(m => m.id === status.user_id);
           const name = member?.name || 'Unknown User';
           const avatarUrl = member?.avatar;
@@ -72,7 +72,10 @@ export const ReadReceipts: React.FC<ReadReceiptsProps> = ({
                 <TooltipContent side="bottom" className="text-xs">
                   <p>Read by {name}</p>
                   <p className="text-[10px] opacity-70">
-                    {new Date(status.read_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(status.read_at).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -80,17 +83,17 @@ export const ReadReceipts: React.FC<ReadReceiptsProps> = ({
           );
         })}
         {otherReaders.length > 5 && (
-           <div className="flex items-center justify-center h-4 w-4 rounded-full ring-1 ring-background bg-muted text-[8px] text-muted-foreground font-medium">
-             +{otherReaders.length - 5}
-           </div>
+          <div className="flex items-center justify-center h-4 w-4 rounded-full ring-1 ring-background bg-muted text-[8px] text-muted-foreground font-medium">
+            +{otherReaders.length - 5}
+          </div>
         )}
       </div>
 
       {/* If no other users read it yet but readCount > 0 (meaning maybe only current user read it? unlikely but possible in edge cases) */}
       {otherReaders.length === 0 && readCount > 0 && (
-          <div className="flex items-center gap-1 text-blue-500 text-xs">
-            <CheckCheck size={12} />
-          </div>
+        <div className="flex items-center gap-1 text-blue-500 text-xs">
+          <CheckCheck size={12} />
+        </div>
       )}
     </div>
   );

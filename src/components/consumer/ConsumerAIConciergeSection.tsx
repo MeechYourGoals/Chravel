@@ -91,7 +91,7 @@ export const ConsumerAIConciergeSection = () => {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <Sparkles size={24} className="text-yellow-400" />
-            <h2 className="text-2xl font-bold text-white">AI Concierge Settings</h2>
+            <h2 className="text-2xl font-bold text-white">Concierge Settings</h2>
           </div>
           <p className="text-gray-400">
             Configure your preferences once - AI uses them across all trips for personalized
@@ -109,7 +109,7 @@ export const ConsumerAIConciergeSection = () => {
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
           <Settings size={20} />
-          How AI Concierge Works
+          How Concierge Works
         </h3>
         <ul className="space-y-1.5 text-gray-300 text-sm">
           <li>✨ Set your preferences below (dietary, vibe, budget, accessibility)</li>

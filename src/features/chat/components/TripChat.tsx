@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -23,7 +24,11 @@ import { useRoleChannels } from '@/hooks/useRoleChannels';
 import { ChannelChatView } from '@/components/pro/channels/ChannelChatView';
 import { TypingIndicator } from './TypingIndicator';
 import { TypingIndicatorService } from '@/services/typingIndicatorService';
-import { markMessagesAsRead, subscribeToReadReceipts, getMessagesReadStatus } from '@/services/readReceiptService';
+import {
+  markMessagesAsRead,
+  subscribeToReadReceipts,
+  getMessagesReadStatus,
+} from '@/services/readReceiptService';
 import { useUnreadCounts } from '@/hooks/useUnreadCounts';
 import { supabase } from '@/integrations/supabase/client';
 import { parseMessage } from '@/services/chatContentParser';
@@ -36,10 +41,10 @@ import {
   getMessagesReactions,
   subscribeToReactions,
   type ReactionType,
-  type ReactionCount,
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
+import { PinnedMessageBanner } from './PinnedMessageBanner';
 import { toast } from 'sonner';
 
 interface TripChatProps {
@@ -68,6 +73,7 @@ interface MockMessage {
   delay_seconds?: number;
   timestamp_offset_days?: number;
   tags?: string[];
+  isPinned?: boolean; // Add isPinned to mock message
 }
 
 // Match the interface from useTripChat.ts
@@ -82,6 +88,7 @@ interface TripChatMessage {
   media_type?: string;
   media_url?: string;
   sentiment?: string;
+
   link_preview?: any;
   privacy_mode?: string;
   privacy_encrypted?: boolean;
@@ -104,11 +111,20 @@ export const TripChat = ({
   const [reactions, setReactions] = useState<
     Record<string, Record<string, { count: number; userReacted: boolean }>>
   >({});
+
   const [readStatusesByMessage, setReadStatusesByMessage] = useState<Record<string, any[]>>({});
-  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [_activeChannelId, _setActiveChannelId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
   const typingServiceRef = useRef<TypingIndicatorService | null>(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+  const [showPinnedMessage, setShowPinnedMessage] = useState(() => {
+    // Initialize from localStorage if available, default to true
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('trip_chat_pin_visible');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [activeThreadMessage, setActiveThreadMessage] = useState<{
     id: string;
@@ -205,17 +221,17 @@ export const TripChat = ({
   const {
     availableChannels,
     activeChannel,
-    messages: channelMessages,
+    messages: _channelMessages,
     setActiveChannel,
-    sendMessage: sendChannelMessage,
+    sendMessage: _sendChannelMessage,
   } = useRoleChannels(resolvedTripId, userRole, participantRoles);
 
   // Mobile-specific hooks
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const _containerRef = useRef<HTMLDivElement>(null);
 
   // Handle keyboard visibility for better UX
-  const { isKeyboardVisible } = useKeyboardHandler({
+  const { isKeyboardVisible: _isKeyboardVisible } = useKeyboardHandler({
     preventZoom: true,
     adjustViewport: true,
     onShow: () => {
@@ -274,13 +290,13 @@ export const TripChat = ({
     if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
 
     // Realtime subscription for read receipts (updates UI)
-    const subscription = subscribeToReadReceipts(resolvedTripId, (newStatus) => {
-      setReadStatusesByMessage((prev) => {
+    const subscription = subscribeToReadReceipts(resolvedTripId, newStatus => {
+      setReadStatusesByMessage(prev => {
         const msgId = newStatus.message_id;
         const currentStatuses = prev[msgId] || [];
         // Check if status already exists to avoid dupes
         if (currentStatuses.some(s => s.user_id === newStatus.user_id)) {
-            return prev;
+          return prev;
         }
         return {
           ...prev,
@@ -305,17 +321,15 @@ export const TripChat = ({
       }
 
       // Also fetch read statuses for OWN messages to display receipts
-      const ownMessageIds = liveMessages
-        .filter(msg => msg.user_id === user.id)
-        .map(msg => msg.id);
+      const ownMessageIds = liveMessages.filter(msg => msg.user_id === user.id).map(msg => msg.id);
 
       if (ownMessageIds.length > 0) {
-         try {
-             const statuses = await getMessagesReadStatus(ownMessageIds);
-             setReadStatusesByMessage(statuses);
-         } catch (e) {
-             console.error("Failed to fetch read statuses", e);
-         }
+        try {
+          const statuses = await getMessagesReadStatus(ownMessageIds);
+          setReadStatusesByMessage(statuses);
+        } catch (e) {
+          console.error('Failed to fetch read statuses', e);
+        }
       }
     };
 
@@ -339,15 +353,15 @@ export const TripChat = ({
     return liveMessages.map(message => {
       // Resolve replyTo context if reply_to_id exists
       let replyTo;
-      if (message.reply_to_id) {
-          const parentMsg = messageMap.get(message.reply_to_id);
-          if (parentMsg) {
-              replyTo = {
-                  id: parentMsg.id,
-                  text: parentMsg.content,
-                  sender: parentMsg.author_name
-              };
-          }
+      if ((message as any).reply_to_id) {
+        const parentMsg = messageMap.get((message as any).reply_to_id);
+        if (parentMsg) {
+          replyTo = {
+            id: parentMsg.id,
+            text: parentMsg.content,
+            sender: parentMsg.author_name,
+          };
+        }
       }
 
       return {
@@ -620,10 +634,12 @@ export const TripChat = ({
     if (!message) return;
 
     // For inline reply:
-    const content = demoMode.isDemoMode ? (message as MockMessage).text : (message as TripChatMessage).content;
+    const content = demoMode.isDemoMode
+      ? (message as MockMessage).text
+      : (message as TripChatMessage).content;
     const authorName = demoMode.isDemoMode
-        ? (message as MockMessage).sender.name
-        : ((message as TripChatMessage).author_name || 'User'); // Fallback
+      ? (message as MockMessage).sender.name
+      : (message as TripChatMessage).author_name || 'User'; // Fallback
 
     setReply(messageId, content, authorName);
   };

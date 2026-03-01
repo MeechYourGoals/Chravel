@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Crown, Sparkles, ImagePlus } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
@@ -16,13 +16,24 @@ import {
   invokeConciergeStream,
   type StreamMetadataEvent,
   type ReservationDraft,
+  type TripCard,
+  type StreamSmartImportPreviewEvent,
+  type SmartImportPreviewEvent,
+  type SmartImportStatus,
 } from '@/services/conciergeGateway';
+import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
+import { useGeminiLive } from '@/hooks/useGeminiLive';
+import type { GeminiLiveState } from '@/hooks/useGeminiLive';
+import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
+import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
+import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
+import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -36,8 +47,28 @@ const EMPTY_SESSION: ConciergeSession = {
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
-// Voice is now dictation-only (Web Speech API). Gemini Live duplex is disabled.
+// Voice: Conversation (waveform → Gemini Live) + Dictation (mic-in-input → Web Speech API)
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** Map GeminiLiveState → VoiceState for VoiceButton visuals */
+const mapLiveStateToVoiceState = (s: GeminiLiveState): VoiceState => {
+  switch (s) {
+    case 'requesting_mic':
+      return 'connecting';
+    case 'ready':
+    case 'listening':
+    case 'interrupted':
+      return 'listening';
+    case 'sending':
+      return 'thinking';
+    case 'playing':
+      return 'speaking';
+    case 'error':
+      return 'error';
+    default:
+      return 'idle';
+  }
+};
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -85,7 +116,18 @@ export interface ChatMessage {
     returnDate?: string;
     passengers: number;
     deeplink: string;
+    provider?: string | null;
+    price?: { amount?: number | null; currency?: string | null; display?: string | null } | null;
+    airline?: string | null;
+    flightNumber?: string | null;
+    stops?: number | null;
+    durationMinutes?: number | null;
+    departTime?: string | null;
+    arriveTime?: string | null;
+    refundable?: boolean | null;
   }>;
+  /** Rich hotel results from searchHotels tool calls or trip_cards event */
+  functionCallHotels?: HotelResult[];
   /** Action results from concierge write tools (createPoll, createTask, etc.) */
   conciergeActions?: Array<{
     actionType: string;
@@ -97,6 +139,16 @@ export interface ChatMessage {
   }>;
   /** Reservation draft cards from emitReservationDraft tool */
   reservationDrafts?: ReservationDraft[];
+  /** Smart Import preview data from emitSmartImportPreview tool */
+  smartImportPreview?: {
+    previewEvents: SmartImportPreviewEvent[];
+    tripId: string;
+    totalEvents: number;
+    duplicateCount: number;
+    lodgingName?: string;
+  };
+  /** Smart Import status messages (parsing progress) */
+  smartImportStatus?: { status: SmartImportStatus; message: string };
 }
 
 interface ConciergeInvokePayload {
@@ -218,10 +270,22 @@ export const AIConciergeChat = ({
   const storeSession = storeSessionRaw ?? EMPTY_SESSION;
   const setStoreMessages = useConciergeSessionStore(s => s.setMessages);
 
+  const handleNavigateToPlaces = useCallback(() => {
+    if (onTabChange) onTabChange('places');
+  }, [onTabChange]);
+
+  const { savePlace, saveFlight, saveHotel, isUrlSaved, isSaving } = useSaveToTripPlaces({
+    tripId,
+    userId: user?.id ?? 'anonymous',
+    isDemoMode,
+    onNavigateToPlaces: handleNavigateToPlaces,
+  });
+
   // Hydrate from Zustand store on mount (preserves messages across tab switches)
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     storeSession.messages.length > 0 ? (storeSession.messages as ChatMessage[]) : [],
   );
+  const messagesRef = useRef<ChatMessage[]>(messages);
   // True after the chat is hydrated from the server DB (not just cache/empty).
   // Used to show the "Picked up where you left off" chip.
   const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(
@@ -253,23 +317,78 @@ export const AIConciergeChat = ({
   // read from a stale closure but the user has already submitted a message.
   const hasHydratedRef = useRef(false);
 
-  // ─── Voice (Dictation-Only — Web Speech API) ─────────────────────────────
-  // Microphone captures speech → text → populates input field (auto-sends).
-  // No model audio output. No duplex WebSocket. No barge-in.
+  // ─── Voice ─────────────────────────────────────────────────────────────────
+  // Two separate voice affordances:
+  //   1. Conversation mode (waveform button) → Gemini Live bidirectional
+  //   2. Dictation mode (mic inside input) → Web Speech API, text-to-input
+  // Mutual exclusion: starting one stops the other automatically.
+  const [liveOverlayOpen, setLiveOverlayOpen] = useState(false);
+
+  // Dictation (Web Speech API) — always initialized so hooks order is stable
   const handleDictationResult = useCallback((text: string) => {
     if (!text.trim()) return;
-    // Insert text into input field only — user reviews and sends manually
     setInputMessage(prev => (prev ? prev + ' ' + text.trim() : text.trim()));
   }, []);
 
   const {
     voiceState: dictationState,
     toggleVoice: toggleDictation,
+    stopVoice: stopDictation,
     errorMessage: dictationError,
   } = useWebSpeechVoice(handleDictationResult);
 
-  // Map dictation state to the VoiceState type used by VoiceButton
-  const effectiveVoiceState: VoiceState = dictationState;
+  // Gemini Live bidirectional voice — always initialized (hooks rules)
+  const { handleToolCall } = useVoiceToolHandler({
+    tripId,
+    userId: user?.id ?? '',
+  });
+
+  const handleLiveTurnComplete = useCallback((userText: string, assistantText: string) => {
+    const now = new Date().toISOString();
+    const newMessages: ChatMessage[] = [];
+    if (userText) {
+      newMessages.push({
+        id: `voice-user-${Date.now()}`,
+        type: 'user',
+        content: userText,
+        timestamp: now,
+      });
+    }
+    if (assistantText) {
+      newMessages.push({
+        id: `voice-assistant-${Date.now()}`,
+        type: 'assistant',
+        content: assistantText,
+        timestamp: now,
+      });
+    }
+    if (newMessages.length > 0) {
+      setMessages(prev => [...prev, ...newMessages]);
+    }
+  }, []);
+
+  const handleLiveError = useCallback((msg: string) => {
+    toast.error('Voice error', { description: msg });
+  }, []);
+
+  const {
+    state: liveState,
+    error: liveError,
+    userTranscript: liveUserTranscript,
+    assistantTranscript: liveAssistantTranscript,
+    startSession: startLiveSession,
+    endSession: endLiveSession,
+    circuitBreakerOpen: liveCircuitBreakerOpen,
+    resetCircuitBreaker: resetLiveCircuitBreaker,
+  } = useGeminiLive({
+    tripId,
+    onToolCall: handleToolCall,
+    onTurnComplete: handleLiveTurnComplete,
+    onError: handleLiveError,
+  });
+
+  // Conversation-mode VoiceState (mapped from Gemini Live states)
+  const convoVoiceState: VoiceState = mapLiveStateToVoiceState(liveState);
 
   // Show dictation errors as toasts
   useEffect(() => {
@@ -278,9 +397,42 @@ export const AIConciergeChat = ({
     }
   }, [dictationError]);
 
-  const handleVoiceToggle = useCallback(() => {
+  // Close overlay when live session ends
+  useEffect(() => {
+    if (liveState === 'idle' && liveOverlayOpen) {
+      const timer = setTimeout(() => setLiveOverlayOpen(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [liveState, liveOverlayOpen]);
+
+  // Conversation toggle — stops dictation first if active
+  const handleConvoToggle = useCallback(() => {
+    // Stop dictation if it's running (mutual exclusion)
+    if (dictationState === 'listening' || dictationState === 'connecting') {
+      stopDictation();
+    }
+    if (liveState === 'idle' || liveState === 'error') {
+      setLiveOverlayOpen(true);
+      void startLiveSession();
+    } else {
+      endLiveSession();
+    }
+  }, [dictationState, stopDictation, liveState, startLiveSession, endLiveSession]);
+
+  // Dictation toggle — stops conversation first if active
+  const handleDictationToggle = useCallback(() => {
+    const isConvoActive = liveState !== 'idle' && liveState !== 'error';
+    if (isConvoActive) {
+      endLiveSession();
+      setLiveOverlayOpen(false);
+    }
     toggleDictation();
-  }, [toggleDictation]);
+  }, [liveState, endLiveSession, toggleDictation]);
+
+  const handleEndLiveSession = useCallback(() => {
+    endLiveSession();
+    setLiveOverlayOpen(false);
+  }, [endLiveSession]);
   // ── End voice ────────────────────────────────────────────────────────────
 
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
@@ -342,6 +494,7 @@ export const AIConciergeChat = ({
 
   // Sync messages to Zustand store so they persist across tab switches
   useEffect(() => {
+    messagesRef.current = messages;
     if (messages.length > 0) {
       setStoreMessages(
         tripId,
@@ -392,31 +545,6 @@ export const AIConciergeChat = ({
 
   const isQueryLimitReached = Boolean(isLimitedPlan && usage?.isLimitReached);
 
-  const queryAllowanceText = useMemo(() => {
-    if (!usage) {
-      return 'Loading query allowance...';
-    }
-
-    if (usage.limit === null) {
-      return 'unlimited asks';
-    }
-
-    return `${usage.remaining}/${usage.limit} Asks`;
-  }, [usage]);
-
-  const queryAllowanceTone = useMemo(() => {
-    if (!usage || usage.limit === null) {
-      return 'text-gray-300';
-    }
-    if (usage.isLimitReached) {
-      return 'text-red-300';
-    }
-    if ((usage.remaining ?? 0) <= 2) {
-      return 'text-orange-300';
-    }
-    return 'text-gray-300';
-  }, [usage]);
-
   const showLimitReachedToast = useCallback((plan: 'free' | 'explorer') => {
     const message =
       plan === 'free'
@@ -446,6 +574,73 @@ export const AIConciergeChat = ({
       setAiStatus('connected');
     }
   }, [isOffline, aiStatus]);
+
+  // ── Smart Import: confirm/dismiss handlers ──────────────────────────────
+  const [smartImportStates, setSmartImportStates] = useState<
+    Record<string, { isImporting: boolean; result: { imported: number; failed: number } | null }>
+  >({});
+
+  const handleSmartImportConfirm = useCallback(
+    async (messageId: string, events: SmartImportPreviewEvent[]) => {
+      if (!tripId || events.length === 0) return;
+
+      setSmartImportStates(prev => ({
+        ...prev,
+        [messageId]: { isImporting: true, result: null },
+      }));
+
+      try {
+        const { calendarService } = await import('@/services/calendarService');
+        const createEvents = events.map(evt => ({
+          trip_id: tripId,
+          title: evt.title,
+          start_time: evt.startTime,
+          end_time: evt.endTime || undefined,
+          location: evt.location || undefined,
+          event_category: evt.category || 'other',
+          include_in_itinerary: true,
+          source_type: 'ai_concierge_import',
+          source_data: {
+            imported_from: 'concierge_smart_import',
+            notes: evt.notes || undefined,
+            import_hash: `${tripId}|${evt.title.toLowerCase().trim()}|${evt.startTime}`,
+          },
+        }));
+
+        const result = await calendarService.bulkCreateEvents(createEvents);
+
+        setSmartImportStates(prev => ({
+          ...prev,
+          [messageId]: {
+            isImporting: false,
+            result: { imported: result.imported, failed: result.failed },
+          },
+        }));
+
+        if (result.imported > 0) {
+          toast.success(
+            `Added ${result.imported} event${result.imported !== 1 ? 's' : ''} to Calendar`,
+          );
+        }
+        if (result.failed > 0) {
+          toast.error(`${result.failed} event${result.failed !== 1 ? 's' : ''} failed to import`);
+        }
+      } catch (_err) {
+        setSmartImportStates(prev => ({
+          ...prev,
+          [messageId]: { isImporting: false, result: { imported: 0, failed: events.length } },
+        }));
+        toast.error('Failed to import events. Please try again.');
+      }
+    },
+    [tripId],
+  );
+
+  const handleSmartImportDismiss = useCallback((messageId: string) => {
+    setMessages(prev =>
+      prev.map(m => (m.id === messageId ? { ...m, smartImportPreview: undefined } : m)),
+    );
+  }, []);
 
   // ── Delete a single concierge message (privacy) ──────────────────────────
   const handleDeleteMessage = useCallback(
@@ -513,7 +708,7 @@ export const AIConciergeChat = ({
     }
 
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: _uniqueId('user'),
       type: 'user',
       content: userDisplayContent,
       timestamp: new Date().toISOString(),
@@ -603,7 +798,7 @@ export const AIConciergeChat = ({
 
       // ========== STREAMING PATH ==========
       if (!isDemoMode) {
-        const streamingMessageId = `stream-${Date.now()}`;
+        const streamingMessageId = _uniqueId('stream');
         let receivedAnyChunk = false;
         let accumulatedStreamContent = ''; // accumulates full text so we can cache after onDone
         const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
@@ -692,9 +887,66 @@ export const AIConciergeChat = ({
                   returnDate: result.returnDate as string | undefined,
                   passengers: (result.passengers as number) || 1,
                   deeplink: result.deeplink as string,
+                  provider: result.provider as string | null,
+                  price:
+                    (result.price as {
+                      amount?: number | null;
+                      currency?: string | null;
+                      display?: string | null;
+                    } | null) ?? null,
+                  airline: result.airline as string | null,
+                  flightNumber: result.flightNumber as string | null,
+                  stops: result.stops as number | null,
+                  durationMinutes: result.durationMinutes as number | null,
+                  departTime: result.departTime as string | null,
+                  arriveTime: result.arriveTime as string | null,
+                  refundable: result.refundable as boolean | null,
                 };
                 ensureAndPatch({
                   functionCallFlights: [flightResult],
+                });
+              }
+              // searchHotels function call → hotel cards
+              if (name === 'searchHotels' && result.hotels && Array.isArray(result.hotels)) {
+                ensureAndPatch({
+                  functionCallHotels: result.hotels as HotelResult[],
+                });
+              }
+              // Single hotel detail from getHotelDetails
+              if (name === 'getHotelDetails' && result.success && result.title) {
+                const hotelResult: HotelResult = {
+                  id: result.id as string | null,
+                  provider: result.provider as string | null,
+                  title: result.title as string,
+                  subtitle: result.subtitle as string | null,
+                  badges: result.badges as string[] | undefined,
+                  price: result.price as HotelResult['price'],
+                  dates: result.dates as HotelResult['dates'],
+                  location: result.location as HotelResult['location'],
+                  details: result.details as HotelResult['details'],
+                  deep_links: result.deep_links as HotelResult['deep_links'],
+                };
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === streamingMessageId);
+                  if (idx !== -1) {
+                    const existing = prev[idx].functionCallHotels || [];
+                    const updated = [...prev];
+                    updated[idx] = {
+                      ...updated[idx],
+                      functionCallHotels: [...existing, hotelResult],
+                    };
+                    return updated;
+                  }
+                  return [
+                    ...prev,
+                    {
+                      id: streamingMessageId,
+                      type: 'assistant' as const,
+                      content: '',
+                      timestamp: new Date().toISOString(),
+                      functionCallHotels: [hotelResult],
+                    },
+                  ];
                 });
               }
               if (name === 'getPlaceDetails' && result.success) {
@@ -807,6 +1059,144 @@ export const AIConciergeChat = ({
                 ];
               });
             },
+            onSmartImportPreview: (preview: StreamSmartImportPreviewEvent) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true;
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                const previewData = {
+                  previewEvents: preview.previewEvents,
+                  tripId: preview.tripId,
+                  totalEvents: preview.totalEvents,
+                  duplicateCount: preview.duplicateCount,
+                  lodgingName: preview.lodgingName,
+                };
+                if (idx !== -1) {
+                  const updated = [...prev];
+                  updated[idx] = { ...updated[idx], smartImportPreview: previewData };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: '',
+                    timestamp: new Date().toISOString(),
+                    smartImportPreview: previewData,
+                  },
+                ];
+              });
+            },
+            onSmartImportStatus: (status: SmartImportStatus, message: string) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true;
+              setIsTyping(false);
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                const statusData = { status, message };
+                if (idx !== -1) {
+                  const updated = [...prev];
+                  updated[idx] = { ...updated[idx], smartImportStatus: statusData };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: '',
+                    timestamp: new Date().toISOString(),
+                    smartImportStatus: statusData,
+                  },
+                ];
+              });
+            },
+            // Handles the structured JSON-envelope trip_cards event from the AI Concierge.
+            // Cards are split into hotels and flights and attached to the streaming message.
+            onTripCards: (cards: TripCard[], message: string | null) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true;
+
+              const hotelCards: HotelResult[] = [];
+              const flightCards: ChatMessage['functionCallFlights'] = [];
+
+              for (const card of cards) {
+                if (card.type === 'hotel') {
+                  hotelCards.push({
+                    id: card.id,
+                    provider: card.provider,
+                    title: card.title,
+                    subtitle: card.subtitle,
+                    badges: card.badges,
+                    price: card.price,
+                    dates: card.dates
+                      ? { check_in: card.dates.check_in, check_out: card.dates.check_out }
+                      : null,
+                    location: card.location
+                      ? {
+                          city: card.location.city,
+                          region: card.location.region,
+                          country: card.location.country,
+                        }
+                      : null,
+                    details: card.details
+                      ? {
+                          rating: card.details.rating,
+                          reviews_count: card.details.reviews_count,
+                          refundable: card.details.refundable,
+                          amenities: card.details.amenities,
+                        }
+                      : null,
+                    deep_links: card.deep_links,
+                  });
+                } else if (card.type === 'flight') {
+                  const airportCodes = card.location?.airport_codes ?? [];
+                  flightCards.push({
+                    origin: airportCodes[0] ?? '',
+                    destination: airportCodes[1] ?? '',
+                    departureDate: card.dates?.depart?.split('T')[0] ?? '',
+                    returnDate: undefined,
+                    passengers: 1,
+                    deeplink: card.deep_links?.primary ?? '',
+                    provider: card.provider,
+                    price: card.price,
+                    airline: card.details?.airline,
+                    flightNumber: card.details?.flight_number,
+                    stops: card.details?.stops,
+                    durationMinutes: card.details?.duration_minutes,
+                    departTime: card.dates?.depart ?? null,
+                    arriveTime: card.dates?.arrive ?? null,
+                    refundable: card.details?.refundable,
+                  });
+                }
+              }
+
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                const patch: Partial<ChatMessage> = {};
+                if (hotelCards.length > 0) patch.functionCallHotels = hotelCards;
+                if (flightCards.length > 0) patch.functionCallFlights = flightCards;
+                // If backend also sends a summary message string, use it as content
+                if (message) patch.content = message;
+
+                if (idx !== -1) {
+                  const updated = [...prev];
+                  updated[idx] = { ...updated[idx], ...patch };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: message ?? '',
+                    timestamp: new Date().toISOString(),
+                    ...patch,
+                  },
+                ];
+              });
+            },
             onMetadata: (metadata: StreamMetadataEvent) => {
               setAiStatus('connected');
               if (isLimitedPlan) void refreshUsage();
@@ -863,12 +1253,17 @@ export const AIConciergeChat = ({
                 // Cache the completed response for offline fallback.
                 // Use the locally accumulated string — no setState read needed.
                 if (accumulatedStreamContent) {
-                  const cachedMsg: ChatMessage = {
-                    id: streamingMessageId,
-                    type: 'assistant',
-                    content: accumulatedStreamContent,
-                    timestamp: new Date().toISOString(),
-                  };
+                  const latestStreamingMessage = messagesRef.current.find(
+                    msg => msg.id === streamingMessageId,
+                  );
+                  const cachedMsg: ChatMessage = latestStreamingMessage
+                    ? { ...latestStreamingMessage, content: accumulatedStreamContent }
+                    : {
+                        id: streamingMessageId,
+                        type: 'assistant',
+                        content: accumulatedStreamContent,
+                        timestamp: new Date().toISOString(),
+                      };
                   conciergeCacheService.cacheMessage(
                     tripId,
                     currentInput,
@@ -933,7 +1328,7 @@ export const AIConciergeChat = ({
         );
 
         const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: _uniqueId('assistant'),
           type: 'assistant',
           content: fallbackResponse,
           timestamp: new Date().toISOString(),
@@ -951,7 +1346,7 @@ export const AIConciergeChat = ({
       }
 
       const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: _uniqueId('assistant'),
         type: 'assistant',
         content: data.response || 'Sorry, I encountered an error processing your request.',
         timestamp: new Date().toISOString(),
@@ -981,7 +1376,7 @@ export const AIConciergeChat = ({
           basecampLocation,
         );
         const errorMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: _uniqueId('assistant'),
           type: 'assistant',
           content: `⚠️ **AI Service Temporarily Unavailable**\n\n${fallbackResponse}\n\n*Note: This is a basic response. Full AI features will return once the service is restored.*`,
           timestamp: new Date().toISOString(),
@@ -989,7 +1384,7 @@ export const AIConciergeChat = ({
         setMessages(prev => [...prev, errorMessage]);
       } catch {
         const errorMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: _uniqueId('assistant'),
           type: 'assistant',
           content: `I'm having trouble connecting to my AI services right now. Please try again in a moment.`,
           timestamp: new Date().toISOString(),
@@ -1081,49 +1476,27 @@ export const AIConciergeChat = ({
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+              className={CTA_BUTTON}
               aria-label="Search concierge"
             >
-              <Search size={18} className="text-white" />
+              <Search size={CTA_ICON_SIZE} className="text-white" />
             </button>
-            <span
-              className={`text-xs whitespace-nowrap max-w-[140px] truncate ${queryAllowanceTone}`}
+            <h3
+              className="text-lg font-semibold text-white flex-1 text-center min-w-0"
+              data-testid="ai-concierge-header"
             >
-              {queryAllowanceText}
-            </span>
-            <h3 className="text-lg font-semibold text-white flex-1 text-center min-w-0" data-testid="ai-concierge-header">
               AI Concierge
             </h3>
             <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
-              <p className="text-xs text-gray-400 whitespace-nowrap">Private Convo</p>
-
-              {/* Voice button in header for always-on accessibility - Force Update */}
-              <button
-                type="button"
-                onClick={handleVoiceToggle}
-                data-testid="header-voice-mic"
-                className={`size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20 ${
-                  dictationState === 'listening'
-                    ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-black'
-                    : ''
-                }`}
-                aria-label="Voice concierge"
-                title="Voice concierge"
-              >
-                <div
-                  className={`w-3 h-3 rounded-full ${dictationState === 'listening' ? 'bg-red-500 animate-pulse' : 'bg-white'}`}
-                />
-              </button>
-
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 data-testid="header-upload-btn"
-                className="size-11 min-w-[44px] bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+                className={CTA_BUTTON}
                 aria-label="Attach images"
                 title="Attach images"
               >
-                <ImagePlus size={18} className="text-white" />
+                <ImagePlus size={CTA_ICON_SIZE} className="text-white" />
               </button>
             </div>
           </div>
@@ -1206,7 +1579,7 @@ export const AIConciergeChat = ({
         {messages.length === 0 && !isHistoryLoading && !isQueryLimitReached && (
           <div className="text-center py-6 px-4 flex-shrink-0">
             <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
-              Your AI Travel Concierge
+              Your Travel Concierge
             </h4>
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
               <p className="text-xs sm:text-sm mb-1.5">Ask me anything:</p>
@@ -1246,19 +1619,17 @@ export const AIConciergeChat = ({
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
               onTabChange={onTabChange}
-              onSavePlace={async place => {
-                // Trigger a message to the AI to save the place. The AI will use the `savePlace` tool.
-                const savePrompt = `Save "${place.name}" to trip places. URL: ${place.mapsUrl || ''}`;
-                handleSendMessage(savePrompt);
-              }}
-              onSaveFlight={async flight => {
-                // Trigger a message to the AI to save the flight. The AI will use `savePlace` (which handles links) to persist the flight URL.
-                const savePrompt = `Save flight from ${flight.origin} to ${flight.destination} departing ${flight.departureDate}. URL: ${flight.deeplink}`;
-                handleSendMessage(savePrompt);
-              }}
+              onSavePlace={savePlace}
+              onSaveFlight={saveFlight}
+              onSaveHotel={saveHotel}
+              isUrlSaved={isUrlSaved}
+              isSaving={isSaving}
               onEditReservation={(prefill: string) => {
                 setInputMessage(prefill);
               }}
+              onSmartImportConfirm={handleSmartImportConfirm}
+              onSmartImportDismiss={handleSmartImportDismiss}
+              smartImportStates={smartImportStates}
             />
           )}
         </div>
@@ -1280,7 +1651,7 @@ export const AIConciergeChat = ({
             </div>
             <button
               type="button"
-              onClick={toggleDictation}
+              onClick={stopDictation}
               className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded"
               aria-label="Stop listening"
             >
@@ -1289,8 +1660,23 @@ export const AIConciergeChat = ({
           </div>
         )}
 
-        {/* Input — uses existing AiChatInput with voice props wired to Gemini Live */}
-        <div className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 py-2 pb-[env(safe-area-inset-bottom)] flex-shrink-0">
+        {/* Input area — sticky bottom with inline voice banner above input */}
+        <div
+          className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
+        >
+          {/* Gemini Live voice banner — inline above input, chat stays visible */}
+          {liveOverlayOpen && (
+            <VoiceLiveOverlay
+              state={liveState}
+              userTranscript={liveUserTranscript}
+              assistantTranscript={liveAssistantTranscript}
+              error={liveError}
+              circuitBreakerOpen={liveCircuitBreakerOpen}
+              onEnd={handleEndLiveSession}
+              onResetCircuitBreaker={resetLiveCircuitBreaker}
+            />
+          )}
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
@@ -1312,9 +1698,25 @@ export const AIConciergeChat = ({
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
                 : undefined
             }
-            voiceState={effectiveVoiceState}
+            convoVoiceState={convoVoiceState}
+            onConvoToggle={handleConvoToggle}
+            dictationVoiceState={dictationState}
+            onDictationToggle={handleDictationToggle}
             isVoiceEligible={true}
-            onVoiceToggle={handleVoiceToggle}
+            onQuickAction={
+              UPLOAD_ENABLED && attachedImages.length > 0
+                ? (action: string) => {
+                    const actionMessages: Record<string, string> = {
+                      add_to_calendar: 'Add this to the trip calendar',
+                      save_to_trip: 'Save this to the trip',
+                      create_tasks: 'Create tasks from this',
+                    };
+                    const msg = actionMessages[action] || 'Analyze this';
+                    setInputMessage(msg);
+                    void handleSendMessage(msg);
+                  }
+                : undefined
+            }
           />
         </div>
       </div>

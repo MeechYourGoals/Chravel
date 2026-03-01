@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MessageCircle, Megaphone, Hash, Search, ChevronDown } from 'lucide-react';
+import { MessageCircle, Megaphone, Hash, Search, ChevronDown, Pin, PinOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TripChannel } from '@/types/roleChannels';
@@ -17,6 +17,9 @@ interface MessageTypeBarProps {
   onChannelSelect?: (channel: TripChannel | null) => void;
   // Search props
   onSearchClick?: () => void;
+  // Pin props
+  onTogglePin?: () => void;
+  isPinVisible?: boolean;
 }
 
 export const MessageTypeBar = ({
@@ -30,30 +33,11 @@ export const MessageTypeBar = ({
   activeChannel,
   onChannelSelect,
   onSearchClick,
+  onTogglePin,
+  isPinVisible = false,
 }: MessageTypeBarProps) => {
   const pillBarRef = useRef<HTMLDivElement>(null);
-  const [pillBarWidth, setPillBarWidth] = useState(0);
   const [channelPopoverOpen, setChannelPopoverOpen] = useState(false);
-
-  // Measure pill bar width dynamically with ResizeObserver
-  useEffect(() => {
-    if (!pillBarRef.current) return;
-
-    const updateWidth = () => {
-      if (pillBarRef.current) {
-        setPillBarWidth(pillBarRef.current.offsetWidth);
-      }
-    };
-
-    // Initial measurement
-    updateWidth();
-
-    // ResizeObserver for dynamic updates
-    const resizeObserver = new ResizeObserver(updateWidth);
-    resizeObserver.observe(pillBarRef.current);
-
-    return () => resizeObserver.disconnect();
-  }, []);
 
   // Auto-open channels popover when switching to channels filter
   useEffect(() => {
@@ -209,6 +193,23 @@ export const MessageTypeBar = ({
             </Popover>
           )}
 
+          {/* Pin Toggle */}
+          {onTogglePin && (
+            <button
+              onClick={onTogglePin}
+              className={cn(
+                'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
+                'text-sm font-medium transition-all duration-200',
+                isPinVisible
+                  ? 'text-primary hover:text-primary hover:bg-primary/10'
+                  : 'text-white/50 hover:text-white hover:bg-white/5',
+              )}
+              title={isPinVisible ? 'Hide pinned message' : 'Show pinned message'}
+            >
+              {isPinVisible ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+            </button>
+          )}
+
           {/* Search Pill */}
           <button
             onClick={onSearchClick}
@@ -222,7 +223,9 @@ export const MessageTypeBar = ({
             <Search className="w-4 h-4" />
             {/* Hide label on very small screens to save space if needed, but keeping consistent for now */}
             <span className="hidden sm:inline">Search</span>
-            <span className="sm:hidden"><Search className="w-4 h-4" /></span>
+            <span className="sm:hidden">
+              <Search className="w-4 h-4" />
+            </span>
           </button>
         </div>
       </div>

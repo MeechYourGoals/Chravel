@@ -33,6 +33,7 @@ import {
   deleteChatMessage,
   deleteChannelMessage,
 } from '@/services/chatService';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface MessageActionsProps {
   messageId: string;
@@ -57,9 +58,10 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editedContent, setEditedContent] = useState(messageContent);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
-  // Only show actions for own messages
-  if (!isOwnMessage || isDeleted) {
+  // Hide actions if message is deleted
+  if (isDeleted) {
     return null;
   }
 
@@ -132,22 +134,26 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem
-            onClick={() => {
-              setEditedContent(messageContent);
-              setShowEditDialog(true);
-            }}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => setShowDeleteDialog(true)}
-            className="text-red-600 focus:text-red-600"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </DropdownMenuItem>
+          {isOwnMessage && (
+            <>
+              <DropdownMenuItem
+                onClick={() => {
+                  setEditedContent(messageContent);
+                  setShowEditDialog(true);
+                }}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

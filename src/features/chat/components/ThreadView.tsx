@@ -74,24 +74,12 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
 
   // Subscribe to realtime thread updates
   useEffect(() => {
-    const channel = subscribeToThreadReplies(
-      parentMessage.id,
-      row => {
-        setReplies(prev => {
-          // Dedupe by id
-          if (prev.some(r => r.id === row.id)) return prev;
-          return [...prev, formatReply(row, tripMembers)];
-        });
-      },
-      row => {
-        // Handle updates (e.g., edits, deletes)
-        if (row.is_deleted) {
-          setReplies(prev => prev.filter(r => r.id !== row.id));
-        } else {
-          setReplies(prev => prev.map(r => (r.id === row.id ? formatReply(row, tripMembers) : r)));
-        }
-      },
-    );
+    const channel = subscribeToThreadReplies(parentMessage.id, row => {
+      setReplies(prev => {
+        if (prev.some(r => r.id === row.id)) return prev;
+        return [...prev, formatReply(row, tripMembers)];
+      });
+    });
 
     return () => {
       supabase.removeChannel(channel);
@@ -126,13 +114,12 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
     const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
 
     try {
-      await sendThreadReply(
-        parentMessage.tripId,
-        parentMessage.id,
-        replyContent.trim(),
-        authorName,
-        user?.id,
-      );
+      await sendThreadReply(parentMessage.id, {
+        trip_id: parentMessage.tripId,
+        author_name: authorName,
+        content: replyContent.trim(),
+        user_id: user?.id,
+      });
       setReplyContent('');
     } catch (error) {
       console.error('[ThreadView] Failed to send reply:', error);

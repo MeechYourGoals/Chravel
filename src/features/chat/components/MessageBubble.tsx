@@ -5,7 +5,7 @@ import { MessageActions } from './MessageActions';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { GroundingCitationCard } from './GroundingCitationCard';
 import { ImageLightbox } from './ImageLightbox';
-import { ReadReceipts } from './ReadReceipts';
+import { ReadReceipts, ReadStatus } from './ReadReceipts';
 import { GroundingCitation } from '@/types/grounding';
 import {
   MapPin,
@@ -74,10 +74,12 @@ export interface MessageBubbleProps {
   onRetry?: (messageId: string) => void;
   // 🆕 Read Receipt Support
   tripMembers?: Array<{ id: string; name: string; avatar?: string }>;
-  readStatuses?: any[];
+  readStatuses?: ReadStatus[];
   currentUserId: string;
   // 🆕 Inline Reply Support
   replyTo?: { id: string; text: string; sender: string };
+  // 🆕 Pinning Support
+  isPinned?: boolean;
 }
 
 export const MessageBubble = memo(
@@ -112,6 +114,7 @@ export const MessageBubble = memo(
     readStatuses,
     currentUserId,
     replyTo,
+    isPinned,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -285,27 +288,45 @@ export const MessageBubble = memo(
 
       return parts.map((part, index) => {
         if (part.match(mentionRegex)) {
-            // It's a mention
-            return (
-                <span key={index} className="text-blue-400 font-medium bg-blue-500/10 px-1 rounded inline-block">
-                    {part}
-                </span>
-            );
+          // It's a mention
+          return (
+            <span
+              key={index}
+              className="text-blue-400 font-medium bg-blue-500/10 px-1 rounded inline-block"
+            >
+              {part}
+            </span>
+          );
         } else {
-            // It's regular text (potentially markdown)
-            return (
-                <ReactMarkdown
-                    key={index}
-                    className="inline prose prose-invert max-w-none prose-p:inline prose-p:m-0 prose-pre:bg-gray-800 prose-pre:p-2 prose-pre:rounded"
-                    components={{
-                        p: ({node, ...props}) => <span {...props} />, // Render paragraphs as spans to avoid block layout issues in bubbles
-                        a: ({node, ...props}) => <a {...props} className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer" />,
-                        code: ({node, ...props}) => <code {...props} className="bg-gray-800 px-1 py-0.5 rounded text-xs font-mono" />,
-                    }}
-                >
-                    {part}
-                </ReactMarkdown>
-            );
+          // It's regular text (potentially markdown)
+          return (
+            <span
+              key={index}
+              className="inline prose prose-invert max-w-none prose-p:inline prose-p:m-0 prose-pre:bg-gray-800 prose-pre:p-2 prose-pre:rounded"
+            >
+              <ReactMarkdown
+                components={{
+                  p: props => <span {...props} />,
+                  a: props => (
+                    <a
+                      {...props}
+                      className="text-blue-400 hover:underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  ),
+                  code: props => (
+                    <code
+                      {...props}
+                      className="bg-gray-800 px-1 py-0.5 rounded text-xs font-mono"
+                    />
+                  ),
+                }}
+              >
+                {part}
+              </ReactMarkdown>
+            </span>
+          );
         }
       });
     };
@@ -318,7 +339,7 @@ export const MessageBubble = memo(
     };
 
     // Unified layout: Metadata above bubble for both mobile and desktop (consistency)
-    const longPressHandlers = useLongPress({
+    const _longPressHandlers = useLongPress({
       onLongPress: () => {
         setShowReactions(true);
         // Auto-hide after 5 seconds
@@ -359,6 +380,7 @@ export const MessageBubble = memo(
                 messageType={messageType}
                 isOwnMessage={isOwnMessage}
                 isDeleted={isDeleted}
+                isPinned={isPinned}
                 onEdit={onEdit}
                 onDelete={onDelete}
               />
@@ -379,25 +401,25 @@ export const MessageBubble = memo(
               {/* Inline Reply Quote */}
               {replyTo && (
                 <div
-                    className={cn(
-                        "mb-2 p-2 rounded-lg border-l-4 text-xs cursor-pointer",
-                        isOwnMessage
-                            ? "bg-black/20 border-white/50 text-white/80"
-                            : "bg-white/10 border-primary text-white/80"
-                    )}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        // Optional: Scroll to original message
-                        const el = document.querySelector(`[data-message-id="${replyTo.id}"]`);
-                        if (el) {
-                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            el.classList.add('search-highlight-flash');
-                            setTimeout(() => el.classList.remove('search-highlight-flash'), 1000);
-                        }
-                    }}
+                  className={cn(
+                    'mb-2 p-2 rounded-lg border-l-4 text-xs cursor-pointer',
+                    isOwnMessage
+                      ? 'bg-black/20 border-white/50 text-white/80'
+                      : 'bg-white/10 border-primary text-white/80',
+                  )}
+                  onClick={e => {
+                    e.stopPropagation();
+                    // Optional: Scroll to original message
+                    const el = document.querySelector(`[data-message-id="${replyTo.id}"]`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      el.classList.add('search-highlight-flash');
+                      setTimeout(() => el.classList.remove('search-highlight-flash'), 1000);
+                    }
+                  }}
                 >
-                    <p className="font-semibold mb-0.5">{replyTo.sender}</p>
-                    <p className="truncate opacity-90">{replyTo.text}</p>
+                  <p className="font-semibold mb-0.5">{replyTo.sender}</p>
+                  <p className="truncate opacity-90">{replyTo.text}</p>
                 </div>
               )}
 
@@ -499,12 +521,12 @@ export const MessageBubble = memo(
 
             {/* Read Receipts */}
             {isOwnMessage && readStatuses && readStatuses.length > 0 && (
-               <ReadReceipts
-                 readStatuses={readStatuses}
-                 totalRecipients={tripMembers?.length ? tripMembers.length - 1 : 0}
-                 currentUserId={currentUserId}
-                 tripMembers={tripMembers}
-               />
+              <ReadReceipts
+                readStatuses={readStatuses}
+                totalRecipients={tripMembers?.length ? tripMembers.length - 1 : 0}
+                currentUserId={currentUserId}
+                tripMembers={tripMembers}
+              />
             )}
           </div>
         </div>
