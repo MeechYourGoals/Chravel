@@ -386,7 +386,7 @@ export const MessageBubble = memo(
                 'px-3 py-2 md:px-4 md:py-2.5 rounded-2xl break-words',
                 'text-sm md:text-base',
                 isOwnMessage && !isBroadcast ? 'bg-chat-own text-chat-own-foreground' : !isBroadcast ? 'bg-muted/80 text-white' : '',
-                isBroadcast && 'bg-orange-500 text-black',
+                isBroadcast && 'bg-orange-500 text-white',
                 isPayment && 'border-2 border-green-500/50',
                 status === 'failed' && 'opacity-70 border-2 border-destructive/50',
                 status === 'sending' && 'opacity-80',

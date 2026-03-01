@@ -97,21 +97,21 @@ export const BroadcastItem = ({
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
             <span className="text-xs font-medium text-white">{sender.charAt(0).toUpperCase()}</span>
           </div>
-          <span className="font-medium text-black">{sender}</span>
-          <span className="text-xs text-black/60 capitalize">{category}</span>
+          <span className="font-medium text-white">{sender}</span>
+          <span className="text-xs text-white/60 capitalize">{category}</span>
         </div>
-        <div className="flex items-center gap-1 text-black/60 text-xs">
+        <div className="flex items-center gap-1 text-white/60 text-xs">
           <Clock size={12} />
           {formatTime(timestamp)}
         </div>
       </div>
-      <div className="flex items-center gap-1 text-black/60 text-xs mb-3 mt-1">
+      <div className="flex items-center gap-1 text-white/60 text-xs mb-3 mt-1">
         <Users size={12} />
         Sent to: {formatRecipients()}
       </div>
 
       {/* Message */}
-      <p className="text-black mb-3 leading-relaxed font-bold">{message}</p>
+      <p className="text-white mb-3 leading-relaxed font-bold">{message}</p>
 
       {/* Attachments */}
       {attachmentUrls && attachmentUrls.length > 0 && (
@@ -148,7 +148,7 @@ export const BroadcastItem = ({
 
       {/* Location */}
       {location && (
-        <div className="flex items-center gap-2 text-black/70 text-sm mb-3">
+        <div className="flex items-center gap-2 text-white/70 text-sm mb-3">
           <MapPin size={14} />
           {location}
         </div>
@@ -156,7 +156,7 @@ export const BroadcastItem = ({
 
       {/* Read receipts */}
       {readCount > 0 && (
-        <div className="flex items-center gap-2 text-black/60 text-xs mb-3">
+        <div className="flex items-center gap-2 text-white/60 text-xs mb-3">
           <Eye size={12} />
           <span>
             {readCount} {readCount === 1 ? 'view' : 'views'}
@@ -175,7 +175,7 @@ export const BroadcastItem = ({
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
               userResponse === 'coming'
                 ? 'bg-green-600 text-white'
-                : 'bg-black/20 text-black hover:bg-green-600/50'
+                : 'bg-white/20 text-white hover:bg-green-600/50'
             }`}
           >
             ✅ Coming ({responses.coming})
@@ -185,7 +185,7 @@ export const BroadcastItem = ({
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
               userResponse === 'wait'
                 ? 'bg-yellow-600 text-white'
-                : 'bg-black/20 text-black hover:bg-yellow-600/50'
+                : 'bg-white/20 text-white hover:bg-yellow-600/50'
             }`}
           >
             ✋ Wait ({responses.wait})
@@ -195,7 +195,7 @@ export const BroadcastItem = ({
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
               userResponse === 'cant'
                 ? 'bg-red-600 text-white'
-                : 'bg-black/20 text-black hover:bg-red-600/50'
+                : 'bg-white/20 text-white hover:bg-red-600/50'
             }`}
           >
             ❌ Can't ({responses.cant})

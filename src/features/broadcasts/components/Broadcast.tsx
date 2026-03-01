@@ -71,25 +71,25 @@ export const Broadcast = ({
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
             <span className="text-xs font-medium text-white">{sender.charAt(0).toUpperCase()}</span>
           </div>
-          <span className="font-medium text-black">{sender}</span>
-          <span className="text-xs text-black/60 capitalize">{category}</span>
+           <span className="font-medium text-white">{sender}</span>
+          <span className="text-xs text-white/60 capitalize">{category}</span>
         </div>
-        <div className="flex items-center gap-1 text-black/60 text-xs">
+        <div className="flex items-center gap-1 text-white/60 text-xs">
           <Clock size={12} />
           {formatTime(timestamp)}
         </div>
       </div>
-      <div className="flex items-center gap-1 text-black/60 text-xs mb-3 mt-1">
+      <div className="flex items-center gap-1 text-white/60 text-xs mb-3 mt-1">
         <Users size={12} />
         Sent to: {formatRecipients()}
       </div>
 
       {/* Message */}
-      <p className="text-black mb-3 leading-relaxed font-semibold">{message}</p>
+      <p className="text-white mb-3 leading-relaxed font-semibold">{message}</p>
 
       {/* Location */}
       {location && (
-        <div className="flex items-center gap-2 text-black/70 text-sm mb-3">
+        <div className="flex items-center gap-2 text-white/70 text-sm mb-3">
           <MapPin size={14} />
           {location}
         </div>
