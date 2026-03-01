@@ -276,15 +276,31 @@ export function invokeConciergeStream(
         return;
       }
 
-      // Parse the SSE stream
+      // Parse the SSE stream.
+      // A 30-second idle timer auto-aborts the stream if no data arrives,
+      // preventing the UI from hanging indefinitely on a stalled connection.
+      const STREAM_IDLE_TIMEOUT_MS = 30_000;
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let idleTimer: ReturnType<typeof setTimeout> | undefined;
+
+      const resetIdleTimer = () => {
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+          abortController.abort();
+          callbacks.onError('Stream timed out after 30 seconds of inactivity.');
+          callbacks.onDone();
+        }, STREAM_IDLE_TIMEOUT_MS);
+      };
+
+      resetIdleTimer(); // start the initial timer
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
+        resetIdleTimer(); // reset on every chunk received
         buffer += decoder.decode(value, { stream: true });
 
         // Split on double newlines (SSE event boundary)
@@ -332,6 +348,7 @@ export function invokeConciergeStream(
                 callbacks.onError(event.message);
                 break;
               case 'done':
+                if (idleTimer) clearTimeout(idleTimer);
                 callbacks.onDone();
                 return;
             }
@@ -340,8 +357,10 @@ export function invokeConciergeStream(
       }
 
       // Stream ended without an explicit done event — still call onDone
+      if (idleTimer) clearTimeout(idleTimer);
       callbacks.onDone();
     } catch (err) {
+      if (idleTimer) clearTimeout(idleTimer);
       if (abortController.signal.aborted) return;
       callbacks.onError(err instanceof Error ? err.message : 'Stream connection failed');
       callbacks.onDone();
