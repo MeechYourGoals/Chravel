@@ -349,27 +349,49 @@ export function useWebSpeechVoice(
 
     activeRef.current = true;
 
-    try {
-      const recognition = createRecognition();
-      recognitionRef.current = recognition;
-      recognition.start();
+    // Attempt to start SpeechRecognition with one automatic retry.
+    // When switching from Gemini Live convo mode → dictation, the OS mic slot may
+    // not be fully free yet even after the AudioContext.close() Promise resolves and
+    // the post-close buffer elapses (especially on A12-era iPhones). The first
+    // SpeechRecognition.start() call can throw synchronously with an InvalidStateError
+    // or fire onerror with "not-allowed" / "network" in that narrow window.
+    // A single 300ms retry covers the remaining gap on older devices.
+    const attemptStart = (isRetry: boolean) => {
+      try {
+        const recognition = createRecognition();
+        recognitionRef.current = recognition;
+        recognition.start();
 
-      // Start a "no audio detected" timer — if onresult / onaudiostart
-      // never fire within 5s, the mic likely isn't working on this device.
-      noAudioTimerRef.current = setTimeout(() => {
-        if (activeRef.current && !accumulatedTranscriptRef.current.trim()) {
-          setErrorMessage('No audio detected. Please check microphone permissions and try again.');
-          cleanup();
+        // Start a "no audio detected" timer — if onresult / onaudiostart
+        // never fire within 5s, the mic likely isn't working on this device.
+        noAudioTimerRef.current = setTimeout(() => {
+          if (activeRef.current && !accumulatedTranscriptRef.current.trim()) {
+            setErrorMessage(
+              'No audio detected. Please check microphone permissions and try again.',
+            );
+            cleanup();
+            setVoiceState('error');
+          }
+        }, 5000);
+      } catch (err) {
+        if (!isRetry && activeRef.current) {
+          // First failure — the mic may still be transitioning from another audio session.
+          // Wait 300ms and try once more before surfacing the error to the user.
+          setTimeout(() => {
+            if (!activeRef.current) return;
+            attemptStart(true);
+          }, 300);
+        } else {
+          console.error('[useWebSpeechVoice] Failed to start recognition:', err);
+          setErrorMessage('Failed to start voice recognition. Please try again.');
           setVoiceState('error');
+          activeRef.current = false;
         }
-      }, 5000);
-    } catch (err) {
-      console.error('[useWebSpeechVoice] Failed to start recognition:', err);
-      setErrorMessage('Failed to start voice recognition. Please try again.');
-      setVoiceState('error');
-      activeRef.current = false;
-    }
-  }, [createRecognition]);
+      }
+    };
+
+    attemptStart(false);
+  }, [createRecognition, cleanup]);
 
   // ── Stop voice — finalizes any pending transcript ───────────────────────
   const stopVoice = useCallback(() => {

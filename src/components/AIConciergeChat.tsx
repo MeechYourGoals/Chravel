@@ -75,7 +75,6 @@ interface AIConciergeChatProps {
   basecamp?: { name: string; address: string };
   preferences?: TripPreferences;
   isDemoMode?: boolean;
-  isEvent?: boolean;
   onTabChange?: (tab: string) => void;
 }
 
@@ -493,15 +492,15 @@ export const AIConciergeChat = ({
     }
 
     if (dictationActive) {
-      // Stop dictation and wait 200ms for the OS to release the mic before
-      // starting the Gemini Live AudioContext + getUserMedia call. Without this
-      // delay, getUserMedia can fail with NotReadableError because SpeechRecognition
-      // still holds the hardware mic.
+      // Stop dictation (.abort() fires immediately, releasing the mic) then wait for iOS
+      // to yield the AVAudioSession slot before getUserMedia is called.
+      // 350ms covers A12-era iPhones (iPhone XS/XR) where the OS can take up to
+      // ~300ms to fully release the hardware mic after SpeechRecognition.abort().
       stopDictation();
       setLiveOverlayOpen(true);
       setTimeout(() => {
         void startLiveSession();
-      }, 200);
+      }, 350);
     } else {
       setLiveOverlayOpen(true);
       void startLiveSession();
@@ -509,15 +508,26 @@ export const AIConciergeChat = ({
   }, [dictationState, stopDictation, liveState, startLiveSession, endLiveSession]);
 
   // Dictation toggle — stops conversation first if active.
-  // We await endLiveSession() before calling toggleDictation() so the AudioContext and
-  // MediaStream tracks from Gemini Live are fully released before Web Speech API tries to
-  // acquire the same mic device. The old setTimeout(200ms) approach was a best-effort
-  // workaround; awaiting the Promise is deterministic and handles slow AudioContext.close().
+  //
+  // We await endLiveSession() so the AudioContext and MediaStream tracks from Gemini Live
+  // are fully released before Web Speech API tries to acquire the same mic device.
+  //
+  // IMPORTANT iOS timing note: AudioContext.close() resolves its Promise before iOS has
+  // fully released the AVAudioSession hardware slot. On A12 and older chips (iPhone XS/XR
+  // era) the OS can take an additional 150-500ms after the Promise resolves. We add a
+  // 200ms post-close buffer before calling toggleDictation() so SpeechRecognition.start()
+  // does not fire into a still-locked mic, which would produce NotAllowedError or a silent
+  // "network" error on iOS Safari.
   const handleDictationToggle = useCallback(async () => {
     const isConvoActive = liveState !== 'idle' && liveState !== 'error';
     if (isConvoActive) {
       await endLiveSession();
       setLiveOverlayOpen(false);
+      // Post-close buffer: AudioContext.close() Promise resolving ≠ iOS AVAudioSession
+      // slot freed. Give the OS time to fully release the hardware mic before Web Speech
+      // API calls SpeechRecognition.start(). 200ms covers most devices; A12 chips may
+      // still be borderline — see the retry logic in useWebSpeechVoice for the safety net.
+      await new Promise<void>(resolve => setTimeout(resolve, 200));
     }
     toggleDictation();
   }, [liveState, endLiveSession, toggleDictation]);
