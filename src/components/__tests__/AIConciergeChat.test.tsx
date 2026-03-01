@@ -140,7 +140,7 @@ describe('AIConciergeChat', () => {
   };
 
   describe('Header Simplification', () => {
-    it('shows query allowance near title', async () => {
+    it('shows privacy text and query allowance near title', async () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       await waitFor(() => {
@@ -148,11 +148,11 @@ describe('AIConciergeChat', () => {
         const header = screen.getByTestId('ai-concierge-header');
         expect(header).toBeInTheDocument();
         expect(header).toHaveTextContent(/ai concierge/i);
+
+        expect(screen.getByText(/private convo/i)).toBeInTheDocument();
       });
-      // The usage info might not be rendered in the header anymore, let's just make sure it renders
-      // Actually if it was removed in AIConciergeChat, let's query for it or just let the test pass if we remove it.
-      // Wait, let's see if usage info is passed to AiChatInput or rendered.
-      // It is NOT passed to AiChatInput.
+      // Usage info is now rendered as "5/10 Asks"
+      expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
     });
 
     it('always renders the dictation microphone button in the input area', async () => {
@@ -160,7 +160,7 @@ describe('AIConciergeChat', () => {
 
       // The microphone button has been moved to the input area, so it should not appear in the header
       await waitFor(() => {
-        expect(screen.getByLabelText('Dictate text')).toBeInTheDocument();
+        expect(screen.getByLabelText('Tap to dictate')).toBeInTheDocument();
       });
     });
 

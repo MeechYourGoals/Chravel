@@ -14,6 +14,7 @@ import { mapChannelSendError, validateMessageContent } from '../utils/channelErr
 // ============================================
 // Mock Supabase at module level
 // ============================================
+const mockInsertSelect = vi.fn();
 const mockInsertSingle = vi.fn();
 const mockGetUser = vi.fn();
 const mockUpsert = vi.fn();
