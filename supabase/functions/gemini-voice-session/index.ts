@@ -467,15 +467,35 @@ serve(async req => {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    // Correlation ID + wall-clock anchor for timing diagnostics at each pipeline stage.
-    // Match _rid in client voiceLog('session:tokenReceived') to tie client + server logs.
     const requestId = crypto.randomUUID().slice(0, 8);
     const t0 = Date.now();
     const tag = `[gemini-voice-session:${requestId}]`;
 
+    // ── Gate 0: handler_enter — log BEFORE auth so we get a log even if auth fails ──
+    let bodyRaw: Record<string, unknown> = {};
+    try {
+      bodyRaw = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const sessionAttemptId = typeof bodyRaw?.sessionAttemptId === 'string'
+      ? bodyRaw.sessionAttemptId
+      : 'unknown';
+    console.log(`${tag} handler_enter`, {
+      sessionAttemptId,
+      hasApiKey: !!GEMINI_API_KEY,
+      model: GEMINI_LIVE_MODEL,
+      origin: req.headers.get('origin'),
+      t0,
+    });
+
     // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.warn(`${tag} No Authorization header`, { sessionAttemptId });
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -492,16 +512,16 @@ serve(async req => {
     } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
+      console.warn(`${tag} Auth failed`, { sessionAttemptId, error: authError?.message });
       return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Voice is free for all authenticated users — no subscription gate
-    console.log(`${tag} Authenticated`, { userId: user.id, elapsedMs: Date.now() - t0 });
+    console.log(`${tag} Authenticated`, { userId: user.id, sessionAttemptId, elapsedMs: Date.now() - t0 });
 
-    const body = await req.json();
+    const body = bodyRaw;
     const requestedVoice = typeof body?.voice === 'string' ? body.voice : 'Puck';
     const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : 'Puck';
     const tripId = typeof body?.tripId === 'string' ? body.tripId : undefined;
