@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Wand2, Compass, Upload, ScrollText, DollarSign, Bot } from 'lucide-react';
 import aiConcierge from '@/assets/ai-concierge-screenshot.png';
-import placesMaps from '@/assets/app-screenshots/places-maps.png';
+import placesMaps from '@/assets/places-basecamps-screenshot.png';
 
 export const AiFeaturesSection = () => {
   // Group 1 - aligned with AI Concierge screenshot
