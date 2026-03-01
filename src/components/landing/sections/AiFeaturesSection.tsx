@@ -10,7 +10,8 @@ export const AiFeaturesSection = () => {
     {
       icon: <Wand2 className="text-accent" size={28} />,
       title: 'Context-Aware Concierge',
-      description: 'AI that understands your trip — not just your question.',
+      description:
+        'Loads your full trip — itinerary, tasks, payments, places, and group — before every answer. Responses are grounded in your actual trip data, not generic travel advice. Live web search included for real-time hours, prices, and availability.',
     },
     {
       icon: <DollarSign className="text-primary" size={28} />,
@@ -85,8 +86,8 @@ export const AiFeaturesSection = () => {
           className="text-lg sm:text-xl md:text-2xl text-white/90 font-medium max-w-3xl mx-auto"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
         >
-          It reads your itinerary, places, tasks, and group decisions—so answers are actually
-          useful.
+          Full trip context. Live web search. Payment awareness. Group decisions. Every answer is
+          grounded in your actual trip — not just your question.
         </p>
       </motion.div>
 
