@@ -11,8 +11,6 @@ import {
 import {
   logAudioContextParams,
   checkCaptureSampleRate,
-  assertChunkFraming,
-  ensureAudioContextResumed,
   AUDIO_CONTRACT,
 } from '@/voice/audioContract';
 

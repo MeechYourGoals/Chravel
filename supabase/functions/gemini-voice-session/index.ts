@@ -10,7 +10,6 @@ const GEMINI_LIVE_MODEL =
   Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-live-2.5-flash-native-audio';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
 // Ephemeral tokens MUST use BidiGenerateContentConstrained (not BidiGenerateContent).
@@ -499,9 +498,6 @@ serve(async req => {
       });
     }
 
-    const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
-      ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-      : supabase;
     // Voice is free for all authenticated users — no subscription gate
     console.log(`${tag} Authenticated`, { userId: user.id, elapsedMs: Date.now() - t0 });
 
