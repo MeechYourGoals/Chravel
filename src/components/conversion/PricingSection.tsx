@@ -338,20 +338,16 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
     <div className="w-full space-y-16">
       {/* Header with Value Prop - High contrast with background */}
       <div className="text-center space-y-6">
-        <div className="space-y-4">
-          <div className="inline-block bg-[#C4912F] px-6 py-3 rounded-lg shadow-lg shadow-[#C4912F]/25">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black">
-              Start free. Upgrade when your trip gets serious.
-            </h2>
-          </div>
-          <div className="bg-[#C4912F]/90 backdrop-blur-sm px-4 py-3 rounded-lg max-w-3xl mx-auto shadow-md shadow-[#C4912F]/20">
-            <p className="text-sm sm:text-base md:text-lg text-black font-bold leading-relaxed break-words">
-              Don't lose receipts, links, or the final plan.{' '}
-              <span className="text-black/80 font-bold">
-                Free works forever—upgrade only when you need more.
-              </span>
-            </p>
-          </div>
+        <div className="inline-block bg-[#C4912F] px-6 py-4 rounded-lg shadow-lg shadow-[#C4912F]/25 max-w-3xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-2">
+            Start free. Upgrade when your trip gets serious.
+          </h2>
+          <p className="text-sm sm:text-base md:text-lg text-black font-bold leading-relaxed break-words">
+            Don't lose receipts, links, or the final plan.{' '}
+            <span className="text-black/80 font-bold">
+              Free works forever—upgrade only when you need more.
+            </span>
+          </p>
         </div>
 
         {/* Why Upgrade Section */}
