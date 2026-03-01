@@ -78,8 +78,6 @@ export interface MessageBubbleProps {
   currentUserId: string;
   // 🆕 Inline Reply Support
   replyTo?: { id: string; text: string; sender: string };
-  // 🆕 Pinning Support
-  isPinned?: boolean;
 }
 
 export const MessageBubble = memo(
@@ -114,7 +112,6 @@ export const MessageBubble = memo(
     readStatuses,
     currentUserId,
     replyTo,
-    isPinned,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -362,7 +359,6 @@ export const MessageBubble = memo(
                 messageType={messageType}
                 isOwnMessage={isOwnMessage}
                 isDeleted={isDeleted}
-                isPinned={isPinned}
                 onEdit={onEdit}
                 onDelete={onDelete}
               />
