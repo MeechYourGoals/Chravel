@@ -23,6 +23,7 @@ export interface SmsTemplateData {
   preview?: string;
   taskTitle?: string;
   pollQuestion?: string;
+  deepLink?: string;
 }
 
 export type SmsCategory =
@@ -68,16 +69,18 @@ export function generateSmsMessage(category: SmsCategory, data: SmsTemplateData)
   const tripName = truncate(data.tripName || 'your trip', 28);
   const senderName = truncate(data.senderName || 'Someone', 20);
 
+  const linkSuffix = data.deepLink ? ` View: ${data.deepLink}` : '';
+
   switch (category) {
     case 'broadcasts': {
       const preview = truncate(data.preview || 'Important update', 50);
-      return `${SMS_BRAND_PREFIX} Broadcast in ${tripName} from ${senderName}: "${preview}"`;
+      return `${SMS_BRAND_PREFIX} Broadcast in ${tripName} from ${senderName}: "${preview}"${linkSuffix}`;
     }
 
     case 'calendar_events': {
       const eventTitle = truncate(data.eventName || 'Upcoming event', 32);
       const atTime = truncate(data.eventTime || 'soon', 20);
-      return `${SMS_BRAND_PREFIX} Reminder - ${eventTitle} in ${tripName} at ${atTime}. Tap to open.`;
+      return `${SMS_BRAND_PREFIX} Reminder - ${eventTitle} in ${tripName} at ${atTime}.${linkSuffix || ' Tap to open.'}`;
     }
 
     case 'payments': {
@@ -85,35 +88,37 @@ export function generateSmsMessage(category: SmsCategory, data: SmsTemplateData)
       const currency = data.currency || '$';
       const value = typeof amount === 'number' ? amount.toFixed(2).replace(/\.00$/, '') : amount;
       const normalizedCurrency = currency === 'USD' ? '$' : `${currency} `;
-      return `${SMS_BRAND_PREFIX} Payment - ${senderName} requested ${normalizedCurrency}${value} for ${tripName}.`;
+      return `${SMS_BRAND_PREFIX} Payment - ${senderName} requested ${normalizedCurrency}${value} for ${tripName}.${linkSuffix}`;
     }
 
     case 'tasks': {
       const taskTitle = truncate(data.taskTitle || 'Task', 40);
-      return `${SMS_BRAND_PREFIX} Task assigned - "${taskTitle}" in ${tripName}.`;
+      return `${SMS_BRAND_PREFIX} Task assigned - "${taskTitle}" in ${tripName}.${linkSuffix}`;
     }
 
     case 'polls': {
       const question = truncate(data.pollQuestion || 'New poll', 45);
-      return `${SMS_BRAND_PREFIX} New poll in ${tripName}: "${question}"`;
+      const pollSuffix = data.deepLink ? ` Vote now: ${data.deepLink}` : '';
+      return `${SMS_BRAND_PREFIX} New poll in ${tripName}: "${question}"${pollSuffix}`;
     }
 
     case 'join_requests': {
-      return `${SMS_BRAND_PREFIX} Join request - ${senderName} wants to join ${tripName}.`;
+      return `${SMS_BRAND_PREFIX} Join request - ${senderName} wants to join ${tripName}.${linkSuffix}`;
     }
 
     case 'basecamp_updates': {
       const location = truncate(data.location || 'new location', 45);
-      return `${SMS_BRAND_PREFIX} Basecamp updated for ${tripName}: ${location}.`;
+      const bcSuffix = data.deepLink ? ` Directions: ${data.deepLink}` : '';
+      return `${SMS_BRAND_PREFIX} Basecamp updated for ${tripName}: ${location}.${bcSuffix}`;
     }
 
     case 'calendar_bulk_import': {
       const count = data.count ?? data.amount ?? '0';
-      return `${SMS_BRAND_PREFIX} ${count} calendar events added to ${tripName} via Smart Import. Open the app to review.`;
+      return `${SMS_BRAND_PREFIX} ${count} calendar events added to ${tripName} via Smart Import.${linkSuffix || ' Open the app to review.'}`;
     }
 
     default:
-      return `${SMS_BRAND_PREFIX} New update in ${tripName}. Open the app for details.`;
+      return `${SMS_BRAND_PREFIX} New update in ${tripName}.${linkSuffix || ' Open the app for details.'}`;
   }
 }
 
