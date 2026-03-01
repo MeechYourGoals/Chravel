@@ -11,7 +11,7 @@ export const AiFeaturesSection = () => {
       icon: <Wand2 className="text-accent" size={28} />,
       title: 'Context-Aware Concierge',
       description:
-        'Reads your full itinerary, calendar, places, tasks, payments, and group roster before every answer — context is always loaded, not inferred. Ask about timing conflicts, unbooked items, costs, or hidden gems and get answers grounded in your actual trip data — not generic travel advice. Backed by live web search so recommendations include real-time hours, prices, and availability.',
+        'Loads your full trip — itinerary, tasks, payments, places, and group — before every answer. Responses are grounded in your actual trip data, not generic travel advice. Live web search included for real-time hours, prices, and availability.',
     },
     {
       icon: <DollarSign className="text-primary" size={28} />,
