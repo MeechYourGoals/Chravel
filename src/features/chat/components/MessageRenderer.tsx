@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Link, Download, Play, Maximize2 } from 'lucide-react';
+import { FileText, Link, Download, Play, Maximize2, AudioLines } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from './types';
 import { cn } from '@/lib/utils';
@@ -162,6 +162,14 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
             isOwnMessage
               ? 'bg-blue-600 text-white border-blue-600/20 shadow-[0_1px_3px_rgba(0,0,0,0.25)] rounded-br-sm'
               : 'bg-muted/80 text-white border-border shadow-sm rounded-bl-sm',
+            // Streaming voice: pulsing ring signals this bubble is actively receiving live audio.
+            // Assistant bubbles get a blue glow; user bubbles get a white/emerald glow.
+            message.isStreamingVoice &&
+              !isOwnMessage &&
+              'border-blue-500/50 shadow-[0_0_0_2px_rgba(59,130,246,0.25)]',
+            message.isStreamingVoice &&
+              isOwnMessage &&
+              'border-emerald-400/40 shadow-[0_0_0_2px_rgba(52,211,153,0.2)]',
           )}
         >
           {/* Message content */}
@@ -252,6 +260,14 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
 
           {/* Render link preview */}
           {renderLinkPreview()}
+
+          {/* Streaming voice indicator — shown while Gemini Live is speaking this response */}
+          {message.isStreamingVoice && (
+            <span className="flex items-center gap-1.5 mt-2 text-xs text-blue-400/80">
+              <AudioLines size={12} className="animate-pulse shrink-0" />
+              <span className="animate-pulse">Speaking...</span>
+            </span>
+          )}
         </div>
 
         {/* Message metadata */}

@@ -346,6 +346,20 @@ export const AIConciergeChat = ({
    */
   const [streamingVoiceMessage, setStreamingVoiceMessage] = useState<ChatMessage | null>(null);
 
+  /**
+   * Live user speech-to-text bubble.
+   *
+   * While Gemini Live is listening or sending (user is speaking), we show a
+   * transient user-side bubble with the interim STT transcript so the user can
+   * see their own words appearing in chat — the "I'm hearing you" indicator.
+   *
+   * Lifecycle:
+   *   liveUserTranscript updates + liveState === 'listening'|'sending'|'interrupted'  → set here
+   *   handleLiveTurnComplete fires (user utterance finalised)                           → set to null
+   *   liveState goes to idle/error/ready/playing without turn completion                → set to null
+   */
+  const [streamingUserMessage, setStreamingUserMessage] = useState<ChatMessage | null>(null);
+
   // Dictation (Web Speech API) — always initialized so hooks order is stable
   const handleDictationResult = useCallback((text: string) => {
     if (!text.trim()) return;
@@ -390,9 +404,11 @@ export const AIConciergeChat = ({
         setMessages(prev => [...prev, ...newMessages]);
       }
 
-      // Fix 2: clear the streaming-in-progress bubble now that the finalised
-      // message has been appended to `messages` above.
+      // Clear both streaming bubbles now that the finalised messages have been
+      // appended to `messages` above. This prevents any flash of the transient
+      // bubbles before the permanent messages appear.
       setStreamingVoiceMessage(null);
+      setStreamingUserMessage(null);
 
       // Fix 1: Persist the completed voice turn to Supabase (ai_queries table).
       // We store both sides as a single row: query_text = user utterance,
@@ -534,6 +550,31 @@ export const AIConciergeChat = ({
     }
   }, [liveState, liveAssistantTranscript]);
 
+  // Keep the live user STT bubble in sync with liveUserTranscript.
+  // While Gemini Live is listening/sending, show the interim user transcript as a
+  // user-side bubble so the speaker can see their words appearing in the chat
+  // (the "I'm hearing you" indicator).  Cleared when the turn finalises.
+  useEffect(() => {
+    const isUserSpeaking =
+      liveState === 'listening' || liveState === 'sending' || liveState === 'interrupted';
+
+    if (isUserSpeaking && liveUserTranscript) {
+      setStreamingUserMessage({
+        id: 'voice-user-streaming-live',
+        type: 'user',
+        content: liveUserTranscript,
+        timestamp: new Date().toISOString(),
+        isStreamingVoice: true,
+      });
+    } else if (liveState === 'idle' || liveState === 'error' || liveState === 'ready') {
+      // Session ended — clear any leftover user bubble.
+      setStreamingUserMessage(null);
+    } else if (liveState === 'playing') {
+      // Assistant started speaking — user turn is complete, clear user bubble.
+      setStreamingUserMessage(null);
+    }
+  }, [liveState, liveUserTranscript]);
+
   // ── End voice ────────────────────────────────────────────────────────────
 
   // Abort in-flight stream when component unmounts (prevents setState on unmounted + wasted bandwidth)
@@ -604,12 +645,16 @@ export const AIConciergeChat = ({
     }
   }, [messages, tripId, setStoreMessages]);
 
-  // Auto-scroll to bottom when new messages or typing indicator appear
+  // Auto-scroll to bottom when new messages, typing indicator, or streaming voice
+  // bubbles appear/update — keeps the live transcript visible as it grows.
   useEffect(() => {
-    if (chatScrollRef.current && (messages.length > 0 || isTyping)) {
+    if (
+      chatScrollRef.current &&
+      (messages.length > 0 || isTyping || streamingVoiceMessage || streamingUserMessage)
+    ) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [messages.length, isTyping, messages]);
+  }, [messages.length, isTyping, messages, streamingVoiceMessage, streamingUserMessage]);
 
   // Failsafe: if a stream callback never finalizes, release typing state so
   // users can still send a follow-up without needing a hard refresh.
@@ -1713,14 +1758,20 @@ export const AIConciergeChat = ({
               <div className="flex-1 h-px bg-white/10" />
             </div>
           )}
-          {/* Fix 2: merge the transient streaming-voice bubble into the message
-               list so the assistant's response appears progressively in the chat
-               while Gemini Live is speaking.  handleLiveTurnComplete clears
-               streamingVoiceMessage and appends the final message to `messages`,
-               so there is no duplication. */}
-          {(messages.length > 0 || !!streamingVoiceMessage) && (
+          {/* Merge transient streaming bubbles into the message list so both the
+               user's live STT and the assistant's live TTS are visible in the
+               chat while Gemini Live is active.  Order: persisted messages →
+               user interim bubble (while listening) → assistant streaming bubble
+               (while playing).  handleLiveTurnComplete clears both transient
+               entries and appends the finalised messages, so there is no
+               duplication or flash. */}
+          {(messages.length > 0 || !!streamingVoiceMessage || !!streamingUserMessage) && (
             <ChatMessages
-              messages={streamingVoiceMessage ? [...messages, streamingVoiceMessage] : messages}
+              messages={[
+                ...messages,
+                ...(streamingUserMessage ? [streamingUserMessage] : []),
+                ...(streamingVoiceMessage ? [streamingVoiceMessage] : []),
+              ]}
               isTyping={isTyping}
               showMapWidgets={true}
               onDeleteMessage={handleDeleteMessage}
