@@ -27,8 +27,6 @@ interface GeminiChatRequest {
 }
 
 serve(async req => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
-    await import('../_shared/securityHeaders.ts');
   const corsHeaders = getCorsHeaders(req);
 
   if (req.method === 'OPTIONS') {
@@ -161,48 +159,6 @@ serve(async req => {
     );
   }
 });
-
-function buildSystemPrompt(tripContext: any, analysisType: string, customPrompt?: string): string {
-  if (customPrompt) return customPrompt;
-
-  let basePrompt = `Current date: ${new Date().toISOString().split('T')[0]}\n\nYou are Chravel Concierge, a versatile AI assistant with special expertise in travel and trip planning. Answer any question the user asks. Use trip context when relevant, but answer all topics freely and helpfully.`;
-
-  if (tripContext) {
-    basePrompt += `\n\nTrip Context:
-- Destination: ${tripContext.location || 'Not specified'}
-- Dates: ${tripContext.dateRange || 'TBD'}
-- Participants: ${tripContext.participants?.length || 0} people
-- Budget: Not specified`;
-
-    if (tripContext.accommodation) {
-      basePrompt += `\n- Accommodation: ${tripContext.accommodation}`;
-    }
-  }
-
-  switch (analysisType) {
-    case 'sentiment':
-      basePrompt +=
-        '\n\nAnalyze the sentiment of messages and provide insights into group mood and engagement.';
-      break;
-    case 'review':
-      basePrompt +=
-        '\n\nAnalyze reviews and provide comprehensive summaries with sentiment analysis and key insights.';
-      break;
-    case 'audio':
-      basePrompt +=
-        '\n\nCreate engaging audio summaries that highlight key information and insights.';
-      break;
-    case 'image':
-      basePrompt +=
-        '\n\nAnalyze images in the context of travel planning and provide relevant insights and recommendations.';
-      break;
-    default:
-      basePrompt +=
-        '\n\nProvide helpful, specific recommendations and assistance with trip planning. Be conversational and focus on practical advice.';
-  }
-
-  return basePrompt;
-}
 
 async function storeConversation(
   supabase: any,
