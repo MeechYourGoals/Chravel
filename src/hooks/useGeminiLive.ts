@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AudioPlaybackQueue } from '@/lib/geminiLive/audioPlayback';
 import { startAudioCapture, type AudioCaptureHandle } from '@/lib/geminiLive/audioCapture';
-import { VOICE_LIVE_ENABLED, VOICE_DIAGNOSTICS_ENABLED } from '@/config/voiceFeatureFlags';
+import { VOICE_DIAGNOSTICS_ENABLED } from '@/config/voiceFeatureFlags';
 import {
   recordFailure,
   isOpen as isCircuitBreakerOpen,
@@ -457,10 +457,6 @@ export function useGeminiLive({
   }, []);
 
   const startSession = useCallback(async () => {
-    if (!VOICE_LIVE_ENABLED) {
-      return; // Feature flag: no voice init
-    }
-
     if (isCircuitBreakerOpen()) {
       setCircuitBreakerOpen(true);
       setError('Voice is temporarily unavailable. Tap "Try voice again" to retry.');
