@@ -1,135 +1,116 @@
 
-Objective: Restore rich invite/trip unfurl previews to production reliability by eliminating current infrastructure breakpoints and adding code-level fallback + regression guards.
 
-What I found (root-cause evidence)
-1) Primary outage is on the branded unfurl host (p.chravel.app), not the Google sign-in label change.
-- Direct checks to both:
-  - https://p.chravel.app/j/chravel3wtwrigg
-  - https://p.chravel.app/t/1
-  return Cloudflare error 1001 (“unable to resolve origin”) and intermittent TLS failures.
-- This exactly matches the screenshot symptom: chat app falls back to plain domain card when OG HTML cannot be fetched.
+# Fix Places Explore Tab: Loading Spinner + Performance
 
-2) The OG generator functions themselves are healthy right now.
-- Direct calls to:
-  - https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-invite-preview?code=chravel3wtwrigg
-  - https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/generate-trip-preview?tripId=1
-  return full HTML with og:title/og:description/og:image.
-- So metadata generation is working; delivery path is what’s failing.
+## Problem Summary
+Three issues identified in the Places > Explore tab:
 
-3) Architectural single-point-of-failure exists.
-- All shared links generated in app currently hardcode `https://p.chravel.app/...`:
-  - `src/hooks/useInviteLink.ts`
-  - `src/components/share/ShareTripModal.tsx`
-- If p.chravel.app breaks, virality/share previews fail globally.
+1. **White spinner instead of yellow/gold** -- `TripLinksDisplay.tsx` uses a plain white `border-white` spinner while every other tab uses the branded `border-primary` (gold) spinner
+2. **Slow loading / timeout** -- The Explore sub-tab fetches from `trip_links` table with a 15-second timeout, and this query appears to be timing out for real trips
+3. **Tab switching doesn't help** -- PlacesSection keeps both sub-tabs mounted via `display: none`, so switching away never unmounts/remounts the Explore tab. The failed query with `retry: 1` stays in error state permanently
 
-4) There is routing inconsistency in unfurl infrastructure.
-- `unfurl/server.mjs` supports both `/t/:tripId` and `/j/:code`.
-- `unfurl/worker.ts` supports only `/t/:tripId` (no invite `/j/:code` path).
-- If the live p.chravel.app points to worker runtime, invite unfurls would fail even when DNS is fixed.
+## Root Cause
 
-5) Minor metadata correctness issue in invite OG function.
-- `generate-invite-preview` currently sets `og:url` to `https://chravel.app/join/:code` and ignores `canonicalUrl` query param.
-- For stable cache/unfurl behavior, `og:url` should match the scraped URL (`https://p.chravel.app/j/:code`) when provided.
+- `TripLinksDisplay.tsx` line 372-381: Custom white spinner (`border-b-2 border-white`) instead of the standard branded spinner
+- `PlacesSection.tsx` line 225: `display: none` keeps LinksPanel/TripLinksDisplay alive even when viewing Base Camps, preventing recovery via tab switching
+- `TripLinksDisplay.tsx` line 199: `retry: 1` means after initial failure + 1 retry, the query is permanently stuck in error state until manual refetch
 
-Not the cause
-- Google sign-in branding text change is unrelated to OG unfurl behavior.
+## Fix Plan
 
-Surgical remediation plan (regression-safe)
+### 1. Fix the loading spinner color (TripLinksDisplay.tsx)
 
-Phase 0 — Immediate restore (infrastructure first, highest impact)
-A) Recover p.chravel.app origin/DNS/TLS
-- Validate DNS target for p.chravel.app points to active unfurl service.
-- Confirm origin health endpoint:
-  - `https://p.chravel.app/healthz` => 200 "ok"
-- Ensure Cloudflare proxy + SSL mode are consistent with origin cert.
-- Confirm no Cloudflare 1001 and no TLS handshake errors.
+Replace the white spinner (lines 374-379) with the standard branded spinner matching `DefaultTabSkeleton`:
 
-B) Ensure runtime behind p.chravel.app supports BOTH routes
-- Required behavior:
-  - `/t/:tripId` -> trip preview proxy
-  - `/j/:code` -> invite preview proxy
-- If currently on Worker, either:
-  1) add `/j/:code` support in worker, or
-  2) route p.chravel.app to Node unfurl service (`unfurl/server.mjs`) that already supports both.
+```text
+Before:  border-b-2 border-white
+After:   border-4 border-primary/30 border-t-primary
+```
 
-Phase 1 — Code hardening (prevents full outage next time)
-1) Add configurable unfurl base URL
-- Introduce `VITE_UNFURL_BASE_URL` (default `https://p.chravel.app`).
-- Update link generation to read from env (not hardcoded):
-  - `src/hooks/useInviteLink.ts`
-  - `src/components/share/ShareTripModal.tsx`
-- Keeps runtime flexibility if infra moves domains.
+Also add "Loading..." text below for consistency with other tabs.
 
-2) Add graceful fallback URL strategy
-- If configured unfurl base is missing/disabled, fallback to a controlled app-host URL (temporary rescue mode).
-- This prevents total share outage while branded domain is being fixed.
+### 2. Add refetch-on-tab-switch for Explore (PlacesSection.tsx)
 
-3) Fix canonical handling in invite generator
-- Update `supabase/functions/generate-invite-preview/index.ts`:
-  - read `canonicalUrl` from query
-  - set `<meta property="og:url">` to canonicalUrl when present
-- Align with `generate-trip-preview` behavior for deterministic unfurl caching.
+When the user switches to the "links" (Explore) tab and the query is in error state, automatically trigger a refetch. This makes tab-switching a recovery mechanism:
 
-4) Keep preview source priority intact
-- Preserve existing OG image priority behavior (cover photo first, branded fallback second).
-- No changes to trip media selection logic.
+- Pass a `isActive` prop or use a callback so that when `activeTab` changes to `'links'`, if the TripLinksDisplay query is in error state, it refetches
+- Alternatively, add `refetchOnMount: 'always'` or switch from `display: none` to conditional rendering for the Explore tab only (since it doesn't benefit from staying mounted like Base Camps does)
 
-Phase 2 — Regression-proof verification
-A) Edge function verification
-- Validate direct outputs for both functions include:
-  - `og:title`
-  - `og:description` with location + date
-  - `og:image`
-  - `og:url` matching canonical
-- Test both demo and real invite/trip IDs.
+The simplest approach: keep `display: none` for Base Camps (which has map state worth preserving) but use conditional rendering for Explore (which is just a list). This way switching tabs remounts TripLinksDisplay and triggers a fresh query.
 
-B) Branded domain verification
-- Validate:
-  - `https://p.chravel.app/j/<real_code>` returns OG HTML
-  - `https://p.chravel.app/t/<trip_id>` returns OG HTML
-- Confirm no Cloudflare error page content.
+### 3. Improve error recovery (TripLinksDisplay.tsx)
 
-C) End-to-end messaging app checks (critical)
-- Send both link types in iMessage + WhatsApp.
-- Confirm rich card renders:
-  - cover image
-  - trip title
-  - location
-  - dates
-- Confirm card remains after cache warm/cold retry.
+- Increase `retry` from 1 to 2 for better resilience
+- Add `refetchOnWindowFocus: true` so returning to the browser retries
+- Reduce timeout from 15s to 10s for faster error surfacing
 
-D) Automated guardrails
-- Extend test coverage:
-  - E2E spec for branded `/j/` and `/t/` unfurls (HTTP-level assertions on OG tags).
-  - Smoke check script in CI/deploy verifying p.chravel.app health + route availability.
-- Alerting:
-  - trigger alert on non-200 `/healthz`
-  - alert if response body contains Cloudflare 1001 markers.
+## Files to Change
 
-Implementation scope (files/services likely touched)
-- Infra/runtime:
-  - `unfurl/worker.ts` (add `/j/:code` parity if worker is active runtime)
-  - `unfurl/server.mjs` (only if needed for parity updates)
-- Frontend share generation:
-  - `src/hooks/useInviteLink.ts`
-  - `src/components/share/ShareTripModal.tsx`
-- Supabase function:
-  - `supabase/functions/generate-invite-preview/index.ts` (canonicalUrl support)
-- Optional docs/runbook:
-  - deployment doc for unfurl DNS + health checks
+| File | Change |
+|---|---|
+| `src/components/places/TripLinksDisplay.tsx` | Fix spinner color; adjust retry/timeout config |
+| `src/components/PlacesSection.tsx` | Switch Explore from `display: none` to conditional render for remount recovery |
 
-Risk, sequencing, rollback
-- Risk level: Medium (because infra + share paths touch virality-critical flow), Low code-risk if done in sequence.
-- Sequence dependency:
-  1) Restore p domain routing first
-  2) then harden app/share config + canonical fix
-  3) then run end-to-end checks
-- Rollback:
-  - Revert frontend link-base config change (single commit rollback)
-  - Repoint p.chravel.app back to previous known-good origin if route parity change fails.
+## Technical Details
 
-Success criteria (must all pass)
-1) p.chravel.app `/j` and `/t` are globally reachable (no 1001/TLS issues).
-2) Both routes return HTML containing OG tags for real links.
-3) iMessage and WhatsApp show rich cards for invite and trip links.
-4) Automated smoke checks detect future outages before users do.
+### TripLinksDisplay.tsx spinner fix (line 372-381)
+
+Replace the loading block with:
+```tsx
+if (loading) {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="flex flex-col items-center gap-3">
+        <div
+          className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"
+          aria-label="Loading links"
+          data-testid="trip-links-loading"
+        />
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  );
+}
+```
+
+### TripLinksDisplay.tsx query config (line 185-201)
+
+```tsx
+retry: 2,
+retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+refetchOnWindowFocus: true,
+```
+
+Reduce `FETCH_TIMEOUT_MS` from 15000 to 10000.
+
+### PlacesSection.tsx tab rendering (lines 225-247)
+
+Change Explore from `display: none` to conditional rendering:
+
+```tsx
+{/* Base Camps -- keep mounted via display:none (preserves map state) */}
+<div style={{ display: activeTab === 'basecamps' ? 'block' : 'none' }}>
+  <BasecampsPanel ... />
+</div>
+
+{/* Explore -- conditional render (remounts on tab switch for recovery) */}
+{activeTab === 'links' && (
+  <LinksPanel ... />
+)}
+```
+
+## Invariants Preserved
+- Auth-gated trip access unchanged
+- RLS policies unchanged
+- No new network calls on mount (Explore only fetches when its tab is active)
+- Base Camps still preserves state via display:none
+- Demo mode behavior unchanged
+
+## Manual Test Checklist
+- [ ] Click Places tab, then Explore -- spinner should be gold/yellow, not white
+- [ ] If Explore times out, switch to Base Camps and back -- should retry automatically
+- [ ] Logged-in user: Explore loads links from trip_links table
+- [ ] Demo mode: Explore loads mock links correctly
+- [ ] Base Camps state (map, basecamp selections) preserved when switching sub-tabs
+
+## Regression Risk: LOW
+Rollback: Revert the 2 files to restore previous behavior.
