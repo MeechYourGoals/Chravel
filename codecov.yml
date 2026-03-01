@@ -14,12 +14,7 @@ coverage:
         threshold: 1%
         if_ci_failed: error
 
-comment:
-  layout: 'reach, diff, flags, files'
-  behavior: default
-  require_changes: false
-  require_base: false
-  require_head: true
+comment: false
 
 ignore:
   - '**/*.test.ts'
