@@ -506,6 +506,20 @@ async function streamGeminiToSSE(
       // Emit reservation drafts as a dedicated SSE event type
       if (r.name === 'emitReservationDraft' && r.response?.success && r.response?.draft) {
         controller.enqueue(sseEvent({ type: 'reservation_draft', draft: r.response.draft }));
+      } else if (
+        r.name === 'emitSmartImportPreview' &&
+        r.response?.success &&
+        r.response?.previewEvents
+      ) {
+        controller.enqueue(
+          sseEvent({
+            type: 'smart_import_preview',
+            previewEvents: r.response.previewEvents,
+            tripId: r.response.tripId,
+            totalEvents: r.response.totalEvents,
+            duplicateCount: r.response.duplicateCount,
+          }),
+        );
       } else {
         controller.enqueue(sseEvent({ type: 'function_call', name: r.name, result: r.response }));
       }
@@ -1444,6 +1458,55 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             passengers: { type: 'number', description: 'Number of passengers (default 1)' },
           },
           required: ['origin', 'destination', 'departureDate'],
+        },
+      },
+      {
+        name: 'emitSmartImportPreview',
+        description:
+          'Extract calendar events from attached images/screenshots/PDFs (hotel reservations, boarding passes, flight confirmations, itineraries) and show a preview card for the user to confirm before adding to calendar. Call this when user attaches a travel document and says "add to calendar", "import this", "save this to the trip", or similar. YOU must analyze the attached image and extract the event details yourself, then pass them as the events array.',
+        parameters: {
+          type: 'object',
+          properties: {
+            events: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  title: {
+                    type: 'string',
+                    description:
+                      'Event title (e.g. "Flight AA1234 LAX→JFK", "Hilton Garden Inn Check-in")',
+                  },
+                  datetime: {
+                    type: 'string',
+                    description: 'Start date/time in ISO 8601 format',
+                  },
+                  endDatetime: {
+                    type: 'string',
+                    description: 'End date/time in ISO 8601 (checkout date, arrival time, etc.)',
+                  },
+                  location: {
+                    type: 'string',
+                    description: 'Location name or address',
+                  },
+                  category: {
+                    type: 'string',
+                    description:
+                      'Event category: dining, lodging, activity, transportation, entertainment, or other',
+                  },
+                  notes: {
+                    type: 'string',
+                    description:
+                      'Confirmation number, booking reference, seat number, or other details',
+                  },
+                },
+                required: ['title', 'datetime'],
+              },
+              description:
+                'Array of calendar events extracted from the attached document. Extract ALL events visible.',
+            },
+          },
+          required: ['events'],
         },
       },
       {

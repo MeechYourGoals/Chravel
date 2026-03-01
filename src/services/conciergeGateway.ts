@@ -92,6 +92,24 @@ export interface StreamReservationDraftEvent {
   draft: ReservationDraft;
 }
 
+export interface SmartImportPreviewEvent {
+  title: string;
+  startTime: string;
+  endTime: string;
+  location: string | null;
+  category: string;
+  notes: string | null;
+  isDuplicate: boolean;
+}
+
+export interface StreamSmartImportPreviewEvent {
+  type: 'smart_import_preview';
+  previewEvents: SmartImportPreviewEvent[];
+  tripId: string;
+  totalEvents: number;
+  duplicateCount: number;
+}
+
 /**
  * Structured trip card payload emitted by the AI Concierge when the backend
  * returns the JSON-envelope format with hotel or flight cards.
@@ -150,7 +168,8 @@ export type ConciergeStreamEvent =
   | StreamErrorEvent
   | StreamDoneEvent
   | StreamReservationDraftEvent
-  | StreamTripCardsEvent;
+  | StreamTripCardsEvent
+  | StreamSmartImportPreviewEvent;
 
 export interface ConciergeStreamCallbacks {
   onChunk: (text: string) => void;
@@ -158,6 +177,7 @@ export interface ConciergeStreamCallbacks {
   onFunctionCall?: (name: string, result: Record<string, unknown>) => void;
   onReservationDraft?: (draft: ReservationDraft) => void;
   onTripCards?: (cards: TripCard[], message: string | null) => void;
+  onSmartImportPreview?: (preview: StreamSmartImportPreviewEvent) => void;
   onError: (error: string) => void;
   onDone: () => void;
 }
@@ -289,6 +309,9 @@ export function invokeConciergeStream(
                 break;
               case 'trip_cards':
                 callbacks.onTripCards?.(event.cards, event.message ?? null);
+                break;
+              case 'smart_import_preview':
+                callbacks.onSmartImportPreview?.(event as StreamSmartImportPreviewEvent);
                 break;
               case 'error':
                 callbacks.onError(event.message);

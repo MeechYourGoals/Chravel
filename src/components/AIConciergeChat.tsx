@@ -17,6 +17,8 @@ import {
   type StreamMetadataEvent,
   type ReservationDraft,
   type TripCard,
+  type StreamSmartImportPreviewEvent,
+  type SmartImportPreviewEvent,
 } from '@/services/conciergeGateway';
 import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { Button } from './ui/button';
@@ -136,6 +138,13 @@ export interface ChatMessage {
   }>;
   /** Reservation draft cards from emitReservationDraft tool */
   reservationDrafts?: ReservationDraft[];
+  /** Smart Import preview data from emitSmartImportPreview tool */
+  smartImportPreview?: {
+    previewEvents: SmartImportPreviewEvent[];
+    tripId: string;
+    totalEvents: number;
+    duplicateCount: number;
+  };
 }
 
 interface ConciergeInvokePayload {
@@ -562,6 +571,73 @@ export const AIConciergeChat = ({
     }
   }, [isOffline, aiStatus]);
 
+  // ── Smart Import: confirm/dismiss handlers ──────────────────────────────
+  const [smartImportStates, setSmartImportStates] = useState<
+    Record<string, { isImporting: boolean; result: { imported: number; failed: number } | null }>
+  >({});
+
+  const handleSmartImportConfirm = useCallback(
+    async (messageId: string, events: SmartImportPreviewEvent[]) => {
+      if (!tripId || events.length === 0) return;
+
+      setSmartImportStates(prev => ({
+        ...prev,
+        [messageId]: { isImporting: true, result: null },
+      }));
+
+      try {
+        const { calendarService } = await import('@/services/calendarService');
+        const createEvents = events.map(evt => ({
+          trip_id: tripId,
+          title: evt.title,
+          start_time: evt.startTime,
+          end_time: evt.endTime || undefined,
+          location: evt.location || undefined,
+          event_category: evt.category || 'other',
+          include_in_itinerary: true,
+          source_type: 'ai_concierge_import',
+          source_data: {
+            imported_from: 'concierge_smart_import',
+            notes: evt.notes || undefined,
+            import_hash: `${tripId}|${evt.title.toLowerCase().trim()}|${evt.startTime}`,
+          },
+        }));
+
+        const result = await calendarService.bulkCreateEvents(createEvents);
+
+        setSmartImportStates(prev => ({
+          ...prev,
+          [messageId]: {
+            isImporting: false,
+            result: { imported: result.imported, failed: result.failed },
+          },
+        }));
+
+        if (result.imported > 0) {
+          toast.success(
+            `Added ${result.imported} event${result.imported !== 1 ? 's' : ''} to Calendar`,
+          );
+        }
+        if (result.failed > 0) {
+          toast.error(`${result.failed} event${result.failed !== 1 ? 's' : ''} failed to import`);
+        }
+      } catch (_err) {
+        setSmartImportStates(prev => ({
+          ...prev,
+          [messageId]: { isImporting: false, result: { imported: 0, failed: events.length } },
+        }));
+        toast.error('Failed to import events. Please try again.');
+      }
+    },
+    [tripId],
+  );
+
+  const handleSmartImportDismiss = useCallback((messageId: string) => {
+    setMessages(prev =>
+      prev.map(m => (m.id === messageId ? { ...m, smartImportPreview: undefined } : m)),
+    );
+  }, []);
+
   // ── Delete a single concierge message (privacy) ──────────────────────────
   const handleDeleteMessage = useCallback(
     async (messageId: string) => {
@@ -975,6 +1051,34 @@ export const AIConciergeChat = ({
                     content: '',
                     timestamp: new Date().toISOString(),
                     reservationDrafts: [draft],
+                  },
+                ];
+              });
+            },
+            onSmartImportPreview: (preview: StreamSmartImportPreviewEvent) => {
+              if (!isMounted.current) return;
+              receivedAnyChunk = true;
+              setMessages(prev => {
+                const idx = prev.findIndex(m => m.id === streamingMessageId);
+                const previewData = {
+                  previewEvents: preview.previewEvents,
+                  tripId: preview.tripId,
+                  totalEvents: preview.totalEvents,
+                  duplicateCount: preview.duplicateCount,
+                };
+                if (idx !== -1) {
+                  const updated = [...prev];
+                  updated[idx] = { ...updated[idx], smartImportPreview: previewData };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    id: streamingMessageId,
+                    type: 'assistant' as const,
+                    content: '',
+                    timestamp: new Date().toISOString(),
+                    smartImportPreview: previewData,
                   },
                 ];
               });
@@ -1494,6 +1598,9 @@ export const AIConciergeChat = ({
               onEditReservation={(prefill: string) => {
                 setInputMessage(prefill);
               }}
+              onSmartImportConfirm={handleSmartImportConfirm}
+              onSmartImportDismiss={handleSmartImportDismiss}
+              smartImportStates={smartImportStates}
             />
           )}
         </div>
@@ -1567,6 +1674,20 @@ export const AIConciergeChat = ({
             dictationVoiceState={dictationState}
             onDictationToggle={handleDictationToggle}
             isVoiceEligible={true}
+            onQuickAction={
+              UPLOAD_ENABLED && attachedImages.length > 0
+                ? (action: string) => {
+                    const actionMessages: Record<string, string> = {
+                      add_to_calendar: 'Add this to the trip calendar',
+                      save_to_trip: 'Save this to the trip',
+                      create_tasks: 'Create tasks from this',
+                    };
+                    const msg = actionMessages[action] || 'Analyze this';
+                    setInputMessage(msg);
+                    void handleSendMessage(msg);
+                  }
+                : undefined
+            }
           />
         </div>
       </div>
