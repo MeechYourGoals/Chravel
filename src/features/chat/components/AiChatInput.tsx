@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Send, Sparkles, X, Mic } from 'lucide-react';
+import { Send, Sparkles, X, Mic, CalendarPlus, Bookmark, ListChecks } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -42,6 +42,8 @@ interface AiChatInputProps {
   onRemoveImage?: (index: number) => void;
   /** Whether image attach is enabled */
   showImageAttach?: boolean;
+  /** Callback when a Smart Import quick action chip is tapped */
+  onQuickAction?: (action: string) => void;
 }
 
 export const AiChatInput = ({
@@ -63,6 +65,7 @@ export const AiChatInput = ({
   attachedImages = [],
   onRemoveImage,
   showImageAttach = false,
+  onQuickAction,
 }: AiChatInputProps) => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
@@ -194,6 +197,27 @@ export const AiChatInput = ({
                 <X size={12} className="text-white" />
               </button>
             </div>
+          ))}
+        </div>
+      )}
+
+      {/* Smart Import quick action chips — shown when images are attached */}
+      {attachedImages.length > 0 && onQuickAction && (
+        <div className="flex gap-2 px-1 overflow-x-auto">
+          {[
+            { key: 'add_to_calendar', label: 'Add to calendar', icon: CalendarPlus },
+            { key: 'save_to_trip', label: 'Save to trip', icon: Bookmark },
+            { key: 'create_tasks', label: 'Create tasks', icon: ListChecks },
+          ].map(chip => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={() => onQuickAction(chip.key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/30 transition-colors whitespace-nowrap"
+            >
+              <chip.icon size={12} />
+              {chip.label}
+            </button>
           ))}
         </div>
       )}
