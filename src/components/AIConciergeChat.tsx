@@ -26,6 +26,7 @@ import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
+import { VOICE_LIVE_ENABLED } from '@/config/voiceFeatureFlags';
 import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
@@ -1562,8 +1563,8 @@ export const AIConciergeChat = ({
                 ? idx => setAttachedImages(prev => prev.filter((_, i) => i !== idx))
                 : undefined
             }
-            convoVoiceState={convoVoiceState}
-            onConvoToggle={handleConvoToggle}
+            convoVoiceState={VOICE_LIVE_ENABLED ? convoVoiceState : undefined}
+            onConvoToggle={VOICE_LIVE_ENABLED ? handleConvoToggle : undefined}
             dictationVoiceState={dictationState}
             onDictationToggle={handleDictationToggle}
             isVoiceEligible={true}
