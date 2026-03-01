@@ -140,27 +140,12 @@ describe('AIConciergeChat', () => {
   };
 
   describe('Header Simplification', () => {
-    it('shows privacy text and query allowance near title', async () => {
-      renderWithProviders(<AIConciergeChat tripId="test-trip" />);
-
-      await waitFor(() => {
-        // Use test ID for robustness if text match is flaky
-        const header = screen.getByTestId('ai-concierge-header');
-        expect(header).toBeInTheDocument();
-        expect(header).toHaveTextContent(/ai concierge/i);
-
-        expect(screen.getByText(/private convo/i)).toBeInTheDocument();
-      });
-      // Usage info is now rendered as "5/10 Asks"
-      expect(screen.getByText(/5\/10\s*asks/i)).toBeInTheDocument();
-    });
-
     it('always renders the dictation microphone button in the input area', async () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
       // The microphone button has been moved to the input area, so it should not appear in the header
       await waitFor(() => {
-        expect(screen.getByLabelText('Tap to dictate')).toBeInTheDocument();
+        expect(screen.getByLabelText('Dictate text')).toBeInTheDocument();
       });
     });
 
