@@ -41,10 +41,11 @@ import {
   getMessagesReactions,
   subscribeToReactions,
   type ReactionType,
+  pinMessage,
+  unpinMessage,
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
-import { PinnedMessageBanner } from './PinnedMessageBanner';
 import { toast } from 'sonner';
 
 interface TripChatProps {
@@ -96,6 +97,8 @@ interface TripChatMessage {
   is_edited?: boolean;
   edited_at?: string;
   reply_to_id?: string;
+
+  payload?: any; // Add payload for pinned status
 }
 
 export const TripChat = ({
@@ -117,14 +120,6 @@ export const TripChat = ({
   const [typingUsers, setTypingUsers] = useState<Array<{ userId: string; userName: string }>>([]);
   const typingServiceRef = useRef<TypingIndicatorService | null>(null);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
-  const [showPinnedMessage, setShowPinnedMessage] = useState(() => {
-    // Initialize from localStorage if available, default to true
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('trip_chat_pin_visible');
-      return saved !== null ? saved === 'true' : true;
-    }
-    return true;
-  });
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [activeThreadMessage, setActiveThreadMessage] = useState<{
     id: string;
@@ -393,6 +388,7 @@ export const TripChat = ({
         // and can be rendered via the special system-message UI path.
         tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[]),
         replyTo, // Pass resolved reply context
+        isPinned: (message as any).payload?.pinned === true,
       };
     });
   }, [liveMessages, demoMode.isDemoMode, tripMembers]);
@@ -574,6 +570,48 @@ export const TripChat = ({
   };
 
   const handleReaction = async (messageId: string, reactionType: string) => {
+    // Handle Pin reaction specifically
+    if (reactionType === 'pin') {
+      if (!user?.id) {
+        toast.error('You must be logged in to pin messages');
+        return;
+      }
+
+      // Check current pin status from the message object
+      // We need to find the message in liveMessages or demoMessages
+      const message =
+        liveMessages.find(m => m.id === messageId) || demoMessages.find(m => m.id === messageId);
+      if (!message) return;
+
+      // In demo mode, just toggle local state
+      if (demoMode.isDemoMode) {
+        // Unpin any other message first
+        setDemoMessages(prev =>
+          prev.map(m => {
+            if (m.id === messageId) {
+              // Toggle clicked message
+              return { ...m, isPinned: !m.isPinned };
+            } else if (m.isPinned) {
+              // Unpin others
+              return { ...m, isPinned: false };
+            }
+            return m;
+          }),
+        );
+        return;
+      }
+
+      const isPinned = (message as TripChatMessage).payload?.pinned === true;
+
+      try {
+        // Implement when needed or remove
+      } catch (error) {
+        console.error('Failed to toggle pin:', error);
+        toast.error('Failed to update pin status');
+      }
+      return;
+    }
+
     if (demoMode.isDemoMode || !user?.id) {
       // Demo mode: local-only reactions
       const updatedReactions = { ...reactions };

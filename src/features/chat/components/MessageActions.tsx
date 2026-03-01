@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, Pin, PinOff } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +32,8 @@ import {
   editChannelMessage,
   deleteChatMessage,
   deleteChannelMessage,
+  pinMessage,
+  unpinMessage,
 } from '@/services/chatService';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -41,8 +43,10 @@ export interface MessageActionsProps {
   messageType: 'channel' | 'trip';
   isOwnMessage: boolean;
   isDeleted?: boolean;
+  isPinned?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
+  onPin?: (messageId: string, pinned: boolean) => void;
 }
 
 export const MessageActions: React.FC<MessageActionsProps> = ({
