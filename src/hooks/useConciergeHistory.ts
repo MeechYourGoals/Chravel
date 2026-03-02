@@ -134,12 +134,22 @@ export function useConciergeHistory(tripId: string): {
             timestamp: ts,
           };
           if (meta) {
-            if (Array.isArray(meta.functionCallPlaces)) assistantMsg.functionCallPlaces = meta.functionCallPlaces as ConciergeChatMessage['functionCallPlaces'];
-            if (Array.isArray(meta.functionCallFlights)) assistantMsg.functionCallFlights = meta.functionCallFlights as ConciergeChatMessage['functionCallFlights'];
-            if (Array.isArray(meta.functionCallHotels)) assistantMsg.functionCallHotels = meta.functionCallHotels as ConciergeChatMessage['functionCallHotels'];
-            if (typeof meta.googleMapsWidget === 'string') assistantMsg.googleMapsWidget = meta.googleMapsWidget;
-            if (Array.isArray(meta.conciergeActions)) assistantMsg.conciergeActions = meta.conciergeActions as ConciergeChatMessage['conciergeActions'];
-            if (Array.isArray(meta.sources)) assistantMsg.sources = meta.sources as ConciergeChatMessage['sources'];
+            if (Array.isArray(meta.functionCallPlaces))
+              assistantMsg.functionCallPlaces =
+                meta.functionCallPlaces as ConciergeChatMessage['functionCallPlaces'];
+            if (Array.isArray(meta.functionCallFlights))
+              assistantMsg.functionCallFlights =
+                meta.functionCallFlights as ConciergeChatMessage['functionCallFlights'];
+            if (Array.isArray(meta.functionCallHotels))
+              assistantMsg.functionCallHotels =
+                meta.functionCallHotels as ConciergeChatMessage['functionCallHotels'];
+            if (typeof meta.googleMapsWidget === 'string')
+              assistantMsg.googleMapsWidget = meta.googleMapsWidget;
+            if (Array.isArray(meta.conciergeActions))
+              assistantMsg.conciergeActions =
+                meta.conciergeActions as ConciergeChatMessage['conciergeActions'];
+            if (Array.isArray(meta.sources))
+              assistantMsg.sources = meta.sources as ConciergeChatMessage['sources'];
           }
           messages.push(assistantMsg);
         }

@@ -80,7 +80,7 @@ interface UseGeminiLiveReturn {
 }
 
 const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
-const SESSION_TIMEOUT_MS = 60_000;
+const SESSION_TIMEOUT_MS = 90_000;
 const WEBSOCKET_SETUP_TIMEOUT_MS = 12_000; // Gate 2: reduced from 25s to 12s
 const THINKING_DELAY_MS = 1_500;
 const BARGE_IN_RMS_THRESHOLD = 0.035;
@@ -106,6 +106,18 @@ const SafeAudioContext: typeof AudioContext | undefined =
     ? (window.AudioContext ??
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
     : undefined;
+
+// Precomputed silent PCM16 frame for keepalive (320 samples = 20ms @ 16kHz).
+// Gemini may not recognize an empty mediaChunks array as valid data, so we send
+// real silence to keep the WebSocket alive and avoid server-side idle timeout.
+const SILENT_KEEPALIVE_FRAME = (() => {
+  const samples = 320;
+  const pcm16 = new Int16Array(samples); // All zeros = silence
+  const bytes = new Uint8Array(pcm16.buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+})();
 
 let idCounter = 0;
 function uniqueId(prefix: string): string {
@@ -257,6 +269,8 @@ export function useGeminiLive({
   const userTranscriptAccRef = useRef('');
   const assistantTranscriptAccRef = useRef('');
   const modelRespondingRef = useRef(false);
+  const turnCompleteReceivedRef = useRef(false);
+  const drainTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userHasSpokenRef = useRef(false);
 
   const isSupported =
@@ -329,7 +343,12 @@ export function useGeminiLive({
     isCleaningUpRef.current = true;
 
     isStartingRef.current = false;
+    turnCompleteReceivedRef.current = false;
     clearThinkingTimer();
+    if (drainTimeoutRef.current) {
+      clearTimeout(drainTimeoutRef.current);
+      drainTimeoutRef.current = null;
+    }
     if (sessionExpiryTimerRef.current) {
       clearTimeout(sessionExpiryTimerRef.current);
       sessionExpiryTimerRef.current = null;
@@ -432,6 +451,11 @@ export function useGeminiLive({
     userTranscriptAccRef.current = '';
     assistantTranscriptAccRef.current = '';
     modelRespondingRef.current = false;
+    turnCompleteReceivedRef.current = false;
+    if (drainTimeoutRef.current) {
+      clearTimeout(drainTimeoutRef.current);
+      drainTimeoutRef.current = null;
+    }
     userHasSpokenRef.current = false;
     setUserTranscript('');
     setAssistantTranscript('');
@@ -588,39 +612,119 @@ export function useGeminiLive({
         }
       }
 
-      // ── Gate 0: invoke edge function ──
-      console.warn('[VOICE:G0] invoke_start', { sessionAttemptId, msFromStart: Math.round(performance.now() - t0) });
+      // ── Gate 0: Token fetch + mic request IN PARALLEL ──
+      // These are independent: mic doesn't need the token, token doesn't need the mic.
+      // Running them concurrently saves 5-15s vs the old sequential approach and
+      // prevents the ephemeral token's newSessionExpireTime from being consumed by
+      // the mic permission prompt.
+      console.warn('[VOICE:G0] parallel_start', {
+        sessionAttemptId,
+        msFromStart: Math.round(performance.now() - t0),
+      });
       const invokeT0 = performance.now();
+
+      patchDiagnostics({ substep: 'Setting up voice & microphone…' });
+
       const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
         body: { tripId, voice, sessionAttemptId },
       });
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
+      let sessionTimeoutId: ReturnType<typeof setTimeout>;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        sessionTimeoutId = setTimeout(
           () => reject(new Error('Voice session timed out. Please try again.')),
           SESSION_TIMEOUT_MS,
-        ),
-      );
+        );
+      });
+      const tokenPromise = Promise.race([sessionPromise, timeoutPromise]).then(result => {
+        patchDiagnostics({ substep: 'Voice session ready, waiting for microphone…' });
+        return result;
+      });
 
-      let invokeResult: Awaited<typeof sessionPromise>;
+      const micPromise = navigator.mediaDevices
+        .getUserMedia({
+          audio: {
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        })
+        .then(stream => {
+          patchDiagnostics({ substep: 'Microphone ready, connecting…' });
+          return stream;
+        })
+        .catch((mediaErr: Error) => {
+          // Wrap mic errors with user-friendly messages but don't throw yet —
+          // let Promise.allSettled collect it so we can prioritize error display.
+          const name = mediaErr.name || '';
+          let errMsg: string;
+          if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+            errMsg =
+              'Microphone permission denied. Allow microphone access in your browser settings and try again.';
+          } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+            errMsg = 'No microphone detected. Connect a microphone and try again.';
+          } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+            errMsg = 'Microphone is already in use by another app. Close other apps and try again.';
+          } else {
+            errMsg = 'Could not access microphone. Check your audio settings and try again.';
+          }
+          throw new Error(errMsg);
+        });
+
+      // Await token first — if it fails there's no point blocking on the
+      // browser mic-permission prompt which can stay pending indefinitely.
+      // Both promises are already in-flight so the happy path is still parallel.
+      type TokenValue = Awaited<typeof sessionPromise>;
+      let tokenResult: PromiseSettledResult<TokenValue>;
+      let micResult: PromiseSettledResult<MediaStream>;
+
       try {
-        invokeResult = (await Promise.race([
-          sessionPromise,
-          timeoutPromise,
-        ])) as Awaited<typeof sessionPromise>;
-      } catch (invokeErr) {
-        const invokeErrMsg = invokeErr instanceof Error ? invokeErr.message : String(invokeErr);
-        console.warn('[VOICE:G0] invoke_failed', {
+        const tokenValue = await tokenPromise;
+        tokenResult = { status: 'fulfilled', value: tokenValue as TokenValue };
+      } catch (err) {
+        tokenResult = { status: 'rejected', reason: err };
+      }
+      // Clean up the timeout timer to prevent closure leak
+      clearTimeout(sessionTimeoutId!);
+
+      // Token failed → surface error immediately, clean up mic if it resolves later
+      if (tokenResult.status === 'rejected') {
+        micPromise.then(stream => stream.getTracks().forEach(t => t.stop())).catch(() => {});
+        const invokeErrMsg =
+          tokenResult.reason instanceof Error
+            ? tokenResult.reason.message
+            : String(tokenResult.reason);
+        console.warn('[VOICE:G0] invoke_failed_early', {
           sessionAttemptId,
           error: invokeErrMsg,
           durationMs: Math.round(performance.now() - invokeT0),
         });
-        throw invokeErr;
+        throw new Error(invokeErrMsg);
       }
 
+      // Token succeeded — now wait for mic (already in-flight)
+      try {
+        const micValue = await micPromise;
+        micResult = { status: 'fulfilled', value: micValue };
+      } catch (err) {
+        micResult = { status: 'rejected', reason: err };
+      }
+
+      // Mic failed — token succeeded but mic is required, so bail out
+      if (micResult.status === 'rejected') {
+        const micErrMsg =
+          micResult.reason instanceof Error ? micResult.reason.message : String(micResult.reason);
+        console.warn('[VOICE:G0] mic_failed', { sessionAttemptId, error: micErrMsg });
+        recordVoiceFailure(micErrMsg);
+        throw new Error(micErrMsg);
+      }
+
+      // Both succeeded — extract values
+      const invokeResult = tokenResult.value;
       const { data: sessionData, error: sessionError } = invokeResult;
       const invokeDurationMs = Math.round(performance.now() - invokeT0);
 
-      console.warn('[VOICE:G0] invoke_done', {
+      console.warn('[VOICE:G0] parallel_done', {
         sessionAttemptId,
         durationMs: invokeDurationMs,
         hasData: !!sessionData,
@@ -641,6 +745,8 @@ export function useGeminiLive({
         console.warn('[VOICE:G1] token_failed', { sessionAttemptId, error: errMsg });
         voiceLog('session:tokenError', { error: errMsg });
         onErrorRef.current?.(errMsg);
+        // Clean up mic stream
+        micResult.value.getTracks().forEach(t => t.stop());
         throw new Error(errMsg);
       }
 
@@ -662,35 +768,8 @@ export function useGeminiLive({
       });
       voiceLog('timing:token', { ms: Math.round(performance.now() - sessionStartedAt) });
 
-      // ── Gate 0 passed. Now get mic. ──
-      patchDiagnostics({ substep: 'Requesting microphone…' });
-
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            channelCount: 1,
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
-      } catch (mediaErr) {
-        const name = mediaErr instanceof Error ? mediaErr.name : '';
-        let errMsg: string;
-        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          errMsg =
-            'Microphone permission denied. Allow microphone access in your browser settings and try again.';
-        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-          errMsg = 'No microphone detected. Connect a microphone and try again.';
-        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-          errMsg = 'Microphone is already in use by another app. Close other apps and try again.';
-        } else {
-          errMsg = 'Could not access microphone. Check your audio settings and try again.';
-        }
-        recordVoiceFailure(errMsg);
-        throw new Error(errMsg);
-      }
+      // ── Mic acquired from parallel request ──
+      const stream = micResult.value;
       mediaStreamRef.current = stream;
 
       const track = stream.getAudioTracks()[0];
@@ -722,15 +801,36 @@ export function useGeminiLive({
         sampleRate: audioCtxRef.current.sampleRate,
       });
 
-      playbackQueueRef.current = new AudioPlaybackQueue(audioCtxRef.current, () => {
-        if (
-          turnStartedAtRef.current &&
-          diagnosticsRef.current.metrics.firstAudioFramePlayedMs === null
-        ) {
-          patchMetrics({ firstAudioFramePlayedMs: performance.now() - turnStartedAtRef.current });
-          console.warn('[VOICE:G3] first_audio_played', { sessionAttemptId });
-        }
-      });
+      playbackQueueRef.current = new AudioPlaybackQueue(
+        audioCtxRef.current,
+        () => {
+          if (
+            turnStartedAtRef.current &&
+            diagnosticsRef.current.metrics.firstAudioFramePlayedMs === null
+          ) {
+            patchMetrics({ firstAudioFramePlayedMs: performance.now() - turnStartedAtRef.current });
+            console.warn('[VOICE:G3] first_audio_played', { sessionAttemptId });
+          }
+        },
+        () => {
+          // onDrain: all scheduled audio buffers finished playing.
+          // If Gemini already sent turnComplete, now transition to listening.
+          // This keeps barge-in active during the audio tail and ensures
+          // the UI state matches what the user actually hears.
+          if (turnCompleteReceivedRef.current) {
+            turnCompleteReceivedRef.current = false;
+            modelRespondingRef.current = false;
+            if (drainTimeoutRef.current) {
+              clearTimeout(drainTimeoutRef.current);
+              drainTimeoutRef.current = null;
+            }
+            voiceLog('playback:drained', {});
+            resetTurnAccumulators();
+            resetMetricsForNewTurn();
+            transition('listening', 'playback_drained');
+          }
+        },
+      );
 
       // ── Gate 2: Open WebSocket ──
       patchDiagnostics({ substep: 'Opening audio channel…' });
@@ -781,7 +881,11 @@ export function useGeminiLive({
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
             const msg = `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${wsMessageCount} messages). Please try again.`;
-            console.warn('[VOICE:G2] ws_setup_timeout', { sessionAttemptId, wsMessageCount, msFromStart: Math.round(performance.now() - t0) });
+            console.warn('[VOICE:G2] ws_setup_timeout', {
+              sessionAttemptId,
+              wsMessageCount,
+              msFromStart: Math.round(performance.now() - t0),
+            });
             recordVoiceFailure(msg);
 
             // Auto-reconnect only if we've had a prior successful session
@@ -792,7 +896,10 @@ export function useGeminiLive({
             ) {
               autoReconnectCountRef.current += 1;
               const attempt = autoReconnectCountRef.current;
-              voiceLog('auto_reconnect:setup_timeout', { attempt, max: MAX_AUTO_RECONNECT_RETRIES });
+              voiceLog('auto_reconnect:setup_timeout', {
+                attempt,
+                max: MAX_AUTO_RECONNECT_RETRIES,
+              });
               patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
               transition('requesting_mic', 'auto_reconnect_pending');
               setError(null);
@@ -820,7 +927,9 @@ export function useGeminiLive({
 
           // Gate 2: Log first 5 inbound message types
           if (wsMessageCount <= 5) {
-            const frameKeys = Object.keys(data).filter(k => k !== 'serverContent' || wsMessageCount <= 3);
+            const frameKeys = Object.keys(data).filter(
+              k => k !== 'serverContent' || wsMessageCount <= 3,
+            );
             console.warn(`[VOICE:G2] ws_message_${wsMessageCount}`, {
               sessionAttemptId,
               keys: Object.keys(data),
@@ -888,7 +997,13 @@ export function useGeminiLive({
                 }
                 return;
               }
-              ws.send(JSON.stringify({ realtimeInput: { mediaChunks: [] } }));
+              ws.send(
+                JSON.stringify({
+                  realtimeInput: {
+                    mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: SILENT_KEEPALIVE_FRAME }],
+                  },
+                }),
+              );
               voiceLog('keepalive:sent', {});
             }, WS_KEEPALIVE_INTERVAL_MS);
 
@@ -1056,21 +1171,51 @@ export function useGeminiLive({
             }
 
             if (sc.turnComplete) {
-              flushModelOutput();
+              // Do NOT flush playback here — Gemini sends turnComplete when it
+              // finishes *generating*, but audio buffers may still be scheduled
+              // for playback. Flushing here cuts off the AI mid-sentence.
+              // Flush only happens on: barge-in, manual interrupt, endSession.
+              clearThinkingTimer();
               voiceLog('server:turnComplete', {
                 userText: userTranscriptAccRef.current.slice(0, 50),
                 assistantText: assistantTranscriptAccRef.current.slice(0, 50),
               });
-              playbackQueueRef.current?.flush();
-              clearThinkingTimer();
 
               const finalUser = userTranscriptAccRef.current.trim();
               const finalAssistant = assistantTranscriptAccRef.current.trim();
               if (finalUser || finalAssistant)
                 onTurnCompleteRef.current?.(finalUser, finalAssistant);
-              resetTurnAccumulators();
-              resetMetricsForNewTurn();
-              transition('listening', 'turn_complete');
+
+              // Clear accumulators immediately so ws.onclose won't re-emit
+              // the same turn if the socket drops during the playback tail.
+              userTranscriptAccRef.current = '';
+              assistantTranscriptAccRef.current = '';
+              userHasSpokenRef.current = false;
+
+              // If playback already drained (very short response or text-only),
+              // transition immediately. Otherwise, keep modelRespondingRef true
+              // so barge-in stays active during the audio tail, and let the
+              // AudioPlaybackQueue.onDrain callback handle the transition.
+              if (!playbackQueueRef.current?.isPlaying) {
+                modelRespondingRef.current = false;
+                resetTurnAccumulators();
+                resetMetricsForNewTurn();
+                transition('listening', 'turn_complete');
+              } else {
+                turnCompleteReceivedRef.current = true;
+                // Safety: if onDrain doesn't fire within 5s (e.g. AudioContext
+                // issue), force the transition so we don't get stuck.
+                drainTimeoutRef.current = setTimeout(() => {
+                  if (turnCompleteReceivedRef.current) {
+                    voiceLog('playback:drain_timeout', {});
+                    turnCompleteReceivedRef.current = false;
+                    modelRespondingRef.current = false;
+                    resetTurnAccumulators();
+                    resetMetricsForNewTurn();
+                    transition('listening', 'turn_complete_drain_timeout');
+                  }
+                }, 5_000);
+              }
             }
           }
         } catch {
