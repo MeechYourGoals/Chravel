@@ -78,7 +78,7 @@ export const AiChatInput = ({
 
   // Dynamic placeholder based on active mode
   const getPlaceholder = () => {
-    if (isConvoActive) return 'Conversation active\u2026';
+    if (isConvoActive) return 'Listening\u2026';
     return '';
   };
 

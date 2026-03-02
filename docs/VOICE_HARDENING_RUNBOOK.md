@@ -2,7 +2,12 @@
 
 ## Overview
 
-Five guardrail features wrap the Gemini Live voice implementation:
+The voice system has two modes:
+
+1. **Dictation mode (active)** — Waveform button uses browser Web Speech API for speech-to-text. Transcribed text fills the input field for user review before sending.
+2. **Duplex mode (disabled, preserved)** — Bidirectional Gemini Live via Vertex AI. Full conversation with audio playback. Gated behind `DUPLEX_VOICE_ENABLED = false`.
+
+Five guardrail features wrap the duplex implementation (all preserved for re-enablement):
 
 1. **Feature flags** — Gate voice UI and initialization
 2. **Circuit breaker** — Prevent infinite reconnect loops; graceful fallback to text
@@ -10,46 +15,95 @@ Five guardrail features wrap the Gemini Live voice implementation:
 4. **Audio invariants** — Explicit contract + asserts for capture/playback
 5. **Concierge session store** — Single source of truth for session state
 
+---
+
+## Current State: Dictation Mode
+
+### How It Works
+
+1. User taps the waveform button (🔊) in the concierge input bar
+2. Browser requests microphone permission (if not already granted)
+3. Web Speech API captures speech and transcribes to text
+4. Transcribed text appears in the input field (editable)
+5. User can review, edit, then tap Send
+6. After 2s of silence, transcript auto-finalizes into the input field
+
+### Key File
+
+`src/hooks/useWebSpeechVoice.ts` — handles all platform quirks:
+- iOS Safari auto-restart (iOS ends recognition on every pause)
+- 2s silence timer for auto-finalization
+- 5s no-audio timeout for permission errors
+- PWA detection and clear error messaging
+
+### Device Optimization
+
+| Platform | Behavior |
+|----------|----------|
+| Desktop Chrome/Edge | `continuous=true`, stable recognition |
+| iOS Safari | Auto-restart loop (up to 20 restarts), `continuous=false` |
+| iOS PWA | May not support Web Speech — clear error shown |
+| Android Chrome | `continuous=true`, stable |
+| Mobile web (all) | Same waveform button, responsive layout |
+
+---
+
+## Duplex Mode: Re-Enablement Guide
+
+### Quick Enable
+
+```typescript
+// src/components/AIConciergeChat.tsx line ~57
+const DUPLEX_VOICE_ENABLED = true;  // ← flip this
+```
+
+### Prerequisites (Must Be Working First)
+
+See `docs/GEMINI_LIVE_ARCHITECTURE_REPORT.md` § "Step-by-Step Fix Guide" for the complete checklist. Summary:
+
+1. **Supabase secrets set:** `VERTEX_PROJECT_ID`, `VERTEX_LOCATION`, `VERTEX_SERVICE_ACCOUNT_KEY`
+2. **Edge function deployed:** `gemini-voice-session`
+3. **WebSocket handshake fixed:** `BidiGenerateContentSetup` message with correct fields
+4. **OAuth2 flow verified:** Service account key decodes and mints valid tokens
+
+### Known Issues to Fix Before Re-Enabling
+
+| Issue | Location | Fix |
+|-------|----------|-----|
+| Missing `enableAffectiveDialog` | Edge function setup message | Add to `generation_config` |
+| Missing `proactivity.proactiveAudio` | Edge function setup message | Add as top-level setup field |
+| Wrong API version (`v1` vs `v1beta1`) | Edge function WebSocket URL | Try `v1beta1` for preview features |
+| Function declaration type casing | Edge function `VOICE_FUNCTION_DECLARATIONS` | Verify `OBJECT`→`object` etc. |
+| Service account key encoding | Edge function `parseServiceAccountKey` | Verify Base64 with no line breaks |
+
+---
+
 ## Feature Flags
 
 | Flag | Default | Purpose |
 |------|---------|---------|
-| `VITE_VOICE_LIVE_ENABLED` | `false` | Gate voice UI + initialization. `false` = no voice init. |
-| `VITE_VOICE_DIAGNOSTICS_ENABLED` | `false` | Extra console logs (connection codes, audio params). |
-| `VITE_VOICE_USE_WEBSOCKET_ONLY` | `true` | Enforce duplex; reject silent downgrade to SSE/HTTP. |
+| `DUPLEX_VOICE_ENABLED` | `false` | Master switch for duplex voice in `AIConciergeChat.tsx` |
+| `VITE_VOICE_LIVE_ENABLED` | `true` | Gate voice UI + initialization at env level |
+| `VITE_VOICE_DIAGNOSTICS_ENABLED` | `false` | Extra console logs (connection codes, audio params) |
+| `VITE_VOICE_USE_WEBSOCKET_ONLY` | `true` | Enforce duplex transport; reject SSE/HTTP fallback |
 
 ### How to Toggle
 
-Add to `.env` or `.env.local`:
+Add to `.env` or `.env.local` (restart dev server after):
 
 ```bash
-# Enable voice (for local dev / staging)
 VITE_VOICE_LIVE_ENABLED=true
-
-# Enable diagnostics for debugging
 VITE_VOICE_DIAGNOSTICS_ENABLED=true
 ```
 
-Restart dev server after changing env vars.
+---
 
-### Verify Behavior
-
-- **Voice disabled** (`VITE_VOICE_LIVE_ENABLED=false`): Voice mic button hidden; no WebSocket or mic capture.
-- **Voice enabled** (`VITE_VOICE_LIVE_ENABLED=true`): Voice mic visible; tap to start session.
-
-## Circuit Breaker
+## Circuit Breaker (Duplex Only)
 
 After **3 failures** within **5 minutes**, voice is disabled for the session. User sees:
 
 - Toast: "Voice is temporarily unavailable—switched to text."
 - Bar with "Try voice again" button.
-
-### How to Test
-
-1. Enable voice (`VITE_VOICE_LIVE_ENABLED=true`).
-2. Trigger 3+ failures (e.g. revoke mic permission, disconnect network, or invalid API key).
-3. Confirm toast and "Try voice again" bar appear.
-4. Click "Try voice again" → circuit resets; voice can be retried.
 
 ### Reset
 
@@ -57,15 +111,18 @@ After **3 failures** within **5 minutes**, voice is disabled for the session. Us
 - Programmatic: `resetCircuitBreaker()` from `@/voice/circuitBreaker`.
 - Storage: `localStorage` key `chravel_voice_circuit_breaker` (24h expiry).
 
-## Transport Sanity
+---
+
+## Transport Sanity (Duplex Only)
 
 Voice uses **WebSocket only**. SSE/HTTP polling is rejected.
 
 - Centralized in `src/voice/transport/createTransport.ts`.
 - `createWebSocketTransport({ url })` validates URL (`ws://` or `wss://`) and creates socket.
-- With `VITE_VOICE_DIAGNOSTICS_ENABLED=true`, connection open/close codes are logged.
 
-## Audio Contract
+---
+
+## Audio Contract (Duplex Only)
 
 Defined in `src/voice/audioContract.ts`:
 
@@ -73,45 +130,53 @@ Defined in `src/voice/audioContract.ts`:
 - **Output**: 24 kHz mono PCM16.
 - **Asserts**: No giant frames (>48k samples), no empty-frame loops.
 
-With diagnostics enabled, `AudioContext` sample rate and capture format are logged.
+---
 
-## Concierge Session Store
+## Files Reference
 
-`src/store/conciergeSessionStore.ts` — keyed by `trip_id`:
+| File | Purpose | Mode |
+|------|---------|------|
+| `src/components/AIConciergeChat.tsx` | Main UI + `DUPLEX_VOICE_ENABLED` flag | Both |
+| `src/hooks/useWebSpeechVoice.ts` | Web Speech API dictation | Dictation |
+| `src/hooks/useGeminiLive.ts` | Gemini Live WebSocket hook | Duplex |
+| `src/features/chat/components/VoiceButton.tsx` | Waveform button | Both |
+| `src/features/chat/components/VoiceLiveOverlay.tsx` | Waveform ring overlay | Duplex |
+| `src/features/chat/components/AiChatInput.tsx` | Input bar with voice button | Both |
+| `src/config/voiceFeatureFlags.ts` | Env-level feature flags | Both |
+| `src/voice/circuitBreaker.ts` | Circuit breaker logic | Duplex |
+| `src/voice/transport/createTransport.ts` | WebSocket transport | Duplex |
+| `src/voice/audioContract.ts` | Audio contract + asserts | Duplex |
+| `src/store/conciergeSessionStore.ts` | Session state store | Both |
+| `supabase/functions/gemini-voice-session/index.ts` | Edge function (OAuth2 + config) | Duplex |
 
-- Message history (persistent in UI)
-- Voice session state machine state
-- `last_error` + `last_success` timestamps
-
-Query limits remain in `useConciergeUsage` (server RPC).
-
-## Files Changed
-
-| File | Purpose |
-|------|---------|
-| `src/config/voiceFeatureFlags.ts` | Voice feature flags |
-| `src/voice/circuitBreaker.ts` | Circuit breaker logic |
-| `src/voice/transport/createTransport.ts` | WebSocket transport creation |
-| `src/voice/audioContract.ts` | Audio contract + asserts |
-| `src/store/conciergeSessionStore.ts` | Concierge session store |
-| `src/hooks/useGeminiLive.ts` | Integrate flags, circuit breaker, transport, audio |
-| `src/components/AIConciergeChat.tsx` | Gate voice UI, circuit breaker UI, store sync |
-| `src/lib/geminiLive/audioCapture.ts` | Use audio contract, assert chunk framing |
-| `.env.example` | Voice flag docs |
-| `scripts/validate-env.ts` | Voice flag validation |
+---
 
 ## Quick Test Checklist
 
-- [ ] `VITE_VOICE_LIVE_ENABLED=false` → voice button hidden
-- [ ] `VITE_VOICE_LIVE_ENABLED=true` → voice works (with valid auth + API key)
-- [ ] 3 voice failures → toast + "Try voice again" bar
-- [ ] "Try voice again" → circuit resets, voice retry works
+### Dictation Mode (Current)
+- [ ] Tap waveform → browser asks for mic permission
+- [ ] Speak → text appears in input field
+- [ ] User can edit text before sending
+- [ ] 2s silence → transcript finalizes in input field
+- [ ] Tap waveform again → stops listening
+- [ ] Works on desktop Chrome
+- [ ] Works on iOS Safari
+- [ ] Works on Android Chrome
 - [ ] Text chat unchanged
 - [ ] Trip navigation unchanged
-- [ ] Demo mode: no crashes, no infinite retries
+
+### Duplex Mode (After Re-Enabling)
+- [ ] `DUPLEX_VOICE_ENABLED=true` → VoiceLiveOverlay opens on tap
+- [ ] Edge function returns token (check logs)
+- [ ] WebSocket connects to Vertex AI
+- [ ] Audio capture → model response → audio playback
+- [ ] 3 voice failures → circuit breaker toast
+- [ ] "Try voice again" → circuit resets
+
+---
 
 ## Regression Risk
 
-**LOW** — Wrappers and targeted refactors; core behavior unchanged when flags are enabled.
+**LOW** — Dictation mode uses the well-tested `useWebSpeechVoice` hook. Duplex code is fully preserved but not invoked. Flipping `DUPLEX_VOICE_ENABLED` back to `true` restores the full duplex path with no code changes needed (assuming Vertex issues are fixed).
 
-**Rollback**: Set `VITE_VOICE_LIVE_ENABLED=false` to disable voice; text chat unaffected.
+**Rollback**: Set `DUPLEX_VOICE_ENABLED = false` to return to dictation-only mode.

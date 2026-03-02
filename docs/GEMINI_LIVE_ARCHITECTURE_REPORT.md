@@ -1,7 +1,7 @@
 # Gemini Live Architecture Report
 
-> **Date:** 2026-02-16  
-> **Purpose:** Clarify how Gemini is used vs Lovable, and why GEMINI_API_KEY may not be read
+> **Date:** 2026-03-02 (updated)
+> **Purpose:** Architecture overview + step-by-step fix guide for the Vertex AI bidirectional voice integration
 
 ---
 
@@ -19,22 +19,23 @@ AIConciergeChat → conciergeGateway.invokeConciergeStream()
 - **Client** → `lovable-concierge` (directly)
 - **gemini-chat** → (unused by main Concierge tab; proxies to lovable-concierge when invoked)
 
-### Voice AI Concierge (microphone)
+### Voice AI Concierge — Current State (Disabled)
+
+The bidirectional Gemini Live integration is **feature-flagged off** (`DUPLEX_VOICE_ENABLED = false` in `src/components/AIConciergeChat.tsx`). The waveform button currently uses Web Speech API dictation (speech-to-text into the input field). All duplex infrastructure is preserved and ready to re-enable.
+
+### Voice AI Concierge — Duplex Architecture (When Re-Enabled)
 
 ```
 useGeminiLive.startSession()
   → POST /functions/v1/gemini-voice-session  { tripId, voice }
   → Returns ephemeral token
-  → Client opens WebSocket to Gemini Live API directly (wss://generativelanguage.googleapis.com/ws/...)
+  → Client opens WebSocket to Vertex AI directly
+     (wss://{region}-aiplatform.googleapis.com/ws/...)
 ```
-
-**Voice uses Gemini Live directly.** The client connects to Google's Gemini WebSocket after getting a short-lived token from `gemini-voice-session`.
 
 ---
 
-## 2. Does lovable-concierge Use Gemini Directly?
-
-**Yes, when GEMINI_API_KEY is set.**
+## 2. Provider Routing (lovable-concierge)
 
 | Condition | Provider used |
 |-----------|---------------|
@@ -42,105 +43,199 @@ useGeminiLive.startSession()
 | `GEMINI_API_KEY` missing | **Lovable gateway** (fallback) |
 | `AI_PROVIDER=lovable` | **Lovable gateway** (forced) |
 
-Relevant code in `lovable-concierge/index.ts`:
+---
 
-```ts
-const useStreaming = requestedStream && GEMINI_API_KEY && !FORCE_LOVABLE_PROVIDER;
-// ...
-if (FORCE_LOVABLE_PROVIDER || !GEMINI_API_KEY) {
-  // Uses Lovable gateway
-} else {
-  // Uses Gemini API directly: generativelanguage.googleapis.com/v1beta/models/...
+## 3. Functions That Need Secrets
+
+| Function | Secrets Required | Fallback |
+|----------|-----------------|----------|
+| `gemini-voice-session` | `VERTEX_PROJECT_ID`, `VERTEX_LOCATION`, `VERTEX_SERVICE_ACCOUNT_KEY` | None — throws if missing |
+| `lovable-concierge` | `GEMINI_API_KEY` (preferred) | `LOVABLE_API_KEY` |
+| `gemini-chat` | None (proxies to lovable-concierge) | N/A |
+
+---
+
+## 4. Step-by-Step Fix Guide for a Specialist
+
+### Prerequisites
+
+1. **Google Cloud Project** with Vertex AI API enabled and billing active
+2. **Service Account** with `roles/aiplatform.user` permission
+3. **Service Account JSON key** — Base64-encode the entire JSON file
+
+### Step 1: Verify Supabase Secrets
+
+Set these in **Supabase Dashboard → Project Settings → Edge Functions → Secrets**:
+
+```
+VERTEX_PROJECT_ID=your-gcp-project-id
+VERTEX_LOCATION=us-central1
+VERTEX_SERVICE_ACCOUNT_KEY=<base64-encoded JSON key>
+```
+
+Verify the Base64 encoding:
+```bash
+# Encode
+cat service-account.json | base64 -w 0
+
+# Verify it decodes correctly
+echo "<your_base64>" | base64 -d | jq .client_email
+```
+
+### Step 2: Test the Edge Function Directly
+
+```bash
+# Health check (no auth needed)
+curl -X GET \
+  https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/gemini-voice-session \
+  -H "Authorization: Bearer <anon_key>"
+# Should return: { "configured": true }
+
+# Token generation
+curl -X POST \
+  https://jmjiyekmxwsxkfnqwyaa.supabase.co/functions/v1/gemini-voice-session \
+  -H "Authorization: Bearer <user_jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"tripId": "<valid_trip_id>", "voice": "Charon"}'
+# Should return: { accessToken, expiresAt, websocketUri, model, config }
+```
+
+### Step 3: Fix the WebSocket Handshake (BidiGenerateContentSetup)
+
+**File:** `supabase/functions/gemini-voice-session/index.ts`
+
+The `BidiGenerateContentSetup` message (sent as the first WebSocket frame) has these known issues:
+
+#### Issue A: Missing `enableAffectiveDialog`
+
+This field must be inside `generation_config`, not at the top level:
+
+```json
+{
+  "setup": {
+    "model": "projects/{project}/locations/{location}/publishers/google/models/gemini-live-2.5-flash-native-audio",
+    "generation_config": {
+      "response_modalities": ["AUDIO", "TEXT"],
+      "speech_config": { ... },
+      "enableAffectiveDialog": true
+    }
+  }
 }
 ```
 
-So the **function name** is misleading: `lovable-concierge` can use Gemini directly.
+#### Issue B: Missing `proactivity` object
 
----
+This is a top-level field in the setup, NOT inside `generation_config`:
 
-## 3. Why GEMINI_API_KEY Might Not Be Read
-
-### Supabase Edge Functions use project secrets, not `.env`
-
-Supabase Edge Functions do **not** read `.env` files. They use:
-
-1. **Supabase-provided vars:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (auto-injected)
-2. **Secrets:** Set in Supabase Dashboard or via CLI
-
-### How to set GEMINI_API_KEY
-
-**Option A – Supabase Dashboard**
-
-1. Supabase Dashboard → Project Settings → Edge Functions
-2. Secrets (or Environment Variables)
-3. Add `GEMINI_API_KEY` = `your-google-ai-studio-api-key`
-4. Save
-
-**Option B – Supabase CLI**
-
-```bash
-supabase secrets set GEMINI_API_KEY=your_key_here
+```json
+{
+  "setup": {
+    "model": "...",
+    "generation_config": { ... },
+    "proactivity": {
+      "proactiveAudio": true
+    }
+  }
+}
 ```
 
-**Important:** After adding or changing secrets, redeploy the functions:
+#### Issue C: Endpoint Version
+
+Current code uses `v1`:
+```
+wss://{LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent
+```
+
+`enableAffectiveDialog` and `proactiveAudio` are **preview features** — try `v1beta1`:
+```
+wss://{LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent
+```
+
+#### Issue D: Function Declaration Field Naming
+
+The `VOICE_FUNCTION_DECLARATIONS` array uses `type: 'OBJECT'`, `type: 'STRING'`. Vertex AI REST may expect lowercase enum values (`object`, `string`). Cross-reference with [Vertex AI Function Calling docs](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling).
+
+### Step 4: Verify OAuth2 Token Flow
+
+The `parseServiceAccountKey` function decodes with `atob(base64Key)`. Common failure modes:
+
+- Line breaks in the Base64 string (use `-w 0` when encoding)
+- Padding issues (`=` stripped)
+- Wrong encoding (URL-safe Base64 vs standard)
+
+After decoding, verify:
+```javascript
+const key = JSON.parse(atob(base64Key));
+console.log(key.client_email);  // Should be a valid email
+console.log(key.private_key?.substring(0, 30)); // Should start with "-----BEGIN"
+```
+
+### Step 5: Re-enable Duplex Voice
+
+In `src/components/AIConciergeChat.tsx`, change:
+```typescript
+const DUPLEX_VOICE_ENABLED = false;
+// → change to:
+const DUPLEX_VOICE_ENABLED = true;
+```
+
+### Step 6: Redeploy
 
 ```bash
 supabase functions deploy gemini-voice-session
-supabase functions deploy lovable-concierge
 ```
 
-### Common issues
+Or in Lovable: the edge function auto-deploys on save.
 
-| Issue | Symptom | Fix |
-|-------|---------|-----|
-| Secret not set in Supabase | `GEMINI_API_KEY not configured` | Add secret in Dashboard or via CLI |
-| Secret only in local `.env` | Same | Supabase ignores `.env`; use Dashboard/CLI |
-| Wrong secret name | Same | Use exactly `GEMINI_API_KEY` |
-| No redeploy after adding secret | Same | Redeploy after `supabase secrets set` |
-| Per-function secret (older setups) | Same | Supabase uses project-level secrets; all functions share them |
+### Step 7: Test End-to-End
+
+1. Open a trip → Concierge tab
+2. Tap the waveform button (should open the VoiceLiveOverlay)
+3. Speak — verify audio capture and model response
+4. Check edge function logs: Supabase Dashboard → Edge Functions → `gemini-voice-session` → Logs
 
 ---
 
-## 4. Functions That Need GEMINI_API_KEY
+## 5. Key Files Reference
 
-| Function | Uses GEMINI_API_KEY | Fallback |
-|----------|---------------------|----------|
-| `gemini-voice-session` | Yes (required) | None – throws if missing |
-| `lovable-concierge` | Yes (preferred) | LOVABLE_API_KEY |
-| `gemini-chat` | No (proxies to lovable-concierge) | N/A |
-| `_shared/gemini.ts` | Yes | LOVABLE_API_KEY if `GEMINI_ENABLE_LOVABLE_FALLBACK=true` |
+| File | Purpose |
+|------|---------|
+| `src/components/AIConciergeChat.tsx` | Main concierge UI; `DUPLEX_VOICE_ENABLED` flag |
+| `src/hooks/useGeminiLive.ts` | Gemini Live WebSocket hook (complete duplex logic) |
+| `src/features/chat/components/VoiceLiveOverlay.tsx` | Waveform ring overlay UI for duplex mode |
+| `src/hooks/useWebSpeechVoice.ts` | Web Speech API dictation fallback (currently active) |
+| `src/features/chat/components/VoiceButton.tsx` | Waveform button component |
+| `src/voice/circuitBreaker.ts` | Circuit breaker for voice failures |
+| `src/voice/transport/createTransport.ts` | WebSocket transport creation |
+| `src/voice/audioContract.ts` | Audio capture/playback contract |
+| `src/config/voiceFeatureFlags.ts` | Feature flags (VOICE_LIVE_ENABLED, diagnostics) |
+| `supabase/functions/gemini-voice-session/index.ts` | Edge function: OAuth2 token + WebSocket URI |
+| `src/store/conciergeSessionStore.ts` | Session state (messages, voice state) |
 
 ---
 
-## 5. Gemini Live Flow (Voice)
+## 6. Gemini Live Flow (When Working)
 
 ```
-1. User clicks microphone
+1. User taps waveform button
 2. Client: supabase.functions.invoke('gemini-voice-session', { body: { tripId, voice } })
 3. gemini-voice-session:
-   - Checks GEMINI_API_KEY (throws if missing)
+   - Reads VERTEX_SERVICE_ACCOUNT_KEY secret
+   - Mints OAuth2 access token via Google's token endpoint
    - Builds trip context + system prompt
-   - Calls https://generativelanguage.googleapis.com/v1alpha/auth_tokens?key=GEMINI_API_KEY
-   - Returns ephemeral token to client
-4. Client: Opens WebSocket to wss://generativelanguage.googleapis.com/ws/...?access_token=...
-5. Client: Sends audio directly to Gemini Live API
-6. Gemini: Streams audio + text back
+   - Returns { accessToken, websocketUri, model, config }
+4. Client: Opens WebSocket to wss://{region}-aiplatform.googleapis.com/ws/...
+5. Client: Sends BidiGenerateContentSetup as first frame
+6. Client: Sends audio chunks (PCM16 16kHz mono) via BidiGenerateContentRealtimeInput
+7. Vertex AI: Streams back audio + text transcription
+8. Client: Plays audio via AudioPlaybackQueue, shows transcript in chat
 ```
-
----
-
-## 6. Recommended Next Steps
-
-1. **Verify secret:** Supabase Dashboard → Project Settings → Edge Functions → Secrets → confirm `GEMINI_API_KEY`
-2. **Redeploy:** `supabase functions deploy gemini-voice-session lovable-concierge`
-3. **Test:** Call `GET https://<project>.supabase.co/functions/v1/gemini-voice-session` with header `Authorization: Bearer <anon_key>` — returns `{ configured: true }` if key is set
-4. **Optional:** Add `AI_PROVIDER=gemini` (or leave unset) to force Gemini over Lovable
 
 ---
 
 ## 7. Summary
 
 - **Text:** Uses `lovable-concierge` → Gemini directly when `GEMINI_API_KEY` is set.
-- **Voice:** Uses `gemini-voice-session` → Gemini Live API directly; requires `GEMINI_API_KEY`.
-- **gemini-chat:** Proxy that only calls `lovable-concierge`; not used by the main Concierge tab.
-- **GEMINI_API_KEY:** Must be set in Supabase project secrets (Dashboard or CLI), not in `.env`.
+- **Voice (current):** Web Speech API dictation via waveform button → text fills input field.
+- **Voice (duplex, disabled):** Uses `gemini-voice-session` → Vertex AI Live API directly; requires service account secrets.
+- **To re-enable:** Fix the handshake issues in Steps 3-4, set `DUPLEX_VOICE_ENABLED = true`, redeploy.

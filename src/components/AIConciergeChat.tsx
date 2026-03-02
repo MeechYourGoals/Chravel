@@ -23,6 +23,7 @@ import {
 } from '@/services/conciergeGateway';
 import type { HotelResult } from '@/features/chat/components/HotelResultCards';
 import { toast } from 'sonner';
+import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
@@ -45,8 +46,16 @@ const EMPTY_SESSION: ConciergeSession = {
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
-// Voice: Conversation mode only (waveform → Gemini Live bidirectional)
-// Dictation removed — users rely on native OS keyboard dictation.
+/**
+ * DUPLEX_VOICE_ENABLED — Set to true to re-enable Gemini Live bidirectional
+ * voice (Vertex AI). When false, the waveform button uses basic Web Speech API
+ * dictation instead. All backend wiring (gemini-voice-session edge function,
+ * useGeminiLive hook, VoiceLiveOverlay) is preserved — flip this to true and
+ * fix the Vertex handshake to restore conversation mode.
+ *
+ * See docs/GEMINI_LIVE_ARCHITECTURE_REPORT.md for setup instructions.
+ */
+const DUPLEX_VOICE_ENABLED = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Map GeminiLiveState → VoiceState for VoiceButton visuals */
@@ -351,9 +360,30 @@ export const AIConciergeChat = ({
   const hasHydratedRef = useRef(false);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
-  // Conversation mode only (waveform button → Gemini Live bidirectional).
-  // Dictation removed — users rely on native OS keyboard dictation.
+  // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
+  // Speech API dictation. Transcribed text fills the input field so the user
+  // can review/edit before sending. All Gemini Live hooks remain initialised
+  // (hooks rules) but are not invoked.
   const [liveOverlayOpen, setLiveOverlayOpen] = useState(false);
+
+  // ── Dictation (Web Speech API) ──────────────────────────────────────────
+  // Dictation callback: fill the text input with the transcribed speech
+  const handleDictationResult = useCallback(
+    (text: string) => {
+      if (text.trim()) {
+        setInputMessage(prev => {
+          const separator = prev && !prev.endsWith(' ') ? ' ' : '';
+          return prev + separator + text.trim();
+        });
+      }
+    },
+    [],
+  );
+
+  const {
+    voiceState: dictationState,
+    toggleVoice: toggleDictation,
+  } = useWebSpeechVoice(handleDictationResult);
 
   /**
    * Fix 2 — streaming voice response bubble.
@@ -483,26 +513,33 @@ export const AIConciergeChat = ({
     onError: handleLiveError,
   });
 
-  // Conversation-mode VoiceState (mapped from Gemini Live states)
-  const convoVoiceState: VoiceState = mapLiveStateToVoiceState(liveState);
+  // Voice state for the VoiceButton — uses dictation state when duplex is off
+  const convoVoiceState: VoiceState = DUPLEX_VOICE_ENABLED
+    ? mapLiveStateToVoiceState(liveState)
+    : dictationState;
 
-  // Close overlay when live session ends
+  // Close overlay when live session ends (only relevant when duplex enabled)
   useEffect(() => {
-    if (liveState === 'idle' && liveOverlayOpen) {
+    if (DUPLEX_VOICE_ENABLED && liveState === 'idle' && liveOverlayOpen) {
       const timer = setTimeout(() => setLiveOverlayOpen(false), 300);
       return () => clearTimeout(timer);
     }
   }, [liveState, liveOverlayOpen]);
 
-  // Conversation toggle — start or end the Gemini Live session.
+  // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
   const handleConvoToggle = useCallback(async () => {
+    if (!DUPLEX_VOICE_ENABLED) {
+      // Simple dictation: toggle Web Speech API. Text fills the input field.
+      toggleDictation();
+      return;
+    }
+
+    // Duplex path (preserved for when a specialist re-enables it)
     if (liveState !== 'idle' && liveState !== 'error') {
       await endLiveSession();
       return;
     }
 
-    // Gate: check limit before starting a new voice conversation.
-    // A full voice conversation counts as a single concierge query.
     if (isLimitedPlan) {
       let incrementResult;
       try {
@@ -520,6 +557,7 @@ export const AIConciergeChat = ({
     setLiveOverlayOpen(true);
     await startLiveSession();
   }, [
+    toggleDictation,
     liveState,
     startLiveSession,
     endLiveSession,
@@ -1819,8 +1857,8 @@ export const AIConciergeChat = ({
         </div>
       </div>
 
-      {/* Full-screen immersive voice overlay — rendered outside chat layout */}
-      {liveOverlayOpen && (
+      {/* Full-screen immersive voice overlay — only when duplex is enabled */}
+      {DUPLEX_VOICE_ENABLED && liveOverlayOpen && (
         <VoiceLiveOverlay
           state={liveState}
           userTranscript={liveUserTranscript}
