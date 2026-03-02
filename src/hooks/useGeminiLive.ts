@@ -197,7 +197,7 @@ const initialDiagnostics: VoiceDiagnostics = {
 
 export function useGeminiLive({
   tripId,
-  voice = 'Puck',
+  voice = 'Charon',
   onToolCall,
   onTurnComplete,
   onError,
@@ -841,20 +841,31 @@ export function useGeminiLive({
           ? sessionData.websocketUrl
           : CONSTRAINED_WS_URL;
 
-      const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
+      // Vertex uses Bearer token in header via URL param; AI Studio uses access_token param
+      const provider = (sessionData as { provider?: string })?.provider || 'ai_studio';
+      const isVertex = provider === 'vertex';
+      const wsUrl = isVertex
+        ? `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`
+        : `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
       const wsHost = new URL(websocketUrl).host;
       console.warn('[VOICE:G2] ws_connecting', {
         sessionAttemptId,
         host: wsHost,
+        provider,
         msFromStart: Math.round(performance.now() - t0),
       });
       voiceLog('ws:connecting', {
         sessionId,
+        provider,
         endpoint: websocketUrl.split('/').pop(),
         audioContextState: audioCtxRef.current?.state,
         audioContextSampleRate: audioCtxRef.current?.sampleRate,
       });
       const ws = new WebSocket(wsUrl);
+      // Vertex requires setup message sent as first message after WS opens
+      const vertexSetupMessage = isVertex
+        ? (sessionData as { setupMessage?: Record<string, unknown> })?.setupMessage
+        : null;
       wsRef.current = ws;
 
       // Track first N inbound WS messages for Gate 2 diagnostics
@@ -873,11 +884,18 @@ export function useGeminiLive({
         console.warn('[VOICE:G2] ws_opened', {
           sessionAttemptId,
           readyState: ws.readyState,
+          provider,
           msFromStart: Math.round(performance.now() - t0),
         });
         debugLog('ws_open', {});
-        voiceLog('ws:opened', { readyState: ws.readyState });
+        voiceLog('ws:opened', { readyState: ws.readyState, provider });
         voiceLog('timing:wsOpen', { ms: Math.round(performance.now() - sessionStartedAt) });
+
+        // Vertex requires BidiGenerateContentSetup as first message
+        if (vertexSetupMessage && ws.readyState === WebSocket.OPEN) {
+          console.warn('[VOICE:G2] sending_vertex_setup', { sessionAttemptId });
+          ws.send(JSON.stringify(vertexSetupMessage));
+        }
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
             const msg = `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${wsMessageCount} messages). Please try again.`;
