@@ -5,9 +5,10 @@ import { TripContextBuilder } from '../_shared/contextBuilder.ts';
 import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-// gemini-2.0-flash-exp retires June 1 2026 — using stable native-audio model for Live API
+// Correct model name per official docs: ai.google.dev/gemini-api/docs/live-guide
+// No "models/" prefix — the auth_tokens endpoint handles model resolution.
 const GEMINI_LIVE_MODEL =
-  Deno.env.get('GEMINI_LIVE_MODEL') || 'models/gemini-live-2.5-flash-native-audio';
+  Deno.env.get('GEMINI_LIVE_MODEL') || 'gemini-2.5-flash-native-audio-preview-12-2025';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
@@ -436,7 +437,12 @@ const ENABLE_VOICE_GROUNDING =
 const VOICE_ADDENDUM = `
 
 === VOICE DELIVERY GUIDELINES ===
-You are now speaking via bidirectional voice audio. Adapt your responses:
+You are now speaking via full-screen immersive bidirectional audio conversation mode.
+Take over the user's entire screen during this active conversation to optimize audio
+input and output handling. Display conversation text in real-time as the user speaks
+and you respond, maintaining visual context of the exchange.
+
+Adapt your responses for voice:
 - Keep responses under 3 sentences unless the user asks for detail
 - Use natural conversational language — NO markdown, NO links, NO bullet points, NO formatting
 - Say numbers as words when natural ("about twenty dollars" not "0.00")
@@ -446,7 +452,8 @@ You are now speaking via bidirectional voice audio. Adapt your responses:
 - When executing actions (adding events, creating tasks), confirm what you did conversationally
 
 === VISUAL CARDS IN CHAT ===
-When you call these tools, a visual card automatically appears in the chat window:
+When you call these tools, a visual card automatically appears in the chat window
+(visible when the user exits voice mode):
 - searchPlaces / getPlaceDetails → photos, ratings, and a Maps link appear in chat. Say: "I've shared photos in our chat" then describe the top result verbally.
 - getStaticMapUrl → a map image appears in chat. Say: "I've dropped a map in our chat for you."
 - getDirectionsETA → a directions card with a Maps link appears in chat. Say the drive time aloud and mention: "I've added a link in chat to open it in Maps."
@@ -456,10 +463,18 @@ When you call these tools, a visual card automatically appears in the chat windo
 - validateAddress → no visual card; just confirm the cleaned-up address and coordinates verbally.
 Never speak URLs or markdown. The chat handles the visual output automatically.`;
 
+/**
+ * Create an ephemeral token using the current liveConnectConstraints format.
+ * See: ai.google.dev/gemini-api/docs/ephemeral-tokens
+ *
+ * @param includeGrounding - If true, adds googleSearch tool alongside functionDeclarations.
+ *   Disabled by default because Gemini does not support combining them (silent WS hang).
+ */
 async function createEphemeralToken(params: {
   model: string;
   systemInstruction: string;
   voice: string;
+  includeGrounding?: boolean;
 }): Promise<{ token: string; expireTime?: string; newSessionExpireTime?: string }> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
@@ -471,13 +486,20 @@ async function createEphemeralToken(params: {
     now + GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS * 1000,
   ).toISOString();
 
+  // Build tools array — functionDeclarations only (no googleSearch unless explicitly enabled)
+  const tools: Record<string, unknown>[] = [
+    { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
+    ...(params.includeGrounding ? [{ googleSearch: {} }] : []),
+  ];
+
+  // Use liveConnectConstraints format (current API, replaces deprecated bidiGenerateContentSetup)
   const tokenRequestBody = {
     uses: GEMINI_EPHEMERAL_USES,
     expireTime,
     newSessionExpireTime,
-    bidiGenerateContentSetup: {
+    liveConnectConstraints: {
       model: params.model,
-      generationConfig: {
+      config: {
         responseModalities: ['AUDIO', 'TEXT'],
         speechConfig: {
           voiceConfig: {
@@ -486,17 +508,11 @@ async function createEphemeralToken(params: {
             },
           },
         },
+        systemInstruction: {
+          parts: [{ text: params.systemInstruction }],
+        },
+        tools,
       },
-      systemInstruction: {
-        parts: [{ text: params.systemInstruction }],
-      },
-      tools: [
-        { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
-        // Native Google Search grounding — lets the model cite live web info directly.
-        // Supported by gemini-live-2.5-flash-native-audio and newer Live models.
-        // Falls back gracefully if unsupported (token request will fail with 400; handled below).
-        ...(ENABLE_VOICE_GROUNDING ? [{ googleSearch: {} }] : []),
-      ],
     },
   };
 
@@ -540,78 +556,6 @@ async function createEphemeralToken(params: {
   const tokenName = tokenData?.name;
   if (typeof tokenName !== 'string' || tokenName.trim().length === 0) {
     throw new Error('Gemini auth_tokens.create returned an empty token');
-  }
-
-  return {
-    token: tokenName,
-    expireTime: tokenData?.expireTime,
-    newSessionExpireTime: tokenData?.newSessionExpireTime,
-  };
-}
-
-/** Retry variant of createEphemeralToken that omits Google Search grounding. */
-async function createEphemeralTokenWithoutGrounding(params: {
-  model: string;
-  systemInstruction: string;
-  voice: string;
-}): Promise<{ token: string; expireTime?: string; newSessionExpireTime?: string }> {
-  if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY not configured');
-  }
-
-  const now = Date.now();
-  const expireTime = new Date(now + GEMINI_EPHEMERAL_EXPIRE_MINUTES * 60 * 1000).toISOString();
-  const newSessionExpireTime = new Date(
-    now + GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS * 1000,
-  ).toISOString();
-
-  const tokenRequestBody = {
-    uses: GEMINI_EPHEMERAL_USES,
-    expireTime,
-    newSessionExpireTime,
-    bidiGenerateContentSetup: {
-      model: params.model,
-      generationConfig: {
-        responseModalities: ['AUDIO', 'TEXT'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: params.voice,
-            },
-          },
-        },
-      },
-      systemInstruction: {
-        parts: [{ text: params.systemInstruction }],
-      },
-      tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
-    },
-  };
-
-  const tokenResponse = await fetch(
-    'https://generativelanguage.googleapis.com/v1alpha/auth_tokens',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': GEMINI_API_KEY,
-      },
-      body: JSON.stringify(tokenRequestBody),
-      signal: AbortSignal.timeout(15_000),
-    },
-  );
-
-  if (!tokenResponse.ok) {
-    const body = await tokenResponse.text();
-    throw new Error(
-      `Token creation failed (no grounding) (${tokenResponse.status}): ${body.substring(0, 400)}`,
-    );
-  }
-
-  const tokenData = await tokenResponse.json();
-  const tokenName = tokenData?.name;
-  if (typeof tokenName !== 'string' || tokenName.trim().length === 0) {
-    throw new Error('Gemini auth_tokens.create returned an empty token (no grounding retry)');
   }
 
   return {
@@ -750,6 +694,7 @@ serve(async req => {
       voice,
       toolCount: VOICE_FUNCTION_DECLARATIONS.length,
       hasTripContext: !!tripId,
+      tokenFormat: 'liveConnectConstraints',
       elapsedMs: Date.now() - t0,
     });
 
@@ -760,6 +705,7 @@ serve(async req => {
         model: GEMINI_LIVE_MODEL,
         systemInstruction,
         voice,
+        includeGrounding: ENABLE_VOICE_GROUNDING,
       });
       console.log(`${tag} Token created`, {
         tokenMs: Date.now() - tokenT0,
@@ -779,10 +725,11 @@ serve(async req => {
       if (ENABLE_VOICE_GROUNDING && tokenErrMsg.includes('400')) {
         console.warn(`${tag} Retrying token creation without Google Search grounding`);
         try {
-          ephemeral = await createEphemeralTokenWithoutGrounding({
+          ephemeral = await createEphemeralToken({
             model: GEMINI_LIVE_MODEL,
             systemInstruction,
             voice,
+            includeGrounding: false,
           });
           console.log(`${tag} Token created (no grounding)`, {
             tokenMs: Date.now() - tokenT0,

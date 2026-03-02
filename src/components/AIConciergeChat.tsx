@@ -1808,20 +1808,7 @@ export const AIConciergeChat = ({
           className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
-          {/* Gemini Live voice banner — inline above input, chat stays visible */}
-          {liveOverlayOpen && (
-            <VoiceLiveOverlay
-              state={liveState}
-              userTranscript={liveUserTranscript}
-              assistantTranscript={liveAssistantTranscript}
-              error={liveError}
-              circuitBreakerOpen={liveCircuitBreakerOpen}
-              onEnd={handleEndLiveSession}
-              onResetCircuitBreaker={resetLiveCircuitBreaker}
-              onReconnect={handleConvoToggle}
-              diagnostics={liveDiagnostics}
-            />
-          )}
+          {/* Voice overlay rendered below as full-screen portal */}
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
@@ -1863,6 +1850,21 @@ export const AIConciergeChat = ({
           />
         </div>
       </div>
+
+      {/* Full-screen immersive voice overlay — rendered outside chat layout */}
+      {liveOverlayOpen && (
+        <VoiceLiveOverlay
+          state={liveState}
+          userTranscript={liveUserTranscript}
+          assistantTranscript={liveAssistantTranscript}
+          error={liveError}
+          circuitBreakerOpen={liveCircuitBreakerOpen}
+          onEnd={handleEndLiveSession}
+          onResetCircuitBreaker={resetLiveCircuitBreaker}
+          onReconnect={handleConvoToggle}
+          diagnostics={liveDiagnostics}
+        />
+      )}
     </div>
   );
 };
