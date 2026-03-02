@@ -453,7 +453,7 @@ function generateInviteHTML(
   <meta property="og:url" content="${escapeHtml(ogUrl)}">
   <meta property="og:title" content="${ogTitle}">
   <meta property="og:description" content="${ogDescription}">
-  <meta property="og:image" content="${escapeHtml(trip.coverPhoto)}">
+  <meta property="og:image" content="${escapeHtml(toLandscapeOgImage(trip.coverPhoto))}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="ChravelApp">
@@ -462,7 +462,7 @@ function generateInviteHTML(
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${ogTitle}">
   <meta name="twitter:description" content="${ogDescription}">
-  <meta name="twitter:image" content="${escapeHtml(trip.coverPhoto)}">
+  <meta name="twitter:image" content="${escapeHtml(toLandscapeOgImage(trip.coverPhoto))}">
   
   <!-- Additional Meta Tags -->
   <meta name="description" content="${safeDescription}">
@@ -673,7 +673,7 @@ serve(async (req: Request): Promise<Response> => {
   <title>Trip Invite | ChravelApp</title>
   <meta property="og:title" content="You're Invited! | ChravelApp">
   <meta property="og:description" content="Join a trip on ChravelApp - The Group Chat Travel App">
-  <meta property="og:image" content="https://chravel.app/chravel-logo.png">
+  <meta property="og:image" content="${OG_FALLBACK_IMAGE}">
   <meta property="og:site_name" content="ChravelApp">
   <meta name="twitter:card" content="summary_large_image">
   
