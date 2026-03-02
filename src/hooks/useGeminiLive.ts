@@ -422,6 +422,18 @@ export function useGeminiLive({
     [cleanup],
   );
 
+  /** Emit a completed turn to the callback and append to conversation history. */
+  const emitTurnComplete = useCallback((userText: string, assistantText: string) => {
+    if (!userText && !assistantText) return;
+    onTurnCompleteRef.current?.(userText, assistantText);
+    setConversationHistory(prev => {
+      const next = [...prev];
+      if (userText) next.push({ role: 'user', text: userText });
+      if (assistantText) next.push({ role: 'assistant', text: assistantText });
+      return next;
+    });
+  }, []);
+
   const prevTripIdRef = useRef(tripId);
   useEffect(() => {
     if (prevTripIdRef.current !== tripId && wsRef.current) {
@@ -464,18 +476,6 @@ export function useGeminiLive({
     userHasSpokenRef.current = false;
     setUserTranscript('');
     setAssistantTranscript('');
-  }, []);
-
-  /** Emit a completed turn to the callback and append to conversation history. */
-  const emitTurnComplete = useCallback((userText: string, assistantText: string) => {
-    if (!userText && !assistantText) return;
-    onTurnCompleteRef.current?.(userText, assistantText);
-    setConversationHistory(prev => {
-      const next = [...prev];
-      if (userText) next.push({ role: 'user', text: userText });
-      if (assistantText) next.push({ role: 'assistant', text: assistantText });
-      return next;
-    });
   }, []);
 
   const handleToolCallWs = useCallback(
