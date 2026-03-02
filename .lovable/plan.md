@@ -1,118 +1,145 @@
 
-# Gemini Model Research: Corrected Findings + Voice Fix Plan
 
-## Key Research Findings
+# Vertex AI Migration for Gemini Live Voice + Voice Config Updates
 
-### 1. TWO DIFFERENT PRODUCTS, TWO DIFFERENT MODEL NAME SYSTEMS
+## What Changes and Why
 
-The docs you linked are **Vertex AI** docs (cloud.google.com). Chravel uses **Google AI Studio** (ai.google.dev). The model names are DIFFERENT between these two platforms:
+The current implementation uses Google AI Studio (API key + ephemeral tokens + `generativelanguage.googleapis.com`). This is a prototype-tier path that doesn't scale and uses a preview model name (`gemini-2.5-flash-native-audio-preview-12-2025`). The migration switches to Vertex AI's GA model (`gemini-live-2.5-flash-native-audio`) with OAuth authentication, enterprise SLAs, proactive audio, affective dialog, and grounding support.
 
-| Platform | Live Audio Model ID | Text/Reasoning Model ID |
-|----------|-------------------|------------------------|
-| **Vertex AI** (cloud.google.com) | `gemini-live-2.5-flash-native-audio` | `gemini-3.1-pro-preview` |
-| **Google AI Studio** (ai.google.dev) | `gemini-2.5-flash-native-audio-preview-12-2025` | `gemini-3.1-pro-preview` |
+## Architecture Change
 
-Critical distinction: The Vertex model `gemini-live-2.5-flash-native-audio` (GA, no date suffix) is a **different model ID** than the AI Studio model `gemini-2.5-flash-native-audio-preview-12-2025` (Preview, with date suffix). They use different API endpoints too.
+```text
+BEFORE (AI Studio):
+  Client -> Edge Function (creates ephemeral token via API key)
+  Client -> generativelanguage.googleapis.com (WebSocket with ephemeral token)
 
-### 2. CORRECT MODEL NAME FOR VOICE (AI Studio Path)
-
-Since Chravel uses `generativelanguage.googleapis.com` (AI Studio endpoint) with an API key (not Vertex OAuth), the correct model name is:
-
-```
-gemini-2.5-flash-native-audio-preview-12-2025
+AFTER (Vertex AI):
+  Client -> Edge Function (creates OAuth access token from Service Account)
+  Client -> {region}-aiplatform.googleapis.com (WebSocket with OAuth token)
 ```
 
-This is confirmed by:
-- The official AI Studio model page: `ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-native-audio-preview-12-2025`
-- The official ephemeral tokens docs: both Python and JavaScript examples use exactly this model name with `liveConnectConstraints`
-- The official Live API quickstart: `MODEL = "gemini-2.5-flash-native-audio-preview-12-2025"`
+The client-side WebSocket handling stays the same -- only the URL and token source change. The edge function becomes a token-minting service using Vertex AI service account credentials instead of an API key.
 
-**The current edge function code IS using the correct model name.** My previous recommendation was correct. The Vertex model name (`gemini-live-2.5-flash-native-audio` without date suffix) would NOT work with the AI Studio endpoint.
+## Secrets You Need to Add
 
-### 3. GEMINI 3.1 PRO PREVIEW -- AVAILABLE ON AI STUDIO
+You will need to add **3 new secrets** in Supabase Dashboard (Project Settings -> Edge Functions -> Secrets):
 
-Good news: `gemini-3.1-pro-preview` is available on BOTH Vertex and AI Studio. The current `_shared/gemini.ts` already has:
+| Secret Name | What It Is | Where to Get It |
+|---|---|---|
+| `VERTEX_PROJECT_ID` | Your Google Cloud project ID (e.g., `my-project-123456`) | Google Cloud Console -> Dashboard -> Project ID |
+| `VERTEX_LOCATION` | Region for Live API (e.g., `us-central1`) | Pick from: us-central1, us-east1, us-east4, us-east5, us-south1, us-west1, us-west4, europe-west1, europe-west4 |
+| `VERTEX_SERVICE_ACCOUNT_KEY` | Base64-encoded JSON key file for a GCP service account with `roles/aiplatform.user` | See step-by-step below |
 
-```typescript
-const DEFAULT_PRO_MODEL = 'gemini-3.1-pro-preview';
-```
+Your existing `GEMINI_API_KEY` stays -- it's still used by text concierge (`gemini-3.1-pro-preview`) via AI Studio for non-voice features.
 
-So the text concierge is **already using Gemini 3.1 Pro Preview** for pro-tier requests. It supports:
-- Grounding with Google Search
-- System instructions
-- Structured output
-- Function calling
-- Thinking
-- 1M token context window
+## Step-by-Step: What You Do After I Implement
 
-**However**, `gemini-3.1-pro-preview` does **NOT** support Live API. Live API is only supported by the native audio models. This confirms you need two separate models.
+1. **Create a GCP Service Account** (in Google Cloud Console):
+   - Go to IAM & Admin -> Service Accounts
+   - Click "Create Service Account"
+   - Name: `chravel-voice-sa`
+   - Grant role: `Vertex AI User` (`roles/aiplatform.user`)
+   - Click "Done"
 
-### 4. TWO-MODEL ARCHITECTURE (CONFIRMED CORRECT)
+2. **Create a JSON Key** for that service account:
+   - Click on the service account you just created
+   - Go to "Keys" tab
+   - Click "Add Key" -> "Create new key" -> JSON
+   - A `.json` file downloads -- this is your service account key
 
-| Use Case | Model | Why |
-|----------|-------|-----|
-| Text concierge, web scraping, smart import, calendar import, grounding | `gemini-3.1-pro-preview` | Best reasoning, grounding, structured output, 1M context |
-| Live bidirectional voice | `gemini-2.5-flash-native-audio-preview-12-2025` | Only model that supports Live API on AI Studio |
+3. **Base64-encode the key** (in your browser console or terminal):
+   ```
+   # Mac/Linux terminal:
+   base64 -i path/to/downloaded-key.json | tr -d '\n'
+   
+   # Or in browser console:
+   # Open the JSON file, copy contents, then:
+   btoa(JSON.stringify(YOUR_KEY_JSON))
+   ```
 
-The app already does this. The `_shared/gemini.ts` handles text calls with `gemini-3.1-pro-preview`. The `gemini-voice-session` edge function uses `gemini-2.5-flash-native-audio-preview-12-2025`. No change needed to the model routing.
+4. **Add secrets in Supabase**:
+   - Go to https://supabase.com/dashboard/project/jmjiyekmxwsxkfnqwyaa/settings/functions
+   - Add `VERTEX_PROJECT_ID` = your GCP project ID
+   - Add `VERTEX_LOCATION` = `us-central1` (recommended for lowest latency)
+   - Add `VERTEX_SERVICE_ACCOUNT_KEY` = the base64 string from step 3
 
-### 5. API KEY: ONE KEY WORKS FOR BOTH
+5. **Enable Vertex AI API** in your GCP project:
+   - Go to APIs & Services -> Enable APIs
+   - Search for "Vertex AI API" and enable it
 
-Your single `GEMINI_API_KEY` from Google AI Studio works for both models. No separate keys needed. Both models are accessed via `generativelanguage.googleapis.com` using the same API key.
+6. **Enable billing** on the GCP project (required for Vertex AI)
 
-### 6. WHY VOICE STILL FAILS: ZERO EDGE FUNCTION LOGS
+## What I Implement (Code Changes)
 
-The edge function has `verify_jwt = false` set and the code logs `handler_enter` as the first action. Yet there are **ZERO logs**. This means one of:
+### 1. Edge Function: `supabase/functions/gemini-voice-session/index.ts`
 
-a. The edge function deployment didn't pick up the latest code (most likely)
-b. The client's `supabase.functions.invoke()` is silently failing before reaching the server
-c. The Supabase gateway is rejecting requests before they reach the function runtime
+Major rewrite of token creation:
+- Remove AI Studio ephemeral token flow (`auth_tokens` endpoint)
+- Add Vertex AI OAuth2 token minting from service account credentials
+- Change model to `gemini-live-2.5-flash-native-audio` (GA, no preview suffix)
+- Change default voice from `Puck` to `Charon`
+- Change WebSocket URL to `wss://{VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`
+- Enable proactive audio in config
+- Enable affective dialog in config
+- Enable Google Search grounding (Vertex supports combining tools + grounding, unlike AI Studio)
+- Add `realtimeInputConfig` with speech sensitivity tuning (start: LOW, end: HIGH -- matching your screenshot)
+- The setup message (model config, system instruction, tools) is now sent by the client as the first WebSocket message (`BidiGenerateContentSetup`) rather than baked into the token
 
-The token format (`liveConnectConstraints`) and model name are both correct per official docs. The issue is that the function is not being reached.
+### 2. Client: `src/hooks/useGeminiLive.ts`
 
----
+- Update the fallback WebSocket URL to use the Vertex endpoint returned by the edge function
+- Send `BidiGenerateContentSetup` as first message after WS opens (Vertex requires this; AI Studio baked it into the token)
+- The setup message includes: model, system instruction, tools, speech config, proactive audio, affective dialog, grounding
 
-## Fix Plan
+### 3. Config: `supabase/config.toml`
 
-### Fix 1: Force redeploy the edge function
+- Already has `verify_jwt = false` for gemini-voice-session (no change needed)
 
-The function needs to be redeployed to pick up the latest code changes (liveConnectConstraints format, correct model name, handler_enter logging, verify_jwt=false).
+### 4. Voice Feature Flags: No changes needed
 
-### Fix 2: Test the edge function directly
+- `VOICE_LIVE_ENABLED` defaults to `true`
+- `VOICE_USE_WEBSOCKET_ONLY` defaults to `true`
 
-After redeployment, call the edge function health check endpoint directly to verify it responds. Then attempt a POST with auth to verify the token creation works.
+## Voice Configuration Changes
 
-### Fix 3: Check client-side invocation
+| Setting | Before | After |
+|---|---|---|
+| Voice | Puck | **Charon** |
+| Model | `gemini-2.5-flash-native-audio-preview-12-2025` | `gemini-live-2.5-flash-native-audio` |
+| Proactive Audio | Off | **On** |
+| Affective Dialog | Off | **On** |
+| Grounding (Google Search) | Off (broken on AI Studio) | **On** (works on Vertex) |
+| Start of Speech Sensitivity | Default | **Low** |
+| End of Speech Sensitivity | Default | **High** |
+| Auth | AI Studio API Key + ephemeral token | **Vertex OAuth2 access token** |
+| Endpoint | `generativelanguage.googleapis.com` | `{region}-aiplatform.googleapis.com` |
 
-Read the browser console logs for `[VOICE:G0]` entries. If `invoke_start` appears but `invoke_done` never does, the Supabase SDK call is hanging. If neither appears, the client code isn't reaching the startSession function.
+## What Stays the Same
 
-### Fix 4: No model name changes needed
+- Text concierge continues using `gemini-3.1-pro-preview` via AI Studio (`GEMINI_API_KEY`)
+- Smart import, calendar import, web scraping continue via AI Studio
+- All of Claude Code's RC1/RC4 fixes (drain callbacks, deferred transitions, barge-in) are preserved
+- Full-screen immersive overlay UI stays as-is
+- Circuit breaker, audio contract, transport sanity layer all stay
+- `GEMINI_API_KEY` secret stays for non-voice features
 
-The current configuration is correct:
-- Voice: `gemini-2.5-flash-native-audio-preview-12-2025` (correct for AI Studio)
-- Text: `gemini-3.1-pro-preview` (already set in `_shared/gemini.ts`)
-- Token format: `liveConnectConstraints` (correct per latest docs)
+## Verification Checklist
 
-### Fix 5: Verify `gemini-3.1-pro-preview` is used everywhere it should be
+1. Add the 3 secrets (VERTEX_PROJECT_ID, VERTEX_LOCATION, VERTEX_SERVICE_ACCOUNT_KEY)
+2. Edge function auto-deploys with the code changes
+3. Health check (GET) returns `provider: 'vertex'`, `model: 'gemini-live-2.5-flash-native-audio'`, `configured: true`
+4. Open AI Concierge, tap Live
+5. Console: `[VOICE:G0] invoke_done` shows `hasData: true`
+6. Console: `[VOICE:G2] ws_setup_complete` within 10s
+7. Speak and hear Charon voice respond
+8. Proactive audio: model stays silent when you talk to someone else nearby
+9. Text concierge still works normally (uses GEMINI_API_KEY, unaffected)
 
-The `_shared/gemini.ts` already maps old model names to `gemini-3.1-pro-preview` via aliases. However, there's one hardcoded `gemini-2.0-flash` in `functionExecutor.ts` line 1536 used for web page analysis. This should be updated to use the shared model resolution.
+## Risk: MEDIUM-HIGH
 
-### Files to modify
+This is a transport/auth layer migration. The WebSocket protocol messages are the same between AI Studio and Vertex (both use `BidiGenerateContent`). The main risk is in the OAuth token minting -- if the service account key is malformed or permissions are wrong, the function will return a clear error.
 
-| File | Change |
-|------|--------|
-| `supabase/functions/gemini-voice-session/index.ts` | No model/format changes needed -- just needs redeployment |
-| `supabase/functions/_shared/functionExecutor.ts` | Update hardcoded `gemini-2.0-flash` on line 1536 to use `DEFAULT_FLASH_MODEL` (`gemini-3-flash-preview`) |
+## Rollback
 
-### Verification checklist
+If Vertex fails: change `VOICE_PROVIDER` env var back to `ai_studio` in the edge function (I'll add this toggle). The old AI Studio code path is preserved as a fallback.
 
-1. Redeploy `gemini-voice-session` edge function
-2. Call GET health check: should return `configured: true`, model: `gemini-2.5-flash-native-audio-preview-12-2025`
-3. Open browser console, tap Live
-4. Look for `[VOICE:G0] invoke_start` and `invoke_done` in console
-5. Check edge function logs for `handler_enter`
-6. If token creation succeeds, look for `[VOICE:G2] ws_setup_complete`
-
-### Key takeaway
-
-The model names and token format are already correct. The most likely issue is that the edge function hasn't been redeployed with the latest code changes, so all the fixes from the last few iterations (liveConnectConstraints, correct model, handler_enter logging) are not actually running in production.
