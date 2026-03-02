@@ -1413,7 +1413,11 @@ export const AIConciergeChat = ({
                       .order('created_at', { ascending: false })
                       .limit(1)
                       .then(({ error: metaErr }) => {
-                        if (metaErr) console.warn('[Concierge] Failed to persist rich metadata:', metaErr.message);
+                        if (metaErr)
+                          console.warn(
+                            '[Concierge] Failed to persist rich metadata:',
+                            metaErr.message,
+                          );
                       });
                   }
                 }

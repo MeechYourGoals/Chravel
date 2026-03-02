@@ -77,9 +77,10 @@ export function VoiceLiveOverlay({
     : substep || STATE_DETAIL[state];
 
   // Show WS close code in error state for debugging
-  const errorDetail = isError && diagnostics?.wsCloseCode
-    ? `${error || 'Connection failed'} (WS ${diagnostics.wsCloseCode})`
-    : error || 'Voice connection failed. Tap Reconnect.';
+  const errorDetail =
+    isError && diagnostics?.wsCloseCode
+      ? `${error || 'Connection failed'} (WS ${diagnostics.wsCloseCode})`
+      : error || 'Voice connection failed. Tap Reconnect.';
 
   return (
     <div
@@ -91,7 +92,10 @@ export function VoiceLiveOverlay({
       {/* 2-column grid: left = close + Live label, right = status + actions.
           Left column is exactly 44px (size-11) to match VoiceButton width.
           gap-2 matches AiChatInput flex gap. No px — parent provides padding. */}
-      <div className="grid items-center gap-2 py-2" style={{ gridTemplateColumns: '44px 1fr auto' }}>
+      <div
+        className="grid items-center gap-2 py-2"
+        style={{ gridTemplateColumns: '44px 1fr auto' }}
+      >
         {/* Left column: Close button + Live label — centered, fixed 44px to match VoiceButton */}
         <div className="flex flex-col items-center gap-0.5">
           <button
@@ -128,7 +132,9 @@ export function VoiceLiveOverlay({
             {statusDetail && (
               <>
                 <span className="text-white/25 text-xs shrink-0">&bull;</span>
-                <span className="text-xs text-white/50 truncate">{isError ? errorDetail : statusDetail}</span>
+                <span className="text-xs text-white/50 truncate">
+                  {isError ? errorDetail : statusDetail}
+                </span>
               </>
             )}
           </div>
