@@ -41,8 +41,8 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true;
       longPressTimer.current = null;
-      toast('Conversation mode', {
-        description: 'Speak back-and-forth with your AI concierge',
+      toast('Speak', {
+        description: 'Tap to dictate your message',
         duration: 2000,
       });
     }, LONG_PRESS_MS);
@@ -82,10 +82,10 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
   };
 
   const getTooltip = () => {
-    if (!isEligible) return 'Conversation mode — Upgrade to use';
-    if (isActive) return 'End conversation';
+    if (!isEligible) return 'Speak — Upgrade to use';
+    if (isActive) return 'Stop listening';
     if (voiceState === 'error') return 'Tap to retry';
-    return 'Conversation mode';
+    return 'Speak';
   };
 
   return (
@@ -136,15 +136,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
                 className="absolute -top-0.5 -right-0.5 text-amber-400/90 drop-shadow-md z-10"
               />
             )}
-            {/* LIVE badge when conversation is active */}
-            {isActive && (
-              <span
-                aria-hidden
-                className="absolute -top-1.5 -right-1.5 bg-blue-500 text-[7px] font-bold tracking-wider text-white px-1 py-px rounded-full ring-1 ring-black/40 z-10 uppercase"
-              >
-                Live
-              </span>
-            )}
+            {/* LIVE badge — only shown in duplex conversation mode (future) */}
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
