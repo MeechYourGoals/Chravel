@@ -1533,7 +1533,7 @@ async function _executeImpl(
         : 'Extract key information useful for travel planning';
 
       // Use Gemini to analyze the page content
-      const analysisUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const analysisUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`;
       const analysisResponse = await fetch(analysisUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
