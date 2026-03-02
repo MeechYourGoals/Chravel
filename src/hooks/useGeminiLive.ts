@@ -671,12 +671,46 @@ export function useGeminiLive({
           throw new Error(errMsg);
         });
 
-      // Wait for both to settle — we want to report the most relevant error
-      const [tokenResult, micResult] = await Promise.allSettled([tokenPromise, micPromise]);
+      // Await token first — if it fails there's no point blocking on the
+      // browser mic-permission prompt which can stay pending indefinitely.
+      // Both promises are already in-flight so the happy path is still parallel.
+      type TokenValue = Awaited<typeof sessionPromise>;
+      let tokenResult: PromiseSettledResult<TokenValue>;
+      let micResult: PromiseSettledResult<MediaStream>;
+
+      try {
+        const tokenValue = await tokenPromise;
+        tokenResult = { status: 'fulfilled', value: tokenValue as TokenValue };
+      } catch (err) {
+        tokenResult = { status: 'rejected', reason: err };
+      }
       // Clean up the timeout timer to prevent closure leak
       clearTimeout(sessionTimeoutId!);
 
-      // Process mic result first — if mic failed, clean up any successful token (it's single-use anyway)
+      // Token failed → surface error immediately, clean up mic if it resolves later
+      if (tokenResult.status === 'rejected') {
+        micPromise.then(stream => stream.getTracks().forEach(t => t.stop())).catch(() => {});
+        const invokeErrMsg =
+          tokenResult.reason instanceof Error
+            ? tokenResult.reason.message
+            : String(tokenResult.reason);
+        console.warn('[VOICE:G0] invoke_failed_early', {
+          sessionAttemptId,
+          error: invokeErrMsg,
+          durationMs: Math.round(performance.now() - invokeT0),
+        });
+        throw new Error(invokeErrMsg);
+      }
+
+      // Token succeeded — now wait for mic (already in-flight)
+      try {
+        const micValue = await micPromise;
+        micResult = { status: 'fulfilled', value: micValue };
+      } catch (err) {
+        micResult = { status: 'rejected', reason: err };
+      }
+
+      // Mic failed — token succeeded but mic is required, so bail out
       if (micResult.status === 'rejected') {
         const micErrMsg =
           micResult.reason instanceof Error ? micResult.reason.message : String(micResult.reason);
@@ -685,23 +719,8 @@ export function useGeminiLive({
         throw new Error(micErrMsg);
       }
 
-      // Process token result
-      if (tokenResult.status === 'rejected') {
-        const invokeErrMsg =
-          tokenResult.reason instanceof Error
-            ? tokenResult.reason.message
-            : String(tokenResult.reason);
-        console.warn('[VOICE:G0] invoke_failed', {
-          sessionAttemptId,
-          error: invokeErrMsg,
-          durationMs: Math.round(performance.now() - invokeT0),
-        });
-        // Clean up mic stream since we won't need it
-        micResult.value.getTracks().forEach(t => t.stop());
-        throw new Error(invokeErrMsg);
-      }
-
-      const invokeResult = tokenResult.value as Awaited<typeof sessionPromise>;
+      // Both succeeded — extract values
+      const invokeResult = tokenResult.value;
       const { data: sessionData, error: sessionError } = invokeResult;
       const invokeDurationMs = Math.round(performance.now() - invokeT0);
 
@@ -1166,6 +1185,12 @@ export function useGeminiLive({
               const finalAssistant = assistantTranscriptAccRef.current.trim();
               if (finalUser || finalAssistant)
                 onTurnCompleteRef.current?.(finalUser, finalAssistant);
+
+              // Clear accumulators immediately so ws.onclose won't re-emit
+              // the same turn if the socket drops during the playback tail.
+              userTranscriptAccRef.current = '';
+              assistantTranscriptAccRef.current = '';
+              userHasSpokenRef.current = false;
 
               // If playback already drained (very short response or text-only),
               // transition immediately. Otherwise, keep modelRespondingRef true
