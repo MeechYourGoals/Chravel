@@ -10,11 +10,13 @@ export class AudioPlaybackQueue {
   private nextStartTime = 0;
   private activeSources: AudioBufferSourceNode[] = [];
   private onFirstFramePlayed?: () => void;
+  private onDrain?: () => void;
   private hasReportedFirstFrame = false;
 
-  constructor(ctx: AudioContext, onFirstFramePlayed?: () => void) {
+  constructor(ctx: AudioContext, onFirstFramePlayed?: () => void, onDrain?: () => void) {
     this.ctx = ctx;
     this.onFirstFramePlayed = onFirstFramePlayed;
+    this.onDrain = onDrain;
     this.gainNode = ctx.createGain();
     this.gainNode.connect(ctx.destination);
     this.nextStartTime = ctx.currentTime;
@@ -47,6 +49,9 @@ export class AudioPlaybackQueue {
       this.activeSources.push(source);
       source.onended = () => {
         this.activeSources = this.activeSources.filter(s => s !== source);
+        if (this.activeSources.length === 0) {
+          this.onDrain?.();
+        }
       };
     } catch {
       // keep playback alive

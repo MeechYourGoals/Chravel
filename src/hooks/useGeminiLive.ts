@@ -269,6 +269,8 @@ export function useGeminiLive({
   const userTranscriptAccRef = useRef('');
   const assistantTranscriptAccRef = useRef('');
   const modelRespondingRef = useRef(false);
+  const turnCompleteReceivedRef = useRef(false);
+  const drainTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userHasSpokenRef = useRef(false);
 
   const isSupported =
@@ -341,7 +343,12 @@ export function useGeminiLive({
     isCleaningUpRef.current = true;
 
     isStartingRef.current = false;
+    turnCompleteReceivedRef.current = false;
     clearThinkingTimer();
+    if (drainTimeoutRef.current) {
+      clearTimeout(drainTimeoutRef.current);
+      drainTimeoutRef.current = null;
+    }
     if (sessionExpiryTimerRef.current) {
       clearTimeout(sessionExpiryTimerRef.current);
       sessionExpiryTimerRef.current = null;
@@ -444,6 +451,11 @@ export function useGeminiLive({
     userTranscriptAccRef.current = '';
     assistantTranscriptAccRef.current = '';
     modelRespondingRef.current = false;
+    turnCompleteReceivedRef.current = false;
+    if (drainTimeoutRef.current) {
+      clearTimeout(drainTimeoutRef.current);
+      drainTimeoutRef.current = null;
+    }
     userHasSpokenRef.current = false;
     setUserTranscript('');
     setAssistantTranscript('');
@@ -616,13 +628,17 @@ export function useGeminiLive({
       const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
         body: { tripId, voice, sessionAttemptId },
       });
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
+      let sessionTimeoutId: ReturnType<typeof setTimeout>;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        sessionTimeoutId = setTimeout(
           () => reject(new Error('Voice session timed out. Please try again.')),
           SESSION_TIMEOUT_MS,
-        ),
-      );
-      const tokenPromise = Promise.race([sessionPromise, timeoutPromise]);
+        );
+      });
+      const tokenPromise = Promise.race([sessionPromise, timeoutPromise]).then(result => {
+        patchDiagnostics({ substep: 'Voice session ready, waiting for microphone…' });
+        return result;
+      });
 
       const micPromise = navigator.mediaDevices
         .getUserMedia({
@@ -632,6 +648,10 @@ export function useGeminiLive({
             noiseSuppression: true,
             autoGainControl: true,
           },
+        })
+        .then(stream => {
+          patchDiagnostics({ substep: 'Microphone ready, connecting…' });
+          return stream;
         })
         .catch((mediaErr: Error) => {
           // Wrap mic errors with user-friendly messages but don't throw yet —
@@ -653,6 +673,8 @@ export function useGeminiLive({
 
       // Wait for both to settle — we want to report the most relevant error
       const [tokenResult, micResult] = await Promise.allSettled([tokenPromise, micPromise]);
+      // Clean up the timeout timer to prevent closure leak
+      clearTimeout(sessionTimeoutId!);
 
       // Process mic result first — if mic failed, clean up any successful token (it's single-use anyway)
       if (micResult.status === 'rejected') {
@@ -760,15 +782,36 @@ export function useGeminiLive({
         sampleRate: audioCtxRef.current.sampleRate,
       });
 
-      playbackQueueRef.current = new AudioPlaybackQueue(audioCtxRef.current, () => {
-        if (
-          turnStartedAtRef.current &&
-          diagnosticsRef.current.metrics.firstAudioFramePlayedMs === null
-        ) {
-          patchMetrics({ firstAudioFramePlayedMs: performance.now() - turnStartedAtRef.current });
-          console.warn('[VOICE:G3] first_audio_played', { sessionAttemptId });
-        }
-      });
+      playbackQueueRef.current = new AudioPlaybackQueue(
+        audioCtxRef.current,
+        () => {
+          if (
+            turnStartedAtRef.current &&
+            diagnosticsRef.current.metrics.firstAudioFramePlayedMs === null
+          ) {
+            patchMetrics({ firstAudioFramePlayedMs: performance.now() - turnStartedAtRef.current });
+            console.warn('[VOICE:G3] first_audio_played', { sessionAttemptId });
+          }
+        },
+        () => {
+          // onDrain: all scheduled audio buffers finished playing.
+          // If Gemini already sent turnComplete, now transition to listening.
+          // This keeps barge-in active during the audio tail and ensures
+          // the UI state matches what the user actually hears.
+          if (turnCompleteReceivedRef.current) {
+            turnCompleteReceivedRef.current = false;
+            modelRespondingRef.current = false;
+            if (drainTimeoutRef.current) {
+              clearTimeout(drainTimeoutRef.current);
+              drainTimeoutRef.current = null;
+            }
+            voiceLog('playback:drained', {});
+            resetTurnAccumulators();
+            resetMetricsForNewTurn();
+            transition('listening', 'playback_drained');
+          }
+        },
+      );
 
       // ── Gate 2: Open WebSocket ──
       patchDiagnostics({ substep: 'Opening audio channel…' });
@@ -1114,7 +1157,6 @@ export function useGeminiLive({
               // for playback. Flushing here cuts off the AI mid-sentence.
               // Flush only happens on: barge-in, manual interrupt, endSession.
               clearThinkingTimer();
-              modelRespondingRef.current = false;
               voiceLog('server:turnComplete', {
                 userText: userTranscriptAccRef.current.slice(0, 50),
                 assistantText: assistantTranscriptAccRef.current.slice(0, 50),
@@ -1124,9 +1166,31 @@ export function useGeminiLive({
               const finalAssistant = assistantTranscriptAccRef.current.trim();
               if (finalUser || finalAssistant)
                 onTurnCompleteRef.current?.(finalUser, finalAssistant);
-              resetTurnAccumulators();
-              resetMetricsForNewTurn();
-              transition('listening', 'turn_complete');
+
+              // If playback already drained (very short response or text-only),
+              // transition immediately. Otherwise, keep modelRespondingRef true
+              // so barge-in stays active during the audio tail, and let the
+              // AudioPlaybackQueue.onDrain callback handle the transition.
+              if (!playbackQueueRef.current?.isPlaying) {
+                modelRespondingRef.current = false;
+                resetTurnAccumulators();
+                resetMetricsForNewTurn();
+                transition('listening', 'turn_complete');
+              } else {
+                turnCompleteReceivedRef.current = true;
+                // Safety: if onDrain doesn't fire within 5s (e.g. AudioContext
+                // issue), force the transition so we don't get stuck.
+                drainTimeoutRef.current = setTimeout(() => {
+                  if (turnCompleteReceivedRef.current) {
+                    voiceLog('playback:drain_timeout', {});
+                    turnCompleteReceivedRef.current = false;
+                    modelRespondingRef.current = false;
+                    resetTurnAccumulators();
+                    resetMetricsForNewTurn();
+                    transition('listening', 'turn_complete_drain_timeout');
+                  }
+                }, 5_000);
+              }
             }
           }
         } catch {
