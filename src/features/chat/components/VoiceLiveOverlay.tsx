@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { GeminiLiveState, VoiceDiagnostics } from '@/hooks/useGeminiLive';
@@ -28,7 +28,7 @@ const STATE_LABEL: Record<GeminiLiveState, string> = {
 
 const STATE_DETAIL: Record<GeminiLiveState, string> = {
   idle: '',
-  requesting_mic: 'Establishing voice session\u2026',
+  requesting_mic: 'Opening audio channel\u2026',
   ready: 'Speak now',
   listening: 'Speak now',
   sending: 'Processing\u2026',
@@ -37,10 +37,15 @@ const STATE_DETAIL: Record<GeminiLiveState, string> = {
   error: '',
 };
 
+/* ── Waveform bar count & ring geometry ──────────────────── */
+const BAR_COUNT = 28;
+const RING_RADIUS = 52; // px from center
+const BAR_WIDTH = 3;
+
 /**
  * Full-screen immersive voice overlay for Gemini Live bidirectional sessions.
- * Takes over the entire viewport — matching ChatGPT / Gemini Live patterns.
- * When dismissed, rich cards from the voice session are visible in chat history.
+ * "Waveform Ring" design: a static circle with subtle equalizer bars
+ * that react to mic/TTS state, plus an orbiting dot when idle/connecting.
  */
 export function VoiceLiveOverlay({
   state,
@@ -63,7 +68,9 @@ export function VoiceLiveOverlay({
 
   const isListening = state === 'listening' || state === 'interrupted' || state === 'ready';
   const isSpeaking = state === 'playing';
-  const isThinking = state === 'sending' || state === 'requesting_mic';
+  const isThinking = state === 'sending';
+  const isConnecting = state === 'requesting_mic';
+  const isIdle = isConnecting || isThinking;
   const isError = state === 'error' || circuitBreakerOpen;
 
   const statusLabel = STATE_LABEL[state];
@@ -77,24 +84,14 @@ export function VoiceLiveOverlay({
       ? `${error || 'Connection failed'} (WS ${diagnostics.wsCloseCode})`
       : error || 'Voice connection failed. Tap Reconnect.';
 
-  // Orb color based on state
-  const orbColor = isError
-    ? 'from-red-500/40 to-red-600/20'
+  /* ── Accent color tokens ─────────────────────────────── */
+  const accentColor = isError
+    ? 'rgb(239 68 68)'   // red-500
     : isListening
-      ? 'from-emerald-500/40 to-cyan-500/20'
+      ? 'rgb(16 185 129)' // emerald-500
       : isSpeaking
-        ? 'from-blue-500/40 to-indigo-500/20'
-        : isThinking
-          ? 'from-blue-400/30 to-cyan-400/15'
-          : 'from-white/10 to-white/5';
-
-  const orbBorder = isError
-    ? 'border-red-500/30'
-    : isListening
-      ? 'border-emerald-500/30'
-      : isSpeaking
-        ? 'border-blue-500/30'
-        : 'border-white/10';
+        ? 'rgb(59 130 246)' // blue-500
+        : 'rgb(148 163 184)'; // slate-400
 
   const labelColor = isError
     ? 'text-red-400'
@@ -102,9 +99,13 @@ export function VoiceLiveOverlay({
       ? 'text-emerald-400'
       : isSpeaking
         ? 'text-blue-400'
-        : isThinking
-          ? 'text-blue-400'
-          : 'text-white/60';
+        : 'text-white/60';
+
+  /* ── Pre-compute bar angles ──────────────────────────── */
+  const barAngles = useMemo(
+    () => Array.from({ length: BAR_COUNT }, (_, i) => (360 / BAR_COUNT) * i),
+    [],
+  );
 
   return (
     <div
@@ -133,50 +134,113 @@ export function VoiceLiveOverlay({
         </button>
       </div>
 
-      {/* Center: Pulsing orb + status */}
+      {/* Center: Waveform Ring + status */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6">
-        {/* Animated orb */}
-        <div className="relative">
-          {/* Outer glow ring */}
-          <motion.div
-            className={`absolute inset-0 rounded-full bg-gradient-to-br ${orbColor} blur-xl`}
-            animate={{
-              scale: isListening ? [1, 1.2, 1] : isSpeaking ? [1, 1.15, 1.05, 1.2, 1] : 1,
-              opacity: isListening ? [0.4, 0.7, 0.4] : isSpeaking ? [0.3, 0.6, 0.3] : 0.2,
-            }}
-            transition={{
-              duration: isListening ? 2.5 : isSpeaking ? 1.5 : 0.3,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            style={{ width: 160, height: 160, margin: -20 }}
+        {/* Static ring container — NO scale pulsing */}
+        <div className="relative size-[160px] flex items-center justify-center">
+          {/* Subtle background glow — static, no animation */}
+          <div
+            className="absolute inset-[-20px] rounded-full opacity-20 blur-2xl"
+            style={{ background: `radial-gradient(circle, ${accentColor}, transparent 70%)` }}
           />
-          {/* Inner orb */}
-          <motion.div
-            className={`relative size-[120px] rounded-full bg-gradient-to-br ${orbColor} border-2 ${orbBorder} backdrop-blur-sm flex items-center justify-center`}
-            animate={{
-              scale: isListening ? [1, 1.06, 1] : isSpeaking ? [1, 1.08, 1.03, 1.1, 1] : isThinking ? [1, 1.02, 1] : 1,
-            }}
-            transition={{
-              duration: isListening ? 2.5 : isSpeaking ? 1.5 : isThinking ? 1.8 : 0.3,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
+
+          {/* Static ring border */}
+          <div
+            className="absolute inset-0 rounded-full border-2 transition-colors duration-500"
+            style={{ borderColor: `color-mix(in srgb, ${accentColor} 30%, transparent)` }}
+          />
+
+          {/* ── Waveform bars (radial equalizer) ─────────── */}
+          <svg
+            className="absolute inset-0"
+            viewBox="0 0 160 160"
+            fill="none"
+            aria-hidden="true"
           >
-            {/* Inner dot */}
+            {barAngles.map((angle, i) => {
+              const rad = (angle * Math.PI) / 180;
+              const cx = 80 + RING_RADIUS * Math.cos(rad);
+              const cy = 80 + RING_RADIUS * Math.sin(rad);
+
+              // Staggered animation delays for organic feel
+              const delay = (i / BAR_COUNT) * 1.2;
+
+              // Bar height ranges by state
+              const minH = 4;
+              const maxH = isListening ? 18 : isSpeaking ? 22 : 6;
+
+              return (
+                <motion.rect
+                  key={i}
+                  x={cx - BAR_WIDTH / 2}
+                  y={cy - minH / 2}
+                  width={BAR_WIDTH}
+                  height={minH}
+                  rx={BAR_WIDTH / 2}
+                  fill={accentColor}
+                  opacity={0.6}
+                  style={{
+                    transformOrigin: `${cx}px ${cy}px`,
+                    transform: `rotate(${angle + 90}deg)`,
+                  }}
+                  animate={
+                    isListening || isSpeaking
+                      ? {
+                          height: [minH, maxH * (0.4 + 0.6 * Math.random()), minH],
+                          y: [cy - minH / 2, cy - maxH * (0.4 + 0.6 * Math.random()) / 2, cy - minH / 2],
+                          opacity: [0.4, 0.8, 0.4],
+                        }
+                      : {
+                          height: minH,
+                          y: cy - minH / 2,
+                          opacity: isIdle ? 0.2 : 0.3,
+                        }
+                  }
+                  transition={
+                    isListening || isSpeaking
+                      ? {
+                          duration: isListening ? 1.0 + Math.random() * 0.6 : 0.6 + Math.random() * 0.4,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                          delay,
+                        }
+                      : { duration: 0.5 }
+                  }
+                />
+              );
+            })}
+          </svg>
+
+          {/* ── Orbiting dot (idle / connecting / thinking) ── */}
+          {isIdle && (
             <motion.div
-              className={`size-3 rounded-full ${isError ? 'bg-red-400' : isListening ? 'bg-emerald-400' : isSpeaking ? 'bg-blue-400' : 'bg-white/40'}`}
+              className="absolute"
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: accentColor,
+                boxShadow: `0 0 8px 2px ${accentColor}`,
+              }}
               animate={{
-                scale: [1, 1.4, 1],
-                opacity: [0.6, 1, 0.6],
+                x: Array.from({ length: 61 }, (_, i) => RING_RADIUS * Math.cos((i / 60) * 2 * Math.PI - Math.PI / 2)),
+                y: Array.from({ length: 61 }, (_, i) => RING_RADIUS * Math.sin((i / 60) * 2 * Math.PI - Math.PI / 2)),
               }}
               transition={{
-                duration: 1.5,
+                duration: 4,
                 repeat: Infinity,
-                ease: 'easeInOut',
+                ease: 'linear',
               }}
             />
-          </motion.div>
+          )}
+
+          {/* Center: small static dot indicator */}
+          {!isIdle && (
+            <div
+              className="absolute size-3 rounded-full transition-colors duration-500"
+              style={{ background: accentColor, opacity: 0.6 }}
+            />
+          )}
         </div>
 
         {/* Status label */}
