@@ -1,147 +1,187 @@
 
+# Gemini Live: Post-Claude-Code Merge Gap Analysis + Full-Screen Takeover
 
-# Stage-Gated Voice Live Debug + Fix Plan
+## What Claude Code Fixed (PR #830)
 
-## Evidence Summary
+Claude Code addressed **RC1** (parallel setup timer leaks, substep granularity) and **RC4** (turn completion / audio drain detection):
 
-| Check | Result |
-|-------|--------|
-| Edge function deployed? | YES -- boots in 32ms, responds to GET health check |
-| GEMINI_API_KEY configured? | YES -- health check returns `configured: true` |
-| Model name | `models/gemini-2.5-flash-native-audio-preview-12-2025` (valid, confirmed by Google examples) |
-| Recent invocation logs? | **ZERO** -- no POST calls recorded. The function was never called by the client recently. |
-| WebSocket URL correct? | YES -- `BidiGenerateContentConstrained` with `?access_token=` (correct for ephemeral tokens) |
-| Client-side code correct? | Structurally yes -- calls `supabase.functions.invoke('gemini-voice-session')` |
-| CORS headers? | Present, but `Access-Control-Allow-Origin` is `https://chravel.app` (may reject preview domain) |
+1. **AudioPlaybackQueue.onDrain callback** -- added constructor param so the hook knows when all audio buffers finish playing
+2. **turnComplete deferred transition** -- `modelRespondingRef` stays `true` during audio tail so barge-in works; `onDrain` triggers the actual `listening` transition with a 5s safety timeout
+3. **Token failure fast-path** -- replaced `Promise.allSettled` with sequential awaits (token first, then mic) so token errors surface instantly
+4. **Duplicate turn prevention** -- accumulators cleared immediately after `onTurnCompleteRef` fires, preventing `ws.onclose` from re-emitting the same turn
+5. **RC2, RC3, RC5** shipped as-is (token expire 120s, silent keepalive, session timeout 90s)
 
-## Root Cause Hypothesis (Evidence-Based)
+## What Claude Code MISSED (Still Broken)
 
-**Zero edge function logs despite the function being deployed and healthy** means the client's `supabase.functions.invoke()` call is either:
-1. Being rejected by CORS (preview domain `id-preview--*.lovable.app` not matching `chravel.app` origin)
-2. Being rejected by `verify_jwt = true` before handler code runs (Supabase gateway returns 401 before booting the function, so no logs appear)
-3. Silently failing on the client (error swallowed by timeout race or caught by generic catch)
+### Critical Gap 1: WRONG MODEL NAME (Agent 2 finding -- never detected by Claude)
 
-The auto-reconnect logic then masks this: the first failure triggers a 2s retry, the second failure also fails silently, the third triggers the circuit breaker -- all while the user sees "Connecting... Establishing voice session..." for up to 25+ seconds.
-
----
-
-## Gate 0: Prove the Edge Function Is Actually Invoked
-
-**Pass criteria**: A single tap of Live produces a matching log line in both client console AND edge function logs with the same `sessionAttemptId`.
-
-### Changes
-
-**Client (`src/hooks/useGeminiLive.ts`):**
-- Generate `sessionAttemptId = crypto.randomUUID()` at tap time
-- Send it in the edge function body: `{ tripId, voice, sessionAttemptId }`
-- Log with `console.warn` (not behind VOICE_DEBUG flag) at these mandatory points:
-  - `[VOICE:G0] tap_live` -- immediately on startSession
-  - `[VOICE:G0] invoke_start` -- before `supabase.functions.invoke`
-  - `[VOICE:G0] invoke_done` -- after invoke returns (log status, duration, error if any)
-  - `[VOICE:G0] invoke_failed` -- if invoke throws (log the full error message)
-
-**Server (`supabase/functions/gemini-voice-session/index.ts`):**
-- Log `handler_enter` as the FIRST line inside the POST handler (before auth check), including `sessionAttemptId` from body
-- This ensures we get a log even if auth fails downstream
-
-**If Gate 0 fails**: The function is never reached. Fix the client call (URL, auth, CORS) before proceeding.
-
----
-
-## Gate 1: Token Creation Succeeds
-
-**Pass criteria**: Edge function log shows `Token created` with a valid response and latency under 15s.
-
-### Changes
-
-**Server:**
-- Already has good token creation logging (lines 540-560)
-- Add: log the upstream Gemini `auth_tokens` response status code and latency separately
-- Add: if token creation fails, log the full upstream error body (already partially done, enhance with status code)
-- Add: surface the raw Gemini error in the response to the client (not just generic "failed to create token")
-
-**Client:**
-- Log the full sessionData response keys (already done via voiceLog, but now also via `console.warn` for Gate 1 visibility)
-- If `sessionData.error` is present, log it immediately and show it to the user -- do NOT proceed to WebSocket
-
----
-
-## Gate 2: WebSocket Handshake Completes
-
-**Pass criteria**: Client logs show `ws:opened` followed by `ws:setupComplete` within 10s.
-
-### Changes
-
-**Client (`src/hooks/useGeminiLive.ts`):**
-- Add `console.warn` logs (not just voiceLog) at:
-  - `[VOICE:G2] ws_connecting` -- log the WS URL host (not the token)
-  - `[VOICE:G2] ws_opened` -- log readyState
-  - `[VOICE:G2] ws_first_message` -- log the type of the first inbound message
-  - `[VOICE:G2] ws_setup_complete` -- log timing
-  - `[VOICE:G2] ws_closed` -- log code + reason
-  - `[VOICE:G2] ws_error` -- log event details
-- **Log the first 5 inbound WS message types** (key names only, no secrets) so we can see if setupComplete never arrives vs never received
-- **Display WS close code/reason on the UI error state** (not just in logs)
-
-### Timeout fix
-- Reduce `WEBSOCKET_SETUP_TIMEOUT_MS` from 25s to 12s
-- Show incremental status: "Getting voice session..." during edge function call, "Opening audio channel..." during WS handshake
-
----
-
-## Gate 3: Audio Send/Receive Works
-
-**Pass criteria**: Client logs show `firstAudioChunkSent` and `firstAudioReceived` within 5s of `setupComplete`.
-
-### Changes
-- Already mostly instrumented via diagnostics metrics
-- Add `console.warn` logs for:
-  - `[VOICE:G3] mic_acquired` -- log device label
-  - `[VOICE:G3] audio_context_state` -- log state (must be 'running')
-  - `[VOICE:G3] first_audio_sent` 
-  - `[VOICE:G3] first_audio_received`
-  - `[VOICE:G3] first_audio_played`
-
----
-
-## Auto-Reconnect Fix (After Gates Pass)
-
-The current auto-reconnect masks failures by silently retrying and showing "Connecting..." again without explanation.
-
-### Changes
-- **Disable auto-reconnect by default** -- set `autoReconnectAllowedRef.current = false` initially
-- Only enable it AFTER a first successful session (after `setupComplete` + `capture_started`)
-- When reconnecting, show "Retrying... (attempt 1/2)" instead of "Connecting..."
-- Cap retries at 2, with 2s backoff
-- After max retries: show the actual error with WS close code, not generic "connection timed out"
-
----
-
-## UI Fixes (VoiceLiveOverlay)
-
-### Layout restructure
-
-Remove the orb section entirely (lines 96-154 in VoiceLiveOverlay.tsx). Replace with:
-
-```text
-[  Red X  ]   [ Status Label . Detail text        ]
-[  Live   ]   [ Transcript preview...              ]
+The edge function uses:
+```
+models/gemini-live-2.5-flash-native-audio
 ```
 
-### Specific changes to `VoiceLiveOverlay.tsx`:
+The correct model name per official Google documentation (confirmed via `ai.google.dev/gemini-api/docs/live-guide` and `ai.google.dev/gemini-api/docs/ephemeral-tokens`):
+```
+gemini-2.5-flash-native-audio-preview-12-2025
+```
 
-1. **Delete** the entire orb div (lines 97-154): the `AudioLines` icon, pulse rings, gradient orb, and error icon
-2. **Add "Live" label** under the close button: small red uppercase text, centered in the 44px-wide left column
-3. **Left column**: CSS grid or flex column with `w-[44px]` fixed, items centered
-4. **Right column**: `min-w-0` + truncation for status text, `flex-1`
-5. **Status text updates**: Map `requesting_mic` to show "Getting voice session..." then "Opening audio channel..." based on which sub-step is active (pass a `substep` prop or use a more granular label)
-6. **No layout jumping**: Use `min-h-[52px]` on the container so it doesn't shift when text changes
+**Evidence:** Every official example (Python SDK, JavaScript SDK, REST) uses `gemini-2.5-flash-native-audio-preview-12-2025`. The model `gemini-live-2.5-flash-native-audio` does not appear in any Google documentation.
 
-### Acceptance criteria
-- Red X button centered exactly above "Live" label on all widths (375px-1920px)
-- No waveform/AudioLines icon visible anywhere in the overlay
-- Status text readable, left-aligned, truncated on overflow
-- No horizontal shift when status changes between "Connecting" / "Listening" / "Speaking"
+**Impact:** The `auth_tokens` endpoint may accept the request and return a 200 + token (the API is lenient with model validation at token creation time), but when the client connects via WebSocket, the Live service cannot resolve the model and silently refuses to start the session -- no `setupComplete`, no error, just hangs until the 12s timeout fires.
+
+### Critical Gap 2: OUTDATED TOKEN FORMAT (`bidiGenerateContentSetup` vs `liveConnectConstraints`)
+
+The edge function uses the old format:
+```json
+{
+  "bidiGenerateContentSetup": {
+    "model": "...",
+    "generationConfig": { ... },
+    "systemInstruction": { ... },
+    "tools": [...]
+  }
+}
+```
+
+The current documented format (confirmed via `ai.google.dev/gemini-api/docs/ephemeral-tokens`):
+```json
+{
+  "liveConnectConstraints": {
+    "model": "gemini-2.5-flash-native-audio-preview-12-2025",
+    "config": {
+      "responseModalities": ["AUDIO", "TEXT"],
+      "speechConfig": { ... },
+      "systemInstruction": { ... },
+      "tools": [...]
+    }
+  }
+}
+```
+
+Key differences:
+- Top-level key changed from `bidiGenerateContentSetup` to `liveConnectConstraints`
+- `generationConfig` flattened into `config`
+- `model` moved inside `liveConnectConstraints` (not `bidiGenerateContentSetup`)
+
+### Critical Gap 3: `verify_jwt = true` Still Set
+
+`supabase/config.toml` line 103 still has `verify_jwt = true` for `gemini-voice-session`. With Supabase's signing-keys system, this means the gateway validates the JWT before the function boots. If it rejects, the function never runs and no `handler_enter` log appears. The function already validates auth manually (lines 680-703), so `verify_jwt = false` is safe and necessary for debuggability.
+
+### Gap 4: `createEphemeralTokenWithoutGrounding` Also Uses Wrong Format
+
+Lines 552-620 define a fallback function that also uses the old `bidiGenerateContentSetup` format. Both token creation paths need to be updated.
+
+## What's Already Correct (No Changes Needed)
+
+- CORS handling (`getCorsHeaders` with suffix matching for `.lovable.app`)
+- `ENABLE_VOICE_GROUNDING` defaults to `false` (our previous fix)
+- WebSocket endpoint (`BidiGenerateContentConstrained` with `?access_token=`)
+- Audio format (PCM16 at 16kHz input, 24kHz output)
+- All of Claude's RC1/RC4 fixes (drain callbacks, deferred transitions, fast-path token errors)
+- Gate 0 instrumentation (sessionAttemptId correlation)
+
+---
+
+## Fix Plan
+
+### Fix 1: Correct model name (edge function)
+
+**File: `supabase/functions/gemini-voice-session/index.ts`**
+
+Change line 10:
+```
+FROM: 'models/gemini-live-2.5-flash-native-audio'
+  TO: 'gemini-2.5-flash-native-audio-preview-12-2025'
+```
+
+No `models/` prefix -- the official docs and SDK examples consistently omit it.
+
+### Fix 2: Update token format to `liveConnectConstraints` (edge function)
+
+Replace both `createEphemeralToken` and `createEphemeralTokenWithoutGrounding` functions. The new request body structure:
+
+```json
+{
+  "uses": 1,
+  "expireTime": "...",
+  "newSessionExpireTime": "...",
+  "liveConnectConstraints": {
+    "model": "gemini-2.5-flash-native-audio-preview-12-2025",
+    "config": {
+      "responseModalities": ["AUDIO", "TEXT"],
+      "speechConfig": {
+        "voiceConfig": {
+          "prebuiltVoiceConfig": { "voiceName": "Puck" }
+        }
+      },
+      "systemInstruction": {
+        "parts": [{ "text": "..." }]
+      },
+      "tools": [{ "functionDeclarations": [...] }]
+    }
+  }
+}
+```
+
+The `createEphemeralTokenWithoutGrounding` variant is the same but without `googleSearch` in tools (which is already the case since grounding is disabled).
+
+### Fix 3: Set `verify_jwt = false` for gemini-voice-session
+
+**File: `supabase/config.toml`**
+
+Change line 103:
+```
+FROM: verify_jwt = true
+  TO: verify_jwt = false
+```
+
+The function already validates auth manually via `supabase.auth.getUser()`.
+
+### Fix 4: Full-Screen Takeover for Conversation Mode
+
+Currently `VoiceLiveOverlay` is an inline banner above the chat input. Per the user's request (and matching ChatGPT/Gemini Live patterns), conversation mode should take over the entire screen.
+
+**File: `src/features/chat/components/VoiceLiveOverlay.tsx`**
+
+Redesign from inline banner to full-screen overlay:
+- Use `fixed inset-0 z-50` to cover the entire viewport
+- Dark gradient background with blur
+- Center the conversation controls vertically
+- Large animated orb/pulse visualization in the center showing state (listening, speaking, thinking)
+- Real-time transcript text displayed below the orb
+- Red X close button at top-right or bottom-center
+- "LIVE" badge visible
+- Status text (Listening, Speaking, Thinking) prominently displayed
+
+Layout concept:
+```text
++----------------------------------+
+|                          [X]     |
+|                                  |
+|         ( Pulsing Orb )          |
+|         "Listening..."           |
+|                                  |
+|   "What's the weather like       |
+|    in Barcelona?"                |
+|                                  |
+|   "It's going to be sunny..."   |
+|                                  |
+|           [LIVE]                 |
++----------------------------------+
+```
+
+When the user exits (taps X), they return to the chat view where any rich cards (places, flights, hotels) generated during the voice session are visible in the chat history (already handled by `onTurnComplete` persisting messages).
+
+**File: `src/components/AIConciergeChat.tsx`**
+
+Change rendering from inline to portal/overlay:
+- Remove the `VoiceLiveOverlay` from inside the `chat-composer` div
+- Render it as a sibling at the root level (or via portal) so it can go full-screen
+- When `liveOverlayOpen` is true, the overlay covers the entire concierge panel
+
+### Fix 5: Consolidate `createEphemeralTokenWithoutGrounding`
+
+Since `ENABLE_VOICE_GROUNDING` defaults to `false` and both functions now use the same format, simplify to a single `createEphemeralToken` that accepts an `includeGrounding` boolean parameter. Remove the duplicate function.
 
 ---
 
@@ -149,33 +189,32 @@ Remove the orb section entirely (lines 96-154 in VoiceLiveOverlay.tsx). Replace 
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useGeminiLive.ts` | Gate 0-3 instrumentation (console.warn logs), disable auto-reconnect by default, reduce WS timeout, incremental status |
-| `supabase/functions/gemini-voice-session/index.ts` | Gate 0 handler_enter log (before auth), sessionAttemptId correlation, enhanced error surfacing |
-| `src/features/chat/components/VoiceLiveOverlay.tsx` | Remove orb, add "Live" label, restructure to 2-column grid, no layout jumping |
+| `supabase/functions/gemini-voice-session/index.ts` | Fix model name, update token format to `liveConnectConstraints`, consolidate token functions |
+| `supabase/config.toml` | Set `verify_jwt = false` for gemini-voice-session |
+| `src/features/chat/components/VoiceLiveOverlay.tsx` | Redesign as full-screen immersive overlay |
+| `src/components/AIConciergeChat.tsx` | Move overlay rendering to full-screen position |
 
 ## Verification Checklist
 
-1. Open AI Concierge in any trip
-2. Open browser console (not behind debug flag)
-3. Tap Live button
-4. Verify `[VOICE:G0] tap_live` appears in console
-5. Verify `[VOICE:G0] invoke_start` appears within 100ms
-6. Verify `[VOICE:G0] invoke_done` appears within 10s with status
-7. Check edge function logs for `handler_enter` with matching sessionAttemptId
-8. If Gate 0 passes: verify `[VOICE:G2] ws_opened` and `ws_setup_complete`
-9. If Gate 2 passes: speak and verify `[VOICE:G3] first_audio_sent` and `first_audio_received`
-10. End session: mic indicator disappears, UI returns to idle
-11. Red X button centered above "Live" on mobile (375px) and desktop
-12. No waveform icon visible
+1. Redeploy edge function after model name + token format change
+2. Open AI Concierge, tap Live
+3. Console: `[VOICE:G0] invoke_done` shows `hasData: true, hasError: false`
+4. Edge function logs: `handler_enter` with sessionAttemptId (now visible with verify_jwt=false)
+5. Edge function logs: `Token created` with correct model name
+6. Console: `[VOICE:G2] ws_setup_complete` within 10s (this is THE proof that model + format fix worked)
+7. Speak and verify audio response plays back
+8. Full-screen overlay covers entire viewport during voice session
+9. Transcript visible in real-time on the overlay
+10. Exit voice: overlay dismisses, rich cards visible in chat history
+11. Red X button accessible and clearly positioned
 
-## Risk: LOW-MEDIUM
+## Risk: MEDIUM
 
-- Instrumentation is additive (console.warn logs)
-- Auto-reconnect change reduces retry aggression (safer)
-- UI changes are purely visual
-- Edge function change is a single log line addition
+- Model name change is highest-confidence fix (matches official docs exactly)
+- Token format change involves restructuring the request body -- if the REST API still expects the old format, it will fail fast with a clear error (not silently)
+- Full-screen overlay is a UI-only change, no state logic changes
+- `verify_jwt = false` is safe since function already validates auth manually
 
 ## Rollback
 
-Set `VITE_VOICE_LIVE_ENABLED=false` to hide voice entirely. Text chat unaffected.
-
+Set `VITE_VOICE_LIVE_ENABLED=false` to hide voice. Or revert the edge function to use the old model/format (though it didn't work before either).
