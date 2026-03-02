@@ -463,6 +463,7 @@ export const AIConciergeChat = ({
     error: liveError,
     userTranscript: liveUserTranscript,
     assistantTranscript: liveAssistantTranscript,
+    conversationHistory: liveConversationHistory,
     startSession: startLiveSession,
     endSession: endLiveSession,
     diagnostics: liveDiagnostics,
@@ -1857,6 +1858,7 @@ export const AIConciergeChat = ({
           state={liveState}
           userTranscript={liveUserTranscript}
           assistantTranscript={liveAssistantTranscript}
+          conversationHistory={liveConversationHistory}
           error={liveError}
           circuitBreakerOpen={liveCircuitBreakerOpen}
           onEnd={handleEndLiveSession}

@@ -89,8 +89,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getDirectionsETA',
-    description:
-      'Get driving directions, travel time, and distance between two locations.',
+    description: 'Get driving directions, travel time, and distance between two locations.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -165,7 +164,11 @@ const VOICE_FUNCTION_DECLARATIONS = [
       type: 'OBJECT',
       properties: {
         origins: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Starting addresses' },
-        destinations: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Destination addresses' },
+        destinations: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description: 'Destination addresses',
+        },
         mode: { type: 'STRING', description: 'Travel mode: driving, walking, bicycling, transit' },
       },
       required: ['origins', 'destinations'],
@@ -332,7 +335,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
       type: 'OBJECT',
       properties: {
         prompt: { type: 'STRING', description: 'Image description' },
-        style: { type: 'STRING', description: 'Style: photo, illustration, watercolor, minimal, vibrant' },
+        style: {
+          type: 'STRING',
+          description: 'Style: photo, illustration, watercolor, minimal, vibrant',
+        },
       },
       required: ['prompt'],
     },
@@ -435,7 +441,9 @@ async function createVertexAccessToken(saKey: ServiceAccountKey): Promise<string
 
   if (!tokenResp.ok) {
     const body = await tokenResp.text();
-    throw new Error(`OAuth2 token exchange failed (${tokenResp.status}): ${body.substring(0, 400)}`);
+    throw new Error(
+      `OAuth2 token exchange failed (${tokenResp.status}): ${body.substring(0, 400)}`,
+    );
   }
 
   const tokenData = await tokenResp.json();
@@ -456,7 +464,7 @@ function parseServiceAccountKey(base64Key: string): ServiceAccountKey {
   } catch (e) {
     throw new Error(
       `Invalid VERTEX_SERVICE_ACCOUNT_KEY: ${e instanceof Error ? e.message : 'parse failed'}. ` +
-      'Ensure the value is base64-encoded JSON of the service account key file.',
+        'Ensure the value is base64-encoded JSON of the service account key file.',
     );
   }
 }
@@ -475,10 +483,16 @@ const parseEnvInt = (
 };
 
 const GEMINI_EPHEMERAL_EXPIRE_MINUTES = parseEnvInt(
-  Deno.env.get('GEMINI_EPHEMERAL_EXPIRE_MINUTES'), 30, 1, 20 * 60,
+  Deno.env.get('GEMINI_EPHEMERAL_EXPIRE_MINUTES'),
+  30,
+  1,
+  20 * 60,
 );
 const GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS = parseEnvInt(
-  Deno.env.get('GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS'), 120, 10, 20 * 60 * 60,
+  Deno.env.get('GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS'),
+  120,
+  10,
+  20 * 60 * 60,
 );
 const GEMINI_EPHEMERAL_USES = parseEnvInt(Deno.env.get('GEMINI_EPHEMERAL_USES'), 1, 0, 100);
 
@@ -491,7 +505,9 @@ async function createAiStudioEphemeralToken(params: {
 
   const now = Date.now();
   const expireTime = new Date(now + GEMINI_EPHEMERAL_EXPIRE_MINUTES * 60 * 1000).toISOString();
-  const newSessionExpireTime = new Date(now + GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS * 1000).toISOString();
+  const newSessionExpireTime = new Date(
+    now + GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS * 1000,
+  ).toISOString();
 
   const tokenRequestBody = {
     uses: GEMINI_EPHEMERAL_USES,
@@ -577,22 +593,27 @@ serve(async req => {
       bodyRaw = await req.json();
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const sessionAttemptId =
       typeof bodyRaw?.sessionAttemptId === 'string' ? bodyRaw.sessionAttemptId : 'unknown';
     console.log(`${tag} handler_enter`, {
-      sessionAttemptId, provider: useVertex ? 'vertex' : 'ai_studio',
-      model: currentModel, origin: req.headers.get('origin'), t0,
+      sessionAttemptId,
+      provider: useVertex ? 'vertex' : 'ai_studio',
+      model: currentModel,
+      origin: req.headers.get('origin'),
+      t0,
     });
 
     // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -600,18 +621,24 @@ serve(async req => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', ''),
-    );
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
 
     if (authError || !user) {
       console.warn(`${tag} Auth failed`, { sessionAttemptId, error: authError?.message });
       return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`${tag} Authenticated`, { userId: user.id, sessionAttemptId, elapsedMs: Date.now() - t0 });
+    console.log(`${tag} Authenticated`, {
+      userId: user.id,
+      sessionAttemptId,
+      elapsedMs: Date.now() - t0,
+    });
 
     const requestedVoice = typeof bodyRaw?.voice === 'string' ? bodyRaw.voice : DEFAULT_VOICE;
     const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
@@ -665,45 +692,36 @@ serve(async req => {
         totalMs: Date.now() - t0,
       });
 
-      // Vertex Live API WebSocket URL
-      const websocketUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`;
+      // Vertex Live API WebSocket URL — GA endpoint uses v1 (not v1beta1)
+      const websocketUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent`;
 
-      // Build the BidiGenerateContentSetup message that the client sends as first WS message
+      // Build the BidiGenerateContentSetup message that the client sends as first WS message.
+      // Vertex AI uses snake_case field names (per official GoogleCloudPlatform/generative-ai examples).
       const setupMessage = {
         setup: {
           model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
-          generationConfig: {
-            responseModalities: ['AUDIO', 'TEXT'],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: voice,
+          generation_config: {
+            response_modalities: ['AUDIO'],
+            speech_config: {
+              voice_config: {
+                prebuilt_voice_config: {
+                  voice_name: voice,
                 },
               },
             },
-            realtimeInputConfig: {
-              automaticActivityDetection: {
-                startOfSpeechSensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
-                endOfSpeechSensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
+            realtime_input_config: {
+              automatic_activity_detection: {
+                start_of_speech_sensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
+                end_of_speech_sensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
               },
             },
+            output_audio_transcription: {},
+            input_audio_transcription: {},
           },
-          systemInstruction: {
+          system_instruction: {
             parts: [{ text: systemInstruction }],
           },
-          tools: [
-            { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
-            { googleSearch: {} },
-          ],
-          // Vertex-specific: enable proactive audio + affective dialog
-          realtimeInputConfig: {
-            automaticActivityDetection: {
-              startOfSpeechSensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
-              endOfSpeechSensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
-            },
-          },
-          outputAudioTranscript: {},
-          inputAudioTranscript: {},
+          tools: [{ function_declarations: VOICE_FUNCTION_DECLARATIONS }, { google_search: {} }],
         },
       };
 
@@ -730,7 +748,9 @@ serve(async req => {
     if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured');
 
     console.log(`${tag} Creating AI Studio ephemeral token`, {
-      model: AI_STUDIO_LIVE_MODEL, voice, elapsedMs: Date.now() - t0,
+      model: AI_STUDIO_LIVE_MODEL,
+      voice,
+      elapsedMs: Date.now() - t0,
     });
 
     const tokenT0 = Date.now();
