@@ -36,9 +36,13 @@ const GEMINI_EPHEMERAL_EXPIRE_MINUTES = parseEnvInt(
   1,
   20 * 60,
 );
+// 120s default: the client needs time after token creation to complete mic permission
+// prompt + AudioContext resume + WebSocket open + setupComplete handshake. 60s was
+// too tight and caused token expiry before the WebSocket could connect on slow networks
+// or first-time mic permission prompts.
 const GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS = parseEnvInt(
   Deno.env.get('GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS'),
-  60,
+  120,
   10,
   20 * 60 * 60,
 );
@@ -662,9 +666,8 @@ serve(async req => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const sessionAttemptId = typeof bodyRaw?.sessionAttemptId === 'string'
-      ? bodyRaw.sessionAttemptId
-      : 'unknown';
+    const sessionAttemptId =
+      typeof bodyRaw?.sessionAttemptId === 'string' ? bodyRaw.sessionAttemptId : 'unknown';
     console.log(`${tag} handler_enter`, {
       sessionAttemptId,
       hasApiKey: !!GEMINI_API_KEY,
@@ -700,7 +703,11 @@ serve(async req => {
       });
     }
 
-    console.log(`${tag} Authenticated`, { userId: user.id, sessionAttemptId, elapsedMs: Date.now() - t0 });
+    console.log(`${tag} Authenticated`, {
+      userId: user.id,
+      sessionAttemptId,
+      elapsedMs: Date.now() - t0,
+    });
 
     const body = bodyRaw;
     const requestedVoice = typeof body?.voice === 'string' ? body.voice : 'Puck';
