@@ -4,50 +4,26 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { TripContextBuilder } from '../_shared/contextBuilder.ts';
 import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
 
+// ── Vertex AI configuration ──
+const VERTEX_PROJECT_ID = Deno.env.get('VERTEX_PROJECT_ID');
+const VERTEX_LOCATION = Deno.env.get('VERTEX_LOCATION') || 'us-central1';
+const VERTEX_SERVICE_ACCOUNT_KEY = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
+
+// Legacy AI Studio fallback (kept for rollback via VOICE_PROVIDER=ai_studio)
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-// Correct model name per official docs: ai.google.dev/gemini-api/docs/live-guide
-// No "models/" prefix — the auth_tokens endpoint handles model resolution.
-const GEMINI_LIVE_MODEL =
+const VOICE_PROVIDER = (Deno.env.get('VOICE_PROVIDER') || 'vertex').toLowerCase();
+
+// GA model for Vertex AI Live API
+const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
+// Legacy AI Studio model (only used if VOICE_PROVIDER=ai_studio)
+const AI_STUDIO_LIVE_MODEL =
   Deno.env.get('GEMINI_LIVE_MODEL') || 'gemini-2.5-flash-native-audio-preview-12-2025';
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
-// Ephemeral tokens MUST use BidiGenerateContentConstrained (not BidiGenerateContent).
-// BidiGenerateContent expects ?key=<API_KEY>; BidiGenerateContentConstrained expects
-// ?access_token=<EPHEMERAL_TOKEN>. Using the wrong endpoint causes auth failures
-// ("unregistered callers" / 403 / silent WS close).
-const LIVE_WEBSOCKET_URL =
-  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
-
-const parseEnvInt = (
-  value: string | undefined,
-  fallback: number,
-  min: number,
-  max: number,
-): number => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return fallback;
-  return Math.min(max, Math.max(min, Math.floor(parsed)));
-};
-
-const GEMINI_EPHEMERAL_EXPIRE_MINUTES = parseEnvInt(
-  Deno.env.get('GEMINI_EPHEMERAL_EXPIRE_MINUTES'),
-  30,
-  1,
-  20 * 60,
-);
-// 120s default: the client needs time after token creation to complete mic permission
-// prompt + AudioContext resume + WebSocket open + setupComplete handshake. 60s was
-// too tight and caused token expiry before the WebSocket could connect on slow networks
-// or first-time mic permission prompts.
-const GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS = parseEnvInt(
-  Deno.env.get('GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS'),
-  120,
-  10,
-  20 * 60 * 60,
-);
-const GEMINI_EPHEMERAL_USES = parseEnvInt(Deno.env.get('GEMINI_EPHEMERAL_USES'), 1, 0, 100);
+const DEFAULT_VOICE = 'Charon';
 
 /** Function declarations for Gemini Live tool use */
 const VOICE_FUNCTION_DECLARATIONS = [
@@ -109,24 +85,18 @@ const VOICE_FUNCTION_DECLARATIONS = [
   {
     name: 'getPaymentSummary',
     description: 'Get a summary of who owes money to whom in the trip',
-    parameters: {
-      type: 'OBJECT',
-      properties: {},
-    },
+    parameters: { type: 'OBJECT', properties: {} },
   },
   {
     name: 'getDirectionsETA',
     description:
-      'Get driving directions, travel time, and distance between two locations. Use for "how long to get there", "how far is it", or "directions from X to Y" questions.',
+      'Get driving directions, travel time, and distance between two locations.',
     parameters: {
       type: 'OBJECT',
       properties: {
         origin: { type: 'STRING', description: 'Starting address or place name' },
         destination: { type: 'STRING', description: 'Destination address or place name' },
-        departureTime: {
-          type: 'STRING',
-          description: 'Optional ISO 8601 departure time for traffic-aware ETA',
-        },
+        departureTime: { type: 'STRING', description: 'Optional ISO 8601 departure time' },
       },
       required: ['origin', 'destination'],
     },
@@ -145,23 +115,18 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getPlaceDetails',
-    description:
-      'Get detailed info about a specific place: hours, phone, website, editorial summary, and photos. Use after searchPlaces or when the user asks for more details about a venue.',
+    description: 'Get detailed info about a specific place.',
     parameters: {
       type: 'OBJECT',
       properties: {
-        placeId: {
-          type: 'STRING',
-          description: 'Google Places ID from a previous searchPlaces result',
-        },
+        placeId: { type: 'STRING', description: 'Google Places ID' },
       },
       required: ['placeId'],
     },
   },
   {
     name: 'searchImages',
-    description:
-      'Search for images on the web. Use when the user asks to see pictures of something that is NOT a specific venue — for venue photos use getPlaceDetails instead.',
+    description: 'Search for images on the web.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -173,82 +138,51 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getStaticMapUrl',
-    description:
-      'Generate a map image showing a location or route and display it in the chat. Use after giving directions or when the user wants to see where something is on a map.',
+    description: 'Generate a map image showing a location or route.',
     parameters: {
       type: 'OBJECT',
       properties: {
-        center: {
-          type: 'STRING',
-          description: 'Address or "lat,lng" to center the map on',
-        },
-        zoom: {
-          type: 'NUMBER',
-          description: 'Zoom level 1-20 (default 13; use 12 for city, 15 for walking)',
-        },
-        markers: {
-          type: 'ARRAY',
-          items: { type: 'STRING' },
-          description: 'Marker locations as addresses or "lat,lng" strings',
-        },
+        center: { type: 'STRING', description: 'Address or "lat,lng"' },
+        zoom: { type: 'NUMBER', description: 'Zoom level 1-20 (default 13)' },
+        markers: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Marker locations' },
       },
       required: ['center'],
     },
   },
   {
     name: 'searchWeb',
-    description:
-      'Search the web for real-time information: current business hours, prices, reviews, upcoming events, or anything requiring live data beyond your knowledge cutoff.',
+    description: 'Search the web for real-time information.',
     parameters: {
       type: 'OBJECT',
-      properties: {
-        query: { type: 'STRING', description: 'Search query' },
-      },
+      properties: { query: { type: 'STRING', description: 'Search query' } },
       required: ['query'],
     },
   },
   {
     name: 'getDistanceMatrix',
-    description:
-      'Get travel times and distances from multiple origins to multiple destinations. Use for "how long to get from hotel to each restaurant" or comparing multiple locations.',
+    description: 'Get travel times and distances from multiple origins to multiple destinations.',
     parameters: {
       type: 'OBJECT',
       properties: {
-        origins: {
-          type: 'ARRAY',
-          items: { type: 'STRING' },
-          description: 'Starting addresses or place names',
-        },
-        destinations: {
-          type: 'ARRAY',
-          items: { type: 'STRING' },
-          description: 'Destination addresses or place names',
-        },
-        mode: {
-          type: 'STRING',
-          description: 'Travel mode: driving (default), walking, bicycling, or transit',
-        },
+        origins: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Starting addresses' },
+        destinations: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Destination addresses' },
+        mode: { type: 'STRING', description: 'Travel mode: driving, walking, bicycling, transit' },
       },
       required: ['origins', 'destinations'],
     },
   },
   {
     name: 'validateAddress',
-    description:
-      'Validate and clean up an address the user mentioned, and get its exact coordinates. Use when a user dictates an address or asks if an address is correct.',
+    description: 'Validate and clean up an address.',
     parameters: {
       type: 'OBJECT',
-      properties: {
-        address: { type: 'STRING', description: 'Address to validate and geocode' },
-      },
+      properties: { address: { type: 'STRING', description: 'Address to validate' } },
       required: ['address'],
     },
   },
-  // ========== NEW AGENTIC TOOLS ==========
   {
     name: 'updateCalendarEvent',
-    description:
-      'Update an existing trip calendar event. Use for "change dinner to 8pm", "move the meeting".',
+    description: 'Update an existing trip calendar event.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -264,72 +198,60 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'deleteCalendarEvent',
-    description:
-      'Delete an event from the trip calendar. Use for "remove dinner from calendar", "cancel the meeting".',
+    description: 'Delete an event from the trip calendar.',
     parameters: {
       type: 'OBJECT',
-      properties: {
-        eventId: { type: 'STRING', description: 'ID of the event to delete' },
-      },
+      properties: { eventId: { type: 'STRING', description: 'ID of the event to delete' } },
       required: ['eventId'],
     },
   },
   {
     name: 'updateTask',
-    description:
-      'Update an existing trip task. Use for "mark task as done", "change the due date".',
+    description: 'Update an existing trip task.',
     parameters: {
       type: 'OBJECT',
       properties: {
-        taskId: { type: 'STRING', description: 'ID of the task to update' },
-        title: { type: 'STRING', description: 'New task title' },
+        taskId: { type: 'STRING', description: 'ID of the task' },
+        title: { type: 'STRING', description: 'New title' },
         completed: { type: 'BOOLEAN', description: 'Set true to mark complete' },
-        dueDate: { type: 'STRING', description: 'New due date in ISO 8601' },
+        dueDate: { type: 'STRING', description: 'New due date' },
       },
       required: ['taskId'],
     },
   },
   {
     name: 'deleteTask',
-    description:
-      'Delete a task from the trip. Use for "remove that task", "delete the packing task".',
+    description: 'Delete a task from the trip.',
     parameters: {
       type: 'OBJECT',
-      properties: {
-        taskId: { type: 'STRING', description: 'ID of the task to delete' },
-      },
+      properties: { taskId: { type: 'STRING', description: 'ID of the task' } },
       required: ['taskId'],
     },
   },
   {
     name: 'searchTripData',
-    description:
-      'Search across all trip data — calendar, tasks, polls, places, payments. Use for "find anything about dinner".',
+    description: 'Search across all trip data.',
     parameters: {
       type: 'OBJECT',
-      properties: {
-        query: { type: 'STRING', description: 'Search query' },
-      },
+      properties: { query: { type: 'STRING', description: 'Search query' } },
       required: ['query'],
     },
   },
   {
     name: 'detectCalendarConflicts',
-    description:
-      'Check if a time slot conflicts with existing events. Use for "am I free at 7pm?", "do we have anything at that time?".',
+    description: 'Check if a time slot conflicts with existing events.',
     parameters: {
       type: 'OBJECT',
       properties: {
         datetime: { type: 'STRING', description: 'Proposed time in ISO 8601' },
-        endDatetime: { type: 'STRING', description: 'Proposed end time (defaults to +1 hour)' },
+        endDatetime: { type: 'STRING', description: 'Proposed end time' },
       },
       required: ['datetime'],
     },
   },
   {
     name: 'createBroadcast',
-    description:
-      'Send a broadcast to all trip members. Use for "announce to everyone", "let the group know".',
+    description: 'Send a broadcast to all trip members.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -341,8 +263,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getWeatherForecast',
-    description:
-      'Get weather forecast. Use for "what\'s the weather like?", "will it rain?", "should I pack a jacket?".',
+    description: 'Get weather forecast.',
     parameters: {
       type: 'OBJECT',
       properties: {
@@ -354,40 +275,37 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'convertCurrency',
-    description:
-      'Convert between currencies with live rates. Use for "how much is 100 dollars in euros?".',
+    description: 'Convert between currencies with live rates.',
     parameters: {
       type: 'OBJECT',
       properties: {
         amount: { type: 'NUMBER', description: 'Amount to convert' },
-        from: { type: 'STRING', description: 'Source currency code (e.g. USD)' },
-        to: { type: 'STRING', description: 'Target currency code (e.g. EUR)' },
+        from: { type: 'STRING', description: 'Source currency code' },
+        to: { type: 'STRING', description: 'Target currency code' },
       },
       required: ['amount', 'from', 'to'],
     },
   },
   {
     name: 'browseWebsite',
-    description:
-      'Browse a website to extract travel info, menus, booking links. Use when user shares a URL.',
+    description: 'Browse a website to extract travel info.',
     parameters: {
       type: 'OBJECT',
       properties: {
-        url: { type: 'STRING', description: 'Full URL to browse' },
-        instruction: { type: 'STRING', description: 'What to look for on the page' },
+        url: { type: 'STRING', description: 'Full URL' },
+        instruction: { type: 'STRING', description: 'What to look for' },
       },
       required: ['url'],
     },
   },
   {
     name: 'makeReservation',
-    description:
-      'Research and prepare a reservation as a travel agent. Finds venue, browses their site for booking info, adds to calendar.',
+    description: 'Research and prepare a reservation.',
     parameters: {
       type: 'OBJECT',
       properties: {
-        venue: { type: 'STRING', description: 'Restaurant, hotel, or venue name' },
-        datetime: { type: 'STRING', description: 'Desired date/time in ISO 8601' },
+        venue: { type: 'STRING', description: 'Venue name' },
+        datetime: { type: 'STRING', description: 'Desired date/time' },
         partySize: { type: 'NUMBER', description: 'Number of guests' },
         name: { type: 'STRING', description: 'Name for the reservation' },
         specialRequests: { type: 'STRING', description: 'Special requests' },
@@ -397,41 +315,29 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'settleExpense',
-    description:
-      'Mark a payment split as settled. Use for "I paid John back", "mark that as settled".',
+    description: 'Mark a payment split as settled.',
     parameters: {
       type: 'OBJECT',
       properties: {
         splitId: { type: 'STRING', description: 'ID of the payment split' },
-        method: { type: 'STRING', description: 'Payment method used (Venmo, cash, etc.)' },
+        method: { type: 'STRING', description: 'Payment method used' },
       },
       required: ['splitId'],
     },
   },
   {
     name: 'generateTripImage',
-    description:
-      'Generate a custom AI image for the trip. Use for "create a trip cover photo", "make a header image".',
+    description: 'Generate a custom AI image for the trip.',
     parameters: {
       type: 'OBJECT',
       properties: {
         prompt: { type: 'STRING', description: 'Image description' },
-        style: {
-          type: 'STRING',
-          description: 'Style: photo, illustration, watercolor, minimal, vibrant',
-        },
+        style: { type: 'STRING', description: 'Style: photo, illustration, watercolor, minimal, vibrant' },
       },
       required: ['prompt'],
     },
   },
 ];
-
-// Feature flag: enable native Google Search grounding in voice alongside function declarations.
-// DISABLED BY DEFAULT: Gemini does not support combining functionDeclarations with googleSearch
-// in the same request (causes silent WS setup failure — no setupComplete, hangs until timeout).
-// Set ENABLE_VOICE_GROUNDING=true in Supabase secrets to re-enable if future models support it.
-const ENABLE_VOICE_GROUNDING =
-  (Deno.env.get('ENABLE_VOICE_GROUNDING') || 'false').toLowerCase() !== 'false';
 
 /** Voice-specific addendum appended to the full system prompt */
 const VOICE_ADDENDUM = `
@@ -454,45 +360,139 @@ Adapt your responses for voice:
 === VISUAL CARDS IN CHAT ===
 When you call these tools, a visual card automatically appears in the chat window
 (visible when the user exits voice mode):
-- searchPlaces / getPlaceDetails → photos, ratings, and a Maps link appear in chat. Say: "I've shared photos in our chat" then describe the top result verbally.
-- getStaticMapUrl → a map image appears in chat. Say: "I've dropped a map in our chat for you."
-- getDirectionsETA → a directions card with a Maps link appears in chat. Say the drive time aloud and mention: "I've added a link in chat to open it in Maps."
-- searchImages → images appear in chat. Say: "I've pulled up some images in our chat."
-- searchWeb → source links appear in chat. Summarize 1-2 key facts aloud and say: "Check the chat for the source links."
-- getDistanceMatrix → a travel time comparison appears in chat. Read out the key times aloud and say: "I've shared a comparison in the chat."
-- validateAddress → no visual card; just confirm the cleaned-up address and coordinates verbally.
+- searchPlaces / getPlaceDetails → photos, ratings, and a Maps link appear in chat.
+- getStaticMapUrl → a map image appears in chat.
+- getDirectionsETA → a directions card with a Maps link appears in chat.
+- searchImages → images appear in chat.
+- searchWeb → source links appear in chat.
+- getDistanceMatrix → a travel time comparison appears in chat.
+- validateAddress → no visual card; just confirm the address verbally.
 Never speak URLs or markdown. The chat handles the visual output automatically.`;
 
-/**
- * Create an ephemeral token using the current liveConnectConstraints format.
- * See: ai.google.dev/gemini-api/docs/ephemeral-tokens
- *
- * @param includeGrounding - If true, adds googleSearch tool alongside functionDeclarations.
- *   Disabled by default because Gemini does not support combining them (silent WS hang).
- */
-async function createEphemeralToken(params: {
+// ── Vertex AI OAuth2 token minting from Service Account ──
+
+interface ServiceAccountKey {
+  client_email: string;
+  private_key: string;
+  token_uri: string;
+}
+
+function base64UrlEncode(data: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < data.length; i++) binary += String.fromCharCode(data[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function createVertexAccessToken(saKey: ServiceAccountKey): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    iss: saKey.client_email,
+    sub: saKey.client_email,
+    aud: saKey.token_uri || 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+    scope: 'https://www.googleapis.com/auth/cloud-platform',
+  };
+
+  const enc = new TextEncoder();
+  const headerB64 = base64UrlEncode(enc.encode(JSON.stringify(header)));
+  const payloadB64 = base64UrlEncode(enc.encode(JSON.stringify(payload)));
+  const signingInput = `${headerB64}.${payloadB64}`;
+
+  // Import RSA private key
+  const pemBody = saKey.private_key
+    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+    .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(/\s/g, '');
+  const keyBuffer = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    keyBuffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    cryptoKey,
+    enc.encode(signingInput),
+  );
+
+  const signatureB64 = base64UrlEncode(new Uint8Array(signature));
+  const jwt = `${signingInput}.${signatureB64}`;
+
+  // Exchange JWT for access token
+  const tokenUri = saKey.token_uri || 'https://oauth2.googleapis.com/token';
+  const tokenResp = await fetch(tokenUri, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!tokenResp.ok) {
+    const body = await tokenResp.text();
+    throw new Error(`OAuth2 token exchange failed (${tokenResp.status}): ${body.substring(0, 400)}`);
+  }
+
+  const tokenData = await tokenResp.json();
+  if (!tokenData.access_token) {
+    throw new Error('OAuth2 response missing access_token');
+  }
+  return tokenData.access_token;
+}
+
+function parseServiceAccountKey(base64Key: string): ServiceAccountKey {
+  try {
+    const json = atob(base64Key);
+    const parsed = JSON.parse(json);
+    if (!parsed.client_email || !parsed.private_key) {
+      throw new Error('Missing client_email or private_key in service account JSON');
+    }
+    return parsed;
+  } catch (e) {
+    throw new Error(
+      `Invalid VERTEX_SERVICE_ACCOUNT_KEY: ${e instanceof Error ? e.message : 'parse failed'}. ` +
+      'Ensure the value is base64-encoded JSON of the service account key file.',
+    );
+  }
+}
+
+// ── Legacy AI Studio ephemeral token (kept for rollback) ──
+
+const parseEnvInt = (
+  value: string | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(parsed)));
+};
+
+const GEMINI_EPHEMERAL_EXPIRE_MINUTES = parseEnvInt(
+  Deno.env.get('GEMINI_EPHEMERAL_EXPIRE_MINUTES'), 30, 1, 20 * 60,
+);
+const GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS = parseEnvInt(
+  Deno.env.get('GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS'), 120, 10, 20 * 60 * 60,
+);
+const GEMINI_EPHEMERAL_USES = parseEnvInt(Deno.env.get('GEMINI_EPHEMERAL_USES'), 1, 0, 100);
+
+async function createAiStudioEphemeralToken(params: {
   model: string;
   systemInstruction: string;
   voice: string;
-  includeGrounding?: boolean;
 }): Promise<{ token: string; expireTime?: string; newSessionExpireTime?: string }> {
-  if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY not configured');
-  }
+  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured');
 
   const now = Date.now();
   const expireTime = new Date(now + GEMINI_EPHEMERAL_EXPIRE_MINUTES * 60 * 1000).toISOString();
-  const newSessionExpireTime = new Date(
-    now + GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS * 1000,
-  ).toISOString();
+  const newSessionExpireTime = new Date(now + GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS * 1000).toISOString();
 
-  // Build tools array — functionDeclarations only (no googleSearch unless explicitly enabled)
-  const tools: Record<string, unknown>[] = [
-    { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
-    ...(params.includeGrounding ? [{ googleSearch: {} }] : []),
-  ];
-
-  // Use liveConnectConstraints format (current API, replaces deprecated bidiGenerateContentSetup)
   const tokenRequestBody = {
     uses: GEMINI_EPHEMERAL_USES,
     expireTime,
@@ -502,29 +502,19 @@ async function createEphemeralToken(params: {
       config: {
         responseModalities: ['AUDIO', 'TEXT'],
         speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: params.voice,
-            },
-          },
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: params.voice } },
         },
-        systemInstruction: {
-          parts: [{ text: params.systemInstruction }],
-        },
-        tools,
+        systemInstruction: { parts: [{ text: params.systemInstruction }] },
+        tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
       },
     },
   };
 
-  // Use x-goog-api-key header (preferred for server-side) — some proxies/logging strip ?key=
   const tokenResponse = await fetch(
     'https://generativelanguage.googleapis.com/v1alpha/auth_tokens',
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': GEMINI_API_KEY,
-      },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
       body: JSON.stringify(tokenRequestBody),
       signal: AbortSignal.timeout(15_000),
     },
@@ -532,38 +522,19 @@ async function createEphemeralToken(params: {
 
   if (!tokenResponse.ok) {
     const body = await tokenResponse.text();
-    let parsed: { error?: { message?: string } } = {};
-    try {
-      parsed = JSON.parse(body);
-    } catch {
-      /* use raw body */
-    }
-    const errMsg = parsed?.error?.message || body;
-    // Map "unregistered callers" to actionable message for operators
-    if (tokenResponse.status === 403 && errMsg.toLowerCase().includes('unregistered callers')) {
-      throw new Error(
-        'GEMINI_API_KEY is missing, invalid, or has API restrictions (e.g. HTTP referrer) that block server-side requests. ' +
-          'Set GEMINI_API_KEY in Supabase Dashboard → Project Settings → Edge Functions → Secrets. ' +
-          'If using key restrictions, ensure server IPs are allowed.',
-      );
-    }
-    throw new Error(
-      `Failed to create Gemini ephemeral token (${tokenResponse.status}): ${errMsg.substring(0, 400)}`,
-    );
+    throw new Error(`AI Studio token failed (${tokenResponse.status}): ${body.substring(0, 400)}`);
   }
 
   const tokenData = await tokenResponse.json();
   const tokenName = tokenData?.name;
-  if (typeof tokenName !== 'string' || tokenName.trim().length === 0) {
-    throw new Error('Gemini auth_tokens.create returned an empty token');
+  if (typeof tokenName !== 'string' || !tokenName.trim()) {
+    throw new Error('AI Studio auth_tokens returned empty token');
   }
 
-  return {
-    token: tokenName,
-    expireTime: tokenData?.expireTime,
-    newSessionExpireTime: tokenData?.newSessionExpireTime,
-  };
+  return { token: tokenName, expireTime, newSessionExpireTime };
 }
+
+// ── Main handler ──
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -572,61 +543,56 @@ serve(async req => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Health/diagnostic check: GET returns config status (no auth required)
-  // Use this to verify GEMINI_API_KEY is set in Supabase secrets.
+  const useVertex = VOICE_PROVIDER !== 'ai_studio';
+  const currentModel = useVertex ? VERTEX_LIVE_MODEL : AI_STUDIO_LIVE_MODEL;
+  const isVertexConfigured = !!(VERTEX_PROJECT_ID && VERTEX_SERVICE_ACCOUNT_KEY);
+
+  // Health check
   if (req.method === 'GET') {
     return new Response(
       JSON.stringify({
         service: 'gemini-voice-session',
-        configured: !!GEMINI_API_KEY,
-        model: GEMINI_LIVE_MODEL,
-        message: GEMINI_API_KEY
-          ? 'GEMINI_API_KEY is set. Voice sessions should work.'
-          : 'GEMINI_API_KEY not set. Add it in Supabase Dashboard → Project Settings → Edge Functions → Secrets, then redeploy.',
+        provider: useVertex ? 'vertex' : 'ai_studio',
+        configured: useVertex ? isVertexConfigured : !!GEMINI_API_KEY,
+        model: currentModel,
+        voice: DEFAULT_VOICE,
+        location: useVertex ? VERTEX_LOCATION : null,
+        features: {
+          proactiveAudio: useVertex,
+          affectiveDialog: useVertex,
+          grounding: useVertex,
+        },
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );
   }
 
   try {
-    if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
-    }
-
     const requestId = crypto.randomUUID().slice(0, 8);
     const t0 = Date.now();
     const tag = `[gemini-voice-session:${requestId}]`;
 
-    // ── Gate 0: handler_enter — log BEFORE auth so we get a log even if auth fails ──
     let bodyRaw: Record<string, unknown> = {};
     try {
       bodyRaw = await req.json();
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
     const sessionAttemptId =
       typeof bodyRaw?.sessionAttemptId === 'string' ? bodyRaw.sessionAttemptId : 'unknown';
     console.log(`${tag} handler_enter`, {
-      sessionAttemptId,
-      hasApiKey: !!GEMINI_API_KEY,
-      model: GEMINI_LIVE_MODEL,
-      origin: req.headers.get('origin'),
-      t0,
+      sessionAttemptId, provider: useVertex ? 'vertex' : 'ai_studio',
+      model: currentModel, origin: req.headers.get('origin'), t0,
     });
 
     // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.warn(`${tag} No Authorization header`, { sessionAttemptId });
       return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -634,36 +600,25 @@ serve(async req => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', ''),
+    );
 
     if (authError || !user) {
       console.warn(`${tag} Auth failed`, { sessionAttemptId, error: authError?.message });
       return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`${tag} Authenticated`, {
-      userId: user.id,
-      sessionAttemptId,
-      elapsedMs: Date.now() - t0,
-    });
+    console.log(`${tag} Authenticated`, { userId: user.id, sessionAttemptId, elapsedMs: Date.now() - t0 });
 
-    const body = bodyRaw;
-    const requestedVoice = typeof body?.voice === 'string' ? body.voice : 'Puck';
-    const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : 'Puck';
-    const tripId = typeof body?.tripId === 'string' ? body.tripId : undefined;
+    const requestedVoice = typeof bodyRaw?.voice === 'string' ? bodyRaw.voice : DEFAULT_VOICE;
+    const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
+    const tripId = typeof bodyRaw?.tripId === 'string' ? bodyRaw.tripId : undefined;
 
-    // Build full system instruction using shared context builder + prompt builder.
-    // Guarded by a 15s timeout — TripContextBuilder runs multiple DB queries and can
-    // be slow on trips with lots of data. Without this guard it can consume the entire
-    // client-side SESSION_TIMEOUT_MS budget (45s) before the Gemini token fetch starts.
+    // Build system instruction
     let systemInstruction: string;
-
     if (tripId) {
       try {
         const contextTimeout = new Promise<never>((_, reject) =>
@@ -677,102 +632,140 @@ serve(async req => {
         console.log(`${tag} Context built`, { elapsedMs: Date.now() - t0 });
       } catch (contextError) {
         const errMsg = contextError instanceof Error ? contextError.message : String(contextError);
-        console.warn(
-          `${tag} Context failed (${Date.now() - t0}ms): ${errMsg}. Using minimal prompt.`,
-        );
+        console.warn(`${tag} Context failed: ${errMsg}. Using minimal prompt.`);
         systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
       }
     } else {
       systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
     }
-
-    // Append voice-specific delivery guidelines
     systemInstruction += VOICE_ADDENDUM;
 
-    console.log(`${tag} Creating ephemeral token`, {
-      model: GEMINI_LIVE_MODEL,
-      voice,
-      toolCount: VOICE_FUNCTION_DECLARATIONS.length,
-      hasTripContext: !!tripId,
-      tokenFormat: 'liveConnectConstraints',
-      elapsedMs: Date.now() - t0,
-    });
+    // ── VERTEX AI PATH ──
+    if (useVertex) {
+      if (!VERTEX_PROJECT_ID || !VERTEX_SERVICE_ACCOUNT_KEY) {
+        throw new Error(
+          'Vertex AI not configured. Set VERTEX_PROJECT_ID, VERTEX_LOCATION, and VERTEX_SERVICE_ACCOUNT_KEY in Supabase Edge Function secrets.',
+        );
+      }
 
-    const tokenT0 = Date.now();
-    let ephemeral: { token: string; expireTime?: string; newSessionExpireTime?: string };
-    try {
-      ephemeral = await createEphemeralToken({
-        model: GEMINI_LIVE_MODEL,
-        systemInstruction,
+      console.log(`${tag} Creating Vertex OAuth2 token`, {
+        projectId: VERTEX_PROJECT_ID,
+        location: VERTEX_LOCATION,
+        model: VERTEX_LIVE_MODEL,
         voice,
-        includeGrounding: ENABLE_VOICE_GROUNDING,
-      });
-      console.log(`${tag} Token created`, {
-        tokenMs: Date.now() - tokenT0,
-        totalMs: Date.now() - t0,
-        expireTime: ephemeral.expireTime,
-      });
-    } catch (tokenErr) {
-      const tokenErrMsg = tokenErr instanceof Error ? tokenErr.message : String(tokenErr);
-      console.error(`${tag} Token creation failed`, {
-        error: tokenErrMsg,
         elapsedMs: Date.now() - t0,
       });
 
-      // If the model does not support Google Search grounding alongside function
-      // declarations, retry once without grounding. Some Gemini Live models reject
-      // the combination with a 400 or 500 status.
-      if (ENABLE_VOICE_GROUNDING && tokenErrMsg.includes('400')) {
-        console.warn(`${tag} Retrying token creation without Google Search grounding`);
-        try {
-          ephemeral = await createEphemeralToken({
-            model: GEMINI_LIVE_MODEL,
-            systemInstruction,
-            voice,
-            includeGrounding: false,
-          });
-          console.log(`${tag} Token created (no grounding)`, {
-            tokenMs: Date.now() - tokenT0,
-            totalMs: Date.now() - t0,
-          });
-        } catch (retryErr) {
-          console.error(`${tag} Retry without grounding also failed`, {
-            error: retryErr instanceof Error ? retryErr.message : String(retryErr),
-          });
-          throw retryErr;
-        }
-      } else {
-        throw tokenErr;
-      }
+      const saKey = parseServiceAccountKey(VERTEX_SERVICE_ACCOUNT_KEY);
+      const tokenT0 = Date.now();
+      const accessToken = await createVertexAccessToken(saKey);
+
+      console.log(`${tag} Vertex token created`, {
+        tokenMs: Date.now() - tokenT0,
+        totalMs: Date.now() - t0,
+      });
+
+      // Vertex Live API WebSocket URL
+      const websocketUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`;
+
+      // Build the BidiGenerateContentSetup message that the client sends as first WS message
+      const setupMessage = {
+        setup: {
+          model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
+          generationConfig: {
+            responseModalities: ['AUDIO', 'TEXT'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: voice,
+                },
+              },
+            },
+            realtimeInputConfig: {
+              automaticActivityDetection: {
+                startOfSpeechSensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
+                endOfSpeechSensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
+              },
+            },
+          },
+          systemInstruction: {
+            parts: [{ text: systemInstruction }],
+          },
+          tools: [
+            { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
+            { googleSearch: {} },
+          ],
+          // Vertex-specific: enable proactive audio + affective dialog
+          realtimeInputConfig: {
+            automaticActivityDetection: {
+              startOfSpeechSensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
+              endOfSpeechSensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
+            },
+          },
+          outputAudioTranscript: {},
+          inputAudioTranscript: {},
+        },
+      };
+
+      return new Response(
+        JSON.stringify({
+          accessToken,
+          model: VERTEX_LIVE_MODEL,
+          voice,
+          provider: 'vertex',
+          websocketUrl,
+          setupMessage,
+          features: {
+            proactiveAudio: true,
+            affectiveDialog: true,
+            grounding: true,
+          },
+          _rid: requestId,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+      );
     }
 
-    // SECURITY: The response MUST only contain the ephemeral accessToken, NEVER
-    // the raw GEMINI_API_KEY. The client connects to the WebSocket using
-    // ?access_token=<ephemeral> which expires after GEMINI_EPHEMERAL_EXPIRE_MINUTES.
-    // DO NOT add an apiKey field here — it would expose the secret to every user.
+    // ── AI STUDIO FALLBACK PATH ──
+    if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured');
+
+    console.log(`${tag} Creating AI Studio ephemeral token`, {
+      model: AI_STUDIO_LIVE_MODEL, voice, elapsedMs: Date.now() - t0,
+    });
+
+    const tokenT0 = Date.now();
+    const ephemeral = await createAiStudioEphemeralToken({
+      model: AI_STUDIO_LIVE_MODEL,
+      systemInstruction,
+      voice,
+    });
+
+    console.log(`${tag} AI Studio token created`, {
+      tokenMs: Date.now() - tokenT0,
+      totalMs: Date.now() - t0,
+    });
+
+    const CONSTRAINED_WS_URL =
+      'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
+
     return new Response(
       JSON.stringify({
         accessToken: ephemeral.token,
         accessTokenExpiresAt: ephemeral.expireTime ?? null,
         newSessionExpiresAt: ephemeral.newSessionExpireTime ?? null,
-        model: GEMINI_LIVE_MODEL,
+        model: AI_STUDIO_LIVE_MODEL,
         voice,
-        websocketUrl: LIVE_WEBSOCKET_URL,
-        _rid: requestId, // Correlation ID — match with client voiceLog('session:tokenReceived')._rid
+        provider: 'ai_studio',
+        websocketUrl: CONSTRAINED_WS_URL,
+        _rid: requestId,
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );
   } catch (error) {
     console.error('gemini-voice-session error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
