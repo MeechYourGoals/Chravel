@@ -64,11 +64,17 @@ interface UseGeminiLiveOptions {
   onCircuitBreakerOpen?: () => void;
 }
 
+export interface VoiceConversationTurn {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
 interface UseGeminiLiveReturn {
   state: GeminiLiveState;
   error: string | null;
   userTranscript: string;
   assistantTranscript: string;
+  conversationHistory: VoiceConversationTurn[];
   diagnostics: VoiceDiagnostics;
   startSession: () => Promise<void>;
   endSession: () => Promise<void>;
@@ -207,6 +213,7 @@ export function useGeminiLive({
   const [error, setError] = useState<string | null>(null);
   const [userTranscript, setUserTranscript] = useState('');
   const [assistantTranscript, setAssistantTranscript] = useState('');
+  const [conversationHistory, setConversationHistory] = useState<VoiceConversationTurn[]>([]);
   const [diagnostics, setDiagnostics] = useState<VoiceDiagnostics>(initialDiagnostics);
   const stateRef = useRef<GeminiLiveState>('idle');
   const diagnosticsRef = useRef<VoiceDiagnostics>(initialDiagnostics);
@@ -415,14 +422,24 @@ export function useGeminiLive({
     [cleanup],
   );
 
+  /** Emit a completed turn to the callback and append to conversation history. */
+  const emitTurnComplete = useCallback((userText: string, assistantText: string) => {
+    if (!userText && !assistantText) return;
+    onTurnCompleteRef.current?.(userText, assistantText);
+    setConversationHistory(prev => {
+      const next = [...prev];
+      if (userText) next.push({ role: 'user', text: userText });
+      if (assistantText) next.push({ role: 'assistant', text: assistantText });
+      return next;
+    });
+  }, []);
+
   const prevTripIdRef = useRef(tripId);
   useEffect(() => {
     if (prevTripIdRef.current !== tripId && wsRef.current) {
       const pendingUser = userTranscriptAccRef.current.trim();
       const pendingAssistant = assistantTranscriptAccRef.current.trim();
-      if (pendingUser || pendingAssistant) {
-        onTurnCompleteRef.current?.(pendingUser, pendingAssistant);
-      }
+      emitTurnComplete(pendingUser, pendingAssistant);
       void cleanup();
       transition('idle', 'trip_changed');
       setError(null);
@@ -432,7 +449,7 @@ export function useGeminiLive({
       assistantTranscriptAccRef.current = '';
     }
     prevTripIdRef.current = tripId;
-  }, [tripId, cleanup, transition]);
+  }, [tripId, cleanup, emitTurnComplete, transition]);
 
   const flushModelOutput = useCallback(() => {
     playbackQueueRef.current?.flush();
@@ -555,6 +572,7 @@ export function useGeminiLive({
       });
       setError(null);
       resetTurnAccumulators();
+      setConversationHistory([]);
       resetMetricsForNewTurn();
       const sessionId = uniqueId('vs');
       const sessionStartedAt = performance.now();
@@ -945,13 +963,12 @@ export function useGeminiLive({
 
           // Gate 2: Log first 5 inbound message types
           if (wsMessageCount <= 5) {
-            const frameKeys = Object.keys(data).filter(
-              k => k !== 'serverContent' || wsMessageCount <= 3,
-            );
             console.warn(`[VOICE:G2] ws_message_${wsMessageCount}`, {
               sessionAttemptId,
               keys: Object.keys(data),
-              hasSetupComplete: Object.prototype.hasOwnProperty.call(data, 'setupComplete'),
+              hasSetupComplete:
+                Object.prototype.hasOwnProperty.call(data, 'setupComplete') ||
+                Object.prototype.hasOwnProperty.call(data, 'setup_complete'),
               hasError: !!data.error,
             });
           }
@@ -976,10 +993,14 @@ export function useGeminiLive({
             return;
           }
 
+          // Vertex AI may use snake_case field names; handle both conventions
+          const sc_content = data.serverContent || data.server_content;
           const setupComplete =
             Object.prototype.hasOwnProperty.call(data, 'setupComplete') ||
-            (data.serverContent != null &&
-              Object.prototype.hasOwnProperty.call(data.serverContent, 'setupComplete'));
+            Object.prototype.hasOwnProperty.call(data, 'setup_complete') ||
+            (sc_content != null &&
+              (Object.prototype.hasOwnProperty.call(sc_content, 'setupComplete') ||
+                Object.prototype.hasOwnProperty.call(sc_content, 'setup_complete')));
 
           if (setupComplete) {
             console.warn('[VOICE:G2] ws_setup_complete', {
@@ -1091,18 +1112,23 @@ export function useGeminiLive({
             return;
           }
 
-          if (data.toolCall) {
+          // Handle tool calls (both camelCase and snake_case)
+          const toolCallData = data.toolCall || data.tool_call;
+          if (toolCallData) {
+            const fnCalls = toolCallData.functionCalls || toolCallData.function_calls || [];
             voiceLog('server:toolCall', {
-              functions: ((data.toolCall.functionCalls || []) as Array<{ name: string }>).map(
-                fc => fc.name,
-              ),
+              functions: (fnCalls as Array<{ name: string }>).map(fc => fc.name),
             });
-            void handleToolCallWs(ws, data.toolCall);
+            void handleToolCallWs(ws, {
+              functionCalls: fnCalls,
+            });
             return;
           }
 
-          if (data.serverContent) {
-            const sc = data.serverContent;
+          // Handle server content (both camelCase and snake_case)
+          const rawSc = data.serverContent || data.server_content;
+          if (rawSc) {
+            const sc = rawSc;
 
             if (sc.interrupted) {
               flushModelOutput();
@@ -1117,8 +1143,7 @@ export function useGeminiLive({
 
               const partialUser = userTranscriptAccRef.current.trim();
               const partialAssistant = assistantTranscriptAccRef.current.trim();
-              if (partialUser || partialAssistant)
-                onTurnCompleteRef.current?.(partialUser, partialAssistant);
+              emitTurnComplete(partialUser, partialAssistant);
 
               resetTurnAccumulators();
               transition('interrupted', 'server_interrupted');
@@ -1126,7 +1151,10 @@ export function useGeminiLive({
               return;
             }
 
-            const parts = sc.modelTurn?.parts || [];
+            // Vertex AI may use snake_case (model_turn, inline_data) while
+            // AI Studio uses camelCase (modelTurn, inlineData). Handle both.
+            const modelTurn = sc.modelTurn || sc.model_turn;
+            const parts = modelTurn?.parts || [];
             if (parts.length > 0 && !modelRespondingRef.current) {
               modelRespondingRef.current = true;
               if (
@@ -1141,17 +1169,18 @@ export function useGeminiLive({
             }
 
             for (const part of parts) {
-              if (part.inlineData?.data) {
+              const inlineData = part.inlineData || part.inline_data;
+              if (inlineData?.data) {
                 transition('playing', 'model_audio_received');
                 void audioCtxRef.current?.resume().catch(() => {});
                 if (!modelRespondingRef.current) {
                   voiceLog('server:firstAudioChunk', {
-                    mimeType: part.inlineData.mimeType,
-                    dataLen: part.inlineData.data.length,
+                    mimeType: inlineData.mimeType || inlineData.mime_type,
+                    dataLen: inlineData.data.length,
                   });
                 }
                 setState('playing');
-                playbackQueueRef.current?.enqueue(part.inlineData.data);
+                playbackQueueRef.current?.enqueue(inlineData.data);
               }
               if (typeof part.text === 'string' && part.text.length > 0) {
                 transition('playing', 'model_text_received');
@@ -1160,12 +1189,12 @@ export function useGeminiLive({
               }
             }
 
-            if (sc.inputTranscript) {
+            // Handle input transcript (user speech-to-text)
+            const inputTranscript = sc.inputTranscript || sc.input_transcript;
+            if (inputTranscript) {
               clearThinkingTimer();
               const transcript =
-                typeof sc.inputTranscript === 'string'
-                  ? sc.inputTranscript
-                  : sc.inputTranscript?.text || '';
+                typeof inputTranscript === 'string' ? inputTranscript : inputTranscript?.text || '';
               if (transcript) {
                 userHasSpokenRef.current = true;
                 userTranscriptAccRef.current = transcript;
@@ -1177,18 +1206,21 @@ export function useGeminiLive({
               }
             }
 
-            if (sc.outputTranscript) {
+            // Handle output transcript (AI speech-to-text)
+            const outputTranscript = sc.outputTranscript || sc.output_transcript;
+            if (outputTranscript) {
               const transcript =
-                typeof sc.outputTranscript === 'string'
-                  ? sc.outputTranscript
-                  : sc.outputTranscript?.text || '';
+                typeof outputTranscript === 'string'
+                  ? outputTranscript
+                  : outputTranscript?.text || '';
               if (transcript) {
                 assistantTranscriptAccRef.current += transcript;
                 setAssistantTranscript(assistantTranscriptAccRef.current);
               }
             }
 
-            if (sc.turnComplete) {
+            const isTurnComplete = sc.turnComplete || sc.turn_complete;
+            if (isTurnComplete) {
               // Do NOT flush playback here — Gemini sends turnComplete when it
               // finishes *generating*, but audio buffers may still be scheduled
               // for playback. Flushing here cuts off the AI mid-sentence.
@@ -1201,8 +1233,7 @@ export function useGeminiLive({
 
               const finalUser = userTranscriptAccRef.current.trim();
               const finalAssistant = assistantTranscriptAccRef.current.trim();
-              if (finalUser || finalAssistant)
-                onTurnCompleteRef.current?.(finalUser, finalAssistant);
+              emitTurnComplete(finalUser, finalAssistant);
 
               // Clear accumulators immediately so ws.onclose won't re-emit
               // the same turn if the socket drops during the playback tail.
@@ -1270,8 +1301,7 @@ export function useGeminiLive({
 
         const pendingUser = userTranscriptAccRef.current.trim();
         const pendingAssistant = assistantTranscriptAccRef.current.trim();
-        if (pendingUser || pendingAssistant)
-          onTurnCompleteRef.current?.(pendingUser, pendingAssistant);
+        emitTurnComplete(pendingUser, pendingAssistant);
 
         if (msg) {
           recordVoiceFailure(msg);
@@ -1350,6 +1380,7 @@ export function useGeminiLive({
     cleanup,
     clearThinkingTimer,
     debugLog,
+    emitTurnComplete,
     flushModelOutput,
     handleToolCallWs,
     patchDiagnostics,
@@ -1373,23 +1404,23 @@ export function useGeminiLive({
 
     const partialUser = userTranscriptAccRef.current.trim();
     const partialAssistant = assistantTranscriptAccRef.current.trim();
-    if (partialAssistant || partialUser) onTurnCompleteRef.current?.(partialUser, partialAssistant);
+    emitTurnComplete(partialUser, partialAssistant);
 
     resetTurnAccumulators();
     transition('interrupted', 'manual_interrupt');
     transition('listening', 'post_manual_interrupt');
-  }, [flushModelOutput, resetTurnAccumulators, sendCancelSignal, transition]);
+  }, [emitTurnComplete, flushModelOutput, resetTurnAccumulators, sendCancelSignal, transition]);
 
   const endSession = useCallback(async () => {
     const pendingUser = userTranscriptAccRef.current.trim();
     const pendingAssistant = assistantTranscriptAccRef.current.trim();
-    if (pendingUser || pendingAssistant) onTurnCompleteRef.current?.(pendingUser, pendingAssistant);
+    emitTurnComplete(pendingUser, pendingAssistant);
 
     resetTurnAccumulators();
     setError(null);
     transition('idle', 'user_end_session');
     await cleanup();
-  }, [cleanup, resetTurnAccumulators, transition]);
+  }, [cleanup, emitTurnComplete, resetTurnAccumulators, transition]);
 
   const handleResetCircuitBreaker = useCallback(() => {
     resetCircuitBreaker();
@@ -1404,6 +1435,7 @@ export function useGeminiLive({
     error,
     userTranscript,
     assistantTranscript,
+    conversationHistory,
     diagnostics,
     startSession,
     endSession,

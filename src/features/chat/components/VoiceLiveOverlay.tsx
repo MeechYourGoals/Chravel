@@ -1,12 +1,17 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { GeminiLiveState, VoiceDiagnostics } from '@/hooks/useGeminiLive';
+import type {
+  GeminiLiveState,
+  VoiceDiagnostics,
+  VoiceConversationTurn,
+} from '@/hooks/useGeminiLive';
 
 interface VoiceLiveOverlayProps {
   state: GeminiLiveState;
   userTranscript: string;
   assistantTranscript: string;
+  conversationHistory: VoiceConversationTurn[];
   error: string | null;
   circuitBreakerOpen: boolean;
   onEnd: () => void;
@@ -37,20 +42,16 @@ const STATE_DETAIL: Record<GeminiLiveState, string> = {
   error: '',
 };
 
-/* ── Waveform bar count & ring geometry ──────────────────── */
-const BAR_COUNT = 28;
-const RING_RADIUS = 52; // px from center
-const BAR_WIDTH = 3;
-
 /**
- * Full-screen immersive voice overlay for Gemini Live bidirectional sessions.
- * "Waveform Ring" design: a static circle with subtle equalizer bars
- * that react to mic/TTS state, plus an orbiting dot when idle/connecting.
+ * Full-screen immersive voice overlay — transcript-first design.
+ * Like Claude voice / Grok voice: shows real-time text transcription of both
+ * user speech and AI responses, with conversation history from the session.
  */
 export function VoiceLiveOverlay({
   state,
   userTranscript,
   assistantTranscript,
+  conversationHistory,
   error,
   circuitBreakerOpen,
   onEnd,
@@ -58,20 +59,21 @@ export function VoiceLiveOverlay({
   onReconnect,
   diagnostics,
 }: VoiceLiveOverlayProps) {
-  const transcriptRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to bottom when new transcript content arrives
   useEffect(() => {
-    if (transcriptRef.current) {
-      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [assistantTranscript, userTranscript]);
+  }, [conversationHistory, assistantTranscript, userTranscript]);
 
   const isListening = state === 'listening' || state === 'interrupted' || state === 'ready';
   const isSpeaking = state === 'playing';
-  const isThinking = state === 'sending';
   const isConnecting = state === 'requesting_mic';
-  const isIdle = isConnecting || isThinking;
+  const isThinking = state === 'sending';
   const isError = state === 'error' || circuitBreakerOpen;
+  const isActive = isListening || isSpeaking || isThinking;
 
   const statusLabel = STATE_LABEL[state];
   const substep = diagnostics?.substep;
@@ -79,19 +81,16 @@ export function VoiceLiveOverlay({
     ? error || 'Voice connection failed. Tap Reconnect.'
     : substep || STATE_DETAIL[state];
 
-  const errorDetail =
-    isError && diagnostics?.wsCloseCode
-      ? `${error || 'Connection failed'} (WS ${diagnostics.wsCloseCode})`
-      : error || 'Voice connection failed. Tap Reconnect.';
-
-  /* ── Accent color tokens ─────────────────────────────── */
-  const accentColor = isError
-    ? 'rgb(239 68 68)'   // red-500
+  /* ── State indicator color ─────────────────────────────── */
+  const dotColor = isError
+    ? 'bg-red-500'
     : isListening
-      ? 'rgb(16 185 129)' // emerald-500
+      ? 'bg-emerald-500'
       : isSpeaking
-        ? 'rgb(59 130 246)' // blue-500
-        : 'rgb(148 163 184)'; // slate-400
+        ? 'bg-blue-500'
+        : isThinking
+          ? 'bg-amber-400'
+          : 'bg-white/40';
 
   const labelColor = isError
     ? 'text-red-400'
@@ -99,13 +98,13 @@ export function VoiceLiveOverlay({
       ? 'text-emerald-400'
       : isSpeaking
         ? 'text-blue-400'
-        : 'text-white/60';
+        : isThinking
+          ? 'text-amber-400'
+          : 'text-white/60';
 
-  /* ── Pre-compute bar angles ──────────────────────────── */
-  const barAngles = useMemo(
-    () => Array.from({ length: BAR_COUNT }, (_, i) => (360 / BAR_COUNT) * i),
-    [],
-  );
+  const hasLiveContent = !!(userTranscript || assistantTranscript);
+  const hasHistory = conversationHistory.length > 0;
+  const showTranscripts = hasLiveContent || hasHistory;
 
   return (
     <div
@@ -114,197 +113,209 @@ export function VoiceLiveOverlay({
       aria-label="Voice conversation active"
       aria-modal="true"
     >
-      {/* Top bar: LIVE badge + close button */}
-      <div className="flex items-center justify-between px-6 pt-6 pb-2">
-        <div className="flex items-center gap-2">
+      {/* ── Top bar: LIVE badge + state indicator + close button ── */}
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/25">
             <span className="size-2 rounded-full bg-red-500 animate-pulse" />
             <span className="text-[10px] font-bold tracking-widest uppercase text-red-400">
               LIVE
             </span>
           </span>
+          {statusLabel && (
+            <div className="flex items-center gap-2">
+              <span
+                className={`size-2 rounded-full ${dotColor} ${
+                  isConnecting || isThinking ? 'animate-pulse' : ''
+                }`}
+              />
+              <span className={`text-xs font-medium ${labelColor}`}>{statusLabel}</span>
+            </div>
+          )}
         </div>
         <button
           type="button"
           onClick={onEnd}
-          className="size-11 rounded-full bg-white/10 border border-white/15 flex items-center justify-center hover:bg-white/15 active:scale-95 transition-all touch-manipulation"
+          className="size-10 rounded-full bg-white/10 border border-white/15 flex items-center justify-center hover:bg-white/15 active:scale-95 transition-all touch-manipulation"
           aria-label="End voice session"
         >
-          <X size={18} className="text-white/80" />
+          <X size={16} className="text-white/80" />
         </button>
       </div>
 
-      {/* Center: Waveform Ring + status */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6">
-        {/* Static ring container — NO scale pulsing */}
-        <div className="relative size-[160px] flex items-center justify-center">
-          {/* Subtle background glow — static, no animation */}
-          <div
-            className="absolute inset-[-20px] rounded-full opacity-20 blur-2xl"
-            style={{ background: `radial-gradient(circle, ${accentColor}, transparent 70%)` }}
-          />
-
-          {/* Static ring border */}
-          <div
-            className="absolute inset-0 rounded-full border-2 transition-colors duration-500"
-            style={{ borderColor: `color-mix(in srgb, ${accentColor} 30%, transparent)` }}
-          />
-
-          {/* ── Waveform bars (radial equalizer) ─────────── */}
-          <svg
-            className="absolute inset-0"
-            viewBox="0 0 160 160"
-            fill="none"
-            aria-hidden="true"
-          >
-            {barAngles.map((angle, i) => {
-              const rad = (angle * Math.PI) / 180;
-              const cx = 80 + RING_RADIUS * Math.cos(rad);
-              const cy = 80 + RING_RADIUS * Math.sin(rad);
-
-              // Staggered animation delays for organic feel
-              const delay = (i / BAR_COUNT) * 1.2;
-
-              // Bar height ranges by state
-              const minH = 4;
-              const maxH = isListening ? 18 : isSpeaking ? 22 : 6;
-
-              return (
-                <motion.rect
-                  key={i}
-                  x={cx - BAR_WIDTH / 2}
-                  y={cy - minH / 2}
-                  width={BAR_WIDTH}
-                  height={minH}
-                  rx={BAR_WIDTH / 2}
-                  fill={accentColor}
-                  opacity={0.6}
-                  style={{
-                    transformOrigin: `${cx}px ${cy}px`,
-                    transform: `rotate(${angle + 90}deg)`,
-                  }}
-                  animate={
-                    isListening || isSpeaking
-                      ? {
-                          height: [minH, maxH * (0.4 + 0.6 * Math.random()), minH],
-                          y: [cy - minH / 2, cy - maxH * (0.4 + 0.6 * Math.random()) / 2, cy - minH / 2],
-                          opacity: [0.4, 0.8, 0.4],
-                        }
-                      : {
-                          height: minH,
-                          y: cy - minH / 2,
-                          opacity: isIdle ? 0.2 : 0.3,
-                        }
-                  }
-                  transition={
-                    isListening || isSpeaking
-                      ? {
-                          duration: isListening ? 1.0 + Math.random() * 0.6 : 0.6 + Math.random() * 0.4,
-                          repeat: Infinity,
-                          ease: 'easeInOut',
-                          delay,
-                        }
-                      : { duration: 0.5 }
-                  }
-                />
-              );
-            })}
-          </svg>
-
-          {/* ── Orbiting dot (idle / connecting / thinking) ── */}
-          {isIdle && (
-            <motion.div
-              className="absolute"
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: accentColor,
-                boxShadow: `0 0 8px 2px ${accentColor}`,
-              }}
-              animate={{
-                x: Array.from({ length: 61 }, (_, i) => RING_RADIUS * Math.cos((i / 60) * 2 * Math.PI - Math.PI / 2)),
-                y: Array.from({ length: 61 }, (_, i) => RING_RADIUS * Math.sin((i / 60) * 2 * Math.PI - Math.PI / 2)),
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: 'linear',
-              }}
-            />
-          )}
-
-          {/* Center: small static dot indicator */}
-          {!isIdle && (
-            <div
-              className="absolute size-3 rounded-full transition-colors duration-500"
-              style={{ background: accentColor, opacity: 0.6 }}
-            />
-          )}
-        </div>
-
-        {/* Status label */}
-        <div className="text-center">
-          <p className={`text-lg font-semibold ${labelColor}`}>
-            {statusLabel}
-          </p>
-          {statusDetail && (
-            <p className="text-sm text-white/50 mt-1">
-              {isError ? errorDetail : statusDetail}
-            </p>
-          )}
-        </div>
-
-        {/* Error action buttons */}
-        {state === 'error' && !circuitBreakerOpen && onReconnect && (
-          <button
-            type="button"
-            onClick={onReconnect}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-white text-sm touch-manipulation"
-            aria-label="Reconnect voice"
-          >
-            <RefreshCw size={14} />
-            Reconnect
-          </button>
+      {/* ── Main content: transcript area ── */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-none px-5 pb-4">
+        {/* Connecting / waiting state */}
+        {(isConnecting || (!showTranscripts && !isActive && !isError)) && (
+          <div className="flex flex-col items-center justify-center h-full gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className={`size-2 rounded-full ${dotColor} animate-pulse`} />
+              <span
+                className={`size-2 rounded-full ${dotColor} animate-pulse`}
+                style={{ animationDelay: '0.15s' }}
+              />
+              <span
+                className={`size-2 rounded-full ${dotColor} animate-pulse`}
+                style={{ animationDelay: '0.3s' }}
+              />
+            </div>
+            <p className="text-sm text-white/50">{statusDetail}</p>
+          </div>
         )}
-        {circuitBreakerOpen && (
-          <button
-            type="button"
-            onClick={onResetCircuitBreaker}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-white text-sm touch-manipulation"
-            aria-label="Reset circuit breaker and retry voice"
-          >
-            <RefreshCw size={14} />
-            Try again
-          </button>
+
+        {/* Ready / listening — waiting for first speech */}
+        {isActive && !showTranscripts && !isConnecting && (
+          <div className="flex flex-col items-center justify-center h-full gap-3">
+            <span className={`size-3 rounded-full ${dotColor}`} />
+            <p className="text-base text-white/60">{statusDetail}</p>
+          </div>
+        )}
+
+        {/* Error state */}
+        {isError && !showTranscripts && (
+          <div className="flex flex-col items-center justify-center h-full gap-4">
+            <p className="text-sm text-red-400/80 text-center px-8 leading-relaxed">
+              {error || 'Voice connection failed. Tap Reconnect.'}
+            </p>
+            {state === 'error' && !circuitBreakerOpen && onReconnect && (
+              <button
+                type="button"
+                onClick={onReconnect}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-white text-sm touch-manipulation"
+                aria-label="Reconnect voice"
+              >
+                <RefreshCw size={14} />
+                Reconnect
+              </button>
+            )}
+            {circuitBreakerOpen && (
+              <button
+                type="button"
+                onClick={onResetCircuitBreaker}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-white text-sm touch-manipulation"
+                aria-label="Reset circuit breaker and retry voice"
+              >
+                <RefreshCw size={14} />
+                Try again
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Conversation transcript ── */}
+        {showTranscripts && (
+          <div className="flex flex-col gap-5 py-4">
+            {/* Past turns from conversation history */}
+            {conversationHistory.map((turn, idx) => (
+              <motion.div
+                key={`history-${idx}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className={turn.role === 'user' ? 'self-end max-w-[85%]' : 'self-start max-w-[85%]'}
+              >
+                <p
+                  className={
+                    turn.role === 'user'
+                      ? 'text-sm text-white/35 italic text-right leading-relaxed'
+                      : 'text-sm text-white/50 leading-relaxed'
+                  }
+                >
+                  {turn.text}
+                </p>
+              </motion.div>
+            ))}
+
+            {/* Current turn — live transcription */}
+            <AnimatePresence mode="sync">
+              {userTranscript && (
+                <motion.div
+                  key="live-user"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="self-end max-w-[85%]"
+                >
+                  <p className="text-base text-white/60 italic text-right leading-relaxed">
+                    {userTranscript}
+                    <span className="inline-block w-0.5 h-4 bg-white/40 ml-0.5 align-text-bottom animate-pulse" />
+                  </p>
+                </motion.div>
+              )}
+              {assistantTranscript && (
+                <motion.div
+                  key="live-assistant"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="self-start max-w-[85%]"
+                >
+                  <p className="text-base text-white/90 leading-relaxed">
+                    {assistantTranscript}
+                    {isSpeaking && (
+                      <span className="inline-block w-0.5 h-4 bg-blue-400 ml-0.5 align-text-bottom animate-pulse" />
+                    )}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Thinking indicator between user speech and AI response */}
+            {isThinking && !assistantTranscript && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="self-start">
+                <div className="flex items-center gap-1.5 py-1">
+                  <span className="size-1.5 rounded-full bg-amber-400/60 animate-pulse" />
+                  <span
+                    className="size-1.5 rounded-full bg-amber-400/60 animate-pulse"
+                    style={{ animationDelay: '0.15s' }}
+                  />
+                  <span
+                    className="size-1.5 rounded-full bg-amber-400/60 animate-pulse"
+                    style={{ animationDelay: '0.3s' }}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Bottom: Transcript area */}
-      <div className="px-6 pb-8" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 32px)' }}>
-        <AnimatePresence mode="wait">
-          {(assistantTranscript || userTranscript) && !isError && (
-            <motion.div
-              ref={transcriptRef}
-              className="max-h-48 overflow-y-auto scrollbar-none"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {userTranscript && (
-                <p className="text-sm text-white/40 italic leading-relaxed text-center">
-                  &ldquo;{userTranscript}&rdquo;
-                </p>
-              )}
-              {assistantTranscript && (
-                <p className="text-base text-white/85 leading-relaxed mt-2 text-center">
-                  {assistantTranscript}
-                </p>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* ── Bottom bar: state indicator + error recovery ── */}
+      <div
+        className="px-5 pb-4 flex flex-col items-center gap-3"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)' }}
+      >
+        {/* State detail when transcript is visible */}
+        {showTranscripts && !isError && <p className={`text-xs ${labelColor}`}>{statusDetail}</p>}
+
+        {/* Error buttons when transcript is visible */}
+        {isError && showTranscripts && (
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-xs text-red-400/70">{error || 'Connection lost'}</p>
+            {state === 'error' && !circuitBreakerOpen && onReconnect && (
+              <button
+                type="button"
+                onClick={onReconnect}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-white text-xs touch-manipulation"
+              >
+                <RefreshCw size={12} />
+                Reconnect
+              </button>
+            )}
+            {circuitBreakerOpen && (
+              <button
+                type="button"
+                onClick={onResetCircuitBreaker}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 active:scale-95 transition-all text-white text-xs touch-manipulation"
+              >
+                <RefreshCw size={12} />
+                Try again
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
