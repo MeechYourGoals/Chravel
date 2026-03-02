@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Crown, Sparkles, ImagePlus } from 'lucide-react';
+import { Search, ImagePlus } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -22,7 +22,6 @@ import {
   type SmartImportStatus,
 } from '@/services/conciergeGateway';
 import type { HotelResult } from '@/features/chat/components/HotelResultCards';
-import { Button } from './ui/button';
 import { toast } from 'sonner';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
@@ -279,8 +278,7 @@ export const AIConciergeChat = ({
   onTabChange,
 }: AIConciergeChatProps) => {
   const { basecamp: globalBasecamp } = useBasecamp();
-  const { usage, refreshUsage, incrementUsageOnSuccess, isLimitedPlan, userPlan, upgradeUrl } =
-    useConciergeUsage(tripId);
+  const { usage, incrementUsageOnSuccess, isLimitedPlan, userPlan } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const { user } = useAuth();
   const loadedPreferences = useAIConciergePreferences();
@@ -327,10 +325,26 @@ export const AIConciergeChat = ({
   const handleSendMessageRef = useRef<(messageOverride?: string) => Promise<void>>(async () =>
     Promise.resolve(),
   );
-  const hasShownLimitToastRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isMounted = useRef(true);
+
+  /** Build a concierge-style assistant message when the user has hit their query limit. */
+  const buildLimitReachedMessage = useCallback((): ChatMessage => {
+    const plan = userPlan === 'explorer' ? 'Explorer' : 'free';
+    const ctaTarget =
+      userPlan === 'explorer' ? 'Frequent Chraveler' : 'Explorer or Frequent Chraveler';
+    return {
+      id: `limit-reached-${Date.now()}`,
+      type: 'assistant',
+      content:
+        `Thanks so much for your question! Unfortunately you've reached your Concierge limit ` +
+        `for this trip on the ${plan} plan. Upgrade to the ${ctaTarget} plan to keep chatting ` +
+        `with your AI Concierge and get even more personalised trip recommendations.`,
+      timestamp: new Date().toISOString(),
+    };
+  }, [userPlan]);
+
   // Guard so history hydration only fires once per mount, even if historyMessages
   // reference changes. Avoids the stale-closure race where messages.length is
   // read from a stale closure but the user has already submitted a message.
@@ -435,13 +449,6 @@ export const AIConciergeChat = ({
             toast.warning('Voice turn not saved', {
               description: 'Your voice conversation could not be saved to history.',
             });
-          } else if (isLimitedPlan) {
-            // Increment usage counter for voice turns — matches text-mode behaviour.
-            try {
-              await incrementUsageOnSuccess();
-            } catch {
-              // Non-fatal: the turn was saved even if usage tracking failed.
-            }
           }
         } catch (err) {
           console.error('[Voice] Unexpected error persisting voice turn:', err);
@@ -451,7 +458,7 @@ export const AIConciergeChat = ({
         }
       }
     },
-    [user?.id, tripId, isLimitedPlan, incrementUsageOnSuccess],
+    [user?.id, tripId],
   );
 
   const handleLiveError = useCallback((msg: string) => {
@@ -493,9 +500,33 @@ export const AIConciergeChat = ({
       await endLiveSession();
       return;
     }
+
+    // Gate: check limit before starting a new voice conversation.
+    // A full voice conversation counts as a single concierge query.
+    if (isLimitedPlan) {
+      let incrementResult;
+      try {
+        incrementResult = await incrementUsageOnSuccess();
+      } catch {
+        toast.error('Unable to verify Concierge allowance. Please try again.');
+        return;
+      }
+      if (!incrementResult.incremented) {
+        setMessages(prev => [...prev, buildLimitReachedMessage()]);
+        return;
+      }
+    }
+
     setLiveOverlayOpen(true);
     await startLiveSession();
-  }, [liveState, startLiveSession, endLiveSession]);
+  }, [
+    liveState,
+    startLiveSession,
+    endLiveSession,
+    isLimitedPlan,
+    incrementUsageOnSuccess,
+    buildLimitReachedMessage,
+  ]);
 
   const handleEndLiveSession = useCallback(() => {
     void endLiveSession();
@@ -661,29 +692,6 @@ export const AIConciergeChat = ({
     return () => clearTimeout(timeout);
   }, [aiStatus, messages.length]);
 
-  const isQueryLimitReached = Boolean(isLimitedPlan && usage?.isLimitReached);
-
-  const showLimitReachedToast = useCallback((plan: 'free' | 'explorer') => {
-    const message =
-      plan === 'free'
-        ? "You've used all 5 Concierge asks for this trip."
-        : "You've used all 10 Concierge asks for this trip.";
-    toast.error(message, {
-      description: 'Upgrade to Frequent Chraveler for unlimited Concierge.',
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isQueryLimitReached || !usage?.limit) {
-      hasShownLimitToastRef.current = false;
-      return;
-    }
-
-    if (hasShownLimitToastRef.current) return;
-    showLimitReachedToast(usage.plan === 'explorer' ? 'explorer' : 'free');
-    hasShownLimitToastRef.current = true;
-  }, [isQueryLimitReached, showLimitReachedToast, usage?.limit, usage?.plan]);
-
   // Monitor offline status
   useEffect(() => {
     if (isOffline) {
@@ -845,25 +853,20 @@ export const AIConciergeChat = ({
 
     if (isLimitedPlan) {
       // Atomically check AND increment usage via a single DB RPC call.
-      // This prevents the non-atomic race where two concurrent browser tabs both
-      // pass a read-only `refreshUsage()` check and both consume a query slot.
-      // If the limit is already reached, the RPC returns incremented=false without
-      // incrementing — the gate is enforced at the Postgres level, not the client.
-      // Trade-off: if the subsequent AI call fails (network, server error), one quota
-      // unit is consumed. This is preferable to the double-spend concurrency bug.
+      // A full text conversation counts as one query.
       let incrementResult;
       try {
         incrementResult = await incrementUsageOnSuccess();
       } catch {
-        toast.error('Unable to verify Concierge query allowance right now. Please try again.');
+        toast.error('Unable to verify Concierge allowance. Please try again.');
         setMessages(prev => prev.filter(m => m.id !== userMessage.id));
         setIsTyping(false);
         return;
       }
 
       if (!incrementResult.incremented) {
-        showLimitReachedToast(incrementResult.plan === 'explorer' ? 'explorer' : 'free');
-        setMessages(prev => prev.filter(m => m.id !== userMessage.id));
+        // Limit reached — reply with an inline assistant CTA instead of blocking.
+        setMessages(prev => [...prev, buildLimitReachedMessage()]);
         setIsTyping(false);
         return;
       }
@@ -1678,43 +1681,8 @@ export const AIConciergeChat = ({
           }}
         />
 
-        {/* Usage Limit Reached State */}
-        {isQueryLimitReached && usage?.limit !== null && (
-          <div className="text-center py-6 px-4 mb-4 flex-shrink-0">
-            <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Crown size={24} className="text-white" />
-            </div>
-            <h4 className="text-white font-medium mb-2">Trip Limit Reached</h4>
-            <p className="text-sm text-gray-300 mb-4 max-w-sm mx-auto">
-              You've used all {usage.limit} Concierge asks for this trip.
-            </p>
-            <div className="flex flex-col gap-2 max-w-xs mx-auto">
-              {userPlan === 'free' && (
-                <Button
-                  onClick={() => (window.location.href = upgradeUrl)}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full"
-                >
-                  <Crown size={16} className="mr-2" />
-                  Explorer - 10 Asks/Trip ($9.99/mo)
-                </Button>
-              )}
-              <Button
-                onClick={() => (window.location.href = upgradeUrl)}
-                variant="outline"
-                className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-500/50 hover:bg-purple-500/30 w-full"
-              >
-                <Sparkles size={16} className="mr-2" />
-                Frequent Chraveler - Unlimited ($19.99/mo)
-              </Button>
-            </div>
-            <p className="text-xs text-gray-500 mt-3">
-              Your previous conversations are saved and will remain accessible.
-            </p>
-          </div>
-        )}
-
         {/* History loading skeleton — prevents flash of empty → populated */}
-        {isHistoryLoading && messages.length === 0 && !isQueryLimitReached && (
+        {isHistoryLoading && messages.length === 0 && (
           <div className="flex flex-col gap-3 p-4 animate-pulse flex-shrink-0">
             <div className="h-8 bg-white/10 rounded-xl w-3/4" />
             <div className="h-8 bg-white/10 rounded-xl w-1/2 self-end" />
@@ -1723,7 +1691,7 @@ export const AIConciergeChat = ({
         )}
 
         {/* Empty State - Compact for Mobile */}
-        {messages.length === 0 && !isHistoryLoading && !isQueryLimitReached && (
+        {messages.length === 0 && !isHistoryLoading && (
           <div className="text-center py-6 px-4 flex-shrink-0">
             <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
               Your Travel Concierge
@@ -1818,7 +1786,6 @@ export const AIConciergeChat = ({
             }}
             onKeyPress={handleKeyPress}
             isTyping={isTyping}
-            disabled={isQueryLimitReached}
             showImageAttach={UPLOAD_ENABLED}
             attachedImages={UPLOAD_ENABLED ? attachedImages : []}
             onImageAttach={

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Send, Sparkles, X, CalendarPlus, Bookmark, ListChecks } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Send, X, CalendarPlus, Bookmark, ListChecks } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
@@ -12,12 +11,6 @@ interface AiChatInputProps {
   onKeyPress: (e: React.KeyboardEvent) => void;
   isTyping: boolean;
   disabled?: boolean;
-  usageStatus?: {
-    status: 'ok' | 'warning' | 'limit_reached';
-    message: string;
-    color: string;
-  };
-  onUpgradeClick?: () => void;
   /** Conversation mode state (Gemini Live waveform button) */
   convoVoiceState?: VoiceState;
   /** Toggle conversation mode on/off */
@@ -45,8 +38,6 @@ export const AiChatInput = ({
   onKeyPress,
   isTyping,
   disabled = false,
-  usageStatus,
-  onUpgradeClick,
   convoVoiceState = 'idle',
   onConvoToggle,
   isVoiceEligible = false,
@@ -81,49 +72,18 @@ export const AiChatInput = ({
     void onSendMessage();
   };
 
-  const isLimitReached = usageStatus?.status === 'limit_reached';
-
   // Derived conversation active state
   const isConvoActive =
     isVoiceEligible && convoVoiceState !== 'idle' && convoVoiceState !== 'error';
 
   // Dynamic placeholder based on active mode
   const getPlaceholder = () => {
-    if (isLimitReached) return 'Upgrade to continue chatting...';
     if (isConvoActive) return 'Conversation active\u2026';
     return '';
   };
 
   return (
     <div className="space-y-2">
-      {/* Usage Status Badge */}
-      {usageStatus && (
-        <div className="flex items-center justify-between px-1">
-          <Badge
-            variant={
-              isLimitReached
-                ? 'destructive'
-                : usageStatus.status === 'warning'
-                  ? 'secondary'
-                  : 'outline'
-            }
-            className="text-xs"
-          >
-            {usageStatus.message}
-          </Badge>
-          {isLimitReached && onUpgradeClick && (
-            <button
-              type="button"
-              onClick={() => onUpgradeClick()}
-              className="text-xs text-primary hover:underline flex items-center gap-1"
-            >
-              <Sparkles className="w-3 h-3" />
-              Upgrade for unlimited
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Image Previews */}
       {attachedImages.length > 0 && (
         <div className="flex gap-2 px-1 overflow-x-auto">
@@ -190,7 +150,7 @@ export const AiChatInput = ({
             onKeyPress={handleKeyPress}
             placeholder={getPlaceholder()}
             rows={2}
-            disabled={disabled || isLimitReached}
+            disabled={disabled}
             className={`w-full bg-white/5 border rounded-2xl px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
               isConvoActive ? 'border-blue-500/30 bg-blue-500/5' : 'border-white/10'
             }`}
@@ -201,12 +161,7 @@ export const AiChatInput = ({
         <button
           type="button"
           onClick={handleSendClick}
-          disabled={
-            (!inputMessage.trim() && attachedImages.length === 0) ||
-            isTyping ||
-            disabled ||
-            isLimitReached
-          }
+          disabled={(!inputMessage.trim() && attachedImages.length === 0) || isTyping || disabled}
           aria-label="Send message"
           className={`size-11 rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`}
         >
