@@ -22,9 +22,26 @@ function escapeHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
+// Landscape branded fallback for trips without a cover photo (1200x630)
+const OG_FALLBACK_IMAGE = 'https://chravel.app/chravelapp-og-landscape.png';
+
 // Demo covers base URL - Supabase Storage
 const DEMO_COVERS_BASE =
   'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers';
+
+/**
+ * Transform a Supabase Storage URL to use the image render API for 1200x630 cropping.
+ * This ensures og:image is always landscape so platforms show the stacked (image-on-top) layout.
+ * Non-storage URLs are returned as-is.
+ */
+function toLandscapeOgImage(url: string): string {
+  const STORAGE_OBJECT_PREFIX = 'jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/';
+  if (url.includes(STORAGE_OBJECT_PREFIX)) {
+    return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') +
+      '?width=1200&height=630&resize=cover';
+  }
+  return url;
+}
 
 // Demo trip data with Supabase Storage images for OG tags
 // IMPORTANT: Keep in sync with src/data/tripsData.ts - this is the source of truth for OG previews
@@ -374,6 +391,8 @@ function generateHTML(
   const safeDateRange = escapeHtml(trip.dateRange);
   const safeDescription = escapeHtml(trip.description);
   const safeCoverPhoto = escapeHtml(trip.coverPhoto);
+  // OG image must be landscape (1200x630) for stacked layout in messaging apps
+  const ogImageUrl = escapeHtml(toLandscapeOgImage(trip.coverPhoto));
 
   // Where humans should land after unfurling (public preview page with auth handling).
   const appTripUrl = `${appBaseUrl}/trip/${encodeURIComponent(tripId)}/preview`;
@@ -406,7 +425,7 @@ function generateHTML(
   <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
   <meta property="og:title" content="${safeTitle} • ${safeLocation} • ${safeDateRange}">
   <meta property="og:description" content="📍 ${safeLocation} • 📅 ${safeDateRange} • ${trip.participantCount} Chravelers">
-  <meta property="og:image" content="${safeCoverPhoto}">
+  <meta property="og:image" content="${ogImageUrl}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="ChravelApp">
@@ -415,7 +434,7 @@ function generateHTML(
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${safeTitle} • ${safeLocation} • ${safeDateRange}">
   <meta name="twitter:description" content="📍 ${safeLocation} • 📅 ${safeDateRange} • ${trip.participantCount} Chravelers">
-  <meta name="twitter:image" content="${safeCoverPhoto}">
+  <meta name="twitter:image" content="${ogImageUrl}">
   
   <!-- Additional Meta Tags -->
   <meta name="description" content="${safeDescription}">

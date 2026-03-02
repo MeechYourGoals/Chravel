@@ -21,9 +21,25 @@ const escapeHtml = (str: string): string => {
     .replace(/'/g, '&#039;');
 };
 
+// Landscape branded fallback for trips without a cover photo (1200x630)
+const OG_FALLBACK_IMAGE = 'https://chravel.app/chravelapp-og-landscape.png';
+
 // Demo covers base URL - Supabase Storage
 const DEMO_COVERS_BASE =
   'https://jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/trip-media/demo-covers';
+
+/**
+ * Transform a Supabase Storage URL to use the image render API for 1200x630 cropping.
+ * This ensures og:image is always landscape so platforms show the stacked (image-on-top) layout.
+ */
+function toLandscapeOgImage(url: string): string {
+  const STORAGE_OBJECT_PREFIX = 'jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/';
+  if (url.includes(STORAGE_OBJECT_PREFIX)) {
+    return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') +
+      '?width=1200&height=630&resize=cover';
+  }
+  return url;
+}
 
 // Demo trip data with Supabase Storage images for OG tags
 // IMPORTANT: Keep in sync with src/data/tripsData.ts - this is the source of truth for OG previews
