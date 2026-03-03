@@ -1,0 +1,11 @@
+--- supabase/functions/lovable-concierge/index.ts
++++ supabase/functions/lovable-concierge/index.ts
+@@ -835,6 +835,7 @@
+             location: { type: 'string', description: 'Event location or address' },
+             notes: { type: 'string', description: 'Additional notes or description' },
++            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
+           },
+-          required: ['title', 'datetime'],
++          required: ['title', 'datetime', 'idempotency_key'],
+         },
+       },

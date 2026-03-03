@@ -4,51 +4,26 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test-setup.ts'],
+    globals: true,
+    include: ['src/**/*.test.{ts,tsx}', 'supabase/functions/**/__tests__/*.test.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: ['node_modules/', 'src/test-setup.ts', '**/*.d.ts'],
+    },
+    // Fix compatibility issues with complex DOM/storage interactions
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-    },
-  },
-  test: {
-    environment: 'happy-dom',
-    setupFiles: ['./src/test-setup.ts'],
-    globals: true,
-    // Exclude e2e tests (these use Playwright, not Vitest)
-    // Exclude integration tests with mock hoisting issues pending infrastructure fix
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/e2e/**',
-      '**/*.integration.test.{ts,tsx}',
-      // These tests have vi.mock hoisting issues with shared mock utilities
-      'src/__tests__/calendar-conflict.test.tsx',
-      'src/__tests__/chat-flow.test.tsx',
-      'src/__tests__/payment-balance.test.tsx',
-      'src/__tests__/trip-creation-flow.test.tsx',
-    ],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
-      exclude: [
-        'node_modules/',
-        'src/test-setup.ts',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/mockData/**',
-        '**/__tests__/**',
-        '**/*.test.{ts,tsx}',
-        '**/*.spec.{ts,tsx}',
-        'dist/',
-        'build/',
-        'coverage/',
-      ],
-      // Thresholds will be enforced gradually as coverage improves
-      // thresholds: {
-      //   lines: 50,
-      //   functions: 50,
-      //   branches: 50,
-      //   statements: 50,
-      // },
     },
   },
 });

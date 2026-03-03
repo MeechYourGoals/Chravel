@@ -1245,9 +1245,8 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             notes: { type: 'string', description: 'Additional notes or details for the task' },
             assignee: { type: 'string', description: 'Name of the person to assign the task to' },
             dueDate: { type: 'string', description: 'Due date in ISO 8601 format' },
-            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
           },
-          required: ['title', 'idempotency_key'],
+          required: ['title'],
         },
       },
       {
@@ -1255,16 +1254,15 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         description: 'Create a poll for the group to vote on',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             question: { type: 'string', description: 'The poll question' },
             options: {
               type: 'array',
               items: { type: 'string' },
               description: 'List of poll options (2-6 options)',
             },
-            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
           },
-          required: ['question', 'options', 'idempotency_key'],
+          required: ['question', 'options'],
         },
       },
       {
@@ -1430,7 +1428,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Save a place, link, or recommendation to the trip Explore/Places section. Use when user says "save this place", "add this to our trip", "bookmark this restaurant", or when recommending a great option the user wants to keep. For "save this flight" requests, set url to the flight deeplink and category to "activity".',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             name: { type: 'string', description: 'Name of the place or link' },
             url: {
               type: 'string',
@@ -1445,9 +1443,8 @@ Answer the user's question accurately. Use web search for real-time info (weathe
               description:
                 'Category: attraction, accommodation, activity, appetite (food/drink), or other',
             },
-            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
           },
-          required: ['name', 'idempotency_key'],
+          required: ['name'],
         },
       },
       {
@@ -1877,26 +1874,6 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             },
           },
           required: ['action'],
-        },
-      },
-
-            id: { type: 'string', description: 'The returned ID of the artifact if known' },
-            idempotency_key: { type: 'string', description: 'The idempotency key used when creating the artifact' },
-          },
-          required: ['type'],
-        },
-      },
-          {
-        name: 'verify_artifact',
-        description: 'Verify that a previously-created artifact exists in the database using its ID or idempotency_key.',
-        parameters: {
-          type: 'object',
-          properties: {
-            type: { type: 'string', description: 'task, event, place, link, poll' },
-            id: { type: 'string', description: 'The returned ID of the artifact if known' },
-            idempotency_key: { type: 'string', description: 'The idempotency key used when creating the artifact' },
-          },
-          required: ['type'],
         },
       },
     ];

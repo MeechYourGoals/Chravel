@@ -1,0 +1,60 @@
+--- supabase/functions/lovable-concierge/index.ts
++++ supabase/functions/lovable-concierge/index.ts
+@@ -835,6 +835,7 @@
+             location: { type: 'string', description: 'Event location or address' },
+             notes: { type: 'string', description: 'Additional notes or description' },
++            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
+           },
+-          required: ['title', 'datetime'],
++          required: ['title', 'datetime', 'idempotency_key'],
+         },
+       },
+@@ -847,6 +848,7 @@
+             notes: { type: 'string', description: 'Additional notes or details for the task' },
+             assignee: { type: 'string', description: 'Name of the person to assign the task to' },
+             dueDate: { type: 'string', description: 'Due date in ISO 8601 format' },
++            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
+           },
+-          required: ['title'],
++          required: ['title', 'idempotency_key'],
+         },
+       },
+@@ -860,6 +862,7 @@
+               items: { type: 'string' },
+               description: 'List of poll options (2-6 options)',
+             },
++            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
+           },
+-          required: ['question', 'options'],
++          required: ['question', 'options', 'idempotency_key'],
+         },
+       },
+@@ -1014,6 +1017,7 @@
+               description:
+                 'Category: attraction, accommodation, activity, appetite (food/drink), or other',
+             },
++            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
+           },
+-          required: ['name'],
++          required: ['name', 'idempotency_key'],
+         },
+       },
+@@ -1280,6 +1284,21 @@
+         },
+       },
++      {
++        name: 'verify_artifact',
++        description: 'Verify that a previously-created artifact exists in the database using its ID or idempotency_key.',
++        parameters: {
++          type: 'object',
++          properties: {
++            type: { type: 'string', description: 'task, event, place, link, poll' },
++            id: { type: 'string', description: 'The returned ID of the artifact if known' },
++            idempotency_key: { type: 'string', description: 'The idempotency key used when creating the artifact' },
++          },
++          required: ['type'],
++        },
++      },
+     ];
+
+     // ========== BUILD GEMINI TOOLS ==========
