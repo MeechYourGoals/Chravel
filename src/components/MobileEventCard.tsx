@@ -27,8 +27,9 @@ import { ShareTripModal } from './share/ShareTripModal';
 import { TripExportModal } from './trip/TripExportModal';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
-import { useEvents } from '../hooks/useEvents';
 import { useToast } from '../hooks/use-toast';
+import { useDeleteTrip } from '../hooks/useDeleteTrip';
+import { archiveService } from '../services/archiveService';
 import { useAuth } from '../hooks/useAuth';
 import { getProTripColor } from '../utils/proTripColors';
 import { getExportData } from '../services/tripExportDataService';
@@ -63,10 +64,10 @@ export const MobileEventCard = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  
   const { toast } = useToast();
   const { user } = useAuth();
-  const { archiveTrip, hideTrip, deleteTripForMe } = useEvents();
+  const { deleteTrip, isDeleting } = useDeleteTrip();
 
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
   const eventColor = getProTripColor(event.id, (event as any).card_color);
@@ -115,14 +116,14 @@ export const MobileEventCard = ({
 
   const handleArchiveEvent = async () => {
     try {
-      await archiveTrip(event.id);
+      await archiveService.archiveTrip(event.id.toString(), 'event');
       toast({
         title: 'Event archived',
         description: `"${event.title}" has been archived. View it in the Archived tab.`,
       });
       setShowArchiveDialog(false);
       onArchiveSuccess?.();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Failed to archive event',
         description: 'There was an error archiving your event. Please try again.',
@@ -133,13 +134,13 @@ export const MobileEventCard = ({
 
   const handleHideEvent = async () => {
     try {
-      await hideTrip(event.id);
+      await archiveService.hideTrip(event.id.toString());
       toast({
         title: 'Event hidden',
         description: `"${event.title}" is now hidden. Enable "Show Hidden Trips" in Settings to view it.`,
       });
       onHideSuccess?.();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Failed to hide event',
         description: 'There was an error hiding your event. Please try again.',
@@ -158,23 +159,23 @@ export const MobileEventCard = ({
       return;
     }
 
-    setIsDeleting(true);
     try {
-      await deleteTripForMe({ tripId: event.id.toString(), userId: user.id });
+      const result = await deleteTrip(event.id.toString(), (event as any).created_by);
       toast({
-        title: 'Event removed',
-        description: `"${event.title}" has been removed from your account.`,
+        title: result.action === 'archived' ? 'Event archived' : 'Event removed',
+        description:
+          result.action === 'archived'
+            ? `"${event.title}" has been archived.`
+            : `"${event.title}" has been removed from your account.`,
       });
       setShowDeleteDialog(false);
       onDeleteSuccess?.();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Failed to remove event',
         description: 'There was an error removing the event. Please try again.',
         variant: 'destructive',
       });
-    } finally {
-      setIsDeleting(false);
     }
   };
 

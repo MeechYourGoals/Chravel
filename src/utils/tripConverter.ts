@@ -106,6 +106,7 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
 
   return {
     id: supabaseTrip.id,
+    created_by: supabaseTrip.created_by,
     title: mockTrip.title,
     location: mockTrip.location,
     dateRange: mockTrip.dateRange,

@@ -112,6 +112,7 @@ export interface EventAttendee {
 export interface EventData {
   id: string;
   title: string;
+  created_by?: string;
   location: string;
   dateRange: string;
   category: string;

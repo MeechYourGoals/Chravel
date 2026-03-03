@@ -8,7 +8,7 @@ import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptio
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { InviteModal } from '../components/InviteModal';
 import { DeleteTripConfirmDialog } from '../components/DeleteTripConfirmDialog';
-import { deleteTripForMe } from '../services/archiveService';
+import { useDeleteTrip } from '../hooks/useDeleteTrip';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -48,7 +48,7 @@ export const MobileEventDetail = () => {
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { deleteTrip, isDeleting } = useDeleteTrip();
   const headerRef = React.useRef<HTMLDivElement>(null);
 
   // Persist activeTab changes to sessionStorage
@@ -250,37 +250,30 @@ export const MobileEventDetail = () => {
     }
   }, [eventId, eventData]);
 
-  // Delete Trip For Me handler - removes user's access without deleting event for others
+  // Delete Event handler - uses unified deletion engine (archive for creators, leave for members)
   const handleDeleteTripForMe = useCallback(async () => {
     if (!user?.id || !eventId) {
       toast.error('You must be logged in to delete an event');
       return;
     }
 
-    setIsDeleting(true);
     try {
-      await deleteTripForMe(eventId, user.id);
-      toast.success('Event deleted', {
-        description: `"${eventData?.title}" has been removed from your account.`,
+      const createdBy = (eventData as any)?.created_by;
+      const result = await deleteTrip(eventId, createdBy);
+      toast.success(result.action === 'archived' ? 'Event archived' : 'Event removed', {
+        description:
+          result.action === 'archived'
+            ? `"${eventData?.title}" has been archived.`
+            : `"${eventData?.title}" has been removed from your account.`,
       });
       setShowDeleteDialog(false);
       navigate('/');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMessage === 'CREATOR_CANNOT_DELETE') {
-        toast.error('Cannot delete event', {
-          description:
-            'As the event creator, you cannot delete this event for yourself. Consider archiving it instead.',
-        });
-      } else {
-        toast.error('Failed to delete event', {
-          description: 'There was an error deleting your event. Please try again.',
-        });
-      }
-    } finally {
-      setIsDeleting(false);
+    } catch {
+      toast.error('Failed to delete event', {
+        description: 'There was an error deleting your event. Please try again.',
+      });
     }
-  }, [user?.id, eventId, eventData?.title, navigate]);
+  }, [user?.id, eventId, eventData, navigate, deleteTrip]);
 
   // ⚡ Loading and error states AFTER all hooks
   if (demoModeLoading) {

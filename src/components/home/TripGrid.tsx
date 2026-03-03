@@ -18,9 +18,8 @@ import {
   getArchivedTrips,
   restoreTrip,
   unhideTrip,
-  deleteTripForMe,
-  archiveTrip,
 } from '../../services/archiveService';
+import { useDeleteTrip } from '../../hooks/useDeleteTrip';
 import { useLocationFilteredRecommendations } from '../../hooks/useLocationFilteredRecommendations';
 import { MapPin, Calendar, Briefcase, Compass, Info, Archive, Clock } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -36,16 +35,17 @@ import { SortableTripGrid } from '../dashboard/SortableTripGrid';
 import { Button } from '../ui/button';
 
 interface Trip {
-  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
+  id: number | string;
   title: string;
   location: string;
   dateRange: string;
   participants: Array<{
-    id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
+    id: number | string;
     name: string;
     avatar: string;
   }>;
   placesCount?: number;
+  created_by?: string;
 }
 
 interface TripGridProps {
@@ -85,6 +85,7 @@ export const TripGrid = React.memo(
     const [archivedTrips, setArchivedTrips] = useState<any[]>([]);
     const { isDemoMode } = useDemoMode();
     const { tier } = useConsumerSubscription();
+    const { deleteTrip } = useDeleteTrip();
     const [reorderMode, setReorderMode] = useState<'my_trips' | 'pro' | 'events' | null>(null);
 
     // State for optimistically deleted trips (pending undo timeout)
@@ -188,9 +189,6 @@ export const TripGrid = React.memo(
     const handleSwipeDelete = useCallback(
       async (trip: Trip) => {
         const tripId = trip.id.toString();
-        const isFreeUser = tier === 'free';
-        const tripCreatedBy = (trip as { created_by?: string }).created_by;
-        const isCreator = user?.id === tripCreatedBy;
 
         // Demo mode: block delete with toast
         if (isDemoMode) {
@@ -215,13 +213,11 @@ export const TripGrid = React.memo(
 
         // Create undo handler
         const undoDelete = () => {
-          // Cancel the pending delete
           const timeout = pendingDeleteTimeouts.current.get(tripId);
           if (timeout) {
             clearTimeout(timeout);
             pendingDeleteTimeouts.current.delete(tripId);
           }
-          // Restore trip visibility
           setPendingDeleteIds(prev => {
             const next = new Set(prev);
             next.delete(tripId);
@@ -232,20 +228,13 @@ export const TripGrid = React.memo(
         // Execute the actual delete after 5 seconds (undo window)
         const executeDelete = async () => {
           pendingDeleteTimeouts.current.delete(tripId);
-
           try {
-            // For free users who are creators, auto-archive instead of delete
-            if (isCreator && isFreeUser) {
-              await archiveTrip(tripId, 'consumer');
-              onTripStateChange?.();
-            } else {
-              // For paid creators and regular members, proceed with deletion
-              await deleteTripForMe(tripId, user.id);
-              onTripStateChange?.();
+            // Unified deletion: useDeleteTrip handles creator vs member logic
+            const result = await deleteTrip(tripId, trip.created_by);
+            if (import.meta.env.DEV) {
+              console.log('[TripGrid] Delete result:', result);
             }
-
-            // Invalidate cache to sync with server
-            queryClient.invalidateQueries({ queryKey: ['trips'] });
+            onTripStateChange?.();
           } catch {
             // Revert on error
             setPendingDeleteIds(prev => {
@@ -266,14 +255,12 @@ export const TripGrid = React.memo(
         pendingDeleteTimeouts.current.set(tripId, timeout);
 
         // Show toast with undo action
-        const description =
-          isCreator && isFreeUser
-            ? `"${trip.title}" will be archived.`
-            : `"${trip.title}" will be removed from your account.`;
-
+        const isCreator = user.id === trip.created_by;
         toast({
           title: 'Trip deleted',
-          description,
+          description: isCreator
+            ? `"${trip.title}" will be archived.`
+            : `"${trip.title}" will be removed from your account.`,
           duration: 5000,
           action: (
             <ToastAction altText="Undo" onClick={undoDelete}>
@@ -282,14 +269,19 @@ export const TripGrid = React.memo(
           ),
         });
       },
-      [user?.id, isDemoMode, tier, toast, onTripStateChange, queryClient],
+      [user?.id, isDemoMode, toast, onTripStateChange, deleteTrip],
     );
 
     // Handler for deleting pro trips (converts to Trip type for the generic handler)
     const handleProTripSwipeDelete = useCallback(
       async (trip: ProTripData) => {
         if (!user?.id || isDemoMode) return;
-        const fakeTrip = { id: trip.id, title: trip.title } as Trip;
+        // Preserve created_by so the deletion engine makes the right decision
+        const fakeTrip = {
+          id: trip.id,
+          title: trip.title,
+          created_by: (trip as any).createdBy || (trip as any).created_by,
+        } as Trip;
         await handleSwipeDelete(fakeTrip);
       },
       [user?.id, isDemoMode, handleSwipeDelete],
