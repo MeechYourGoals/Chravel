@@ -1,8 +1,11 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { paymentBalanceService } from '../paymentBalanceService';
-import { createMockSupabaseClient, mockUser } from '@/__tests__/utils/supabaseMocks';
+import {
+  createMockSupabaseClient as _createMockSupabaseClient,
+  mockUser as _mockUser,
+} from '@/__tests__/utils/supabaseMocks';
 import { supabase } from '@/integrations/supabase/client';
 
 vi.mock('../currencyService', () => ({
@@ -110,7 +113,7 @@ describe.skip('paymentBalanceService - Integration Tests', () => {
       ];
 
       // Mock payment methods
-      const paymentMethods: any[] = [];
+      const paymentMethods: unknown[] = [];
 
       // Setup mocks
       mockSupabase.from = vi.fn((table: string) => {
@@ -127,17 +130,17 @@ describe.skip('paymentBalanceService - Integration Tests', () => {
         } else if (table === 'payment_splits') {
           builder.in.mockReturnValue({
             select: vi.fn().mockResolvedValue({ data: paymentSplits, error: null }),
-          } as any);
+          } as unknown);
         } else if (table === 'profiles') {
           builder.in.mockReturnValue({
             select: vi.fn().mockResolvedValue({ data: profiles, error: null }),
-          } as any);
+          } as unknown);
         } else if (table === 'user_payment_methods') {
           builder.in.mockReturnValue({
             select: vi.fn().mockResolvedValue({ data: paymentMethods, error: null }),
-          } as any);
+          } as unknown);
         }
-        return builder as any;
+        return builder as unknown;
       });
 
       const result = await paymentBalanceService.getBalanceSummary(tripId, userId);
@@ -167,7 +170,7 @@ describe.skip('paymentBalanceService - Integration Tests', () => {
         } else if (table === 'trip_payment_messages') {
           builder.selectReturn.mockResolvedValue({ data: [], error: null });
         }
-        return builder as any;
+        return builder as unknown;
       });
 
       const result = await paymentBalanceService.getBalanceSummary(tripId, userId);
@@ -193,7 +196,7 @@ describe.skip('paymentBalanceService - Integration Tests', () => {
         } else if (table === 'trip_payment_messages') {
           builder.selectReturn.mockResolvedValue({ data: null, error });
         }
-        return builder as any;
+        return builder as unknown;
       });
 
       await expect(paymentBalanceService.getBalanceSummary(tripId, userId)).rejects.toThrow(
