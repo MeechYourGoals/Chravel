@@ -65,6 +65,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
     abortRef.current?.abort();
     abortRef.current = null;
     cleanup();
+    setErrorMessage(null);
     setPlaybackState('idle');
     setPlayingMessageId(null);
   }, [cleanup]);
@@ -131,6 +132,11 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
             throw new Error(errMsg);
           }
           throw new Error(errMsg);
+        }
+
+        const responseContentType = response.headers.get('content-type') || '';
+        if (!responseContentType.includes('audio/')) {
+          throw new Error('Voice service returned an unexpected response format');
         }
 
         const blob = await response.blob();
