@@ -140,8 +140,8 @@ serve(async (req: Request) => {
         text,
         model_id,
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
+          stability: 0.4,
+          similarity_boost: 0.8,
         },
       }),
     });

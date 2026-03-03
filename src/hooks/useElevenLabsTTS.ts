@@ -14,8 +14,8 @@ import {
 
 export type TTSPlaybackState = 'idle' | 'loading' | 'playing' | 'error';
 
-/** Default ElevenLabs voice ID — Rachel (warm, conversational female voice). */
-const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+/** Default ElevenLabs voice ID — Mark (casual, relaxed male voice). */
+const DEFAULT_VOICE_ID = '1SM7GgM6IMuvQlz2BwM3';
 
 interface UseElevenLabsTTSOptions {
   /** Override the default voice ID. */

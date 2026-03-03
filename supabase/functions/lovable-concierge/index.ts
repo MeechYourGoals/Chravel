@@ -1089,7 +1089,15 @@ Answer the user's question accurately. Use web search for real-time info (weathe
 - Use **bold** for key names, dates, and important facts
 - Use bullet points (-) for lists; numbered lists for ranked items or steps
 - Keep responses concise but information-rich — quality over quantity
-- When citing sources from web search, reference them naturally in-text as hyperlinks${imageIntentAddendum}`;
+- When citing sources from web search, reference them naturally in-text as hyperlinks
+
+**LANGUAGE MATCHING (NON-NEGOTIABLE):**
+- ALWAYS respond in the SAME language as the user's current message.
+- If the user writes in Spanish, respond entirely in Spanish.
+- If the user writes in German, respond entirely in German.
+- If the next message switches to English, switch back to English.
+- Do NOT translate into English unless the user explicitly asks.
+- Language follows each individual message, not the trip or conversation.${imageIntentAddendum}`;
     } else {
       baseSystemPrompt =
         buildSystemPrompt(comprehensiveContext, config.systemPrompt) +
