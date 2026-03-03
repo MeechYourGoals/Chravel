@@ -5,12 +5,12 @@ import { BrowserRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ConsumerSubscriptionProvider } from '@/hooks/useConsumerSubscription';
-import { createMockSupabaseClient, mockUser } from '@/__tests__/utils/supabaseMocks';
+import {
+  createMockSupabaseClient as _createMockSupabaseClient,
+  mockUser as _mockUser,
+} from '@/__tests__/utils/supabaseMocks';
 
 // Mock Supabase client
-
-
-
 
 // Mock Google Maps
 vi.mock('@/services/googlePlacesNew', () => ({

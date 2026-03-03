@@ -55,7 +55,9 @@ test.describe('Settings hardening', () => {
     // Use an evaluate approach to click it since it might be hidden behind a drawer or overlay in the viewport
     await page.evaluate(() => {
       const btn = Array.from(document.querySelectorAll('button')).find(
-        b => b.textContent?.toLowerCase().includes('settings') || b.getAttribute('aria-label')?.toLowerCase().includes('settings')
+        b =>
+          b.textContent?.toLowerCase().includes('settings') ||
+          b.getAttribute('aria-label')?.toLowerCase().includes('settings'),
       );
       if (btn) btn.click();
     });

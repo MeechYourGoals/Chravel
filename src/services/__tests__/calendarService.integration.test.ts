@@ -3,17 +3,15 @@ vi.mock('@/services/offlineSyncService', () => ({
   offlineSyncService: {
     getCachedEntities: vi.fn().mockResolvedValue([]),
     queueMutation: vi.fn().mockResolvedValue(undefined),
-  }
+  },
 }));
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { calendarService } from '../calendarService';
-import { createMockSupabaseClient, mockUser } from '@/__tests__/utils/supabaseMocks';
+import {
+  createMockSupabaseClient as _createMockSupabaseClient,
+  mockUser,
+} from '@/__tests__/utils/supabaseMocks';
 import { supabase } from '@/integrations/supabase/client';
-
-
-
-
-
 
 vi.mock('../demoModeService', () => ({
   demoModeService: {
@@ -73,7 +71,7 @@ describe('calendarService - Integration Tests', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown);
 
       const eventData = {
         trip_id: tripId,
@@ -118,7 +116,9 @@ describe('calendarService - Integration Tests', () => {
         end_time: '2024-01-01T15:00:00Z',
       };
 
-      await expect(calendarService.createEvent(eventData)).rejects.toThrow('You must be logged in to create events. Please sign in and try again.');
+      await expect(calendarService.createEvent(eventData)).rejects.toThrow(
+        'You must be logged in to create events. Please sign in and try again.',
+      );
     });
 
     it('should return null when user is not authenticated', async () => {
@@ -169,7 +169,7 @@ describe('calendarService - Integration Tests', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown);
 
       const result = await calendarService.getTripEvents(tripId);
 
@@ -190,7 +190,7 @@ describe('calendarService - Integration Tests', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown);
 
       const result = await calendarService.getTripEvents(tripId);
 
