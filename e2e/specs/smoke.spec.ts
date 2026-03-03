@@ -107,10 +107,13 @@ test.describe('Smoke Tests — Demo Mode', () => {
     await page.goto('/demo');
     await page.waitForSelector('#root main', { timeout: 15000 });
 
+    // Wait for the URL to settle. If it redirects to /?from=demo, `page.url()` needs a moment
+    await page.waitForURL('**/?from=demo*', { timeout: 3000 }).catch(() => {});
+
     // Demo page should render without errors — either content or redirect
     const url = page.url();
     // It either stays on /demo, redirects to a demo trip, or sets from=demo
-    expect(url).toMatch(/\/(demo|trip|\?from=demo)/);
+    expect(url).toMatch(/(\/demo|\/trip|\?from=demo)/);
   });
 });
 
