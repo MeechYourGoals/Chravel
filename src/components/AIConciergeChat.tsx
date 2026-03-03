@@ -33,6 +33,8 @@ import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
+import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS';
+import { buildSpeechText } from '@/lib/buildSpeechText';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -307,11 +309,57 @@ export const AIConciergeChat = ({
     onNavigateToPlaces: handleNavigateToPlaces,
   });
 
+  // ── ElevenLabs TTS ──────────────────────────────────────────────────────
+  const {
+    playbackState: ttsPlaybackState,
+    playingMessageId: ttsPlayingMessageId,
+    errorMessage: ttsError,
+    play: ttsPlayRaw,
+    stop: ttsStop,
+  } = useElevenLabsTTS();
+
   // Hydrate from Zustand store on mount (preserves messages across tab switches)
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     storeSession.messages.length > 0 ? (storeSession.messages as ChatMessage[]) : [],
   );
   const messagesRef = useRef<ChatMessage[]>(messages);
+
+  /** Play TTS for an assistant message, building speech text from its content + cards. */
+  const handleTTSPlay = useCallback(
+    (messageId: string) => {
+      const msg = messagesRef.current.find(m => m.id === messageId);
+      if (!msg || msg.type !== 'assistant' || !msg.content) return;
+
+      const speechText = buildSpeechText({
+        displayText: msg.content,
+        hotels: msg.functionCallHotels,
+        places: msg.functionCallPlaces,
+        flights: msg.functionCallFlights?.map(f => ({
+          origin: f.origin,
+          destination: f.destination,
+          airline: f.airline,
+          price: f.price,
+          stops: f.stops,
+          durationMinutes: f.durationMinutes,
+        })),
+      });
+
+      if (!speechText) {
+        toast.error('Nothing to speak');
+        return;
+      }
+
+      void ttsPlayRaw(messageId, speechText);
+    },
+    [ttsPlayRaw],
+  );
+
+  // Show toast on TTS errors
+  useEffect(() => {
+    if (ttsError && ttsPlaybackState === 'error') {
+      toast.error('Voice playback failed', { description: ttsError });
+    }
+  }, [ttsError, ttsPlaybackState]);
   // True after the chat is hydrated from the server DB (not just cache/empty).
   // Used to show the "Picked up where you left off" chip.
   const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(
@@ -368,22 +416,17 @@ export const AIConciergeChat = ({
 
   // ── Dictation (Web Speech API) ──────────────────────────────────────────
   // Dictation callback: fill the text input with the transcribed speech
-  const handleDictationResult = useCallback(
-    (text: string) => {
-      if (text.trim()) {
-        setInputMessage(prev => {
-          const separator = prev && !prev.endsWith(' ') ? ' ' : '';
-          return prev + separator + text.trim();
-        });
-      }
-    },
-    [],
-  );
+  const handleDictationResult = useCallback((text: string) => {
+    if (text.trim()) {
+      setInputMessage(prev => {
+        const separator = prev && !prev.endsWith(' ') ? ' ' : '';
+        return prev + separator + text.trim();
+      });
+    }
+  }, []);
 
-  const {
-    voiceState: dictationState,
-    toggleVoice: toggleDictation,
-  } = useWebSpeechVoice(handleDictationResult);
+  const { voiceState: dictationState, toggleVoice: toggleDictation } =
+    useWebSpeechVoice(handleDictationResult);
 
   /**
    * Fix 2 — streaming voice response bubble.
@@ -1416,7 +1459,8 @@ export const AIConciergeChat = ({
                 ]);
               } else {
                 updateStreamMsg(msg =>
-                  msg.content.length > 0 || (msg.conciergeActions && msg.conciergeActions.length > 0)
+                  msg.content.length > 0 ||
+                  (msg.conciergeActions && msg.conciergeActions.length > 0)
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' },
                 );
@@ -1806,6 +1850,10 @@ export const AIConciergeChat = ({
               onSmartImportConfirm={handleSmartImportConfirm}
               onSmartImportDismiss={handleSmartImportDismiss}
               smartImportStates={smartImportStates}
+              ttsPlaybackState={ttsPlaybackState}
+              ttsPlayingMessageId={ttsPlayingMessageId}
+              onTTSPlay={handleTTSPlay}
+              onTTSStop={ttsStop}
             />
           )}
         </div>

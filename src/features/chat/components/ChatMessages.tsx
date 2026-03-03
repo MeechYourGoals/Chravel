@@ -10,11 +10,13 @@ import { HotelResultCards, HotelResult } from './HotelResultCards';
 import { ConciergeActionCard, ConciergeActionResult } from './ConciergeActionCard';
 import { ReservationDraftCard } from './ReservationDraftCard';
 import { SmartImportPreviewCard } from './SmartImportPreviewCard';
+import { TTSSpeakerButton } from './TTSSpeakerButton';
 import type {
   ReservationDraft,
   SmartImportPreviewEvent,
   SmartImportStatus,
 } from '@/services/conciergeGateway';
+import type { TTSPlaybackState } from '@/hooks/useElevenLabsTTS';
 
 /** Extended message shape that may carry rich function-call data from the concierge. */
 interface RichChatMessage extends ChatMessage {
@@ -54,6 +56,14 @@ interface ChatMessagesProps {
     string,
     { isImporting: boolean; result: { imported: number; failed: number } | null }
   >;
+  /** TTS: current playback state */
+  ttsPlaybackState?: TTSPlaybackState;
+  /** TTS: message ID currently being played */
+  ttsPlayingMessageId?: string | null;
+  /** TTS: play callback */
+  onTTSPlay?: (messageId: string) => void;
+  /** TTS: stop callback */
+  onTTSStop?: () => void;
 }
 
 export const ChatMessages = ({
@@ -71,6 +81,10 @@ export const ChatMessages = ({
   onSmartImportConfirm,
   onSmartImportDismiss,
   smartImportStates,
+  ttsPlaybackState,
+  ttsPlayingMessageId,
+  onTTSPlay,
+  onTTSStop,
 }: ChatMessagesProps) => {
   if (messages.length === 0) {
     return (
@@ -198,19 +212,32 @@ export const ChatMessages = ({
                 </div>
               </div>
             )}
-            {onDeleteMessage && (
+            {/* Action row: TTS speaker + delete */}
+            {(onDeleteMessage || (onTTSPlay && message.type === 'assistant')) && (
               <div
-                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
+                className={`flex items-center gap-1 ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
               >
-                <button
-                  type="button"
-                  onClick={() => onDeleteMessage(message.id)}
-                  className="opacity-0 group-hover/msg:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive p-1 rounded"
-                  aria-label="Delete message"
-                  title="Delete message"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {/* TTS speaker button — assistant messages only */}
+                {onTTSPlay && onTTSStop && message.type === 'assistant' && message.content && (
+                  <TTSSpeakerButton
+                    messageId={message.id}
+                    playbackState={ttsPlaybackState ?? 'idle'}
+                    playingMessageId={ttsPlayingMessageId ?? null}
+                    onPlay={onTTSPlay}
+                    onStop={onTTSStop}
+                  />
+                )}
+                {onDeleteMessage && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteMessage(message.id)}
+                    className="opacity-0 group-hover/msg:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive p-1 rounded"
+                    aria-label="Delete message"
+                    title="Delete message"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             )}
 
