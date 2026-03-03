@@ -236,8 +236,10 @@ export const useConciergeSessionStore = create<ConciergeSessionStore>((set, get)
 // Subscribe to Supabase auth state changes and wipe all session messages on logout.
 // This prevents a second user logging in on the same tab from momentarily seeing
 // the previous user's messages during the history-hydration gap.
-supabase.auth.onAuthStateChange(event => {
-  if (event === 'SIGNED_OUT') {
-    useConciergeSessionStore.getState().clearAllSessions();
-  }
-});
+if (supabase && supabase.auth && typeof supabase.auth.onAuthStateChange === 'function') {
+  supabase.auth.onAuthStateChange(event => {
+    if (event === 'SIGNED_OUT') {
+      useConciergeSessionStore.getState().clearAllSessions();
+    }
+  });
+}

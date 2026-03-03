@@ -4,6 +4,7 @@ import { demoModeService } from './demoModeService';
 import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
 import { FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
+import { formatLocalDate } from '@/utils/dateHelpers';
 
 /**
  * Normalizes date input to YYYY-MM-DD format for database date columns
@@ -22,7 +23,7 @@ function normalizeDateInput(dateStr?: string): string | undefined {
   if (dateStr.includes('T')) {
     const date = new Date(dateStr);
     if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
+      return formatLocalDate(date);
     }
   }
 
@@ -281,6 +282,7 @@ export const tripService = {
   async getUserTrips(
     isDemoMode?: boolean,
     tripType?: 'consumer' | 'pro' | 'event',
+    userId?: string,
   ): Promise<Trip[]> {
     try {
       const demoEnabled = isDemoMode ?? (await demoModeService.isDemoModeEnabled());
@@ -291,15 +293,19 @@ export const tripService = {
         return adaptedTrips;
       }
 
-      const user = await getCachedAuthUser();
-      if (!user) return [];
+      let activeUserId = userId;
+      if (!activeUserId) {
+        const user = await getCachedAuthUser();
+        if (!user) return [];
+        activeUserId = user.id;
+      }
 
       const TRIP_LIST_COLUMNS =
         'id, name, description, start_date, end_date, destination, trip_type, created_at, updated_at, cover_image_url, created_by, is_archived, card_color, organizer_display_name';
       let query = supabase
         .from('trips')
         .select(TRIP_LIST_COLUMNS)
-        .eq('created_by', user.id)
+        .eq('created_by', activeUserId)
         .eq('is_archived', false)
         .eq('is_hidden', false)
         .order('created_at', { ascending: false });
@@ -316,7 +322,7 @@ export const tripService = {
       const { data: pendingRequests, error: pendingError } = await supabase
         .from('trip_join_requests')
         .select('trip_id, status')
-        .eq('user_id', user.id)
+        .eq('user_id', activeUserId)
         .eq('status', 'pending');
 
       if (pendingError) {
@@ -357,7 +363,7 @@ export const tripService = {
       const { data: memberTrips, error: memberError } = await supabase
         .from('trip_members')
         .select('trip_id')
-        .eq('user_id', user.id)
+        .eq('user_id', activeUserId)
         .or('status.is.null,status.eq.active');
 
       if (!memberError && memberTrips && memberTrips.length > 0) {

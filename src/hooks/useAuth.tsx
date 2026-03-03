@@ -635,6 +635,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
 
       if (session?.user) {
+        // Invalidate auth cache on explicit sign in / session refresh
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          invalidateAuthCache();
+        }
+
         // Defer async work with setTimeout(0) to avoid Supabase auth deadlock
         setTimeout(() => {
           transformUser(session.user)

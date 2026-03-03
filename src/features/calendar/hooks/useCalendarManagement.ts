@@ -44,17 +44,53 @@ export const useCalendarManagement = (tripId: string) => {
   const {
     data: tripEvents = [],
     isLoading,
+    isFetching,
     isError,
     error,
     refetch: refreshEvents,
   } = useQuery({
     queryKey: tripKeys.calendar(tripId),
-    queryFn: () =>
-      withTimeout(
-        calendarService.getTripEvents(tripId),
-        10000,
-        'Failed to load calendar events: Timeout',
-      ),
+    queryFn: async () => {
+      const startTime = performance.now();
+      const startTimestamp = new Date().toISOString();
+      const queryKey = tripKeys.calendar(tripId).join('-');
+      errorTracking.addBreadcrumb({
+        category: 'api-call',
+        message: 'calendar fetch start',
+        level: 'info',
+        data: { trip_id: tripId, start_timestamp: startTimestamp, query_key: queryKey },
+      });
+
+      try {
+        const result = await withTimeout(
+          calendarService.getTripEvents(tripId),
+          30000,
+          'Failed to load calendar events: Timeout',
+        );
+
+        const endTimeMs = performance.now();
+        const durationMs = Math.round(endTimeMs - startTime);
+        errorTracking.addBreadcrumb({
+          category: 'api-call',
+          message: 'calendar fetch finish',
+          level: durationMs > 3000 ? 'warning' : 'info',
+          data: { trip_id: tripId, count: result.length, duration_ms: durationMs, start_timestamp: startTimestamp, end_timestamp: new Date().toISOString(), query_key: queryKey, status: 'success' },
+        });
+
+        return result;
+      } catch (err: any) {
+        const endTimeMs = performance.now();
+        const durationMs = Math.round(endTimeMs - startTime);
+        const isTimeout = err?.message?.includes('Timeout') || err?.name === 'TimeoutError';
+        errorTracking.addBreadcrumb({
+          category: 'api-call',
+          message: isTimeout ? 'calendar fetch timeout' : 'calendar fetch finish',
+          level: 'error',
+          data: { trip_id: tripId, duration_ms: durationMs, start_timestamp: startTimestamp, end_timestamp: new Date().toISOString(), query_key: queryKey, status: isTimeout ? 'timeout' : 'error', error: err?.message || String(err) },
+        });
+        throw err;
+      }
+    },
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
@@ -440,6 +476,7 @@ export const useCalendarManagement = (tripId: string) => {
     deleteEvent,
     resetForm,
     isLoading,
+    isFetching,
     isSaving,
     isError,
     error,

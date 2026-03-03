@@ -26,6 +26,7 @@ export const useCalendarEvents = (tripId?: string) => {
   const {
     data: events = [],
     isLoading: loading,
+    isFetching,
     isError,
     error,
     refetch,
@@ -33,28 +34,44 @@ export const useCalendarEvents = (tripId?: string) => {
     queryKey: tripKeys.calendar(tripId || ''),
     queryFn: async () => {
       const startTime = performance.now();
+      const startTimestamp = new Date().toISOString();
+      const queryKey = tripKeys.calendar(tripId || '').join('-');
       errorTracking.addBreadcrumb({
         category: 'api-call',
-        message: 'Calendar events fetch started',
+        message: 'calendar fetch start',
         level: 'info',
-        data: { tripId },
+        data: { trip_id: tripId, start_timestamp: startTimestamp, query_key: queryKey },
       });
 
-      const result = await withTimeout(
-        calendarService.getTripEvents(tripId!),
-        10000,
-        'Failed to load calendar events: Timeout',
-      );
+      try {
+        const result = await withTimeout(
+          calendarService.getTripEvents(tripId!),
+          30000,
+          'Failed to load calendar events: Timeout',
+        );
 
-      const durationMs = Math.round(performance.now() - startTime);
-      errorTracking.addBreadcrumb({
-        category: 'api-call',
-        message: `Calendar events loaded: ${result.length} events in ${durationMs}ms`,
-        level: durationMs > 3000 ? 'warning' : 'info',
-        data: { tripId, count: result.length, durationMs },
-      });
+        const endTimeMs = performance.now();
+        const durationMs = Math.round(endTimeMs - startTime);
+        errorTracking.addBreadcrumb({
+          category: 'api-call',
+          message: 'calendar fetch finish',
+          level: durationMs > 3000 ? 'warning' : 'info',
+          data: { trip_id: tripId, count: result.length, duration_ms: durationMs, start_timestamp: startTimestamp, end_timestamp: new Date().toISOString(), query_key: queryKey, status: 'success' },
+        });
 
-      return result;
+        return result;
+      } catch (err: any) {
+        const endTimeMs = performance.now();
+        const durationMs = Math.round(endTimeMs - startTime);
+        const isTimeout = err?.message?.includes('Timeout') || err?.name === 'TimeoutError';
+        errorTracking.addBreadcrumb({
+          category: 'api-call',
+          message: isTimeout ? 'calendar fetch timeout' : 'calendar fetch finish',
+          level: 'error',
+          data: { trip_id: tripId, duration_ms: durationMs, start_timestamp: startTimestamp, end_timestamp: new Date().toISOString(), query_key: queryKey, status: isTimeout ? 'timeout' : 'error', error: err?.message || String(err) },
+        });
+        throw err;
+      }
     },
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
@@ -208,6 +225,7 @@ export const useCalendarEvents = (tripId?: string) => {
   return {
     events,
     loading,
+    isFetching,
     isError,
     error,
     refetch,

@@ -26,7 +26,15 @@ export async function getCachedAuthUser(): Promise<User | null> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  cached = { user, timestamp: now };
+
+  // Only cache if a valid user is returned. Caching null locks out the UI
+  // from fetching data until the TTL expires or a hard refresh occurs.
+  if (user) {
+    cached = { user, timestamp: now };
+  } else {
+    cached = null;
+  }
+
   return user;
 }
 

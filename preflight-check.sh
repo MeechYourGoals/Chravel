@@ -42,7 +42,7 @@ echo "${BLUE}Checking Node.js...${NC}"
 if command -v node &> /dev/null; then
     NODE_VERSION=$(node --version)
     echo "✅ Node.js found: $NODE_VERSION"
-    
+
     # Check if version is 18+
     NODE_MAJOR=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
     if [ "$NODE_MAJOR" -lt 18 ]; then
@@ -77,7 +77,7 @@ fi
 
 if [ -f "capacitor.config.ts" ]; then
     echo "✅ capacitor.config.ts found"
-    
+
     # Check if server URL is commented out (production mode)
     if grep -q "^[[:space:]]*server:" capacitor.config.ts; then
         echo "${YELLOW}⚠️  Development server URL is active${NC}"
@@ -102,14 +102,14 @@ fi
 # Check 6: iOS configuration
 if [ -f "ios/App/App/Info.plist" ]; then
     echo "✅ Info.plist found"
-    
+
     # Check for required permissions
     REQUIRED_PERMISSIONS=(
         "NSCameraUsageDescription"
         "NSPhotoLibraryUsageDescription"
         "NSLocationWhenInUseUsageDescription"
     )
-    
+
     for PERM in "${REQUIRED_PERMISSIONS[@]}"; do
         if grep -q "$PERM" ios/App/App/Info.plist; then
             echo "  ✅ $PERM configured"
@@ -155,7 +155,7 @@ fi
 if [[ "$OSTYPE" == "darwin"* ]]; then
     echo ""
     echo "${BLUE}Checking iOS dependencies...${NC}"
-    
+
     if command -v pod &> /dev/null; then
         POD_VERSION=$(pod --version)
         echo "✅ CocoaPods found: $POD_VERSION"
@@ -164,7 +164,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         echo "   Install: sudo gem install cocoapods"
         WARNINGS=$((WARNINGS + 1))
     fi
-    
+
     # Check if pods are installed
     if [ -f "ios/App/Podfile.lock" ]; then
         echo "✅ iOS pods installed"

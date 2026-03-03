@@ -34,3 +34,19 @@ global.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
 } as any;
+
+// Mock indexedDB for offlineSyncService
+global.indexedDB = {
+  open: vi.fn().mockReturnValue({
+    onupgradeneeded: null,
+    onsuccess: null,
+    onerror: null,
+  }),
+} as any;
+
+// Mock Deno for edge functions
+global.Deno = {
+  env: {
+    get: vi.fn().mockReturnValue('mock-key'),
+  },
+} as any;

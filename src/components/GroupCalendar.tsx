@@ -48,6 +48,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
     deleteEvent,
     resetForm,
     isLoading,
+    isFetching,
     isSaving,
     isError,
     error,
@@ -106,7 +107,8 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
   }, [canPerformAction, canUseSmartImport, permissionsLoading, toast]);
 
   const handleImportComplete = useCallback(async () => {
-    // Invalidate cache before refetch to ensure we pull the latest events
+    // Wait for queries to settle before attempting a refetch
+    await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
     await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
     await refreshEvents();
   }, [queryClient, refreshEvents, tripId]);
@@ -199,6 +201,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           <CalendarErrorState
             error={error instanceof Error ? error : error ? new Error(String(error)) : undefined}
             onRetry={refreshEvents}
+            isRetrying={isFetching}
           />
         ) : isLoading ? (
           <div className="flex justify-center items-center py-16">
@@ -263,6 +266,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           <CalendarErrorState
             error={error instanceof Error ? error : error ? new Error(String(error)) : undefined}
             onRetry={refreshEvents}
+            isRetrying={isFetching}
           />
         ) : (
           <ItineraryView events={events} tripName="Trip Itinerary" />
@@ -297,6 +301,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         <CalendarErrorState
           error={error instanceof Error ? error : error ? new Error(String(error)) : undefined}
           onRetry={refreshEvents}
+          isRetrying={isFetching}
         />
       ) : isLoading ? (
         <div className="flex justify-center items-center py-16">
