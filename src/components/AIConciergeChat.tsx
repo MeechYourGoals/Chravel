@@ -1416,7 +1416,7 @@ export const AIConciergeChat = ({
                 ]);
               } else {
                 updateStreamMsg(msg =>
-                  msg.content.length > 0
+                  msg.content.length > 0 || (msg.conciergeActions && msg.conciergeActions.length > 0)
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' },
                 );
