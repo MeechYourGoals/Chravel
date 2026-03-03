@@ -134,13 +134,15 @@ test.describe('Authentication Flow - Error States', () => {
 
     // Check for any kind of error message or alert
     // Use .or() since Playwright text= matchers with commas might have syntax issues
-    const hasError = await page.locator('[role="alert"]')
+    const _hasError = await page
+      .locator('[role="alert"]')
       .or(page.locator('text=Invalid'))
       .or(page.locator('text=incorrect'))
       .or(page.locator('text=wrong'))
       .or(page.locator('text=rate'))
       .first()
-      .isVisible({ timeout: 3000 }).catch(() => false);
+      .isVisible({ timeout: 3000 })
+      .catch(() => false);
 
     // Should still be on auth page
     await expect(page).toHaveURL(/\/auth/);
@@ -238,7 +240,8 @@ test.describe('Authentication Flow - Demo Mode', () => {
     await page.waitForSelector('#root main', { timeout: 15000 });
 
     // Should show demo content (trip grid with demo trips)
-    const demoElement = page.locator('[data-testid="trip-grid"]')
+    const demoElement = page
+      .locator('[data-testid="trip-grid"]')
       .or(page.locator('[data-testid="trip-card"]'))
       .or(page.locator('text=Demo'))
       .first();

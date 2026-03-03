@@ -2,13 +2,11 @@
 // @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { sendChatMessage, subscribeToChatMessages } from '../chatService';
-import { createMockSupabaseClient, mockUser } from '@/__tests__/utils/supabaseMocks';
+import {
+  createMockSupabaseClient as _createMockSupabaseClient,
+  mockUser as _mockUser,
+} from '@/__tests__/utils/supabaseMocks';
 import { supabase } from '@/integrations/supabase/client';
-
-
-
-
-
 
 describe.skip('chatService - Integration Tests', () => {
   const tripId = 'trip-123';
@@ -43,7 +41,7 @@ describe.skip('chatService - Integration Tests', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown);
 
       const result = await sendChatMessage(messageData);
 
@@ -83,7 +81,7 @@ describe.skip('chatService - Integration Tests', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown);
 
       const result = await sendChatMessage(messageData);
 
@@ -104,7 +102,7 @@ describe.skip('chatService - Integration Tests', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown);
 
       const messageData = {
         trip_id: tripId,
@@ -127,7 +125,7 @@ describe.skip('chatService - Integration Tests', () => {
         subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
       };
 
-      mockSupabase.channel = vi.fn().mockReturnValue(mockChannel as any);
+      mockSupabase.channel = vi.fn().mockReturnValue(mockChannel as unknown);
 
       const subscription = subscribeToChatMessages(tripId, onInsert);
 
@@ -149,17 +147,17 @@ describe.skip('chatService - Integration Tests', () => {
     it('should call onInsert callback when new message is received', () => {
       const mockSupabase = vi.mocked(supabase);
       const onInsert = vi.fn();
-      let callback: ((payload: any) => void) | null = null;
+      let callback: ((payload: unknown) => void) | null = null;
 
       const mockChannel = {
-        on: vi.fn((event: string, config: any, handler: (payload: any) => void) => {
+        on: vi.fn((event: string, config: unknown, handler: (payload: unknown) => void) => {
           callback = handler;
           return mockChannel;
         }),
         subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
       };
 
-      mockSupabase.channel = vi.fn().mockReturnValue(mockChannel as any);
+      mockSupabase.channel = vi.fn().mockReturnValue(mockChannel as unknown);
 
       subscribeToChatMessages(tripId, onInsert);
 

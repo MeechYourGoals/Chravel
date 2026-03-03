@@ -78,9 +78,11 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
       parts.push(`\n=== USER PREFERENCES (GLOBAL) ===`);
       if (prefs.dietary?.length) parts.push(`DIETARY: ${prefs.dietary.join(', ')}`);
       if (prefs.vibe?.length) parts.push(`VIBE: ${prefs.vibe.join(', ')}`);
-      if (prefs.accessibility?.length) parts.push(`ACCESSIBILITY: ${prefs.accessibility.join(', ')}`);
+      if (prefs.accessibility?.length)
+        parts.push(`ACCESSIBILITY: ${prefs.accessibility.join(', ')}`);
       if (prefs.business?.length) parts.push(`BUSINESS: ${prefs.business.join(', ')}`);
-      if (prefs.entertainment?.length) parts.push(`ENTERTAINMENT: ${prefs.entertainment.join(', ')}`);
+      if (prefs.entertainment?.length)
+        parts.push(`ENTERTAINMENT: ${prefs.entertainment.join(', ')}`);
       if (prefs.budget) parts.push(`BUDGET: ${prefs.budget}`);
       if (prefs.timePreference) parts.push(`TIME: ${prefs.timePreference}`);
       if (prefs.travelStyle) parts.push(`TRAVEL STYLE: ${prefs.travelStyle}`);

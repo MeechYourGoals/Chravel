@@ -1,14 +1,9 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 // @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { paymentBalanceService } from '../paymentBalanceService';
 import { createMockSupabaseClient, mockUser } from '@/__tests__/utils/supabaseMocks';
 import { supabase } from '@/integrations/supabase/client';
-
-
-
-
-
 
 vi.mock('../currencyService', () => ({
   normalizeToBaseCurrency: vi.fn((amount: number) => amount),

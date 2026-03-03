@@ -56,19 +56,36 @@ export const useCalendarEvents = (tripId?: string) => {
           category: 'api-call',
           message: 'calendar fetch finish',
           level: durationMs > 3000 ? 'warning' : 'info',
-          data: { trip_id: tripId, count: result.length, duration_ms: durationMs, start_timestamp: startTimestamp, end_timestamp: new Date().toISOString(), query_key: queryKey, status: 'success' },
+          data: {
+            trip_id: tripId,
+            count: result.length,
+            duration_ms: durationMs,
+            start_timestamp: startTimestamp,
+            end_timestamp: new Date().toISOString(),
+            query_key: queryKey,
+            status: 'success',
+          },
         });
 
         return result;
-      } catch (err: any) {
+      } catch (err: unknown) {
         const endTimeMs = performance.now();
         const durationMs = Math.round(endTimeMs - startTime);
-        const isTimeout = err?.message?.includes('Timeout') || err?.name === 'TimeoutError';
+        const errObj = err instanceof Error ? err : null;
+        const isTimeout = errObj?.message?.includes('Timeout') || errObj?.name === 'TimeoutError';
         errorTracking.addBreadcrumb({
           category: 'api-call',
           message: isTimeout ? 'calendar fetch timeout' : 'calendar fetch finish',
           level: 'error',
-          data: { trip_id: tripId, duration_ms: durationMs, start_timestamp: startTimestamp, end_timestamp: new Date().toISOString(), query_key: queryKey, status: isTimeout ? 'timeout' : 'error', error: err?.message || String(err) },
+          data: {
+            trip_id: tripId,
+            duration_ms: durationMs,
+            start_timestamp: startTimestamp,
+            end_timestamp: new Date().toISOString(),
+            query_key: queryKey,
+            status: isTimeout ? 'timeout' : 'error',
+            error: errObj?.message || String(err),
+          },
         });
         throw err;
       }

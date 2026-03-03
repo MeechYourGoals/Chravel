@@ -35,8 +35,10 @@ const DEMO_COVERS_BASE =
 function toLandscapeOgImage(url: string): string {
   const STORAGE_OBJECT_PREFIX = 'jmjiyekmxwsxkfnqwyaa.supabase.co/storage/v1/object/public/';
   if (url.includes(STORAGE_OBJECT_PREFIX)) {
-    return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') +
-      '?width=1200&height=630&resize=cover';
+    return (
+      url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') +
+      '?width=1200&height=630&resize=cover'
+    );
   }
   return url;
 }

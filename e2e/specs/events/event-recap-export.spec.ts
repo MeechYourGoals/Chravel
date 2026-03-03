@@ -11,7 +11,8 @@ test.describe('Event recap export entry points', () => {
 
     // Ensure the page has time to lazy load TripHeader
     await page.waitForTimeout(1000);
-    const recapButton = page.getByRole('button', { name: /Event Recap|PDF Recap/i })
+    const recapButton = page
+      .getByRole('button', { name: /Event Recap|PDF Recap/i })
       .or(page.locator('button[aria-label="Create Event Recap"]'))
       .or(page.locator('button[title="Create Event Recap"]'))
       .or(page.locator('button[title="Create PDF Recap"]'))
@@ -20,7 +21,9 @@ test.describe('Event recap export entry points', () => {
     await expect(recapButton).toBeVisible({ timeout: 15000 });
     await recapButton.click();
 
-    await expect(page.getByRole('heading', { name: /Create Event Recap|Create Trip Recap/i })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /Create Event Recap|Create Trip Recap/i }),
+    ).toBeVisible();
   });
 
   test('mobile event drawer recap opens event export modal', async ({ browser, baseURL }) => {
@@ -42,7 +45,8 @@ test.describe('Event recap export entry points', () => {
 
     // Mobile drawer details might animate in, so ensure it's stable
     await page.waitForTimeout(1000);
-    const recapButton = page.getByRole('button', { name: /Event Recap|PDF Recap/i })
+    const recapButton = page
+      .getByRole('button', { name: /Event Recap|PDF Recap/i })
       .or(page.locator('button[aria-label="Create Event Recap"]'))
       .or(page.locator('button[title="Create Event Recap"]'))
       .or(page.locator('button[title="Create PDF Recap"]'))
@@ -51,7 +55,9 @@ test.describe('Event recap export entry points', () => {
     await expect(recapButton).toBeVisible({ timeout: 15000 });
     await recapButton.click();
 
-    await expect(page.getByRole('heading', { name: /Create Event Recap|Create Trip Recap/i })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /Create Event Recap|Create Trip Recap/i }),
+    ).toBeVisible();
 
     await context.close();
   });

@@ -74,19 +74,36 @@ export const useCalendarManagement = (tripId: string) => {
           category: 'api-call',
           message: 'calendar fetch finish',
           level: durationMs > 3000 ? 'warning' : 'info',
-          data: { trip_id: tripId, count: result.length, duration_ms: durationMs, start_timestamp: startTimestamp, end_timestamp: new Date().toISOString(), query_key: queryKey, status: 'success' },
+          data: {
+            trip_id: tripId,
+            count: result.length,
+            duration_ms: durationMs,
+            start_timestamp: startTimestamp,
+            end_timestamp: new Date().toISOString(),
+            query_key: queryKey,
+            status: 'success',
+          },
         });
 
         return result;
-      } catch (err: any) {
+      } catch (err: unknown) {
         const endTimeMs = performance.now();
         const durationMs = Math.round(endTimeMs - startTime);
-        const isTimeout = err?.message?.includes('Timeout') || err?.name === 'TimeoutError';
+        const errObj = err as { message?: string; name?: string };
+        const isTimeout = errObj?.message?.includes('Timeout') || errObj?.name === 'TimeoutError';
         errorTracking.addBreadcrumb({
           category: 'api-call',
           message: isTimeout ? 'calendar fetch timeout' : 'calendar fetch finish',
           level: 'error',
-          data: { trip_id: tripId, duration_ms: durationMs, start_timestamp: startTimestamp, end_timestamp: new Date().toISOString(), query_key: queryKey, status: isTimeout ? 'timeout' : 'error', error: err?.message || String(err) },
+          data: {
+            trip_id: tripId,
+            duration_ms: durationMs,
+            start_timestamp: startTimestamp,
+            end_timestamp: new Date().toISOString(),
+            query_key: queryKey,
+            status: isTimeout ? 'timeout' : 'error',
+            error: errObj?.message || String(err),
+          },
         });
         throw err;
       }
@@ -141,7 +158,7 @@ export const useCalendarManagement = (tripId: string) => {
       event_category?: string;
       include_in_itinerary?: boolean;
       source_type?: string;
-      source_data?: any;
+      source_data?: Record<string, unknown>;
     }) => {
       return calendarService.createEvent(eventData);
     },

@@ -33,11 +33,15 @@ export async function executeFunctionCall(
     result = await _executeImpl(supabase, functionName, args, tripId, userId, locationContext);
     const elapsed = Math.round(performance.now() - startMs);
     const ok = !result?.error;
-    console.log(`[Tool] ${functionName} | ${elapsed}ms | ${ok ? 'success' : 'error: ' + (result?.error ?? 'unknown')}`);
+    console.log(
+      `[Tool] ${functionName} | ${elapsed}ms | ${ok ? 'success' : 'error: ' + (result?.error ?? 'unknown')}`,
+    );
     return result;
   } catch (err) {
     const elapsed = Math.round(performance.now() - startMs);
-    console.error(`[Tool] ${functionName} | ${elapsed}ms | exception: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(
+      `[Tool] ${functionName} | ${elapsed}ms | exception: ${err instanceof Error ? err.message : String(err)}`,
+    );
     throw err;
   }
 }
@@ -72,15 +76,31 @@ async function _executeImpl(
         .single();
 
       if (error) {
-        if (error.code === '23505') { // Unique constraint violation
-           const { data: existing } = await supabase.from('trip_events').select().eq('trip_id', tripId).eq('idempotency_key', idempotency_key).single();
-           if (existing) {
-               return { success: true, event: existing, actionType: 'add_to_calendar', message: `Retrieved existing event "${title}" on ${startTime}` };
-           }
+        if (error.code === '23505') {
+          // Unique constraint violation
+          const { data: existing } = await supabase
+            .from('trip_events')
+            .select()
+            .eq('trip_id', tripId)
+            .eq('idempotency_key', idempotency_key)
+            .single();
+          if (existing) {
+            return {
+              success: true,
+              event: existing,
+              actionType: 'add_to_calendar',
+              message: `Retrieved existing event "${title}" on ${startTime}`,
+            };
+          }
         }
         throw error;
       }
-      return { success: true, event: data, actionType: 'add_to_calendar', message: `Created event "${title}" on ${startTime}` };
+      return {
+        success: true,
+        event: data,
+        actionType: 'add_to_calendar',
+        message: `Created event "${title}" on ${startTime}`,
+      };
     }
 
     case 'createTask': {
@@ -104,17 +124,37 @@ async function _executeImpl(
 
       if (error) {
         if (error.code === '23505') {
-            const { data: existing } = await supabase.from('trip_tasks').select().eq('trip_id', tripId).eq('idempotency_key', idempotency_key).single();
-            if (existing) return { success: true, task: existing, actionType: 'create_task', message: `Retrieved existing task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}` };
+          const { data: existing } = await supabase
+            .from('trip_tasks')
+            .select()
+            .eq('trip_id', tripId)
+            .eq('idempotency_key', idempotency_key)
+            .single();
+          if (existing)
+            return {
+              success: true,
+              task: existing,
+              actionType: 'create_task',
+              message: `Retrieved existing task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}`,
+            };
         }
         throw error;
       }
-      return { success: true, task: data, actionType: 'create_task', message: `Created task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}` };
+      return {
+        success: true,
+        task: data,
+        actionType: 'create_task',
+        message: `Created task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}`,
+      };
     }
 
     case 'createPoll': {
       const { question, options, idempotency_key } = args;
-      const pollOptions = options.map((opt: string, i: number) => ({ id: `opt_${i}`, text: opt, votes: 0 }));
+      const pollOptions = options.map((opt: string, i: number) => ({
+        id: `opt_${i}`,
+        text: opt,
+        votes: 0,
+      }));
 
       const { data, error } = await supabase
         .from('trip_polls')
@@ -131,21 +171,47 @@ async function _executeImpl(
         .single();
 
       if (error) {
-         if (error.code === '23505') {
-             const { data: existing } = await supabase.from('trip_polls').select().eq('trip_id', tripId).eq('idempotency_key', idempotency_key).single();
-             if (existing) return { success: true, poll: existing, actionType: 'create_poll', message: `Retrieved existing poll: "${question}" with ${options.length} options` };
-         }
-         throw error;
+        if (error.code === '23505') {
+          const { data: existing } = await supabase
+            .from('trip_polls')
+            .select()
+            .eq('trip_id', tripId)
+            .eq('idempotency_key', idempotency_key)
+            .single();
+          if (existing)
+            return {
+              success: true,
+              poll: existing,
+              actionType: 'create_poll',
+              message: `Retrieved existing poll: "${question}" with ${options.length} options`,
+            };
+        }
+        throw error;
       }
-      return { success: true, poll: data, actionType: 'create_poll', message: `Created poll: "${question}" with ${options.length} options` };
+      return {
+        success: true,
+        poll: data,
+        actionType: 'create_poll',
+        message: `Created poll: "${question}" with ${options.length} options`,
+      };
     }
 
     case 'savePlace': {
       const { name, url, description, category, idempotency_key } = args;
       const placeName = String(name || '').trim();
       if (!placeName) return { error: 'Place name is required' };
-      const placeUrl = url ? String(url) : `https://www.google.com/maps/search/${encodeURIComponent(placeName)}`;
-      const safeCategory = new Set(['attraction', 'accommodation', 'activity', 'appetite', 'other']).has(String(category)) ? String(category) : 'other';
+      const placeUrl = url
+        ? String(url)
+        : `https://www.google.com/maps/search/${encodeURIComponent(placeName)}`;
+      const safeCategory = new Set([
+        'attraction',
+        'accommodation',
+        'activity',
+        'appetite',
+        'other',
+      ]).has(String(category))
+        ? String(category)
+        : 'other';
 
       const { data, error } = await supabase
         .from('trip_links')
@@ -162,35 +228,49 @@ async function _executeImpl(
         .single();
 
       if (error) {
-         if (error.code === '23505') {
-            const { data: existing } = await supabase.from('trip_links').select().eq('trip_id', tripId).eq('idempotency_key', idempotency_key).single();
-            if (existing) return { success: true, link: existing, actionType: 'save_place', message: `Retrieved existing "${placeName}" to trip places (${safeCategory})` };
-         }
-         throw error;
+        if (error.code === '23505') {
+          const { data: existing } = await supabase
+            .from('trip_links')
+            .select()
+            .eq('trip_id', tripId)
+            .eq('idempotency_key', idempotency_key)
+            .single();
+          if (existing)
+            return {
+              success: true,
+              link: existing,
+              actionType: 'save_place',
+              message: `Retrieved existing "${placeName}" to trip places (${safeCategory})`,
+            };
+        }
+        throw error;
       }
-      return { success: true, link: data, actionType: 'save_place', message: `Saved "${placeName}" to trip places (${safeCategory})` };
+      return {
+        success: true,
+        link: data,
+        actionType: 'save_place',
+        message: `Saved "${placeName}" to trip places (${safeCategory})`,
+      };
     }
-
-
 
     // Default to the original executor file content for the rest
     case 'verify_artifact': {
-       const { type, id, idempotency_key } = args;
-       let table = '';
-       if (type === 'task') table = 'trip_tasks';
-       else if (type === 'event') table = 'trip_events';
-       else if (type === 'poll') table = 'trip_polls';
-       else if (type === 'link' || type === 'place') table = 'trip_links';
-       else return { error: `Unknown artifact type: ${type}` };
+      const { type, id, idempotency_key } = args;
+      let table = '';
+      if (type === 'task') table = 'trip_tasks';
+      else if (type === 'event') table = 'trip_events';
+      else if (type === 'poll') table = 'trip_polls';
+      else if (type === 'link' || type === 'place') table = 'trip_links';
+      else return { error: `Unknown artifact type: ${type}` };
 
-       let query = supabase.from(table).select('id').eq('trip_id', tripId);
-       if (id) query = query.eq('id', id);
-       if (idempotency_key) query = query.eq('idempotency_key', idempotency_key);
+      let query = supabase.from(table).select('id').eq('trip_id', tripId);
+      if (id) query = query.eq('id', id);
+      if (idempotency_key) query = query.eq('idempotency_key', idempotency_key);
 
-       const { data, error } = await query.maybeSingle();
-       if (error) return { error: error.message };
+      const { data, error } = await query.maybeSingle();
+      if (error) return { error: error.message };
 
-       return { success: true, exists: !!data, found_id: data?.id || null };
+      return { success: true, exists: !!data, found_id: data?.id || null };
     }
 
     default:
