@@ -57,7 +57,7 @@ describe('useSmartImportDropzone', () => {
     const dropzone = getByTestId('dropzone');
 
     const preventDefaultSpy = vi.fn();
-    const dragOverEvent = new DragEvent('dragover', {
+    const dragOverEvent = new Event('dragover', {
       bubbles: true,
       cancelable: true,
     });
