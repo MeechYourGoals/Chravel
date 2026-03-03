@@ -5,7 +5,7 @@ test.describe('Event recap export entry points', () => {
     await page.goto('/event/1');
     await page.waitForSelector('#root main', { timeout: 15000 });
 
-    const recapButton = page.getByRole('button', { name: 'Create Event Recap' });
+    const recapButton = page.locator('button[aria-label="Create Event Recap"]').first();
     await expect(recapButton).toBeVisible({ timeout: 15000 });
     await recapButton.click();
 
@@ -21,11 +21,11 @@ test.describe('Event recap export entry points', () => {
     await page.goto(`${baseURL}/event/1`);
     await page.waitForSelector('#root main', { timeout: 15000 });
 
-    const detailsButton = page.getByRole('button', { name: 'View event details' });
+    const detailsButton = page.locator('button[aria-label="View event details"]').first();
     await expect(detailsButton).toBeVisible({ timeout: 15000 });
     await detailsButton.click();
 
-    const recapButton = page.getByRole('button', { name: 'Create Event Recap' });
+    const recapButton = page.locator('button[aria-label="Create Event Recap"]').first();
     await expect(recapButton).toBeVisible({ timeout: 15000 });
     await recapButton.click();
 

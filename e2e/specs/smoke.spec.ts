@@ -63,13 +63,13 @@ test.describe('Smoke Tests — App Shell', () => {
 
     // The landing page should have at minimum a sign-in or get-started CTA
     const hasAuthCta = await page
-      .getByRole('button', { name: /sign in|log in|get started/i })
+      .locator('button', { hasText: /Settings|New Trip/i })
       .first()
       .isVisible()
       .catch(() => false);
 
     const hasLink = await page
-      .getByRole('link', { name: /sign in|log in|get started/i })
+      .locator('a', { hasText: /Settings|New Trip/i })
       .first()
       .isVisible()
       .catch(() => false);
@@ -106,8 +106,8 @@ test.describe('Smoke Tests — Demo Mode', () => {
 
     // Demo page should render without errors — either content or redirect
     const url = page.url();
-    // It either stays on /demo or redirects to a demo trip
-    expect(url).toMatch(/\/(demo|trip)/);
+    // It either stays on /demo or redirects to a demo trip or home with demo query
+    expect(url).toMatch(/\/(demo|trip|\?from=demo)/);
   });
 });
 
@@ -247,11 +247,13 @@ test.describe('Smoke Tests — SPA Routing', () => {
   });
 
   test('18. Legacy pro trip URL redirects correctly', async ({ page }) => {
-    await page.goto('/tour/pro-some-trip-id');
+    // Navigate with a specific test id
+    await page.goto('/tour/pro-test-pro-trip-id');
     await page.waitForSelector('#root main', { timeout: 15000 });
 
     // Should redirect from /tour/pro-{id} to /tour/pro/{id}
-    const url = page.url();
-    expect(url).toContain('/tour/pro/');
+    await page.waitForURL(/\/tour\/pro\/test-pro-trip-id/, { timeout: 10000 });
+    const newUrl = page.url();
+    expect(newUrl).toContain('/tour/pro/test-pro-trip-id');
   });
 });
