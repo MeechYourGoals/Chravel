@@ -19,7 +19,8 @@ import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
 import { DeleteTripConfirmDialog } from './DeleteTripConfirmDialog';
 import { TripExportModal } from './trip/TripExportModal';
 import { OptimizedImage } from './OptimizedImage';
-import { archiveTrip, hideTrip, deleteTripForMe } from '../services/archiveService';
+import { archiveTrip, hideTrip } from '../services/archiveService';
+import { useDeleteTrip } from '../hooks/useDeleteTrip';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/use-toast';
 import { ToastAction } from './ui/toast';
@@ -64,6 +65,9 @@ interface Trip {
   created_by?: string;
 }
 
+// Query key constant shared with useTrips
+const TRIPS_QUERY_KEY = 'trips';
+
 interface TripCardProps {
   trip: Trip;
   onArchiveSuccess?: () => void;
@@ -85,7 +89,7 @@ export const TripCard = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { deleteTrip, isDeleting } = useDeleteTrip();
   const [showExportModal, setShowExportModal] = useState(false);
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
@@ -198,38 +202,14 @@ export const TripCard = ({
       return;
     }
 
-    // For free users who are creators, auto-archive instead of delete
-    if (isCreator && isFreeUser) {
-      try {
-        await archiveTrip(trip.id.toString(), 'consumer');
-        toast({
-          title: 'Trip archived',
-          description: `"${trip.title}" has been archived. Upgrade to restore it anytime!`,
-          action: (
-            <ToastAction altText="View Plans" onClick={() => navigate('/settings')}>
-              View Plans
-            </ToastAction>
-          ),
-        });
-        setShowDeleteDialog(false);
-        onArchiveSuccess?.();
-      } catch {
-        toast({
-          title: 'Failed to archive trip',
-          description: 'There was an error archiving your trip. Please try again.',
-          variant: 'destructive',
-        });
-      }
-      return;
-    }
-
-    // For paid creators and regular members, proceed with deletion
-    setIsDeleting(true);
     try {
-      await deleteTripForMe(trip.id.toString(), user.id);
+      const result = await deleteTrip(trip.id.toString(), trip.created_by);
       toast({
-        title: 'Trip removed',
-        description: `"${trip.title}" has been removed from your account.`,
+        title: result.action === 'archived' ? 'Trip archived' : 'Trip removed',
+        description:
+          result.action === 'archived'
+            ? `"${trip.title}" has been archived.`
+            : `"${trip.title}" has been removed from your account.`,
       });
       setShowDeleteDialog(false);
       onDeleteSuccess?.();
@@ -239,8 +219,6 @@ export const TripCard = ({
         description: 'There was an error removing the trip. Please try again.',
         variant: 'destructive',
       });
-    } finally {
-      setIsDeleting(false);
     }
   };
 

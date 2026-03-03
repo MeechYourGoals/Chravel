@@ -43,6 +43,7 @@ export const useProTrips = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
   });
 
@@ -62,6 +63,7 @@ export const useProTrips = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
   });
 
@@ -82,6 +84,7 @@ export const useProTrips = () => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [PRO_TRIPS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
     },
   });
 

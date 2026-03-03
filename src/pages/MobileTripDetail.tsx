@@ -8,7 +8,7 @@ import { MobileHeaderOptionsSheet } from '../components/mobile/MobileHeaderOptio
 import { TripExportModal } from '../components/trip/TripExportModal';
 import { InviteModal } from '../components/InviteModal';
 import { DeleteTripConfirmDialog } from '../components/DeleteTripConfirmDialog';
-import { deleteTripForMe } from '../services/archiveService';
+import { useDeleteTrip } from '../hooks/useDeleteTrip';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
@@ -55,7 +55,7 @@ export const MobileTripDetail = () => {
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { deleteTrip, isDeleting } = useDeleteTrip();
   const headerRef = React.useRef<HTMLDivElement>(null);
 
   // Persist activeTab changes to sessionStorage
@@ -277,37 +277,29 @@ export const MobileTripDetail = () => {
     }
   }, [tripId, tripWithUpdatedDescription]);
 
-  // Delete Trip For Me handler - removes user's access without deleting trip for others
+  // Delete Trip handler - uses unified deletion engine (archive for creators, leave for members)
   const handleDeleteTripForMe = useCallback(async () => {
     if (!user?.id || !tripId) {
       toast.error('You must be logged in to delete a trip');
       return;
     }
 
-    setIsDeleting(true);
     try {
-      await deleteTripForMe(tripId, user.id);
-      toast.success('Trip deleted', {
-        description: `"${tripWithUpdatedDescription?.title}" has been removed from your account.`,
+      const result = await deleteTrip(tripId, tripCreatorId);
+      toast.success(result.action === 'archived' ? 'Trip archived' : 'Trip removed', {
+        description:
+          result.action === 'archived'
+            ? `"${tripWithUpdatedDescription?.title}" has been archived.`
+            : `"${tripWithUpdatedDescription?.title}" has been removed from your account.`,
       });
       setShowDeleteDialog(false);
       navigate('/');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMessage === 'CREATOR_CANNOT_DELETE') {
-        toast.error('Cannot delete trip', {
-          description:
-            'As the trip creator, you cannot delete this trip for yourself. Consider archiving it instead.',
-        });
-      } else {
-        toast.error('Failed to delete trip', {
-          description: 'There was an error deleting your trip. Please try again.',
-        });
-      }
-    } finally {
-      setIsDeleting(false);
+    } catch {
+      toast.error('Failed to delete trip', {
+        description: 'There was an error deleting your trip. Please try again.',
+      });
     }
-  }, [user?.id, tripId, tripWithUpdatedDescription?.title, navigate]);
+  }, [user?.id, tripId, tripCreatorId, tripWithUpdatedDescription?.title, navigate, deleteTrip]);
 
   // Get query client for retry functionality
   const queryClient = useQueryClient();
