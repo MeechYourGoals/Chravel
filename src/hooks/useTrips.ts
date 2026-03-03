@@ -23,7 +23,7 @@ export const useTrips = () => {
     queryFn: async () => {
       if (isDemoMode) return await tripService.getUserTrips(true);
       if (!user) return [];
-      return await tripService.getUserTrips(false);
+      return await tripService.getUserTrips(false, undefined, user.id);
     },
     enabled: isDemoMode || !!user,
     staleTime: 1000 * 60 * 5,
