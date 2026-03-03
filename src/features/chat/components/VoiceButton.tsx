@@ -1,7 +1,6 @@
 import React, { useCallback, useRef } from 'react';
 import { AudioLines, Lock, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_GRADIENT, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
@@ -10,20 +9,29 @@ interface VoiceButtonProps {
   voiceState: VoiceState;
   /** Whether the user's plan supports voice */
   isEligible: boolean;
-  /** Toggle conversation mode on/off */
+  /** Toggle conversation mode on/off (dictation) */
   onToggle: () => void;
   /** Upgrade prompt for ineligible users */
   onUpgrade?: () => void;
+  /** Read the last assistant message aloud via TTS */
+  onReadAloud?: () => void;
 }
 
 const LONG_PRESS_MS = 500;
 
 /**
- * Waveform button for Conversation Mode (Gemini Live).
- * Sits left of the text input at the same size as the Send button.
- * Long-press shows a helper toast on mobile.
+ * Waveform button for voice interaction.
+ * Short tap: read last assistant message aloud (TTS).
+ * Long press: start dictation (speech-to-text).
+ * When actively listening, short tap stops listening.
  */
-export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: VoiceButtonProps) => {
+export const VoiceButton = ({
+  voiceState,
+  isEligible,
+  onToggle,
+  onUpgrade,
+  onReadAloud,
+}: VoiceButtonProps) => {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
 
@@ -34,19 +42,17 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
     }
   }, []);
 
-  // Long-press shows helper toast on mobile
+  // Long press starts dictation mode
   const handlePressStart = useCallback(() => {
     if (!isEligible) return;
     didLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true;
       longPressTimer.current = null;
-      toast('Speak', {
-        description: 'Tap to dictate your message',
-        duration: 2000,
-      });
+      // Start dictation on long press
+      onToggle();
     }, LONG_PRESS_MS);
-  }, [isEligible]);
+  }, [isEligible, onToggle]);
 
   const handlePressEnd = useCallback(() => {
     clearTimer();
@@ -61,8 +67,19 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
       onUpgrade?.();
       return;
     }
-    onToggle();
-  }, [isEligible, onToggle, onUpgrade]);
+
+    const isActive = voiceState !== 'idle' && voiceState !== 'error';
+    if (isActive) {
+      // Stop listening if actively recording
+      onToggle();
+    } else if (onReadAloud) {
+      // Short tap while idle: read last assistant message aloud
+      onReadAloud();
+    } else {
+      // Fallback: toggle dictation if no read-aloud handler
+      onToggle();
+    }
+  }, [isEligible, voiceState, onToggle, onUpgrade, onReadAloud]);
 
   const isActive = isEligible && voiceState !== 'idle' && voiceState !== 'error';
   const isConnecting = voiceState === 'connecting' || voiceState === 'thinking';
@@ -82,10 +99,10 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
   };
 
   const getTooltip = () => {
-    if (!isEligible) return 'Speak — Upgrade to use';
+    if (!isEligible) return 'Voice — Upgrade to use';
     if (isActive) return 'Stop listening';
     if (voiceState === 'error') return 'Tap to retry';
-    return 'Speak';
+    return 'Tap to listen, hold to speak';
   };
 
   return (
@@ -136,7 +153,6 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
                 className="absolute -top-0.5 -right-0.5 text-amber-400/90 drop-shadow-md z-10"
               />
             )}
-            {/* LIVE badge — only shown in duplex conversation mode (future) */}
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">

@@ -48,6 +48,14 @@ Output a JSON block enclosed in \`\`\`json \`\`\` at the very start of your resp
 - Use markdown for all responses (headers, bullet points, bold).
 - Format ALL links as clickable markdown: [Title](https://url.com).
 - Keep responses concise and information-rich.
+
+**LANGUAGE MATCHING (NON-NEGOTIABLE):**
+- ALWAYS respond in the SAME language as the user's current message.
+- If the user writes in Spanish, respond entirely in Spanish.
+- If the user writes in German, respond entirely in German.
+- If the next message switches to English, switch back to English.
+- Do NOT translate into English unless the user explicitly asks.
+- Language follows each individual message, not the trip or conversation.
 `);
 
   // Rest of the promptBuilder logic to inject trip context
