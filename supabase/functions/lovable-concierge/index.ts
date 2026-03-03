@@ -1250,15 +1250,14 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         parameters: {
           type: 'object',
           properties: {
-            idempotency_key: { type: 'string' },
-            title: { type: 'string', description: 'Task title/description' },
-            notes: { type: 'string', description: 'Additional notes or details for the task' },
-            assignee: { type: 'string', description: 'Name of the person to assign the task to' },
-            dueDate: { type: 'string', description: 'Due date in ISO 8601 format' },
             idempotency_key: {
               type: 'string',
               description: 'Unique string to prevent duplicate tool execution',
             },
+            title: { type: 'string', description: 'Task title/description' },
+            notes: { type: 'string', description: 'Additional notes or details for the task' },
+            assignee: { type: 'string', description: 'Name of the person to assign the task to' },
+            dueDate: { type: 'string', description: 'Due date in ISO 8601 format' },
           },
           required: ['title', 'idempotency_key'],
         },
