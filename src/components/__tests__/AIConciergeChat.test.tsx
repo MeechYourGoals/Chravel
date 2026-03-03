@@ -145,7 +145,7 @@ describe('AIConciergeChat', () => {
 
       // The microphone button has been moved to the input area, so it should not appear in the header
       await waitFor(() => {
-        expect(screen.getByLabelText('Speak')).toBeInTheDocument();
+        expect(screen.getByLabelText(/tap to listen, hold to speak/i)).toBeInTheDocument();
       });
     });
 

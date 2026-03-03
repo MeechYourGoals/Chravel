@@ -16,6 +16,17 @@ export type TTSPlaybackState = 'idle' | 'loading' | 'playing' | 'error';
 
 /** Default ElevenLabs voice ID — Mark (casual, relaxed male voice). */
 const DEFAULT_VOICE_ID = '1SM7GgM6IMuvQlz2BwM3';
+const RETRYABLE_FETCH_ERROR = 'Failed to fetch';
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const toReadablePlaybackError = (err: unknown): string => {
+  if (!(err instanceof Error)) return 'TTS playback failed';
+  if (err.message === RETRYABLE_FETCH_ERROR) {
+    return 'Unable to reach the voice service. Check your connection and app domain configuration, then try again.';
+  }
+  return err.message || 'TTS playback failed';
+};
 
 interface UseElevenLabsTTSOptions {
   /** Override the default voice ID. */
@@ -65,6 +76,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
     abortRef.current?.abort();
     abortRef.current = null;
     cleanup();
+    setErrorMessage(null);
     setPlaybackState('idle');
     setPlayingMessageId(null);
   }, [cleanup]);
@@ -100,20 +112,41 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
 
         const url = `${SUPABASE_PROJECT_URL}/functions/v1/elevenlabs-tts`;
 
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-            apikey: SUPABASE_PUBLIC_ANON_KEY,
-          },
-          body: JSON.stringify({
-            speech_text: speechText,
-            voice_id: voiceId,
-            output_format: 'mp3_44100_128',
-          }),
-          signal: abortController.signal,
-        });
+        let response: Response | null = null;
+        let lastFetchError: unknown = null;
+
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`,
+                apikey: SUPABASE_PUBLIC_ANON_KEY,
+              },
+              body: JSON.stringify({
+                speech_text: speechText,
+                voice_id: voiceId,
+                output_format: 'mp3_44100_128',
+              }),
+              signal: abortController.signal,
+            });
+            lastFetchError = null;
+            break;
+          } catch (fetchErr) {
+            lastFetchError = fetchErr;
+            if (abortController.signal.aborted || attempt === 1) break;
+            await sleep(250);
+          }
+        }
+
+        if (lastFetchError) {
+          throw lastFetchError;
+        }
+
+        if (!response) {
+          throw new Error('TTS request failed before receiving a response');
+        }
 
         // Check if aborted during fetch
         if (abortController.signal.aborted) return;
@@ -131,6 +164,11 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
             throw new Error(errMsg);
           }
           throw new Error(errMsg);
+        }
+
+        const responseContentType = response.headers.get('content-type') || '';
+        if (!responseContentType.includes('audio/')) {
+          throw new Error('Voice service returned an unexpected response format');
         }
 
         const blob = await response.blob();
@@ -161,7 +199,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
         await audio.play();
       } catch (err) {
         if (abortController.signal.aborted) return;
-        const msg = err instanceof Error ? err.message : 'TTS playback failed';
+        const msg = toReadablePlaybackError(err);
         setErrorMessage(msg);
         setPlaybackState('error');
         setPlayingMessageId(null);

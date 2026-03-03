@@ -34,6 +34,7 @@ export const VoiceButton = ({
 }: VoiceButtonProps) => {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
+  const activePointerId = useRef<number | null>(null);
 
   const clearTimer = useCallback(() => {
     if (longPressTimer.current) {
@@ -43,20 +44,29 @@ export const VoiceButton = ({
   }, []);
 
   // Long press starts dictation mode
-  const handlePressStart = useCallback(() => {
-    if (!isEligible) return;
-    didLongPress.current = false;
-    longPressTimer.current = setTimeout(() => {
-      didLongPress.current = true;
-      longPressTimer.current = null;
-      // Start dictation on long press
-      onToggle();
-    }, LONG_PRESS_MS);
-  }, [isEligible, onToggle]);
+  const handlePressStart = useCallback(
+    (pointerId: number) => {
+      if (!isEligible) return;
+      activePointerId.current = pointerId;
+      didLongPress.current = false;
+      longPressTimer.current = setTimeout(() => {
+        didLongPress.current = true;
+        longPressTimer.current = null;
+        // Start dictation on long press
+        onToggle();
+      }, LONG_PRESS_MS);
+    },
+    [isEligible, onToggle],
+  );
 
-  const handlePressEnd = useCallback(() => {
-    clearTimer();
-  }, [clearTimer]);
+  const handlePressEnd = useCallback(
+    (pointerId: number) => {
+      if (activePointerId.current !== pointerId) return;
+      activePointerId.current = null;
+      clearTimer();
+    },
+    [clearTimer],
+  );
 
   const handleClick = useCallback(() => {
     if (didLongPress.current) {
@@ -111,12 +121,10 @@ export const VoiceButton = ({
         <TooltipTrigger asChild>
           <button
             onClick={handleClick}
-            onTouchStart={handlePressStart}
-            onTouchEnd={handlePressEnd}
-            onTouchCancel={handlePressEnd}
-            onMouseDown={handlePressStart}
-            onMouseUp={handlePressEnd}
-            onMouseLeave={handlePressEnd}
+            onPointerDown={event => handlePressStart(event.pointerId)}
+            onPointerUp={event => handlePressEnd(event.pointerId)}
+            onPointerCancel={event => handlePressEnd(event.pointerId)}
+            onPointerLeave={event => handlePressEnd(event.pointerId)}
             className={`relative size-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
             aria-label={getTooltip()}
           >
