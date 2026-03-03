@@ -265,6 +265,28 @@ class BasecampService {
         address: basecamp.address,
       });
 
+      // If offline, cache immediately and return success (avoids RPC error)
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        console.warn(this.LOG_PREFIX, 'setTripBasecamp: Offline mode, caching locally only');
+        await cacheEntity({
+          entityType: 'trip_basecamp',
+          entityId: tripId,
+          tripId,
+          data: {
+            address: basecamp.address,
+            name: basecamp.name,
+            latitude: finalLatitude || undefined,
+            longitude: finalLongitude || undefined,
+            type: 'other'
+          } as BasecampLocation
+        });
+
+        return {
+          success: true,
+          coordinates: finalLatitude && finalLongitude ? { lat: finalLatitude, lng: finalLongitude } : undefined,
+        };
+      }
+
       // ─── Attempt 1: Versioned RPC (preferred — optimistic locking) ───
       const rpcResult = await this.tryRpcBasecampUpdate(
         tripId,

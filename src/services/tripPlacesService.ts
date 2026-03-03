@@ -93,19 +93,34 @@ export const fetchTripPlaces = async (
   }
 
   const placesWithDistance: PlaceWithDistance[] = data.map(link => {
-    const placeIdMatch = link.og_description?.match(/place_id:([^ |]+)/);
-    const placeId = placeIdMatch ? placeIdMatch[1] : link.id.toString();
+    let placeId = link.id.toString();
+    let coordinates: { lat: number; lng: number } | undefined = undefined;
+    let category = 'other';
+    let address = '';
 
-    const coordsMatch = link.og_description?.match(/coords:([^,]+),([^ |]+)/);
-    const coordinates = coordsMatch
-      ? { lat: parseFloat(coordsMatch[1]), lng: parseFloat(coordsMatch[2]) }
-      : undefined;
+    try {
+      if (link.og_description) {
+        const placeIdMatch = link.og_description.match(/place_id:([^ |]+)/);
+        if (placeIdMatch && placeIdMatch[1]) placeId = placeIdMatch[1];
 
-    const categoryMatch = link.og_description?.match(/category:([^ |]+)/);
-    const category = categoryMatch ? categoryMatch[1] : 'other';
+        const coordsMatch = link.og_description.match(/coords:([^,]+),([^ |]+)/);
+        if (coordsMatch && coordsMatch[1] && coordsMatch[2]) {
+          const lat = parseFloat(coordsMatch[1]);
+          const lng = parseFloat(coordsMatch[2]);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            coordinates = { lat, lng };
+          }
+        }
 
-    const addressMatch = link.og_description?.match(/Saved from Places: ([^|]+)/);
-    const address = addressMatch ? addressMatch[1].trim() : '';
+        const categoryMatch = link.og_description.match(/category:([^ |]+)/);
+        if (categoryMatch && categoryMatch[1]) category = categoryMatch[1];
+
+        const addressMatch = link.og_description.match(/Saved from Places: ([^|]+)/);
+        if (addressMatch && addressMatch[1]) address = addressMatch[1].trim();
+      }
+    } catch (e) {
+      console.warn(`[TripPlacesService] Failed to parse place data from link ${link.id}`, e);
+    }
 
     return {
       id: placeId,
