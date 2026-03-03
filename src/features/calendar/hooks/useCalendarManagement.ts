@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { errorTracking } from '@/utils/errorTracking';
 import { CalendarEvent, AddToCalendarData } from '@/types/calendar';
 import { calendarService, TripEvent } from '@/services/calendarService';
 import { demoModeService } from '@/services/demoModeService';

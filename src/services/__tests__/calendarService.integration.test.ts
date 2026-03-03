@@ -5,7 +5,7 @@ vi.mock('@/services/offlineSyncService', () => ({
     queueMutation: vi.fn().mockResolvedValue(undefined),
   },
 }));
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { calendarService } from '../calendarService';
 import {
   createMockSupabaseClient as _createMockSupabaseClient,

@@ -117,7 +117,6 @@ async function _executeImpl(
           creator_id: userId || '',
           idempotency_key: idempotency_key || null,
           due_at: dueDate || null,
-          idempotency_key: idempotency_key || null,
         })
         .select()
         .single();
@@ -165,7 +164,6 @@ async function _executeImpl(
           created_by: userId || null,
           idempotency_key: idempotency_key || null,
           status: 'active',
-          idempotency_key: idempotency_key || null,
         })
         .select()
         .single();
