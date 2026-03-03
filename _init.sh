@@ -9,7 +9,7 @@ echo "===================================="
 echo -n "Node version: "
 node --version
 
-# Check npm version  
+# Check npm version
 echo -n "npm version: "
 npm --version
 

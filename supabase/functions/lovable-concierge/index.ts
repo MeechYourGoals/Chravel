@@ -1226,13 +1226,13 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         description: 'Add an event to the trip calendar/itinerary',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             title: { type: 'string', description: 'Event title' },
             datetime: { type: 'string', description: 'ISO 8601 datetime string' },
             location: { type: 'string', description: 'Event location or address' },
             notes: { type: 'string', description: 'Additional notes or description' },
           },
-          required: ['title', 'datetime'],
+          required: ['title', 'datetime', 'idempotency_key'],
         },
       },
       {
@@ -1240,13 +1240,14 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         description: 'Create a new task for the trip group',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             title: { type: 'string', description: 'Task title/description' },
             notes: { type: 'string', description: 'Additional notes or details for the task' },
             assignee: { type: 'string', description: 'Name of the person to assign the task to' },
             dueDate: { type: 'string', description: 'Due date in ISO 8601 format' },
+            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
           },
-          required: ['title'],
+          required: ['title', 'idempotency_key'],
         },
       },
       {
@@ -1261,8 +1262,9 @@ Answer the user's question accurately. Use web search for real-time info (weathe
               items: { type: 'string' },
               description: 'List of poll options (2-6 options)',
             },
+            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
           },
-          required: ['question', 'options'],
+          required: ['question', 'options', 'idempotency_key'],
         },
       },
       {
@@ -1270,7 +1272,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         description: 'Get a summary of who owes what in the trip',
         parameters: {
           type: 'object',
-          properties: {},
+          properties: { idempotency_key: { type: 'string' },},
         },
       },
       {
@@ -1279,7 +1281,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Search for places like restaurants, hotels, attractions near a location. Returns placeId for follow-up details.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             query: { type: 'string', description: 'Search query (e.g. "sushi restaurant")' },
             nearLat: { type: 'number', description: 'Latitude to search near' },
             nearLng: { type: 'number', description: 'Longitude to search near' },
@@ -1293,7 +1295,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Get driving directions, ETA, and distance between two locations. Use for "how long to get there" or "directions from X to Y" questions.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             origin: { type: 'string', description: 'Starting address or place name' },
             destination: { type: 'string', description: 'Destination address or place name' },
             departureTime: {
@@ -1310,7 +1312,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Get the time zone for a geographic location. Use when user asks about time zones or to normalize itinerary times.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             lat: { type: 'number', description: 'Latitude of the location' },
             lng: { type: 'number', description: 'Longitude of the location' },
           },
@@ -1323,7 +1325,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Get detailed info about a specific place: hours, phone, website, photos, editorial summary. Use after searchPlaces to show more details, or when user asks "tell me more about [place]" or "show me photos of [venue]".',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             placeId: {
               type: 'string',
               description: 'Google Places ID (from searchPlaces results)',
@@ -1338,7 +1340,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Search for images on the web. Use when user asks to "show me pictures/photos of [something]" that is NOT a specific place/venue. For venue photos, use getPlaceDetails instead.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             query: { type: 'string', description: 'Image search query' },
             count: {
               type: 'number',
@@ -1354,7 +1356,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Generate a map image showing a location or route. Use when the user wants to see a map or after providing directions. Embed the returned imageUrl with Markdown: ![Map](imageUrl).',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             center: {
               type: 'string',
               description: 'Address or "lat,lng" to center the map on',
@@ -1378,7 +1380,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Search the web for real-time information: current business hours, prices, reviews, upcoming events, or live data unavailable in trip context. Include sources in your response.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             query: { type: 'string', description: 'Search query' },
             count: { type: 'number', description: 'Number of results (max 10, default 5)' },
           },
@@ -1391,7 +1393,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Get travel times and distances from multiple origins to multiple destinations. Use for "how long from hotel to each restaurant?" or comparing route options.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             origins: {
               type: 'array',
               items: { type: 'string' },
@@ -1416,7 +1418,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Validate and clean up an address, and get its exact coordinates. Use when a user mentions an address and you want to confirm it is correct and get lat/lng for map operations.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             address: { type: 'string', description: 'Address to validate and geocode' },
           },
           required: ['address'],
@@ -1443,8 +1445,9 @@ Answer the user's question accurately. Use web search for real-time info (weathe
               description:
                 'Category: attraction, accommodation, activity, appetite (food/drink), or other',
             },
+            idempotency_key: { type: 'string', description: 'Unique string to prevent duplicate tool execution' },
           },
-          required: ['name'],
+          required: ['name', 'idempotency_key'],
         },
       },
       {
@@ -1453,7 +1456,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Set the trip basecamp (group hotel/accommodation) or personal basecamp (user\'s own accommodation). Use when user says "make this my hotel", "set our basecamp to...", "this is where I\'m staying", or "make this the trip basecamp".',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             scope: {
               type: 'string',
               description:
@@ -1473,7 +1476,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Add a session or item to an event agenda. Use when user says "add this to the agenda", "schedule a session", or "put this on the event schedule". Requires an eventId (the parent event).',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             eventId: {
               type: 'string',
               description: 'ID of the parent event to add the agenda item to',
@@ -1499,7 +1502,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Search for flights and get a deeplink to Google Flights. Use when user asks for flight options, prices, or availability.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             origin: { type: 'string', description: 'Origin airport code (e.g. SFO) or city name' },
             destination: {
               type: 'string',
@@ -1518,12 +1521,12 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Extract calendar events from attached images/screenshots/PDFs (hotel reservations, boarding passes, flight confirmations, itineraries) and show a preview card for the user to confirm before adding to calendar. Call this when user attaches a travel document and says "add to calendar", "import this", "save this to the trip", or similar. YOU must analyze the attached image and extract the event details yourself, then pass them as the events array.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             events: {
               type: 'array',
               items: {
                 type: 'object',
-                properties: {
+                properties: { idempotency_key: { type: 'string' },
                   title: {
                     type: 'string',
                     description:
@@ -1552,7 +1555,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
                       'Confirmation number, booking reference, seat number, or other details',
                   },
                 },
-                required: ['title', 'datetime'],
+                required: ['title', 'datetime', 'idempotency_key'],
               },
               description:
                 'Array of calendar events extracted from the attached document. Extract ALL events visible.',
@@ -1567,7 +1570,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Create a reservation draft card for the user to confirm. Use ONLY when the user explicitly asks to book/reserve/make a reservation at a restaurant, venue, or experience. Do NOT auto-book. The draft will be shown as a card the user can confirm. Internally searches for the place and enriches with phone, website, and address.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             placeQuery: {
               type: 'string',
               description: 'Name of the restaurant or venue to reserve (e.g. "Bestia Los Angeles")',
@@ -1597,7 +1600,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Update an existing trip calendar event. Use when user says "change dinner to 8pm", "move the meeting to Friday", "update the location of [event]". Requires the eventId from trip context or a previous search.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             eventId: {
               type: 'string',
               description: 'ID of the event to update (from trip context)',
@@ -1617,7 +1620,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Delete an event from the trip calendar. Use when user says "remove dinner from calendar", "cancel the meeting", "delete that event". Requires the eventId.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             eventId: {
               type: 'string',
               description: 'ID of the event to delete (from trip context)',
@@ -1632,7 +1635,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Update an existing trip task. Use for "mark task as done", "change the due date", "rename the task". Requires taskId.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             taskId: { type: 'string', description: 'ID of the task to update (from trip context)' },
             title: { type: 'string', description: 'New task title' },
             description: { type: 'string', description: 'Updated description/notes' },
@@ -1648,7 +1651,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Delete a task from the trip. Use when user says "remove that task", "delete the packing task". Requires taskId.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             taskId: { type: 'string', description: 'ID of the task to delete (from trip context)' },
           },
           required: ['taskId'],
@@ -1660,7 +1663,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Search across all trip data — calendar events, tasks, polls, places/links, and payments. Use for "find anything about dinner", "search for museum", or when the user wants to find something in the trip but you don\'t know which section it\'s in.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             query: { type: 'string', description: 'Search query' },
             types: {
               type: 'array',
@@ -1678,7 +1681,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Check if a proposed time slot conflicts with existing calendar events. Use before adding an event when the time might overlap, or when user asks "am I free at 7pm?" or "do we have anything at that time?".',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             datetime: { type: 'string', description: 'Proposed start time in ISO 8601' },
             endDatetime: {
               type: 'string',
@@ -1694,7 +1697,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Send a broadcast announcement to all trip members. Use when user says "announce to the group", "broadcast that...", "send everyone a message about...", "let everyone know". For urgent announcements, set priority to "urgent".',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             message: { type: 'string', description: 'The broadcast message to send' },
             priority: {
               type: 'string',
@@ -1710,7 +1713,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Send an in-app notification to specific trip members or all members. Use for reminders, alerts, or targeted messages.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             title: { type: 'string', description: 'Notification title (short)' },
             message: { type: 'string', description: 'Notification body message' },
             targetUserIds: {
@@ -1729,7 +1732,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Get weather forecast for a location. Use when user asks "what\'s the weather like?", "will it rain?", "should I pack a jacket?", "temperature in [city]".',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             location: { type: 'string', description: 'City or location name' },
             date: {
               type: 'string',
@@ -1745,7 +1748,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Convert between currencies with live exchange rates. Use for "how much is 100 USD in EUR?", "convert to local currency", or when discussing costs in international trips.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             amount: { type: 'number', description: 'Amount to convert' },
             from: { type: 'string', description: 'Source currency code (e.g. USD, EUR, GBP)' },
             to: { type: 'string', description: 'Target currency code (e.g. JPY, MXN, COP)' },
@@ -1759,7 +1762,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Generate a custom AI image based on the trip context. Use when user says "create a trip image", "generate a cover photo", "make a header image for the trip", "design a trip banner". Creates a beautiful travel-themed image that can be set as the trip header.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             prompt: {
               type: 'string',
               description:
@@ -1780,7 +1783,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Set a generated or uploaded image as the trip header/cover photo. Use after generateTripImage or when user provides an image URL to use as the trip banner.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             imageUrl: { type: 'string', description: 'URL of the image to set as trip header' },
           },
           required: ['imageUrl'],
@@ -1792,7 +1795,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           "Browse a website and extract travel-relevant information. Use when the user shares a URL and wants you to analyze it, or when you need to check a restaurant's menu, hours, availability, or booking options. Acts as a travel agent reading the page.",
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             url: {
               type: 'string',
               description: 'Full URL to browse (must start with http:// or https://)',
@@ -1812,7 +1815,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Act as a travel agent to research and prepare a reservation. Searches for the venue, browses their website for booking info, finds reservation links (OpenTable, Resy, etc.), and adds to calendar. More thorough than emitReservationDraft — use when user wants you to actually find how to book.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             venue: { type: 'string', description: 'Name of the restaurant, hotel, or venue' },
             datetime: { type: 'string', description: 'Desired date/time in ISO 8601' },
             partySize: { type: 'number', description: 'Number of guests (default 2)' },
@@ -1833,7 +1836,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Mark a payment split as settled/paid. Use when user says "I paid John back", "mark that expense as settled", "settle the dinner split".',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             splitId: { type: 'string', description: 'ID of the payment split to settle' },
             amount: { type: 'number', description: 'Amount settled (for partial settlements)' },
             method: {
@@ -1850,7 +1853,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Generate a deep link to a specific trip item (event, task, poll, link, payment). Use when sharing a specific item or directing user to it in the app.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             entityType: {
               type: 'string',
               description: 'Type of item: event, task, poll, link, payment, or broadcast',
@@ -1866,7 +1869,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           'Explain why an action was or would be blocked. Use when user asks "why can\'t I...?", "who can edit this?", or after a permission error.',
         parameters: {
           type: 'object',
-          properties: {
+          properties: { idempotency_key: { type: 'string' },
             action: {
               type: 'string',
               description:
@@ -1874,6 +1877,26 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             },
           },
           required: ['action'],
+        },
+      },
+
+            id: { type: 'string', description: 'The returned ID of the artifact if known' },
+            idempotency_key: { type: 'string', description: 'The idempotency key used when creating the artifact' },
+          },
+          required: ['type'],
+        },
+      },
+          {
+        name: 'verify_artifact',
+        description: 'Verify that a previously-created artifact exists in the database using its ID or idempotency_key.',
+        parameters: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', description: 'task, event, place, link, poll' },
+            id: { type: 'string', description: 'The returned ID of the artifact if known' },
+            idempotency_key: { type: 'string', description: 'The idempotency key used when creating the artifact' },
+          },
+          required: ['type'],
         },
       },
     ];
