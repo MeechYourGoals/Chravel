@@ -425,7 +425,8 @@ async function streamGeminiToSSE(
 }> {
   const geminiStreamEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
 
-  const response = await fetch(geminiStreamEndpoint, {
+  let currentContents = [...geminiContents];
+  let response = await fetch(geminiStreamEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(geminiRequestBody),
@@ -453,14 +454,18 @@ async function streamGeminiToSSE(
   await readGeminiSSEStream(response.body!, controller, false, state);
 
   const executedFunctions: string[] = [];
+  let turnCount = 0;
+  const MAX_TURNS = 5;
 
-  // Handle function calls collected during the stream
-  if (state.functionCallParts.length > 0) {
+  // Handle function calls collected during the stream (multi-turn tool loop)
+  while (state.functionCallParts.length > 0 && turnCount < MAX_TURNS) {
+    turnCount++;
     const toolPhaseStartMs = performance.now();
     const functionCallResults: any[] = [];
+    const currentFunctionCallParts = [...state.functionCallParts];
 
     // Emit progress events for Smart Import tool calls
-    const hasSmartImport = state.functionCallParts.some(
+    const hasSmartImport = currentFunctionCallParts.some(
       (p: any) => p.functionCall?.name === 'emitSmartImportPreview',
     );
     if (hasSmartImport) {
@@ -474,7 +479,7 @@ async function streamGeminiToSSE(
     }
 
     // Parallelize independent function calls (e.g. multiple getPlaceDetails)
-    const callTasks = state.functionCallParts.map(async part => {
+    const callTasks = currentFunctionCallParts.map(async part => {
       const fc = part.functionCall;
       let parsedArgs: Record<string, unknown> = {};
       if (typeof fc.args === 'string') {
@@ -487,7 +492,7 @@ async function streamGeminiToSSE(
         parsedArgs = fc.args as Record<string, unknown>;
       }
 
-      console.log(`[Stream/FunctionCall] Executing: ${fc.name}`, parsedArgs);
+      console.log(`[Stream/FunctionCall] Executing (Turn ${turnCount}): ${fc.name}`, parsedArgs);
       executedFunctions.push(fc.name);
 
       // Emit checking_duplicates status for Smart Import
@@ -524,8 +529,9 @@ async function streamGeminiToSSE(
     const results = await Promise.all(callTasks);
     const toolExecMs = Math.round(performance.now() - toolPhaseStartMs);
     console.log(
-      `[Timing] Tool execution phase: ${toolExecMs}ms for ${results.length} tool(s): ${executedFunctions.join(', ')}`,
+      `[Timing] Tool execution phase (Turn ${turnCount}): ${toolExecMs}ms for ${results.length} tool(s): ${executedFunctions.slice(-results.length).join(', ')}`,
     );
+
     for (const r of results) {
       functionCallResults.push(r);
       // Emit reservation drafts as a dedicated SSE event type
@@ -565,6 +571,18 @@ async function streamGeminiToSSE(
       }
     }
 
+    // Prepare contents for follow-up streaming call
+    currentContents = [
+      ...currentContents,
+      { role: 'model', parts: currentFunctionCallParts },
+      {
+        role: 'user',
+        parts: functionCallResults.map(r => ({
+          functionResponse: { name: r.name, response: r.response },
+        })),
+      },
+    ];
+
     // Follow-up streaming call with function results
     const followUpSafetySettings = [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
@@ -572,20 +590,13 @@ async function streamGeminiToSSE(
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
     ];
+
     const followUpBody = {
-      contents: [
-        ...geminiContents,
-        { role: 'model', parts: state.functionCallParts },
-        {
-          role: 'user',
-          parts: functionCallResults.map(r => ({
-            functionResponse: { name: r.name, response: r.response },
-          })),
-        },
-      ],
+      contents: currentContents,
       systemInstruction: { parts: [{ text: systemInstruction }] },
       generationConfig: { temperature, maxOutputTokens: maxTokens },
       safetySettings: followUpSafetySettings,
+      tools: geminiRequestBody.tools,
     };
 
     const followUpStartMs = performance.now();
@@ -597,11 +608,11 @@ async function streamGeminiToSSE(
     });
 
     if (followUpResponse.ok) {
-      // Reset functionCallParts so the second stream doesn't re-collect
+      // Reset functionCallParts so the next stream turn starts fresh
       state.functionCallParts = [];
       await readGeminiSSEStream(followUpResponse.body!, controller, true, state);
       console.log(
-        `[Timing] Follow-up stream: ${Math.round(performance.now() - followUpStartMs)}ms`,
+        `[Timing] Follow-up stream (Turn ${turnCount}): ${Math.round(performance.now() - followUpStartMs)}ms`,
       );
     } else {
       console.warn(
@@ -610,6 +621,7 @@ async function streamGeminiToSSE(
       const fallback = '\n\nAction completed. Check your trip tabs for the update.';
       controller.enqueue(sseEvent({ type: 'chunk', text: fallback }));
       state.fullText += fallback;
+      break;
     }
   }
 
@@ -2365,17 +2377,21 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       let groundingMetadata = null;
       let functionCallResults: any[] = [];
 
-      const candidate = data.candidates?.[0];
+      let candidate = data.candidates?.[0];
       if (!candidate) {
         throw new Error('No response candidate from Gemini');
       }
 
-      // Check if Gemini wants to call functions
-      const parts = candidate.content?.parts || [];
-      const functionCallParts = parts.filter((p: any) => p.functionCall);
-      const textParts = parts.filter((p: any) => p.text);
+      let currentContents = [...geminiContents];
+      let turnCount = 0;
+      const MAX_TURNS = 5;
 
-      if (functionCallParts.length > 0) {
+      // Handle function calls collected during the request (multi-turn tool loop)
+      while (candidate && candidate.content?.parts?.some((p: any) => p.functionCall) && turnCount < MAX_TURNS) {
+        turnCount++;
+        const functionCallParts = candidate.content.parts.filter((p: any) => p.functionCall);
+        functionCallResults = [];
+
         // Execute each function call
         for (const part of functionCallParts) {
           const fc = part.functionCall;
@@ -2390,7 +2406,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
             parsedArgs = fc.args as Record<string, unknown>;
           }
 
-          console.log(`[FunctionCall] Executing: ${fc.name}`, parsedArgs);
+          console.log(`[FunctionCall] Executing (Turn ${turnCount}): ${fc.name}`, parsedArgs);
 
           let result: any;
           try {
@@ -2415,9 +2431,9 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           });
         }
 
-        // Send function results back to Gemini for natural language response
-        const followUpContents = [
-          ...geminiContents,
+        // Send function results back to Gemini for next turn
+        currentContents = [
+          ...currentContents,
           { role: 'model', parts: functionCallParts },
           {
             role: 'user',
@@ -2434,30 +2450,34 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: followUpContents,
+            contents: currentContents,
             systemInstruction: { parts: [{ text: systemInstruction }] },
             generationConfig: { temperature, maxOutputTokens: config.maxTokens || 2048 },
+            safetySettings: GEMINI_SAFETY_SETTINGS,
+            tools: geminiTools,
           }),
           signal: AbortSignal.timeout(40_000),
         });
 
         if (followUpResponse.ok) {
           const followUpData = await followUpResponse.json();
-          const followUpCandidate = followUpData.candidates?.[0];
-          aiResponse =
-            followUpCandidate?.content?.parts
-              ?.filter((p: any) => p.text)
-              .map((p: any) => p.text)
-              .join('') || 'Action completed successfully.';
-          groundingMetadata = followUpCandidate?.groundingMetadata || null;
+          candidate = followUpData.candidates?.[0];
         } else {
-          aiResponse =
-            'I completed the action, but had trouble generating a summary. Check your trip tabs for the update.';
+          console.warn(`Follow-up stream failed (${followUpResponse.status})`);
+          candidate = null;
+          aiResponse = 'I completed the action, but had trouble generating a summary. Check your trip tabs for the update.';
+          break;
         }
-      } else {
-        // No function calls - just text response
-        aiResponse =
-          textParts.map((p: any) => p.text).join('') || 'Sorry, I could not generate a response.';
+      }
+
+      if (candidate) {
+        const textParts = candidate.content?.parts?.filter((p: any) => p.text) || [];
+        aiResponse = textParts.map((p: any) => p.text).join('');
+        if (!aiResponse && functionCallResults.length > 0) {
+          aiResponse = 'Action completed successfully.';
+        } else if (!aiResponse) {
+          aiResponse = 'Sorry, I could not generate a response.';
+        }
         groundingMetadata = candidate.groundingMetadata || null;
       }
 
