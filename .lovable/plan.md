@@ -1,44 +1,54 @@
 
 
-# Fix: Smart Import Dates Off by One
+# Fix: Build Errors + Trip Deletion Failure
 
-## Root Cause
+## Issues Identified
 
-The bug is `Date.toISOString().split('T')[0]`. This converts to **UTC** before extracting the date string. If the user is in a timezone behind UTC (e.g., US Eastern = UTC-5), a date like **June 15 at 7:00 PM local** becomes **June 16 at 00:00 UTC**, and `toISOString()` returns `"2025-06-16T..."` -- shifting the date forward by one day.
+There are **4 distinct build errors** preventing the app from deploying correctly. The trip deletion failure ("Failed to remove trip") is likely a downstream consequence of these build errors preventing fresh deploys, but I'll also verify the deletion logic itself.
 
-This pattern appears in **4 critical locations** across the import pipeline:
+### Build Error 1: Missing `functionExecutorTypes.ts`
+**File**: `supabase/functions/_shared/functionExecutor.ts` line 1
+**Problem**: Imports `LocationContext` from `./functionExecutorTypes.ts` which doesn't exist.
+**Fix**: Create `supabase/functions/_shared/functionExecutorTypes.ts` exporting the `LocationContext` interface (used as `{ lat?: number; lng?: number }` based on usage in `execute-concierge-tool/index.ts`).
 
-| File | Line(s) | Context |
-|------|---------|---------|
-| `src/utils/calendarImportParsers.ts` | 343 | Excel cell Date objects converted to string |
-| `src/utils/agendaImportParsers.ts` | 37 | ICS event start time to session date |
-| `src/utils/agendaImportParsers.ts` | 243 | Agenda Excel cell Date objects |
-| `src/services/tripService.ts` | 25 | `normalizeDateInput` ISO datetime branch |
+### Build Error 2: Duplicate `idempotency_key` properties in `functionExecutor.ts`
+**File**: `supabase/functions/_shared/functionExecutor.ts` lines 118-120 and 166-168
+**Problem**: Object literals have `idempotency_key` defined twice in both the `createTask` and `createPoll` insert objects.
+**Fix**: Remove the duplicate `idempotency_key` line in each insert block.
 
-## Fix
+### Build Error 3: Duplicate `idempotency_key` in tool schema definition
+**File**: `supabase/functions/lovable-concierge/index.ts` line 1258
+**Problem**: The `createTask` tool schema has `idempotency_key` defined twice in `properties`.
+**Fix**: Remove the duplicate property definition, keep only one.
 
-Replace every `date.toISOString().split('T')[0]` with a local-date extraction helper:
+### Build Error 4: Missing `errorTracking` import in calendar hook
+**File**: `src/features/calendar/hooks/useCalendarManagement.ts` lines 57, 73, 94
+**Problem**: `errorTracking` is used but never imported.
+**Fix**: Add `import { errorTracking } from '@/utils/errorTracking';` at the top of the file.
 
-```typescript
-function formatLocalDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-```
+### Build Error 5: Duplicate `vi` in test file
+**File**: `src/services/__tests__/calendarService.integration.test.ts` line 1 and 8
+**Problem**: `vi` imported/declared twice.
+**Fix**: Remove the duplicate declaration.
 
-### Changes
+---
 
-1. **Create `src/utils/dateHelpers.ts`** -- export `formatLocalDate()` as a shared utility so all files use one function.
+## Trip Deletion Analysis
 
-2. **`src/utils/calendarImportParsers.ts` (line 343)** -- change `cell.toISOString().split('T')[0]` to `formatLocalDate(cell)`.
+The `deleteTripForMe` function in `archiveService.ts` and the RLS policies on `trip_members` both look correct:
+- "Users can leave trips" DELETE policy: `auth.uid() = user_id` ✓
+- SELECT policies allow membership check ✓
+- No FK constraints block deletion ✓
 
-3. **`src/utils/agendaImportParsers.ts` (lines 37, 243)** -- same replacement for ICS event dates and Excel cell dates.
+The deletion failure is most likely caused by the **build errors above preventing a clean deploy**. Once these are fixed, trip deletion should work. If it still fails after fixing builds, we'll add console logging to capture the specific Supabase error.
 
-4. **`src/services/tripService.ts` (line 25)** -- in the ISO datetime branch of `normalizeDateInput`, change `date.toISOString().split('T')[0]` to `formatLocalDate(date)`.
+## Changes Summary
 
-5. **Existing unit test** (`src/services/__tests__/tripService.unit.test.ts`) -- the test for "extract date from ISO datetime strings" currently expects UTC behavior. Update it to expect local-date extraction, and add a test case for a timezone-offset ISO string that would previously shift.
-
-No other files need changes. The `calendarAdapter.ts` already uses local extraction (`getHours`/`getMinutes`) for time, so it's unaffected.
+| # | File | Change |
+|---|------|--------|
+| 1 | `supabase/functions/_shared/functionExecutorTypes.ts` | Create with `LocationContext` type |
+| 2 | `supabase/functions/_shared/functionExecutor.ts` | Remove 2 duplicate `idempotency_key` lines |
+| 3 | `supabase/functions/lovable-concierge/index.ts` | Remove duplicate `idempotency_key` property in schema |
+| 4 | `src/features/calendar/hooks/useCalendarManagement.ts` | Add missing `errorTracking` import |
+| 5 | `src/services/__tests__/calendarService.integration.test.ts` | Remove duplicate `vi` declaration |
 
