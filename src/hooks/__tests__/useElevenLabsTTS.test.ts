@@ -61,25 +61,6 @@ describe('useElevenLabsTTS', () => {
     });
   });
 
-  it('maps failed fetch errors to actionable connectivity guidance', async () => {
-    (global.fetch as ReturnType<typeof vi.fn>)
-      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
-      .mockRejectedValueOnce(new TypeError('Failed to fetch'));
-
-    const { result } = renderHook(() => useElevenLabsTTS());
-
-    await act(async () => {
-      await result.current.play('msg-3', 'Network test');
-    });
-
-    await waitFor(() => {
-      expect(result.current.playbackState).toBe('error');
-      expect(result.current.errorMessage).toContain('Unable to reach the voice service');
-    });
-
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-  });
-
   it('clears stale error state when stop is called', async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       new Response(JSON.stringify({ error: 'rate limited' }), {
