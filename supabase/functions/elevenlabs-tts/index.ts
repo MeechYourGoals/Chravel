@@ -6,11 +6,30 @@ const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
+const VOICE_TTS_FREE_FOR_ALL = (Deno.env.get('VOICE_TTS_FREE_FOR_ALL') ?? 'true') !== 'false';
+
 /** Max chars to send to ElevenLabs (prevents abuse and excessive cost). */
 const MAX_TEXT_CHARS = 1500;
 
 /** Daily TTS requests per user on free tier. */
 const FREE_TIER_DAILY_LIMIT = 30;
+/** Daily TTS requests per user on Explorer/Plus tier. */
+const EXPLORER_TIER_DAILY_LIMIT = 100;
+
+const isActiveEntitlement = (status?: string | null, periodEnd?: string | null): boolean => {
+  if (status !== 'active' && status !== 'trialing') return false;
+  if (!periodEnd) return true;
+
+  const parsed = Date.parse(periodEnd);
+  if (Number.isNaN(parsed)) return true;
+  return parsed > Date.now();
+};
+
+const mapPlanToDailyLimit = (plan?: string | null): number | null => {
+  if (!plan || plan === 'free') return FREE_TIER_DAILY_LIMIT;
+  if (plan === 'explorer' || plan === 'plus') return EXPLORER_TIER_DAILY_LIMIT;
+  return null;
+};
 
 serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
@@ -93,30 +112,66 @@ serve(async (req: Request) => {
     });
   }
 
-  // Rate limiting: check daily usage
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const { data: usageRow, error: usageError } = await supabase
-    .from('tts_usage')
-    .select('request_count')
-    .eq('user_id', user.id)
-    .eq('usage_date', today)
-    .maybeSingle();
 
-  if (usageError) {
-    console.error('[elevenlabs-tts] Usage check failed:', usageError.message);
-    // Non-blocking: allow request but log the error
-  }
+  // Launch mode: keep voice playback open to all users until monetization switch flips.
+  // Set VOICE_TTS_FREE_FOR_ALL=false in Edge Function env to re-enable tiered limits.
+  if (!VOICE_TTS_FREE_FOR_ALL) {
+    // Resolve active plan from entitlements (fallback: profile app_role)
+    let dailyLimit: number | null = FREE_TIER_DAILY_LIMIT;
+    const { data: entitlementData, error: entitlementError } = await supabase
+      .from('user_entitlements')
+      .select('plan, status, current_period_end')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-  const currentCount = usageRow?.request_count ?? 0;
-  if (currentCount >= FREE_TIER_DAILY_LIMIT) {
-    return new Response(
-      JSON.stringify({
-        error: 'Daily TTS limit reached. Upgrade to Pro for unlimited voice responses.',
-        limit: FREE_TIER_DAILY_LIMIT,
-        used: currentCount,
-      }),
-      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    if (entitlementError) {
+      console.error('[elevenlabs-tts] Entitlement lookup failed:', entitlementError.message);
+    }
+
+    if (
+      entitlementData &&
+      isActiveEntitlement(entitlementData.status, entitlementData.current_period_end)
+    ) {
+      dailyLimit = mapPlanToDailyLimit(entitlementData.plan);
+    } else {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('app_role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('[elevenlabs-tts] Profile plan fallback failed:', profileError.message);
+      }
+
+      dailyLimit = mapPlanToDailyLimit(profileData?.app_role);
+    }
+
+    // Rate limiting: check daily usage (skipped for unlimited tiers)
+    const { data: usageRow, error: usageError } = await supabase
+      .from('tts_usage')
+      .select('request_count')
+      .eq('user_id', user.id)
+      .eq('usage_date', today)
+      .maybeSingle();
+
+    if (usageError) {
+      console.error('[elevenlabs-tts] Usage check failed:', usageError.message);
+      // Non-blocking: allow request but log the error
+    }
+
+    const currentCount = usageRow?.request_count ?? 0;
+    if (dailyLimit !== null && currentCount >= dailyLimit) {
+      return new Response(
+        JSON.stringify({
+          error: 'Daily TTS limit reached. Upgrade to Pro for unlimited voice responses.',
+          limit: dailyLimit,
+          used: currentCount,
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
   }
 
   // Sanitize and cap text length

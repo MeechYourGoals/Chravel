@@ -77,3 +77,17 @@
 - [x] Add reusable concierge-card save mutation that writes simple link records to Places Explore with dedupe + saved state UX across rich cards.
 - [x] Add/adjust automated tests for rich card persistence and save CTA behavior.
 - [x] Run required quality gates (`npm run lint && npm run typecheck && npm run build`) and capture manual verification notes.
+
+## AI concierge ElevenLabs voice deep-dive + hardening
+- [x] Scope recently shipped voice/TTS integration across chat input, TTS hook, and edge function.
+- [x] Fix confirmed bugs with minimal diffs (mobile long-press/tap reliability, auth/limit handling, and UX error messaging).
+- [x] Add regression-focused unit coverage for the TTS hook behavior.
+- [x] Run `npm run lint && npm run typecheck && npm run build` and focused tests for touched code.
+- [x] Commit changes and open PR with rollback notes.
+
+## AI concierge voice launch-mode rollout (all users)
+- [x] Scope current voice gating across AIConciergeChat + elevenlabs-tts and confirm Pro/Consumer entry points.
+- [x] Add explicit launch-mode switch so voice playback is enabled for all users now, with a future paid-gating toggle.
+- [x] Add/update regression tests for launch-mode behavior.
+- [x] Run `npm run lint && npm run typecheck && npm run build` + focused tests.
+- [x] Commit changes and open PR with rollback guidance.
