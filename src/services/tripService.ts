@@ -4,6 +4,7 @@ import { demoModeService } from './demoModeService';
 import { tripsData } from '@/data/tripsData';
 import { adaptTripsDataToTripSchema } from '@/utils/schemaAdapters';
 import { FORMER_MEMBER_LABEL } from '@/lib/resolveDisplayName';
+import { formatLocalDate } from '@/utils/dateHelpers';
 
 /**
  * Normalizes date input to YYYY-MM-DD format for database date columns
@@ -22,7 +23,7 @@ function normalizeDateInput(dateStr?: string): string | undefined {
   if (dateStr.includes('T')) {
     const date = new Date(dateStr);
     if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
+      return formatLocalDate(date);
     }
   }
 
