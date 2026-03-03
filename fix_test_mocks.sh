@@ -1,1 +1,0 @@
-sed -i "s/vi.mock('@\/integrations\/supabase\/client', () => ({/const mockSupabaseClient = createMockSupabaseClient();\nvi.mock('@\/integrations\/supabase\/client', () => ({\n  supabase: mockSupabaseClient,\n}));/g" src/__tests__/utils/testHelpers.tsx
