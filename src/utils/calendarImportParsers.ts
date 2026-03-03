@@ -10,6 +10,7 @@
  */
 
 import { parseICSFile, ICSParsedEvent, ICSParseResult } from './calendarImport';
+import { formatLocalDate } from './dateHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import * as XLSX from 'xlsx';
 
@@ -340,7 +341,7 @@ export async function parseExcelCalendar(file: File): Promise<SmartParseResult> 
     const rawRow = jsonData[i] ?? [];
     const row = rawRow.map(cell => {
       if (cell instanceof Date) {
-        return cell.toISOString().split('T')[0];
+        return formatLocalDate(cell);
       }
       return String(cell ?? '');
     });

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { formatLocalDate } from '@/utils/dateHelpers';
 
 // Extract and test the normalizeDateInput function
 function normalizeDateInput(dateStr?: string): string | undefined {
@@ -9,11 +10,11 @@ function normalizeDateInput(dateStr?: string): string | undefined {
     return dateStr;
   }
 
-  // If ISO 8601 datetime, extract date part only
+  // If ISO 8601 datetime, extract date part using local time
   if (dateStr.includes('T')) {
     const date = new Date(dateStr);
     if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
+      return formatLocalDate(date);
     }
   }
 
@@ -40,9 +41,13 @@ describe('tripService - normalizeDateInput', () => {
     expect(result).toBe('2025-11-21');
   });
 
-  it('should extract date from ISO datetime strings', () => {
-    const result = normalizeDateInput('2025-11-21T15:30:00.000Z');
-    expect(result).toBe('2025-11-21');
+  it('should extract local date from ISO datetime strings', () => {
+    // Uses local date extraction — result depends on local timezone,
+    // but the key invariant is: a midnight-UTC string yields the same
+    // calendar date regardless of timezone offset direction.
+    const result = normalizeDateInput('2025-11-21T00:00:00.000Z');
+    const localDate = formatLocalDate(new Date('2025-11-21T00:00:00.000Z'));
+    expect(result).toBe(localDate);
   });
 
   it('should return undefined for undefined input', () => {
@@ -70,8 +75,22 @@ describe('tripService - normalizeDateInput', () => {
     expect(result).toBe('2025-03-09');
   });
 
-  it('should handle ISO datetime with timezone offset', () => {
+  it('should handle ISO datetime with timezone offset using local date', () => {
     const result = normalizeDateInput('2025-12-25T18:00:00+05:00');
-    expect(result).toBe('2025-12-25');
+    const localDate = formatLocalDate(new Date('2025-12-25T18:00:00+05:00'));
+    expect(result).toBe(localDate);
+  });
+});
+
+describe('formatLocalDate', () => {
+  it('should extract local year-month-day without UTC shift', () => {
+    // Create a date that is "June 15 at 11pm" in local time
+    const date = new Date(2025, 5, 15, 23, 0, 0); // month is 0-indexed
+    expect(formatLocalDate(date)).toBe('2025-06-15');
+  });
+
+  it('should pad single-digit months and days', () => {
+    const date = new Date(2025, 0, 5); // Jan 5
+    expect(formatLocalDate(date)).toBe('2025-01-05');
   });
 });

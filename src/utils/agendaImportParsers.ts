@@ -12,6 +12,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { formatLocalDate } from './dateHelpers';
 import type { EventAgendaItem } from '@/types/events';
 import { parseICSContent, ICSParsedEvent } from './calendarImport';
 import * as XLSX from 'xlsx';
@@ -34,7 +35,7 @@ export interface AgendaParseResult {
 
 function icsEventToSession(event: ICSParsedEvent, index: number): ParsedAgendaSession {
   const session: ParsedAgendaSession = { title: event.title };
-  const dateStr = event.startTime.toISOString().split('T')[0];
+  const dateStr = formatLocalDate(event.startTime);
   session.session_date = dateStr;
   if (!event.isAllDay) {
     session.start_time = event.startTime.toTimeString().slice(0, 5);
@@ -240,7 +241,7 @@ async function parseExcelAgenda(file: File): Promise<AgendaParseResult> {
   for (let i = bestRow + 1; i < jsonData.length; i++) {
     const rawRow = jsonData[i] ?? [];
     const row = rawRow.map(cell =>
-      cell instanceof Date ? cell.toISOString().split('T')[0] : String(cell ?? ''),
+      cell instanceof Date ? formatLocalDate(cell) : String(cell ?? ''),
     );
     const s = rowToAgendaSession(row, bestMapping, i);
     if (s) sessions.push(s);
