@@ -271,6 +271,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
     // Force-invalidate cache before notifying parent — ensures UI updates regardless of parent implementation
     try {
+      await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
       await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
     } catch (cacheError) {
       console.warn('Failed to invalidate calendar cache:', cacheError);

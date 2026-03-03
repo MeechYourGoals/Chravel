@@ -144,6 +144,7 @@ export const MobileGroupCalendar = ({
   const queryClient = useQueryClient();
 
   const handleImportComplete = async () => {
+    await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
     await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
     await refreshEvents();
   };
@@ -152,6 +153,7 @@ export const MobileGroupCalendar = ({
   const {
     events: tripEvents,
     loading,
+    isFetching,
     isError,
     error,
     refreshEvents,
@@ -339,6 +341,7 @@ export const MobileGroupCalendar = ({
         <CalendarErrorState
           error={error instanceof Error ? error : new Error(String(error))}
           onRetry={refreshEvents}
+          isRetrying={isFetching}
         />
       ) : events.length === 0 ? (
         <div className="flex-1 flex items-center justify-center px-4">
