@@ -97,5 +97,11 @@
 - [x] Implement minimal PWA-safe reload behavior so Try Again and Clear Cache & Reload trigger distinct recovery paths.
 - [x] Add regression-focused unit tests for updated reload semantics.
 - [x] Run required build gates (`npm run lint && npm run typecheck && npm run build`) plus focused tests.
-- [ ] Commit changes, verify branch tracking/push status, and open PR.
+- [x] Commit changes, verify branch tracking/push status, and open PR.
 
+
+## PWA enterprise organization settings mobile overflow containment fix
+- [x] Scope overflow root cause for create-organization CTA and logo upload card in organization settings.
+- [x] Implement minimal Tailwind class adjustments to keep text/actions contained on narrow widths.
+- [x] Validate via required gates (`npm run lint && npm run typecheck && npm run build`) and capture mobile verification evidence.
+- [x] Commit changes, verify branch tracking/push status, and open PR.
