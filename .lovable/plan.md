@@ -1,88 +1,81 @@
 
-Objective
-Make trip/event deletion reliable and immediate on the home page (no manual refresh), across consumer/pro/event cards and mobile/desktop flows.
 
-What the deeper dive found (exact causes)
-1) Creator-delete logic is inconsistent and often wrong
-- `tripService.getUserTrips()` always includes trips where `created_by = activeUserId` (owner trips).
-- Current “delete for me” implementation (`archiveService.deleteTripForMe`) only removes a row from `trip_members`, not the `trips` row.
-- For creators, removing membership does not remove ownership, so the trip stays visible after refetch.
+# ElevenLabs TTS — Complete Fix Plan (All Components to 95+)
 
-2) Pro/Event cards lose creator context during delete decisions
-- `TripGrid` pro swipe path builds a fake trip with only `{id,title}` (`handleProTripSwipeDelete`), so `created_by` is missing.
-- That makes creator checks false and routes creators into `deleteTripForMe` (wrong path).
+## Root Cause Confirmed
 
-3) Deletion logic is fragmented across multiple direct service calls
-- `TripCard`, `TripGrid` swipe delete, `MobileTripDetail`, `MobileProTripDetail`, `MobileEventDetail`, `EventCard`, and `MobileEventCard` each implement delete behavior differently.
-- Some use hooks (`useEvents`/`useProTrips`), some call `archiveService` directly, resulting in inconsistent cache updates and UX.
+**`ELEVENLABS_API_KEY` was completely missing from the project secrets.** The edge function checked for it and returned a 500 error. This has been fixed by linking the ElevenLabs connector just now. With the paid plan, "Mark" (`1SM7GgM6IMuvQlz2BwM3`) should work.
 
-4) Event/Pro mutation hooks are structurally stale
-- `useEvents` and `useProTrips` query fns currently return `[]` placeholders, while homepage data actually comes from `useTrips`.
-- Their mutation invalidations (`events`, `proTrips`) don’t align with the home list source-of-truth (`trips`).
+However, there are still 5 components scoring below 95 that need fixes.
 
-Implementation plan (multi-workstream / “multiple agents” approach)
-Workstream A — Canonical deletion decision engine
-- Add a single shared helper (e.g. `src/services/tripDeletionService.ts`) that decides action from context:
-  - If creator + consumer free tier → archive.
-  - If creator + pro/event/paid tier → archive (or hard-delete only if we explicitly support and secure that path).
-  - If non-creator member → leave trip (`deleteTripForMe`).
-- Return a typed result (`'archived' | 'left'`) so UI messages are accurate.
-- Stop relying on inferred creator state from partial objects.
+---
 
-Workstream B — Unify all UI entry points onto one mutation path
-- Replace all direct delete logic in:
-  - `src/components/TripCard.tsx`
-  - `src/components/home/TripGrid.tsx`
-  - `src/components/EventCard.tsx`
-  - `src/components/MobileEventCard.tsx`
-  - `src/pages/MobileTripDetail.tsx`
-  - `src/pages/MobileProTripDetail.tsx`
-  - `src/pages/MobileEventDetail.tsx`
-- Route all through one hook (extend `useTrips` or create `useDeleteTripAction`) that:
-  - Performs optimistic removal from `['trips', userId, isDemoMode]` immediately.
-  - Executes canonical action (archive vs leave).
-  - Rolls back on error.
-  - Invalidates `['trips']` on settled.
+## Changes Required
 
-Workstream C — Immediate home-page consistency guarantees
-- In optimistic step, remove item from cache before request resolves.
-- Keep existing `refreshTrips()` callback, but make it backup, not primary UX mechanism.
-- Ensure every success path also invalidates `['trips']` (single source-of-truth for home list).
-- Keep one toast contract:
-  - archived path: “Trip archived”
-  - left path: “Removed from your account”
-  - error path with actionable reason (auth, permission, network).
+### 1. Add `elevenlabs-tts` to `config.toml` (Score 0 → 95)
+The function is missing entirely from config. Add `verify_jwt = false` since the function validates JWT manually via `supabase.auth.getUser()`.
 
-Workstream D — Pro/Event alignment cleanup
-- Either:
-  1) migrate Pro/Event card mutations to the same canonical delete hook, or
-  2) make `useEvents`/`useProTrips` derive from `useTrips` and invalidate `['trips']` too.
-- Add `created_by` to pro/event transformed card data where needed for deterministic creator logic.
+### 2. Edge Function: Add Fallback Voice + Diagnostics (Score 75 → 95)
+Update `supabase/functions/elevenlabs-tts/index.ts`:
+- Add `FALLBACK_VOICE_ID` constant (Brian: `nPczCjzI2devNBz1zQrb`) — free-tier-safe
+- On 402/422 from ElevenLabs, automatically retry with fallback voice before returning error
+- Add `X-Voice-Fallback: true` header when fallback is used
+- Add structured `console.log` at key decision points: voice ID used, ElevenLabs response status, fallback triggered, usage increment result
+- Return the specific ElevenLabs error detail in the response body so the client can show actionable messages
 
-Workstream E — Observability + hardening
-- Add structured client logs (dev only) in delete flow:
-  - `tripId`, `viewMode`, `isCreator`, chosen action, Supabase error code/message.
-- Improve `archiveService.deleteTripForMe` errors:
-  - distinguish auth failure, RLS denial, and “no membership row”.
-- Optional safety RPC (later): server-side `leave_or_archive_trip` with `auth.uid()` trust only, to eliminate client ambiguity.
+### 3. Make Voice ID Configurable — Not Hardcoded (Score 0 → 95)
+Instead of hardcoding voice IDs, create an `app_settings` table to store configurable values:
+- DB migration: `app_settings` table with `key TEXT PRIMARY KEY, value TEXT, updated_at TIMESTAMPTZ`
+- Seed with `tts_primary_voice_id` = `1SM7GgM6IMuvQlz2BwM3` (Mark) and `tts_fallback_voice_id` = `nPczCjzI2devNBz1zQrb` (Brian)
+- Edge function reads from `app_settings` on each request (with in-memory cache per invocation)
+- Client hook reads from settings or falls back to the current constant
+- Admin settings UI (later iteration — for now, DB-driven is sufficient)
 
-Validation checklist (must pass)
-1) Consumer creator deletes from home card → card disappears instantly, remains gone after refresh.
-2) Consumer member deletes from home card → card disappears instantly, remains gone after refresh.
-3) Pro creator deletes from home card → archive path chosen, card disappears instantly.
-4) Event creator deletes from home card → archive path chosen, card disappears instantly.
-5) Mobile detail-page delete for trip/pro/event → redirect home and item is already absent without pull-to-refresh.
-6) Undo path in swipe delete still works and rollback restores card correctly if request fails.
-7) No regressions in archived filter visibility.
-8) Verify on desktop + mobile viewport + PWA refresh behavior.
+### 4. TTSSpeakerButton: Add Error Visual (Score 90 → 95)
+- When `playbackState === 'error'`, show the Volume2 icon in red/destructive color for 2 seconds, then reset to idle
+- Gives user clear feedback that something went wrong
 
-Risk notes
-- Highest-risk area is changing delete semantics for creators; we will preserve current policy intent by using archive for creators unless explicit hard-delete is approved.
-- This plan avoids DB schema changes and focuses on deterministic client behavior + cache correctness first.
+### 5. Client Hook: Surface Fallback Info + Better Error Messages (Score 85 → 95)
+Update `src/hooks/useElevenLabsTTS.ts`:
+- Remove hardcoded `DEFAULT_VOICE_ID`, fetch from settings or use constant as last resort
+- Parse `X-Voice-Fallback` header and optionally surface a toast
+- On 502 errors, parse the inner ElevenLabs error for more specific messaging (e.g., "Voice unavailable" vs generic "TTS request failed")
 
-Deliverable order
-1) Canonical delete action helper + typed result.
-2) Unified mutation hook with optimistic cache update + rollback.
-3) Migrate all delete entry points.
-4) Pro/Event creator-context fixes.
-5) Logging + end-to-end verification pass.
+### 6. Health Check Hook (Score 0 → 95)
+Create `src/hooks/useElevenLabsHealth.ts`:
+- On first mount (once per session), send a lightweight request to the edge function with a 1-word test text
+- If it fails, set a flag that components can read to show a degraded-state indicator
+- Don't block UI — fire-and-forget with a sessionStorage guard to avoid repeated checks
+
+### 7. Secrets Management (Score 40 → 95)
+Already fixed — `ELEVENLABS_API_KEY` is now linked via the ElevenLabs connector. No further action needed.
+
+### 8. Edge Function: Redeploy Required
+The function must be redeployed after config.toml + code changes. This happens automatically when files are saved.
+
+---
+
+## Files to Create/Modify
+
+| File | Action |
+|------|--------|
+| `supabase/config.toml` | Add `[functions.elevenlabs-tts]` entry |
+| `supabase/functions/elevenlabs-tts/index.ts` | Fallback voice logic, diagnostics, settings lookup |
+| `src/hooks/useElevenLabsTTS.ts` | Remove hardcoded voice ID, parse fallback header, better errors |
+| `src/hooks/useElevenLabsHealth.ts` | Create health check hook |
+| `src/features/chat/components/TTSSpeakerButton.tsx` | Error state visual |
+| `src/components/AIConciergeChat.tsx` | Wire health check, pass voice config |
+| DB migration | `app_settings` table with voice config rows |
+
+---
+
+## Expected Outcome
+
+After implementation:
+- TTS works immediately (secret is now linked, paid plan supports Mark)
+- If Mark voice becomes unavailable, auto-falls back to Brian
+- Voice IDs are DB-configurable without code deploys
+- Health check catches API key / voice issues proactively
+- Error states are visible to users with actionable messages
+- Full diagnostics in edge function logs for debugging
+
