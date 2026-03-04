@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Volume2, Loader2, Square } from 'lucide-react';
 import type { TTSPlaybackState } from '@/hooks/useElevenLabsTTS';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,26 @@ export const TTSSpeakerButton: React.FC<TTSSpeakerButtonProps> = ({
 }) => {
   const isThisPlaying = playingMessageId === messageId && playbackState === 'playing';
   const isThisLoading = playingMessageId === messageId && playbackState === 'loading';
+  const isThisError = playingMessageId === messageId && playbackState === 'error';
   const isActive = isThisPlaying || isThisLoading;
+
+  // Show error visual for 2 seconds, then auto-reset
+  const [showError, setShowError] = useState(false);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isThisError) {
+      setShowError(true);
+      errorTimerRef.current = setTimeout(() => {
+        setShowError(false);
+      }, 2000);
+    } else {
+      setShowError(false);
+    }
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, [isThisError]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,9 +60,10 @@ export const TTSSpeakerButton: React.FC<TTSSpeakerButtonProps> = ({
         'text-white/50 hover:text-white/80 hover:bg-white/10',
         isActive && 'text-blue-400 hover:text-blue-300',
         isThisLoading && 'animate-pulse',
+        showError && 'text-red-400 hover:text-red-300',
       )}
-      aria-label={isActive ? 'Stop speaking' : 'Listen to response'}
-      title={isActive ? 'Stop' : 'Listen'}
+      aria-label={isActive ? 'Stop speaking' : showError ? 'Voice error — tap to retry' : 'Listen to response'}
+      title={isActive ? 'Stop' : showError ? 'Error — tap to retry' : 'Listen'}
     >
       {isThisLoading ? (
         <Loader2 size={14} className="animate-spin" />

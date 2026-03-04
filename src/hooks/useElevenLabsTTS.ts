@@ -4,6 +4,8 @@
  * Calls the elevenlabs-tts Supabase Edge Function (server-side proxy)
  * and plays the returned audio/mpeg blob. Handles iOS/PWA constraints
  * (user gesture required), stop/interrupt, error recovery, and cleanup.
+ *
+ * Voice IDs are resolved from the `app_settings` table (DB-configurable).
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
@@ -14,8 +16,8 @@ import {
 
 export type TTSPlaybackState = 'idle' | 'loading' | 'playing' | 'error';
 
-/** Default ElevenLabs voice ID — Mark (casual, relaxed male voice). */
-const DEFAULT_VOICE_ID = '1SM7GgM6IMuvQlz2BwM3';
+/** Last-resort fallback if DB lookup fails and no voiceId prop is passed. */
+const FALLBACK_VOICE_ID = '1SM7GgM6IMuvQlz2BwM3';
 const RETRYABLE_FETCH_ERROR = 'Failed to fetch';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -27,6 +29,34 @@ const toReadablePlaybackError = (err: unknown): string => {
   }
   return err.message || 'TTS playback failed';
 };
+
+/** Cached DB voice ID — fetched once per session. */
+let cachedPrimaryVoice: string | null = null;
+let voiceFetchPromise: Promise<string | null> | null = null;
+
+async function fetchPrimaryVoiceId(): Promise<string | null> {
+  if (cachedPrimaryVoice) return cachedPrimaryVoice;
+  if (voiceFetchPromise) return voiceFetchPromise;
+
+  voiceFetchPromise = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'tts_primary_voice_id')
+        .maybeSingle();
+      if (error || !data?.value) return null;
+      cachedPrimaryVoice = data.value;
+      return cachedPrimaryVoice;
+    } catch {
+      return null;
+    } finally {
+      voiceFetchPromise = null;
+    }
+  })();
+
+  return voiceFetchPromise;
+}
 
 interface UseElevenLabsTTSOptions {
   /** Override the default voice ID. */
@@ -40,6 +70,8 @@ interface UseElevenLabsTTSReturn {
   playingMessageId: string | null;
   /** Error message from the last failed attempt. */
   errorMessage: string | null;
+  /** Whether the server fell back to a different voice. */
+  usedFallbackVoice: boolean;
   /** Start TTS playback for a message. Must be called from a user gesture on iOS. */
   play: (messageId: string, speechText: string) => Promise<void>;
   /** Stop the currently playing audio. */
@@ -47,11 +79,12 @@ interface UseElevenLabsTTSReturn {
 }
 
 export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElevenLabsTTSReturn {
-  const { voiceId = DEFAULT_VOICE_ID } = options;
+  const { voiceId: voiceIdProp } = options;
 
   const [playbackState, setPlaybackState] = useState<TTSPlaybackState>('idle');
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [usedFallbackVoice, setUsedFallbackVoice] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
@@ -79,6 +112,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
     setErrorMessage(null);
     setPlaybackState('idle');
     setPlayingMessageId(null);
+    setUsedFallbackVoice(false);
   }, [cleanup]);
 
   /** Play TTS for a given message. Interrupts any currently playing audio. */
@@ -96,6 +130,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
       setPlaybackState('loading');
       setPlayingMessageId(messageId);
       setErrorMessage(null);
+      setUsedFallbackVoice(false);
 
       const abortController = new AbortController();
       abortRef.current = abortController;
@@ -108,6 +143,12 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
         const accessToken = session?.access_token;
         if (!accessToken) {
           throw new Error('Not authenticated. Please sign in to use voice.');
+        }
+
+        // Resolve voice ID: prop > DB setting > hardcoded fallback
+        let resolvedVoiceId = voiceIdProp;
+        if (!resolvedVoiceId) {
+          resolvedVoiceId = await fetchPrimaryVoiceId() || FALLBACK_VOICE_ID;
         }
 
         const url = `${SUPABASE_PROJECT_URL}/functions/v1/elevenlabs-tts`;
@@ -126,7 +167,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
               },
               body: JSON.stringify({
                 speech_text: speechText,
-                voice_id: voiceId,
+                voice_id: resolvedVoiceId,
                 output_format: 'mp3_44100_128',
               }),
               signal: abortController.signal,
@@ -164,6 +205,12 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
             throw new Error(errMsg);
           }
           throw new Error(errMsg);
+        }
+
+        // Check for fallback voice header
+        const fallbackHeader = response.headers.get('x-voice-fallback');
+        if (fallbackHeader === 'true') {
+          setUsedFallbackVoice(true);
         }
 
         const responseContentType = response.headers.get('content-type') || '';
@@ -206,7 +253,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
         cleanup();
       }
     },
-    [voiceId, stop, cleanup],
+    [voiceIdProp, stop, cleanup],
   );
 
   // Cleanup on unmount
@@ -221,6 +268,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
     playbackState,
     playingMessageId,
     errorMessage,
+    usedFallbackVoice,
     play,
     stop,
   };

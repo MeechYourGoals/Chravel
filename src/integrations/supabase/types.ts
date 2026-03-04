@@ -80,6 +80,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       broadcast_reactions: {
         Row: {
           broadcast_id: string
