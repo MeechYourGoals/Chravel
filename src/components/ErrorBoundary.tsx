@@ -73,19 +73,25 @@ export class ErrorBoundary extends Component<Props, State> {
     if (isChunkError(error)) {
       setTimeout(async () => {
         await clearAllCaches();
-        window.location.reload();
+        await safeReload(true);
       }, 1000);
     }
   }
 
-  private handleReset = () => {
+  private handleReset = async () => {
+    const shouldReload = isChunkError(this.state.error);
+
     this.setState({ hasError: false, error: undefined });
     this.props.onRetry?.();
+
+    if (shouldReload) {
+      await safeReload();
+    }
   };
 
   private handleClearAndReload = async () => {
     await clearAllCaches();
-    await safeReload();
+    await safeReload(true);
   };
 
   public render() {

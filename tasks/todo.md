@@ -91,3 +91,11 @@
 - [x] Add/update regression tests for launch-mode behavior.
 - [x] Run `npm run lint && npm run typecheck && npm run build` + focused tests.
 - [x] Commit changes and open PR with rollback guidance.
+
+## PWA chunk error recovery buttons hardening
+- [x] Scope current Failed to Load Page retry/clear actions across ErrorBoundary, LazyRoute, and safeReload utility.
+- [x] Implement minimal PWA-safe reload behavior so Try Again and Clear Cache & Reload trigger distinct recovery paths.
+- [x] Add regression-focused unit tests for updated reload semantics.
+- [x] Run required build gates (`npm run lint && npm run typecheck && npm run build`) plus focused tests.
+- [ ] Commit changes, verify branch tracking/push status, and open PR.
+

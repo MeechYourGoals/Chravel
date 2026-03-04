@@ -123,6 +123,21 @@ describe('ErrorBoundary', () => {
     expect(onRetry).toHaveBeenCalled();
   });
 
+  it('should call safeReload when Try Again is clicked for chunk errors', async () => {
+    const { safeReload } = await import('@/utils/safeReload');
+    const user = userEvent.setup();
+
+    render(
+      <ErrorBoundary>
+        <ThrowingComponent error={new Error('Loading chunk 123 failed')} />
+      </ErrorBoundary>,
+    );
+
+    await user.click(screen.getByText('Try Again'));
+
+    expect(safeReload).toHaveBeenCalled();
+  });
+
   it('should call safeReload when Refresh Page button is clicked', async () => {
     const { safeReload } = await import('@/utils/safeReload');
     const user = userEvent.setup();
