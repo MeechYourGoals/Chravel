@@ -200,10 +200,10 @@ export const TRIP_PASS_PRODUCTS: Record<string, TripPassConfig> = {
   'pass-explorer-45': {
     name: 'Explorer Trip Pass (45 days)',
     stripeProductId: 'prod_Tx0AZIWAubAWD3',
-    stripePriceId: 'price_1Sz6A53EeswiMlDCF51s1XOi',
+    stripePriceId: 'price_1T7P2i3EeswiMlDCwWK11oDt',
     durationDays: 45,
     tier: 'explorer',
-    price: 29.99,
+    price: 39.99,
     entitlements: BILLING_PRODUCTS['consumer-explorer'].entitlements,
   },
   'pass-frequent-90': {

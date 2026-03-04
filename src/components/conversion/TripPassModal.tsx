@@ -18,7 +18,7 @@ const passes = [
     tier: 'explorer',
     name: 'Explorer Trip Pass',
     duration: '45 days',
-    price: '$29.99',
+    price: '$39.99',
     icon: <Globe size={24} />,
     description: 'Full Explorer features for one trip window',
     features: [
@@ -30,7 +30,7 @@ const passes = [
       'Location-aware AI recommendations',
       'Search past trips and memories',
     ],
-    nudge: 'Annual Explorer ($99/yr) pays for itself after ~4 passes',
+    nudge: 'Annual Explorer ($99/yr) pays for itself after ~3 trips',
   },
   {
     id: 'pass-frequent-90',
@@ -48,7 +48,7 @@ const passes = [
       'Custom trip categories',
       'Early feature access',
     ],
-    nudge: 'Annual Frequent ($199/yr) pays for itself after ~3 passes',
+    nudge: 'Annual Frequent ($199/yr) pays for itself after ~3 trips',
   },
 ];
 

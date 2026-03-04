@@ -35,7 +35,7 @@ const PRICE_IDS: Record<string, string> = {
   'pro-enterprise': 'price_1Semar3EeswiMlDCmEPBAvIt',
 
   // Trip Passes (one-time)
-  'pass-explorer-45': 'price_1Sz6A53EeswiMlDCF51s1XOi',
+  'pass-explorer-45': 'price_1T7P2i3EeswiMlDCwWK11oDt',
   'pass-frequent-90': 'price_1Sz6A63EeswiMlDCGFASMBft',
 };
 
