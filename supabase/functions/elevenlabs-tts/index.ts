@@ -8,6 +8,10 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const VOICE_TTS_FREE_FOR_ALL = (Deno.env.get('VOICE_TTS_FREE_FOR_ALL') ?? 'true') !== 'false';
 
+/** Hardcoded fallback — only used if DB lookup fails. */
+const HARDCODED_PRIMARY_VOICE = '1SM7GgM6IMuvQlz2BwM3'; // Mark
+const HARDCODED_FALLBACK_VOICE = 'nPczCjzI2devNBz1zQrb'; // Brian (free-tier safe)
+
 /** Max chars to send to ElevenLabs (prevents abuse and excessive cost). */
 const MAX_TEXT_CHARS = 1500;
 
@@ -16,10 +20,12 @@ const FREE_TIER_DAILY_LIMIT = 30;
 /** Daily TTS requests per user on Explorer/Plus tier. */
 const EXPLORER_TIER_DAILY_LIMIT = 100;
 
+/** Status codes from ElevenLabs that warrant a fallback voice retry. */
+const FALLBACK_RETRY_STATUSES = new Set([402, 422]);
+
 const isActiveEntitlement = (status?: string | null, periodEnd?: string | null): boolean => {
   if (status !== 'active' && status !== 'trialing') return false;
   if (!periodEnd) return true;
-
   const parsed = Date.parse(periodEnd);
   if (Number.isNaN(parsed)) return true;
   return parsed > Date.now();
@@ -31,8 +37,63 @@ const mapPlanToDailyLimit = (plan?: string | null): number | null => {
   return null;
 };
 
+/**
+ * Load a setting from app_settings using the service-role client.
+ * Returns null if not found or on error.
+ */
+async function getAppSetting(key: string): Promise<string | null> {
+  try {
+    const serviceClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || SUPABASE_ANON_KEY);
+    const { data, error } = await serviceClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
+    if (error) {
+      console.warn(`[elevenlabs-tts] app_settings lookup failed for "${key}":`, error.message);
+      return null;
+    }
+    return data?.value ?? null;
+  } catch (e) {
+    console.warn(`[elevenlabs-tts] app_settings exception for "${key}":`, e);
+    return null;
+  }
+}
+
+/**
+ * Call ElevenLabs TTS API for a given voice ID.
+ */
+async function callElevenLabs(
+  text: string,
+  voiceId: string,
+  modelId: string,
+  outputFormat: string,
+): Promise<Response> {
+  const url =
+    `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream` +
+    `?output_format=${encodeURIComponent(outputFormat)}`;
+
+  return await fetch(url, {
+    method: 'POST',
+    headers: {
+      'xi-api-key': ELEVENLABS_API_KEY!,
+      'Content-Type': 'application/json',
+      Accept: 'audio/mpeg',
+    },
+    body: JSON.stringify({
+      text,
+      model_id: modelId,
+      voice_settings: {
+        stability: 0.4,
+        similarity_boost: 0.8,
+      },
+    }),
+  });
+}
+
 serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
+  const t0 = Date.now();
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -44,6 +105,7 @@ serve(async (req: Request) => {
   }
 
   if (!ELEVENLABS_API_KEY) {
+    console.error('[elevenlabs-tts] ELEVENLABS_API_KEY is not set');
     return new Response(JSON.stringify({ error: 'ElevenLabs API key not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -91,15 +153,29 @@ serve(async (req: Request) => {
     });
   }
 
+  // Resolve voice IDs from DB (with hardcoded fallbacks)
+  const [dbPrimaryVoice, dbFallbackVoice, dbModelId] = await Promise.all([
+    getAppSetting('tts_primary_voice_id'),
+    getAppSetting('tts_fallback_voice_id'),
+    getAppSetting('tts_model_id'),
+  ]);
+
+  const primaryVoice = dbPrimaryVoice || HARDCODED_PRIMARY_VOICE;
+  const fallbackVoice = dbFallbackVoice || HARDCODED_FALLBACK_VOICE;
+  const defaultModel = dbModelId || 'eleven_multilingual_v2';
+
   const {
     speech_text,
-    voice_id,
+    voice_id: requestedVoiceId,
     output_format = 'mp3_44100_128',
-    model_id = 'eleven_multilingual_v2',
+    model_id = defaultModel,
   } = body;
 
-  if (!speech_text || !voice_id) {
-    return new Response(JSON.stringify({ error: 'speech_text and voice_id are required' }), {
+  // Use requested voice, or primary from settings
+  const resolvedVoiceId = requestedVoiceId || primaryVoice;
+
+  if (!speech_text) {
+    return new Response(JSON.stringify({ error: 'speech_text is required' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -112,12 +188,10 @@ serve(async (req: Request) => {
     });
   }
 
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const today = new Date().toISOString().slice(0, 10);
 
-  // Launch mode: keep voice playback open to all users until monetization switch flips.
-  // Set VOICE_TTS_FREE_FOR_ALL=false in Edge Function env to re-enable tiered limits.
+  // Rate limiting (skipped in launch mode)
   if (!VOICE_TTS_FREE_FOR_ALL) {
-    // Resolve active plan from entitlements (fallback: profile app_role)
     let dailyLimit: number | null = FREE_TIER_DAILY_LIMIT;
     const { data: entitlementData, error: entitlementError } = await supabase
       .from('user_entitlements')
@@ -148,7 +222,6 @@ serve(async (req: Request) => {
       dailyLimit = mapPlanToDailyLimit(profileData?.app_role);
     }
 
-    // Rate limiting: check daily usage (skipped for unlimited tiers)
     const { data: usageRow, error: usageError } = await supabase
       .from('tts_usage')
       .select('request_count')
@@ -158,7 +231,6 @@ serve(async (req: Request) => {
 
     if (usageError) {
       console.error('[elevenlabs-tts] Usage check failed:', usageError.message);
-      // Non-blocking: allow request but log the error
     }
 
     const currentCount = usageRow?.request_count ?? 0;
@@ -177,29 +249,24 @@ serve(async (req: Request) => {
   // Sanitize and cap text length
   const text = speech_text.slice(0, MAX_TEXT_CHARS);
 
-  // Call ElevenLabs streaming TTS
-  const elevenLabsUrl =
-    `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice_id)}/stream` +
-    `?output_format=${encodeURIComponent(output_format)}`;
+  console.log(`[elevenlabs-tts] Request: voice=${resolvedVoiceId}, model=${model_id}, textLen=${text.length}, user=${user.id}`);
 
+  // Call ElevenLabs with primary voice
   let elevenRes: Response;
+  let usedFallback = false;
+
   try {
-    elevenRes = await fetch(elevenLabsUrl, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': ELEVENLABS_API_KEY,
-        'Content-Type': 'application/json',
-        Accept: 'audio/mpeg',
-      },
-      body: JSON.stringify({
-        text,
-        model_id,
-        voice_settings: {
-          stability: 0.4,
-          similarity_boost: 0.8,
-        },
-      }),
-    });
+    elevenRes = await callElevenLabs(text, resolvedVoiceId, model_id, output_format);
+
+    // If primary voice fails with a retryable status, try fallback
+    if (!elevenRes.ok && FALLBACK_RETRY_STATUSES.has(elevenRes.status) && resolvedVoiceId !== fallbackVoice) {
+      const errBody = await elevenRes.text().catch(() => '');
+      console.warn(`[elevenlabs-tts] Primary voice ${resolvedVoiceId} returned ${elevenRes.status}: ${errBody}. Retrying with fallback voice ${fallbackVoice}`);
+
+      elevenRes = await callElevenLabs(text, fallbackVoice, model_id, output_format);
+      usedFallback = true;
+      console.log(`[elevenlabs-tts] Fallback voice result: status=${elevenRes.status}`);
+    }
   } catch (fetchError) {
     console.error('[elevenlabs-tts] Fetch to ElevenLabs failed:', fetchError);
     return new Response(JSON.stringify({ error: 'Failed to reach ElevenLabs service' }), {
@@ -210,31 +277,48 @@ serve(async (req: Request) => {
 
   if (!elevenRes.ok || !elevenRes.body) {
     const errBody = await elevenRes.text().catch(() => '');
-    console.error(`[elevenlabs-tts] ElevenLabs error ${elevenRes.status}:`, errBody);
-    return new Response(JSON.stringify({ error: `ElevenLabs returned ${elevenRes.status}` }), {
+    console.error(`[elevenlabs-tts] ElevenLabs error ${elevenRes.status}: ${errBody}`);
+
+    // Parse ElevenLabs error detail for client
+    let detail = `ElevenLabs returned ${elevenRes.status}`;
+    try {
+      const parsed = JSON.parse(errBody);
+      if (parsed?.detail?.message) detail = parsed.detail.message;
+      else if (typeof parsed?.detail === 'string') detail = parsed.detail;
+    } catch { /* use default */ }
+
+    return new Response(JSON.stringify({ error: detail }), {
       status: 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  // Increment usage counter (upsert: insert or increment)
+  // Increment usage counter (non-blocking)
   const { error: upsertError } = await supabase.rpc('increment_tts_usage', {
     p_user_id: user.id,
     p_date: today,
   });
 
   if (upsertError) {
-    // Non-blocking: log but still serve the audio
-    console.error('[elevenlabs-tts] Failed to increment usage:', upsertError.message);
+    console.warn('[elevenlabs-tts] Failed to increment usage:', upsertError.message);
   }
 
+  const elapsed = Date.now() - t0;
+  console.log(`[elevenlabs-tts] Success: fallback=${usedFallback}, elapsed=${elapsed}ms`);
+
   // Stream audio bytes back to client
+  const responseHeaders: Record<string, string> = {
+    ...corsHeaders,
+    'Content-Type': 'audio/mpeg',
+    'Cache-Control': 'no-store',
+  };
+
+  if (usedFallback) {
+    responseHeaders['X-Voice-Fallback'] = 'true';
+  }
+
   return new Response(elevenRes.body, {
     status: 200,
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'audio/mpeg',
-      'Cache-Control': 'no-store',
-    },
+    headers: responseHeaders,
   });
 });
