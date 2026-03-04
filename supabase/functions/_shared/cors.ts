@@ -10,6 +10,8 @@ const ALLOWED_ORIGINS = [
   '.lovable.app',
   '.lovable.dev',
   '.lovableproject.com',
+  // Vercel preview / deployment domains
+  '.vercel.app',
   // Local development
   'http://localhost:5173',
   'http://localhost:3000',
@@ -21,6 +23,11 @@ const ALLOWED_ORIGINS = [
   'http://localhost',
 ];
 
+const ENV_ALLOWED_ORIGINS = (Deno.env.get('ADDITIONAL_ALLOWED_ORIGINS') || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
 /**
  * Validates if an origin is allowed to make requests to Edge Functions.
  * Supports exact matches and suffix matches for subdomains.
@@ -28,7 +35,9 @@ const ALLOWED_ORIGINS = [
 export function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return false;
 
-  return ALLOWED_ORIGINS.some(allowed => {
+  const allowlist = [...ALLOWED_ORIGINS, ...ENV_ALLOWED_ORIGINS];
+
+  return allowlist.some(allowed => {
     // Suffix match for subdomains (e.g., '.supabase.co' matches 'xyz.supabase.co')
     if (allowed.startsWith('.')) {
       return (
