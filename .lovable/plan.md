@@ -1,50 +1,41 @@
 
-
-# Enterprise Notifications Parity + Settings Tab Rename
+# Fix Trip Pass Pricing: Explorer $29.99 → $39.99
 
 ## Problem
-
-1. **Enterprise notifications section** only shows "Trip Invitations" — missing all 7 app notification categories (Broadcasts, Calendar Events, Payments, Tasks, Polls, Join Requests, Basecamp Updates), delivery methods (Push, Email, SMS), and quiet hours that the Consumer (Group) section has.
-
-2. **Settings header tabs** say "Group / Enterprise / Events" but should say "My Trips / Pro / Events" to match the home screen menu bar toggles.
+Two Explorer Trip Passes ($29.99 × 2 = $59.98) are cheaper than one Frequent Chraveler Pass ($74.99), breaking bundle incentive. At $39.99, two Explorers = $79.98 > $74.99 Frequent, properly incentivizing the upgrade.
 
 ## Changes
 
-### 1. `src/components/enterprise/EnterpriseNotificationsSection.tsx` — Full rewrite
+### 1. `src/components/conversion/TripPassModal.tsx` — UI price + copy
+- Line 21: `'$29.99'` → `'$39.99'`
+- Line 33: nudge → `'Annual Explorer ($99/yr) pays for itself after ~3 trips'`
+- Line 51: nudge → `'Annual Frequent ($199/yr) pays for itself after ~3 trips'`
+- Line 148: footer already says "~3 trips" — keep as-is
 
-Replace the current minimal component (only Trip Invitations) with the same full notification UI that `ConsumerNotificationsSection.tsx` has:
+### 2. `src/billing/config.ts` — Business logic price
+- Line 206: `price: 29.99` → `price: 39.99`
 
-- **App Notifications**: All 7 categories (Broadcasts, Calendar Events, Payments, Tasks, Polls, Join Requests, Basecamp Updates) + Trip Invitations — same icons, labels, descriptions
-- **Delivery Methods**: Push, Email, SMS (with same SMS premium-gating, phone number modal, test SMS flow)
-- **Quiet Hours**: Enable toggle + start/end time pickers + timezone
+### 3. Stripe — Create new Price for Explorer Trip Pass
+- The existing Stripe Price `price_1Sz6A53EeswiMlDCF51s1XOi` is $29.99 — we must NOT edit it (breaks historical receipts)
+- Create a NEW Stripe Price on product `prod_Tx0AZIWAubAWD3` at $39.99 one-time
+- Update the Price ID in:
+  - `src/billing/config.ts` line 203 (`stripePriceId`)
+  - `supabase/functions/create-checkout/index.ts` line 38
 
-**Implementation approach**: Extract the shared notification categories array and the toggle/delivery/quiet-hours rendering logic from `ConsumerNotificationsSection.tsx` so both sections reuse the same data and UI patterns. The simplest path: directly replicate the Consumer section's structure into Enterprise, using the same `userPreferencesService` calls (they share the same `notification_preferences` DB table).
-
-### 2. `src/components/SettingsMenu.tsx` — Rename tab labels
-
-Three label changes (lines 146, 156, 166):
-- `"Group"` → `"My Trips"`
-- `"Enterprise"` → `"Pro"`
-- `"Events"` stays `"Events"`
-
-Also update the sidebar headers in each settings panel:
-- `ConsumerSettings.tsx`: "Personal Settings" label (keep as-is, it's correct)
-- `EnterpriseSettings.tsx`: "Enterprise Settings" → "Pro Settings"
-
-### 3. `src/components/EnterpriseSettings.tsx` — Update sidebar label
-
-Change the sidebar heading from "Enterprise Settings" to "Pro Settings" for consistency.
-
-### 4. Test updates
-
-Update `src/components/__tests__/SettingsMenu.test.tsx` to reference "My Trips" and "Pro" instead of "Group" and "Enterprise".
+### 4. RevenueCat — Update product price
+- RevenueCat product `com.chravel.explorer.pass` (or equivalent) needs App Store Connect / Google Play Console price updated to $39.99
+- This is a manual step in the App Store Connect dashboard — I'll flag it but the code references in `src/constants/revenuecat.ts` don't hardcode pass prices (only subscription prices), so no code change needed there
 
 ## Files
 
-| File | Action |
+| File | Change |
 |------|--------|
-| `src/components/enterprise/EnterpriseNotificationsSection.tsx` | Rewrite — full parity with Consumer notifications |
-| `src/components/SettingsMenu.tsx` | Rename tabs: Group→My Trips, Enterprise→Pro |
-| `src/components/EnterpriseSettings.tsx` | Rename sidebar header to "Pro Settings" |
-| `src/components/__tests__/SettingsMenu.test.tsx` | Update tab label assertions |
+| `src/components/conversion/TripPassModal.tsx` | Price $29.99→$39.99, nudge copy ~4→~3 |
+| `src/billing/config.ts` | `price: 29.99` → `39.99`, new Stripe Price ID |
+| `supabase/functions/create-checkout/index.ts` | New Stripe Price ID for explorer pass |
 
+## Stripe Action Required
+Create a new Price on product `prod_Tx0AZIWAubAWD3` at $39.99 USD one-time using the Stripe tool, then swap the Price ID in code.
+
+## Manual Action (RevenueCat / App Store)
+Update the Explorer Trip Pass price in App Store Connect to $39.99 (Tier 57 or nearest). This is outside code scope.
