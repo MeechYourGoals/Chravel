@@ -237,7 +237,7 @@ export const EnterpriseSettings = ({
   return (
     <>
       <SettingsLayout
-        title="Enterprise Settings"
+        title="Pro Settings"
         sections={SECTIONS}
         activeSection={activeSection}
         onSectionChange={setActiveSection}

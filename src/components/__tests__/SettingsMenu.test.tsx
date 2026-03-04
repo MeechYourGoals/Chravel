@@ -32,7 +32,6 @@ let mockConsumerThrows = false;
 let mockEnterpriseThrows = false;
 let mockEventsThrows = false;
 
-// Keep test output clean: we only suppress known non-signal warnings.
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
@@ -58,8 +57,6 @@ vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
     return;
   }
 
-  // React logs the thrown error even when an ErrorBoundary correctly catches it.
-  // In this file we intentionally throw to verify Settings stays mounted.
   if (combined.includes('crash (test)')) {
     return;
   }
@@ -108,8 +105,6 @@ vi.mock('../AuthModal', () => ({
   AuthModal: () => null,
 }));
 
-// Radix ScrollArea triggers async layout effects that can create noisy act() warnings.
-// We don’t need to validate ScrollArea behavior here—only that SettingsMenu doesn't crash.
 vi.mock('../ui/scroll-area', () => ({
   ScrollArea: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   ScrollBar: () => null,
@@ -175,9 +170,9 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     renderMenu();
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
-    // Tab labels: Group (user-facing; "Consumer" is internal/cold), Enterprise, Events
-    expect(screen.getByRole('button', { name: 'Group' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Enterprise' })).toBeInTheDocument();
+    // Tab labels: My Trips, Pro, Events
+    expect(screen.getByRole('button', { name: 'My Trips' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pro' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Events' })).toBeInTheDocument();
     expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
   });
@@ -193,7 +188,6 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
   });
 
   it('enables Advertiser access in app-preview mode', () => {
-    // Advertiser is only available in app-preview mode (investor demos)
     mockDemoView = 'app-preview';
     renderMenu();
 
@@ -206,7 +200,6 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     mockDemoView = 'off';
     renderMenu();
 
-    // Advertiser tab is only visible in app-preview mode, not for regular users
     const advertiserButton = screen.queryByRole('button', { name: /advertiser/i });
     expect(advertiserButton).toBeNull();
   });
@@ -216,7 +209,6 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     mockDemoView = 'app-preview';
     renderMenu();
 
-    // It should NOT show the login prompt; it should render the main settings UI.
     expect(screen.queryByText('Sign in to access settings')).not.toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
     expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
@@ -240,13 +232,13 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     expect(screen.getByTestId('events-settings')).toBeInTheDocument();
   });
 
-  it('can switch between Group / Enterprise / Events tabs without crashing', async () => {
+  it('can switch between My Trips / Pro / Events tabs without crashing', async () => {
     const user = userEvent.setup();
     renderMenu();
 
     expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Enterprise' }));
+    await user.click(screen.getByRole('button', { name: 'Pro' }));
     await waitFor(() => {
       expect(screen.getByTestId('enterprise-settings')).toBeInTheDocument();
     });
@@ -256,7 +248,7 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
       expect(screen.getByTestId('events-settings')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: 'Group' }));
+    await user.click(screen.getByRole('button', { name: 'My Trips' }));
     await waitFor(() => {
       expect(screen.getByTestId('consumer-settings')).toBeInTheDocument();
     });
@@ -266,10 +258,7 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     mockConsumerThrows = true;
     renderMenu();
 
-    // Settings shell should still render.
     expect(screen.getByText('Settings')).toBeInTheDocument();
-
-    // Compact error boundary content should appear instead of full-page crash.
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     expect(screen.getByText('Please try again.')).toBeInTheDocument();
   });
@@ -279,7 +268,7 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     renderMenu();
 
     mockEnterpriseThrows = true;
-    await user.click(screen.getByRole('button', { name: 'Enterprise' }));
+    await user.click(screen.getByRole('button', { name: 'Pro' }));
     await waitFor(() => {
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     });
