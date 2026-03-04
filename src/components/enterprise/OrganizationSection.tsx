@@ -66,7 +66,7 @@ export const OrganizationSection = ({
                 <button
                   type="button"
                   onClick={onCreateOrganization}
-                  className="inline-flex items-center gap-2 flex-shrink-0 bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm whitespace-nowrap"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm text-center"
                 >
                   <Plus size={16} className="flex-shrink-0" />
                   Create Organization
@@ -77,7 +77,7 @@ export const OrganizationSection = ({
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-0">
           <h4 className="text-base font-semibold text-white mb-3 break-words">Organization Logo</h4>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 min-w-0">
+          <div className="flex flex-col items-start gap-4 min-w-0">
             <div className="relative flex-shrink-0">
               <div className="w-24 h-24 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
                 <Building size={32} className="text-white" />
@@ -92,7 +92,7 @@ export const OrganizationSection = ({
             <div className="min-w-0 flex-1">
               <button
                 type="button"
-                className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors text-center"
               >
                 <Upload size={16} className="flex-shrink-0" />
                 Upload Logo
