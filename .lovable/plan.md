@@ -1,174 +1,172 @@
+# Onboarding Demo Screens: Match Real Chravel UI
 
+## Problem
 
-# Onboarding Redesign: Premium Animated Product Tour (Final Revised Plan)
+The current onboarding demos render generic "travel chat app" styling. The real Chravel UI has signature elements: top pill tab bar, Messages/Broadcasts segmented control, itinerary timeline with gold day circles, and rich AI concierge cards. None of these are present in the current demos.
 
-## What Changes From Previous Plan
+## Architecture Decision
 
-Six concrete upgrades based on review feedback:
+**Option B: Extract UI primitives from production code.** Real components are too coupled (hooks, Supabase, trip context). Instead, update `DemoPrimitives.tsx` with new mini-components that copy the exact class strings from production files. All tokens stay in `demoTokens.ts`.
 
-1. **Semantic tokens mapped to real CSS variables** — no guessed Tailwind colors
-2. **Three layout modes** (mobile/tablet/desktop) via `useOnboardingLayout` — not just `useIsMobile()`
-3. **DemoTabStrip** inside PhoneFrame showing active tab per screen
-4. **AI cameo with "Saved" action animation** — not just a static chip
-5. **Demo UI primitives** (DemoBubble, DemoCard, DemoChip, DemoAvatar) — reusable across screens
-6. **CTA: subtle gold shimmer** replaces childish confetti
+**Folder restructure**: Move all onboarding demo internals into `src/components/onboarding/demo/` to prevent leakage into core UI:
 
----
-
-## Architecture
-
-### 1. Shared Token System (`demoTokens.ts`)
-
-Maps directly to the app's CSS variables from `src/index.css`:
-
-```text
-chatBubbleOwn     → 'bg-[hsl(var(--chat-bubble-own))]'          // #007AFF iMessage blue
-chatBubbleOther   → 'bg-muted/80 text-white'                     // exact from MessageBubble.tsx:391
-broadcastBg       → 'bg-orange-500 text-white'                   // exact from MessageBubble.tsx:393
-cardBg            → 'bg-card border border-border'               // exact from EventItem.tsx:24
-paymentCardOwed   → 'bg-card/50 border-border'                   // exact from PaymentCard:686
-paymentCardSettled→ 'bg-green-500/5 border-green-500/20'         // exact from PaymentCard:685
-conciergeAvatar   → 'bg-gradient-to-r from-blue-500 to-emerald-500'  // from MessageRenderer.tsx:151
-primaryGold       → 'bg-[hsl(var(--primary))]'                   // --primary: 38 61% 48%
+```
+src/components/onboarding/
+├── OnboardingCarousel.tsx
+├── OnboardingProgressDots.tsx
+├── index.ts
+├── demo/
+│   ├── tokens.ts          (was demoTokens.ts)
+│   ├── primitives.tsx      (was DemoPrimitives.tsx)
+│   ├── PhoneFrame.tsx      (moved)
+│   ├── useOnboardingLayout.ts (moved)
+│   └── screens/
+│       ├── ChatDemoScreen.tsx
+│       ├── CalendarDemoScreen.tsx
+│       ├── PaymentsTrackingDemoScreen.tsx
+│       ├── WelcomeScreen.tsx
+│       └── FinalCTAScreen.tsx
 ```
 
-Motion presets: `{ duration: 0.3, ease: 'easeOut' }` — all slides use `y: 12→0, opacity: 0→1`. No springs.
+## Color Discipline Rule (enforced in tokens)
 
-### 2. Demo UI Primitives (`DemoPrimitives.tsx`)
 
-Small, zero-dependency building blocks:
+| Color                    | Usage                                                      |
+| ------------------------ | ---------------------------------------------------------- |
+| Gold (`bg-primary`)      | Selection indicators, itinerary day circles, CTA highlight |
+| Orange (`bg-orange-500`) | Broadcast only                                             |
+| Blue (`bg-blue-600`)     | "Messages" active segment, own chat bubble                 |
+| Emerald/Cyan gradient    | Concierge avatar only                                      |
+| White/10, White/20       | Pill backgrounds (inactive/active)                         |
 
-- **DemoAvatar** — colored circle with initial letter (mirrors real `Avatar` + `AvatarFallback`)
-- **DemoBubble** — chat message with variant: `own | other | broadcast` (uses token classes from above)
-- **DemoCard** — rounded card matching `EventItem` / `PaymentCard` styling
-- **DemoChip** — small status pill (Pending/Settled/Saved)
-- **DemoToast** — floating mini-toast for "Saved ✓" animation
 
-### 3. PhoneFrame Wrapper (`PhoneFrame.tsx`)
+## Changes Per File
 
-- Glassy border: `border border-white/10 rounded-[2rem]`
-- Inner shadow + drop shadow for depth
-- Dark gradient background matching `--background: 0 0% 0%`
-- Status bar strip at top (time + battery dots — purely decorative)
-- **DemoTabStrip** at bottom: 4 tabs (`Chat | Calendar | Payments | AI`) with active tab highlighted per screen via prop
+### 1. `demo/tokens.ts` — Add production-matched tokens
 
-### 4. Layout Hook (`useOnboardingLayout.ts`)
+Add tokens extracted from real source files:
 
-Returns `'mobile' | 'tablet' | 'desktop'`:
-- **Mobile**: `width < 640` — full-bleed, no phone frame, swipe-only
-- **Tablet**: `640 ≤ width < 1024` — phone frame centered, swipe + buttons
-- **Desktop**: `width ≥ 1024` — two-column layout (left: phone animation, right: headline + copy + progress + buttons)
+- **TripTabs pill bar** (from `TripTabs.tsx:311-322`):
+  - `pillActive: 'bg-white/20 text-white border border-white/30 shadow-sm'`
+  - `pillInactive: 'bg-white/10 text-gray-300'`
+  - `pillBar: 'flex items-center gap-1.5 px-3.5 py-2.5 min-h-[42px] rounded-xl font-medium text-sm'`
+- **MessageTypeBar** (from `MessageTypeBar.tsx:57-88`):
+  - `segmentBar: 'inline-flex items-center bg-neutral-900/70 backdrop-blur-md border border-white/10 rounded-xl p-0.5'`
+  - `segmentMessages: 'bg-blue-600 text-white shadow-md'`
+  - `segmentBroadcasts: 'bg-orange-500 text-white shadow-md'`
+  - `segmentInactive: 'text-white/70'`
+- **Itinerary** (from `ItineraryView.tsx:132-159`):
+  - `itineraryCard: 'bg-slate-900/30 rounded-lg border border-slate-700/30 p-4'`
+  - `itineraryDayCircle: 'w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-bold'`
+  - `timelineDot: 'w-3 h-3 bg-primary rounded-full'`
+  - `timelineConnector: 'w-0.5 h-8 bg-slate-600 mt-2'`
+  - Category colors: `dining: 'bg-red-500/20 text-red-300'`, `activity: 'bg-green-500/20 text-green-300'`
+- **Concierge avatar** (from `MessageRenderer.tsx:151`):
+  - `conciergeAvatar: 'bg-gradient-to-r from-blue-500 to-emerald-500'` (not emerald-to-cyan)
 
-This is separate from `useIsMobile()` which serves the rest of the app.
+### 2. `demo/primitives.tsx` — New primitives
 
----
+**Replace** `DemoTabStrip` (bottom icon bar) with `DemoPillBar`:
 
-## Screen Structure (5 total)
+- Renders 4-5 horizontal pills matching TripTabs styling
+- Accepts `active` prop to highlight one pill
+- Uses `layoutId` for sliding indicator animation
 
-### Screen 0: WelcomeScreen (minor update)
-- Keep morphing icons, no structural changes
-- Verify icons match app tab bar icons (they use Luggage/Map/MessageCircle which is fine)
+**Add `DemoSegmentedControl**`:
 
-### Screen 1: ChatDemoScreen
-**Hero: Communication**
-- DemoTabStrip active: `Chat`
-- Headline (desktop): "One trip. One chat."
-- Subline: "Messages, broadcasts, and reactions — all in your trip."
+- Replicates `MessageTypeBar` exactly: Messages | Broadcasts
+- Accepts `active: 'messages' | 'broadcasts'`
+- Animated highlight slide between segments
 
-Animation (~6s loop, crossfade reset):
-- 0.5s — `DemoBubble variant="other"`: avatar "A" Alex — "Found an amazing sushi spot near the hotel"
-- 1.5s — `DemoBubble variant="own"`: "I'm in! Book it 🙌"
-- 2.5s — `DemoBubble variant="broadcast"`: "📢 Dinner reservation added to calendar"
-- 4.0s — Small emoji reaction pops on first message (scale 0→1)
-- 5.5s — crossfade opacity 0→1 reset
+**Add `DemoDayHeader**`:
 
-### Screen 2: CalendarDemoScreen
-**Hero: Scheduling**
-- DemoTabStrip active: `Calendar`
-- Headline: "Plans that don't drift."
-- Subline: "Shared calendar with AI-powered suggestions."
+- Gold circle with day number + date text (matches `ItineraryView.tsx:134-145`)
 
-Animation (~6s loop):
-- 0.5s — `DemoCard`: 🍽️ Dinner Reservation · 7:30 PM (matches EventItem styling)
-- 1.5s — `DemoCard`: 🎯 Museum Visit · 10:00 AM
-- 2.5s — `👥 4 travelers` shared badge glows
-- 3.5s — **AI cameo overlay**: floating card appears bottom-right
-  - User query bubble: "Best sushi near Shinjuku?"
-  - AI response: "Sushi Saito · ⭐ 4.8" with concierge avatar gradient
-  - `DemoChip` "Save to Trip" appears → tap pulse animation → transforms to `DemoToast` "Saved ✓" that slides up and fades
-- 5.5s — crossfade reset
+**Add `DemoTimelineEvent**`:
 
-### Screen 3: PaymentsTrackingDemoScreen
-**Hero: Money**
-- DemoTabStrip active: `Payments`
-- Headline: "Money, organized."
-- Subline: "Track expenses, split bills, settle up."
+- Timeline dot + connector + event card (matches `ItineraryView.tsx:150-198`)
+- Props: emoji, title, category, time, location
 
-Animation (~6s loop):
-- 0.5s — `DemoCard` (PaymentCard style): "Dinner — $240" with DemoAvatar "A" + "Paid by Alex"
-- 1.5s — Split detail: 4 small DemoAvatars with "$60 each"
-- 2.5s — Status chips animate: `DemoChip variant="pending"` (yellow) on 2, `DemoChip variant="settled"` (green) on 1
-- 3.5s — One pending chip toggles to settled (green) with checkmark
-- 5.5s — crossfade reset
+**Add `DemoConciergeCard**`:
 
-### Screen 4: FinalCTAScreen (updated)
-- Remove confetti entirely. Replace with subtle gold shimmer/particle drift behind CTA area using CSS radial gradient animation (lightweight, no canvas-confetti dependency)
-- Add merged invite copy: "One link. Everyone's in." as subtitle
-- Sharper headline: "Spin up your first trip in 30 seconds."
-- Primary CTA: "Create Your First Trip"
-- Secondary CTA: "Explore Demo Trip"
+- Rich card with: image placeholder (gradient rect), title, 2 bullet lines, link, "Save to Trip" button
+- Concierge avatar uses real gradient (`from-blue-500 to-emerald-500` with "CA" text)
 
----
+**Update `DemoBubble**`:
 
-## Files
+- `broadcast` variant adds a small `📢 Broadcast` pill above the orange bubble
 
-| File | Action |
-|------|--------|
-| `src/components/onboarding/demoTokens.ts` | **Create** — CSS-var-mapped tokens + motion presets |
-| `src/components/onboarding/DemoPrimitives.tsx` | **Create** — DemoAvatar, DemoBubble, DemoCard, DemoChip, DemoToast |
-| `src/components/onboarding/PhoneFrame.tsx` | **Create** — glassy wrapper + DemoTabStrip |
-| `src/components/onboarding/useOnboardingLayout.ts` | **Create** — mobile/tablet/desktop hook |
-| `src/components/onboarding/screens/ChatDemoScreen.tsx` | **Create** |
-| `src/components/onboarding/screens/CalendarDemoScreen.tsx` | **Create** — includes AI cameo |
-| `src/components/onboarding/screens/PaymentsTrackingDemoScreen.tsx` | **Create** |
-| `src/components/onboarding/OnboardingCarousel.tsx` | **Update** — 5 screens, two-column desktop, layout modes |
-| `src/components/onboarding/screens/FinalCTAScreen.tsx` | **Update** — gold shimmer, invite copy, sharper headline |
-| `src/components/onboarding/screens/WelcomeScreen.tsx` | **Keep** (minor icon check) |
-| `src/components/onboarding/screens/FeatureReelScreen.tsx` | **Delete** |
-| `src/components/onboarding/screens/InviteCrewScreen.tsx` | **Delete** |
-| `src/components/onboarding/index.ts` | **Update** — fix exports |
+### 3. `demo/PhoneFrame.tsx` — Top pills, no bottom bar
 
----
+- Remove bottom `DemoTabStrip`
+- Add `DemoPillBar` at top after status bar
+- Show pills: Chat, Calendar, Concierge, Payments
+- Active pill shifts per screen prop
+- During AI cameo, briefly glow "Concierge" pill
 
-## Key Technical Details
+### 4. `demo/screens/ChatDemoScreen.tsx` — Full rewrite
 
-**Desktop two-column layout** in OnboardingCarousel:
-```text
-┌──────────────────────────────────────────────┐
-│  ┌─────────────┐    One trip. One chat.      │
-│  │  PhoneFrame  │    Messages, broadcasts...  │
-│  │  (animated)  │                             │
-│  │             │    ● ○ ○ ○ ○   progress     │
-│  │             │    [Continue]   Skip →       │
-│  └─────────────┘                             │
-└──────────────────────────────────────────────┘
-```
+Animation sequence (~6s loop):
 
-**DemoTabStrip** inside PhoneFrame bottom:
-```text
-[ Chat | Calendar | Payments | ✨ AI ]
-   ^^^
-   active = gold underline, others = muted
-```
+1. `0.5s` — `DemoSegmentedControl` shows with "Messages" active. First message slides in (Alex: "Found an amazing sushi spot")
+2. `1.5s` — Own message slides in ("We're down! Let's lock it in 🙌")
+3. `2.0s` — Animated highlight slides from "Messages" to "Broadcasts" segment
+4. `2.3s` — Broadcast message appears with orange styling + `📢 Broadcast` pill fades in above it
+5. `4.0s` — Reaction pops on first message
+6. `5.5s` — Crossfade reset
 
-Active tab shifts per screen with a subtle sliding indicator animation.
+### 5. `demo/screens/CalendarDemoScreen.tsx` — Itinerary timeline
 
-**AI Cameo "Save to Trip" sequence** (CalendarDemoScreen):
-1. Card appears (slide up 12px + fade)
-2. "Save to Trip" chip pulses once (scale 1→1.05→1)
-3. Chip transforms: text changes to "Saved ✓", bg changes to green
-4. Mini DemoToast slides up from chip position and fades out
-5. Entire cameo fades out
+Animation sequence (~6s loop):
 
-This makes the AI feel like a real workflow action, not decoration.
+1. `0.5s` — Day 1 header: gold "1" circle + "Friday, June 3" (using `DemoDayHeader`)
+2. `1.0s` — `DemoTimelineEvent`: 🍽️ Dinner Reservation · `dining` badge · 7:30 PM · Sushi Saito
+3. `1.8s` — `DemoTimelineEvent`: 🎯 Museum Visit · `activity` badge · 10:00 AM · National Art Museum
+4. `2.5s` — Shared indicator: "👥 Shared with 4 Chravelers"
+5. `3.5s` — AI Concierge cameo: `DemoConciergeCard` slides up from bottom with:
+  - "CA" gradient avatar + user query "Best sushi near Shinjuku?"
+  - Rich card: image area, "Sushi Saito", ⭐ 4.8, 2 bullet details, "Save to Trip" button
+  - Concierge pill in top bar briefly glows
+6. `4.8s` — "Save to Trip" pulses → changes to "✓ Saved to Explore" → `DemoToast` slides up
+7. `5.5s` — Crossfade reset
 
+### 6. `demo/screens/PaymentsTrackingDemoScreen.tsx` — Minor polish
+
+- Use `itineraryCard` token for card styling (consistent with calendar screen)
+- Add category badge (e.g., `dining`) on the expense card
+
+### 7. `OnboardingCarousel.tsx` — Update imports
+
+- Point to `demo/` folder paths
+- Add subtitle to desktop right column: "Works on web + mobile." below each screen's subtitle
+
+### 8. Cleanup
+
+- Delete old top-level files: `demoTokens.ts`, `DemoPrimitives.tsx`, `PhoneFrame.tsx`, `useOnboardingLayout.ts`, and `screens/` directory
+- Update `index.ts` exports
+
+## Acceptance Criteria
+
+1. Chat demo includes: top pill bar + MessageTypeBar segmented control + animated Messages→Broadcasts switch + broadcast label pill
+2. Calendar demo includes: itinerary day circles (gold) + timeline connector line + category badges on events
+3. AI cameo includes: gradient "CA" avatar + rich card (image block + bullets + link) + "Save to Trip" → "Saved to Explore" toast
+4. Visual parity: radii, spacing, and typography match production components within one step (verified by comparing real `ItineraryView`, `MessageTypeBar`, `TripTabs` class strings against demo tokens)
+5. No bottom icon tab bar anywhere — top pill bar only
+
+## Files Summary
+
+
+| File                                                                                             | Action                                    |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| `src/components/onboarding/demo/tokens.ts`                                                       | Create (move + extend demoTokens.ts)      |
+| `src/components/onboarding/demo/primitives.tsx`                                                  | Create (move + extend DemoPrimitives.tsx) |
+| `src/components/onboarding/demo/PhoneFrame.tsx`                                                  | Create (move + rewrite: top pills)        |
+| `src/components/onboarding/demo/useOnboardingLayout.ts`                                          | Create (move, unchanged)                  |
+| `src/components/onboarding/demo/screens/ChatDemoScreen.tsx`                                      | Create (rewrite)                          |
+| `src/components/onboarding/demo/screens/CalendarDemoScreen.tsx`                                  | Create (rewrite)                          |
+| `src/components/onboarding/demo/screens/PaymentsTrackingDemoScreen.tsx`                          | Create (update)                           |
+| `src/components/onboarding/demo/screens/WelcomeScreen.tsx`                                       | Create (move, unchanged)                  |
+| `src/components/onboarding/demo/screens/FinalCTAScreen.tsx`                                      | Create (move, unchanged)                  |
+| `src/components/onboarding/OnboardingCarousel.tsx`                                               | Update imports                            |
+| `src/components/onboarding/index.ts`                                                             | Update exports                            |
+| Old files (demoTokens.ts, DemoPrimitives.tsx, PhoneFrame.tsx, useOnboardingLayout.ts, screens/*) | Delete                                    |
