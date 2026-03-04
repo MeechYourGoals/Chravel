@@ -6,7 +6,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Plane, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { motion as motionPreset } from '../demoTokens';
+import { motion as motionPreset } from '../tokens';
 
 interface FinalCTAScreenProps {
   onCreateTrip: () => void;

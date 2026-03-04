@@ -3,35 +3,35 @@
  *
  * Renders a realistic phone bezel with:
  * - status bar (decorative)
+ * - DemoPillBar at top (Chravel signature)
  * - content slot
- * - DemoTabStrip at bottom
  *
  * On mobile (<640px) the frame chrome is hidden; content fills the viewport.
  */
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { depth, radius } from './demoTokens';
-import { DemoTabStrip } from './DemoPrimitives';
-import type { DemoTab } from './demoTokens';
+import { depth, radius } from './tokens';
+import { DemoPillBar } from './primitives';
+import type { DemoPill } from './tokens';
 import { useOnboardingLayout } from './useOnboardingLayout';
 
 interface PhoneFrameProps {
-  activeTab: DemoTab;
-  glintTab?: DemoTab;
+  activePill: DemoPill;
+  glintPill?: DemoPill;
   children: React.ReactNode;
 }
 
-export const PhoneFrame = ({ activeTab, glintTab, children }: PhoneFrameProps) => {
+export const PhoneFrame = ({ activePill, glintPill, children }: PhoneFrameProps) => {
   const layout = useOnboardingLayout();
   const showChrome = layout !== 'mobile';
 
   if (!showChrome) {
-    // Mobile: full-bleed, just content + tab strip
+    // Mobile: full-bleed, just pill bar + content
     return (
       <div className="flex flex-col h-full w-full bg-background">
+        <DemoPillBar active={activePill} glint={glintPill} />
         <div className="flex-1 overflow-hidden relative">{children}</div>
-        <DemoTabStrip active={activeTab} glint={glintTab} />
       </div>
     );
   }
@@ -58,11 +58,11 @@ export const PhoneFrame = ({ activeTab, glintTab, children }: PhoneFrameProps) =
         </div>
       </div>
 
+      {/* Top pill bar (Chravel signature) */}
+      <DemoPillBar active={activePill} glint={glintPill} />
+
       {/* Content */}
       <div className="flex-1 overflow-hidden relative">{children}</div>
-
-      {/* Tab strip */}
-      <DemoTabStrip active={activeTab} glint={glintTab} />
     </div>
   );
 };

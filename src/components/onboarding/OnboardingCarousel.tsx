@@ -11,14 +11,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { OnboardingProgressDots } from './OnboardingProgressDots';
-import { WelcomeScreen } from './screens/WelcomeScreen';
-import { ChatDemoScreen } from './screens/ChatDemoScreen';
-import { CalendarDemoScreen } from './screens/CalendarDemoScreen';
-import { PaymentsTrackingDemoScreen } from './screens/PaymentsTrackingDemoScreen';
-import { FinalCTAScreen } from './screens/FinalCTAScreen';
-import { PhoneFrame } from './PhoneFrame';
-import { useOnboardingLayout } from './useOnboardingLayout';
-import type { DemoTab } from './demoTokens';
+import { WelcomeScreen } from './demo/screens/WelcomeScreen';
+import { ChatDemoScreen } from './demo/screens/ChatDemoScreen';
+import { CalendarDemoScreen } from './demo/screens/CalendarDemoScreen';
+import { PaymentsTrackingDemoScreen } from './demo/screens/PaymentsTrackingDemoScreen';
+import { FinalCTAScreen } from './demo/screens/FinalCTAScreen';
+import { PhoneFrame } from './demo/PhoneFrame';
+import { useOnboardingLayout } from './demo/useOnboardingLayout';
+import type { DemoPill } from './demo/tokens';
 import * as haptics from '@/native/haptics';
 import { onboardingEvents } from '@/telemetry/events';
 
@@ -35,16 +35,16 @@ interface ScreenConfig {
   component: React.ComponentType<Record<string, never>> | React.ComponentType<{ onCreateTrip: () => void; onExploreDemoTrip: () => void }>;
   title: string;
   subtitle: string;
-  tab?: DemoTab;
-  glintTab?: DemoTab;
+  pill?: DemoPill;
+  glintPill?: DemoPill;
   showInFrame?: boolean;
 }
 
 const screens: ScreenConfig[] = [
   { component: WelcomeScreen, title: 'Plan group trips without the chaos', subtitle: 'Chat, plan, split costs, and get AI help — all in one place', showInFrame: false },
-  { component: ChatDemoScreen, title: 'One trip. One chat.', subtitle: 'Messages, broadcasts, and reactions — all in your trip.', tab: 'chat', showInFrame: true },
-  { component: CalendarDemoScreen, title: "Plans that don't drift.", subtitle: 'Shared calendar with AI-powered suggestions.', tab: 'calendar', glintTab: 'ai', showInFrame: true },
-  { component: PaymentsTrackingDemoScreen, title: 'Money, organized.', subtitle: 'Track expenses, split bills, settle up.', tab: 'payments', showInFrame: true },
+  { component: ChatDemoScreen, title: 'One trip. One chat.', subtitle: 'Messages, broadcasts, and reactions — all in your trip.', pill: 'chat', showInFrame: true },
+  { component: CalendarDemoScreen, title: "Plans that don't drift.", subtitle: 'Shared itinerary with AI-powered suggestions.', pill: 'calendar', glintPill: 'concierge', showInFrame: true },
+  { component: PaymentsTrackingDemoScreen, title: 'Money, organized.', subtitle: 'Track expenses, split bills, settle up.', pill: 'payments', showInFrame: true },
   { component: FinalCTAScreen, title: '', subtitle: '', showInFrame: false },
 ];
 
@@ -141,8 +141,8 @@ export const OnboardingCarousel = ({
         transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
         className="absolute inset-0"
       >
-        {isDemoScreen && config.tab ? (
-          <PhoneFrame activeTab={config.tab} glintTab={config.glintTab}>
+        {isDemoScreen && config.pill ? (
+          <PhoneFrame activePill={config.pill} glintPill={config.glintPill}>
             {renderScreenContent()}
           </PhoneFrame>
         ) : (
@@ -211,6 +211,7 @@ export const OnboardingCarousel = ({
                 <div>
                   <h1 className="text-3xl font-bold text-foreground mb-2">{config.title}</h1>
                   <p className="text-lg text-muted-foreground">{config.subtitle}</p>
+                  <p className="text-sm text-muted-foreground/60 mt-1">Works on web + mobile.</p>
                 </div>
                 <OnboardingProgressDots totalScreens={TOTAL_SCREENS} currentScreen={currentScreen} onDotClick={goToScreen} />
               </>
