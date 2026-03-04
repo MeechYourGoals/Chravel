@@ -1,24 +1,40 @@
 /**
- * Safe page reload utility that works in both web and Capacitor (native) contexts.
- *
- * In a Capacitor WebView, `window.location.reload()` can destroy native event
- * listeners, push-notification routing, and lifecycle bridges. This utility
- * avoids hard reloads on native platforms wherever possible.
- *
- * Behavior:
- *  - **Web / PWA**: calls `window.location.reload()` (standard behavior).
- *  - **Capacitor (native)**: navigates to the current route with a cache-bust
- *    query param, which triggers a fresh mount of the React tree without
- *    tearing down the native WebView context. The current pathname, existing
- *    query parameters, and hash are all preserved so users stay on the same
- *    page (e.g., /trip/:id, /settings, modal deep links).
+ * Safe page reload utility that works in web, PWA standalone, and Capacitor native contexts.
  */
 import { Capacitor } from '@capacitor/core';
+
+const isStandalonePWA = (): boolean => {
+  if (typeof window === 'undefined') return false;
+
+  return (
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+};
+
+const buildCacheBustedPath = (): string => {
+  let url: URL;
+  try {
+    url = new URL(window.location.href);
+  } catch {
+    url = new URL('/', window.location.origin || 'http://localhost');
+  }
+
+  url.searchParams.set('_reload', String(Date.now()));
+  return `${url.pathname}${url.search}${url.hash}`;
+};
+
+const clearServiceWorkerState = async (): Promise<void> => {
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(registration => registration.unregister()));
+  }
+};
 
 /**
  * Perform a safe reload.
  *
- * @param clearCaches - If true, clears SW caches before reloading (default false).
+ * @param clearCaches - If true, clears SW caches + registrations before reloading.
  */
 export async function safeReload(clearCaches = false): Promise<void> {
   if (clearCaches) {
@@ -27,26 +43,24 @@ export async function safeReload(clearCaches = false): Promise<void> {
         const names = await caches.keys();
         await Promise.all(names.map(name => caches.delete(name)));
       }
+
+      await clearServiceWorkerState();
     } catch {
       // Ignore cache clearing failures
     }
   }
 
+  const cacheBustedPath = buildCacheBustedPath();
+
   if (Capacitor.isNativePlatform()) {
-    // On native, avoid hard reload. Instead, navigate to the current route
-    // with a cache-bust param. This forces React Router to remount the app
-    // tree cleanly while preserving the user's current path, query params,
-    // and hash fragment.
-    let url: URL;
-    try {
-      url = new URL(window.location.href);
-    } catch {
-      // Fallback if location.href is invalid (e.g. in some test environments)
-      url = new URL('/', window.location.origin || 'http://localhost');
-    }
-    url.searchParams.set('_reload', String(Date.now()));
-    window.location.replace(url.pathname + url.search + url.hash);
-  } else {
-    window.location.reload();
+    window.location.replace(cacheBustedPath);
+    return;
   }
+
+  if (clearCaches || isStandalonePWA()) {
+    window.location.replace(cacheBustedPath);
+    return;
+  }
+
+  window.location.reload();
 }

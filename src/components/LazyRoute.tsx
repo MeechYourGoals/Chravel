@@ -226,7 +226,7 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({ children, fallback = <Defa
       // Check if this is a new version - if so, auto-clear and reload
       if (isNewVersion()) {
         clearAllCaches().then(() => {
-          safeReload();
+          safeReload(true);
         });
         return;
       }
@@ -249,17 +249,19 @@ export const LazyRoute: React.FC<LazyRouteProps> = ({ children, fallback = <Defa
   }, []);
 
   // Simple retry without cache clearing
-  const handleRetry = useCallback(() => {
+  const handleRetry = useCallback(async () => {
     setHasChunkError(false);
     setRetryCount(prev => prev + 1);
     setRetryKey(prev => prev + 1);
+
+    await safeReload();
   }, []);
 
   // Clear all caches and reload the page
   const handleClearAndReload = useCallback(async () => {
     await clearAllCaches();
     // Force a fresh mount to get new chunks (Capacitor-safe)
-    await safeReload();
+    await safeReload(true);
   }, []);
 
   // Render error fallback if chunk error detected and auto-retries exhausted
