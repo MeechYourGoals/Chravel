@@ -4,8 +4,8 @@
 
 export { OnboardingCarousel } from './OnboardingCarousel';
 export { OnboardingProgressDots } from './OnboardingProgressDots';
-export { WelcomeScreen } from './screens/WelcomeScreen';
-export { ChatDemoScreen } from './screens/ChatDemoScreen';
-export { CalendarDemoScreen } from './screens/CalendarDemoScreen';
-export { PaymentsTrackingDemoScreen } from './screens/PaymentsTrackingDemoScreen';
-export { FinalCTAScreen } from './screens/FinalCTAScreen';
+export { WelcomeScreen } from './demo/screens/WelcomeScreen';
+export { ChatDemoScreen } from './demo/screens/ChatDemoScreen';
+export { CalendarDemoScreen } from './demo/screens/CalendarDemoScreen';
+export { PaymentsTrackingDemoScreen } from './demo/screens/PaymentsTrackingDemoScreen';
+export { FinalCTAScreen } from './demo/screens/FinalCTAScreen';
