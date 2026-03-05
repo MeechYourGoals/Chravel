@@ -8,3 +8,4 @@
 - For hybrid mobile controls, prefer pointer events over parallel touch+mouse handlers to avoid duplicate synthetic clicks and long-press race bugs on iOS/PWA.
 - When shipping premium voice features, enforce plan-aware limits server-side (entitlements first, profile fallback) so paid tiers never get accidentally throttled as free users.
 - Keep accessibility-label assertions aligned with product copy in voice controls; prefer stable aria-label patterns to avoid false regressions during UX copy updates.
+- When delivering UI-change screenshots for this workspace, authenticate with the shared demo account (`demo@chravelapp.com` / `demouser`) before capturing artifacts so screenshots reflect the changed in-app state rather than public/home pages.

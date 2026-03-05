@@ -1,41 +1,56 @@
 
-# Fix Trip Pass Pricing: Explorer $29.99 → $39.99
+
+# Upgrade Card Order Persistence to Supabase
 
 ## Problem
-Two Explorer Trip Passes ($29.99 × 2 = $59.98) are cheaper than one Frequent Chraveler Pass ($74.99), breaking bundle incentive. At $39.99, two Explorers = $79.98 > $74.99 Frequent, properly incentivizing the upgrade.
+Card reorder positions are stored in `localStorage`, meaning they don't sync across devices or browsers. Moving to Supabase makes the order persistent and cross-device.
 
 ## Changes
 
-### 1. `src/components/conversion/TripPassModal.tsx` — UI price + copy
-- Line 21: `'$29.99'` → `'$39.99'`
-- Line 33: nudge → `'Annual Explorer ($99/yr) pays for itself after ~3 trips'`
-- Line 51: nudge → `'Annual Frequent ($199/yr) pays for itself after ~3 trips'`
-- Line 148: footer already says "~3 trips" — keep as-is
+### 1. New Supabase table: `dashboard_card_order`
+```sql
+CREATE TABLE public.dashboard_card_order (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  dashboard_type text NOT NULL CHECK (dashboard_type IN ('my_trips', 'pro', 'events')),
+  ordered_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, dashboard_type)
+);
 
-### 2. `src/billing/config.ts` — Business logic price
-- Line 206: `price: 29.99` → `price: 39.99`
+ALTER TABLE public.dashboard_card_order ENABLE ROW LEVEL SECURITY;
 
-### 3. Stripe — Create new Price for Explorer Trip Pass
-- The existing Stripe Price `price_1Sz6A53EeswiMlDCF51s1XOi` is $29.99 — we must NOT edit it (breaks historical receipts)
-- Create a NEW Stripe Price on product `prod_Tx0AZIWAubAWD3` at $39.99 one-time
-- Update the Price ID in:
-  - `src/billing/config.ts` line 203 (`stripePriceId`)
-  - `supabase/functions/create-checkout/index.ts` line 38
+CREATE POLICY "Users can read own card order"
+  ON public.dashboard_card_order FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
 
-### 4. RevenueCat — Update product price
-- RevenueCat product `com.chravel.explorer.pass` (or equivalent) needs App Store Connect / Google Play Console price updated to $39.99
-- This is a manual step in the App Store Connect dashboard — I'll flag it but the code references in `src/constants/revenuecat.ts` don't hardcode pass prices (only subscription prices), so no code change needed there
+CREATE POLICY "Users can insert own card order"
+  ON public.dashboard_card_order FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update own card order"
+  ON public.dashboard_card_order FOR UPDATE
+  TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+```
+
+### 2. Rewrite `src/hooks/useDashboardCardOrder.ts`
+- Replace `localStorage` read/write with Supabase queries
+- On mount: fetch saved order from `dashboard_card_order` table (with TanStack Query for caching)
+- On save: upsert to `dashboard_card_order` (debounced to avoid excessive writes during drag)
+- Keep localStorage as a fast synchronous fallback/cache so `applyOrder` doesn't block on network
+- Flow: Load from localStorage immediately (instant UI), then fetch from Supabase in background and update if newer. On save, write to both localStorage and Supabase.
+
+### 3. No changes to consumers
+`SortableTripGrid.tsx` and other consumers use `applyOrder`/`saveOrder` — the API stays identical.
 
 ## Files
 
 | File | Change |
 |------|--------|
-| `src/components/conversion/TripPassModal.tsx` | Price $29.99→$39.99, nudge copy ~4→~3 |
-| `src/billing/config.ts` | `price: 29.99` → `39.99`, new Stripe Price ID |
-| `supabase/functions/create-checkout/index.ts` | New Stripe Price ID for explorer pass |
+| `dashboard_card_order` table | New migration — create table + RLS |
+| `src/hooks/useDashboardCardOrder.ts` | Rewrite to use Supabase with localStorage cache |
 
-## Stripe Action Required
-Create a new Price on product `prod_Tx0AZIWAubAWD3` at $39.99 USD one-time using the Stripe tool, then swap the Price ID in code.
-
-## Manual Action (RevenueCat / App Store)
-Update the Explorer Trip Pass price in App Store Connect to $39.99 (Tier 57 or nearest). This is outside code scope.
