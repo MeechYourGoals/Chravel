@@ -23,6 +23,7 @@ import { SavedRecommendations } from './SavedRecommendations';
 import { ConsumerAIConciergeSection } from './consumer/ConsumerAIConciergeSection';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { SettingsLayout, type SettingsSection } from './settings/SettingsLayout';
+import { SmartImportSettings } from '../features/smart-import/components/SmartImportSettings';
 
 interface ConsumerSettingsProps {
   currentUserId: string;
@@ -41,6 +42,7 @@ const ALL_SECTIONS: (SettingsSection & { demoOnly?: boolean })[] = [
   { id: 'permissions', label: 'Permissions', icon: KeyRound },
   { id: 'privacy', label: 'Privacy & Security', icon: Shield },
   { id: 'settings', label: 'General Settings', icon: Settings },
+  { id: 'integrations', label: 'Integrations', icon: KeyRound },
   { id: 'archived', label: 'Archived Trips', icon: Archive },
 ];
 
@@ -82,6 +84,8 @@ export const ConsumerSettings = ({
         return <ConsumerPrivacySection />;
       case 'settings':
         return <ConsumerGeneralSettings />;
+      case 'integrations':
+        return <SmartImportSettings />;
       case 'archived':
         return <ArchivedTripsSection onTripStateChange={onTripStateChange} />;
       default:

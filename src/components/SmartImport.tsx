@@ -16,6 +16,8 @@ import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { parseCalendarFile, parseURLSchedule } from '@/utils/calendarImportParsers';
+import { SmartImportGmail } from '@/features/smart-import/components/SmartImportGmail';
+import { SmartImportReview } from '@/features/smart-import/components/SmartImportReview';
 
 interface ParseConfig {
   targetType: 'roster' | 'schedule' | 'events';
@@ -28,6 +30,7 @@ interface SmartImportProps {
   parseConfig: ParseConfig;
   onDataImported: (data: any[]) => void;
   className?: string;
+  tripId?: string;
 }
 
 export const SmartImport = ({
@@ -35,10 +38,13 @@ export const SmartImport = ({
   parseConfig,
   onDataImported,
   className,
+  tripId,
 }: SmartImportProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [lastResult, setLastResult] = useState<{ success: boolean; count: number } | null>(null);
+  const [gmailCandidates, setGmailCandidates] = useState<any[]>([]);
+  const [reviewingGmail, setReviewingGmail] = useState(false);
   const { toast } = useToast();
 
   const getIcon = () => {
@@ -252,6 +258,35 @@ export const SmartImport = ({
             </p>
           </div>
         </div>
+
+        {/* Gmail Import Option */}
+        {tripId && (
+          <div className="py-2">
+            {reviewingGmail ? (
+              <SmartImportReview
+                candidates={gmailCandidates}
+                onAccept={accepted => {
+                  // Extract data from standard json and map it loosely to the format SmartImport component expects downstream
+                  const mappedData = accepted.map(c => c.reservation_data);
+                  onDataImported(mappedData);
+                  setReviewingGmail(false);
+                }}
+                onCancel={() => setReviewingGmail(false)}
+              />
+            ) : (
+              <SmartImportGmail
+                tripId={tripId}
+                onImportStarted={() => setIsProcessing(true)}
+                onImportComplete={candidates => {
+                  setIsProcessing(false);
+                  setGmailCandidates(candidates);
+                  setReviewingGmail(true);
+                }}
+                onImportError={() => setIsProcessing(false)}
+              />
+            )}
+          </div>
+        )}
 
         {/* URL Input */}
         <div className="space-y-2">

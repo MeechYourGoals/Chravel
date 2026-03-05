@@ -26,7 +26,7 @@ export function useDeleteTrip() {
   const mutation = useMutation<DeletionResult, Error, DeletionContext, { previousTrips: unknown }>({
     mutationFn: (ctx: DeletionContext) => executeDeleteTrip(ctx),
 
-    onMutate: async (ctx) => {
+    onMutate: async ctx => {
       // Cancel in-flight queries to avoid race conditions
       await queryClient.cancelQueries({ queryKey: [TRIPS_QUERY_KEY] });
 
@@ -36,8 +36,7 @@ export function useDeleteTrip() {
       // Optimistic removal: immediately remove the trip from cached list
       queryClient.setQueryData(
         [TRIPS_QUERY_KEY, user?.id, isDemoMode],
-        (old: Trip[] | undefined) =>
-          old ? old.filter(trip => trip.id !== ctx.tripId) : [],
+        (old: Trip[] | undefined) => (old ? old.filter(trip => trip.id !== ctx.tripId) : []),
       );
 
       return { previousTrips };
@@ -46,10 +45,7 @@ export function useDeleteTrip() {
     onError: (_err, _ctx, context) => {
       // Rollback optimistic update
       if (context?.previousTrips) {
-        queryClient.setQueryData(
-          [TRIPS_QUERY_KEY, user?.id, isDemoMode],
-          context.previousTrips,
-        );
+        queryClient.setQueryData([TRIPS_QUERY_KEY, user?.id, isDemoMode], context.previousTrips);
       }
     },
 
@@ -67,10 +63,7 @@ export function useDeleteTrip() {
    * @param tripId  - The trip/event ID to remove.
    * @param createdBy - The `created_by` field from the trip. Used to determine creator vs member.
    */
-  const deleteTrip = async (
-    tripId: string,
-    createdBy?: string,
-  ): Promise<DeletionResult> => {
+  const deleteTrip = async (tripId: string, createdBy?: string): Promise<DeletionResult> => {
     if (!user?.id) {
       throw new Error('AUTHENTICATION_REQUIRED');
     }

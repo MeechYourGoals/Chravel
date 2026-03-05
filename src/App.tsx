@@ -119,6 +119,7 @@ const Healthz = lazy(() => retryImport(() => import('./pages/Healthz')));
 const PrivacyPolicy = lazy(() => retryImport(() => import('./pages/PrivacyPolicy')));
 const SupportPage = lazy(() => retryImport(() => import('./pages/SupportPage')));
 const TermsOfService = lazy(() => retryImport(() => import('./pages/TermsOfService')));
+import { GmailCallbackPage } from './pages/GmailCallbackPage';
 const DemoEntry = lazy(() => retryImport(() => import('./pages/DemoEntry')));
 const TripPreview = lazy(() => retryImport(() => import('./pages/TripPreview')));
 const AuthPage = lazy(() => retryImport(() => import('./pages/AuthPage')));
@@ -522,6 +523,7 @@ const App = () => {
                           </LazyRoute>
                         }
                       />
+                      <Route path="/api/gmail/oauth/callback" element={<GmailCallbackPage />} />
                       <Route
                         path="/trip/:tripId"
                         element={

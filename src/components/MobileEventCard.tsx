@@ -64,7 +64,7 @@ export const MobileEventCard = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+
   const { toast } = useToast();
   const { user } = useAuth();
   const { deleteTrip, isDeleting } = useDeleteTrip();

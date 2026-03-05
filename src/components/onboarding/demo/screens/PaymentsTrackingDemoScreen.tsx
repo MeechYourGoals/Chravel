@@ -70,7 +70,9 @@ export const PaymentsTrackingDemoScreen = () => {
                     transition={motionPreset.slideIn}
                     className="border-t border-border/50 pt-2 mt-1"
                   >
-                    <p className="text-[10px] text-muted-foreground mb-2">Split 4 ways · $60 each</p>
+                    <p className="text-[10px] text-muted-foreground mb-2">
+                      Split 4 ways · $60 each
+                    </p>
                     <div className="flex items-center gap-3">
                       {travelers.map((t, i) => (
                         <motion.div

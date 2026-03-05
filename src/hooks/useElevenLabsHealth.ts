@@ -41,7 +41,9 @@ export function useElevenLabsHealth(): UseElevenLabsHealthReturn {
 
     async function checkHealth() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session?.access_token) {
           // Not logged in — skip health check
           if (mounted) {
@@ -75,7 +77,11 @@ export function useElevenLabsHealth(): UseElevenLabsHealthReturn {
         }
 
         if (isHealthy) {
-          try { sessionStorage.setItem(SESSION_KEY, '1'); } catch { /* ok */ }
+          try {
+            sessionStorage.setItem(SESSION_KEY, '1');
+          } catch {
+            /* ok */
+          }
         }
       } catch {
         if (mounted) {

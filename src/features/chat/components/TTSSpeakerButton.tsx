@@ -62,7 +62,9 @@ export const TTSSpeakerButton: React.FC<TTSSpeakerButtonProps> = ({
         isThisLoading && 'animate-pulse',
         showError && 'text-red-400 hover:text-red-300',
       )}
-      aria-label={isActive ? 'Stop speaking' : showError ? 'Voice error — tap to retry' : 'Listen to response'}
+      aria-label={
+        isActive ? 'Stop speaking' : showError ? 'Voice error — tap to retry' : 'Listen to response'
+      }
       title={isActive ? 'Stop' : showError ? 'Error — tap to retry' : 'Listen'}
     >
       {isThisLoading ? (

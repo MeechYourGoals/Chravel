@@ -27,12 +27,12 @@ export const CalendarDemoScreen = () => {
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setStep(1), 500),   // day header
-      setTimeout(() => setStep(2), 1000),   // event 1
-      setTimeout(() => setStep(3), 1800),   // event 2
-      setTimeout(() => setStep(4), 2500),   // shared badge
-      setTimeout(() => setStep(5), 3500),   // AI concierge card
-      setTimeout(() => setStep(6), 4800),   // saved toast
+      setTimeout(() => setStep(1), 500), // day header
+      setTimeout(() => setStep(2), 1000), // event 1
+      setTimeout(() => setStep(3), 1800), // event 2
+      setTimeout(() => setStep(4), 2500), // shared badge
+      setTimeout(() => setStep(5), 3500), // AI concierge card
+      setTimeout(() => setStep(6), 4800), // saved toast
       setTimeout(resetAndLoop, LOOP_DURATION * 1000),
     ];
     return () => timers.forEach(clearTimeout);

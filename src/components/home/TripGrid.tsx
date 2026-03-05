@@ -14,11 +14,7 @@ import { ProTripData } from '../../types/pro';
 import { EventData } from '../../types/events';
 import { TripCardSkeleton } from '../ui/loading-skeleton';
 import { EnhancedEmptyState } from '../ui/enhanced-empty-state';
-import {
-  getArchivedTrips,
-  restoreTrip,
-  unhideTrip,
-} from '../../services/archiveService';
+import { getArchivedTrips, restoreTrip, unhideTrip } from '../../services/archiveService';
 import { useDeleteTrip } from '../../hooks/useDeleteTrip';
 import { useLocationFilteredRecommendations } from '../../hooks/useLocationFilteredRecommendations';
 import { MapPin, Calendar, Briefcase, Compass, Info, Archive, Clock } from 'lucide-react';
