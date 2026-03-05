@@ -1,85 +1,44 @@
 
 
-# Fix TTS: Remove ElevenLabs, Consolidate to Google Cloud TTS
+# Fix concierge-tts: Switch from API Key to OAuth2 Service Account Auth
 
-## Root Cause Analysis
+## Root Cause (Confirmed)
 
-The error in your screenshot — **"API keys are not supported by this API. Expected OAuth2 access token"** — comes from the `elevenlabs-tts` edge function, which is the one your client actually calls. Here is the exact failure chain:
+The edge function logs are definitive:
 
-```text
-AIConciergeChat.tsx
-  └─ useElevenLabsTTS hook
-       └─ fetches: /functions/v1/elevenlabs-tts     ← THIS is what runs
-            └─ elevenlabs-tts/index.ts line 84-86:
-                 URL = 'texttospeech.googleapis.com/v1/text:synthesize?key=...'
-                                                                       ^^^
-                 Google Cloud TTS rejects API key in query param → 401
+```
+"API keys are not supported by this API. Expected OAuth2 access token"
 ```
 
-Meanwhile, the `concierge-tts` function you built (which uses the correct `x-goog-api-key` header) is **never called by any client code** — it's orphaned. Two duplicate TTS edge functions exist; the wrong one is wired up.
+**Google Cloud Text-to-Speech v1 does NOT support API keys** — not via query param, not via `x-goog-api-key` header. It requires OAuth2 Bearer tokens. No amount of API key configuration will fix this.
 
-**Additional issue**: The `app_settings` table still stores ElevenLabs voice IDs (`1SM7GgM6IMuvQlz2BwM3`, `nPczCjzI2devNBz1zQrb`) which get sent to Google Cloud TTS and fail (they're not valid Google voice names). The `toGoogleVoiceName()` fallback catches these, but it's tech debt.
+## Solution
 
-**Charon note**: Charon is a **Gemini Live native-audio voice** for bidirectional streaming — it's not available via Cloud TTS. Cloud TTS uses voices like `en-US-Neural2-J`. The Gemini Live voice path (`useGeminiLive` / `gemini-voice-session`) already uses Charon correctly. For the read-aloud speaker button, we'll use a high-quality Cloud TTS Neural2 voice.
+The `VERTEX_SERVICE_ACCOUNT_KEY` secret is already configured and working (used by `gemini-voice-session` for Gemini Live). We reuse the same OAuth2 JWT-to-access-token flow in `concierge-tts`.
 
-## Plan
+## Changes
 
-### 1. Delete `elevenlabs-tts` edge function (the broken one)
-- Delete `supabase/functions/elevenlabs-tts/index.ts`
-- Remove `[functions.elevenlabs-tts]` from `supabase/config.toml`
+### 1. `supabase/functions/concierge-tts/index.ts`
 
-### 2. Rename client hook: `useElevenLabsTTS` → `useConciergeReadAloud`
-- Create `src/hooks/useConciergeReadAloud.ts` — same logic as `useElevenLabsTTS.ts` but:
-  - Points to `/functions/v1/concierge-tts` instead of `/functions/v1/elevenlabs-tts`
-  - Default voice = `en-US-Neural2-J` (hardcoded, no DB lookup for legacy ElevenLabs IDs)
-  - Export type `TTSPlaybackState` from this file
-- Delete `src/hooks/useElevenLabsTTS.ts`
+Replace the API key auth with OAuth2 service account auth:
 
-### 3. Delete `useElevenLabsHealth` hook
-- Delete `src/hooks/useElevenLabsHealth.ts` — it hits the now-deleted `elevenlabs-tts` endpoint
+- Remove `GOOGLE_CLOUD_TTS_API_KEY` usage entirely
+- Add `VERTEX_SERVICE_ACCOUNT_KEY` reading + parsing (same pattern as `gemini-voice-session`)
+- Add `base64UrlEncode()`, `createAccessToken()`, `parseServiceAccountKey()` functions (copied from `gemini-voice-session`)
+- Mint an OAuth2 access token and use `Authorization: Bearer <token>` header instead of `x-goog-api-key`
+- The TTS endpoint stays `https://texttospeech.googleapis.com/v1/text:synthesize` (this is correct, it just needs OAuth2)
 
-### 4. Update consumers (3 files)
-| File | Change |
-|------|--------|
-| `src/components/AIConciergeChat.tsx` | Import from `useConciergeReadAloud` instead of `useElevenLabsTTS` |
-| `src/features/chat/components/TTSSpeakerButton.tsx` | Import `TTSPlaybackState` from `useConciergeReadAloud` |
-| `src/features/chat/components/ChatMessages.tsx` | Import `TTSPlaybackState` from `useConciergeReadAloud` |
+### 2. Deploy the updated function
 
-### 5. Clean up comments in `buildSpeechText.ts`
-- Replace "ElevenLabs TTS" references in comments with "Google Cloud TTS"
+After code change, deploy `concierge-tts` to Supabase.
 
-### 6. Delete test files
-- Delete `src/hooks/__tests__/useElevenLabsTTS.test.ts`
-- Delete `src/hooks/__tests__/useElevenLabsTTS.network.test.ts`
+## No other files change
 
-### 7. Update `app_settings` (DB migration)
-- Update `tts_primary_voice_id` value from `1SM7GgM6IMuvQlz2BwM3` → `en-US-Neural2-J`
-- Update `tts_fallback_voice_id` value from `nPczCjzI2devNBz1zQrb` → `en-US-Wavenet-D`
-- Update descriptions to reference Google Cloud TTS
+The client hook (`useConciergeReadAloud`) and all consumer components are already correctly wired from the previous migration. This is purely a backend auth fix.
 
-### 8. Prerequisite: Enable Cloud TTS API in GCP Console
-Even with the `x-goog-api-key` header fix, the API key must have the **Cloud Text-to-Speech API** enabled in the Google Cloud Console. You need to:
-1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/library/texttospeech.googleapis.com)
-2. Select the project that owns `GOOGLE_CLOUD_TTS_API_KEY`
-3. Enable the **Cloud Text-to-Speech API**
-4. Ensure the API key has no restrictions blocking `texttospeech.googleapis.com`
-
-Without this step, even the corrected `concierge-tts` function will fail with the same 401.
-
-## Files Summary
+## Files
 
 | File | Action |
 |------|--------|
-| `supabase/functions/elevenlabs-tts/index.ts` | Delete |
-| `supabase/config.toml` | Remove elevenlabs-tts entry |
-| `src/hooks/useElevenLabsTTS.ts` | Delete |
-| `src/hooks/useElevenLabsHealth.ts` | Delete |
-| `src/hooks/__tests__/useElevenLabsTTS.test.ts` | Delete |
-| `src/hooks/__tests__/useElevenLabsTTS.network.test.ts` | Delete |
-| `src/hooks/useConciergeReadAloud.ts` | Create (replaces useElevenLabsTTS, points to concierge-tts) |
-| `src/components/AIConciergeChat.tsx` | Update import |
-| `src/features/chat/components/TTSSpeakerButton.tsx` | Update import |
-| `src/features/chat/components/ChatMessages.tsx` | Update import |
-| `src/lib/buildSpeechText.ts` | Update comments |
-| `app_settings` rows | Update voice IDs to Google Cloud TTS names |
+| `supabase/functions/concierge-tts/index.ts` | Replace API key auth with OAuth2 service account |
 
