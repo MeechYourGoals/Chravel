@@ -16,7 +16,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   sendWebPushNotification,
   type WebPushSubscription,
@@ -95,7 +95,7 @@ interface SendResult {
 Deno.serve(async req => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -115,7 +115,7 @@ Deno.serve(async req => {
           error:
             'VAPID keys not configured. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in Supabase secrets.',
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
       );
     }
 
@@ -126,7 +126,7 @@ Deno.serve(async req => {
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -143,7 +143,7 @@ Deno.serve(async req => {
       console.error('[web-push-send] Auth error:', authError);
       return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -160,14 +160,14 @@ Deno.serve(async req => {
     if (!body.title || !body.body) {
       return new Response(JSON.stringify({ error: 'title and body are required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
     if (!body.userIds?.length && !body.tripId) {
       return new Response(JSON.stringify({ error: 'Either userIds or tripId is required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -189,7 +189,7 @@ Deno.serve(async req => {
         console.warn(`[web-push-send] Caller ${caller.id} is not a member of trip ${body.tripId}`);
         return new Response(JSON.stringify({ error: 'You are not a member of this trip' }), {
           status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         });
       }
 
@@ -205,7 +205,7 @@ Deno.serve(async req => {
         console.error('[web-push-send] Failed to fetch trip members:', membersError);
         return new Response(JSON.stringify({ error: 'Failed to fetch trip members' }), {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         });
       }
 
@@ -232,7 +232,10 @@ Deno.serve(async req => {
             JSON.stringify({
               error: 'You can only send notifications to yourself or trip members',
             }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+            {
+              status: 403,
+              headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+            },
           );
         }
 
@@ -252,7 +255,10 @@ Deno.serve(async req => {
             JSON.stringify({
               error: 'You can only send notifications to users you share a trip with',
             }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+            {
+              status: 403,
+              headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+            },
           );
         }
       }
@@ -268,7 +274,7 @@ Deno.serve(async req => {
     if (targetUserIds.length === 0) {
       console.log('[web-push-send] No target users after filtering');
       return new Response(JSON.stringify({ success: true, sent: 0, failed: 0, errors: [] }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -286,7 +292,7 @@ Deno.serve(async req => {
       console.error('[web-push-send] Failed to fetch subscriptions:', subscriptionsError);
       return new Response(JSON.stringify({ error: 'Failed to fetch subscriptions' }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -302,7 +308,7 @@ Deno.serve(async req => {
           errors: [],
           message: 'No active web push subscriptions found',
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
       );
     }
 
@@ -391,13 +397,13 @@ Deno.serve(async req => {
     console.log(`[web-push-send] Complete: sent=${results.sent}, failed=${results.failed}`);
 
     return new Response(JSON.stringify(results), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('[web-push-send] Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   }
 });

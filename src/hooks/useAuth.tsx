@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- useAuth hook is co-located with AuthProvider by design */
 import {
   useState,
   useEffect,
@@ -98,6 +99,7 @@ interface AuthContextType {
   ) => Promise<{ error?: string; success?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase error type is loosely typed
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: any }>;
   updateNotificationSettings: (updates: Partial<User['notificationSettings']>) => Promise<void>;
   switchRole: (role: string) => void;
@@ -119,9 +121,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
    *
    * We provide a stable, UUID-shaped demo user so code paths expecting UUIDs don't throw.
    */
+  // Generate a stable but non-predictable demo UUID per session
+  const demoUserId = useMemo(() => crypto.randomUUID(), []);
+
   const demoUser: User = useMemo(
     () => ({
-      id: '3f2504e0-4f89-11d3-9a0c-0305e82c3301',
+      id: demoUserId,
       email: 'demo@chravel.com',
       phone: undefined,
       displayName: 'Demo User',
@@ -132,23 +137,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       lastName: 'User',
       avatar: '',
       bio: 'Exploring Chravel in app preview mode.',
-      // For app-preview we want feature access, but still rely on demo-mode gating
-      // to prevent real server-side mutations.
-      isPro: true,
-      showEmail: true,
-      showPhone: true,
-      proRole: 'admin',
+      // Demo user gets read-only guest access — no admin privileges.
+      // Server-side RLS and demo-mode gating prevent real mutations.
+      isPro: false,
+      showEmail: false,
+      showPhone: false,
+      proRole: 'guests',
       organizationId: undefined,
-      permissions: ['read', 'write'],
+      permissions: ['read'],
       notificationSettings: {
         messages: true,
         broadcasts: true,
         tripUpdates: true,
-        email: true,
-        push: true,
+        email: false,
+        push: false,
       },
     }),
-    [],
+    [demoUserId],
   );
 
   const shouldUseDemoUser = demoView === 'app-preview';
@@ -220,12 +225,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .single();
 
         if (minError || !minData) return null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Schema drift fallback requires dynamic access
+        const d = minData as any;
         return {
-          ...(minData as any),
-          real_name: (minData as any).real_name ?? null,
-          name_preference: (minData as any).name_preference ?? 'display',
-          bio: (minData as any).bio ?? null,
-          phone: (minData as any).phone ?? null,
+          ...d,
+          real_name: d.real_name ?? null,
+          name_preference: d.name_preference ?? 'display',
+          bio: d.bio ?? null,
+          phone: d.phone ?? null,
         } as UserProfile;
       }
 
@@ -350,7 +357,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         await ensureProfileExists(supabaseUser);
       }
 
-      const roles = userRolesResult.data?.map((r: any) => r.role) || [];
+      const roles = userRolesResult.data?.map((r: { role: string }) => r.role) || [];
       const isPro = roles.includes('pro');
       const isSystemAdmin = roles.includes('enterprise_admin');
       const isSuperAdminEmail = SUPER_ADMIN_EMAILS.includes(
@@ -670,6 +677,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- forceRefreshSession is stable (useCallback with no deps), adding it risks auth re-init loops
   }, [transformUser, demoUser]);
 
   // Visibility change listener: refresh session when user returns to tab
@@ -931,6 +939,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase error type is loosely typed
   const updateProfile = async (updates: Partial<UserProfile>): Promise<{ error?: any }> => {
     if (!user) return { error: 'No user logged in' };
 
@@ -990,33 +999,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Update local user state
       const updatedUser = { ...user };
       // Prefer returned row to avoid local/remote drift.
-      if (data) {
-        updatedUser.displayName = data.display_name ?? updatedUser.displayName;
-        updatedUser.realName = (data as any).real_name ?? updatedUser.realName;
-        const namePref = (data as any).name_preference;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase row type doesn't include all profile columns
+      const row = data as any;
+      if (row) {
+        updatedUser.displayName = row.display_name ?? updatedUser.displayName;
+        updatedUser.realName = row.real_name ?? updatedUser.realName;
+        const namePref = row.name_preference;
         updatedUser.namePreference =
           namePref === 'real'
             ? 'real'
             : namePref === 'display'
               ? 'display'
               : updatedUser.namePreference;
-        updatedUser.firstName = data.first_name ?? updatedUser.firstName;
-        updatedUser.lastName = data.last_name ?? updatedUser.lastName;
-        updatedUser.avatar = data.avatar_url ?? updatedUser.avatar;
-        updatedUser.bio = data.bio ?? updatedUser.bio;
-        updatedUser.phone = (data as any).phone ?? updatedUser.phone;
-        updatedUser.showEmail = data.show_email ?? updatedUser.showEmail;
-        updatedUser.showPhone = data.show_phone ?? updatedUser.showPhone;
-        const dataJobTitle = (
-          data as UserProfile & { job_title?: string | null; show_job_title?: boolean }
-        ).job_title;
+        updatedUser.firstName = row.first_name ?? updatedUser.firstName;
+        updatedUser.lastName = row.last_name ?? updatedUser.lastName;
+        updatedUser.avatar = row.avatar_url ?? updatedUser.avatar;
+        updatedUser.bio = row.bio ?? updatedUser.bio;
+        updatedUser.phone = row.phone ?? updatedUser.phone;
+        updatedUser.showEmail = row.show_email ?? updatedUser.showEmail;
+        updatedUser.showPhone = row.show_phone ?? updatedUser.showPhone;
+        const rowJobTitle = row.job_title;
         updatedUser.jobTitle =
-          dataJobTitle !== undefined ? (dataJobTitle ?? undefined) : updatedUser.jobTitle;
-        const dataShowJobTitle = (
-          data as UserProfile & { job_title?: string | null; show_job_title?: boolean }
-        ).show_job_title;
+          rowJobTitle !== undefined ? (rowJobTitle ?? undefined) : updatedUser.jobTitle;
+        const rowShowJobTitle = row.show_job_title;
         updatedUser.showJobTitle =
-          dataShowJobTitle !== undefined ? (dataShowJobTitle ?? false) : updatedUser.showJobTitle;
+          rowShowJobTitle !== undefined ? (rowShowJobTitle ?? false) : updatedUser.showJobTitle;
       } else {
         if (updates.display_name) updatedUser.displayName = updates.display_name;
         if (updates.real_name !== undefined) updatedUser.realName = updates.real_name ?? undefined;
@@ -1080,7 +1087,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // switchRole is restricted to development builds only to prevent client-side privilege escalation.
+  // In production, roles are derived from the server-side user_roles / organization_members tables.
   const switchRole = (role: string) => {
+    if (!import.meta.env.DEV) {
+      console.warn('[Auth] switchRole is disabled in production builds.');
+      return;
+    }
     if (user) {
       const rolePermissions: Record<string, string[]> = {
         admin: ['read', 'write', 'admin', 'finance', 'compliance'],

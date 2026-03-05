@@ -25,23 +25,18 @@ function createSafeStorage(): Storage {
 }
 
 /**
- * Environment variable resolution with publishable fallbacks.
- * VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY should be set in env,
- * but we provide safe fallbacks using the project's publishable credentials
- * to prevent the app from crashing when env injection fails (e.g. Lovable preview).
+ * Environment variable resolution — credentials MUST come from env vars.
+ * VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set in .env (see .env.example).
+ * No hardcoded fallback keys — prevents credential leakage in source control.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Vite injects import.meta.env at build time
 const env = (import.meta as any)?.env ?? {};
 
-const FALLBACK_PROJECT_ID = 'jmjiyekmxwsxkfnqwyaa';
-const FALLBACK_URL = `https://${FALLBACK_PROJECT_ID}.supabase.co`;
-const FALLBACK_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptaml5ZWtteHdzeGtmbnF3eWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM5MjEwMDgsImV4cCI6MjA2OTQ5NzAwOH0.SAas0HWvteb9TbYNJFDf8Itt8mIsDtKOK6QwBcwINhI';
-
-const SUPABASE_URL = (env.VITE_SUPABASE_URL as string | undefined) || FALLBACK_URL;
+const SUPABASE_URL = (env.VITE_SUPABASE_URL as string | undefined) || '';
 const SUPABASE_ANON_KEY =
   (env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
   (env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
-  FALLBACK_ANON_KEY;
+  '';
 
 // Track whether env vars are present (used by DevEnvBanner)
 export const isUsingEnvVars = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);

@@ -1,4 +1,4 @@
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from './cors.ts';
 
 // Input validation and sanitization for Edge Functions
 export function validateAndSanitizeInput(data: any): {
@@ -132,9 +132,9 @@ export function checkRateLimitLocal(
   return { allowed: true, remaining: maxRequests - existing.count };
 }
 
-// Enhanced security headers for Edge Functions
+// Enhanced security headers for Edge Functions (uses validated CORS, not wildcard)
 export const securityHeaders = {
-  ...corsHeaders,
+  ...getCorsHeaders(),
   'Content-Type': 'application/json',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
