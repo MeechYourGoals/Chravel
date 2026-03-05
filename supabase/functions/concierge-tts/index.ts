@@ -1,8 +1,14 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { checkRateLimit } from '../_shared/security.ts';
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const GOOGLE_TTS_URL = 'https://texttospeech.googleapis.com/v1/text:synthesize';
 const DEFAULT_VOICE = 'en-US-Neural2-J';
 const FALLBACK_VOICE = 'en-US-Wavenet-D';
+const MAX_TEXT_CHARS = 1500;
 
 /** Map simple format strings to Google Cloud encoding + container. */
 function resolveEncoding(format: string): { encoding: string; contentType: string } {
@@ -47,6 +53,43 @@ Deno.serve(async (req: Request) => {
 
   const corsHeaders = getCorsHeaders(req);
 
+  // --- JWT Authentication ---
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // --- Rate Limiting ---
+  const serviceClient = createClient(
+    SUPABASE_URL,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || SUPABASE_ANON_KEY,
+  );
+  const rateLimitResult = await checkRateLimit(serviceClient, `concierge-tts:${user.id}`, 20, 60);
+  if (!rateLimitResult.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+      status: 429,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+    });
+  }
+
   try {
     const apiKey = Deno.env.get('GOOGLE_CLOUD_TTS_API_KEY');
     if (!apiKey) {
@@ -74,11 +117,14 @@ Deno.serve(async (req: Request) => {
       output_format?: string;
     };
 
-    if (speech_text.length > 5000) {
-      return new Response(JSON.stringify({ error: 'speech_text exceeds 5000 character limit' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (speech_text.length > MAX_TEXT_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `speech_text exceeds ${MAX_TEXT_CHARS} character limit` }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     const { encoding, contentType } = resolveEncoding(output_format);
