@@ -453,6 +453,14 @@ npm run test:e2e      # Playwright (e2e/, e2e/specs/)
 - Mobile Safari + PWA + iOS Safari verified.
 - Auth hydration timing → no flash of "not found" during session restore.
 
+### Screenshot proof requirement (Codex/AI agents)
+- For any task that changes visible UI and requires screenshot validation, log in before capturing screenshots.
+- Use the demo account credentials for screenshot runs unless explicitly told otherwise:
+  - Email: `demo@chravelapp.com`
+  - Password: `demouser`
+- Avoid home/landing-page screenshots unless the change is specifically on that page.
+- Capture the exact view that demonstrates the implemented change.
+
 ---
 
 ## 12. Research Rule (Novel / Hard Problems)
