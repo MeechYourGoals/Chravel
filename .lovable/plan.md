@@ -1,44 +1,41 @@
 
 
-# Fix concierge-tts: Switch from API Key to OAuth2 Service Account Auth
+# Fix Build Errors + TTS Latency Optimization
 
-## Root Cause (Confirmed)
+## Part 1: Fix Build Errors (3 issues in seed-carlton-universe)
 
-The edge function logs are definitive:
+### Issue 1: `categories` type mismatch (lines 172, 185, 198, etc.)
+The `TripDef` interface declares `categories?: string[]` but values are assigned as JSON strings like `'["touring"]'`. Fix: change all 10 occurrences to actual arrays: `['touring']`, `['sports']`, `['work']`, `['productions']`.
 
-```
-"API keys are not supported by this API. Expected OAuth2 access token"
-```
+### Issue 2: `JSON.parse(t.categories)` on line 895
+Since `categories` will now be `string[]` (not a JSON string), remove the `JSON.parse` wrapper. Just use `t.categories || []`.
 
-**Google Cloud Text-to-Speech v1 does NOT support API keys** — not via query param, not via `x-goog-api-key` header. It requires OAuth2 Bearer tokens. No amount of API key configuration will fix this.
+### Issue 3: `error` is `unknown` on line 1066
+Add type narrowing: `(error instanceof Error ? error.message : String(error))`.
 
-## Solution
+## Part 2: TTS Latency Optimization
 
-The `VERTEX_SERVICE_ACCOUNT_KEY` secret is already configured and working (used by `gemini-voice-session` for Gemini Live). We reuse the same OAuth2 JWT-to-access-token flow in `concierge-tts`.
+The current architecture already returns raw binary audio (not Base64 JSON) from the edge function, and the frontend already uses blob playback. The bottleneck is:
 
-## Changes
+1. **OAuth2 token minting** — every single TTS request mints a fresh JWT and exchanges it for an access token (~1-2s)
+2. **Full text sent at once** — long AI responses synthesize as one giant request (~5-15s for Google to process)
+3. **No playback until entire response downloads**
 
-### 1. `supabase/functions/concierge-tts/index.ts`
+### Changes
 
-Replace the API key auth with OAuth2 service account auth:
+#### A. Edge Function: Cache OAuth2 tokens (`concierge-tts/index.ts`)
+Cache the access token in module-level memory (Deno edge functions keep warm for minutes). Only re-mint when expired. Saves ~1-2s per request.
 
-- Remove `GOOGLE_CLOUD_TTS_API_KEY` usage entirely
-- Add `VERTEX_SERVICE_ACCOUNT_KEY` reading + parsing (same pattern as `gemini-voice-session`)
-- Add `base64UrlEncode()`, `createAccessToken()`, `parseServiceAccountKey()` functions (copied from `gemini-voice-session`)
-- Mint an OAuth2 access token and use `Authorization: Bearer <token>` header instead of `x-goog-api-key`
-- The TTS endpoint stays `https://texttospeech.googleapis.com/v1/text:synthesize` (this is correct, it just needs OAuth2)
+#### B. Frontend: Sentence chunking (`useConciergeReadAloud.ts`)
+Split text into sentences. Fetch and play the first sentence immediately (~0.5-1s for a short sentence). Pre-fetch subsequent sentences while the first plays. Queue them for gapless playback.
 
-### 2. Deploy the updated function
+This transforms perceived latency from "wait 20-30s for everything" to "hear first words in ~1-2s."
 
-After code change, deploy `concierge-tts` to Supabase.
+### Files
 
-## No other files change
-
-The client hook (`useConciergeReadAloud`) and all consumer components are already correctly wired from the previous migration. This is purely a backend auth fix.
-
-## Files
-
-| File | Action |
+| File | Change |
 |------|--------|
-| `supabase/functions/concierge-tts/index.ts` | Replace API key auth with OAuth2 service account |
+| `supabase/functions/seed-carlton-universe/index.ts` | Fix 3 build errors |
+| `supabase/functions/concierge-tts/index.ts` | Add OAuth2 token caching |
+| `src/hooks/useConciergeReadAloud.ts` | Implement sentence chunking + audio queue |
 
