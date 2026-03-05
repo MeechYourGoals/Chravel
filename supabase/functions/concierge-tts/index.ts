@@ -4,7 +4,98 @@ const GOOGLE_TTS_URL = 'https://texttospeech.googleapis.com/v1/text:synthesize';
 const DEFAULT_VOICE = 'en-US-Neural2-J';
 const FALLBACK_VOICE = 'en-US-Wavenet-D';
 
-/** Map simple format strings to Google Cloud encoding + container. */
+// ── OAuth2 Service Account helpers (same pattern as gemini-voice-session) ──
+
+interface ServiceAccountKey {
+  client_email: string;
+  private_key: string;
+  token_uri: string;
+}
+
+function base64UrlEncode(data: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < data.length; i++) binary += String.fromCharCode(data[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function createAccessToken(saKey: ServiceAccountKey): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    iss: saKey.client_email,
+    sub: saKey.client_email,
+    aud: saKey.token_uri || 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+    scope: 'https://www.googleapis.com/auth/cloud-platform',
+  };
+
+  const enc = new TextEncoder();
+  const headerB64 = base64UrlEncode(enc.encode(JSON.stringify(header)));
+  const payloadB64 = base64UrlEncode(enc.encode(JSON.stringify(payload)));
+  const signingInput = `${headerB64}.${payloadB64}`;
+
+  const pemBody = saKey.private_key
+    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+    .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(/\s/g, '');
+  const keyBuffer = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    keyBuffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    cryptoKey,
+    enc.encode(signingInput),
+  );
+
+  const signatureB64 = base64UrlEncode(new Uint8Array(signature));
+  const jwt = `${signingInput}.${signatureB64}`;
+
+  const tokenUri = saKey.token_uri || 'https://oauth2.googleapis.com/token';
+  const tokenResp = await fetch(tokenUri, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!tokenResp.ok) {
+    const body = await tokenResp.text();
+    throw new Error(`OAuth2 token exchange failed (${tokenResp.status}): ${body.substring(0, 400)}`);
+  }
+
+  const tokenData = await tokenResp.json();
+  if (!tokenData.access_token) {
+    throw new Error('OAuth2 response missing access_token');
+  }
+  return tokenData.access_token;
+}
+
+function parseServiceAccountKey(base64Key: string): ServiceAccountKey {
+  try {
+    const json = atob(base64Key);
+    const parsed = JSON.parse(json);
+    if (!parsed.client_email || !parsed.private_key) {
+      throw new Error('Missing client_email or private_key in service account JSON');
+    }
+    return parsed;
+  } catch (e) {
+    throw new Error(
+      `Invalid VERTEX_SERVICE_ACCOUNT_KEY: ${e instanceof Error ? e.message : 'parse failed'}. ` +
+        'Ensure the value is base64-encoded JSON of the service account key file.',
+    );
+  }
+}
+
+// ── TTS helpers ──
+
 function resolveEncoding(format: string): { encoding: string; contentType: string } {
   switch (format) {
     case 'mp3_22050_32':
@@ -24,13 +115,11 @@ function resolveEncoding(format: string): { encoding: string; contentType: strin
   }
 }
 
-/** Extract sample rate hint from format string (e.g. mp3_22050_32 → 22050). */
 function resolveSampleRate(format: string): number {
   const match = format.match(/_(\d{4,6})_/);
   return match ? Number(match[1]) : 24000;
 }
 
-/** Resolve voice name — accepts full Google voice names or falls back to defaults. */
 function resolveVoice(voiceId?: string): { languageCode: string; name: string } {
   if (voiceId && voiceId.match(/^[a-z]{2}-[A-Z]{2}-/)) {
     const languageCode = voiceId.split('-').slice(0, 2).join('-');
@@ -39,8 +128,9 @@ function resolveVoice(voiceId?: string): { languageCode: string; name: string } 
   return { languageCode: 'en-US', name: DEFAULT_VOICE };
 }
 
+// ── Main handler ──
+
 Deno.serve(async (req: Request) => {
-  // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -48,10 +138,11 @@ Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
 
   try {
-    const apiKey = Deno.env.get('GOOGLE_CLOUD_TTS_API_KEY');
-    if (!apiKey) {
+    // Use service account OAuth2 instead of API key
+    const saKeyRaw = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
+    if (!saKeyRaw) {
       return new Response(
-        JSON.stringify({ error: 'TTS service not configured' }),
+        JSON.stringify({ error: 'TTS service not configured (missing service account)' }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -81,7 +172,10 @@ Deno.serve(async (req: Request) => {
     const sampleRate = resolveSampleRate(output_format);
     const voice = resolveVoice(voice_id);
 
-    // Build Google Cloud TTS request
+    // Mint OAuth2 access token from service account
+    const saKey = parseServiceAccountKey(saKeyRaw);
+    const accessToken = await createAccessToken(saKey);
+
     const ttsPayload = {
       input: { text: speech_text },
       voice: {
@@ -96,7 +190,10 @@ Deno.serve(async (req: Request) => {
 
     let res = await fetch(GOOGLE_TTS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
       body: JSON.stringify(ttsPayload),
     });
 
@@ -106,7 +203,10 @@ Deno.serve(async (req: Request) => {
       ttsPayload.voice = { languageCode: 'en-US', name: FALLBACK_VOICE };
       res = await fetch(GOOGLE_TTS_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
         body: JSON.stringify(ttsPayload),
       });
     }
