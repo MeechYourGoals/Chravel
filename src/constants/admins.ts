@@ -1,14 +1,9 @@
-// Hardcoded founder emails — always granted super admin (client-side only)
-const FOUNDER_EMAILS = ['ccamechi@gmail.com', 'christian@chravelapp.com', 'demo@chravelapp.com'];
-
-// Additional admins via env var (e.g., "admin2@example.com,admin3@example.com")
+// Super admin emails are loaded exclusively from environment variables.
+// Set VITE_SUPER_ADMIN_EMAILS in .env (comma-separated list of emails).
+// No hardcoded emails in source code to prevent credential exposure.
 const envAdmins = (import.meta.env.VITE_SUPER_ADMIN_EMAILS as string) || '';
-const additionalAdmins = envAdmins
+
+export const SUPER_ADMIN_EMAILS = envAdmins
   .split(',')
   .map(e => e.trim().toLowerCase())
   .filter(Boolean);
-
-export const SUPER_ADMIN_EMAILS = [
-  ...FOUNDER_EMAILS,
-  ...additionalAdmins.filter(e => !FOUNDER_EMAILS.includes(e)),
-];

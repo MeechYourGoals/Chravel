@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React from 'react';
 import { AudioLines, Lock, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
@@ -13,83 +13,21 @@ interface VoiceButtonProps {
   onToggle: () => void;
   /** Upgrade prompt for ineligible users */
   onUpgrade?: () => void;
-  /** Read the last assistant message aloud via TTS */
-  onReadAloud?: () => void;
 }
 
-const LONG_PRESS_MS = 500;
-
 /**
- * Waveform button for voice interaction.
- * Short tap: read last assistant message aloud (TTS).
- * Long press: start dictation (speech-to-text).
- * When actively listening, short tap stops listening.
+ * Waveform button for dictation interaction.
+ * Tap: toggle speech-to-text on/off.
  */
-export const VoiceButton = ({
-  voiceState,
-  isEligible,
-  onToggle,
-  onUpgrade,
-  onReadAloud,
-}: VoiceButtonProps) => {
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const didLongPress = useRef(false);
-  const activePointerId = useRef<number | null>(null);
-
-  const clearTimer = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }, []);
-
-  // Long press starts dictation mode
-  const handlePressStart = useCallback(
-    (pointerId: number) => {
-      if (!isEligible) return;
-      activePointerId.current = pointerId;
-      didLongPress.current = false;
-      longPressTimer.current = setTimeout(() => {
-        didLongPress.current = true;
-        longPressTimer.current = null;
-        // Start dictation on long press
-        onToggle();
-      }, LONG_PRESS_MS);
-    },
-    [isEligible, onToggle],
-  );
-
-  const handlePressEnd = useCallback(
-    (pointerId: number) => {
-      if (activePointerId.current !== pointerId) return;
-      activePointerId.current = null;
-      clearTimer();
-    },
-    [clearTimer],
-  );
-
-  const handleClick = useCallback(() => {
-    if (didLongPress.current) {
-      didLongPress.current = false;
-      return;
-    }
+export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: VoiceButtonProps) => {
+  const handleClick = () => {
     if (!isEligible) {
       onUpgrade?.();
       return;
     }
 
-    const isActive = voiceState !== 'idle' && voiceState !== 'error';
-    if (isActive) {
-      // Stop listening if actively recording
-      onToggle();
-    } else if (onReadAloud) {
-      // Short tap while idle: read last assistant message aloud
-      onReadAloud();
-    } else {
-      // Fallback: toggle dictation if no read-aloud handler
-      onToggle();
-    }
-  }, [isEligible, voiceState, onToggle, onUpgrade, onReadAloud]);
+    onToggle();
+  };
 
   const isActive = isEligible && voiceState !== 'idle' && voiceState !== 'error';
   const isConnecting = voiceState === 'connecting' || voiceState === 'thinking';
@@ -112,7 +50,7 @@ export const VoiceButton = ({
     if (!isEligible) return 'Voice — Upgrade to use';
     if (isActive) return 'Stop listening';
     if (voiceState === 'error') return 'Tap to retry';
-    return 'Tap to listen, hold to speak';
+    return 'Tap to dictate';
   };
 
   return (
@@ -121,10 +59,6 @@ export const VoiceButton = ({
         <TooltipTrigger asChild>
           <button
             onClick={handleClick}
-            onPointerDown={event => handlePressStart(event.pointerId)}
-            onPointerUp={event => handlePressEnd(event.pointerId)}
-            onPointerCancel={event => handlePressEnd(event.pointerId)}
-            onPointerLeave={event => handlePressEnd(event.pointerId)}
             className={`relative size-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
             aria-label={getTooltip()}
           >

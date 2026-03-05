@@ -49,7 +49,9 @@ interface UseGoogleTTSReturn {
 function splitIntoOptimalChunks(text: string): string[] {
   // 1. Split by sentence boundaries (. ! ?)
   const match = text.match(/[^.!?]+[.!?]+/g);
-  const sentences = match ? match.map(s => s.trim()).filter(Boolean) : [text.trim()].filter(Boolean);
+  const sentences = match
+    ? match.map(s => s.trim()).filter(Boolean)
+    : [text.trim()].filter(Boolean);
 
   // 2. Group into chunks of roughly ~100-200 chars or max 2 sentences
   const chunks: string[] = [];

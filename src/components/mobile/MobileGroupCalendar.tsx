@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import {
@@ -39,7 +39,6 @@ import { useRolePermissions } from '@/hooks/useRolePermissions';
 import type { TripEvent } from '@/services/calendarService';
 import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
 import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
-import { CalendarEmptyState } from '@/features/calendar/components/CalendarEmptyState';
 
 interface CalendarEvent {
   id: string;
@@ -158,7 +157,7 @@ export const MobileGroupCalendar = ({
     error,
     refreshEvents,
     deleteEvent,
-    updateEvent,
+    updateEvent: _updateEvent,
   } = useCalendarEvents(tripId);
 
   const { exportTripEvents } = useCalendarExport(tripId);
@@ -186,7 +185,7 @@ export const MobileGroupCalendar = ({
     return calendarEvents;
   }, [tripEvents]);
 
-  const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
+  const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
       await refreshEvents();
     },
@@ -255,10 +254,13 @@ export const MobileGroupCalendar = ({
   const eventsForSelectedDate = events.filter(event => isSameDay(event.date, selectedDate));
 
   // Handle event click to show details
-  const handleEventClick = useCallback(async (event: CalendarEvent & { originalEvent?: any }) => {
-    await hapticService.medium();
-    setSelectedEvent(event);
-  }, []);
+  const handleEventClick = useCallback(
+    async (event: CalendarEvent & { originalEvent?: TripEvent | Record<string, unknown> }) => {
+      await hapticService.medium();
+      setSelectedEvent(event);
+    },
+    [],
+  );
 
   // Handle event deletion
   const handleDeleteEvent = useCallback(
@@ -343,10 +345,6 @@ export const MobileGroupCalendar = ({
           onRetry={refreshEvents}
           isRetrying={isFetching}
         />
-      ) : events.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center px-4">
-          <CalendarEmptyState onCreateEvent={handleAddEvent} />
-        </div>
       ) : (
         <>
           {/* Month Navigation */}
@@ -388,14 +386,7 @@ export const MobileGroupCalendar = ({
                 <div className="space-y-3">
                   {eventsForSelectedDate.length === 0 ? (
                     <div className="text-center py-8">
-                      <Clock size={40} className="text-gray-600 mx-auto mb-2" />
-                      <p className="text-gray-400 text-sm">No events scheduled</p>
-                      <button
-                        onClick={handleAddEvent}
-                        className="mt-3 text-sm text-blue-400 hover:text-blue-300"
-                      >
-                        Add an event
-                      </button>
+                      <p className="text-gray-400 text-sm">No events for this day.</p>
                     </div>
                   ) : (
                     eventsForSelectedDate.map(event => (
