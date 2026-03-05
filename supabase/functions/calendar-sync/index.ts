@@ -12,7 +12,14 @@ serve(async req => {
     return createOptionsResponse(req);
   }
 
+  const headers = getCorsHeaders(req);
+
   try {
+    // Auth gate: require a valid user token
+    const { requireAuth } = await import('../_shared/requireAuth.ts');
+    const auth = await requireAuth(req, headers);
+    if (auth.response) return auth.response;
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -23,23 +30,23 @@ serve(async req => {
     if (!action || !tripId || !userId) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
     switch (action) {
       case 'create_event':
-        return await createEvent(supabase, tripId, userId, eventData);
+        return await createEvent(supabase, tripId, userId, eventData, req);
       case 'get_events':
-        return await getEvents(supabase, tripId);
+        return await getEvents(supabase, tripId, req);
       case 'update_event':
-        return await updateEvent(supabase, eventData);
+        return await updateEvent(supabase, eventData, req);
       case 'delete_event':
-        return await deleteEvent(supabase, eventData.eventId);
+        return await deleteEvent(supabase, eventData.eventId, req);
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         });
     }
   } catch (error) {
@@ -47,12 +54,18 @@ serve(async req => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 });
 
-async function createEvent(supabase: any, tripId: string, userId: string, eventData: any) {
+async function createEvent(
+  supabase: any,
+  tripId: string,
+  userId: string,
+  eventData: any,
+  req: Request,
+) {
   const { data: eventRecord, error } = await supabase
     .from('trip_events')
     .insert({
@@ -73,11 +86,11 @@ async function createEvent(supabase: any, tripId: string, userId: string, eventD
   }
 
   return new Response(JSON.stringify({ success: true, event: eventRecord }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
-async function getEvents(supabase: any, tripId: string) {
+async function getEvents(supabase: any, tripId: string, req: Request) {
   const { data: events, error } = await supabase
     .from('trip_events')
     .select(
@@ -98,11 +111,11 @@ async function getEvents(supabase: any, tripId: string) {
   }
 
   return new Response(JSON.stringify({ success: true, events }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
-async function updateEvent(supabase: any, eventData: any) {
+async function updateEvent(supabase: any, eventData: any, req: Request) {
   const { data: eventRecord, error } = await supabase
     .from('trip_events')
     .update({
@@ -122,11 +135,11 @@ async function updateEvent(supabase: any, eventData: any) {
   }
 
   return new Response(JSON.stringify({ success: true, event: eventRecord }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }
 
-async function deleteEvent(supabase: any, eventId: string) {
+async function deleteEvent(supabase: any, eventId: string, req: Request) {
   const { error } = await supabase.from('trip_events').delete().eq('id', eventId);
 
   if (error) {
@@ -134,6 +147,6 @@ async function deleteEvent(supabase: any, eventId: string) {
   }
 
   return new Response(JSON.stringify({ success: true }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
   });
 }

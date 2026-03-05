@@ -37,7 +37,7 @@ serve(async req => {
     await import('../_shared/securityHeaders.ts');
 
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
   try {

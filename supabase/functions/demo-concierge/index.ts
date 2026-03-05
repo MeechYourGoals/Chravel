@@ -28,7 +28,7 @@ function clamp(value: unknown, min: number, max: number, fallback: number): numb
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
   if (!ENABLE_DEMO_CONCIERGE) {
@@ -39,7 +39,7 @@ serve(async req => {
       }),
       {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       },
     );
   }
@@ -55,14 +55,14 @@ serve(async req => {
           status: 'healthy',
           response: 'pong',
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
       );
     }
 
     if (!message) {
       return new Response(JSON.stringify({ success: false, error: 'Message is required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -74,7 +74,7 @@ serve(async req => {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         },
       );
     }
@@ -105,7 +105,7 @@ serve(async req => {
         }),
         {
           status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         },
       );
     }
@@ -167,7 +167,7 @@ serve(async req => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       },
     );
   } catch (error) {
@@ -179,7 +179,7 @@ serve(async req => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       },
     );
   }

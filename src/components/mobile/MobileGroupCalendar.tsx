@@ -255,7 +255,7 @@ export const MobileGroupCalendar = ({
 
   // Handle event click to show details
   const handleEventClick = useCallback(
-    async (event: CalendarEvent & { originalEvent?: unknown }) => {
+    async (event: CalendarEvent & { originalEvent?: TripEvent | Record<string, unknown> }) => {
       await hapticService.medium();
       setSelectedEvent(event);
     },

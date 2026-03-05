@@ -5,7 +5,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -73,13 +73,13 @@ serve(async req => {
         reminders_sent: reminders.length,
         reminders,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error sending payment reminders:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   }
 });

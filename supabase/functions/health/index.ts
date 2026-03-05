@@ -5,7 +5,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -31,17 +31,16 @@ serve(async req => {
 
     return new Response(JSON.stringify(health), {
       status: dbHealthy ? 200 : 503,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Health check failed:', error);
+    console.error('Health check failed:', error instanceof Error ? error.message : error);
     return new Response(
       JSON.stringify({
         status: 'error',
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown error',
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   }
 });

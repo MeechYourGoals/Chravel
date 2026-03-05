@@ -65,7 +65,7 @@ async function runDocumentModel(
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
   let fileId: string | undefined;
@@ -81,7 +81,7 @@ serve(async req => {
     if (!validation.success) {
       return new Response(JSON.stringify({ error: validation.error, success: false }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -94,7 +94,7 @@ serve(async req => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Authentication required', success: false }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -109,7 +109,7 @@ serve(async req => {
     if (authError || !userId) {
       return new Response(JSON.stringify({ error: 'Invalid authentication', success: false }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -124,7 +124,7 @@ serve(async req => {
     if (membershipError || !membershipCheck) {
       return new Response(
         JSON.stringify({ error: 'Forbidden - you must be a member of this trip' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
       );
     }
 
@@ -149,7 +149,7 @@ serve(async req => {
         }),
         {
           status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         },
       );
     }
@@ -164,7 +164,7 @@ serve(async req => {
         }),
         {
           status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         },
       );
     }
@@ -178,7 +178,7 @@ serve(async req => {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         },
       );
     }
@@ -187,7 +187,7 @@ serve(async req => {
     if (fileData.processing_status === 'completed' && !forceReprocess) {
       return new Response(
         JSON.stringify({ success: true, message: 'File already processed', fileId }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
       );
     }
 
@@ -313,7 +313,7 @@ serve(async req => {
         textExtracted: extractedText.length,
         summary: aiSummary,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Document processing error:', error);
@@ -343,7 +343,7 @@ serve(async req => {
         error: error instanceof Error ? error.message : 'Unknown error',
         success: false,
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   }
 });

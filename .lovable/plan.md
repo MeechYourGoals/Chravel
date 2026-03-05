@@ -1,28 +1,66 @@
 
+Objective: Restore app boot across preview + published site by fixing the startup env regression with high-confidence, low-risk changes.
 
-# Remove Calendar Empty State — Always Show Calendar UI
+What I verified (deep-dive evidence):
+1) Runtime failure is reproducible in preview right now.
+- Console shows:
+  - `[Supabase] VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are not set...`
+  - `Error: supabaseUrl is required.`
+  - Crash originates at `src/integrations/supabase/client.ts` when `createClient('', '')` runs.
+2) `.env` is currently absent in the repo (`.env` file not found), and `.gitignore` excludes `.env`, so prior “restore” attempts would not persist in source.
+3) This is not a chunk/load/network outage:
+- Network requests in preview are 200s for app scripts.
+- No chunk-load error signature (no 404 bundle/chunk failures).
+4) Your production symptom is a blank screen (from your response), which matches the same boot-fail pattern.
 
-## Problem
-When a trip has zero events, the mobile calendar shows a full-page "No events scheduled" empty state with a CTA button and info cards (screenshot 1), blocking the actual calendar UI. Per the memory note `calendar/universal-interface-standardization`, CalendarEmptyState should not render — the standard calendar UI should always mount immediately.
+Confidence assessment:
+- 98% confidence root cause for preview: Supabase client hard-fails when env vars are missing at runtime/build time.
+- 92% confidence production shares same root cause class (boot-time env resolution failure), given identical blank-screen behavior and this project’s current client initialization strategy.
 
-## Changes
+Why this is happening:
+- `src/integrations/supabase/client.ts` now requires env vars and has no resilient fallback.
+- If env injection is unavailable/misaligned in either preview or publish pipeline, app crashes before React mounts.
+- This is a startup config failure, not data deletion. Your DB/work is not gone.
 
-### 1. `src/components/mobile/MobileGroupCalendar.tsx`
-- **Remove the `events.length === 0` gate** (lines 346-349) that renders `CalendarEmptyState` instead of the calendar. The calendar UI (month nav, day view, compact calendar) will always render regardless of event count.
-- **Simplify the per-day empty state** (lines 389-399): Remove the Clock icon and "Add an event" CTA link. Replace with a simple `"No events for this day."` text — clean, no call to action (the `+` button in the day header already handles adding).
+Scope definition (surgical, minimal):
+- Primary file: `src/integrations/supabase/client.ts`
+- Verification files/routes: `src/pages/Healthz.tsx`, `src/main.tsx` (no risky refactor)
+- No DB migrations, no RLS/policy changes, no schema risk.
 
-### 2. `src/components/GroupCalendar.tsx`
-- **Remove the `CalendarEmptyState` import** (line 22) — desktop never gates on it but the import is dead code.
-- The desktop per-day empty text ("No events scheduled for this day.") at line 348-352 is fine as-is — it's inline contextual text, not a blocking CTA page.
+Implementation plan (ordered, with confidence gates):
+Phase A — Crash-proof boot path (high-priority, minimal risk)
+1) Update Supabase client bootstrap to never call `createClient` with empty URL/key.
+2) Add deterministic fallback chain:
+   - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - final fallback to known project constants (project ref/key already known for this connected project).
+3) Keep a clear console warning when fallback path is used (for visibility), but prevent boot crash.
 
-### 3. `src/features/calendar/components/CalendarEmptyState.tsx`
-- **Delete this file entirely.** No remaining consumers after the above changes.
+Phase B — Environment hardening (prevent recurrence)
+4) Align naming so both ANON and PUBLISHABLE key patterns are supported consistently.
+5) Add explicit “env source diagnostics” in development (safe, non-secret) so we can see which source was used.
+6) Ensure Healthz route reports env-status without requiring a failing Supabase init path.
 
-### Files
+Phase C — Verification matrix (must pass before closing)
+7) Preview web:
+   - Load `/` with no blank screen
+   - Confirm no `supabaseUrl is required` in console
+8) Published site:
+   - Load root page and confirm non-blank first paint
+9) Mobile web viewport checks (375x812 + 390x844):
+   - Confirm app boots and routes render
+10) Regression checks:
+   - Auth screen loads
+   - No new chunk errors
+   - No changes to auth/RLS semantics
 
-| File | Change |
-|------|--------|
-| `src/components/mobile/MobileGroupCalendar.tsx` | Remove empty-state gate; simplify per-day empty text |
-| `src/components/GroupCalendar.tsx` | Remove unused CalendarEmptyState import |
-| `src/features/calendar/components/CalendarEmptyState.tsx` | Delete file |
+Risk and rollback:
+- Regression risk: LOW (single-point bootstrap hardening).
+- Rollback: revert `src/integrations/supabase/client.ts` to previous state if unexpected behavior appears.
 
+Non-technical summary:
+- The site is failing at startup because config values are missing where the app expects them.
+- This does not mean your data is lost.
+- We can fix this safely by making startup resilient so the app never crashes when env injection is flaky.
+
+If you approve, I will execute exactly this surgical fix path first (Phase A), then run the verification matrix before any broader changes.

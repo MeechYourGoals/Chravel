@@ -411,8 +411,15 @@ serve(async req => {
     await import('../_shared/securityHeaders.ts');
 
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
+
+  const headers = getCorsHeaders(req);
+
+  // Auth gate: require a valid user token
+  const { requireAuth } = await import('../_shared/requireAuth.ts');
+  const auth = await requireAuth(req, headers);
+  if (auth.response) return auth.response;
 
   // Disable demo seeding in production environment
   const environment = Deno.env.get('ENVIRONMENT') || Deno.env.get('DENO_ENV') || 'production';
@@ -420,7 +427,7 @@ serve(async req => {
     console.log('[SEED-DEMO] Blocked: Demo seeding is disabled in production');
     return new Response(
       JSON.stringify({ error: 'Demo data seeding is disabled in production environment' }),
-      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 403, headers: { ...headers, 'Content-Type': 'application/json' } },
     );
   }
 
@@ -619,7 +626,7 @@ serve(async req => {
         },
         ingestionTriggered: !ingestError,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error seeding demo data:', error);
@@ -627,7 +634,7 @@ serve(async req => {
       JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       },
     );
   }
