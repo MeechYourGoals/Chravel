@@ -78,7 +78,7 @@
 - [x] Add/adjust automated tests for rich card persistence and save CTA behavior.
 - [x] Run required quality gates (`npm run lint && npm run typecheck && npm run build`) and capture manual verification notes.
 
-## AI concierge ElevenLabs voice deep-dive + hardening
+## AI concierge previous TTS provider voice deep-dive + hardening
 - [x] Scope recently shipped voice/TTS integration across chat input, TTS hook, and edge function.
 - [x] Fix confirmed bugs with minimal diffs (mobile long-press/tap reliability, auth/limit handling, and UX error messaging).
 - [x] Add regression-focused unit coverage for the TTS hook behavior.
@@ -86,7 +86,7 @@
 - [x] Commit changes and open PR with rollback notes.
 
 ## AI concierge voice launch-mode rollout (all users)
-- [x] Scope current voice gating across AIConciergeChat + elevenlabs-tts and confirm Pro/Consumer entry points.
+- [x] Scope current voice gating across AIConciergeChat + concierge-tts and confirm Pro/Consumer entry points.
 - [x] Add explicit launch-mode switch so voice playback is enabled for all users now, with a future paid-gating toggle.
 - [x] Add/update regression tests for launch-mode behavior.
 - [x] Run `npm run lint && npm run typecheck && npm run build` + focused tests.
@@ -105,3 +105,21 @@
 - [x] Implement minimal Tailwind class adjustments to keep text/actions contained on narrow widths.
 - [x] Validate via required gates (`npm run lint && npm run typecheck && npm run build`) and capture mobile verification evidence.
 - [x] Commit changes, verify branch tracking/push status, and open PR.
+
+## previous TTS provider "Invalid API Key" deep-dive + TTS alternative recommendation
+- [x] Trace previous TTS provider request path end-to-end (client hook → edge function → previous TTS provider API headers).
+- [x] Audit repository for hardcoded previous TTS provider API keys and secret naming mismatches.
+- [x] Document highest-probability failure modes and concrete Supabase verification commands.
+- [x] Recommend a free non-robotic TTS replacement with a warm male voice profile.
+
+## Replace previous TTS provider with Google Cloud TTS
+- [x] Scope current TTS call path + identify smallest provider swap surface.
+- [x] Implement edge function provider swap (Google Cloud TTS) while preserving existing client contract.
+- [x] Update docs/env requirements for new secret + voice defaults.
+- [x] Add/update tests for error mapping and audio response expectations.
+- [x] Run lint, typecheck, build, and focused tests.
+
+## Remove prior provider naming references from codebase
+- [x] Rename remaining hook/function/document names away from prior provider branding.
+- [x] Replace prior provider text references in active docs, runtime code, and migrations with Google/neutral wording.
+- [x] Re-run focused TTS tests plus lint/typecheck/build validation gates.

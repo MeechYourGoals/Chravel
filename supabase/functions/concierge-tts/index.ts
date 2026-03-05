@@ -2,17 +2,17 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
-const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
+const GOOGLE_CLOUD_TTS_API_KEY = Deno.env.get('GOOGLE_CLOUD_TTS_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const VOICE_TTS_FREE_FOR_ALL = (Deno.env.get('VOICE_TTS_FREE_FOR_ALL') ?? 'true') !== 'false';
 
-/** Hardcoded fallback — only used if DB lookup fails. */
-const HARDCODED_PRIMARY_VOICE = '1SM7GgM6IMuvQlz2BwM3'; // Mark
-const HARDCODED_FALLBACK_VOICE = 'nPczCjzI2devNBz1zQrb'; // Brian (free-tier safe)
+/** Hardcoded fallback voices — only used if DB lookup fails. */
+const HARDCODED_PRIMARY_VOICE = 'en-US-Chirp3-HD-Charon';
+const HARDCODED_FALLBACK_VOICE = 'en-US-Neural2-J';
 
-/** Max chars to send to ElevenLabs (prevents abuse and excessive cost). */
+/** Max chars to send to Google Cloud TTS (prevents abuse and excessive cost). */
 const MAX_TEXT_CHARS = 1500;
 
 /** Daily TTS requests per user on free tier. */
@@ -20,8 +20,8 @@ const FREE_TIER_DAILY_LIMIT = 30;
 /** Daily TTS requests per user on Explorer/Plus tier. */
 const EXPLORER_TIER_DAILY_LIMIT = 100;
 
-/** Status codes from ElevenLabs that warrant a fallback voice retry. */
-const FALLBACK_RETRY_STATUSES = new Set([402, 422]);
+/** Status codes from Google Cloud TTS that warrant a fallback voice retry. */
+const FALLBACK_RETRY_STATUSES = new Set([400, 404]);
 
 const isActiveEntitlement = (status?: string | null, periodEnd?: string | null): boolean => {
   if (status !== 'active' && status !== 'trialing') return false;
@@ -37,55 +37,73 @@ const mapPlanToDailyLimit = (plan?: string | null): number | null => {
   return null;
 };
 
-/**
- * Load a setting from app_settings using the service-role client.
- * Returns null if not found or on error.
- */
 async function getAppSetting(key: string): Promise<string | null> {
   try {
-    const serviceClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || SUPABASE_ANON_KEY);
+    const serviceClient = createClient(
+      SUPABASE_URL,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || SUPABASE_ANON_KEY,
+    );
     const { data, error } = await serviceClient
       .from('app_settings')
       .select('value')
       .eq('key', key)
       .maybeSingle();
     if (error) {
-      console.warn(`[elevenlabs-tts] app_settings lookup failed for "${key}":`, error.message);
+      console.warn(`[concierge-tts] app_settings lookup failed for "${key}":`, error.message);
       return null;
     }
     return data?.value ?? null;
   } catch (e) {
-    console.warn(`[elevenlabs-tts] app_settings exception for "${key}":`, e);
+    console.warn(`[concierge-tts] app_settings exception for "${key}":`, e);
     return null;
   }
 }
 
-/**
- * Call ElevenLabs TTS API for a given voice ID.
- */
-async function callElevenLabs(
-  text: string,
-  voiceId: string,
-  modelId: string,
-  outputFormat: string,
-): Promise<Response> {
+const toGoogleVoiceName = (rawVoice: string): string => {
+  const trimmed = rawVoice.trim();
+  if (!trimmed) return HARDCODED_PRIMARY_VOICE;
+
+  if (trimmed.toLowerCase() === 'charon') {
+    return HARDCODED_PRIMARY_VOICE;
+  }
+
+  // Backward compatibility for previous provider IDs previously stored in app_settings.
+  if (!trimmed.includes('-')) {
+    return HARDCODED_PRIMARY_VOICE;
+  }
+
+  return trimmed;
+};
+
+const decodeBase64Audio = (audioContent: string): Uint8Array => {
+  const binary = atob(audioContent);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+};
+
+async function callGoogleCloudTTS(text: string, voiceName: string): Promise<Response> {
   const url =
-    `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream` +
-    `?output_format=${encodeURIComponent(outputFormat)}`;
+    'https://texttospeech.googleapis.com/v1/text:synthesize' +
+    `?key=${encodeURIComponent(GOOGLE_CLOUD_TTS_API_KEY!)}`;
 
   return await fetch(url, {
     method: 'POST',
     headers: {
-      'xi-api-key': ELEVENLABS_API_KEY!,
       'Content-Type': 'application/json',
-      Accept: 'audio/mpeg',
     },
     body: JSON.stringify({
-      text,
-      model_id: modelId,
-      voice_settings: {
-        stability: 0.4,
-        similarity_boost: 0.8,
+      input: { text },
+      voice: {
+        languageCode: 'en-US',
+        name: voiceName,
+        ssmlGender: 'MALE',
+      },
+      audioConfig: {
+        audioEncoding: 'MP3',
+        speakingRate: 1,
       },
     }),
   });
@@ -95,7 +113,6 @@ serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
   const t0 = Date.now();
 
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
@@ -104,15 +121,14 @@ serve(async (req: Request) => {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
-  if (!ELEVENLABS_API_KEY) {
-    console.error('[elevenlabs-tts] ELEVENLABS_API_KEY is not set');
-    return new Response(JSON.stringify({ error: 'ElevenLabs API key not configured' }), {
+  if (!GOOGLE_CLOUD_TTS_API_KEY) {
+    console.error('[concierge-tts] GOOGLE_CLOUD_TTS_API_KEY is not set');
+    return new Response(JSON.stringify({ error: 'Google Cloud TTS API key not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  // Authenticate user via Supabase JWT
   const authHeader = req.headers.get('authorization');
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Authorization required' }), {
@@ -136,12 +152,9 @@ serve(async (req: Request) => {
     });
   }
 
-  // Parse request body
   let body: {
     speech_text?: string;
     voice_id?: string;
-    output_format?: string;
-    model_id?: string;
   };
 
   try {
@@ -153,26 +166,16 @@ serve(async (req: Request) => {
     });
   }
 
-  // Resolve voice IDs from DB (with hardcoded fallbacks)
-  const [dbPrimaryVoice, dbFallbackVoice, dbModelId] = await Promise.all([
+  const [dbPrimaryVoice, dbFallbackVoice] = await Promise.all([
     getAppSetting('tts_primary_voice_id'),
     getAppSetting('tts_fallback_voice_id'),
-    getAppSetting('tts_model_id'),
   ]);
 
-  const primaryVoice = dbPrimaryVoice || HARDCODED_PRIMARY_VOICE;
-  const fallbackVoice = dbFallbackVoice || HARDCODED_FALLBACK_VOICE;
-  const defaultModel = dbModelId || 'eleven_multilingual_v2';
+  const primaryVoice = toGoogleVoiceName(dbPrimaryVoice || HARDCODED_PRIMARY_VOICE);
+  const fallbackVoice = toGoogleVoiceName(dbFallbackVoice || HARDCODED_FALLBACK_VOICE);
 
-  const {
-    speech_text,
-    voice_id: requestedVoiceId,
-    output_format = 'mp3_44100_128',
-    model_id = defaultModel,
-  } = body;
-
-  // Use requested voice, or primary from settings
-  const resolvedVoiceId = requestedVoiceId || primaryVoice;
+  const { speech_text, voice_id: requestedVoiceId } = body;
+  const resolvedVoiceId = toGoogleVoiceName(requestedVoiceId || primaryVoice);
 
   if (!speech_text) {
     return new Response(JSON.stringify({ error: 'speech_text is required' }), {
@@ -190,7 +193,6 @@ serve(async (req: Request) => {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // Rate limiting (skipped in launch mode)
   if (!VOICE_TTS_FREE_FOR_ALL) {
     let dailyLimit: number | null = FREE_TIER_DAILY_LIMIT;
     const { data: entitlementData, error: entitlementError } = await supabase
@@ -200,7 +202,7 @@ serve(async (req: Request) => {
       .maybeSingle();
 
     if (entitlementError) {
-      console.error('[elevenlabs-tts] Entitlement lookup failed:', entitlementError.message);
+      console.error('[concierge-tts] Entitlement lookup failed:', entitlementError.message);
     }
 
     if (
@@ -216,7 +218,7 @@ serve(async (req: Request) => {
         .maybeSingle();
 
       if (profileError) {
-        console.error('[elevenlabs-tts] Profile plan fallback failed:', profileError.message);
+        console.error('[concierge-tts] Profile plan fallback failed:', profileError.message);
       }
 
       dailyLimit = mapPlanToDailyLimit(profileData?.app_role);
@@ -230,7 +232,7 @@ serve(async (req: Request) => {
       .maybeSingle();
 
     if (usageError) {
-      console.error('[elevenlabs-tts] Usage check failed:', usageError.message);
+      console.error('[concierge-tts] Usage check failed:', usageError.message);
     }
 
     const currentCount = usageRow?.request_count ?? 0;
@@ -246,46 +248,52 @@ serve(async (req: Request) => {
     }
   }
 
-  // Sanitize and cap text length
   const text = speech_text.slice(0, MAX_TEXT_CHARS);
 
-  console.log(`[elevenlabs-tts] Request: voice=${resolvedVoiceId}, model=${model_id}, textLen=${text.length}, user=${user.id}`);
+  console.log(
+    `[concierge-tts] Request: voice=${resolvedVoiceId}, textLen=${text.length}, user=${user.id}`,
+  );
 
-  // Call ElevenLabs with primary voice
-  let elevenRes: Response;
+  let ttsRes: Response;
   let usedFallback = false;
 
   try {
-    elevenRes = await callElevenLabs(text, resolvedVoiceId, model_id, output_format);
+    ttsRes = await callGoogleCloudTTS(text, resolvedVoiceId);
 
-    // If primary voice fails with a retryable status, try fallback
-    if (!elevenRes.ok && FALLBACK_RETRY_STATUSES.has(elevenRes.status) && resolvedVoiceId !== fallbackVoice) {
-      const errBody = await elevenRes.text().catch(() => '');
-      console.warn(`[elevenlabs-tts] Primary voice ${resolvedVoiceId} returned ${elevenRes.status}: ${errBody}. Retrying with fallback voice ${fallbackVoice}`);
+    if (
+      !ttsRes.ok &&
+      FALLBACK_RETRY_STATUSES.has(ttsRes.status) &&
+      resolvedVoiceId !== fallbackVoice
+    ) {
+      const errBody = await ttsRes.text().catch(() => '');
+      console.warn(
+        `[concierge-tts] Primary voice ${resolvedVoiceId} returned ${ttsRes.status}: ${errBody}. Retrying with fallback voice ${fallbackVoice}`,
+      );
 
-      elevenRes = await callElevenLabs(text, fallbackVoice, model_id, output_format);
+      ttsRes = await callGoogleCloudTTS(text, fallbackVoice);
       usedFallback = true;
-      console.log(`[elevenlabs-tts] Fallback voice result: status=${elevenRes.status}`);
+      console.log(`[concierge-tts] Fallback voice result: status=${ttsRes.status}`);
     }
   } catch (fetchError) {
-    console.error('[elevenlabs-tts] Fetch to ElevenLabs failed:', fetchError);
-    return new Response(JSON.stringify({ error: 'Failed to reach ElevenLabs service' }), {
+    console.error('[concierge-tts] Fetch to Google Cloud TTS failed:', fetchError);
+    return new Response(JSON.stringify({ error: 'Failed to reach Google Cloud TTS service' }), {
       status: 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  if (!elevenRes.ok || !elevenRes.body) {
-    const errBody = await elevenRes.text().catch(() => '');
-    console.error(`[elevenlabs-tts] ElevenLabs error ${elevenRes.status}: ${errBody}`);
+  if (!ttsRes.ok) {
+    const errBody = await ttsRes.text().catch(() => '');
+    console.error(`[concierge-tts] Google Cloud TTS error ${ttsRes.status}: ${errBody}`);
 
-    // Parse ElevenLabs error detail for client
-    let detail = `ElevenLabs returned ${elevenRes.status}`;
+    let detail = `Google Cloud TTS returned ${ttsRes.status}`;
     try {
       const parsed = JSON.parse(errBody);
-      if (parsed?.detail?.message) detail = parsed.detail.message;
+      if (parsed?.error?.message) detail = parsed.error.message;
       else if (typeof parsed?.detail === 'string') detail = parsed.detail;
-    } catch { /* use default */ }
+    } catch {
+      // use default detail
+    }
 
     return new Response(JSON.stringify({ error: detail }), {
       status: 502,
@@ -293,20 +301,34 @@ serve(async (req: Request) => {
     });
   }
 
-  // Increment usage counter (non-blocking)
+  let audioBytes: Uint8Array;
+  try {
+    const payload = await ttsRes.json();
+    const audioContent = payload?.audioContent;
+    if (typeof audioContent !== 'string' || audioContent.length === 0) {
+      throw new Error('Missing audioContent');
+    }
+    audioBytes = decodeBase64Audio(audioContent);
+  } catch (parseError) {
+    console.error('[concierge-tts] Failed to parse Google TTS audio payload:', parseError);
+    return new Response(JSON.stringify({ error: 'Voice service returned invalid audio payload' }), {
+      status: 502,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const { error: upsertError } = await supabase.rpc('increment_tts_usage', {
     p_user_id: user.id,
     p_date: today,
   });
 
   if (upsertError) {
-    console.warn('[elevenlabs-tts] Failed to increment usage:', upsertError.message);
+    console.warn('[concierge-tts] Failed to increment usage:', upsertError.message);
   }
 
   const elapsed = Date.now() - t0;
-  console.log(`[elevenlabs-tts] Success: fallback=${usedFallback}, elapsed=${elapsed}ms`);
+  console.log(`[concierge-tts] Success: fallback=${usedFallback}, elapsed=${elapsed}ms`);
 
-  // Stream audio bytes back to client
   const responseHeaders: Record<string, string> = {
     ...corsHeaders,
     'Content-Type': 'audio/mpeg',
@@ -317,7 +339,7 @@ serve(async (req: Request) => {
     responseHeaders['X-Voice-Fallback'] = 'true';
   }
 
-  return new Response(elevenRes.body, {
+  return new Response(audioBytes, {
     status: 200,
     headers: responseHeaders,
   });

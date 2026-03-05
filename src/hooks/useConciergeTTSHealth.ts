@@ -1,8 +1,8 @@
 /**
- * useElevenLabsHealth — Proactive session-start health check for TTS.
+ * useConciergeTTSHealth — Proactive session-start health check for concierge TTS.
  *
  * Fires once per browser session (guarded by sessionStorage) to verify
- * the ElevenLabs edge function and API key are operational.
+ * the voice edge function and upstream provider key are operational.
  * Non-blocking: does not delay UI rendering.
  */
 import { useState, useEffect } from 'react';
@@ -14,14 +14,14 @@ import {
 
 const SESSION_KEY = 'chravel_tts_health_checked';
 
-interface UseElevenLabsHealthReturn {
+interface UseConciergeTTSHealthReturn {
   /** Whether the health check has completed. */
   checked: boolean;
   /** Whether TTS is available (null = not yet checked). */
   available: boolean | null;
 }
 
-export function useElevenLabsHealth(): UseElevenLabsHealthReturn {
+export function useConciergeTTSHealth(): UseConciergeTTSHealthReturn {
   const [checked, setChecked] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
 
@@ -41,7 +41,9 @@ export function useElevenLabsHealth(): UseElevenLabsHealthReturn {
 
     async function checkHealth() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session?.access_token) {
           // Not logged in — skip health check
           if (mounted) {
@@ -51,7 +53,7 @@ export function useElevenLabsHealth(): UseElevenLabsHealthReturn {
           return;
         }
 
-        const url = `${SUPABASE_PROJECT_URL}/functions/v1/elevenlabs-tts`;
+        const url = `${SUPABASE_PROJECT_URL}/functions/v1/concierge-tts`;
 
         const res = await fetch(url, {
           method: 'POST',
@@ -75,7 +77,11 @@ export function useElevenLabsHealth(): UseElevenLabsHealthReturn {
         }
 
         if (isHealthy) {
-          try { sessionStorage.setItem(SESSION_KEY, '1'); } catch { /* ok */ }
+          try {
+            sessionStorage.setItem(SESSION_KEY, '1');
+          } catch {
+            /* ok */
+          }
         }
       } catch {
         if (mounted) {

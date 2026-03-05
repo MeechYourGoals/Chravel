@@ -1,7 +1,7 @@
 /**
- * useElevenLabsTTS — React hook for ElevenLabs text-to-speech playback.
+ * useConciergeTTS — React hook for concierge text-to-speech playback.
  *
- * Calls the elevenlabs-tts Supabase Edge Function (server-side proxy)
+ * Calls the concierge-tts Supabase Edge Function (server-side TTS proxy)
  * and plays the returned audio/mpeg blob. Handles iOS/PWA constraints
  * (user gesture required), stop/interrupt, error recovery, and cleanup.
  *
@@ -17,7 +17,7 @@ import {
 export type TTSPlaybackState = 'idle' | 'loading' | 'playing' | 'error';
 
 /** Last-resort fallback if DB lookup fails and no voiceId prop is passed. */
-const FALLBACK_VOICE_ID = '1SM7GgM6IMuvQlz2BwM3';
+const FALLBACK_VOICE_ID = 'en-US-Chirp3-HD-Charon';
 const RETRYABLE_FETCH_ERROR = 'Failed to fetch';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -58,12 +58,12 @@ async function fetchPrimaryVoiceId(): Promise<string | null> {
   return voiceFetchPromise;
 }
 
-interface UseElevenLabsTTSOptions {
+interface UseConciergeTTSOptions {
   /** Override the default voice ID. */
   voiceId?: string;
 }
 
-interface UseElevenLabsTTSReturn {
+interface UseConciergeTTSReturn {
   /** Current playback state. */
   playbackState: TTSPlaybackState;
   /** The message ID currently being played (or null). */
@@ -78,7 +78,7 @@ interface UseElevenLabsTTSReturn {
   stop: () => void;
 }
 
-export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElevenLabsTTSReturn {
+export function useConciergeTTS(options: UseConciergeTTSOptions = {}): UseConciergeTTSReturn {
   const { voiceId: voiceIdProp } = options;
 
   const [playbackState, setPlaybackState] = useState<TTSPlaybackState>('idle');
@@ -148,10 +148,10 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
         // Resolve voice ID: prop > DB setting > hardcoded fallback
         let resolvedVoiceId = voiceIdProp;
         if (!resolvedVoiceId) {
-          resolvedVoiceId = await fetchPrimaryVoiceId() || FALLBACK_VOICE_ID;
+          resolvedVoiceId = (await fetchPrimaryVoiceId()) || FALLBACK_VOICE_ID;
         }
 
-        const url = `${SUPABASE_PROJECT_URL}/functions/v1/elevenlabs-tts`;
+        const url = `${SUPABASE_PROJECT_URL}/functions/v1/concierge-tts`;
 
         let response: Response | null = null;
         let lastFetchError: unknown = null;

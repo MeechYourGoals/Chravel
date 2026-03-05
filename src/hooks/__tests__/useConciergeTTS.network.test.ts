@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useElevenLabsTTS } from '../useElevenLabsTTS';
+import { useConciergeTTS } from '../useConciergeTTS';
 
 const { getSessionMock } = vi.hoisted(() => ({
   getSessionMock: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   SUPABASE_PUBLIC_ANON_KEY: 'anon-key',
 }));
 
-describe('useElevenLabsTTS network failure mapping', () => {
+describe('useConciergeTTS network failure mapping', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getSessionMock.mockResolvedValue({
@@ -27,7 +27,7 @@ describe('useElevenLabsTTS network failure mapping', () => {
   });
 
   it('maps failed fetch errors to actionable connectivity guidance and retries once', async () => {
-    const { result } = renderHook(() => useElevenLabsTTS());
+    const { result } = renderHook(() => useConciergeTTS());
 
     await act(async () => {
       await result.current.play('msg-network', 'Network test');

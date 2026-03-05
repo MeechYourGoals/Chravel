@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useElevenLabsTTS } from '../useElevenLabsTTS';
+import { useConciergeTTS } from '../useConciergeTTS';
 
 const { getSessionMock } = vi.hoisted(() => ({
   getSessionMock: vi.fn(),
@@ -28,7 +28,7 @@ class MockAudio {
   constructor(public src: string) {}
 }
 
-describe('useElevenLabsTTS', () => {
+describe('useConciergeTTS', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getSessionMock.mockResolvedValue({
@@ -49,7 +49,7 @@ describe('useElevenLabsTTS', () => {
       }),
     );
 
-    const { result } = renderHook(() => useElevenLabsTTS());
+    const { result } = renderHook(() => useConciergeTTS());
 
     await act(async () => {
       await result.current.play('msg-1', 'Test speech');
@@ -69,7 +69,7 @@ describe('useElevenLabsTTS', () => {
       }),
     );
 
-    const { result } = renderHook(() => useElevenLabsTTS());
+    const { result } = renderHook(() => useConciergeTTS());
 
     await act(async () => {
       await result.current.play('msg-2', 'Speak this');
@@ -87,5 +87,28 @@ describe('useElevenLabsTTS', () => {
     expect(result.current.playbackState).toBe('idle');
     expect(result.current.errorMessage).toBeNull();
     expect(result.current.playingMessageId).toBeNull();
+  });
+
+  it('tracks fallback voice usage when server indicates fallback header', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(new Blob(['audio-bytes'], { type: 'audio/mpeg' }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'audio/mpeg',
+          'X-Voice-Fallback': 'true',
+        },
+      }),
+    );
+
+    const { result } = renderHook(() => useConciergeTTS());
+
+    await act(async () => {
+      await result.current.play('msg-fallback', 'Fallback test');
+    });
+
+    await waitFor(() => {
+      expect(result.current.playbackState).toBe('playing');
+      expect(result.current.usedFallbackVoice).toBe(true);
+    });
   });
 });

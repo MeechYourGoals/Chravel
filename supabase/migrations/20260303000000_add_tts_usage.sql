@@ -1,4 +1,4 @@
--- TTS usage tracking table for ElevenLabs rate limiting.
+-- TTS usage tracking table for previous TTS provider rate limiting.
 -- Tracks daily request counts per user.
 CREATE TABLE IF NOT EXISTS public.tts_usage (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
