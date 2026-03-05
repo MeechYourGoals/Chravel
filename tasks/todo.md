@@ -118,3 +118,10 @@
 - [x] Update docs/env requirements for new secret + voice defaults.
 - [x] Add/update tests for error mapping and audio response expectations.
 - [x] Run lint, typecheck, build, and focused tests.
+
+## AI concierge voice controls cleanup + dictation fix
+- [x] Scope the waveform/dictation regression and confirm why click no longer starts speech-to-text into the composer.
+- [x] Remove the autoplay voice toggle button from the chat composer UI and disable its autoplay path.
+- [x] Restore expected waveform button click behavior (tap to dictate into input, editable before send).
+- [x] Add/adjust focused regression tests for voice button interactions.
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`) plus targeted tests.

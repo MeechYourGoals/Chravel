@@ -361,47 +361,6 @@ export const AIConciergeChat = ({
     }
   }, [ttsError, ttsPlaybackState]);
 
-  // ── Voice Responses toggle (auto-play TTS after each assistant response) ──
-  const [voiceResponsesEnabled, setVoiceResponsesEnabled] = useState(
-    () => localStorage.getItem('chravel_voice_responses') === 'true',
-  );
-  const userHasInteracted = useRef(false);
-
-  // Track user interaction for iOS autoplay compliance
-  useEffect(() => {
-    const markInteracted = () => {
-      userHasInteracted.current = true;
-    };
-    document.addEventListener('click', markInteracted, { once: true });
-    document.addEventListener('touchstart', markInteracted, { once: true });
-    return () => {
-      document.removeEventListener('click', markInteracted);
-      document.removeEventListener('touchstart', markInteracted);
-    };
-  }, []);
-
-  const handleVoiceResponsesToggle = useCallback(() => {
-    setVoiceResponsesEnabled(prev => {
-      const next = !prev;
-      localStorage.setItem('chravel_voice_responses', String(next));
-      return next;
-    });
-  }, []);
-
-  // Ref so the stream onDone callback can read the current toggle value
-  const voiceResponsesRef = useRef(voiceResponsesEnabled);
-  useEffect(() => {
-    voiceResponsesRef.current = voiceResponsesEnabled;
-  }, [voiceResponsesEnabled]);
-
-  /** Read the last assistant message aloud (mic short-tap). */
-  const handleReadAloud = useCallback(() => {
-    const lastAssistant = [...messagesRef.current].reverse().find(m => m.type === 'assistant');
-    if (lastAssistant?.id && lastAssistant.content) {
-      handleTTSPlay(lastAssistant.id);
-    }
-  }, [handleTTSPlay]);
-
   // True after the chat is hydrated from the server DB (not just cache/empty).
   // Used to show the "Picked up where you left off" chip.
   const [historyLoadedFromServer, setHistoryLoadedFromServer] = useState(
@@ -1549,15 +1508,6 @@ export const AIConciergeChat = ({
                       });
                   }
                 }
-
-                // Auto-play TTS when voice responses toggle is on
-                if (
-                  voiceResponsesRef.current &&
-                  userHasInteracted.current &&
-                  accumulatedStreamContent
-                ) {
-                  handleTTSPlay(streamingMessageId);
-                }
               }
             },
           },
@@ -1938,9 +1888,6 @@ export const AIConciergeChat = ({
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
             isVoiceEligible={true}
-            onReadAloud={handleReadAloud}
-            voiceResponsesEnabled={voiceResponsesEnabled}
-            onVoiceResponsesToggle={handleVoiceResponsesToggle}
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
                 ? (action: string) => {
