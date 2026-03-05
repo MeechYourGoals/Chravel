@@ -33,7 +33,7 @@ import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
-import { useElevenLabsTTS } from '@/hooks/useElevenLabsTTS';
+import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
 
 const EMPTY_SESSION: ConciergeSession = {
@@ -316,7 +316,7 @@ export const AIConciergeChat = ({
     errorMessage: ttsError,
     play: ttsPlayRaw,
     stop: ttsStop,
-  } = useElevenLabsTTS();
+  } = useConciergeReadAloud();
 
   // Hydrate from Zustand store on mount (preserves messages across tab switches)
   const [messages, setMessages] = useState<ChatMessage[]>(() =>

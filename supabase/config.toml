@@ -111,5 +111,5 @@ verify_jwt = false
 [functions.image-proxy]
 verify_jwt = false
 
-[functions.elevenlabs-tts]
+[functions.concierge-tts]
 verify_jwt = false

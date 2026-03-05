@@ -2,7 +2,7 @@
  * buildSpeechText — Deterministic spoken-transcript builder for AI Concierge TTS.
  *
  * Converts rich assistant messages (with hotel/place/flight cards, URLs, markdown)
- * into clean, speakable text that sounds natural through ElevenLabs TTS.
+ * into clean, speakable text that sounds natural through Google Cloud TTS.
  *
  * Rules:
  * - Never read raw URLs, tracking links, or markdown syntax aloud.
@@ -148,7 +148,7 @@ function summarizeFlight(
 /**
  * Build a spoken transcript from a rich assistant message.
  *
- * Returns a clean, speakable string suitable for ElevenLabs TTS,
+ * Returns a clean, speakable string suitable for Google Cloud TTS,
  * or an empty string if there's nothing meaningful to speak.
  */
 export function buildSpeechText(input: SpeechTextInput): string {
