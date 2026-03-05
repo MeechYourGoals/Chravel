@@ -103,19 +103,6 @@ vi.mock('../../contexts/BasecampContext', () => ({
   }),
 }));
 
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-};
-
 describe('AIConciergeChat', () => {
   let queryClient: QueryClient;
 
@@ -145,7 +132,7 @@ describe('AIConciergeChat', () => {
 
       // The microphone button has been moved to the input area, so it should not appear in the header
       await waitFor(() => {
-        expect(screen.getByLabelText(/tap to listen, hold to speak/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/tap to dictate/i)).toBeInTheDocument();
       });
     });
 
