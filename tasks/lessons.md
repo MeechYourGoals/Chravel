@@ -9,3 +9,4 @@
 - When shipping premium voice features, enforce plan-aware limits server-side (entitlements first, profile fallback) so paid tiers never get accidentally throttled as free users.
 - Keep accessibility-label assertions aligned with product copy in voice controls; prefer stable aria-label patterns to avoid false regressions during UX copy updates.
 - When delivering UI-change screenshots for this workspace, authenticate with the shared demo account (`demo@chravelapp.com` / `demouser`) before capturing artifacts so screenshots reflect the changed in-app state rather than public/home pages.
+- AI Concierge voice CTA regression: avoid overloading the same waveform button with conflicting short-tap semantics (read-aloud vs dictation). Keep tap behavior aligned with visible input intent (start/stop dictation) and move playback controls to message-level actions.
