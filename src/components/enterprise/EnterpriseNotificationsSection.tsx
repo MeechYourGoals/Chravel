@@ -15,10 +15,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import {
-  userPreferencesService,
-  NotificationPreferences,
-} from '@/services/userPreferencesService';
+import { userPreferencesService, NotificationPreferences } from '@/services/userPreferencesService';
 import { notificationService } from '@/services/notificationService';
 import { useToast } from '@/hooks/use-toast';
 import { useNativePush } from '@/hooks/useNativePush';
@@ -562,9 +559,7 @@ export const EnterpriseNotificationsSection = () => {
                         {lastSmsStatus.status === 'sent' || lastSmsStatus.status === 'queued' ? (
                           <span className="text-green-400">
                             {lastSmsStatus.status}
-                            {lastSmsStatus.externalId
-                              ? ` (SID: ${lastSmsStatus.externalId})`
-                              : ''}
+                            {lastSmsStatus.externalId ? ` (SID: ${lastSmsStatus.externalId})` : ''}
                           </span>
                         ) : (
                           <span className="text-amber-400">
@@ -655,7 +650,10 @@ export const EnterpriseNotificationsSection = () => {
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="sms-phone-enterprise" className="block text-sm font-medium text-gray-300 mb-2">
+                <label
+                  htmlFor="sms-phone-enterprise"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
                   Mobile Phone Number
                 </label>
                 <input

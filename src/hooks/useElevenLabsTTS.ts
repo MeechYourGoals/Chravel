@@ -148,7 +148,7 @@ export function useElevenLabsTTS(options: UseElevenLabsTTSOptions = {}): UseElev
         // Resolve voice ID: prop > DB setting > hardcoded fallback
         let resolvedVoiceId = voiceIdProp;
         if (!resolvedVoiceId) {
-          resolvedVoiceId = await fetchPrimaryVoiceId() || FALLBACK_VOICE_ID;
+          resolvedVoiceId = (await fetchPrimaryVoiceId()) || FALLBACK_VOICE_ID;
         }
 
         const url = `${SUPABASE_PROJECT_URL}/functions/v1/elevenlabs-tts`;

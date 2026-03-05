@@ -43,7 +43,10 @@ const mapPlanToDailyLimit = (plan?: string | null): number | null => {
  */
 async function getAppSetting(key: string): Promise<string | null> {
   try {
-    const serviceClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || SUPABASE_ANON_KEY);
+    const serviceClient = createClient(
+      SUPABASE_URL,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || SUPABASE_ANON_KEY,
+    );
     const { data, error } = await serviceClient
       .from('app_settings')
       .select('value')
@@ -249,7 +252,9 @@ serve(async (req: Request) => {
   // Sanitize and cap text length
   const text = speech_text.slice(0, MAX_TEXT_CHARS);
 
-  console.log(`[elevenlabs-tts] Request: voice=${resolvedVoiceId}, model=${model_id}, textLen=${text.length}, user=${user.id}`);
+  console.log(
+    `[elevenlabs-tts] Request: voice=${resolvedVoiceId}, model=${model_id}, textLen=${text.length}, user=${user.id}`,
+  );
 
   // Call ElevenLabs with primary voice
   let elevenRes: Response;
@@ -259,9 +264,15 @@ serve(async (req: Request) => {
     elevenRes = await callElevenLabs(text, resolvedVoiceId, model_id, output_format);
 
     // If primary voice fails with a retryable status, try fallback
-    if (!elevenRes.ok && FALLBACK_RETRY_STATUSES.has(elevenRes.status) && resolvedVoiceId !== fallbackVoice) {
+    if (
+      !elevenRes.ok &&
+      FALLBACK_RETRY_STATUSES.has(elevenRes.status) &&
+      resolvedVoiceId !== fallbackVoice
+    ) {
       const errBody = await elevenRes.text().catch(() => '');
-      console.warn(`[elevenlabs-tts] Primary voice ${resolvedVoiceId} returned ${elevenRes.status}: ${errBody}. Retrying with fallback voice ${fallbackVoice}`);
+      console.warn(
+        `[elevenlabs-tts] Primary voice ${resolvedVoiceId} returned ${elevenRes.status}: ${errBody}. Retrying with fallback voice ${fallbackVoice}`,
+      );
 
       elevenRes = await callElevenLabs(text, fallbackVoice, model_id, output_format);
       usedFallback = true;
@@ -285,7 +296,9 @@ serve(async (req: Request) => {
       const parsed = JSON.parse(errBody);
       if (parsed?.detail?.message) detail = parsed.detail.message;
       else if (typeof parsed?.detail === 'string') detail = parsed.detail;
-    } catch { /* use default */ }
+    } catch {
+      /* use default */
+    }
 
     return new Response(JSON.stringify({ error: detail }), {
       status: 502,
