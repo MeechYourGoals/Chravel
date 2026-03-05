@@ -14,6 +14,8 @@ import {
 } from '../_shared/aiUtils.ts';
 import { normalizeGeminiModel } from '../_shared/gemini.ts';
 import { executeFunctionCall } from '../_shared/functionExecutor.ts';
+import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts';
+import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
 import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
 import { incrementConciergeTripUsage } from '../_shared/conciergeUsage.ts';
 
@@ -508,12 +510,16 @@ async function streamGeminiToSSE(
 
       let result: any;
       try {
-        result = await executeFunctionCall(
+        const capabilityToken = await generateCapabilityToken({
+          user_id: userId,
+          trip_id: tripId,
+          allowed_tools: ['*'], // Allowing all for Lovable Concierge scope; router enforces trip limits
+        });
+        result = await executeToolSecurely(
           supabase,
+          capabilityToken,
           fc.name,
           parsedArgs,
-          tripId,
-          userId,
           locationData,
         );
       } catch (fcError) {
@@ -2308,12 +2314,16 @@ Answer the user's question accurately. Use web search for real-time info (weathe
 
           let functionResult: any;
           try {
-            functionResult = await executeFunctionCall(
+            const capabilityToken = await generateCapabilityToken({
+              user_id: user?.id || userId,
+              trip_id: tripId,
+              allowed_tools: ['*'],
+            });
+            functionResult = await executeToolSecurely(
               supabase,
+              capabilityToken,
               functionName,
               parsedArgs,
-              tripId,
-              user?.id,
               locationData,
             );
           } catch (toolError) {
@@ -2484,12 +2494,16 @@ Answer the user's question accurately. Use web search for real-time info (weathe
 
           let result: any;
           try {
-            result = await executeFunctionCall(
+            const capabilityToken = await generateCapabilityToken({
+              user_id: user?.id || userId,
+              trip_id: tripId,
+              allowed_tools: ['*'],
+            });
+            result = await executeToolSecurely(
               supabase,
+              capabilityToken,
               fc.name,
               parsedArgs,
-              tripId,
-              user?.id,
               locationData,
             );
           } catch (fcError) {
