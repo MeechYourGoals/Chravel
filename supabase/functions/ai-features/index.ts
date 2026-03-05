@@ -3,11 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { AIFeaturesSchema, validateInput } from '../_shared/validation.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
 import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 function parseJsonSafely(raw: string): any {
   const cleaned = raw
@@ -28,6 +24,7 @@ function parseJsonSafely(raw: string): any {
 }
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
 

@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -36,8 +36,15 @@ serve(async req => {
     await import('../_shared/securityHeaders.ts');
 
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
+
+  const headers = getCorsHeaders(req);
+
+  // Auth gate: require a valid user token
+  const { requireAuth } = await import('../_shared/requireAuth.ts');
+  const auth = await requireAuth(req, headers);
+  if (auth.response) return auth.response;
 
   try {
     // Clear existing Pro trip mock messages
@@ -73,14 +80,14 @@ serve(async req => {
         message: 'Pro trip mock messages seeded successfully',
         count: mockMessages.length,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error seeding mock messages:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 });

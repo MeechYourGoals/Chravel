@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import {
@@ -157,7 +157,7 @@ export const MobileGroupCalendar = ({
     error,
     refreshEvents,
     deleteEvent,
-    updateEvent,
+    updateEvent: _updateEvent,
   } = useCalendarEvents(tripId);
 
   const { exportTripEvents } = useCalendarExport(tripId);
@@ -185,7 +185,7 @@ export const MobileGroupCalendar = ({
     return calendarEvents;
   }, [tripEvents]);
 
-  const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
+  const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
       await refreshEvents();
     },
@@ -254,10 +254,13 @@ export const MobileGroupCalendar = ({
   const eventsForSelectedDate = events.filter(event => isSameDay(event.date, selectedDate));
 
   // Handle event click to show details
-  const handleEventClick = useCallback(async (event: CalendarEvent & { originalEvent?: any }) => {
-    await hapticService.medium();
-    setSelectedEvent(event);
-  }, []);
+  const handleEventClick = useCallback(
+    async (event: CalendarEvent & { originalEvent?: Record<string, unknown> }) => {
+      await hapticService.medium();
+      setSelectedEvent(event);
+    },
+    [],
+  );
 
   // Handle event deletion
   const handleDeleteEvent = useCallback(

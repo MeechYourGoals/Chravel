@@ -12,15 +12,11 @@ import { getTripData } from './data.ts';
 import { renderTemplate } from './template.ts';
 import { slug, formatTimestamp } from './util.ts';
 import type { ExportRequest, ExportLayout, ExportSection } from './types.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[EXPORT-TRIP] ${step}${detailsStr}`);
-};
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 type PaperSize = 'letter' | 'a4';
@@ -284,6 +280,7 @@ async function appendAttachmentsToPdf(params: {
 }
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

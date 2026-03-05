@@ -6,7 +6,7 @@ import { DemoView } from '@/store/demoModeStore';
  * @param user - Current authenticated user (null if not logged in)
  * @returns true if auth is required, false if action should proceed
  */
-export const shouldRequireAuth = (demoView: DemoView, user: any): boolean => {
+export const shouldRequireAuth = (demoView: DemoView, user: unknown): boolean => {
   // Mock mode (app-preview): never require auth - investor demo has full access
   if (demoView === 'app-preview') return false;
 
@@ -22,9 +22,8 @@ export const shouldRequireAuth = (demoView: DemoView, user: any): boolean => {
  * Used when displaying settings/features in app-preview mode without real auth
  */
 export const createMockDemoUser = () => ({
-  // Use a UUID-shaped value so any UUID validation / PostgREST filters don't hard-fail.
-  // This is a demo-only identity (no real Supabase auth session).
-  id: '3f2504e0-4f89-11d3-9a0c-0305e82c3301',
+  // Random UUID per call — avoids predictable demo user IDs.
+  id: crypto.randomUUID(),
   email: 'demo@chravel.com',
   displayName: 'Demo User',
   avatar: null,

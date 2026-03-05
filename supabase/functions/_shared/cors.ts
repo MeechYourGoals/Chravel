@@ -68,10 +68,7 @@ export function getCorsHeaders(req?: Request): Record<string, string> {
   };
 }
 
-// Legacy export for backwards compatibility - will be replaced by getCorsHeaders(req)
-// Using wildcard temporarily to avoid breaking existing functions during transition
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+// Legacy corsHeaders kept as a function alias to prevent wildcard CORS.
+// All edge functions should use getCorsHeaders(req) directly.
+// This export exists only for backwards compatibility during migration.
+export const corsHeaders = getCorsHeaders();

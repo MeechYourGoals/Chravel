@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -161,7 +161,7 @@ serve(async req => {
     await import('../_shared/securityHeaders.ts');
 
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -207,15 +207,15 @@ serve(async req => {
 
     switch (extractionType) {
       case 'calendar':
-        return await extractCalendarEvents(messageText, fileUrl, fileType);
+        return await extractCalendarEvents(req, messageText, fileUrl, fileType);
       case 'agenda':
-        return await extractAgendaSessions(messageText, fileUrl, fileType);
+        return await extractAgendaSessions(req, messageText, fileUrl, fileType);
       case 'todo':
-        return await extractTodoItems(messageText, tripId);
+        return await extractTodoItems(req, messageText, tripId);
       case 'photo_analysis':
-        return await analyzePhoto(fileUrl);
+        return await analyzePhoto(req, fileUrl);
       case 'document_parse':
-        return await parseDocument(fileUrl, fileType);
+        return await parseDocument(req, fileUrl, fileType);
       default:
         throw new Error('Invalid extraction type');
     }
@@ -225,7 +225,7 @@ serve(async req => {
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       },
     );
   }
@@ -233,7 +233,12 @@ serve(async req => {
 
 // ─── Calendar Event Extraction ───────────────────────────────────────────────
 
-async function extractCalendarEvents(messageText: string, fileUrl?: string, fileType?: string) {
+async function extractCalendarEvents(
+  req: Request,
+  messageText: string,
+  fileUrl?: string,
+  fileType?: string,
+) {
   const userContent = await buildUserMessage(messageText, fileUrl, fileType);
 
   const messages = [
@@ -297,13 +302,18 @@ async function extractCalendarEvents(messageText: string, fileUrl?: string, file
       extracted_data: extractedData,
       confidence: extractedData.confidence_overall || 0.8,
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
   );
 }
 
 // ─── Agenda Session Extraction ───────────────────────────────────────────────
 
-async function extractAgendaSessions(messageText: string, fileUrl?: string, fileType?: string) {
+async function extractAgendaSessions(
+  req: Request,
+  messageText: string,
+  fileUrl?: string,
+  fileType?: string,
+) {
   const systemPrompt = `You are an expert at extracting event agenda sessions from conference schedules, event programs, and agenda documents.
 
 Extract ALL sessions, talks, panels, workshops, performances, and scheduled items.
@@ -358,13 +368,13 @@ CRITICAL RULES:
       success: true,
       sessions: extractedData.sessions || [],
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
   );
 }
 
 // ─── Todo Extraction ─────────────────────────────────────────────────────────
 
-async function extractTodoItems(messageText: string, tripId: string) {
+async function extractTodoItems(req: Request, messageText: string, tripId: string) {
   const rawText = await runParserModel(
     [
       {
@@ -406,13 +416,13 @@ async function extractTodoItems(messageText: string, tripId: string) {
       success: true,
       todos: extractedData.todos || [],
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
   );
 }
 
 // ─── Photo Analysis ──────────────────────────────────────────────────────────
 
-async function analyzePhoto(fileUrl: string) {
+async function analyzePhoto(req: Request, fileUrl: string) {
   const urlValidation = validateImageUrl(fileUrl);
   if (!urlValidation.valid) {
     throw new Error(`Invalid image URL: ${urlValidation.error}`);
@@ -465,13 +475,13 @@ async function analyzePhoto(fileUrl: string) {
       success: true,
       analysis: analysis.analysis,
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
   );
 }
 
 // ─── Document Parsing ────────────────────────────────────────────────────────
 
-async function parseDocument(fileUrl: string, fileType: string) {
+async function parseDocument(req: Request, fileUrl: string, fileType: string) {
   const urlValidation = validateImageUrl(fileUrl);
   if (!urlValidation.valid) {
     throw new Error(`Invalid document URL: ${urlValidation.error}`);
@@ -557,7 +567,7 @@ async function parseDocument(fileUrl: string, fileType: string) {
             ? 'good'
             : 'fair',
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
   );
 }
 
