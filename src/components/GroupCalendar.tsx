@@ -19,7 +19,7 @@ import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import type { CalendarEvent } from '@/types/calendar';
 import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
-import { CalendarEmptyState } from '@/features/calendar/components/CalendarEmptyState';
+
 
 interface GroupCalendarProps {
   tripId: string;
