@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { toast } from '@/hooks/use-toast';
 
 export interface VersionedData {
@@ -26,12 +27,6 @@ export function resolveConflict(
   remoteData: VersionedData,
   strategy: ConflictResolution['strategy'] = 'remote',
 ): ConflictResolution {
-  console.log('[Conflict] Resolving conflict', {
-    localVersion: localData.version,
-    remoteVersion: remoteData.version,
-    strategy,
-  });
-
   switch (strategy) {
     case 'local':
       // Keep local changes, discard remote
@@ -118,8 +113,6 @@ export async function handleOptimisticUpdateConflict<T extends VersionedData>(
 
     // Check for conflict
     if (detectConflict(optimisticData.version, serverData.version)) {
-      console.log('[Conflict] Version mismatch detected');
-
       // Resolve conflict
       const resolution = resolveConflict(optimisticData, serverData, strategy);
       onConflict(resolution);

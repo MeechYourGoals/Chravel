@@ -35,12 +35,10 @@ export async function archiveInactiveTrips(inactiveDays: number = 365): Promise<
 
     if (tripsError) throw tripsError;
     if (!inactiveTrips || inactiveTrips.length === 0) {
-      console.log('No inactive trips found to archive');
       return stats;
     }
 
     const tripIds = inactiveTrips.map(t => t.id);
-    console.log(`Found ${tripIds.length} inactive trips to archive`);
 
     // Archive media (move to cold storage metadata, but keep records)
     const { data: mediaToArchive } = await supabase
@@ -91,7 +89,6 @@ export async function archiveInactiveTrips(inactiveDays: number = 365): Promise<
     if (archiveError) throw archiveError;
     stats.tripsArchived = tripIds.length;
 
-    console.log('Archive stats:', stats);
     return stats;
   } catch (error) {
     console.error('Error archiving trips:', error);
@@ -128,8 +125,6 @@ export async function restoreArchivedTrip(tripId: string): Promise<void> {
       .eq('trip_id', tripId);
 
     if (mediaError) throw mediaError;
-
-    console.log(`Trip ${tripId} restored successfully`);
   } catch (error) {
     console.error('Error restoring trip:', error);
     throw error;
@@ -179,7 +174,6 @@ export async function deleteOldArchivedTrips(archiveAgeDays: number = 730): Prom
     // Delete trips
     await supabase.from('trips').delete().in('id', tripIds);
 
-    console.log(`Permanently deleted ${tripIds.length} old archived trips`);
     return tripIds.length;
   } catch (error) {
     console.error('Error deleting old archived trips:', error);

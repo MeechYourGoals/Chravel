@@ -45,12 +45,9 @@ export function useTripBasecamp(tripId: string | undefined) {
             return null;
           }
 
-          console.log(LOG_PREFIX, 'Fetching basecamp for trip:', tripId, 'isDemoMode:', isDemoMode);
-
           if (isDemoMode) {
             // Demo mode: use in-memory session storage (NOT localStorage)
             const sessionBasecamp = demoModeService.getSessionTripBasecamp(tripId);
-            console.log(LOG_PREFIX, 'Demo mode result:', sessionBasecamp);
 
             if (sessionBasecamp) {
               return {
@@ -65,7 +62,6 @@ export function useTripBasecamp(tripId: string | undefined) {
 
           // Authenticated mode: fetch from database
           const dbBasecamp = await basecampService.getTripBasecamp(tripId);
-          console.log(LOG_PREFIX, 'DB result:', dbBasecamp);
           return dbBasecamp;
         })(),
         10000,
@@ -108,27 +104,17 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
         throw new Error('OFFLINE: Trip Base Camp updates require an internet connection.');
       }
 
-      console.log(LOG_PREFIX, 'Updating basecamp:', {
-        tripId,
-        isDemoMode,
-        newAddress: newBasecamp.address,
-        timestamp: new Date().toISOString(),
-      });
-
       if (isDemoMode) {
         // Demo mode: save to in-memory session storage
         demoModeService.setSessionTripBasecamp(tripId, {
           name: newBasecamp.name,
           address: newBasecamp.address,
         });
-        console.log(LOG_PREFIX, 'Demo mode save complete');
         return { success: true, address: newBasecamp.address, name: newBasecamp.name };
       }
 
       // Authenticated mode: save to database
       const result = await basecampService.setTripBasecamp(tripId, newBasecamp);
-
-      console.log(LOG_PREFIX, 'DB update result:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update basecamp');
@@ -167,8 +153,6 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
 
       queryClient.setQueryData(tripBasecampKeys.trip(tripId), optimisticValue);
 
-      console.log(LOG_PREFIX, 'Optimistic update applied:', optimisticValue.address);
-
       // Return context with previous value for rollback
       return { previousBasecamp, optimisticValue };
     },
@@ -191,7 +175,6 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
 
     // On success: confirm the optimistic value is correct, then schedule a delayed refetch
     onSuccess: (data, _variables, context) => {
-      console.log(LOG_PREFIX, 'Update successful, confirming cache value');
       toast.success('Basecamp saved!');
 
       if (tripId && context?.optimisticValue) {
@@ -204,7 +187,6 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
       // This is a background operation - the UI already shows the correct value
       if (tripId) {
         setTimeout(() => {
-          console.log(LOG_PREFIX, 'Performing delayed background refetch for consistency');
           queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
         }, 2000); // 2 second delay to ensure DB replication
       }
@@ -214,7 +196,6 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
     onSettled: () => {
       // Do NOT invalidate immediately - this causes the race condition
       // where refetch returns stale data and overwrites the optimistic update
-      console.log(LOG_PREFIX, 'Mutation settled');
     },
   });
 }
@@ -234,8 +215,6 @@ export function useClearTripBasecamp(tripId: string | undefined) {
       if (!tripId) {
         throw new Error('No tripId provided');
       }
-
-      console.log(LOG_PREFIX, 'Clearing basecamp for trip:', tripId);
 
       if (isDemoMode) {
         demoModeService.clearSessionTripBasecamp(tripId);
@@ -282,7 +261,6 @@ export function useClearTripBasecamp(tripId: string | undefined) {
     },
 
     onSuccess: () => {
-      console.log(LOG_PREFIX, 'Basecamp cleared');
       toast.success('Basecamp cleared');
 
       // Confirm the null value in cache
@@ -293,15 +271,12 @@ export function useClearTripBasecamp(tripId: string | undefined) {
       // Schedule a delayed refetch for consistency (same pattern as update)
       if (tripId) {
         setTimeout(() => {
-          console.log(LOG_PREFIX, 'Clear: delayed background refetch');
           queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
         }, 2000);
       }
     },
 
     // onSettled: no immediate invalidation (avoid race condition, same as update)
-    onSettled: () => {
-      console.log(LOG_PREFIX, 'Clear mutation settled');
-    },
+    onSettled: () => {},
   });
 }

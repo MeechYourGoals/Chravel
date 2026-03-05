@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { CalendarEvent } from '@/types/calendar';
@@ -217,13 +218,6 @@ export const calendarService = {
         throw new Error('You must be logged in to create events. Please sign in and try again.');
       }
 
-      console.log(
-        '[calendarService] Creating event for trip:',
-        eventData.trip_id,
-        'by user:',
-        user.id,
-      );
-
       // Check if user is super admin
       const isSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
 
@@ -240,7 +234,6 @@ export const calendarService = {
         }
       } else {
         // Super admin: ensure they're a trip member with admin role
-        console.log('[calendarService] Super admin detected, ensuring membership');
         await this.ensureTripMembership(eventData.trip_id, user.id);
       }
 
@@ -475,8 +468,6 @@ export const calendarService = {
       throw new Error('You must be logged in to update events. Please sign in and try again.');
     }
 
-    console.log('[calendarService] Updating event:', eventId, 'by user:', user.id);
-
     // Use Supabase for authenticated users - use .select() to verify update happened
     const { data, error } = await supabase
       .from('trip_events')
@@ -517,8 +508,6 @@ export const calendarService = {
         'Event update failed — no rows updated. You may not have permission to edit this event.',
       );
     }
-
-    console.log('[calendarService] Event updated successfully:', data.id);
 
     // Update cache with the returned data
     const cached = await offlineSyncService.getCachedEntity('calendar_event', eventId);

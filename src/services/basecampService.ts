@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from '../integrations/supabase/client';
 import { BasecampLocation } from '../types/basecamp';
 import { systemMessageService } from './systemMessageService';
@@ -50,23 +51,11 @@ class BasecampService {
    * It fetches from the database and caches for offline access.
    */
   async getTripBasecamp(tripId: string): Promise<BasecampLocation | null> {
-    console.log(this.LOG_PREFIX, 'getTripBasecamp called:', {
-      tripId,
-      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : 'unknown',
-      timestamp: new Date().toISOString(),
-    });
-
     try {
       // Offline-first: use cached basecamp when offline.
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        console.log(this.LOG_PREFIX, 'getTripBasecamp: Offline, using cache');
         const cached = await getCachedEntity({ entityType: 'trip_basecamp', entityId: tripId });
         const cachedResult = (cached?.data as BasecampLocation | null | undefined) ?? null;
-        console.log(this.LOG_PREFIX, 'getTripBasecamp: Cache result:', {
-          tripId,
-          found: !!cachedResult,
-          address: cachedResult?.address,
-        });
         return cachedResult;
       }
 
@@ -87,7 +76,6 @@ class BasecampService {
         try {
           const cached = await getCachedEntity({ entityType: 'trip_basecamp', entityId: tripId });
           if (cached?.data) {
-            console.log(this.LOG_PREFIX, 'getTripBasecamp: Using cached fallback due to DB error');
             return cached.data as BasecampLocation;
           }
         } catch {
@@ -102,12 +90,6 @@ class BasecampService {
       }
 
       if (!data.basecamp_address) {
-        console.log(this.LOG_PREFIX, 'getTripBasecamp: No basecamp set for trip', {
-          tripId,
-          hasName: !!data.basecamp_name,
-          hasLat: !!data.basecamp_latitude,
-          hasLng: !!data.basecamp_longitude,
-        });
         return null;
       }
 
@@ -120,13 +102,6 @@ class BasecampService {
             ? { lat: data.basecamp_latitude, lng: data.basecamp_longitude }
             : undefined,
       };
-
-      console.log(this.LOG_PREFIX, 'getTripBasecamp SUCCESS:', {
-        tripId,
-        address: result.address,
-        name: result.name,
-        hasCoordinates: !!result.coordinates,
-      });
 
       // Cache for offline access (best-effort).
       try {
@@ -155,7 +130,6 @@ class BasecampService {
       try {
         const cached = await getCachedEntity({ entityType: 'trip_basecamp', entityId: tripId });
         if (cached?.data) {
-          console.log(this.LOG_PREFIX, 'getTripBasecamp: Using cached fallback due to exception');
           return cached.data as BasecampLocation;
         }
       } catch {
@@ -182,14 +156,6 @@ class BasecampService {
     conflict?: boolean;
     coordinates?: { lat: number; lng: number };
   }> {
-    console.log(this.LOG_PREFIX, 'setTripBasecamp called:', {
-      tripId,
-      newAddress: basecamp.address,
-      newName: basecamp.name,
-      hasCoordinates: !!(basecamp.latitude && basecamp.longitude),
-      timestamp: new Date().toISOString(),
-    });
-
     try {
       // First, verify the trip exists. Only select `id` to avoid failures if
       // optional columns (like basecamp_version) are missing on the remote DB.
@@ -258,13 +224,6 @@ class BasecampService {
         return { success: false, error: 'User not authenticated' };
       }
 
-      console.log(this.LOG_PREFIX, 'setTripBasecamp: Starting 3-tier save attempt', {
-        tripId,
-        userId: user.id,
-        currentVersion,
-        address: basecamp.address,
-      });
-
       // ─── Attempt 1: Versioned RPC (preferred — optimistic locking) ───
       const rpcResult = await this.tryRpcBasecampUpdate(
         tripId,
@@ -277,10 +236,6 @@ class BasecampService {
 
       if (rpcResult.conflict) {
         return rpcResult;
-      }
-
-      if (rpcResult.success) {
-        console.log(this.LOG_PREFIX, 'setTripBasecamp: RPC succeeded');
       }
 
       // ─── Attempt 2: Direct UPDATE with verification ───
@@ -297,10 +252,6 @@ class BasecampService {
           finalLatitude,
           finalLongitude,
         );
-
-        if (fallbackResult.success) {
-          console.log(this.LOG_PREFIX, 'setTripBasecamp: Direct UPDATE fallback succeeded');
-        }
 
         // ─── Attempt 3: Minimal UPDATE (last resort) ───
         if (!fallbackResult.success) {
@@ -333,17 +284,8 @@ class BasecampService {
                 'Failed to save basecamp',
             };
           }
-
-          console.log(this.LOG_PREFIX, 'setTripBasecamp: Minimal UPDATE succeeded');
         }
       }
-
-      console.log(this.LOG_PREFIX, 'setTripBasecamp SUCCESS:', {
-        tripId,
-        newAddress: basecamp.address,
-        userId: user.id,
-        timestamp: new Date().toISOString(),
-      });
 
       // Create system message for consumer trips (best-effort, never blocks save)
       try {
@@ -515,10 +457,6 @@ class BasecampService {
     longitude: number | null,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log(this.LOG_PREFIX, 'tryMinimalBasecampUpdate: attempting minimal UPDATE', {
-        tripId,
-      });
-
       // Use a minimal update payload — only the core columns that are guaranteed to exist
       const { data, error } = await supabase
         .from('trips')
@@ -574,12 +512,6 @@ class BasecampService {
    * Personal basecamps are private to each user and not shared with trip members.
    */
   async getPersonalBasecamp(tripId: string, userId?: string): Promise<PersonalBasecamp | null> {
-    console.log(this.LOG_PREFIX, 'getPersonalBasecamp called:', {
-      tripId,
-      userIdProvided: !!userId,
-      timestamp: new Date().toISOString(),
-    });
-
     try {
       let effectiveUserId = userId;
 
@@ -596,7 +528,6 @@ class BasecampService {
       }
 
       if (!effectiveUserId) {
-        console.log(this.LOG_PREFIX, 'getPersonalBasecamp: No user ID available');
         return null;
       }
 
@@ -618,19 +549,8 @@ class BasecampService {
       }
 
       if (!data) {
-        console.log(this.LOG_PREFIX, 'getPersonalBasecamp: No personal basecamp found', {
-          tripId,
-          userId: effectiveUserId,
-        });
         return null;
       }
-
-      console.log(this.LOG_PREFIX, 'getPersonalBasecamp SUCCESS:', {
-        tripId,
-        userId: effectiveUserId,
-        address: data.address,
-        id: data.id,
-      });
 
       return data as PersonalBasecamp;
     } catch (error) {
@@ -659,13 +579,6 @@ class BasecampService {
     },
     options?: { skipHistory?: boolean },
   ): Promise<PersonalBasecamp | null> {
-    console.log(this.LOG_PREFIX, 'upsertPersonalBasecamp called:', {
-      trip_id: payload.trip_id,
-      address: payload.address,
-      name: payload.name,
-      timestamp: new Date().toISOString(),
-    });
-
     try {
       const {
         data: { user },
@@ -682,10 +595,6 @@ class BasecampService {
         return null;
       }
 
-      console.log(this.LOG_PREFIX, 'upsertPersonalBasecamp: User authenticated', {
-        userId: user.id,
-      });
-
       // Get current personal basecamp for history logging
       const currentBasecamp = await this.getPersonalBasecamp(payload.trip_id, user.id);
       const isUpdate = !!currentBasecamp;
@@ -694,12 +603,6 @@ class BasecampService {
       // This prevents the save from hanging if Google Maps API doesn't respond
       const finalLatitude = payload.latitude || null;
       const finalLongitude = payload.longitude || null;
-
-      console.log(this.LOG_PREFIX, 'upsertPersonalBasecamp: Executing upsert', {
-        trip_id: payload.trip_id,
-        user_id: user.id,
-        isUpdate,
-      });
 
       const { data, error } = await (supabase as any)
         .from('trip_personal_basecamps')
@@ -738,12 +641,6 @@ class BasecampService {
         });
         return null;
       }
-
-      console.log(this.LOG_PREFIX, 'upsertPersonalBasecamp: SUCCESS', {
-        trip_id: payload.trip_id,
-        savedAddress: data.address,
-        id: data.id,
-      });
 
       // Log to history (if not skipped)
       // Parameter names must match the log_basecamp_change function definition

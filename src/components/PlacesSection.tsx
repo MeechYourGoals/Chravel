@@ -5,7 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
 import { BasecampsPanel } from './places/BasecampsPanel';
 import { LinksPanel } from './places/LinksPanel';
-import { BasecampLocation, PlaceWithDistance } from '../types/basecamp';
+import { BasecampLocation } from '../types/basecamp';
 import { useTripVariant } from '../contexts/TripVariantContext';
 import { usePlacesLinkSync } from '../hooks/usePlacesLinkSync';
 import { useAuth } from '@/hooks/useAuth';
@@ -133,7 +133,6 @@ export const PlacesSection = ({
             now - lastLocalUpdateRef.current.timestamp < UPDATE_DEBOUNCE_MS;
 
           if (!isLocalUpdate) {
-            console.log('[PlacesSection] Remote basecamp update detected, invalidating cache');
             queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
 
             const updatedBasecamp = await basecampService.getTripBasecamp(tripId);
@@ -142,8 +141,6 @@ export const PlacesSection = ({
                 description: updatedBasecamp.name || updatedBasecamp.address,
               });
             }
-          } else {
-            console.log('[PlacesSection] Local basecamp update detected, skipping notification');
           }
         },
       )

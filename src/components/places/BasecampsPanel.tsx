@@ -110,12 +110,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
    * isolated and never block the save.
    */
   const handleTripBasecampSet = async (newBasecamp: BasecampLocation) => {
-    console.log(LOG_PREFIX, 'handleTripBasecampSet called:', {
-      tripId,
-      address: newBasecamp.address,
-      name: newBasecamp.name,
-    });
-
     try {
       // Primary path: TanStack Query mutation with optimistic updates
       await updateTripBasecampMutation.mutateAsync({
@@ -125,7 +119,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         longitude: newBasecamp.coordinates?.lng,
       });
 
-      console.log(LOG_PREFIX, 'Trip basecamp saved via mutation');
       setShowTripSelector(false);
 
       // Notify parent (non-blocking) for backward compat / realtime debounce
@@ -158,7 +151,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         });
 
         if (result.success) {
-          console.log(LOG_PREFIX, 'Trip basecamp saved via direct service fallback');
           setShowTripSelector(false);
           toast.success('Trip basecamp saved');
         } else {
@@ -178,8 +170,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   const handleTripBasecampClear = async () => {
     if (!tripBasecamp) return;
 
-    console.log(LOG_PREFIX, 'handleTripBasecampClear called:', { tripId });
-
     try {
       if (isDemoMode) {
         demoModeService.clearSessionTripBasecamp(tripId);
@@ -192,7 +182,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
       try {
         await clearTripBasecampMutation.mutateAsync();
         clearBasecamp();
-        console.log(LOG_PREFIX, 'Trip basecamp cleared via mutation');
 
         // Notify parent (non-blocking)
         if (onTripBasecampClear) {
@@ -220,7 +209,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
       if (result.success) {
         clearBasecamp();
         toast.success('Trip basecamp cleared');
-        console.log(LOG_PREFIX, 'Trip basecamp cleared via direct service fallback');
       } else {
         console.error(LOG_PREFIX, 'Direct clear fallback failed:', result.error);
         toast.error('Failed to clear trip basecamp');
@@ -262,10 +250,6 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         );
         setShowPersonalSelector(false);
         toast.success('Personal basecamp saved');
-        console.log(
-          '[BasecampsPanel] Personal basecamp saved successfully:',
-          savedBasecamp.address,
-        );
       } else {
         console.error(
           '[BasecampsPanel] Personal basecamp save returned null - database operation may have failed',
