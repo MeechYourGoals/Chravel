@@ -64,13 +64,13 @@ export const MobileEventCard = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+
   const { toast } = useToast();
   const { user } = useAuth();
   const { deleteTrip, isDeleting } = useDeleteTrip();
 
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
-  const eventColor = getProTripColor(event.id, (event as any).card_color);
+  const eventColor = getProTripColor(event.id, (event as Record<string, unknown>).card_color);
 
   const handleViewEvent = () => {
     navigate(`/event/${event.id}`);
@@ -160,7 +160,10 @@ export const MobileEventCard = ({
     }
 
     try {
-      const result = await deleteTrip(event.id.toString(), (event as any).created_by);
+      const result = await deleteTrip(
+        event.id.toString(),
+        (event as Record<string, unknown>).created_by,
+      );
       toast({
         title: result.action === 'archived' ? 'Event archived' : 'Event removed',
         description:
@@ -186,7 +189,7 @@ export const MobileEventCard = ({
     location: event.location,
     dateRange: event.dateRange,
     participants: [] as Array<{ id: number | string; name: string; avatar: string }>,
-    coverPhoto: (event as any).coverPhoto,
+    coverPhoto: (event as Record<string, unknown>).coverPhoto,
     peopleCount: getPeopleCountValue(event),
   };
 
@@ -201,10 +204,10 @@ export const MobileEventCard = ({
         className={`relative h-36 bg-gradient-to-br from-${accentColors.primary}/10 to-${accentColors.secondary}/10 p-4`}
       >
         {/* Cover photo overlay if available */}
-        {(event as any).coverPhoto ? (
+        {(event as Record<string, unknown>).coverPhoto ? (
           <div
             className="absolute inset-0 bg-cover bg-center opacity-15"
-            style={{ backgroundImage: `url(${(event as any).coverPhoto})` }}
+            style={{ backgroundImage: `url(${(event as Record<string, unknown>).coverPhoto})` }}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
