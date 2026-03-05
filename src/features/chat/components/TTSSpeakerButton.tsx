@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Volume2, Loader2, Square } from 'lucide-react';
-import type { TTSPlaybackState } from '@/hooks/useElevenLabsTTS';
+import type { TTSPlaybackState } from '@/hooks/useGoogleTTS';
 import { cn } from '@/lib/utils';
 
 interface TTSSpeakerButtonProps {
