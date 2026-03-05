@@ -9,8 +9,16 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
-  colors, radius, spacing, depth, type as typo, motion as motionPreset,
-  pills, segments, itinerary, concierge,
+  colors,
+  radius,
+  spacing,
+  depth,
+  type as typo,
+  motion as motionPreset,
+  pills,
+  segments,
+  itinerary,
+  concierge,
   type DemoPill,
 } from './tokens';
 import { Clock, MapPin, ExternalLink } from 'lucide-react';
@@ -47,7 +55,14 @@ interface DemoBubbleProps {
   className?: string;
 }
 
-export const DemoBubble = ({ variant, sender, text, avatar, showBroadcastLabel, className }: DemoBubbleProps) => {
+export const DemoBubble = ({
+  variant,
+  sender,
+  text,
+  avatar,
+  showBroadcastLabel,
+  className,
+}: DemoBubbleProps) => {
   const isOwn = variant === 'own';
   const isBroadcast = variant === 'broadcast';
 
@@ -104,9 +119,7 @@ export const DemoCard = ({ children, variant = 'default', className }: DemoCardP
       variant === 'itinerary' ? itinerary.card : radius.card,
       variant !== 'itinerary' && spacing.cardPadding,
       depth.card,
-      variant === 'settled' ? colors.paymentSettled
-        : variant === 'itinerary' ? ''
-        : colors.card,
+      variant === 'settled' ? colors.paymentSettled : variant === 'itinerary' ? '' : colors.card,
       className,
     )}
   >
@@ -215,10 +228,7 @@ interface DemoSegmentedControlProps {
 export const DemoSegmentedControl = ({ active }: DemoSegmentedControlProps) => (
   <div className={cn(segments.bar, 'w-full justify-center gap-0.5')}>
     <div
-      className={cn(
-        segments.base,
-        active === 'messages' ? segments.messages : segments.inactive,
-      )}
+      className={cn(segments.base, active === 'messages' ? segments.messages : segments.inactive)}
     >
       Messages
     </div>
@@ -259,7 +269,12 @@ interface DemoTimelineEventProps {
 }
 
 export const DemoTimelineEvent = ({
-  emoji, title, category, categoryLabel, time, location,
+  emoji,
+  title,
+  category,
+  categoryLabel,
+  time,
+  location,
 }: DemoTimelineEventProps) => (
   <div className="flex gap-3 pl-1">
     {/* Timeline connector */}
@@ -278,10 +293,12 @@ export const DemoTimelineEvent = ({
           </div>
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />{time}
+              <Clock className="w-3 h-3" />
+              {time}
             </span>
             <span className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />{location}
+              <MapPin className="w-3 h-3" />
+              {location}
             </span>
           </div>
         </div>
@@ -303,12 +320,23 @@ interface DemoConciergeCardProps {
 }
 
 export const DemoConciergeCard = ({
-  query, title, rating, bullets, linkText, saveLabel, onSaveState,
+  query,
+  title,
+  rating,
+  bullets,
+  linkText,
+  saveLabel,
+  onSaveState,
 }: DemoConciergeCardProps) => (
   <div className={cn(concierge.card, 'p-3 space-y-2.5')}>
     {/* User query */}
     <div className="flex items-start gap-2">
-      <div className={cn('w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold text-white', concierge.avatar)}>
+      <div
+        className={cn(
+          'w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold text-white',
+          concierge.avatar,
+        )}
+      >
         CA
       </div>
       <div className="flex-1">
@@ -347,10 +375,7 @@ export const DemoConciergeCard = ({
         animate={onSaveState === 'saved' ? { scale: [1, 1.05, 1] } : {}}
         transition={{ duration: 0.2 }}
       >
-        <DemoChip
-          label={saveLabel}
-          variant={onSaveState === 'saved' ? 'saved' : 'action'}
-        />
+        <DemoChip label={saveLabel} variant={onSaveState === 'saved' ? 'saved' : 'action'} />
       </motion.div>
     </div>
   </div>

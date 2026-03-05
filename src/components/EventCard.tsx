@@ -48,6 +48,9 @@ import {
 // Stable empty array reference - prevents infinite re-renders from Zustand selector
 const EMPTY_PARTICIPANTS: Array<{ id: number | string; name: string; avatar?: string }> = [];
 
+// Extended event type for fields that may exist on real trip objects but aren't in EventData
+type ExtendedEvent = EventData & { card_color?: string; created_by?: string; coverPhoto?: string };
+
 interface EventCardProps {
   event: EventData;
   onArchiveSuccess?: () => void;
@@ -64,7 +67,7 @@ export const EventCard = ({
   const navigate = useNavigate();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -75,7 +78,7 @@ export const EventCard = ({
   const { deleteTrip, isDeleting } = useDeleteTrip();
 
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
-  const eventColor = getProTripColor(event.id, (event as any).card_color);
+  const eventColor = getProTripColor(event.id, (event as ExtendedEvent).card_color);
 
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const eventIdStr = event.id.toString();
@@ -184,7 +187,7 @@ export const EventCard = ({
     }
 
     try {
-      const result = await deleteTrip(event.id.toString(), (event as any).created_by);
+      const result = await deleteTrip(event.id.toString(), (event as ExtendedEvent).created_by);
       toast({
         title: result.action === 'archived' ? 'Event archived' : 'Event removed',
         description:
@@ -210,7 +213,7 @@ export const EventCard = ({
     location: event.location,
     dateRange: event.dateRange,
     participants: [] as Array<{ id: number | string; name: string; avatar: string }>,
-    coverPhoto: (event as any).coverPhoto,
+    coverPhoto: (event as ExtendedEvent).coverPhoto,
     peopleCount: getPeopleCountValue(event),
   };
 
@@ -223,10 +226,10 @@ export const EventCard = ({
         className={`relative h-48 bg-gradient-to-br from-${accentColors.primary}/20 to-${accentColors.secondary}/20 p-6`}
       >
         {/* Cover photo overlay if available */}
-        {(event as any).coverPhoto ? (
+        {(event as ExtendedEvent).coverPhoto ? (
           <div
             className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={{ backgroundImage: `url(${(event as any).coverPhoto})` }}
+            style={{ backgroundImage: `url(${(event as ExtendedEvent).coverPhoto})` }}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />

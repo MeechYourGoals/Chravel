@@ -26,11 +26,11 @@ export const ChatDemoScreen = () => {
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setStep(1), 500),   // segmented control + first message
-      setTimeout(() => setStep(2), 1500),   // own message
-      setTimeout(() => setStep(3), 2000),   // switch to Broadcasts
-      setTimeout(() => setStep(4), 2300),   // broadcast message + label
-      setTimeout(() => setStep(5), 4000),   // reaction
+      setTimeout(() => setStep(1), 500), // segmented control + first message
+      setTimeout(() => setStep(2), 1500), // own message
+      setTimeout(() => setStep(3), 2000), // switch to Broadcasts
+      setTimeout(() => setStep(4), 2300), // broadcast message + label
+      setTimeout(() => setStep(5), 4000), // reaction
       setTimeout(resetAndLoop, LOOP_DURATION * 1000),
     ];
     return () => timers.forEach(clearTimeout);
@@ -50,11 +50,7 @@ export const ChatDemoScreen = () => {
         <AnimatePresence mode="sync">
           {/* Messages mode content */}
           {step >= 1 && step < 3 && (
-            <motion.div
-              key={`${cycle}-msg1`}
-              {...slideUp}
-              className="flex flex-col relative"
-            >
+            <motion.div key={`${cycle}-msg1`} {...slideUp} className="flex flex-col relative">
               <DemoBubble
                 variant="other"
                 sender="Alex"
@@ -66,20 +62,13 @@ export const ChatDemoScreen = () => {
 
           {step >= 2 && step < 3 && (
             <motion.div key={`${cycle}-msg2`} {...slideUp} className="flex flex-col">
-              <DemoBubble
-                variant="own"
-                text="We're down! Let's lock it in 🙌"
-              />
+              <DemoBubble variant="own" text="We're down! Let's lock it in 🙌" />
             </motion.div>
           )}
 
           {/* Broadcasts mode content */}
           {step >= 4 && (
-            <motion.div
-              key={`${cycle}-broadcast`}
-              {...slideUp}
-              className="flex flex-col relative"
-            >
+            <motion.div key={`${cycle}-broadcast`} {...slideUp} className="flex flex-col relative">
               <DemoBubble
                 variant="broadcast"
                 text="Dinner reservation added to calendar"

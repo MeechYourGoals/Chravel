@@ -32,7 +32,9 @@ interface OnboardingCarouselProps {
 const TOTAL_SCREENS = 5;
 
 interface ScreenConfig {
-  component: React.ComponentType<Record<string, never>> | React.ComponentType<{ onCreateTrip: () => void; onExploreDemoTrip: () => void }>;
+  component:
+    | React.ComponentType<Record<string, never>>
+    | React.ComponentType<{ onCreateTrip: () => void; onExploreDemoTrip: () => void }>;
   title: string;
   subtitle: string;
   pill?: DemoPill;
@@ -41,10 +43,34 @@ interface ScreenConfig {
 }
 
 const screens: ScreenConfig[] = [
-  { component: WelcomeScreen, title: 'Plan group trips without the chaos', subtitle: 'Chat, plan, split costs, and get AI help — all in one place', showInFrame: false },
-  { component: ChatDemoScreen, title: 'One trip. One chat.', subtitle: 'Messages, broadcasts, and reactions — all in your trip.', pill: 'chat', showInFrame: true },
-  { component: CalendarDemoScreen, title: "Plans that don't drift.", subtitle: 'Shared itinerary with AI-powered suggestions.', pill: 'calendar', glintPill: 'concierge', showInFrame: true },
-  { component: PaymentsTrackingDemoScreen, title: 'Money, organized.', subtitle: 'Track expenses, split bills, settle up.', pill: 'payments', showInFrame: true },
+  {
+    component: WelcomeScreen,
+    title: 'Plan group trips without the chaos',
+    subtitle: 'Chat, plan, split costs, and get AI help — all in one place',
+    showInFrame: false,
+  },
+  {
+    component: ChatDemoScreen,
+    title: 'One trip. One chat.',
+    subtitle: 'Messages, broadcasts, and reactions — all in your trip.',
+    pill: 'chat',
+    showInFrame: true,
+  },
+  {
+    component: CalendarDemoScreen,
+    title: "Plans that don't drift.",
+    subtitle: 'Shared itinerary with AI-powered suggestions.',
+    pill: 'calendar',
+    glintPill: 'concierge',
+    showInFrame: true,
+  },
+  {
+    component: PaymentsTrackingDemoScreen,
+    title: 'Money, organized.',
+    subtitle: 'Track expenses, split bills, settle up.',
+    pill: 'payments',
+    showInFrame: true,
+  },
   { component: FinalCTAScreen, title: '', subtitle: '', showInFrame: false },
 ];
 
@@ -68,12 +94,15 @@ export const OnboardingCarousel = ({
     onboardingEvents.screenViewed(currentScreen);
   }, [currentScreen]);
 
-  const goToScreen = useCallback((index: number) => {
-    if (index < 0 || index >= TOTAL_SCREENS) return;
-    setDirection(index > currentScreen ? 1 : -1);
-    setCurrentScreen(index);
-    haptics.light();
-  }, [currentScreen]);
+  const goToScreen = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= TOTAL_SCREENS) return;
+      setDirection(index > currentScreen ? 1 : -1);
+      setCurrentScreen(index);
+      haptics.light();
+    },
+    [currentScreen],
+  );
 
   const handleNext = useCallback(() => {
     if (currentScreen < TOTAL_SCREENS - 1) goToScreen(currentScreen + 1);
@@ -123,7 +152,9 @@ export const OnboardingCarousel = ({
 
   const renderScreenContent = () => {
     if (currentScreen === TOTAL_SCREENS - 1) {
-      return <FinalCTAScreen onCreateTrip={handleCreateTrip} onExploreDemoTrip={handleExploreDemoTrip} />;
+      return (
+        <FinalCTAScreen onCreateTrip={handleCreateTrip} onExploreDemoTrip={handleExploreDemoTrip} />
+      );
     }
     const Screen = config.component as React.ComponentType;
     return <Screen />;
@@ -159,7 +190,13 @@ export const OnboardingCarousel = ({
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-3 w-full max-w-xs">
             {currentScreen > 0 && (
-              <Button variant="outline" size="icon" onClick={handlePrev} className="shrink-0" aria-label="Previous screen">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handlePrev}
+                className="shrink-0"
+                aria-label="Previous screen"
+              >
                 <ChevronLeft className="w-5 h-5" />
               </Button>
             )}
@@ -168,7 +205,10 @@ export const OnboardingCarousel = ({
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
-          <button onClick={handleSkip} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            onClick={handleSkip}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             Skip tour
           </button>
         </div>
@@ -200,7 +240,10 @@ export const OnboardingCarousel = ({
 
         <div className="flex items-center gap-16 max-w-4xl w-full px-8">
           {/* Left: animated preview */}
-          <div className="relative flex items-center justify-center" style={{ minWidth: 300, minHeight: 560 }}>
+          <div
+            className="relative flex items-center justify-center"
+            style={{ minWidth: 300, minHeight: 560 }}
+          >
             {renderAnimatedContent()}
           </div>
 
@@ -213,7 +256,11 @@ export const OnboardingCarousel = ({
                   <p className="text-lg text-muted-foreground">{config.subtitle}</p>
                   <p className="text-sm text-muted-foreground/60 mt-1">Works on web + mobile.</p>
                 </div>
-                <OnboardingProgressDots totalScreens={TOTAL_SCREENS} currentScreen={currentScreen} onDotClick={goToScreen} />
+                <OnboardingProgressDots
+                  totalScreens={TOTAL_SCREENS}
+                  currentScreen={currentScreen}
+                  onDotClick={goToScreen}
+                />
               </>
             )}
             {renderControls()}
@@ -236,21 +283,31 @@ export const OnboardingCarousel = ({
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <div className="w-10" />
-        <OnboardingProgressDots totalScreens={TOTAL_SCREENS} currentScreen={currentScreen} onDotClick={goToScreen} />
-        <Button variant="ghost" size="icon" onClick={handleSkip} className="text-muted-foreground" aria-label="Skip onboarding">
+        <OnboardingProgressDots
+          totalScreens={TOTAL_SCREENS}
+          currentScreen={currentScreen}
+          onDotClick={goToScreen}
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleSkip}
+          className="text-muted-foreground"
+          aria-label="Skip onboarding"
+        >
           <X className="w-5 h-5" />
         </Button>
       </div>
 
       {/* Content */}
-      <div className={`flex-1 relative overflow-hidden ${layout === 'tablet' && isDemoScreen ? 'flex items-center justify-center' : ''}`}>
+      <div
+        className={`flex-1 relative overflow-hidden ${layout === 'tablet' && isDemoScreen ? 'flex items-center justify-center' : ''}`}
+      >
         {renderAnimatedContent()}
       </div>
 
       {/* Footer */}
-      <div className="p-6 pb-8">
-        {renderControls()}
-      </div>
+      <div className="p-6 pb-8">{renderControls()}</div>
     </motion.div>
   );
 };
