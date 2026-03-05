@@ -34,7 +34,13 @@
     "docs:generate": "typedoc",
     "doctor": "bash scripts/doctor.sh",
     "validate-env": "npx tsx scripts/validate-env.ts",
-    "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts"
+    "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts",
+    "security:scan": "npx tsx scripts/security/run-all.ts",
+    "security:scan:ci": "npx tsx scripts/security/run-all.ts --ci",
+    "security:deps": "npx tsx scripts/security/dependency-scan.ts",
+    "security:secrets": "npx tsx scripts/security/secret-scan.ts",
+    "security:static": "npx tsx scripts/security/static-analysis.ts",
+    "security:rls": "npx tsx scripts/security/rls-audit.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.0",
