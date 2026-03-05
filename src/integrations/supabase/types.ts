@@ -528,6 +528,30 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_card_order: {
+        Row: {
+          dashboard_type: string
+          id: string
+          ordered_ids: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          dashboard_type: string
+          id?: string
+          ordered_ids?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          dashboard_type?: string
+          id?: string
+          ordered_ids?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_agenda_items: {
         Row: {
           created_at: string | null
