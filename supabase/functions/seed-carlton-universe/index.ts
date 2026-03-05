@@ -169,7 +169,7 @@ const PRO_TRIPS: TripDef[] = [
     end_date: '2025-09-21T00:00:00Z',
     basecamp_name: 'The Chicago Athletic Association',
     basecamp_address: '12 S Michigan Ave, Chicago, IL 60603',
-    categories: '["touring"]',
+    categories: ['touring'],
     chat_mode: 'everyone',
   },
   {
@@ -182,7 +182,7 @@ const PRO_TRIPS: TripDef[] = [
     end_date: '2025-07-16T00:00:00Z',
     basecamp_name: 'The Venetian Resort',
     basecamp_address: '3355 S Las Vegas Blvd, Las Vegas, NV 89109',
-    categories: '["sports"]',
+    categories: ['sports'],
     chat_mode: 'everyone',
   },
   {
@@ -195,7 +195,7 @@ const PRO_TRIPS: TripDef[] = [
     end_date: '2025-10-06T00:00:00Z',
     basecamp_name: 'South Congress Hotel',
     basecamp_address: '1603 South Congress Ave, Austin, TX 78704',
-    categories: '["work"]',
+    categories: ['work'],
     chat_mode: 'everyone',
   },
   {
@@ -208,7 +208,7 @@ const PRO_TRIPS: TripDef[] = [
     end_date: '2026-02-16T00:00:00Z',
     basecamp_name: 'Hotel Zoo Berlin',
     basecamp_address: 'Kurfürstendamm 25, 10719 Berlin, Germany',
-    categories: '["touring"]',
+    categories: ['touring'],
     chat_mode: 'everyone',
   },
   {
@@ -221,7 +221,7 @@ const PRO_TRIPS: TripDef[] = [
     end_date: '2026-04-27T00:00:00Z',
     basecamp_name: 'Fairmont Hotel Vancouver',
     basecamp_address: '900 W Georgia St, Vancouver, BC V6C 2W6, Canada',
-    categories: '["productions"]',
+    categories: ['productions'],
     chat_mode: 'everyone',
   },
   {
@@ -234,7 +234,7 @@ const PRO_TRIPS: TripDef[] = [
     end_date: '2026-07-03T00:00:00Z',
     basecamp_name: 'Le Marais Boutique Hotel',
     basecamp_address: 'Rue de Rivoli, 75004 Paris, France',
-    categories: '["work"]',
+    categories: ['work'],
     chat_mode: 'everyone',
   },
   {
@@ -247,7 +247,7 @@ const PRO_TRIPS: TripDef[] = [
     end_date: '2026-01-25T00:00:00Z',
     basecamp_name: 'Four Seasons Surf Club',
     basecamp_address: '9011 Collins Ave, Surfside, FL 33154',
-    categories: '["sports"]',
+    categories: ['sports'],
     chat_mode: 'everyone',
   },
   {
@@ -260,7 +260,7 @@ const PRO_TRIPS: TripDef[] = [
     end_date: '2026-05-19T00:00:00Z',
     basecamp_name: 'The LINE LA',
     basecamp_address: '3515 Wilshire Blvd, Los Angeles, CA 90010',
-    categories: '["touring"]',
+    categories: ['touring'],
     chat_mode: 'everyone',
   },
   {
@@ -273,7 +273,7 @@ const PRO_TRIPS: TripDef[] = [
     end_date: '2026-07-14T00:00:00Z',
     basecamp_name: 'The Ritz-Carlton Lake Tahoe',
     basecamp_address: '13031 Ritz-Carlton Highlands Ct, Truckee, CA 96161',
-    categories: '["work"]',
+    categories: ['work'],
     chat_mode: 'everyone',
   },
   {
@@ -286,7 +286,7 @@ const PRO_TRIPS: TripDef[] = [
     end_date: '2026-08-23T00:00:00Z',
     basecamp_name: 'The Standard High Line',
     basecamp_address: '848 Washington St, New York, NY 10014',
-    categories: '["work"]',
+    categories: ['work'],
     chat_mode: 'everyone',
   },
 ];
@@ -892,7 +892,7 @@ serve(async (req) => {
       basecamp_name: t.basecamp_name,
       basecamp_address: t.basecamp_address,
       created_by: DEMO_USER_ID,
-      categories: t.categories ? JSON.parse(t.categories) : [],
+      categories: t.categories || [],
       chat_mode: t.chat_mode || 'broadcasts',
     }));
 
@@ -1063,7 +1063,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ success: false, error: error.message }), {
+    return new Response(JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
