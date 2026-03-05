@@ -35,6 +35,7 @@ import { useConciergeSessionStore, type ConciergeSession } from '@/store/concier
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
+import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -330,8 +331,11 @@ export const AIConciergeChat = ({
       const msg = messagesRef.current.find(m => m.id === messageId);
       if (!msg || msg.type !== 'assistant' || !msg.content) return;
 
+      const cleanContent = sanitizeConciergeContent(msg.content);
+      if (!cleanContent) return;
+
       const speechText = buildSpeechText({
-        displayText: msg.content,
+        displayText: cleanContent,
         hotels: msg.functionCallHotels,
         places: msg.functionCallPlaces,
         flights: msg.functionCallFlights?.map(f => ({

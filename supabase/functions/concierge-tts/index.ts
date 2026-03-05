@@ -78,7 +78,9 @@ async function getAccessToken(saKey: ServiceAccountKey): Promise<string> {
 
   if (!tokenResp.ok) {
     const body = await tokenResp.text();
-    throw new Error(`OAuth2 token exchange failed (${tokenResp.status}): ${body.substring(0, 400)}`);
+    throw new Error(
+      `OAuth2 token exchange failed (${tokenResp.status}): ${body.substring(0, 400)}`,
+    );
   }
 
   const tokenData = await tokenResp.json();
@@ -217,7 +219,7 @@ Deno.serve(async (req: Request) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify(ttsPayload),
     });
@@ -233,7 +235,7 @@ Deno.serve(async (req: Request) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(ttsPayload),
       });

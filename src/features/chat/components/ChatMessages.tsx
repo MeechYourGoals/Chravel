@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { MessageCircle, Trash2 } from 'lucide-react';
 import { ChatMessage } from './types';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
@@ -10,7 +10,16 @@ import { HotelResultCards, HotelResult } from './HotelResultCards';
 import { ConciergeActionCard, ConciergeActionResult } from './ConciergeActionCard';
 import { ReservationDraftCard } from './ReservationDraftCard';
 import { SmartImportPreviewCard } from './SmartImportPreviewCard';
-import { TTSSpeakerButton } from './TTSSpeakerButton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type {
   ReservationDraft,
   SmartImportPreviewEvent,
@@ -86,6 +95,23 @@ export const ChatMessages = ({
   onTTSPlay,
   onTTSStop,
 }: ChatMessagesProps) => {
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const handleDeleteClick = useCallback((messageId: string) => {
+    setPendingDeleteId(messageId);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (pendingDeleteId && onDeleteMessage) {
+      onDeleteMessage(pendingDeleteId);
+    }
+    setPendingDeleteId(null);
+  }, [pendingDeleteId, onDeleteMessage]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setPendingDeleteId(null);
+  }, []);
+
   if (messages.length === 0) {
     return (
       <div className="text-center py-8">
@@ -103,7 +129,14 @@ export const ChatMessages = ({
         const rich = message as RichChatMessage;
         return (
           <div key={message.id} id={`msg-${message.id}`} className="space-y-2 group/msg relative">
-            <MessageRenderer message={message} showMapWidgets={showMapWidgets} />
+            <MessageRenderer
+              message={message}
+              showMapWidgets={showMapWidgets}
+              ttsPlaybackState={ttsPlaybackState}
+              ttsPlayingMessageId={ttsPlayingMessageId}
+              onTTSPlay={onTTSPlay}
+              onTTSStop={onTTSStop}
+            />
 
             {/* Rich place cards from function_call results (searchPlaces / getPlaceDetails) */}
             {rich.functionCallPlaces && rich.functionCallPlaces.length > 0 && (
@@ -212,32 +245,20 @@ export const ChatMessages = ({
                 </div>
               </div>
             )}
-            {/* Action row: TTS speaker + delete */}
-            {(onDeleteMessage || (onTTSPlay && message.type === 'assistant')) && (
+            {/* Delete button — shows on hover, triggers confirm modal */}
+            {onDeleteMessage && (
               <div
                 className={`flex items-center gap-1 ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
               >
-                {/* TTS speaker button — assistant messages only */}
-                {onTTSPlay && onTTSStop && message.type === 'assistant' && message.content && (
-                  <TTSSpeakerButton
-                    messageId={message.id}
-                    playbackState={ttsPlaybackState ?? 'idle'}
-                    playingMessageId={ttsPlayingMessageId ?? null}
-                    onPlay={onTTSPlay}
-                    onStop={onTTSStop}
-                  />
-                )}
-                {onDeleteMessage && (
-                  <button
-                    type="button"
-                    onClick={() => onDeleteMessage(message.id)}
-                    className="opacity-0 group-hover/msg:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive p-1 rounded"
-                    aria-label="Delete message"
-                    title="Delete message"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteClick(message.id)}
+                  className="opacity-0 group-hover/msg:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive p-1 rounded"
+                  aria-label="Delete message"
+                  title="Delete message"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             )}
 
@@ -300,6 +321,28 @@ export const ChatMessages = ({
           </div>
         </div>
       )}
+
+      {/* Confirm delete modal */}
+      <AlertDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={open => !open && handleDeleteCancel()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete message?</AlertDialogTitle>
+            <AlertDialogDescription>This can't be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
