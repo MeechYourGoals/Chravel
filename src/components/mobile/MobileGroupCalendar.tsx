@@ -40,7 +40,6 @@ import type { TripEvent } from '@/services/calendarService';
 import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
 import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
 
-
 interface CalendarEvent {
   id: string;
   title: string;

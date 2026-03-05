@@ -64,7 +64,7 @@ export const EventCard = ({
   const navigate = useNavigate();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -75,7 +75,7 @@ export const EventCard = ({
   const { deleteTrip, isDeleting } = useDeleteTrip();
 
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
-  const eventColor = getProTripColor(event.id, (event as any).card_color);
+  const eventColor = getProTripColor(event.id, event.card_color);
 
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const eventIdStr = event.id.toString();
@@ -184,7 +184,7 @@ export const EventCard = ({
     }
 
     try {
-      const result = await deleteTrip(event.id.toString(), (event as any).created_by);
+      const result = await deleteTrip(event.id.toString(), event.created_by);
       toast({
         title: result.action === 'archived' ? 'Event archived' : 'Event removed',
         description:
@@ -210,7 +210,7 @@ export const EventCard = ({
     location: event.location,
     dateRange: event.dateRange,
     participants: [] as Array<{ id: number | string; name: string; avatar: string }>,
-    coverPhoto: (event as any).coverPhoto,
+    coverPhoto: event.coverPhoto,
     peopleCount: getPeopleCountValue(event),
   };
 
@@ -223,10 +223,10 @@ export const EventCard = ({
         className={`relative h-48 bg-gradient-to-br from-${accentColors.primary}/20 to-${accentColors.secondary}/20 p-6`}
       >
         {/* Cover photo overlay if available */}
-        {(event as any).coverPhoto ? (
+        {event.coverPhoto ? (
           <div
             className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={{ backgroundImage: `url(${(event as any).coverPhoto})` }}
+            style={{ backgroundImage: `url(${event.coverPhoto})` }}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />

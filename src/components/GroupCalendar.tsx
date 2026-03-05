@@ -20,7 +20,6 @@ import { hasPaidAccess } from '@/utils/paidAccess';
 import type { CalendarEvent } from '@/types/calendar';
 import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
 
-
 interface GroupCalendarProps {
   tripId: string;
 }

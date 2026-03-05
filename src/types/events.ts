@@ -140,7 +140,7 @@ export interface EventData {
     id: string;
     media_url: string;
     filename: string;
-    metadata: any;
+    metadata: Record<string, unknown> | null;
     created_at: string;
     source: 'chat' | 'upload';
   }>;
@@ -148,7 +148,7 @@ export interface EventData {
     id: string;
     media_url: string;
     filename: string;
-    metadata: any;
+    metadata: Record<string, unknown> | null;
     created_at: string;
     source: 'chat' | 'upload';
   }>;
@@ -156,7 +156,7 @@ export interface EventData {
     id: string;
     media_url: string;
     filename: string;
-    metadata: any;
+    metadata: Record<string, unknown> | null;
     created_at: string;
     source: 'chat' | 'upload';
   }>;
@@ -164,7 +164,7 @@ export interface EventData {
     id: string;
     media_url: string;
     filename: string;
-    metadata: any;
+    metadata: Record<string, unknown> | null;
     created_at: string;
     source: 'chat' | 'upload';
   }>;

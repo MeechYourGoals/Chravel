@@ -149,23 +149,27 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => null);
     if (!body || !body.speech_text) {
-      return new Response(
-        JSON.stringify({ error: 'speech_text is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: 'speech_text is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const { speech_text, voice_id, output_format = 'mp3' } = body as {
+    const {
+      speech_text,
+      voice_id,
+      output_format = 'mp3',
+    } = body as {
       speech_text: string;
       voice_id?: string;
       output_format?: string;
     };
 
     if (speech_text.length > 5000) {
-      return new Response(
-        JSON.stringify({ error: 'speech_text exceeds 5000 character limit' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: 'speech_text exceeds 5000 character limit' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const { encoding, contentType } = resolveEncoding(output_format);
@@ -199,7 +203,9 @@ Deno.serve(async (req: Request) => {
 
     // If primary voice fails, retry with fallback voice
     if (!res.ok && voice.name !== FALLBACK_VOICE) {
-      console.warn(`Primary voice ${voice.name} failed (${res.status}), retrying with fallback ${FALLBACK_VOICE}`);
+      console.warn(
+        `Primary voice ${voice.name} failed (${res.status}), retrying with fallback ${FALLBACK_VOICE}`,
+      );
       ttsPayload.voice = { languageCode: 'en-US', name: FALLBACK_VOICE };
       res = await fetch(GOOGLE_TTS_URL, {
         method: 'POST',
@@ -214,20 +220,20 @@ Deno.serve(async (req: Request) => {
     if (!res.ok) {
       const errText = await res.text();
       console.error('Google TTS error:', res.status, errText);
-      return new Response(
-        JSON.stringify({ error: 'TTS synthesis failed', status: res.status }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: 'TTS synthesis failed', status: res.status }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await res.json();
     const audioContent: string = data.audioContent;
 
     if (!audioContent) {
-      return new Response(
-        JSON.stringify({ error: 'No audio content returned' }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ error: 'No audio content returned' }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Decode base64 audio → binary
@@ -247,9 +253,9 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     console.error('concierge-tts error:', err);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

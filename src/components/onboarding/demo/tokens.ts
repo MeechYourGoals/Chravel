@@ -55,7 +55,8 @@ export const segments = {
 
 export const itinerary = {
   card: 'bg-slate-900/30 rounded-lg border border-slate-700/30 p-3',
-  dayCircle: 'w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-bold',
+  dayCircle:
+    'w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-bold',
   timelineDot: 'w-3 h-3 bg-primary rounded-full shrink-0',
   timelineConnector: 'w-0.5 bg-slate-600',
   categoryDining: 'bg-red-500/20 text-red-300 border border-red-500/20',

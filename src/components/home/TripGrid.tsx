@@ -14,11 +14,7 @@ import { ProTripData } from '../../types/pro';
 import { EventData } from '../../types/events';
 import { TripCardSkeleton } from '../ui/loading-skeleton';
 import { EnhancedEmptyState } from '../ui/enhanced-empty-state';
-import {
-  getArchivedTrips,
-  restoreTrip,
-  unhideTrip,
-} from '../../services/archiveService';
+import { getArchivedTrips, restoreTrip, unhideTrip } from '../../services/archiveService';
 import { useDeleteTrip } from '../../hooks/useDeleteTrip';
 import { useLocationFilteredRecommendations } from '../../hooks/useLocationFilteredRecommendations';
 import { MapPin, Calendar, Briefcase, Compass, Info, Archive, Clock } from 'lucide-react';
@@ -82,9 +78,9 @@ export const TripGrid = React.memo(
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [archivedTrips, setArchivedTrips] = useState<any[]>([]);
+    const [archivedTrips, setArchivedTrips] = useState<Record<string, unknown>[]>([]);
     const { isDemoMode } = useDemoMode();
-    const { tier } = useConsumerSubscription();
+    const { tier: _tier } = useConsumerSubscription();
     const { deleteTrip } = useDeleteTrip();
     const [reorderMode, setReorderMode] = useState<'my_trips' | 'pro' | 'events' | null>(null);
 
@@ -106,7 +102,7 @@ export const TripGrid = React.memo(
       if (activeFilter === 'archived' && user?.id) {
         getArchivedTrips(user.id).then(data => {
           // Combine all archived trips based on viewMode
-          let combined: any[] = [];
+          let combined: Record<string, unknown>[] = [];
           if (viewMode === 'myTrips') {
             combined = data.consumer;
           } else if (viewMode === 'tripsPro') {
@@ -137,7 +133,7 @@ export const TripGrid = React.memo(
         // Refresh archived trips
         if (user?.id) {
           const data = await getArchivedTrips(user.id);
-          let combined: any[] = [];
+          let combined: Record<string, unknown>[] = [];
           if (viewMode === 'myTrips') combined = data.consumer;
           else if (viewMode === 'tripsPro') combined = data.pro;
           else if (viewMode === 'events') combined = data.events;
@@ -280,7 +276,7 @@ export const TripGrid = React.memo(
         const fakeTrip = {
           id: trip.id,
           title: trip.title,
-          created_by: (trip as any).createdBy || (trip as any).created_by,
+          created_by: (trip as ProTripData & { createdBy?: string }).createdBy || trip.created_by,
         } as Trip;
         await handleSwipeDelete(fakeTrip);
       },
