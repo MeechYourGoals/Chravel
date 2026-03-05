@@ -4,7 +4,7 @@ const GOOGLE_TTS_URL = 'https://texttospeech.googleapis.com/v1/text:synthesize';
 const DEFAULT_VOICE = 'en-US-Neural2-J';
 const FALLBACK_VOICE = 'en-US-Wavenet-D';
 
-// ── OAuth2 Service Account helpers (same pattern as gemini-voice-session) ──
+// ── OAuth2 Service Account helpers ──
 
 interface ServiceAccountKey {
   client_email: string;
@@ -18,15 +18,25 @@ function base64UrlEncode(data: Uint8Array): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function createAccessToken(saKey: ServiceAccountKey): Promise<string> {
+// ── Module-level token cache (persists across warm invocations) ──
+let cachedAccessToken: string | null = null;
+let cachedTokenExpiry = 0;
+
+async function getAccessToken(saKey: ServiceAccountKey): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
+  // Re-use cached token if it has >60s remaining
+  if (cachedAccessToken && cachedTokenExpiry > now + 60) {
+    return cachedAccessToken;
+  }
+
   const header = { alg: 'RS256', typ: 'JWT' };
+  const expiry = now + 3600;
   const payload = {
     iss: saKey.client_email,
     sub: saKey.client_email,
     aud: saKey.token_uri || 'https://oauth2.googleapis.com/token',
     iat: now,
-    exp: now + 3600,
+    exp: expiry,
     scope: 'https://www.googleapis.com/auth/cloud-platform',
   };
 
@@ -75,7 +85,12 @@ async function createAccessToken(saKey: ServiceAccountKey): Promise<string> {
   if (!tokenData.access_token) {
     throw new Error('OAuth2 response missing access_token');
   }
-  return tokenData.access_token;
+
+  // Cache the token
+  cachedAccessToken = tokenData.access_token;
+  cachedTokenExpiry = expiry;
+
+  return cachedAccessToken!;
 }
 
 function parseServiceAccountKey(base64Key: string): ServiceAccountKey {
@@ -128,6 +143,9 @@ function resolveVoice(voiceId?: string): { languageCode: string; name: string } 
   return { languageCode: 'en-US', name: DEFAULT_VOICE };
 }
 
+// ── Module-level parsed SA key cache ──
+let cachedSaKey: ServiceAccountKey | null = null;
+
 // ── Main handler ──
 
 Deno.serve(async (req: Request) => {
@@ -138,7 +156,6 @@ Deno.serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
 
   try {
-    // Use service account OAuth2 instead of API key
     const saKeyRaw = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
     if (!saKeyRaw) {
       return new Response(
@@ -176,9 +193,13 @@ Deno.serve(async (req: Request) => {
     const sampleRate = resolveSampleRate(output_format);
     const voice = resolveVoice(voice_id);
 
-    // Mint OAuth2 access token from service account
-    const saKey = parseServiceAccountKey(saKeyRaw);
-    const accessToken = await createAccessToken(saKey);
+    // Parse SA key once, cache for warm invocations
+    if (!cachedSaKey) {
+      cachedSaKey = parseServiceAccountKey(saKeyRaw);
+    }
+
+    // Get cached or fresh OAuth2 access token
+    const accessToken = await getAccessToken(cachedSaKey);
 
     const ttsPayload = {
       input: { text: speech_text },
@@ -202,6 +223,7 @@ Deno.serve(async (req: Request) => {
     });
 
     // If primary voice fails, retry with fallback voice
+    let usedFallback = false;
     if (!res.ok && voice.name !== FALLBACK_VOICE) {
       console.warn(
         `Primary voice ${voice.name} failed (${res.status}), retrying with fallback ${FALLBACK_VOICE}`,
@@ -215,11 +237,19 @@ Deno.serve(async (req: Request) => {
         },
         body: JSON.stringify(ttsPayload),
       });
+      usedFallback = true;
     }
 
     if (!res.ok) {
       const errText = await res.text();
       console.error('Google TTS error:', res.status, errText);
+
+      // If 401/403, invalidate cached token for next request
+      if (res.status === 401 || res.status === 403) {
+        cachedAccessToken = null;
+        cachedTokenExpiry = 0;
+      }
+
       return new Response(JSON.stringify({ error: 'TTS synthesis failed', status: res.status }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -243,13 +273,19 @@ Deno.serve(async (req: Request) => {
       bytes[i] = raw.charCodeAt(i);
     }
 
+    const responseHeaders: Record<string, string> = {
+      ...corsHeaders,
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=86400',
+    };
+
+    if (usedFallback) {
+      responseHeaders['x-voice-fallback'] = 'true';
+    }
+
     return new Response(bytes.buffer as ArrayBuffer, {
       status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400',
-      },
+      headers: responseHeaders,
     });
   } catch (err) {
     console.error('concierge-tts error:', err);

@@ -1,9 +1,9 @@
 /**
  * useConciergeReadAloud — React hook for concierge text-to-speech playback.
  *
- * Calls the concierge-tts Supabase Edge Function (Google Cloud TTS proxy)
- * and plays the returned audio/mpeg blob. Handles iOS/PWA constraints
- * (user gesture required), stop/interrupt, error recovery, and cleanup.
+ * Splits text into sentences, fetches audio for the first sentence immediately,
+ * and pre-fetches subsequent sentences for gapless playback.
+ * Handles iOS/PWA constraints, stop/interrupt, error recovery, and cleanup.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
@@ -14,11 +14,9 @@ import {
 
 export type TTSPlaybackState = 'idle' | 'loading' | 'playing' | 'error';
 
-/** Default Google Cloud TTS voice. */
 const DEFAULT_VOICE = 'en-US-Neural2-J';
 const RETRYABLE_FETCH_ERROR = 'Failed to fetch';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const TTS_URL = `${SUPABASE_PROJECT_URL}/functions/v1/concierge-tts`;
 
 const toReadablePlaybackError = (err: unknown): string => {
   if (!(err instanceof Error)) return 'TTS playback failed';
@@ -28,8 +26,40 @@ const toReadablePlaybackError = (err: unknown): string => {
   return err.message || 'TTS playback failed';
 };
 
+/** Split text into sentences for chunked TTS. */
+function splitIntoSentences(text: string): string[] {
+  // Split on sentence-ending punctuation followed by whitespace or end of string
+  const raw = text.match(/[^.!?]*[.!?]+[\s]*/g);
+  if (!raw) return [text.trim()].filter(Boolean);
+  
+  const sentences: string[] = [];
+  let buffer = '';
+  
+  for (const segment of raw) {
+    buffer += segment;
+    // Only split if the buffer is long enough (avoid tiny fragments)
+    if (buffer.trim().length >= 20) {
+      sentences.push(buffer.trim());
+      buffer = '';
+    }
+  }
+  
+  // Capture any remaining text
+  const remaining = text.slice(raw.join('').length).trim();
+  if (remaining) buffer += ' ' + remaining;
+  if (buffer.trim()) {
+    if (sentences.length > 0 && buffer.trim().length < 20) {
+      // Merge short trailing fragment with last sentence
+      sentences[sentences.length - 1] += ' ' + buffer.trim();
+    } else {
+      sentences.push(buffer.trim());
+    }
+  }
+  
+  return sentences.length > 0 ? sentences : [text.trim()].filter(Boolean);
+}
+
 interface UseConciergeReadAloudOptions {
-  /** Override the default Google Cloud TTS voice name. */
   voiceId?: string;
 }
 
@@ -40,6 +70,49 @@ interface UseConciergeReadAloudReturn {
   usedFallbackVoice: boolean;
   play: (messageId: string, speechText: string) => Promise<void>;
   stop: () => void;
+}
+
+/** Fetch a single sentence's audio as a blob URL. */
+async function fetchSentenceAudio(
+  sentence: string,
+  voiceId: string,
+  accessToken: string,
+  signal: AbortSignal,
+): Promise<{ blobUrl: string; usedFallback: boolean }> {
+  const response = await fetch(TTS_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      apikey: SUPABASE_PUBLIC_ANON_KEY,
+    },
+    body: JSON.stringify({
+      speech_text: sentence,
+      voice_id: voiceId,
+      output_format: 'mp3',
+    }),
+    signal,
+  });
+
+  if (!response.ok) {
+    let errMsg = 'TTS request failed';
+    try {
+      const errBody = await response.json();
+      errMsg = errBody.error || errMsg;
+    } catch {
+      // Use default
+    }
+    throw new Error(errMsg);
+  }
+
+  const usedFallback = response.headers.get('x-voice-fallback') === 'true';
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('audio/')) {
+    throw new Error('Voice service returned an unexpected response format');
+  }
+
+  const blob = await response.blob();
+  return { blobUrl: URL.createObjectURL(blob), usedFallback };
 }
 
 export function useConciergeReadAloud(
@@ -53,7 +126,7 @@ export function useConciergeReadAloud(
   const [usedFallbackVoice, setUsedFallbackVoice] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const blobUrlRef = useRef<string | null>(null);
+  const blobUrlsRef = useRef<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   const cleanup = useCallback(() => {
@@ -63,10 +136,10 @@ export function useConciergeReadAloud(
       audioRef.current.load();
       audioRef.current = null;
     }
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
+    for (const url of blobUrlsRef.current) {
+      URL.revokeObjectURL(url);
     }
+    blobUrlsRef.current = [];
   }, []);
 
   const stop = useCallback(() => {
@@ -107,85 +180,67 @@ export function useConciergeReadAloud(
         }
 
         const resolvedVoiceId = voiceIdProp || DEFAULT_VOICE;
-        const url = `${SUPABASE_PROJECT_URL}/functions/v1/concierge-tts`;
+        const sentences = splitIntoSentences(speechText);
 
-        let response: Response | null = null;
-        let lastFetchError: unknown = null;
-
-        for (let attempt = 0; attempt < 2; attempt++) {
-          try {
-            response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${accessToken}`,
-                apikey: SUPABASE_PUBLIC_ANON_KEY,
-              },
-              body: JSON.stringify({
-                speech_text: speechText,
-                voice_id: resolvedVoiceId,
-                output_format: 'mp3',
-              }),
-              signal: abortController.signal,
-            });
-            lastFetchError = null;
-            break;
-          } catch (fetchErr) {
-            lastFetchError = fetchErr;
-            if (abortController.signal.aborted || attempt === 1) break;
-            await sleep(250);
-          }
-        }
-
-        if (lastFetchError) throw lastFetchError;
-        if (!response) throw new Error('TTS request failed before receiving a response');
+        // Fetch first sentence immediately
+        const first = await fetchSentenceAudio(
+          sentences[0],
+          resolvedVoiceId,
+          accessToken,
+          abortController.signal,
+        );
         if (abortController.signal.aborted) return;
 
-        if (!response.ok) {
-          let errMsg = 'TTS request failed';
-          try {
-            const errBody = await response.json();
-            errMsg = errBody.error || errMsg;
-          } catch {
-            // Use default
-          }
-          throw new Error(errMsg);
+        blobUrlsRef.current.push(first.blobUrl);
+        if (first.usedFallback) setUsedFallbackVoice(true);
+
+        // Start pre-fetching remaining sentences in parallel (max 3 concurrent)
+        const remainingPromises: Promise<{ blobUrl: string; usedFallback: boolean } | null>[] = [];
+        for (let i = 1; i < sentences.length; i++) {
+          remainingPromises.push(
+            fetchSentenceAudio(sentences[i], resolvedVoiceId, accessToken, abortController.signal)
+              .catch(() => null), // Don't fail the whole chain if a later chunk fails
+          );
         }
 
-        const fallbackHeader = response.headers.get('x-voice-fallback');
-        if (fallbackHeader === 'true') {
-          setUsedFallbackVoice(true);
-        }
+        // Play first sentence immediately
+        const playNextInQueue = async (blobUrl: string, index: number) => {
+          if (abortController.signal.aborted) return;
 
-        const responseContentType = response.headers.get('content-type') || '';
-        if (!responseContentType.includes('audio/')) {
-          throw new Error('Voice service returned an unexpected response format');
-        }
+          const audio = new Audio(blobUrl);
+          audioRef.current = audio;
 
-        const blob = await response.blob();
+          return new Promise<void>((resolve, reject) => {
+            audio.onended = () => resolve();
+            audio.onerror = () => reject(new Error('Audio playback failed'));
+
+            if (index === 0) setPlaybackState('playing');
+            audio.play().catch(reject);
+          });
+        };
+
+        // Play first sentence
+        await playNextInQueue(first.blobUrl, 0);
         if (abortController.signal.aborted) return;
 
-        const blobUrl = URL.createObjectURL(blob);
-        blobUrlRef.current = blobUrl;
+        // Play remaining sentences sequentially as they resolve
+        for (let i = 0; i < remainingPromises.length; i++) {
+          if (abortController.signal.aborted) return;
+          const result = await remainingPromises[i];
+          if (!result || abortController.signal.aborted) continue;
 
-        const audio = new Audio(blobUrl);
-        audioRef.current = audio;
+          blobUrlsRef.current.push(result.blobUrl);
+          if (result.usedFallback) setUsedFallbackVoice(true);
 
-        audio.onended = () => {
+          await playNextInQueue(result.blobUrl, i + 1);
+        }
+
+        // All sentences played
+        if (!abortController.signal.aborted) {
           cleanup();
           setPlaybackState('idle');
           setPlayingMessageId(null);
-        };
-
-        audio.onerror = () => {
-          cleanup();
-          setErrorMessage('Audio playback failed');
-          setPlaybackState('error');
-          setPlayingMessageId(null);
-        };
-
-        setPlaybackState('playing');
-        await audio.play();
+        }
       } catch (err) {
         if (abortController.signal.aborted) return;
         const msg = toReadablePlaybackError(err);
