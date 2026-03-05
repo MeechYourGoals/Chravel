@@ -73,7 +73,7 @@ export const MobileEventCard = ({
   const { deleteTrip, isDeleting } = useDeleteTrip();
 
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
-  const eventColor = getProTripColor(event.id, (event as ExtendedEvent).card_color);
+  const eventColor = getProTripColor(event.id, event.card_color);
 
   const handleViewEvent = () => {
     navigate(`/event/${event.id}`);
@@ -163,7 +163,7 @@ export const MobileEventCard = ({
     }
 
     try {
-      const result = await deleteTrip(event.id.toString(), (event as ExtendedEvent).created_by);
+      const result = await deleteTrip(event.id.toString(), event.created_by);
       toast({
         title: result.action === 'archived' ? 'Event archived' : 'Event removed',
         description:
@@ -189,7 +189,7 @@ export const MobileEventCard = ({
     location: event.location,
     dateRange: event.dateRange,
     participants: [] as Array<{ id: number | string; name: string; avatar: string }>,
-    coverPhoto: (event as ExtendedEvent).coverPhoto,
+    coverPhoto: event.coverPhoto,
     peopleCount: getPeopleCountValue(event),
   };
 
@@ -204,10 +204,10 @@ export const MobileEventCard = ({
         className={`relative h-36 bg-gradient-to-br from-${accentColors.primary}/10 to-${accentColors.secondary}/10 p-4`}
       >
         {/* Cover photo overlay if available */}
-        {(event as ExtendedEvent).coverPhoto ? (
+        {event.coverPhoto ? (
           <div
             className="absolute inset-0 bg-cover bg-center opacity-15"
-            style={{ backgroundImage: `url(${(event as ExtendedEvent).coverPhoto})` }}
+            style={{ backgroundImage: `url(${event.coverPhoto})` }}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />

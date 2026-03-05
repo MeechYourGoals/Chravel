@@ -1,28 +1,44 @@
 
 
-# Remove Calendar Empty State — Always Show Calendar UI
+# Fix concierge-tts: Switch from API Key to OAuth2 Service Account Auth
 
-## Problem
-When a trip has zero events, the mobile calendar shows a full-page "No events scheduled" empty state with a CTA button and info cards (screenshot 1), blocking the actual calendar UI. Per the memory note `calendar/universal-interface-standardization`, CalendarEmptyState should not render — the standard calendar UI should always mount immediately.
+## Root Cause (Confirmed)
+
+The edge function logs are definitive:
+
+```
+"API keys are not supported by this API. Expected OAuth2 access token"
+```
+
+**Google Cloud Text-to-Speech v1 does NOT support API keys** — not via query param, not via `x-goog-api-key` header. It requires OAuth2 Bearer tokens. No amount of API key configuration will fix this.
+
+## Solution
+
+The `VERTEX_SERVICE_ACCOUNT_KEY` secret is already configured and working (used by `gemini-voice-session` for Gemini Live). We reuse the same OAuth2 JWT-to-access-token flow in `concierge-tts`.
 
 ## Changes
 
-### 1. `src/components/mobile/MobileGroupCalendar.tsx`
-- **Remove the `events.length === 0` gate** (lines 346-349) that renders `CalendarEmptyState` instead of the calendar. The calendar UI (month nav, day view, compact calendar) will always render regardless of event count.
-- **Simplify the per-day empty state** (lines 389-399): Remove the Clock icon and "Add an event" CTA link. Replace with a simple `"No events for this day."` text — clean, no call to action (the `+` button in the day header already handles adding).
+### 1. `supabase/functions/concierge-tts/index.ts`
 
-### 2. `src/components/GroupCalendar.tsx`
-- **Remove the `CalendarEmptyState` import** (line 22) — desktop never gates on it but the import is dead code.
-- The desktop per-day empty text ("No events scheduled for this day.") at line 348-352 is fine as-is — it's inline contextual text, not a blocking CTA page.
+Replace the API key auth with OAuth2 service account auth:
 
-### 3. `src/features/calendar/components/CalendarEmptyState.tsx`
-- **Delete this file entirely.** No remaining consumers after the above changes.
+- Remove `GOOGLE_CLOUD_TTS_API_KEY` usage entirely
+- Add `VERTEX_SERVICE_ACCOUNT_KEY` reading + parsing (same pattern as `gemini-voice-session`)
+- Add `base64UrlEncode()`, `createAccessToken()`, `parseServiceAccountKey()` functions (copied from `gemini-voice-session`)
+- Mint an OAuth2 access token and use `Authorization: Bearer <token>` header instead of `x-goog-api-key`
+- The TTS endpoint stays `https://texttospeech.googleapis.com/v1/text:synthesize` (this is correct, it just needs OAuth2)
 
-### Files
+### 2. Deploy the updated function
 
-| File | Change |
+After code change, deploy `concierge-tts` to Supabase.
+
+## No other files change
+
+The client hook (`useConciergeReadAloud`) and all consumer components are already correctly wired from the previous migration. This is purely a backend auth fix.
+
+## Files
+
+| File | Action |
 |------|--------|
-| `src/components/mobile/MobileGroupCalendar.tsx` | Remove empty-state gate; simplify per-day empty text |
-| `src/components/GroupCalendar.tsx` | Remove unused CalendarEmptyState import |
-| `src/features/calendar/components/CalendarEmptyState.tsx` | Delete file |
+| `supabase/functions/concierge-tts/index.ts` | Replace API key auth with OAuth2 service account |
 
