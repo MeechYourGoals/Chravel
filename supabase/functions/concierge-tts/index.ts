@@ -94,9 +94,9 @@ Deno.serve(async (req: Request) => {
       },
     };
 
-    let res = await fetch(`${GOOGLE_TTS_URL}?key=${apiKey}`, {
+    let res = await fetch(GOOGLE_TTS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(ttsPayload),
     });
 
@@ -104,9 +104,9 @@ Deno.serve(async (req: Request) => {
     if (!res.ok && voice.name !== FALLBACK_VOICE) {
       console.warn(`Primary voice ${voice.name} failed (${res.status}), retrying with fallback ${FALLBACK_VOICE}`);
       ttsPayload.voice = { languageCode: 'en-US', name: FALLBACK_VOICE };
-      res = await fetch(`${GOOGLE_TTS_URL}?key=${apiKey}`, {
+      res = await fetch(GOOGLE_TTS_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify(ttsPayload),
       });
     }
