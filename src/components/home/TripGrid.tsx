@@ -276,7 +276,7 @@ export const TripGrid = React.memo(
         const fakeTrip = {
           id: trip.id,
           title: trip.title,
-          created_by: trip.created_by,
+          created_by: (trip as ProTripData & { createdBy?: string }).createdBy || trip.created_by,
         } as Trip;
         await handleSwipeDelete(fakeTrip);
       },
