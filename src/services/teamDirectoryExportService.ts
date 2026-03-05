@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { ProParticipant } from '../types/pro';
 import { ProTripCategory } from '../types/proCategories';
 import { openOrDownloadBlob } from '../utils/download';
@@ -217,21 +217,18 @@ class TeamDirectoryExportService {
   /**
    * Export team directory to Excel
    */
-  exportToExcel(
+  async exportToExcel(
     roster: ProParticipant[],
     category: ProTripCategory,
     options: ExportOptions = defaultOptions,
-  ): Blob {
+  ): Promise<Blob> {
     // Filter roster
     let filteredRoster = roster;
     if (options.filterByRole && options.filterByRole !== 'all') {
       filteredRoster = roster.filter(m => m.role === options.filterByRole);
     }
 
-    // Build data array
-    const data: any[] = [];
-
-    // Add headers
+    // Build headers
     const headers: string[] = [];
     if (options.includeFields.name) headers.push('Name');
     if (options.includeFields.role) headers.push('Role');
@@ -248,11 +245,17 @@ class TeamDirectoryExportService {
         'Emergency Contact Relationship',
       );
     }
-    data.push(headers);
 
-    // Add rows
+    // Create workbook and worksheet
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Team Directory');
+
+    // Add header row
+    ws.addRow(headers);
+
+    // Add data rows
     filteredRoster.forEach(member => {
-      const row: any[] = [];
+      const row: string[] = [];
       if (options.includeFields.name) row.push(member.name);
       if (options.includeFields.role) row.push(member.role);
       if (options.includeFields.email) row.push(member.email);
@@ -274,26 +277,25 @@ class TeamDirectoryExportService {
           member.emergencyContact?.relationship || '',
         );
       }
-      data.push(row);
+      ws.addRow(row);
     });
 
-    // Create workbook
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(data);
-
-    // Set column widths
-    const colWidths = headers.map((_, i) => {
-      const maxLength = Math.max(...data.map(row => (row[i] ? row[i].toString().length : 0)));
-      return { wch: Math.min(maxLength + 2, 50) };
+    // Set column widths based on content
+    ws.columns = headers.map((header, i) => {
+      let maxLength = header.length;
+      ws.eachRow((row, rowNumber) => {
+        const cell = row.getCell(i + 1);
+        const cellLength = cell.value ? String(cell.value).length : 0;
+        if (cellLength > maxLength) maxLength = cellLength;
+      });
+      return { width: Math.min(maxLength + 2, 50) };
     });
-    ws['!cols'] = colWidths;
-
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'Team Directory');
 
     // Generate buffer
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    return new Blob([wbout], { type: 'application/octet-stream' });
+    const buffer = await wb.xlsx.writeBuffer();
+    return new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
   }
 
   /**

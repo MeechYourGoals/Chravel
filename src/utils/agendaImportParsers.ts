@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatLocalDate } from './dateHelpers';
 import type { EventAgendaItem } from '@/types/events';
 import { parseICSContent, ICSParsedEvent } from './calendarImport';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export type AgendaSourceFormat = 'ics' | 'csv' | 'excel' | 'pdf' | 'image' | 'url' | 'text';
 
@@ -202,12 +202,18 @@ async function parseCSVAgenda(file: File): Promise<AgendaParseResult> {
 
 async function parseExcelAgenda(file: File): Promise<AgendaParseResult> {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
-  if (workbook.SheetNames.length === 0) {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buffer);
+  if (wb.worksheets.length === 0) {
     return { sessions: [], errors: ['Excel has no sheets'], isValid: false, sourceFormat: 'excel' };
   }
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const jsonData = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 }) as unknown[][];
+  const ws = wb.worksheets[0];
+  // Convert to 2D array; exceljs row.values is 1-indexed so slice off index 0
+  const jsonData: unknown[][] = [];
+  ws.eachRow(row => {
+    const values = row.values as unknown[];
+    jsonData.push(values.slice(1));
+  });
   if (jsonData.length < 2) {
     return {
       sessions: [],

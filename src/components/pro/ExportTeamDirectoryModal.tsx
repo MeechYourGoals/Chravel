@@ -74,7 +74,7 @@ export const ExportTeamDirectoryModal = ({
           filename = `${title.replace(/\s+/g, '_')}_Team_Directory.csv`;
           break;
         case 'excel':
-          blob = teamDirectoryExportService.exportToExcel(roster, category, options);
+          blob = await teamDirectoryExportService.exportToExcel(roster, category, options);
           filename = `${title.replace(/\s+/g, '_')}_Team_Directory.xlsx`;
           break;
       }
