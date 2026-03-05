@@ -16,7 +16,7 @@ import type {
   SmartImportPreviewEvent,
   SmartImportStatus,
 } from '@/services/conciergeGateway';
-import type { TTSPlaybackState } from '@/hooks/useElevenLabsTTS';
+import type { TTSPlaybackState } from '@/hooks/useConciergeReadAloud';
 
 /** Extended message shape that may carry rich function-call data from the concierge. */
 interface RichChatMessage extends ChatMessage {
