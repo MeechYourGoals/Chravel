@@ -1,56 +1,28 @@
 
 
-# Upgrade Card Order Persistence to Supabase
+# Remove Calendar Empty State — Always Show Calendar UI
 
 ## Problem
-Card reorder positions are stored in `localStorage`, meaning they don't sync across devices or browsers. Moving to Supabase makes the order persistent and cross-device.
+When a trip has zero events, the mobile calendar shows a full-page "No events scheduled" empty state with a CTA button and info cards (screenshot 1), blocking the actual calendar UI. Per the memory note `calendar/universal-interface-standardization`, CalendarEmptyState should not render — the standard calendar UI should always mount immediately.
 
 ## Changes
 
-### 1. New Supabase table: `dashboard_card_order`
-```sql
-CREATE TABLE public.dashboard_card_order (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  dashboard_type text NOT NULL CHECK (dashboard_type IN ('my_trips', 'pro', 'events')),
-  ordered_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, dashboard_type)
-);
+### 1. `src/components/mobile/MobileGroupCalendar.tsx`
+- **Remove the `events.length === 0` gate** (lines 346-349) that renders `CalendarEmptyState` instead of the calendar. The calendar UI (month nav, day view, compact calendar) will always render regardless of event count.
+- **Simplify the per-day empty state** (lines 389-399): Remove the Clock icon and "Add an event" CTA link. Replace with a simple `"No events for this day."` text — clean, no call to action (the `+` button in the day header already handles adding).
 
-ALTER TABLE public.dashboard_card_order ENABLE ROW LEVEL SECURITY;
+### 2. `src/components/GroupCalendar.tsx`
+- **Remove the `CalendarEmptyState` import** (line 22) — desktop never gates on it but the import is dead code.
+- The desktop per-day empty text ("No events scheduled for this day.") at line 348-352 is fine as-is — it's inline contextual text, not a blocking CTA page.
 
-CREATE POLICY "Users can read own card order"
-  ON public.dashboard_card_order FOR SELECT
-  TO authenticated
-  USING (user_id = auth.uid());
+### 3. `src/features/calendar/components/CalendarEmptyState.tsx`
+- **Delete this file entirely.** No remaining consumers after the above changes.
 
-CREATE POLICY "Users can insert own card order"
-  ON public.dashboard_card_order FOR INSERT
-  TO authenticated
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Users can update own card order"
-  ON public.dashboard_card_order FOR UPDATE
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-```
-
-### 2. Rewrite `src/hooks/useDashboardCardOrder.ts`
-- Replace `localStorage` read/write with Supabase queries
-- On mount: fetch saved order from `dashboard_card_order` table (with TanStack Query for caching)
-- On save: upsert to `dashboard_card_order` (debounced to avoid excessive writes during drag)
-- Keep localStorage as a fast synchronous fallback/cache so `applyOrder` doesn't block on network
-- Flow: Load from localStorage immediately (instant UI), then fetch from Supabase in background and update if newer. On save, write to both localStorage and Supabase.
-
-### 3. No changes to consumers
-`SortableTripGrid.tsx` and other consumers use `applyOrder`/`saveOrder` — the API stays identical.
-
-## Files
+### Files
 
 | File | Change |
 |------|--------|
-| `dashboard_card_order` table | New migration — create table + RLS |
-| `src/hooks/useDashboardCardOrder.ts` | Rewrite to use Supabase with localStorage cache |
+| `src/components/mobile/MobileGroupCalendar.tsx` | Remove empty-state gate; simplify per-day empty text |
+| `src/components/GroupCalendar.tsx` | Remove unused CalendarEmptyState import |
+| `src/features/calendar/components/CalendarEmptyState.tsx` | Delete file |
 
