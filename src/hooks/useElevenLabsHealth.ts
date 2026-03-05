@@ -1,8 +1,8 @@
 /**
- * useElevenLabsHealth — Proactive session-start health check for TTS.
+ * useElevenLabsHealth — Proactive session-start health check for concierge TTS.
  *
  * Fires once per browser session (guarded by sessionStorage) to verify
- * the ElevenLabs edge function and API key are operational.
+ * the voice edge function and upstream provider key are operational.
  * Non-blocking: does not delay UI rendering.
  */
 import { useState, useEffect } from 'react';
@@ -41,7 +41,9 @@ export function useElevenLabsHealth(): UseElevenLabsHealthReturn {
 
     async function checkHealth() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session?.access_token) {
           // Not logged in — skip health check
           if (mounted) {
@@ -75,7 +77,11 @@ export function useElevenLabsHealth(): UseElevenLabsHealthReturn {
         }
 
         if (isHealthy) {
-          try { sessionStorage.setItem(SESSION_KEY, '1'); } catch { /* ok */ }
+          try {
+            sessionStorage.setItem(SESSION_KEY, '1');
+          } catch {
+            /* ok */
+          }
         }
       } catch {
         if (mounted) {

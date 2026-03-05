@@ -105,3 +105,16 @@
 - [x] Implement minimal Tailwind class adjustments to keep text/actions contained on narrow widths.
 - [x] Validate via required gates (`npm run lint && npm run typecheck && npm run build`) and capture mobile verification evidence.
 - [x] Commit changes, verify branch tracking/push status, and open PR.
+
+## ElevenLabs "Invalid API Key" deep-dive + TTS alternative recommendation
+- [x] Trace ElevenLabs request path end-to-end (client hook → edge function → ElevenLabs API headers).
+- [x] Audit repository for hardcoded ElevenLabs API keys and secret naming mismatches.
+- [x] Document highest-probability failure modes and concrete Supabase verification commands.
+- [x] Recommend a free non-robotic TTS replacement with a warm male voice profile.
+
+## Replace ElevenLabs provider with Google Cloud TTS
+- [x] Scope current TTS call path + identify smallest provider swap surface.
+- [x] Implement edge function provider swap (Google Cloud TTS) while preserving existing client contract.
+- [x] Update docs/env requirements for new secret + voice defaults.
+- [x] Add/update tests for error mapping and audio response expectations.
+- [x] Run lint, typecheck, build, and focused tests.
