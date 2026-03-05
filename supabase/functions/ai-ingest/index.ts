@@ -26,6 +26,7 @@ interface BatchIngestResult {
 }
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
 

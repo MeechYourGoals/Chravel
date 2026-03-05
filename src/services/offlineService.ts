@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { toast } from '@/hooks/use-toast';
 
 export interface QueuedOperation {
@@ -31,7 +32,6 @@ class OfflineService {
   }
 
   private handleOnline(): void {
-    console.log('[Offline] Connection restored');
     this.isOnline = true;
     this.notifyListeners(true);
 
@@ -45,7 +45,6 @@ class OfflineService {
   }
 
   private handleOffline(): void {
-    console.log('[Offline] Connection lost');
     this.isOnline = false;
     this.notifyListeners(false);
 
@@ -93,8 +92,6 @@ class OfflineService {
 
     this.queue.push(queuedOp);
     this.saveQueue();
-
-    console.log('[Offline] Operation queued:', queuedOp.id);
   }
 
   /**
@@ -105,15 +102,12 @@ class OfflineService {
       return;
     }
 
-    console.log(`[Offline] Processing ${this.queue.length} queued operations`);
-
     const operations = [...this.queue];
     this.queue = [];
 
     for (const op of operations) {
       try {
         await op.operation();
-        console.log('[Offline] Operation completed:', op.id);
       } catch (error) {
         console.error('[Offline] Operation failed:', op.id, error);
 
@@ -121,7 +115,6 @@ class OfflineService {
         if (op.retryCount < this.maxRetries) {
           op.retryCount++;
           this.queue.push(op);
-          console.log('[Offline] Operation requeued for retry:', op.id);
         } else {
           console.error('[Offline] Operation failed after max retries:', op.id);
           toast({
@@ -170,8 +163,7 @@ class OfflineService {
     try {
       const saved = localStorage.getItem('offline_queue');
       if (saved) {
-        const operations = JSON.parse(saved);
-        console.log('[Offline] Loaded', operations.length, 'queued operations');
+        const _operations = JSON.parse(saved);
         // Note: We can't restore the operation functions from localStorage
         // They need to be recreated when the service functions are called
       }
@@ -186,7 +178,6 @@ class OfflineService {
   clearQueue(): void {
     this.queue = [];
     localStorage.removeItem('offline_queue');
-    console.log('[Offline] Queue cleared');
   }
 
   /**

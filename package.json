@@ -34,7 +34,13 @@
     "docs:generate": "typedoc",
     "doctor": "bash scripts/doctor.sh",
     "validate-env": "npx tsx scripts/validate-env.ts",
-    "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts"
+    "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts",
+    "security:scan": "npx tsx scripts/security/run-all.ts",
+    "security:scan:ci": "npx tsx scripts/security/run-all.ts --ci",
+    "security:deps": "npx tsx scripts/security/dependency-scan.ts",
+    "security:secrets": "npx tsx scripts/security/secret-scan.ts",
+    "security:static": "npx tsx scripts/security/static-analysis.ts",
+    "security:rls": "npx tsx scripts/security/rls-audit.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.0",
@@ -113,6 +119,7 @@
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
+    "exceljs": "^4.4.0",
     "fake-indexeddb": "^6.2.5",
     "framer-motion": "^10.18.0",
     "globals": "^15.9.0",
@@ -121,7 +128,7 @@
     "husky": "^8.0.3",
     "idb": "^8.0.3",
     "input-otp": "^1.2.4",
-    "jspdf": "^3.0.3",
+    "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.2",
     "lint-staged": "^15.2.0",
     "lovable-tagger": "^1.1.7",
@@ -150,7 +157,6 @@
     "vaul": "^0.9.3",
     "vite": "^5.4.21",
     "workbox-build": "^7.4.0",
-    "xlsx": "^0.18.5",
     "zod": "^3.23.8",
     "zustand": "^5.0.6"
   },

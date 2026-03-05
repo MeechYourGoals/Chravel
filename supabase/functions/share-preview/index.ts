@@ -160,7 +160,6 @@ function generateOGHtml(params: {
 
 serve(async (req): Promise<Response> => {
   const corsHeaders = getCorsHeaders(req);
-
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

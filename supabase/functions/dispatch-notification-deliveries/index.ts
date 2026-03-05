@@ -414,14 +414,12 @@ serve(async req => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (internalSecret) {
-    const providedSecret = req.headers.get('x-notification-secret');
-    if (providedSecret !== internalSecret) {
-      return new Response(JSON.stringify({ error: 'Unauthorized dispatch request' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+  const providedSecret = req.headers.get('x-notification-secret');
+  if (!internalSecret || providedSecret !== internalSecret) {
+    return new Response(JSON.stringify({ error: 'Unauthorized dispatch request' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   if (req.method !== 'POST') {

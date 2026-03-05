@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { checkRateLimitLocal } from '../_shared/security.ts';
 
 // Demo covers base URL - Supabase Storage
 const DEMO_COVERS_BASE =
@@ -340,7 +341,6 @@ type TripPreview = {
 
 serve(async (req): Promise<Response> => {
   const corsHeaders = getCorsHeaders(req);
-
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -354,6 +354,19 @@ serve(async (req): Promise<Response> => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Rate limit: 30 requests per 60 seconds per IP
+    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const rateLimitResult = checkRateLimitLocal(clientIp, 30, 60_000);
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Rate limit exceeded. Please try again later.' }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     // Demo trips

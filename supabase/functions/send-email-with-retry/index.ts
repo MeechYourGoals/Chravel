@@ -32,6 +32,7 @@ const MAX_RETRIES = 4;
 const RETRY_DELAYS = [2000, 4000, 8000, 16000]; // milliseconds
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   const { createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
 

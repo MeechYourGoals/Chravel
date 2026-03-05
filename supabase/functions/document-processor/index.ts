@@ -63,6 +63,7 @@ async function runDocumentModel(
 }
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: getCorsHeaders(req) });
   }

@@ -78,7 +78,18 @@ export const TripGrid = React.memo(
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [archivedTrips, setArchivedTrips] = useState<Array<{ id: string; name: string; destination?: string; start_date?: string; end_date?: string; trip_type: 'consumer' | 'pro' | 'event'; is_hidden?: boolean; cover_image_url?: string; }>>([]);
+    const [archivedTrips, setArchivedTrips] = useState<
+      Array<{
+        id: string;
+        name: string;
+        destination?: string;
+        start_date?: string;
+        end_date?: string;
+        trip_type: 'consumer' | 'pro' | 'event';
+        is_hidden?: boolean;
+        cover_image_url?: string;
+      }>
+    >([]);
     const { isDemoMode } = useDemoMode();
     const { tier: _tier } = useConsumerSubscription();
     const { deleteTrip } = useDeleteTrip();
@@ -276,7 +287,9 @@ export const TripGrid = React.memo(
         const fakeTrip = {
           id: trip.id,
           title: trip.title,
-          created_by: (trip as ProTripData & { createdBy?: string; created_by?: string }).createdBy || (trip as ProTripData & { created_by?: string }).created_by,
+          created_by:
+            (trip as ProTripData & { createdBy?: string; created_by?: string }).createdBy ||
+            (trip as ProTripData & { created_by?: string }).created_by,
         } as Trip;
         await handleSwipeDelete(fakeTrip);
       },

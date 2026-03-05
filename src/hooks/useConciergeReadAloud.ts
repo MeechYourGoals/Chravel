@@ -31,10 +31,10 @@ function splitIntoSentences(text: string): string[] {
   // Split on sentence-ending punctuation followed by whitespace or end of string
   const raw = text.match(/[^.!?]*[.!?]+[\s]*/g);
   if (!raw) return [text.trim()].filter(Boolean);
-  
+
   const sentences: string[] = [];
   let buffer = '';
-  
+
   for (const segment of raw) {
     buffer += segment;
     // Only split if the buffer is long enough (avoid tiny fragments)
@@ -43,7 +43,7 @@ function splitIntoSentences(text: string): string[] {
       buffer = '';
     }
   }
-  
+
   // Capture any remaining text
   const remaining = text.slice(raw.join('').length).trim();
   if (remaining) buffer += ' ' + remaining;
@@ -55,7 +55,7 @@ function splitIntoSentences(text: string): string[] {
       sentences.push(buffer.trim());
     }
   }
-  
+
   return sentences.length > 0 ? sentences : [text.trim()].filter(Boolean);
 }
 
@@ -198,8 +198,12 @@ export function useConciergeReadAloud(
         const remainingPromises: Promise<{ blobUrl: string; usedFallback: boolean } | null>[] = [];
         for (let i = 1; i < sentences.length; i++) {
           remainingPromises.push(
-            fetchSentenceAudio(sentences[i], resolvedVoiceId, accessToken, abortController.signal)
-              .catch(() => null), // Don't fail the whole chain if a later chunk fails
+            fetchSentenceAudio(
+              sentences[i],
+              resolvedVoiceId,
+              accessToken,
+              abortController.signal,
+            ).catch(() => null), // Don't fail the whole chain if a later chunk fails
           );
         }
 

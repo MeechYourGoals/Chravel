@@ -73,7 +73,7 @@ const getSuperAdminEntitlements = (): Set<EntitlementId> => {
   return allEntitlements;
 };
 
-export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
+export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
   ...DEFAULT_STATE,
 
   refreshEntitlements: async (userId: string, userEmail?: string) => {
@@ -82,7 +82,6 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
     try {
       // SUPER ADMIN CHECK FIRST - email allowlist is the failsafe
       if (userEmail && isSuperAdminEmail(userEmail)) {
-        console.log('[EntitlementsStore] Super admin detected by email:', userEmail);
         set({
           plan: SUPER_ADMIN_TIER,
           status: 'active',
@@ -110,7 +109,6 @@ export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
       const hasAdminRole = roles.includes('enterprise_admin');
 
       if (hasAdminRole) {
-        console.log('[EntitlementsStore] Super admin detected by role');
         set({
           plan: SUPER_ADMIN_TIER,
           status: 'active',

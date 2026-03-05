@@ -6,6 +6,7 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
 

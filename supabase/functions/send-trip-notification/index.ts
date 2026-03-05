@@ -34,6 +34,7 @@ interface TripNotificationPayload {
 }
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   const { createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
 

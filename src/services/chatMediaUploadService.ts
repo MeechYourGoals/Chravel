@@ -83,10 +83,6 @@ async function compressImage(file: File): Promise<File | Blob> {
       fileType: file.type as string,
     };
     const compressed = await imageCompression(file, options);
-    console.log('[ChatMediaUpload] Image compressed:', {
-      original: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-      compressed: (compressed.size / 1024 / 1024).toFixed(2) + 'MB',
-    });
     return compressed;
   } catch (error) {
     console.warn('[ChatMediaUpload] Compression failed, using original:', error);
@@ -131,12 +127,10 @@ export async function uploadToChatMedia(
   }
 
   // Upload to private bucket
-  const { data, error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .upload(storagePath, fileToUpload, {
-      contentType: file.type,
-      upsert: false,
-    });
+  const { error } = await supabase.storage.from(BUCKET_NAME).upload(storagePath, fileToUpload, {
+    contentType: file.type,
+    upsert: false,
+  });
 
   if (error) {
     console.error('[ChatMediaUpload] Upload failed:', error);

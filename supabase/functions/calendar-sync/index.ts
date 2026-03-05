@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
 

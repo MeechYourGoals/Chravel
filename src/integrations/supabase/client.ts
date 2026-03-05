@@ -42,8 +42,7 @@ const KNOWN_PROJECT_ANON_KEY =
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Vite injects import.meta.env at build time
 const env = (import.meta as any)?.env ?? {};
 
-const SUPABASE_URL: string =
-  (env.VITE_SUPABASE_URL as string | undefined) || KNOWN_PROJECT_URL;
+const SUPABASE_URL: string = (env.VITE_SUPABASE_URL as string | undefined) || KNOWN_PROJECT_URL;
 
 const SUPABASE_ANON_KEY: string =
   (env.VITE_SUPABASE_ANON_KEY as string | undefined) ||

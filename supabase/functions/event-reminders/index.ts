@@ -36,6 +36,15 @@ serve(async req => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const internalSecret = Deno.env.get('EVENT_REMINDER_SECRET');
+  const providedSecret = req.headers.get('x-reminder-secret');
+  if (!internalSecret || providedSecret !== internalSecret) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,

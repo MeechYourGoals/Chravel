@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   ImageUploadSchema,
   validateInput,
@@ -7,7 +8,6 @@ import {
   isValidFileType,
   ALLOWED_FILE_TYPES,
 } from '../_shared/validation.ts';
-import { getCorsHeaders } from '../_shared/cors.ts';
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);

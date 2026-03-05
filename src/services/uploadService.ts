@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import imageCompression from 'browser-image-compression';
 import { getUploadContentType } from '@/utils/mime';
 
@@ -26,10 +25,6 @@ export async function uploadToStorage(
         fileType: file.type,
       };
       fileToUpload = await imageCompression(file, options);
-      console.log('Image compressed:', {
-        original: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-        compressed: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
-      });
     } catch (error) {
       console.warn('Failed to compress image, uploading original:', error);
       fileToUpload = file;
@@ -42,7 +37,7 @@ export async function uploadToStorage(
 
   const contentType = getUploadContentType(file);
 
-  const { data, error } = await supabase.storage.from('trip-media').upload(key, fileToUpload, {
+  const { error } = await supabase.storage.from('trip-media').upload(key, fileToUpload, {
     contentType,
     upsert: false,
   });

@@ -129,11 +129,7 @@ export async function notifyTripOfChatMessage(params: {
   };
 
   // Fire and forget - don't await, don't block message creation
-  sendPushToTrip(tripId, senderId, notification).then(result => {
-    if (result.sent > 0) {
-      console.log(`[pushTrigger] Chat notification sent to ${result.sent} devices`);
-    }
-  });
+  sendPushToTrip(tripId, senderId, notification);
 }
 
 /**
@@ -160,11 +156,7 @@ export async function notifyTripOfBroadcast(params: {
     },
   };
 
-  sendPushToTrip(tripId, senderId, notification).then(result => {
-    if (result.sent > 0) {
-      console.log(`[pushTrigger] Broadcast notification sent to ${result.sent} devices`);
-    }
-  });
+  sendPushToTrip(tripId, senderId, notification);
 }
 
 /**
@@ -193,11 +185,7 @@ export async function notifyTripOfPoll(params: {
     },
   };
 
-  sendPushToTrip(tripId, creatorId, notification).then(result => {
-    if (result.sent > 0) {
-      console.log(`[pushTrigger] Poll notification sent to ${result.sent} devices`);
-    }
-  });
+  sendPushToTrip(tripId, creatorId, notification);
 }
 
 /**
@@ -227,11 +215,7 @@ export async function notifyUserOfTask(params: {
     },
   };
 
-  sendPushToUsers([userId], notification).then(result => {
-    if (result.sent > 0) {
-      console.log(`[pushTrigger] Task notification sent to user ${userId}`);
-    }
-  });
+  sendPushToUsers([userId], notification);
 }
 
 /**
@@ -256,9 +240,5 @@ export async function notifyTripOfEvent(params: {
     },
   };
 
-  sendPushToTrip(tripId, creatorId, notification).then(result => {
-    if (result.sent > 0) {
-      console.log(`[pushTrigger] Event notification sent to ${result.sent} devices`);
-    }
-  });
+  sendPushToTrip(tripId, creatorId, notification);
 }
