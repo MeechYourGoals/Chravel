@@ -102,14 +102,13 @@ const TripPreview = () => {
     }
   }, [tripId]);
 
-  // Check membership and active invite for real trips when user is logged in
+  // Check membership for logged-in users
   useEffect(() => {
     if (!user || !tripId || !isUuid(tripId)) return;
 
     let mounted = true;
 
-    async function checkMembershipAndInvite() {
-      // Check membership
+    async function checkMembership() {
       const { data: member } = await supabase
         .from('trip_members')
         .select('id')
@@ -119,28 +118,41 @@ const TripPreview = () => {
 
       if (!mounted) return;
       setIsMember(!!member);
-
-      // If not a member, check for an active invite link
-      if (!member) {
-        const { data: invite } = await supabase
-          .from('trip_invites')
-          .select('code')
-          .eq('trip_id', tripId!)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (!mounted) return;
-        setActiveInviteCode(invite?.code || null);
-      }
     }
 
-    checkMembershipAndInvite();
+    checkMembership();
     return () => {
       mounted = false;
     };
   }, [user, tripId]);
+
+  // Fetch active invite code for real trips — runs for ALL users (including
+  // unauthenticated) so the CTA can route through the join flow after signup.
+  // RLS policy "Anyone can view active trip invites" allows anon reads.
+  useEffect(() => {
+    if (!tripId || !isUuid(tripId)) return;
+
+    let mounted = true;
+
+    async function fetchInviteCode() {
+      const { data: invite } = await supabase
+        .from('trip_invites')
+        .select('code')
+        .eq('trip_id', tripId!)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!mounted) return;
+      setActiveInviteCode(invite?.code || null);
+    }
+
+    fetchInviteCode();
+    return () => {
+      mounted = false;
+    };
+  }, [tripId]);
 
   const fetchTripPreview = async () => {
     if (!tripId) return;
