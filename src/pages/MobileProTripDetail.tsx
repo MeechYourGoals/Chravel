@@ -13,14 +13,14 @@ import { useAuth } from '../hooks/useAuth';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
 import { proTripMockData } from '../data/proTripMockData';
-import { ProTripNotFound } from '../components/pro/ProTripNotFound';
+
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTrips } from '../hooks/useTrips';
 import { PRO_FEATURES } from '../hooks/useFeatureToggle';
 import { useTripMembers } from '../hooks/useTripMembers';
-import { convertSupabaseTripsToMock, convertSupabaseTripToProTrip } from '../utils/tripConverter';
+import { convertSupabaseTripToProTrip } from '../utils/tripConverter';
 import { MockRolesService } from '../services/mockRolesService';
-import { tripService } from '../services/tripService';
+
 import { ProTripData, ProParticipant } from '../types/pro';
 import { ExportSection } from '../types/tripExport';
 import { openOrDownloadBlob } from '../utils/download';
@@ -319,6 +319,7 @@ export const MobileProTripDetail = () => {
     }
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- legacy untyped trip shape
       const createdBy = (tripData as any)?.createdBy || (tripData as any)?.created_by;
       const result = await deleteTrip(proTripId, createdBy);
       toast.success(result.action === 'archived' ? 'Trip archived' : 'Trip removed', {
@@ -429,11 +430,11 @@ export const MobileProTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="flex flex-col min-h-screen bg-black">
-        {/* Mobile Header - Sticky with iOS safe area */}
+      <div className="flex flex-col h-[100dvh] bg-black overflow-hidden">
+        {/* Mobile Header - Fixed flex item (not sticky) for reliable iOS PWA visibility */}
         <div
           ref={headerRef}
-          className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
+          className="flex-shrink-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
         >
           <div className="px-4 py-2">
             <div className="flex items-center justify-between gap-2">
@@ -499,6 +500,7 @@ export const MobileProTripDetail = () => {
           }))}
           tripData={tripData}
           category={tripData.proTripCategory}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- legacy untyped trip shape
           tripCreatorId={(tripData as any).createdBy || user?.id}
         />
 

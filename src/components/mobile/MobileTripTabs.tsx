@@ -494,8 +494,8 @@ export const MobileTripTabs = ({
 
   return (
     <>
-      {/* Horizontal Scrollable Tab Bar - Sticky, Compressed for Mobile Portrait */}
-      <div className="sticky top-[var(--mobile-header-h,73px)] z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
+      {/* Horizontal Scrollable Tab Bar - Fixed flex item, always visible */}
+      <div className="flex-shrink-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/10">
         <div
           ref={tabsContainerRef}
           className="flex overflow-x-auto scrollbar-hide gap-2 px-4 py-2"
@@ -546,10 +546,10 @@ export const MobileTripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content - ⚡ PERFORMANCE: Per-tab error boundaries prevent bounce-back */}
+      {/* Tab Content - bounded height ensures tab rail stays visible regardless of parent layout */}
       <div
         ref={contentRef}
-        className="bg-background flex flex-col min-h-0 flex-1"
+        className="bg-background flex flex-col min-h-0 flex-1 overflow-hidden"
         style={{
           height: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))',
           WebkitOverflowScrolling: 'touch',
@@ -572,8 +572,9 @@ export const MobileTripTabs = ({
                 style={{
                   display: isActive ? 'flex' : 'none',
                   flexDirection: 'column',
-                  minHeight: isActive ? '100%' : 0,
-                  overflow: isActive ? undefined : 'hidden',
+                  minHeight: 0,
+                  overflow: isActive ? 'auto' : 'hidden',
+                  WebkitOverflowScrolling: isActive ? 'touch' : undefined,
                 }}
                 className={isActive ? 'h-full flex-1' : ''}
               >
