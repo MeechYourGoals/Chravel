@@ -403,9 +403,19 @@ export const useCalendarManagement = (tripId: string) => {
 
     try {
       setIsSaving(true);
+      const isAllDay = eventData.is_all_day ?? false;
       const startDate = new Date(eventData.date);
-      const [hours, minutes] = eventData.time.split(':');
-      startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+      let endTimeStr: string | undefined;
+
+      if (isAllDay) {
+        startDate.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(eventData.date);
+        endOfDay.setHours(23, 59, 59, 999);
+        endTimeStr = endOfDay.toISOString();
+      } else {
+        const [hours, minutes] = eventData.time.split(':');
+        startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+      }
 
       const updated = await updateMutation.mutateAsync({
         eventId,
@@ -413,9 +423,11 @@ export const useCalendarManagement = (tripId: string) => {
           title: eventData.title,
           description: eventData.description,
           start_time: startDate.toISOString(),
+          end_time: endTimeStr,
           location: eventData.location,
           event_category: eventData.category,
           include_in_itinerary: eventData.include_in_itinerary ?? true,
+          is_all_day: isAllDay,
         },
       });
 

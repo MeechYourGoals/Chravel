@@ -874,7 +874,7 @@ export const calendarService = {
       title: tripEvent.title,
       date: startDate,
       time: isAllDay
-        ? 'All day'
+        ? ''
         : startDate.toLocaleTimeString('en-US', {
             hour12: false,
             hour: '2-digit',
