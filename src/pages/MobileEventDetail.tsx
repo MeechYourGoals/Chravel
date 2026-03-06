@@ -33,7 +33,7 @@ export const MobileEventDetail = () => {
   const { trips: userTrips, loading: tripsLoading } = useTrips();
 
   // 🔄 CRITICAL FIX: Fetch real trip members from database for authenticated trips
-  const { tripMembers, loading: membersLoading } = useTripMembers(eventId);
+  const { tripMembers, loading: _membersLoading } = useTripMembers(eventId);
 
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {
@@ -384,11 +384,11 @@ export const MobileEventDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="flex flex-col min-h-screen bg-black">
-        {/* Mobile Header - Sticky with iOS safe area */}
+      <div className="flex flex-col h-[100dvh] bg-black overflow-hidden">
+        {/* Mobile Header - Fixed flex item (not sticky) for reliable iOS PWA visibility */}
         <div
           ref={headerRef}
-          className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
+          className="flex-shrink-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
         >
           <div className="px-4 py-2">
             <div className="flex items-center justify-between gap-2">

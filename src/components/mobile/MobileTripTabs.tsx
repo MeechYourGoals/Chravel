@@ -546,8 +546,15 @@ export const MobileTripTabs = ({
         </div>
       </div>
 
-      {/* Tab Content - flex-1 fills remaining space; each tab scrolls internally */}
-      <div ref={contentRef} className="bg-background flex flex-col min-h-0 flex-1 overflow-hidden">
+      {/* Tab Content - bounded height ensures tab rail stays visible regardless of parent layout */}
+      <div
+        ref={contentRef}
+        className="bg-background flex flex-col min-h-0 flex-1 overflow-hidden"
+        style={{
+          height: 'calc(100dvh - var(--mobile-header-h, 73px) - var(--mobile-tabs-h, 52px))',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {tabs
           .filter(t => variant === 'event' || t.enabled !== false)
           .map(tab => {
