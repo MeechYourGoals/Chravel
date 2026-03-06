@@ -33,10 +33,9 @@ import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
-
-import { useGoogleTTS } from '@/hooks/useGoogleTTS';
-
+import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
+import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -318,7 +317,7 @@ export const AIConciergeChat = ({
     errorMessage: ttsError,
     play: ttsPlayRaw,
     stop: ttsStop,
-  } = useGoogleTTS();
+  } = useConciergeReadAloud();
 
   // Hydrate from Zustand store on mount (preserves messages across tab switches)
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
@@ -332,8 +331,11 @@ export const AIConciergeChat = ({
       const msg = messagesRef.current.find(m => m.id === messageId);
       if (!msg || msg.type !== 'assistant' || !msg.content) return;
 
+      const cleanContent = sanitizeConciergeContent(msg.content);
+      if (!cleanContent) return;
+
       const speechText = buildSpeechText({
-        displayText: msg.content,
+        displayText: cleanContent,
         hotels: msg.functionCallHotels,
         places: msg.functionCallPlaces,
         flights: msg.functionCallFlights?.map(f => ({
