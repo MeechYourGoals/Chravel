@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -17,7 +17,10 @@ serve(async (req) => {
     const { tripId, accountId } = await req.json();
 
     if (!tripId || !accountId) {
-      return new Response(JSON.stringify({ error: 'Missing tripId or accountId' }), { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Missing tripId or accountId' }), {
+        status: 400,
+        headers: corsHeaders,
+      });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -33,7 +36,10 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser();
 
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: corsHeaders,
+      });
     }
 
     // 2. Fetch the connected Gmail account for this user
@@ -45,7 +51,10 @@ serve(async (req) => {
       .single();
 
     if (accountError || !account) {
-      return new Response(JSON.stringify({ error: 'Gmail account not found' }), { status: 404, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Gmail account not found' }), {
+        status: 404,
+        headers: corsHeaders,
+      });
     }
 
     // Use access token (ideally, handle refresh token logic here if expired)
@@ -53,16 +62,19 @@ serve(async (req) => {
 
     // 3. Search Gmail for travel related emails in the last 6 months
     const searchUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
-    searchUrl.searchParams.set('q', 'category:travel OR subject:(itinerary OR reservation OR ticket OR booking OR confirmation) newer_than:6m');
+    searchUrl.searchParams.set(
+      'q',
+      'category:travel OR subject:(itinerary OR reservation OR ticket OR booking OR confirmation) newer_than:6m',
+    );
     searchUrl.searchParams.set('maxResults', '15'); // Limit to keep execution time low for this demo
 
     const searchResponse = await fetch(searchUrl.toString(), {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     if (!searchResponse.ok) {
-       // If 401, we would normally use the refresh token to get a new access token
-       throw new Error(`Gmail API error: ${await searchResponse.text()}`);
+      // If 401, we would normally use the refresh token to get a new access token
+      throw new Error(`Gmail API error: ${await searchResponse.text()}`);
     }
 
     const searchData = await searchResponse.json();
@@ -82,7 +94,7 @@ serve(async (req) => {
         gmail_account_id: accountId,
         trip_id: tripId,
         status: 'running',
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
       })
       .select('id')
       .single();
@@ -102,7 +114,7 @@ serve(async (req) => {
       try {
         const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`;
         const msgResponse = await fetch(msgUrl, {
-          headers: { Authorization: `Bearer ${accessToken}` }
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
         const msgData = await msgResponse.json();
 
@@ -117,49 +129,51 @@ serve(async (req) => {
 
         // 6. Send to LLM
         if (geminiApiKey) {
-           const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({
-               contents: [{ parts: [{ text: `${runtimePrompt}\n\nEmail Text:\n${bodyText}` }] }],
-               generationConfig: { responseMimeType: 'application/json' }
-             })
-           });
+          const aiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: `${runtimePrompt}\n\nEmail Text:\n${bodyText}` }] }],
+                generationConfig: { responseMimeType: 'application/json' },
+              }),
+            },
+          );
 
-           if (aiResponse.ok) {
-             const aiData = await aiResponse.json();
-             const resultText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
-             if (resultText) {
-                const parsedJSON = JSON.parse(resultText);
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            const resultText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (resultText) {
+              const parsedJSON = JSON.parse(resultText);
 
-                if (parsedJSON && parsedJSON.reservations && parsedJSON.reservations.length > 0) {
-                   for (const res of parsedJSON.reservations) {
-                     // Deduplication key
-                     const dedupe_key = `${res.type}_${res.confirmation_code || ''}_${res.booking_source || ''}`;
+              if (parsedJSON && parsedJSON.reservations && parsedJSON.reservations.length > 0) {
+                for (const res of parsedJSON.reservations) {
+                  // Deduplication key
+                  const dedupe_key = `${res.type}_${res.confirmation_code || ''}_${res.booking_source || ''}`;
 
-                     // Insert into smart_import_candidates
-                     const { data: candidate, error: candidateError } = await supabaseClient
-                       .from('smart_import_candidates')
-                       .insert({
-                         job_id: job.id,
-                         user_id: user.id,
-                         trip_id: tripId,
-                         reservation_data: res,
-                         dedupe_key
-                       })
-                       .select()
-                       .single();
+                  // Insert into smart_import_candidates
+                  const { data: candidate, error: candidateError } = await supabaseClient
+                    .from('smart_import_candidates')
+                    .insert({
+                      job_id: job.id,
+                      user_id: user.id,
+                      trip_id: tripId,
+                      reservation_data: res,
+                      dedupe_key,
+                    })
+                    .select()
+                    .single();
 
-                     if (!candidateError && candidate) {
-                       allCandidates.push(candidate);
-                       stats.parsed++;
-                     }
-                   }
+                  if (!candidateError && candidate) {
+                    allCandidates.push(candidate);
+                    stats.parsed++;
+                  }
                 }
-             }
-           }
+              }
+            }
+          }
         }
-
       } catch (err) {
         console.error(`Error processing message ${msg.id}:`, err);
         stats.errors++;
@@ -172,14 +186,13 @@ serve(async (req) => {
       .update({
         status: 'completed',
         finished_at: new Date().toISOString(),
-        stats: stats
+        stats: stats,
       })
       .eq('id', job.id);
 
     return new Response(JSON.stringify({ candidates: allCandidates, stats }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-
   } catch (error: any) {
     console.error('Unexpected error:', error);
     return new Response(JSON.stringify({ error: error.message || 'Internal server error' }), {
