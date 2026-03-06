@@ -4,7 +4,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { tripsData } from '../data/tripsData';
-import { Loader2, Users, MapPin, Calendar, Share2, ExternalLink } from 'lucide-react';
+import { Loader2, Users, MapPin, Calendar, Share2, ExternalLink, UserPlus } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 
@@ -32,6 +32,8 @@ const TripPreview = () => {
   const [loading, setLoading] = useState(true);
   const [tripData, setTripData] = useState<TripPreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isMember, setIsMember] = useState<boolean | null>(null);
+  const [activeInviteCode, setActiveInviteCode] = useState<string | null>(null);
 
   // Safety timeout - prevent infinite loading states
   useEffect(() => {
@@ -98,6 +100,58 @@ const TripPreview = () => {
     if (tripId) {
       fetchTripPreview();
     }
+  }, [tripId]);
+
+  // Check membership for logged-in users
+  useEffect(() => {
+    if (!user || !tripId || !isUuid(tripId)) return;
+
+    let mounted = true;
+
+    async function checkMembership() {
+      const { data: member } = await supabase
+        .from('trip_members')
+        .select('id')
+        .eq('trip_id', tripId!)
+        .eq('user_id', user!.id)
+        .maybeSingle();
+
+      if (!mounted) return;
+      setIsMember(!!member);
+    }
+
+    checkMembership();
+    return () => {
+      mounted = false;
+    };
+  }, [user, tripId]);
+
+  // Fetch active invite code for real trips — runs for ALL users (including
+  // unauthenticated) so the CTA can route through the join flow after signup.
+  // RLS policy "Anyone can view active trip invites" allows anon reads.
+  useEffect(() => {
+    if (!tripId || !isUuid(tripId)) return;
+
+    let mounted = true;
+
+    async function fetchInviteCode() {
+      const { data: invite } = await supabase
+        .from('trip_invites')
+        .select('code')
+        .eq('trip_id', tripId!)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!mounted) return;
+      setActiveInviteCode(invite?.code || null);
+    }
+
+    fetchInviteCode();
+    return () => {
+      mounted = false;
+    };
   }, [tripId]);
 
   const fetchTripPreview = async () => {
@@ -205,11 +259,24 @@ const TripPreview = () => {
     }
 
     if (user) {
+      // If we know user is a member, go directly to trip
+      if (isMember) {
+        navigate(tripRoute);
+        return;
+      }
+      // If there's an active invite, route through the join flow
+      if (activeInviteCode) {
+        navigate(`/join/${activeInviteCode}`);
+        return;
+      }
+      // Otherwise navigate to trip (will show "Not a Member" if denied)
       navigate(tripRoute);
       return;
     }
 
-    navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(tripRoute)}`, {
+    // Not logged in - if there's an invite, use join flow after auth
+    const returnTo = activeInviteCode ? `/join/${activeInviteCode}` : tripRoute;
+    navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(returnTo)}`, {
       replace: true,
     });
   };
@@ -344,7 +411,10 @@ const TripPreview = () => {
                 const numericId = tripId ? parseInt(tripId, 10) : NaN;
                 const isDemoTrip = !isNaN(numericId) && numericId > 0 && numericId <= 12;
                 if (isDemoTrip) return 'Sign Up to View';
-                return user ? 'View Full Trip' : 'Sign Up to View';
+                if (!user) return 'Sign Up to View';
+                if (isMember) return 'Open Trip';
+                if (activeInviteCode) return 'Join This Trip';
+                return 'View Full Trip';
               })()}
             </Button>
 

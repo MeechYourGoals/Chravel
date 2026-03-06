@@ -1,87 +1,67 @@
 
 
-# Plan: Fix Build Errors, Reduce TTS Latency, and Strip Leaked JSON/Markdown from Chat
+## Root Cause Analysis
 
-## Problem Summary
+The card order inconsistency has **one core bug** with two contributing factors:
 
-Two user-facing issues plus build errors:
+### Bug: Race condition — remote order arrives too late, never re-applied
 
-1. **Leaked JSON in chat**: The AI model wraps tool-plan JSON in markdown code fences (` ```json ... ``` `). The current `sanitizeConciergeContent` only strips raw JSON objects — it does not strip fenced code blocks containing tool-plan JSON. The screenshot shows ` ```json { "plan_version": "1.0", "actions": [...] } ``` ` rendered in the chat bubble.
+Here's what happens on login:
 
-2. **TTS initialization latency**: The current `useConciergeReadAloud` hook fetches the first sentence, waits for it to complete, then plays it. Pre-fetching is parallel but playback is sequential. The `getSession()` call adds ~100-200ms before any fetch starts.
+```text
+Timeline:
+  t0  Component mounts → useEffect kicks off fetchRemoteOrder (async)
+  t1  Items arrive from React Query → applyOrder runs
+      → remoteOrderRef.current is still null
+      → Falls back to localStorage (stale, device-specific)
+      → Cards render in WRONG order
+  t2  fetchRemoteOrder resolves → sets remoteOrderRef.current
+      → But remoteOrderRef is a React ref — NO re-render triggered
+      → Cards stay in wrong order until next navigation
+```
 
-3. **Build errors**: `useGoogleTTS.ts:256` references `splitIntoSentences` which doesn't exist in that file (it defines `splitIntoOptimalChunks`). Plus other pre-existing errors in unrelated files.
+Because `remoteOrderRef` is a ref (not state), the component never re-renders when the correct remote order arrives. The cards are stuck in whatever order localStorage had — which is device-specific and often stale.
 
----
+### Contributing factor: Module-level debounce timer
 
-## Phase 1: Fix Build Errors
+There's a single `upsertTimer` variable shared across all hook instances. If a user switches between My Trips → Pro → Events quickly, the debounce timers clobber each other, potentially dropping saves.
 
-### 1a. `src/hooks/useGoogleTTS.ts` line 256
-- Replace `splitIntoSentences` with `splitIntoOptimalChunks` (the function defined in this same file).
+### Contributing factor: Silent upsert failures
 
-### 1b. Pre-existing errors (gmail, LineupImportModal, gmailAuth)
-- These are pre-existing type errors unrelated to the current issues. Will note but not address in this plan unless requested.
-
----
-
-## Phase 2: Sanitize Leaked JSON + Code Fences
-
-**File: `src/lib/sanitizeConciergeContent.ts`**
-
-Enhance the sanitizer to handle two additional leak patterns:
-
-1. **Markdown code fences** containing tool-plan JSON: Strip ` ```json ... ``` ` blocks where the content parses as a tool-plan object. Also strip ` ``` ... ``` ` (no language tag) if it contains tool-plan JSON.
-
-2. **Broader tool-plan key detection**: Add `"actions"` and `"type": "create_calendar_event"` / `"save_place"` as additional markers, since the screenshot shows these are the primary keys.
-
-**Approach**:
-- Before the existing brace-walking logic, add a regex pass that finds fenced code blocks (` ```json\n...\n``` ` or ` ```\n...\n``` `).
-- For each fenced block, try to parse the inner content as JSON.
-- If it's a tool-plan object, remove the entire fenced block (including the backtick markers).
-- Then run the existing brace-walking sanitizer for any remaining unfenced tool-plan JSON.
-
-Also add `'actions'` to `TOOL_PLAN_KEYS` to catch the pattern from the screenshot.
+The `catch {}` block in `debouncedUpsert` swallows all errors. If the upsert fails (network, RLS, etc.), the user has no idea their reorder didn't persist.
 
 ---
 
-## Phase 3: Reduce TTS Latency
+## Fix Plan
 
-**File: `src/hooks/useConciergeReadAloud.ts`**
+### 1. Convert `remoteOrderRef` to state so remote fetch triggers re-render
 
-Three targeted optimizations:
+Replace `remoteOrderRef` with a `useState<string[] | null>` so that when the remote order arrives, `applyOrder` re-runs via its dependency and the grid re-renders with the correct order.
 
-1. **Cache the auth token**: Store `session.access_token` in a ref so repeated plays don't re-call `getSession()`. Refresh only when it's null or on auth change.
+### 2. Make `applyOrder` depend on remote order state
 
-2. **Parallel pre-fetch with immediate playback**: Currently the first sentence is fetched, then playback starts, then remaining sentences are fetched in parallel. Instead:
-   - Fire the first sentence fetch.
-   - Simultaneously start pre-fetching sentence 2 (overlap with sentence 1 fetch).
-   - Begin playback as soon as sentence 1 returns — while sentence 2+ are still fetching.
-   - This shaves ~200-400ms off perceived latency.
+Update the `applyOrder` callback to include `remoteOrder` in its closure/deps, so it uses the freshest data.
 
-3. **Shorter first chunk**: Modify `splitIntoSentences` to make the first chunk shorter (max ~80 chars / 1 sentence) so it returns faster from the TTS API. Subsequent chunks can be larger (2-3 sentences) since they pre-fetch during playback.
+### 3. In `SortableTripGrid`, re-apply order when `applyOrder` identity changes
 
-**File: `src/lib/buildSpeechText.ts`** (if exists)
-- Ensure sanitized content is passed to TTS, not raw content with JSON.
+The existing `useEffect` already depends on `applyOrder`, so once `applyOrder` gets a new identity from the state change, the grid will re-sort automatically.
 
----
+### 4. Scope debounce timer per hook instance
 
-## Phase 4: Sanitize During Streaming (Not Just Render)
+Move `upsertTimer` into a `useRef` so each dashboard type gets its own independent debounce.
 
-**File: `src/components/AIConciergeChat.tsx`**
+### 5. Add error logging for failed upserts
 
-Currently, `sanitizeConciergeContent` runs at render time in `MessageRenderer`. During streaming, raw chunks accumulate and display before the final sanitized render. This is why users briefly see JSON.
-
-Fix: Apply `sanitizeConciergeContent` to the accumulated content on each `onChunk` update, so the displayed content is always clean even mid-stream. This is cheap (fast-path exits immediately if no tool-plan keys found).
-
-In the `onChunk` callback (~line 1042-1066):
-- After `accumulatedStreamContent += text`, sanitize before setting into message state.
+Log upsert failures so we can diagnose persistence issues.
 
 ---
 
-## Verification
+## Files Changed
 
-- Build passes (fix `splitIntoSentences` reference).
-- Chat messages never show raw JSON or fenced code blocks with tool plans.
-- TTS playback starts ~300-500ms faster.
-- No regression in place cards, hotel cards, or action results rendering.
+- `src/hooks/useDashboardCardOrder.ts` — All changes are in this single file
+
+## Risk
+
+- **Low**: Single-file change, no schema changes, no RLS changes.
+- The fix makes the existing Supabase fetch actually take effect in the UI.
 

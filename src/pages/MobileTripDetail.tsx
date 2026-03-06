@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Info, LogIn } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Info, LogIn, Users } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
@@ -378,16 +378,56 @@ export const MobileTripDetail = () => {
     );
   }
 
-  // 🔒 Handle other fetch errors - show retry option
+  // 🔒 Handle other fetch errors - distinguish permission errors from generic failures
   if (tripError) {
+    const isPermissionError =
+      tripError.message.includes('permission') ||
+      tripError.message.includes('403') ||
+      tripError.message.includes('not found');
+
+    // If user is logged in but got a permission/not-found error, they're likely not a member
+    // Show a "Not a Member" screen with options to find an invite or go back
+    if (isPermissionError && user && tripId) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <Users className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-4">Not a Member</h1>
+            <p className="text-gray-400 mb-6">
+              You're not a member of this trip yet. Ask the trip organizer for an invite link to
+              join.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  hapticService.light();
+                  navigate(`/trip/${tripId}/preview`);
+                }}
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+              >
+                View Trip Preview
+              </button>
+              <button
+                onClick={() => {
+                  hapticService.light();
+                  navigate('/');
+                }}
+                className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+              >
+                Back to My Trips
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <h1 className="text-2xl font-bold text-white mb-4">Couldn't Load Trip</h1>
           <p className="text-gray-400 mb-6">
-            {tripError.message.includes('permission')
-              ? "You don't have access to this trip."
-              : 'There was a problem loading this trip. Please try again.'}
+            There was a problem loading this trip. Please try again.
           </p>
           <div className="flex flex-col gap-3">
             <button

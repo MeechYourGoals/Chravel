@@ -392,7 +392,8 @@ function generateHTML(
   // OG image must be landscape (1200x630) for stacked layout in messaging apps
   const ogImageUrl = escapeHtml(toLandscapeOgImage(trip.coverPhoto));
 
-  // Where humans should land after unfurling (public preview page with auth handling).
+  // Always route to preview page — invite codes are resolved client-side to avoid
+  // leaking live tokens in publicly-scrapable OG HTML.
   const appTripUrl = `${appBaseUrl}/trip/${encodeURIComponent(tripId)}/preview`;
 
   // Determine trip type for badge display
