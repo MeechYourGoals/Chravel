@@ -8,10 +8,10 @@ export type GmailAccount = {
 
 export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
   try {
-    const { data, error } = await (supabase
-      .from('gmail_accounts' as any)
+    const { data, error } = await supabase
+      .from('gmail_accounts')
       .select('id, email, created_at')
-      .order('created_at', { ascending: false }) as any);
+      .order('created_at', { ascending: false });
 
     if (error) {
       if (error.message?.includes('schema cache') || error.code === '42P01') {
