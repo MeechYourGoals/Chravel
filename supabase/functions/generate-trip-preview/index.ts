@@ -383,6 +383,7 @@ function generateHTML(
   tripId: string,
   canonicalUrl: string,
   appBaseUrl: string,
+  activeInviteCode?: string | null,
 ): string {
   const safeTitle = escapeHtml(trip.title);
   const safeLocation = escapeHtml(trip.location);
@@ -392,8 +393,10 @@ function generateHTML(
   // OG image must be landscape (1200x630) for stacked layout in messaging apps
   const ogImageUrl = escapeHtml(toLandscapeOgImage(trip.coverPhoto));
 
-  // Where humans should land after unfurling (public preview page with auth handling).
-  const appTripUrl = `${appBaseUrl}/trip/${encodeURIComponent(tripId)}/preview`;
+  // Where humans should land: join flow if invite exists, otherwise preview page.
+  const appTripUrl = activeInviteCode
+    ? `${appBaseUrl}/join/${encodeURIComponent(activeInviteCode)}`
+    : `${appBaseUrl}/trip/${encodeURIComponent(tripId)}/preview`;
 
   // Determine trip type for badge display
   const isEvent = trip.tripType === 'event' && trip.themeColor;
@@ -647,8 +650,24 @@ serve(async (req: Request): Promise<Response> => {
       tripType: trip.trip_type as 'consumer' | 'pro' | 'event' | undefined,
     };
 
-    console.log('[generate-trip-preview] Serving real trip:', tripId, tripData.title);
-    const html = generateHTML(tripData, tripId, canonicalUrl, appBaseUrl);
+    // Query for active invite so the CTA routes through the join flow
+    const { data: activeInvite } = await supabase
+      .from('trip_invites')
+      .select('code')
+      .eq('trip_id', tripId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    console.log(
+      '[generate-trip-preview] Serving real trip:',
+      tripId,
+      tripData.title,
+      'invite:',
+      activeInvite?.code ?? 'none',
+    );
+    const html = generateHTML(tripData, tripId, canonicalUrl, appBaseUrl, activeInvite?.code);
 
     return new Response(html, {
       status: 200,
