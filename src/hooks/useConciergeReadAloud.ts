@@ -3,7 +3,7 @@
  *
  * Splits text into sentences, fetches audio for the first sentence immediately,
  * and pre-fetches subsequent sentences for gapless playback.
- * Handles iOS/PWA constraints, stop/interrupt, error recovery, and cleanup.
+ * Caches auth token to reduce latency. Shorter first chunk for faster time-to-voice.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
@@ -26,21 +26,33 @@ const toReadablePlaybackError = (err: unknown): string => {
   return err.message || 'TTS playback failed';
 };
 
-/** Split text into sentences for chunked TTS. */
+/**
+ * Split text into sentences for chunked TTS.
+ * First chunk is kept short (~80 chars / 1 sentence) for fast time-to-voice.
+ * Subsequent chunks can be larger (2-3 sentences) since they pre-fetch during playback.
+ */
 function splitIntoSentences(text: string): string[] {
-  // Split on sentence-ending punctuation followed by whitespace or end of string
   const raw = text.match(/[^.!?]*[.!?]+[\s]*/g);
   if (!raw) return [text.trim()].filter(Boolean);
 
   const sentences: string[] = [];
   let buffer = '';
+  let isFirst = true;
 
   for (const segment of raw) {
     buffer += segment;
-    // Only split if the buffer is long enough (avoid tiny fragments)
-    if (buffer.trim().length >= 20) {
+    const maxLen = isFirst ? 80 : 200;
+    const maxSentences = isFirst ? 1 : 3;
+
+    if (buffer.trim().length >= maxLen || (!isFirst && buffer.split(/[.!?]+/).length > maxSentences)) {
       sentences.push(buffer.trim());
       buffer = '';
+      isFirst = false;
+    } else if (isFirst && buffer.trim().length >= 20) {
+      // For first chunk, split as soon as we have a complete sentence >= 20 chars
+      sentences.push(buffer.trim());
+      buffer = '';
+      isFirst = false;
     }
   }
 
@@ -49,7 +61,6 @@ function splitIntoSentences(text: string): string[] {
   if (remaining) buffer += ' ' + remaining;
   if (buffer.trim()) {
     if (sentences.length > 0 && buffer.trim().length < 20) {
-      // Merge short trailing fragment with last sentence
       sentences[sentences.length - 1] += ' ' + buffer.trim();
     } else {
       sentences.push(buffer.trim());
@@ -128,6 +139,27 @@ export function useConciergeReadAloud(
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const blobUrlsRef = useRef<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  // Cache auth token to avoid repeated getSession() calls (~100-200ms each)
+  const cachedTokenRef = useRef<string | null>(null);
+
+  // Warm the token cache on mount and auth changes
+  useEffect(() => {
+    const warmToken = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        cachedTokenRef.current = session?.access_token || null;
+      } catch {
+        cachedTokenRef.current = null;
+      }
+    };
+    warmToken();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      cachedTokenRef.current = session?.access_token || null;
+    });
+
+    return () => { subscription.unsubscribe(); };
+  }, []);
 
   const cleanup = useCallback(() => {
     if (audioRef.current) {
@@ -171,10 +203,13 @@ export function useConciergeReadAloud(
       abortRef.current = abortController;
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const accessToken = session?.access_token;
+        // Use cached token; only fetch if missing
+        let accessToken = cachedTokenRef.current;
+        if (!accessToken) {
+          const { data: { session } } = await supabase.auth.getSession();
+          accessToken = session?.access_token || null;
+          cachedTokenRef.current = accessToken;
+        }
         if (!accessToken) {
           throw new Error('Not authenticated. Please sign in to use voice.');
         }
@@ -182,61 +217,69 @@ export function useConciergeReadAloud(
         const resolvedVoiceId = voiceIdProp || DEFAULT_VOICE;
         const sentences = splitIntoSentences(speechText);
 
-        // Fetch first sentence immediately
-        const first = await fetchSentenceAudio(
+        // Fire first AND second sentence fetches in parallel for overlap
+        const firstPromise = fetchSentenceAudio(
           sentences[0],
           resolvedVoiceId,
           accessToken,
           abortController.signal,
         );
+
+        // Start pre-fetching sentence 2 immediately (overlaps with sentence 1 fetch)
+        const secondPromise = sentences.length > 1
+          ? fetchSentenceAudio(sentences[1], resolvedVoiceId, accessToken, abortController.signal).catch(() => null)
+          : null;
+
+        // Pre-fetch remaining sentences (3+) in parallel
+        const remainingPromises: Promise<{ blobUrl: string; usedFallback: boolean } | null>[] = [];
+        for (let i = 2; i < sentences.length; i++) {
+          remainingPromises.push(
+            fetchSentenceAudio(sentences[i], resolvedVoiceId, accessToken, abortController.signal).catch(() => null),
+          );
+        }
+
+        // Wait for first sentence
+        const first = await firstPromise;
         if (abortController.signal.aborted) return;
 
         blobUrlsRef.current.push(first.blobUrl);
         if (first.usedFallback) setUsedFallbackVoice(true);
 
-        // Start pre-fetching remaining sentences in parallel (max 3 concurrent)
-        const remainingPromises: Promise<{ blobUrl: string; usedFallback: boolean } | null>[] = [];
-        for (let i = 1; i < sentences.length; i++) {
-          remainingPromises.push(
-            fetchSentenceAudio(
-              sentences[i],
-              resolvedVoiceId,
-              accessToken,
-              abortController.signal,
-            ).catch(() => null), // Don't fail the whole chain if a later chunk fails
-          );
-        }
-
-        // Play first sentence immediately
-        const playNextInQueue = async (blobUrl: string, index: number) => {
+        // Play a sentence and wait for it to finish
+        const playAudio = async (blobUrl: string, index: number) => {
           if (abortController.signal.aborted) return;
-
           const audio = new Audio(blobUrl);
           audioRef.current = audio;
-
           return new Promise<void>((resolve, reject) => {
             audio.onended = () => resolve();
             audio.onerror = () => reject(new Error('Audio playback failed'));
-
             if (index === 0) setPlaybackState('playing');
             audio.play().catch(reject);
           });
         };
 
-        // Play first sentence
-        await playNextInQueue(first.blobUrl, 0);
+        // Play first sentence immediately
+        await playAudio(first.blobUrl, 0);
         if (abortController.signal.aborted) return;
 
-        // Play remaining sentences sequentially as they resolve
+        // Play second sentence (already fetching in parallel)
+        if (secondPromise) {
+          const second = await secondPromise;
+          if (second && !abortController.signal.aborted) {
+            blobUrlsRef.current.push(second.blobUrl);
+            if (second.usedFallback) setUsedFallbackVoice(true);
+            await playAudio(second.blobUrl, 1);
+          }
+        }
+
+        // Play remaining sentences sequentially
         for (let i = 0; i < remainingPromises.length; i++) {
           if (abortController.signal.aborted) return;
           const result = await remainingPromises[i];
           if (!result || abortController.signal.aborted) continue;
-
           blobUrlsRef.current.push(result.blobUrl);
           if (result.usedFallback) setUsedFallbackVoice(true);
-
-          await playNextInQueue(result.blobUrl, i + 1);
+          await playAudio(result.blobUrl, i + 2);
         }
 
         // All sentences played
