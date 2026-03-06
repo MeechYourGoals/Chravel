@@ -7,17 +7,15 @@ export type GmailAccount = {
 };
 
 export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
-  const { data, error } = await (supabase
-    .from('gmail_accounts' as any)
-    .select('id, email, created_at')
-    .order('created_at', { ascending: false }) as any);
+  try {
+    const { data, error } = await (supabase
+      .from('gmail_accounts' as any)
+      .select('id, email, created_at')
+      .order('created_at', { ascending: false }) as any);
 
     if (error) {
-      // Gracefully handle missing table (migration not yet applied)
       if (error.message?.includes('schema cache') || error.code === '42P01') {
-        console.warn(
-          '[gmailAuth] gmail_accounts table not found - migration may not be applied yet',
-        );
+        console.warn('[gmailAuth] gmail_accounts table not found - migration may not be applied yet');
         return [];
       }
       console.error('Error fetching Gmail accounts:', error);
@@ -26,7 +24,6 @@ export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
 
     return data || [];
   } catch (err) {
-    // Catch network or unexpected errors gracefully
     if (err instanceof Error && err.message?.includes('schema cache')) {
       return [];
     }
