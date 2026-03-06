@@ -15,9 +15,7 @@ export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
 
     if (error) {
       if (error.message?.includes('schema cache') || error.code === '42P01') {
-        console.warn(
-          '[gmailAuth] gmail_accounts table not found - migration may not be applied yet',
-        );
+        console.warn('[gmailAuth] gmail_accounts table not found - migration may not be applied yet');
         return [];
       }
       console.error('Error fetching Gmail accounts:', error);
