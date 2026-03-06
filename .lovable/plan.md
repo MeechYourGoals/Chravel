@@ -1,66 +1,87 @@
 
-Objective: Restore app boot across preview + published site by fixing the startup env regression with high-confidence, low-risk changes.
 
-What I verified (deep-dive evidence):
-1) Runtime failure is reproducible in preview right now.
-- Console shows:
-  - `[Supabase] VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are not set...`
-  - `Error: supabaseUrl is required.`
-  - Crash originates at `src/integrations/supabase/client.ts` when `createClient('', '')` runs.
-2) `.env` is currently absent in the repo (`.env` file not found), and `.gitignore` excludes `.env`, so prior “restore” attempts would not persist in source.
-3) This is not a chunk/load/network outage:
-- Network requests in preview are 200s for app scripts.
-- No chunk-load error signature (no 404 bundle/chunk failures).
-4) Your production symptom is a blank screen (from your response), which matches the same boot-fail pattern.
+# Plan: Fix Build Errors, Reduce TTS Latency, and Strip Leaked JSON/Markdown from Chat
 
-Confidence assessment:
-- 98% confidence root cause for preview: Supabase client hard-fails when env vars are missing at runtime/build time.
-- 92% confidence production shares same root cause class (boot-time env resolution failure), given identical blank-screen behavior and this project’s current client initialization strategy.
+## Problem Summary
 
-Why this is happening:
-- `src/integrations/supabase/client.ts` now requires env vars and has no resilient fallback.
-- If env injection is unavailable/misaligned in either preview or publish pipeline, app crashes before React mounts.
-- This is a startup config failure, not data deletion. Your DB/work is not gone.
+Two user-facing issues plus build errors:
 
-Scope definition (surgical, minimal):
-- Primary file: `src/integrations/supabase/client.ts`
-- Verification files/routes: `src/pages/Healthz.tsx`, `src/main.tsx` (no risky refactor)
-- No DB migrations, no RLS/policy changes, no schema risk.
+1. **Leaked JSON in chat**: The AI model wraps tool-plan JSON in markdown code fences (` ```json ... ``` `). The current `sanitizeConciergeContent` only strips raw JSON objects — it does not strip fenced code blocks containing tool-plan JSON. The screenshot shows ` ```json { "plan_version": "1.0", "actions": [...] } ``` ` rendered in the chat bubble.
 
-Implementation plan (ordered, with confidence gates):
-Phase A — Crash-proof boot path (high-priority, minimal risk)
-1) Update Supabase client bootstrap to never call `createClient` with empty URL/key.
-2) Add deterministic fallback chain:
-   - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY`
-   - final fallback to known project constants (project ref/key already known for this connected project).
-3) Keep a clear console warning when fallback path is used (for visibility), but prevent boot crash.
+2. **TTS initialization latency**: The current `useConciergeReadAloud` hook fetches the first sentence, waits for it to complete, then plays it. Pre-fetching is parallel but playback is sequential. The `getSession()` call adds ~100-200ms before any fetch starts.
 
-Phase B — Environment hardening (prevent recurrence)
-4) Align naming so both ANON and PUBLISHABLE key patterns are supported consistently.
-5) Add explicit “env source diagnostics” in development (safe, non-secret) so we can see which source was used.
-6) Ensure Healthz route reports env-status without requiring a failing Supabase init path.
+3. **Build errors**: `useGoogleTTS.ts:256` references `splitIntoSentences` which doesn't exist in that file (it defines `splitIntoOptimalChunks`). Plus other pre-existing errors in unrelated files.
 
-Phase C — Verification matrix (must pass before closing)
-7) Preview web:
-   - Load `/` with no blank screen
-   - Confirm no `supabaseUrl is required` in console
-8) Published site:
-   - Load root page and confirm non-blank first paint
-9) Mobile web viewport checks (375x812 + 390x844):
-   - Confirm app boots and routes render
-10) Regression checks:
-   - Auth screen loads
-   - No new chunk errors
-   - No changes to auth/RLS semantics
+---
 
-Risk and rollback:
-- Regression risk: LOW (single-point bootstrap hardening).
-- Rollback: revert `src/integrations/supabase/client.ts` to previous state if unexpected behavior appears.
+## Phase 1: Fix Build Errors
 
-Non-technical summary:
-- The site is failing at startup because config values are missing where the app expects them.
-- This does not mean your data is lost.
-- We can fix this safely by making startup resilient so the app never crashes when env injection is flaky.
+### 1a. `src/hooks/useGoogleTTS.ts` line 256
+- Replace `splitIntoSentences` with `splitIntoOptimalChunks` (the function defined in this same file).
 
-If you approve, I will execute exactly this surgical fix path first (Phase A), then run the verification matrix before any broader changes.
+### 1b. Pre-existing errors (gmail, LineupImportModal, gmailAuth)
+- These are pre-existing type errors unrelated to the current issues. Will note but not address in this plan unless requested.
+
+---
+
+## Phase 2: Sanitize Leaked JSON + Code Fences
+
+**File: `src/lib/sanitizeConciergeContent.ts`**
+
+Enhance the sanitizer to handle two additional leak patterns:
+
+1. **Markdown code fences** containing tool-plan JSON: Strip ` ```json ... ``` ` blocks where the content parses as a tool-plan object. Also strip ` ``` ... ``` ` (no language tag) if it contains tool-plan JSON.
+
+2. **Broader tool-plan key detection**: Add `"actions"` and `"type": "create_calendar_event"` / `"save_place"` as additional markers, since the screenshot shows these are the primary keys.
+
+**Approach**:
+- Before the existing brace-walking logic, add a regex pass that finds fenced code blocks (` ```json\n...\n``` ` or ` ```\n...\n``` `).
+- For each fenced block, try to parse the inner content as JSON.
+- If it's a tool-plan object, remove the entire fenced block (including the backtick markers).
+- Then run the existing brace-walking sanitizer for any remaining unfenced tool-plan JSON.
+
+Also add `'actions'` to `TOOL_PLAN_KEYS` to catch the pattern from the screenshot.
+
+---
+
+## Phase 3: Reduce TTS Latency
+
+**File: `src/hooks/useConciergeReadAloud.ts`**
+
+Three targeted optimizations:
+
+1. **Cache the auth token**: Store `session.access_token` in a ref so repeated plays don't re-call `getSession()`. Refresh only when it's null or on auth change.
+
+2. **Parallel pre-fetch with immediate playback**: Currently the first sentence is fetched, then playback starts, then remaining sentences are fetched in parallel. Instead:
+   - Fire the first sentence fetch.
+   - Simultaneously start pre-fetching sentence 2 (overlap with sentence 1 fetch).
+   - Begin playback as soon as sentence 1 returns — while sentence 2+ are still fetching.
+   - This shaves ~200-400ms off perceived latency.
+
+3. **Shorter first chunk**: Modify `splitIntoSentences` to make the first chunk shorter (max ~80 chars / 1 sentence) so it returns faster from the TTS API. Subsequent chunks can be larger (2-3 sentences) since they pre-fetch during playback.
+
+**File: `src/lib/buildSpeechText.ts`** (if exists)
+- Ensure sanitized content is passed to TTS, not raw content with JSON.
+
+---
+
+## Phase 4: Sanitize During Streaming (Not Just Render)
+
+**File: `src/components/AIConciergeChat.tsx`**
+
+Currently, `sanitizeConciergeContent` runs at render time in `MessageRenderer`. During streaming, raw chunks accumulate and display before the final sanitized render. This is why users briefly see JSON.
+
+Fix: Apply `sanitizeConciergeContent` to the accumulated content on each `onChunk` update, so the displayed content is always clean even mid-stream. This is cheap (fast-path exits immediately if no tool-plan keys found).
+
+In the `onChunk` callback (~line 1042-1066):
+- After `accumulatedStreamContent += text`, sanitize before setting into message state.
+
+---
+
+## Verification
+
+- Build passes (fix `splitIntoSentences` reference).
+- Chat messages never show raw JSON or fenced code blocks with tool plans.
+- TTS playback starts ~300-500ms faster.
+- No regression in place cards, hotel cards, or action results rendering.
+
