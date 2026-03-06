@@ -44,7 +44,10 @@ function splitIntoSentences(text: string): string[] {
     const maxLen = isFirst ? 80 : 200;
     const maxSentences = isFirst ? 1 : 3;
 
-    if (buffer.trim().length >= maxLen || (!isFirst && buffer.split(/[.!?]+/).length > maxSentences)) {
+    if (
+      buffer.trim().length >= maxLen ||
+      (!isFirst && buffer.split(/[.!?]+/).length > maxSentences)
+    ) {
       sentences.push(buffer.trim());
       buffer = '';
       isFirst = false;
@@ -146,7 +149,9 @@ export function useConciergeReadAloud(
   useEffect(() => {
     const warmToken = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         cachedTokenRef.current = session?.access_token || null;
       } catch {
         cachedTokenRef.current = null;
@@ -154,11 +159,15 @@ export function useConciergeReadAloud(
     };
     warmToken();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       cachedTokenRef.current = session?.access_token || null;
     });
 
-    return () => { subscription.unsubscribe(); };
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const cleanup = useCallback(() => {
@@ -206,7 +215,9 @@ export function useConciergeReadAloud(
         // Use cached token; only fetch if missing
         let accessToken = cachedTokenRef.current;
         if (!accessToken) {
-          const { data: { session } } = await supabase.auth.getSession();
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
           accessToken = session?.access_token || null;
           cachedTokenRef.current = accessToken;
         }
@@ -226,15 +237,26 @@ export function useConciergeReadAloud(
         );
 
         // Start pre-fetching sentence 2 immediately (overlaps with sentence 1 fetch)
-        const secondPromise = sentences.length > 1
-          ? fetchSentenceAudio(sentences[1], resolvedVoiceId, accessToken, abortController.signal).catch(() => null)
-          : null;
+        const secondPromise =
+          sentences.length > 1
+            ? fetchSentenceAudio(
+                sentences[1],
+                resolvedVoiceId,
+                accessToken,
+                abortController.signal,
+              ).catch(() => null)
+            : null;
 
         // Pre-fetch remaining sentences (3+) in parallel
         const remainingPromises: Promise<{ blobUrl: string; usedFallback: boolean } | null>[] = [];
         for (let i = 2; i < sentences.length; i++) {
           remainingPromises.push(
-            fetchSentenceAudio(sentences[i], resolvedVoiceId, accessToken, abortController.signal).catch(() => null),
+            fetchSentenceAudio(
+              sentences[i],
+              resolvedVoiceId,
+              accessToken,
+              abortController.signal,
+            ).catch(() => null),
           );
         }
 

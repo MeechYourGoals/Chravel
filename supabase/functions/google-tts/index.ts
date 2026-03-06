@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -46,17 +46,20 @@ serve(async (req) => {
       throw new Error('Missing GOOGLE_CLOUD_API_KEY');
     }
 
-    const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          input: { text },
+          voice: { languageCode, name },
+          audioConfig: { audioEncoding: 'MP3' },
+        }),
       },
-      body: JSON.stringify({
-        input: { text },
-        voice: { languageCode, name },
-        audioConfig: { audioEncoding: 'MP3' },
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errText = await response.text();
@@ -80,7 +83,6 @@ serve(async (req) => {
         'Content-Length': audioBuffer.length.toString(),
       },
     });
-
   } catch (error: any) {
     console.error('Unexpected error:', error);
     return new Response(JSON.stringify({ error: error.message || 'Internal server error' }), {

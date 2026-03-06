@@ -24,8 +24,10 @@ export const InviteModal = ({
   tripType = 'consumer',
 }: InviteModalProps) => {
   // Pro/Event trips always require approval (enforced on backend)
-  // Default to true for all trips for safer defaults
-  const [requireApproval, setRequireApproval] = useState(true);
+  // Consumer trips default to OFF to optimize for lowest-friction viral growth
+  const [requireApproval, setRequireApproval] = useState(
+    tripType === 'pro' || tripType === 'event',
+  );
   const [expireIn7Days, setExpireIn7Days] = useState(false);
 
   const {

@@ -772,10 +772,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
+      // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      const redirectUrl = returnTo
+        ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
+        : `${window.location.origin}/`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: redirectUrl,
         },
       });
 
@@ -845,11 +851,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
 
+      // Preserve returnTo so email confirmation lands back in the right place
+      const signUpReturnTo = new URLSearchParams(window.location.search).get('returnTo');
+      const emailRedirectUrl = signUpReturnTo
+        ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(signUpReturnTo)}`
+        : `${window.location.origin}/`;
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: emailRedirectUrl,
           data: {
             first_name: firstName,
             last_name: lastName,
