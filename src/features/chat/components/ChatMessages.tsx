@@ -7,7 +7,8 @@ import { MessageRenderer } from './MessageRenderer';
 import { PlaceResultCards, PlaceResult } from './PlaceResultCards';
 import { FlightResultCards, FlightResult } from './FlightResultCards';
 import { HotelResultCards, HotelResult } from './HotelResultCards';
-import { ConciergeActionCard, ConciergeActionResult } from './ConciergeActionCard';
+import { ConciergeActionCardGroup } from './ConciergeActionCardGroup';
+import type { ConciergeActionResult } from './ConciergeActionCard';
 import { ReservationDraftCard } from './ReservationDraftCard';
 import { SmartImportPreviewCard } from './SmartImportPreviewCard';
 import {
@@ -188,14 +189,11 @@ export const ChatMessages = ({
               <div
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
               >
-                <div className="space-y-2 max-w-xs lg:max-w-md w-full">
-                  {rich.conciergeActions.map((action, idx) => (
-                    <ConciergeActionCard
-                      key={`action-${idx}`}
-                      action={action}
-                      onNavigate={onTabChange}
-                    />
-                  ))}
+                <div className="max-w-xs lg:max-w-md w-full">
+                  <ConciergeActionCardGroup
+                    actions={rich.conciergeActions}
+                    onNavigate={onTabChange}
+                  />
                 </div>
               </div>
             )}

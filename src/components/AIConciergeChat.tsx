@@ -146,6 +146,7 @@ export interface ChatMessage {
     entityId?: string;
     entityName?: string;
     scope?: string;
+    status?: 'success' | 'failure' | 'duplicate' | 'skipped';
   }>;
   /** Reservation draft cards from emitReservationDraft tool */
   reservationDrafts?: ReservationDraft[];
@@ -1216,6 +1217,32 @@ export const AIConciergeChat = ({
                 'addToAgenda',
               ]);
               if (writeActions.has(name) && result.actionType) {
+                // Extract entity name from nested result objects
+                const entityName =
+                  (result.entityName as string) ||
+                  ((result.poll as Record<string, unknown>)?.question as string) ||
+                  ((result.poll as Record<string, unknown>)?.title as string) ||
+                  ((result.task as Record<string, unknown>)?.title as string) ||
+                  ((result.task as Record<string, unknown>)?.name as string) ||
+                  ((result.event as Record<string, unknown>)?.title as string) ||
+                  ((result.event as Record<string, unknown>)?.name as string) ||
+                  ((result.link as Record<string, unknown>)?.name as string) ||
+                  ((result.link as Record<string, unknown>)?.title as string) ||
+                  ((result.agendaItem as Record<string, unknown>)?.title as string) ||
+                  ((result.place as Record<string, unknown>)?.name as string) ||
+                  (result.name as string) ||
+                  (result.title as string) ||
+                  undefined;
+
+                // Detect duplicate/skipped status from tool result
+                const status = result.duplicate
+                  ? ('duplicate' as const)
+                  : result.skipped
+                    ? ('skipped' as const)
+                    : result.success
+                      ? ('success' as const)
+                      : ('failure' as const);
+
                 const actionResult = {
                   actionType: result.actionType as string,
                   success: !!result.success,
@@ -1227,7 +1254,9 @@ export const AIConciergeChat = ({
                     ((result.link as Record<string, unknown>)?.id as string) ||
                     ((result.agendaItem as Record<string, unknown>)?.id as string) ||
                     undefined,
+                  entityName,
                   scope: result.scope as string | undefined,
+                  status,
                 };
                 setMessages(prev => {
                   const idx = prev.findIndex(m => m.id === streamingMessageId);
