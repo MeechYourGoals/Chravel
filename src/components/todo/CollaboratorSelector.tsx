@@ -113,7 +113,7 @@ export const CollaboratorSelector = ({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+            className="w-full justify-between bg-glass-slate-bg border-glass-slate-border text-white hover:bg-glass-slate-card"
           >
             <div className="flex items-center gap-2 min-w-0">
               {isSingleTask ? (
@@ -126,11 +126,11 @@ export const CollaboratorSelector = ({
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0 bg-gray-800 border-gray-600 z-50">
-          <Command className="bg-gray-800">
+        <PopoverContent className="w-full p-0 bg-glass-slate-card border-glass-slate-border z-50">
+          <Command className="bg-glass-slate-card">
             <CommandInput
               placeholder="Search members..."
-              className="bg-gray-800 border-gray-600 text-white"
+              className="bg-glass-slate-card border-glass-slate-border text-white"
             />
             <CommandList>
               <CommandEmpty>No members found.</CommandEmpty>
@@ -139,7 +139,7 @@ export const CollaboratorSelector = ({
                   <CommandItem
                     key={member.id}
                     onSelect={() => handleMemberToggle(member.id)}
-                    className="flex items-center gap-3 cursor-pointer hover:bg-gray-700"
+                    className="flex items-center gap-3 cursor-pointer hover:bg-glass-slate-bg"
                   >
                     <div className="flex items-center gap-2 flex-1">
                       <Avatar className="w-6 h-6">
@@ -172,7 +172,7 @@ export const CollaboratorSelector = ({
               <Badge
                 key={member.id}
                 variant="secondary"
-                className="text-xs bg-gray-700 text-gray-200"
+                className="text-xs bg-glass-slate-bg text-gray-200 border border-glass-slate-border"
               >
                 {member.name}
               </Badge>

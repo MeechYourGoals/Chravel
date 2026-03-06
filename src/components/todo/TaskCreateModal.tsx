@@ -84,7 +84,7 @@ export const TaskCreateModal = ({ tripId, onClose, initialTask }: TaskCreateModa
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-gray-900 border-gray-700">
+      <DialogContent className="sm:max-w-md bg-glass-slate-card border-glass-slate-border">
         <DialogHeader>
           <DialogTitle className="text-white">
             {isEditMode ? 'Edit Task' : 'Create New Task'}
@@ -103,7 +103,7 @@ export const TaskCreateModal = ({ tripId, onClose, initialTask }: TaskCreateModa
               onChange={e => setTitle(e.target.value)}
               placeholder="What needs to be done?"
               maxLength={140}
-              className="bg-gray-800 border-gray-600 text-white"
+              className="bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
               autoFocus
             />
             <div className="text-xs text-gray-500 text-right">{title.length}/140</div>
@@ -119,7 +119,7 @@ export const TaskCreateModal = ({ tripId, onClose, initialTask }: TaskCreateModa
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Add more details..."
-              className="bg-gray-800 border-gray-600 text-white min-h-[80px]"
+              className="bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500 min-h-[80px]"
             />
           </div>
 
@@ -130,13 +130,13 @@ export const TaskCreateModal = ({ tripId, onClose, initialTask }: TaskCreateModa
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full justify-start text-left bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                  className="w-full justify-start text-left bg-glass-slate-bg border-glass-slate-border text-white hover:bg-glass-slate-card"
                 >
                   <Calendar size={16} className="mr-2" />
                   {dueDate ? format(dueDate, 'PPP') : 'Set due date'}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-600">
+              <PopoverContent className="w-auto p-0 bg-glass-slate-card border-glass-slate-border">
                 <CalendarComponent
                   mode="single"
                   selected={dueDate}
@@ -189,7 +189,7 @@ export const TaskCreateModal = ({ tripId, onClose, initialTask }: TaskCreateModa
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="flex-1 border-glass-slate-border text-gray-300 hover:bg-glass-slate-bg hover:text-white"
             >
               Cancel
             </Button>
