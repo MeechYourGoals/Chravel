@@ -7,17 +7,17 @@ export type GmailAccount = {
 };
 
 export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
-  const { data, error } = await supabase
-    .from('gmail_accounts')
+  const { data, error } = await (supabase
+    .from('gmail_accounts' as any)
     .select('id, email, created_at')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as any);
 
   if (error) {
     console.error('Error fetching Gmail accounts:', error);
     throw new Error(error.message);
   }
 
-  return data || [];
+  return (data || []) as GmailAccount[];
 };
 
 export const connectGmailAccount = async (): Promise<string> => {
