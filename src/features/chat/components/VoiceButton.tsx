@@ -37,12 +37,14 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
       return 'bg-white/5 border border-white/10 text-neutral-500 cursor-pointer hover:bg-white/10 hover:text-neutral-400 hover:border-white/20';
     }
     if (isActive) {
+      // Blue is intentional here as a transient AI-listening state color only —
+      // not a permanent accent. Signals "AI is actively hearing you right now."
       return 'bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30';
     }
     if (voiceState === 'error') {
       return 'bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/30';
     }
-    // Idle — canonical CTA gradient (shared with Search, Upload, Send)
+    // Idle — gold CTA gradient (consistent with app's primary accent system)
     return CTA_GRADIENT;
   };
 

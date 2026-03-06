@@ -1,18 +1,21 @@
 /**
- * Shared CTA button styles — canonical blue gradient design system.
+ * Shared CTA button styles — gold/amber accent design system.
  * Source of truth: the waveform Conversation Mode button (VoiceButton).
  *
  * All primary action buttons (Search, Upload, Send, Waveform, Dictation)
- * use these tokens to stay visually consistent.
+ * use these tokens to stay visually consistent with the app's gold accent language.
+ *
+ * AI differentiation (Concierge active/listening states) uses blue as a transient
+ * state color only — not as a permanent resting accent.
  */
 
-/** Primary blue gradient for idle CTA buttons */
+/** Primary gold gradient for idle CTA buttons */
 export const CTA_GRADIENT =
-  'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/25';
+  'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-lg shadow-amber-500/25';
 
 /** Hover / active / focus-visible states for CTA buttons */
 export const CTA_INTERACTIVE =
-  'hover:opacity-90 hover:scale-105 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-1 focus-visible:ring-offset-black/50';
+  'hover:opacity-90 hover:scale-105 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-1 focus-visible:ring-offset-black/50';
 
 /** Disabled state for CTA buttons */
 export const CTA_DISABLED = 'disabled:opacity-50 disabled:cursor-not-allowed';
