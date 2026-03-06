@@ -253,7 +253,7 @@ export function useGoogleTTS(options: UseGoogleTTSOptions = {}): UseGoogleTTSRet
         }
 
         // Split text into sentences for low-latency streaming
-        const sentences = splitIntoSentences(speechText);
+        const sentences = splitIntoOptimalChunks(speechText);
 
         // Fire off requests sequentially. Since they queue up, the first one returns fast, starts playing,
         // and subsequent requests fetch in the background while the first is speaking.

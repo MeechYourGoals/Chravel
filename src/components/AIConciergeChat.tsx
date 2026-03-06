@@ -1040,15 +1040,16 @@ export const AIConciergeChat = ({
             onChunk: (text: string) => {
               if (!isMounted.current) return;
               accumulatedStreamContent += text; // always accumulate for caching
+              // Sanitize accumulated content so users never see leaked JSON mid-stream
+              const displayContent = sanitizeConciergeContent(accumulatedStreamContent);
               if (!receivedAnyChunk) {
                 receivedAnyChunk = true;
                 setIsTyping(false);
                 setMessages(prev => {
                   const idx = prev.findIndex(m => m.id === streamingMessageId);
                   if (idx !== -1) {
-                    // Message already created by onFunctionCall (place cards) — append text to it
                     const updated = [...prev];
-                    updated[idx] = { ...updated[idx], content: text };
+                    updated[idx] = { ...updated[idx], content: displayContent };
                     return updated;
                   }
                   return [
@@ -1056,14 +1057,14 @@ export const AIConciergeChat = ({
                     {
                       id: streamingMessageId,
                       type: 'assistant' as const,
-                      content: text,
+                      content: displayContent,
                       timestamp: new Date().toISOString(),
                     },
                   ];
                 });
                 return;
               }
-              updateStreamMsg(msg => ({ content: msg.content + text }));
+              updateStreamMsg(() => ({ content: displayContent }));
             },
             onFunctionCall: (name: string, result: Record<string, unknown>) => {
               if (!isMounted.current) return;
