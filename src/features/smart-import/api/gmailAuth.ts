@@ -7,11 +7,10 @@ export type GmailAccount = {
 };
 
 export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('gmail_accounts')
-      .select('id, email, created_at')
-      .order('created_at', { ascending: false });
+  const { data, error } = await (supabase
+    .from('gmail_accounts' as any)
+    .select('id, email, created_at')
+    .order('created_at', { ascending: false }) as any);
 
     if (error) {
       // Gracefully handle missing table (migration not yet applied)

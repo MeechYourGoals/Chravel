@@ -58,7 +58,7 @@ interface LineupImportModalProps {
   }) => Promise<number>;
 }
 
-type ImportState = 'idle' | 'parsing' | 'preview';
+type ImportState = 'idle' | 'parsing' | 'preview' | 'review_gmail';
 
 const FORMAT_BADGES = [
   { label: 'ICS', icon: Calendar },
