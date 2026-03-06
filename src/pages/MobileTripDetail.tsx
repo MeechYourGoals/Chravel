@@ -132,7 +132,7 @@ export const MobileTripDetail = () => {
 
   // PDF Export handler - same logic as TripCard
   const handleExport = useCallback(
-    async (sections: ExportSection[]) => {
+    async (sections: ExportSection[], signal: AbortSignal) => {
       const orderedSections = orderExportSections(sections);
       const tripIdStr = tripId || '1';
       const isNumericId = !tripIdStr.includes('-');
@@ -213,6 +213,9 @@ export const MobileTripDetail = () => {
           );
         }
 
+        // Check if export was cancelled before downloading
+        signal.throwIfAborted();
+
         // Generate filename
         const sanitizedTitle = (tripWithUpdatedDescription?.title || 'Trip').replace(
           /[^a-zA-Z0-9]/g,
@@ -227,6 +230,7 @@ export const MobileTripDetail = () => {
           description: `PDF ready: ${filename}`,
         });
       } catch (error) {
+        if (signal.aborted) throw signal.reason;
         console.error('[MobileTripDetail Export] Error:', error);
         toast.error('Recap failed', {
           description:

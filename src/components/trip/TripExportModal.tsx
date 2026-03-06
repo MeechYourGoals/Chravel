@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { X, Download, Loader2, FileText, Crown, Gift, Sparkles } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 interface TripExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExport: (sections: ExportSection[]) => Promise<void>;
+  onExport: (sections: ExportSection[], signal: AbortSignal) => Promise<void>;
   tripName: string;
   tripId: string;
   tripType?: 'consumer' | 'pro' | 'event';
@@ -58,6 +58,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   );
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const toggleSection = (sectionId: ExportSection) => {
     setSelectedSections(prev =>
@@ -71,23 +72,38 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
       return;
     }
 
+    // Abort any previous in-flight export
+    abortControllerRef.current?.abort();
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    // Auto-abort after 90 seconds
+    const timeoutId = setTimeout(() => {
+      controller.abort(new Error('Export timed out. Please try again.'));
+    }, 90_000);
+
     setIsExporting(true);
     setError(null);
 
     try {
-      const exportPromise = onExport(selectedSections);
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Export timed out. Please try again.')), 90_000),
-      );
-      await Promise.race([exportPromise, timeoutPromise]);
+      await onExport(selectedSections, controller.signal);
       // Record the export for free users
       if (!isPaidUser) {
         recordExport();
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create trip recap');
+      // If the abort was triggered, surface the abort reason as the error
+      if (controller.signal.aborted) {
+        const reason = controller.signal.reason;
+        setError(reason instanceof Error ? reason.message : 'Export timed out. Please try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to create trip recap');
+      }
     } finally {
+      clearTimeout(timeoutId);
+      abortControllerRef.current = null;
       setIsExporting(false);
     }
   };

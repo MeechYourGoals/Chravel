@@ -387,7 +387,7 @@ export const TripDetailDesktop = () => {
   }
 
   // Handle export functionality
-  const handleExport = async (sections: ExportSection[]) => {
+  const handleExport = async (sections: ExportSection[], signal: AbortSignal) => {
     const orderedSections = orderExportSections(sections);
     try {
       // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
@@ -532,12 +532,15 @@ export const TripDetailDesktop = () => {
         );
       }
 
+      signal.throwIfAborted();
+
       // Download or open the PDF with cross-platform handling
       const filename = `Trip_${tripWithUpdatedData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
       await openOrDownloadBlob(blob, filename, { preOpenedWindow, mimeType: 'application/pdf' });
 
       toast.success('PDF exported successfully!');
     } catch (error) {
+      if (signal.aborted) throw signal.reason;
       console.error('Export error details:', {
         error,
         errorMessage: error instanceof Error ? error.message : String(error),

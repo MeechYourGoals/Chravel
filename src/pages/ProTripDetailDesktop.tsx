@@ -248,7 +248,7 @@ export const ProTripDetailDesktop = () => {
   const _broadcasts = tripData.broadcasts || [];
   const _links = tripData.links || [];
 
-  const handleExport = async (sections: ExportSection[]) => {
+  const handleExport = async (sections: ExportSection[], signal: AbortSignal) => {
     const orderedSections = orderExportSections(sections);
     try {
       // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
@@ -384,6 +384,9 @@ export const ProTripDetailDesktop = () => {
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60_000);
+        // Also abort the fetch if the modal's signal fires
+        const onModalAbort = () => controller.abort();
+        signal.addEventListener('abort', onModalAbort, { once: true });
 
         let response: Response;
         try {
@@ -485,11 +488,14 @@ export const ProTripDetailDesktop = () => {
         }
       }
 
+      signal.throwIfAborted();
+
       const filename = `Trip_${tripData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
       await openOrDownloadBlob(blob, filename, { preOpenedWindow, mimeType: 'application/pdf' });
 
       toast.success('PDF exported successfully!');
     } catch (error) {
+      if (signal.aborted) throw signal.reason;
       console.error('[PRO-EXPORT] Export error details:', {
         error,
         errorMessage: error instanceof Error ? error.message : String(error),

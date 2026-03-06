@@ -197,7 +197,7 @@ const EventDetail = () => {
     address: `${eventData.location}, Main Venue`,
   };
 
-  const handleExport = async (sections: ExportSection[]) => {
+  const handleExport = async (sections: ExportSection[], signal: AbortSignal) => {
     const orderedSections = orderExportSections(sections);
     const eventIdForExport = eventId || '1';
     const isNumericId = !eventIdForExport.includes('-');
@@ -277,6 +277,8 @@ const EventDetail = () => {
         );
       }
 
+      signal.throwIfAborted();
+
       const filename = `${eventData.title.replace(/[^a-zA-Z0-9]/g, '_')}_recap.pdf`;
       openOrDownloadBlob(blob, filename);
 
@@ -284,6 +286,7 @@ const EventDetail = () => {
         description: `PDF ready: ${filename}`,
       });
     } catch (error) {
+      if (signal.aborted) throw signal.reason;
       toast.error('Export Failed', {
         description:
           error instanceof Error ? error.message : 'Failed to generate PDF. Please try again.',
