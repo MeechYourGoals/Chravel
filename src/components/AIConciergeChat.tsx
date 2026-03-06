@@ -291,7 +291,12 @@ export const AIConciergeChat = ({
   onTabChange,
 }: AIConciergeChatProps) => {
   const { basecamp: globalBasecamp } = useBasecamp();
-  const { usage, incrementUsageOnSuccess, isLimitedPlan, userPlan } = useConciergeUsage(tripId);
+  const {
+    usage: _usage,
+    incrementUsageOnSuccess,
+    isLimitedPlan,
+    userPlan,
+  } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const { user } = useAuth();
   const loadedPreferences = useAIConciergePreferences();
@@ -838,7 +843,7 @@ export const AIConciergeChat = ({
         if (result.failed > 0) {
           toast.error(`${result.failed} event${result.failed !== 1 ? 's' : ''} failed to import`);
         }
-      } catch (_err) {
+      } catch {
         setSmartImportStates(prev => ({
           ...prev,
           [messageId]: { isImporting: false, result: { imported: 0, failed: events.length } },
@@ -1735,7 +1740,7 @@ export const AIConciergeChat = ({
   };
 
   return (
-    <div className="flex flex-col px-0 py-4 overflow-hidden flex-1 min-h-0 h-full max-h-[calc(100vh-240px)]">
+    <div className="flex flex-col overflow-hidden flex-1 min-h-0 h-full">
       <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
         {/* Header — search/mic aligned with input bar send button (gradient theme) */}
         <div className="border-b border-white/10 bg-black/30 p-3 flex-shrink-0">
