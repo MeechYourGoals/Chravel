@@ -36,6 +36,7 @@ import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import { useSmartImportDropzone } from '@/hooks/useSmartImportDropzone';
+import { SmartImportGmail } from '@/features/smart-import/components/SmartImportGmail';
 
 interface CalendarImportModalProps {
   isOpen: boolean;
@@ -375,6 +376,15 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Gmail Smart Import section */}
+              <SmartImportGmail
+                tripId={tripId}
+                onImportComplete={() => {
+                  onImportComplete?.();
+                  handleClose();
+                }}
+              />
 
               {/* Paste schedule toggle */}
               <div className="flex items-center gap-3 px-1">

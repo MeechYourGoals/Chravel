@@ -20,6 +20,7 @@ export interface TripEvent {
   location?: string;
   event_category: string;
   include_in_itinerary: boolean;
+  is_all_day?: boolean;
   source_type: string;
   source_data: any;
   created_by: string;
@@ -37,6 +38,7 @@ export interface CreateEventData {
   location?: string;
   event_category?: string;
   include_in_itinerary?: boolean;
+  is_all_day?: boolean;
   source_type?: string;
   source_data?: any;
   // Recurring event support
@@ -247,6 +249,12 @@ export const calendarService = {
       // Direct insert - simpler and more reliable than RPC
       const createdEvent = await retryWithBackoff(
         async () => {
+          // Store is_all_day in source_data since the DB column may not exist yet
+          const sourceData = {
+            ...(eventData.source_data || {}),
+            ...(eventData.is_all_day ? { is_all_day: true } : {}),
+          };
+
           const { data: directEvent, error: directError } = await supabase
             .from('trip_events')
             .insert({
@@ -260,7 +268,7 @@ export const calendarService = {
               event_category: eventData.event_category || 'other',
               include_in_itinerary: eventData.include_in_itinerary ?? true,
               source_type: eventData.source_type || 'manual',
-              source_data: eventData.source_data || {},
+              source_data: sourceData,
             })
             .select('*')
             .single();
@@ -363,42 +371,20 @@ export const calendarService = {
         return data || [];
       }
 
-      // Use timezone-aware function
-      const { data: timezoneData, error: tzError } = await supabase.rpc('get_events_in_user_tz', {
-        p_trip_id: tripId,
-        p_user_id: user.id,
-      });
-
-      if (tzError) {
-        // Fallback to direct query if timezone function fails
-        if (import.meta.env.DEV) {
-          console.warn('Timezone function failed, using direct query:', tzError);
-        }
-        const { data, error } = await supabase
-          .from('trip_events')
-          .select('*')
-          .eq('trip_id', tripId)
-          .order('start_time', { ascending: true });
-
-        if (error) throw error;
-        return data || [];
-      }
-
-      // Fetch full event details with creator info
-      if (!timezoneData || timezoneData.length === 0) {
-        return [];
-      }
-
-      const eventIds = timezoneData.map((e: any) => e.id);
-      const { data: fullEvents, error: fetchError } = await supabase
+      // Direct query - fast and reliable.
+      // The timezone RPC (get_events_in_user_tz) can hang if the function
+      // doesn't exist in the remote DB, causing infinite spinner.
+      const { data: events, error: fetchError } = await supabase
         .from('trip_events')
         .select('*')
-        .in('id', eventIds)
+        .eq('trip_id', tripId)
         .order('start_time', { ascending: true });
 
       if (fetchError) throw fetchError;
 
-      const events = fullEvents || [];
+      if (!events || events.length === 0) {
+        return [];
+      }
 
       // Cache events for offline access
       for (const event of events) {
@@ -880,21 +866,28 @@ export const calendarService = {
     },
   ): CalendarEvent {
     const startDate = new Date(tripEvent.start_time);
+    // Read is_all_day from the field or from source_data as fallback (before DB migration)
+    const sourceDataObj = tripEvent.source_data as Record<string, unknown> | null;
+    const isAllDay = tripEvent.is_all_day ?? sourceDataObj?.is_all_day === true;
     return {
       id: tripEvent.id,
       title: tripEvent.title,
       date: startDate,
-      time: startDate.toLocaleTimeString('en-US', {
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      time: isAllDay
+        ? ''
+        : startDate.toLocaleTimeString('en-US', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
       location: tripEvent.location,
       description: tripEvent.description,
       createdBy: tripEvent.created_by,
       creatorName: tripEvent.creator?.display_name || 'Former Member',
       creatorAvatar: tripEvent.creator?.avatar_url,
       include_in_itinerary: tripEvent.include_in_itinerary ?? true,
+      is_all_day: isAllDay,
+      end_date: tripEvent.end_time ? new Date(tripEvent.end_time) : undefined,
       event_category: normalizeCalendarCategory(tripEvent.event_category),
       source_type: (tripEvent.source_type as CalendarEvent['source_type']) ?? 'manual',
       source_data: tripEvent.source_data,
@@ -912,24 +905,46 @@ export const calendarService = {
 
   // Convert CalendarEvent to database format
   convertFromCalendarEvent(calendarEvent: CalendarEvent, tripId: string): CreateEventData {
-    const startTime = new Date(calendarEvent.date);
-    const [hours, minutes] = calendarEvent.time.split(':');
-    startTime.setHours(parseInt(hours), parseInt(minutes));
+    const isAllDay = calendarEvent.is_all_day ?? false;
+    let startTimeStr: string;
+    let endTimeStr: string | undefined;
 
-    let endTime: string | undefined;
-    if (calendarEvent.end_time) {
-      endTime = calendarEvent.end_time.toISOString();
+    if (isAllDay) {
+      // All-day events: set start to beginning of day, end to end of last day
+      const startOfDay = new Date(calendarEvent.date);
+      startOfDay.setHours(0, 0, 0, 0);
+      startTimeStr = startOfDay.toISOString();
+
+      if (calendarEvent.end_date) {
+        const endOfDay = new Date(calendarEvent.end_date);
+        endOfDay.setHours(23, 59, 59, 999);
+        endTimeStr = endOfDay.toISOString();
+      } else {
+        const endOfDay = new Date(calendarEvent.date);
+        endOfDay.setHours(23, 59, 59, 999);
+        endTimeStr = endOfDay.toISOString();
+      }
+    } else {
+      const startTime = new Date(calendarEvent.date);
+      const [hours, minutes] = calendarEvent.time.split(':');
+      startTime.setHours(parseInt(hours), parseInt(minutes));
+      startTimeStr = startTime.toISOString();
+
+      if (calendarEvent.end_time) {
+        endTimeStr = calendarEvent.end_time.toISOString();
+      }
     }
 
     return {
       trip_id: tripId,
       title: calendarEvent.title,
       description: calendarEvent.description,
-      start_time: startTime.toISOString(),
-      end_time: endTime,
+      start_time: startTimeStr,
+      end_time: endTimeStr,
       location: calendarEvent.location,
       event_category: calendarEvent.event_category || 'other',
       include_in_itinerary: calendarEvent.include_in_itinerary,
+      is_all_day: isAllDay,
       source_type: calendarEvent.source_type || 'manual',
       source_data: calendarEvent.source_data || {},
       // Recurring event support
