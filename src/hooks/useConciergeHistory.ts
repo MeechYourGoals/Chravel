@@ -54,6 +54,7 @@ export interface ConciergeChatMessage {
     entityId?: string;
     entityName?: string;
     scope?: string;
+    status?: 'success' | 'failure' | 'duplicate' | 'skipped';
   }>;
   /** Grounding sources restored from persisted metadata */
   sources?: Array<{
