@@ -112,7 +112,7 @@ export const MobileEventDetail = () => {
 
   // PDF Export handler
   const handleExport = useCallback(
-    async (sections: ExportSection[]) => {
+    async (sections: ExportSection[], signal: AbortSignal) => {
       const orderedSections = orderExportSections(sections);
       const tripIdStr = eventId || '1';
       const isNumericId = !tripIdStr.includes('-');
@@ -191,6 +191,8 @@ export const MobileEventDetail = () => {
           );
         }
 
+        signal.throwIfAborted();
+
         const sanitizedTitle = (eventData?.title || 'Event').replace(/[^a-zA-Z0-9]/g, '_');
         const filename = `Event_${sanitizedTitle}_${Date.now()}.pdf`;
 
@@ -200,6 +202,7 @@ export const MobileEventDetail = () => {
           description: `PDF ready: ${filename}`,
         });
       } catch (error) {
+        if (signal.aborted) throw signal.reason;
         console.error('[MobileEventDetail Export] Error:', error);
         toast.error('Recap failed', {
           description:

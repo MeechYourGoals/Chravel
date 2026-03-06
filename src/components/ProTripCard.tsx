@@ -163,7 +163,7 @@ export const ProTripCard = ({
   // Export handler for Recap - matches TripCard pattern
   // TripExportModal passes only sections, we capture tripId from closure
   const handleExportPdf = useCallback(
-    async (sections: ExportSection[]) => {
+    async (sections: ExportSection[], signal: AbortSignal) => {
       const orderedSections = orderExportSections(sections);
       const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
 
@@ -244,6 +244,8 @@ export const ProTripCard = ({
           );
         }
 
+        signal.throwIfAborted();
+
         // Generate filename
         const sanitizedTitle = trip.title.replace(/[^a-zA-Z0-9]/g, '_');
         const filename = `ProTrip_${sanitizedTitle}_${Date.now()}.pdf`;
@@ -256,6 +258,7 @@ export const ProTripCard = ({
           description: `PDF downloaded: ${filename}`,
         });
       } catch (error) {
+        if (signal.aborted) throw signal.reason;
         console.error('[ProTripCard Export] Error:', error);
         toast({
           title: 'Recap failed',

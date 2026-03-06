@@ -104,9 +104,11 @@ export const EventCard = ({
   };
 
   const handleExportPdf = useCallback(
-    async (sections: ExportSection[]) => {
+    async (sections: ExportSection[], signal: AbortSignal) => {
       const orderedSections = orderExportSections(sections);
       const exportData = await getExportData(event.id.toString(), orderedSections);
+
+      signal.throwIfAborted();
 
       const blob = await generateClientPDF(
         {
@@ -128,6 +130,8 @@ export const EventCard = ({
         },
         orderedSections,
       );
+
+      signal.throwIfAborted();
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

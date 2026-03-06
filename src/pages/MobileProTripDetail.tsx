@@ -169,7 +169,7 @@ export const MobileProTripDetail = () => {
 
   // PDF Export handler
   const handleExport = useCallback(
-    async (sections: ExportSection[]) => {
+    async (sections: ExportSection[], signal: AbortSignal) => {
       const orderedSections = orderExportSections(sections);
       const tripIdStr = proTripId || '1';
       const isNumericId = !tripIdStr.includes('-');
@@ -248,6 +248,8 @@ export const MobileProTripDetail = () => {
           );
         }
 
+        signal.throwIfAborted();
+
         const sanitizedTitle = (tripData?.title || 'Pro Trip').replace(/[^a-zA-Z0-9]/g, '_');
         const filename = `ProTrip_${sanitizedTitle}_${Date.now()}.pdf`;
 
@@ -257,6 +259,7 @@ export const MobileProTripDetail = () => {
           description: `PDF ready: ${filename}`,
         });
       } catch (error) {
+        if (signal.aborted) throw signal.reason;
         console.error('[MobileProTripDetail Export] Error:', error);
         toast.error('Recap failed', {
           description:

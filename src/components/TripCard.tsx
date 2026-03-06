@@ -224,7 +224,7 @@ export const TripCard = ({
 
   // Complete PDF export handler - same logic as in-trip export
   const handleExportPdf = useCallback(
-    async (sections: ExportSection[]) => {
+    async (sections: ExportSection[], signal: AbortSignal) => {
       const orderedSections = orderExportSections(sections);
       const tripIdStr = trip.id.toString();
       const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
@@ -323,6 +323,8 @@ export const TripCard = ({
         if (import.meta.env.DEV)
           console.log('[TripCard Export] PDF generated, blob size:', blob.size);
 
+        signal.throwIfAborted();
+
         // Generate filename
         const sanitizedTitle = trip.title.replace(/[^a-zA-Z0-9]/g, '_');
         const filename = `Trip_${sanitizedTitle}_${Date.now()}.pdf`;
@@ -335,6 +337,7 @@ export const TripCard = ({
           description: `PDF downloaded: ${filename}`,
         });
       } catch (error) {
+        if (signal.aborted) throw signal.reason;
         toast({
           title: 'Recap failed',
           description:
