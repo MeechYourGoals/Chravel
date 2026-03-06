@@ -17,6 +17,7 @@ const baseRow: EventRow = {
   updated_at: '2026-03-01T10:00:00Z',
   event_category: 'dining',
   include_in_itinerary: true,
+  is_all_day: false,
   source_type: 'manual',
   source_data: null,
   version: 1,
