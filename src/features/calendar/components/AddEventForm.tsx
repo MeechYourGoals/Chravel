@@ -43,25 +43,54 @@ export const AddEventForm = ({
         />
       </div>
 
-      <div>
-        <Label htmlFor="time">Time</Label>
-        <Input
-          id="time"
-          type="time"
-          value={newEvent.time}
-          onChange={e => onUpdateField('time', e.target.value)}
+      {/* All-day toggle */}
+      <div className="flex items-center justify-between">
+        <Label htmlFor="all-day-switch">All Day</Label>
+        <Switch
+          id="all-day-switch"
+          checked={newEvent.is_all_day || false}
+          onCheckedChange={checked => onUpdateField('is_all_day', checked)}
         />
       </div>
 
-      <div>
-        <Label htmlFor="endTime">End Time (optional)</Label>
-        <Input
-          id="endTime"
-          type="time"
-          value={newEvent.endTime || ''}
-          onChange={e => onUpdateField('endTime', e.target.value || undefined)}
-        />
-      </div>
+      {!newEvent.is_all_day && (
+        <>
+          <div>
+            <Label htmlFor="time">Time</Label>
+            <Input
+              id="time"
+              type="time"
+              value={newEvent.time}
+              onChange={e => onUpdateField('time', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="endTime">End Time (optional)</Label>
+            <Input
+              id="endTime"
+              type="time"
+              value={newEvent.endTime || ''}
+              onChange={e => onUpdateField('endTime', e.target.value || undefined)}
+            />
+          </div>
+        </>
+      )}
+
+      {newEvent.is_all_day && (
+        <div>
+          <Label htmlFor="endDate">End Date (for multi-day events)</Label>
+          <Input
+            id="endDate"
+            type="date"
+            value={newEvent.endDate ? new Date(newEvent.endDate).toISOString().split('T')[0] : ''}
+            onChange={e => {
+              const val = e.target.value;
+              onUpdateField('endDate', val ? new Date(val + 'T00:00:00') : undefined);
+            }}
+          />
+        </div>
+      )}
 
       <div>
         <Label htmlFor="description">Description</Label>

@@ -69,7 +69,11 @@ serve(async req => {
     logStep('User authenticated', { userId: user.id, email: user.email });
 
     // Super admin bypass - return max tier without Stripe check
-    const SUPER_ADMIN_EMAILS = ['ccamechi@gmail.com'];
+    const SUPER_ADMIN_EMAILS = [
+      'ccamechi@gmail.com',
+      'christian@chravelapp.com',
+      'demo@chravelapp.com',
+    ];
     if (user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
       logStep('Super admin detected - bypassing Stripe check', { email: user.email });
       return createSecureResponse({

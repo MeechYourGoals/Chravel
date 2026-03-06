@@ -65,7 +65,7 @@ export const useCalendarManagement = (tripId: string) => {
       try {
         const result = await withTimeout(
           calendarService.getTripEvents(tripId),
-          30000,
+          10000,
           'Failed to load calendar events: Timeout',
         );
 
@@ -113,6 +113,8 @@ export const useCalendarManagement = (tripId: string) => {
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.calendar.refetchOnWindowFocus,
+    retry: 1,
+    retryDelay: 1000,
   });
 
   // ⚡ REALTIME: Subscribe to trip_events changes (shared hook)
@@ -123,10 +125,25 @@ export const useCalendarManagement = (tripId: string) => {
 
   const getEventsForDate = useCallback(
     (date: Date): CalendarEvent[] => {
-      // Get regular events for this date
-      const regularEvents = events.filter(
-        event => event.date.toDateString() === date.toDateString(),
-      );
+      // Get regular events for this date, including multi-day events that span this date
+      const regularEvents = events.filter(event => {
+        const eventStart = new Date(event.date);
+        eventStart.setHours(0, 0, 0, 0);
+        const checkDate = new Date(date);
+        checkDate.setHours(0, 0, 0, 0);
+
+        // Exact date match (single-day or start of multi-day)
+        if (eventStart.getTime() === checkDate.getTime()) return true;
+
+        // Multi-day: check if date falls within range
+        if (event.end_date || event.end_time) {
+          const eventEnd = new Date(event.end_date || event.end_time!);
+          eventEnd.setHours(23, 59, 59, 999);
+          return checkDate >= eventStart && checkDate <= eventEnd;
+        }
+
+        return false;
+      });
 
       // In demo mode for Cancun trip (ID "1"), inject dynamic demo events
       if (isDemoMode && tripId === '1') {
@@ -158,6 +175,7 @@ export const useCalendarManagement = (tripId: string) => {
       location?: string;
       event_category?: string;
       include_in_itinerary?: boolean;
+      is_all_day?: boolean;
       source_type?: string;
       source_data?: Record<string, unknown>;
     }) => {
@@ -215,19 +233,41 @@ export const useCalendarManagement = (tripId: string) => {
 
     try {
       setIsSaving(true);
-      const startDate = new Date(selectedDate);
-      const [hours, minutes] = newEvent.time.split(':');
-      startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+      const isAllDay = newEvent.is_all_day ?? false;
+      let startTimeStr: string;
+      let endTimeStr: string | undefined;
+
+      if (isAllDay) {
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        startTimeStr = startOfDay.toISOString();
+
+        if (newEvent.endDate) {
+          const endOfDay = new Date(newEvent.endDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          endTimeStr = endOfDay.toISOString();
+        } else {
+          const endOfDay = new Date(selectedDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          endTimeStr = endOfDay.toISOString();
+        }
+      } else {
+        const startDate = new Date(selectedDate);
+        const [hours, minutes] = newEvent.time.split(':');
+        startDate.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+        startTimeStr = startDate.toISOString();
+      }
 
       const result = await createMutation.mutateAsync({
         trip_id: tripId,
         title: newEvent.title,
         description: newEvent.description,
-        start_time: startDate.toISOString(),
-        end_time: undefined,
+        start_time: startTimeStr,
+        end_time: endTimeStr,
         location: newEvent.location,
         event_category: newEvent.category,
         include_in_itinerary: newEvent.include_in_itinerary ?? true,
+        is_all_day: isAllDay,
         source_type: 'manual',
         source_data: {},
       });

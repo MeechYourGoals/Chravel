@@ -28,6 +28,9 @@ export interface CalendarEvent {
     original_text?: string;
     venue_details?: any;
   };
+  // All-day / multi-day support
+  is_all_day?: boolean; // true = no specific time, spans full day(s)
+  end_date?: Date; // For multi-day events (e.g., hotel stays, "Madrid 3 days")
   // Recurring event support
   recurrence_rule?: string; // RRULE format (e.g., "FREQ=DAILY;INTERVAL=1;COUNT=7")
   recurrence_exceptions?: string[]; // Array of exception dates (ISO format)
@@ -47,11 +50,13 @@ export interface AddToCalendarData {
   title: string;
   date: Date;
   time: string;
+  endDate?: Date; // For multi-day events
   endTime?: string; // End time (HH:mm format)
   location?: string;
   description?: string;
   category: CalendarEvent['event_category'];
   include_in_itinerary?: boolean;
+  is_all_day?: boolean; // true = no specific time
   // Recurring event support
   recurrence_rule?: string; // RRULE format
   recurrence_exceptions?: string[];
