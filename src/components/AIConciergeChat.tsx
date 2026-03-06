@@ -310,7 +310,7 @@ export const AIConciergeChat = ({
     onNavigateToPlaces: handleNavigateToPlaces,
   });
 
-  // ── ElevenLabs TTS ──────────────────────────────────────────────────────
+  // ── Google TTS ──────────────────────────────────────────────────────
   const {
     playbackState: ttsPlaybackState,
     playingMessageId: ttsPlayingMessageId,
@@ -1015,7 +1015,7 @@ export const AIConciergeChat = ({
         },
       };
 
-      // ========== STREAMING PATH ==========
+      // === STREAMING PATH ===
       if (!isDemoMode) {
         const streamingMessageId = _uniqueId('stream');
         let receivedAnyChunk = false;
@@ -1551,7 +1551,7 @@ export const AIConciergeChat = ({
         return;
       }
 
-      // ========== NON-STREAMING FALLBACK (demo mode) ==========
+      // === NON-STREAMING FALLBACK (demo mode) ===
       const { data, error } = await invokeConciergeWithTimeout(requestBody, {
         demoMode: isDemoMode,
       });

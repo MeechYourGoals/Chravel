@@ -410,92 +410,36 @@ const ALL_TRIPS = [...CONSUMER_TRIPS, ...PRO_TRIPS, ...EVENT_TRIPS];
 function getChatMessages(trip: TripDef): { content: string; offset_hours: number }[] {
   const map: Record<string, { content: string; offset_hours: number }[]> = {
     'carlton-iceland-2026': [
-      {
-        content:
-          'Just booked the Northern Lights jeep tour for the 10th — everyone needs to be ready by 8pm 🌌',
-        offset_hours: -72,
-      },
-      {
-        content: 'Pack thermal layers. It was -15°C last year when my friend went.',
-        offset_hours: -48,
-      },
-      {
-        content: "Hotel Rangá has a hot tub with direct aurora views. We're locked in.",
-        offset_hours: -24,
-      },
-      {
-        content:
-          'Golden Circle day trip confirmed — Gullfoss, Geysir, Thingvellir. Driver picking us up at 9am.',
-        offset_hours: 2,
-      },
-      {
-        content: "THE LIGHTS WERE INSANE TONIGHT. Best I've ever seen. Check the group album.",
-        offset_hours: 52,
-      },
-      {
-        content: "Ice cave tour tomorrow at 11am. Don't forget waterproof boots.",
-        offset_hours: 72,
-      },
-      {
-        content: 'Last night dinner at Grillið was incredible. The lamb is a must.',
-        offset_hours: 96,
-      },
-      {
-        content: 'Already planning to come back next winter. This trip set the bar.',
-        offset_hours: 140,
-      },
+      { content: 'Just booked the Northern Lights jeep tour for the 10th — everyone needs to be ready by 8pm 🌌', offset_hours: -72 },
+      { content: 'Pack thermal layers. It was -15°C last year when my friend went.', offset_hours: -48 },
+      { content: 'Hotel Rangá has a hot tub with direct aurora views. We\'re locked in.', offset_hours: -24 },
+      { content: 'Golden Circle day trip confirmed — Gullfoss, Geysir, Thingvellir. Driver picking us up at 9am.', offset_hours: 2 },
+      { content: 'THE LIGHTS WERE INSANE TONIGHT. Best I\'ve ever seen. Check the group album.', offset_hours: 52 },
+      { content: 'Ice cave tour tomorrow at 11am. Don\'t forget waterproof boots.', offset_hours: 72 },
+      { content: 'Last night dinner at Grillið was incredible. The lamb is a must.', offset_hours: 96 },
+      { content: 'Already planning to come back next winter. This trip set the bar.', offset_hours: 140 },
     ],
     'carlton-mexico-city-2025': [
-      { content: "Landing at MEX at 2pm Thursday. Who's arriving when?", offset_hours: -48 },
-      {
-        content: 'Found an incredible mezcal tasting in Roma Norte — Friday at 7pm?',
-        offset_hours: -24,
-      },
-      {
-        content: 'The gallery opening in Coyoacán is Saturday night. Dress code: creative casual.',
-        offset_hours: 0,
-      },
-      {
-        content: 'Tacos al pastor at El Vilsito at 2am was a religious experience. 10/10.',
-        offset_hours: 24,
-      },
-      {
-        content: 'Street art tour in Roma was amazing. The guide knew every artist personally.',
-        offset_hours: 36,
-      },
+      { content: 'Landing at MEX at 2pm Thursday. Who\'s arriving when?', offset_hours: -48 },
+      { content: 'Found an incredible mezcal tasting in Roma Norte — Friday at 7pm?', offset_hours: -24 },
+      { content: 'The gallery opening in Coyoacán is Saturday night. Dress code: creative casual.', offset_hours: 0 },
+      { content: 'Tacos al pastor at El Vilsito at 2am was a religious experience. 10/10.', offset_hours: 24 },
+      { content: 'Street art tour in Roma was amazing. The guide knew every artist personally.', offset_hours: 36 },
       { content: 'Churros y chocolate at El Moro before we fly out tomorrow ☕', offset_hours: 60 },
     ],
     'carlton-sxsw-2025': [
-      {
-        content: "Badge pickup is at the convention center. I'll grab everyone's.",
-        offset_hours: -12,
-      },
+      { content: 'Badge pickup is at the convention center. I\'ll grab everyone\'s.', offset_hours: -12 },
       { content: 'The AI panel at 2pm is a must-see — Sam Altman is on it.', offset_hours: 0 },
       { content: 'Free tacos at the Google activation on Rainey Street 🌮', offset_hours: 24 },
-      {
-        content: "Secret Kendrick show tonight at Stubb's. RSVP link in the group.",
-        offset_hours: 48,
-      },
-      {
-        content: 'Met some incredible founders at the mixer. Adding them to my network.',
-        offset_hours: 72,
-      },
-      {
-        content: 'Last day — catching the closing night film at the Paramount Theatre.',
-        offset_hours: 168,
-      },
+      { content: 'Secret Kendrick show tonight at Stubb\'s. RSVP link in the group.', offset_hours: 48 },
+      { content: 'Met some incredible founders at the mixer. Adding them to my network.', offset_hours: 72 },
+      { content: 'Last day — catching the closing night film at the Paramount Theatre.', offset_hours: 168 },
       { content: 'SXSW never disappoints. Already registered for next year.', offset_hours: 192 },
     ],
     'carlton-nba-summer-2025': [
-      {
-        content: "Courtside seats locked for the first three games. Let's gooo 🏀",
-        offset_hours: -24,
-      },
-      { content: "Pool party at Encore Beach Club after today's games.", offset_hours: 12 },
-      {
-        content: 'That rookie from Duke is going to be a problem. Mark my words.',
-        offset_hours: 36,
-      },
+      { content: 'Courtside seats locked for the first three games. Let\'s gooo 🏀', offset_hours: -24 },
+      { content: 'Pool party at Encore Beach Club after today\'s games.', offset_hours: 12 },
+      { content: 'That rookie from Duke is going to be a problem. Mark my words.', offset_hours: 36 },
       { content: 'Dinner at STK tonight — reservation for 6 at 9pm.', offset_hours: 48 },
       { content: 'Last game today. Anyone want to hit the sportsbook after?', offset_hours: 72 },
       { content: 'Vegas Summer League is the best annual tradition we have.', offset_hours: 96 },
@@ -581,125 +525,46 @@ function getChatMessages(trip: TripDef): { content: string; offset_hours: number
     ],
     'carlton-toronto-2026': [
       { content: 'Flying into YYZ Thursday night. Anyone arriving earlier?', offset_hours: -48 },
-      {
-        content:
-          'Kensington Market food crawl Friday afternoon — empanadas, jerk chicken, and dim sum.',
-        offset_hours: 0,
-      },
-      {
-        content: 'CN Tower dinner is booked for Saturday at 7pm. Window table. 🗼',
-        offset_hours: 24,
-      },
-      {
-        content: "Drake's OVO store is a 5-minute walk from the hotel. Just saying.",
-        offset_hours: 28,
-      },
-      {
-        content: 'Found a crazy good ramen spot in Koreatown. Kinton Ramen — go immediately.',
-        offset_hours: 48,
-      },
-      {
-        content:
-          'St. Lawrence Market on Sunday morning for peameal bacon sandwiches. Canadian staple.',
-        offset_hours: 60,
-      },
+      { content: 'Kensington Market food crawl Friday afternoon — empanadas, jerk chicken, and dim sum.', offset_hours: 0 },
+      { content: 'CN Tower dinner is booked for Saturday at 7pm. Window table. 🗼', offset_hours: 24 },
+      { content: 'Drake\'s OVO store is a 5-minute walk from the hotel. Just saying.', offset_hours: 28 },
+      { content: 'Found a crazy good ramen spot in Koreatown. Kinton Ramen — go immediately.', offset_hours: 48 },
+      { content: 'St. Lawrence Market on Sunday morning for peameal bacon sandwiches. Canadian staple.', offset_hours: 60 },
       { content: 'Toronto punches way above its weight. Underrated food city.', offset_hours: 84 },
     ],
     'carlton-miami-f1-consumer': [
-      {
-        content: 'Race weekend itinerary coming tomorrow. Paddock passes are confirmed! 🏎️',
-        offset_hours: -120,
-      },
-      {
-        content: 'Rooftop watch party at 1 Hotel on Friday — practice sessions and cocktails.',
-        offset_hours: -24,
-      },
-      {
-        content:
-          'Qualifying is Saturday at 4pm. Meeting at the gate at 2pm for paddock walkthrough.',
-        offset_hours: 0,
-      },
+      { content: 'Race weekend itinerary coming tomorrow. Paddock passes are confirmed! 🏎️', offset_hours: -120 },
+      { content: 'Rooftop watch party at 1 Hotel on Friday — practice sessions and cocktails.', offset_hours: -24 },
+      { content: 'Qualifying is Saturday at 4pm. Meeting at the gate at 2pm for paddock walkthrough.', offset_hours: 0 },
       { content: 'Post-qualifying dinner at Zuma. Reservation for 8 at 9pm.', offset_hours: 6 },
-      { content: "Race day! Let's get there early. Gates open at 11am.", offset_hours: 24 },
-      {
-        content: 'LIV on Sunday night. Table confirmed. The energy after the race is unreal.',
-        offset_hours: 30,
-      },
-      {
-        content: 'What a weekend. Miami F1 is becoming the best event on the calendar.',
-        offset_hours: 72,
-      },
-      { content: "Need to do Monaco next month. Who's in?", offset_hours: 84 },
+      { content: 'Race day! Let\'s get there early. Gates open at 11am.', offset_hours: 24 },
+      { content: 'LIV on Sunday night. Table confirmed. The energy after the race is unreal.', offset_hours: 30 },
+      { content: 'What a weekend. Miami F1 is becoming the best event on the calendar.', offset_hours: 72 },
+      { content: 'Need to do Monaco next month. Who\'s in?', offset_hours: 84 },
     ],
     'carlton-amalfi-2026': [
-      {
-        content: 'Flights booked! Rome → Naples → ferry to Positano. Arriving June 20th.',
-        offset_hours: -336,
-      },
-      {
-        content: "Le Sirenuse is one of the most beautiful hotels on the planet. Can't wait.",
-        offset_hours: -240,
-      },
-      {
-        content: 'Renting a boat for the day to hit Capri — Grotta Azzurra is a must.',
-        offset_hours: -168,
-      },
-      {
-        content: 'Need restaurant recommendations — Da Adolfo for beach lunch? Zass for dinner?',
-        offset_hours: -120,
-      },
-      { content: "Packing light — it's all linen and sandals for a week.", offset_hours: -72 },
-      {
-        content: 'Limoncello tasting in Ravello on day 3. The gardens there are insane.',
-        offset_hours: -48,
-      },
+      { content: 'Flights booked! Rome → Naples → ferry to Positano. Arriving June 20th.', offset_hours: -336 },
+      { content: 'Le Sirenuse is one of the most beautiful hotels on the planet. Can\'t wait.', offset_hours: -240 },
+      { content: 'Renting a boat for the day to hit Capri — Grotta Azzurra is a must.', offset_hours: -168 },
+      { content: 'Need restaurant recommendations — Da Adolfo for beach lunch? Zass for dinner?', offset_hours: -120 },
+      { content: 'Packing light — it\'s all linen and sandals for a week.', offset_hours: -72 },
+      { content: 'Limoncello tasting in Ravello on day 3. The gardens there are insane.', offset_hours: -48 },
     ],
     'carlton-bali-2026': [
-      {
-        content: 'Surf retreat is happening! August 5-14 in Canggu. Villa secured 🏄‍♂️',
-        offset_hours: -504,
-      },
-      {
-        content: 'Morning surf sessions at Echo Beach, afternoon yoga at The Practice. Balance.',
-        offset_hours: -336,
-      },
+      { content: 'Surf retreat is happening! August 5-14 in Canggu. Villa secured 🏄‍♂️', offset_hours: -504 },
+      { content: 'Morning surf sessions at Echo Beach, afternoon yoga at The Practice. Balance.', offset_hours: -336 },
       { content: 'Tegallalang rice terraces day trip planned for day 3.', offset_hours: -240 },
-      {
-        content: 'Uluwatu temple sunset ceremony — supposed to be life-changing.',
-        offset_hours: -168,
-      },
+      { content: 'Uluwatu temple sunset ceremony — supposed to be life-changing.', offset_hours: -168 },
       { content: 'La Brisa for sunset cocktails. Best beach club in Canggu.', offset_hours: -120 },
-      {
-        content: 'Anyone want to do the Mount Batur sunrise trek? 2am start but worth it.',
-        offset_hours: -72,
-      },
+      { content: 'Anyone want to do the Mount Batur sunrise trek? 2am start but worth it.', offset_hours: -72 },
     ],
     'carlton-greek-islands-2026': [
-      {
-        content:
-          'Island hopping route: Santorini (3 nights) → Mykonos (3 nights) → Paros (3 nights). Ferries booked.',
-        offset_hours: -504,
-      },
-      {
-        content: 'Sunset dinner at Ammoudi Bay in Oia — the seafood tavernas right on the water.',
-        offset_hours: -336,
-      },
-      {
-        content: 'Catamaran sailing day in Santorini — includes swimming stops and BBQ on board.',
-        offset_hours: -240,
-      },
-      {
-        content: 'Mykonos nightlife is legendary. Scorpios for sunset, then Little Venice.',
-        offset_hours: -168,
-      },
-      {
-        content: 'Paros is the hidden gem of the Cyclades. Less touristy, more authentic.',
-        offset_hours: -120,
-      },
-      {
-        content: 'Need to book that cliffside restaurant in Fira everyone keeps recommending.',
-        offset_hours: -72,
-      },
+      { content: 'Island hopping route: Santorini (3 nights) → Mykonos (3 nights) → Paros (3 nights). Ferries booked.', offset_hours: -504 },
+      { content: 'Sunset dinner at Ammoudi Bay in Oia — the seafood tavernas right on the water.', offset_hours: -336 },
+      { content: 'Catamaran sailing day in Santorini — includes swimming stops and BBQ on board.', offset_hours: -240 },
+      { content: 'Mykonos nightlife is legendary. Scorpios for sunset, then Little Venice.', offset_hours: -168 },
+      { content: 'Paros is the hidden gem of the Cyclades. Less touristy, more authentic.', offset_hours: -120 },
+      { content: 'Need to book that cliffside restaurant in Fira everyone keeps recommending.', offset_hours: -72 },
     ],
   };
 
