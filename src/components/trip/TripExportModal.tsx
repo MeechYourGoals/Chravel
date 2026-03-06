@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { X, Download, Loader2, FileText, Crown, Gift, Sparkles } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
@@ -22,8 +22,8 @@ const TRIP_SECTIONS: Array<{ id: ExportSection; label: string }> = [
   { id: 'places', label: 'Places' },
   { id: 'attachments', label: 'Attachments' },
   { id: 'tasks', label: 'Tasks' },
-  { id: 'broadcasts', label: 'Broadcast Log' },
-  { id: 'roster', label: 'Roster' },
+  { id: 'broadcasts', label: 'Broadcasts' },
+  { id: 'roster', label: 'Members' },
 ];
 
 const EVENT_SECTIONS: Array<{ id: ExportSection; label: string }> = [
@@ -43,9 +43,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   tripId,
   tripType,
 }) => {
-  const isConsumer = isConsumerTrip(tripId);
+  const _isConsumer = isConsumerTrip(tripId);
   const { upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
-  const { usage, recordExport, getUsageStatus, isPaidUser, canExport } = usePdfExportUsage(tripId);
+  const { recordExport, getUsageStatus, isPaidUser, canExport } = usePdfExportUsage(tripId);
 
   const isEvent = tripType === 'event';
   const sections = isEvent ? EVENT_SECTIONS : TRIP_SECTIONS;
@@ -75,7 +75,11 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
     setError(null);
 
     try {
-      await onExport(selectedSections);
+      const exportPromise = onExport(selectedSections);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Export timed out. Please try again.')), 90_000),
+      );
+      await Promise.race([exportPromise, timeoutPromise]);
       // Record the export for free users
       if (!isPaidUser) {
         recordExport();
@@ -92,7 +96,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
   // Free users: 1 export per trip, Paid users: unlimited
   const hasAccess = hasExportAccess;
-  const usageStatus = getUsageStatus();
+  const _usageStatus = getUsageStatus();
   const showFreeExportBanner = !isPaidUser && canExport;
   const showUpgradePrompt = !isPaidUser && !canExport;
 

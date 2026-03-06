@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 /**
  * Client-Side PDF Export Fallback
  * Generates PDFs using jsPDF when server export fails or for mock trips
@@ -831,7 +832,7 @@ export async function generateClientPDF(
             doc.setFontSize(14);
             doc.setFont('NotoSans', 'bold');
             doc.setTextColor(0);
-            doc.text('Roster', margin, yPos);
+            doc.text('Trip Members', margin, yPos);
             yPos += 20;
           }
 
