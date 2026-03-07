@@ -125,3 +125,9 @@
 - [x] Restore expected waveform button click behavior (tap to dictate into input, editable before send).
 - [x] Add/adjust focused regression tests for voice button interactions.
 - [x] Run required gates (`npm run lint && npm run typecheck && npm run build`) plus targeted tests.
+
+## AI concierge timeout deep-dive + stream resilience hardening
+- [x] Scope timeout failure path across concierge stream client + edge function and confirm likely root cause for Google Flights requests.
+- [x] Implement minimal keepalive/idle-timeout hardening to prevent false "Request timed out" failures during long-running tool loops.
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`) and a focused concierge test sweep.
+- [x] Produce component-by-component reliability scoring (0-100) with concrete actions for any area below 90.
