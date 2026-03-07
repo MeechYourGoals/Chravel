@@ -5,6 +5,7 @@ import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { TaskSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
 import { TaskCreateModal } from '../todo/TaskCreateModal';
+import { TaskCreateForm } from '../todo/TaskCreateForm';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { useAuth } from '../../hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
@@ -58,6 +59,7 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
 
   const activeTasks = tasks.filter(t => !isTaskCompleted(t));
   const completedTasks = tasks.filter(t => isTaskCompleted(t));
+  const isEmptyState = tasks.length === 0;
 
   return (
     <div className="flex flex-col flex-1 bg-black px-4 py-4 relative min-h-0">
@@ -75,26 +77,36 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
             {activeTasks.length} pending · {completedTasks.length} completed
           </p>
         </div>
-        <button
-          onClick={async () => {
-            await hapticService.medium();
-            setIsModalOpen(true);
-          }}
-          className="p-3 bg-blue-600 rounded-lg active:scale-95 transition-transform"
-        >
-          <Plus size={20} className="text-white" />
-        </button>
+        {!isEmptyState && (
+          <button
+            onClick={async () => {
+              await hapticService.medium();
+              setIsModalOpen(true);
+            }}
+            className="p-3 bg-blue-600 rounded-lg active:scale-95 transition-transform"
+          >
+            <Plus size={20} className="text-white" />
+          </button>
+        )}
       </div>
 
       {/* Active Tasks */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {isLoading ? (
           <TaskSkeleton />
+        ) : isEmptyState ? (
+          <TaskCreateForm
+            tripId={tripId}
+            onClose={() => {
+              /* no-op: form stays visible until first task is created */
+            }}
+            isInlineEmptyState
+          />
         ) : (
           <div className="space-y-3 mb-6">
             {activeTasks.length === 0 && (
               <div className="text-center py-8 text-gray-500">
-                <p>No tasks yet. Tap + to add one!</p>
+                <p>All caught up! No pending tasks.</p>
               </div>
             )}
             {activeTasks.map(task => (
