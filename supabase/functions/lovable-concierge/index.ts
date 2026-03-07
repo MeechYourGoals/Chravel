@@ -2027,7 +2027,11 @@ Answer the user's question accurately. Use web search for real-time info (weathe
 
       const streamBody = new ReadableStream({
         async start(controller) {
+          let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
           try {
+            keepAliveTimer = setInterval(() => {
+              controller.enqueue(sseEvent({ type: 'metadata', keepAlive: true }));
+            }, 10_000);
             const {
               fullText,
               groundingMetadata,
@@ -2192,6 +2196,10 @@ Answer the user's question accurately. Use web search for real-time info (weathe
               controller.enqueue(sseEvent({ type: 'done' }));
             }
           } finally {
+            if (keepAliveTimer) {
+              clearInterval(keepAliveTimer);
+              keepAliveTimer = null;
+            }
             controller.close();
           }
         },

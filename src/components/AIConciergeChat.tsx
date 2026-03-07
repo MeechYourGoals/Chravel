@@ -1028,6 +1028,37 @@ export const AIConciergeChat = ({
         let accumulatedStreamContent = ''; // accumulates full text so we can cache after onDone
         const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
 
+        const triggerStreamTimeout = () => {
+          streamAbortRef.current?.();
+          streamAbortRef.current = null;
+          if (!isMounted.current) return;
+          setAiStatus('timeout');
+          setIsTyping(false);
+          const timeoutContent = `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`;
+          setMessages(prev => {
+            const exists = prev.some(m => m.id === streamingMessageId);
+            if (exists) {
+              return prev.map(m =>
+                m.id === streamingMessageId ? { ...m, content: timeoutContent } : m,
+              );
+            }
+            return [
+              ...prev,
+              {
+                id: streamingMessageId,
+                type: 'assistant' as const,
+                content: timeoutContent,
+                timestamp: new Date().toISOString(),
+              },
+            ];
+          });
+        };
+
+        const resetStreamWatchdog = () => {
+          if (streamTimer.id) clearTimeout(streamTimer.id);
+          streamTimer.id = setTimeout(triggerStreamTimeout, FAST_RESPONSE_TIMEOUT_MS);
+        };
+
         const updateStreamMsg = (updater: (msg: ChatMessage) => Partial<ChatMessage>) => {
           setMessages(prev => {
             const idx = prev.findIndex(m => m.id === streamingMessageId);
@@ -1043,6 +1074,9 @@ export const AIConciergeChat = ({
         const streamHandle = invokeConciergeStream(
           requestBody,
           {
+            onActivity: () => {
+              resetStreamWatchdog();
+            },
             onChunk: (text: string) => {
               if (!isMounted.current) return;
               accumulatedStreamContent += text; // always accumulate for caching
@@ -1452,6 +1486,9 @@ export const AIConciergeChat = ({
               });
             },
             onMetadata: (metadata: StreamMetadataEvent) => {
+              if (metadata.keepAlive) {
+                return;
+              }
               setAiStatus('connected');
               updateStreamMsg(() => ({
                 usage: metadata.usage,
@@ -1556,32 +1593,7 @@ export const AIConciergeChat = ({
         streamAbortRef.current = streamHandle.abort;
         streamingStarted = true;
 
-        streamTimer.id = setTimeout(() => {
-          if (receivedAnyChunk) return;
-          streamHandle.abort();
-          streamAbortRef.current = null;
-          if (!isMounted.current) return;
-          setAiStatus('timeout');
-          setIsTyping(false);
-          const timeoutContent = `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`;
-          setMessages(prev => {
-            const exists = prev.some(m => m.id === streamingMessageId);
-            if (exists) {
-              return prev.map(m =>
-                m.id === streamingMessageId ? { ...m, content: timeoutContent } : m,
-              );
-            }
-            return [
-              ...prev,
-              {
-                id: streamingMessageId,
-                type: 'assistant' as const,
-                content: timeoutContent,
-                timestamp: new Date().toISOString(),
-              },
-            ];
-          });
-        }, FAST_RESPONSE_TIMEOUT_MS);
+        resetStreamWatchdog();
 
         return;
       }
