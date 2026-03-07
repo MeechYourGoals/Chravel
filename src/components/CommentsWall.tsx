@@ -7,6 +7,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './mobile/PullToRefreshIndicator';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   TRIP_PARITY_COL_START,
   TRIP_PARITY_HEADER_SPAN_CLASS,
@@ -37,6 +38,7 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
   const { variant } = useTripVariant();
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
+  const isMobile = useIsMobile();
 
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
@@ -99,7 +101,7 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
           <MessageCircle size={18} className="text-glass-enterprise-blue" />
           Group Polls
         </h3>
-        {effectivePermissions.canCreate && (
+        {effectivePermissions.canCreate && !showCreatePoll && (
           <ActionPill
             variant="manualOutline"
             leftIcon={<Plus />}
@@ -117,6 +119,7 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         onShowCreatePollChange={setShowCreatePoll}
         hideCreateButton
         permissions={effectivePermissions}
+        autoShowCreateOnEmpty={isMobile}
       />
     </div>
   );

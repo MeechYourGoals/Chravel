@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Poll as PollType } from './poll/types';
@@ -24,6 +24,7 @@ interface PollComponentProps {
   onShowCreatePollChange?: (show: boolean) => void;
   hideCreateButton?: boolean;
   permissions?: PollPermissions;
+  autoShowCreateOnEmpty?: boolean;
 }
 
 export const PollComponent = ({
@@ -32,6 +33,7 @@ export const PollComponent = ({
   onShowCreatePollChange,
   hideCreateButton = false,
   permissions,
+  autoShowCreateOnEmpty = false,
 }: PollComponentProps) => {
   const { isDemoMode } = useDemoMode();
 
@@ -72,6 +74,29 @@ export const PollComponent = ({
   } = useTripPolls(tripId);
 
   const userId = user?.id;
+
+  // On mobile empty state, auto-show the create form inline
+  const hasAutoShown = React.useRef(false);
+  useEffect(() => {
+    if (
+      autoShowCreateOnEmpty &&
+      !isLoading &&
+      polls.length === 0 &&
+      effectivePermissions.canCreate &&
+      !showCreatePoll &&
+      !hasAutoShown.current
+    ) {
+      hasAutoShown.current = true;
+      setShowCreatePoll(true);
+    }
+  }, [
+    autoShowCreateOnEmpty,
+    isLoading,
+    polls.length,
+    effectivePermissions.canCreate,
+    showCreatePoll,
+    setShowCreatePoll,
+  ]);
 
   const formattedPolls: PollType[] = useMemo(() => {
     return polls.map(poll => {
@@ -228,6 +253,7 @@ export const PollComponent = ({
           onCreatePoll={handleCreatePoll}
           onCancel={() => setShowCreatePoll(false)}
           isSubmitting={isCreatingPoll}
+          isInlineEmptyState={autoShowCreateOnEmpty && formattedPolls.length === 0}
         />
       )}
 
