@@ -240,6 +240,12 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
           case 'searchImages':
           case 'getDistanceMatrix':
           case 'validateAddress':
+          case 'savePlace':
+          case 'setBasecamp':
+          case 'addToAgenda':
+          case 'searchFlights':
+          case 'emitSmartImportPreview':
+          case 'emitReservationDraft':
           // falls through — new agentic tools (routed through server-side functionExecutor)
           case 'updateCalendarEvent':
           case 'deleteCalendarEvent':
@@ -248,12 +254,17 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
           case 'searchTripData':
           case 'detectCalendarConflicts':
           case 'createBroadcast':
+          case 'createNotification':
           case 'getWeatherForecast':
           case 'convertCurrency':
           case 'browseWebsite':
           case 'makeReservation':
           case 'settleExpense':
-          case 'generateTripImage': {
+          case 'generateTripImage':
+          case 'setTripHeaderImage':
+          case 'getDeepLink':
+          case 'explainPermission':
+          case 'verify_artifact': {
             const { data: toolData, error: toolError } = await supabase.functions.invoke(
               'execute-concierge-tool',
               {
