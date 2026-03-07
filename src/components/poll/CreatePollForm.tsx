@@ -14,6 +14,7 @@ interface CreatePollFormProps {
   ) => Promise<void> | void;
   onCancel: () => void;
   isSubmitting?: boolean;
+  isInlineEmptyState?: boolean;
 }
 
 export interface PollSettings {
@@ -27,6 +28,7 @@ export const CreatePollForm = ({
   onCreatePoll,
   onCancel,
   isSubmitting = false,
+  isInlineEmptyState = false,
 }: CreatePollFormProps) => {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
@@ -102,13 +104,22 @@ export const CreatePollForm = ({
   return (
     <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-6 shadow-enterprise-lg">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Create New Poll</h3>
-        <button
-          onClick={handleCancel}
-          className="w-8 h-8 rounded-full bg-glass-slate-bg hover:bg-glass-slate-border flex items-center justify-center transition-colors"
-        >
-          <X size={16} className="text-gray-400" />
-        </button>
+        <div>
+          <h3 className="text-lg font-semibold text-white">
+            {isInlineEmptyState ? 'Create your first poll' : 'Create New Poll'}
+          </h3>
+          {isInlineEmptyState && (
+            <p className="text-sm text-gray-400 mt-1">Ask the group a question to get started</p>
+          )}
+        </div>
+        {!isInlineEmptyState && (
+          <button
+            onClick={handleCancel}
+            className="w-8 h-8 rounded-full bg-glass-slate-bg hover:bg-glass-slate-border flex items-center justify-center transition-colors"
+          >
+            <X size={16} className="text-gray-400" />
+          </button>
+        )}
       </div>
 
       <div className="space-y-4">
