@@ -131,3 +131,17 @@
 - [x] Implement minimal keepalive/idle-timeout hardening to prevent false "Request timed out" failures during long-running tool loops.
 - [x] Run required gates (`npm run lint && npm run typecheck && npm run build`) and a focused concierge test sweep.
 - [x] Produce component-by-component reliability scoring (0-100) with concrete actions for any area below 90.
+
+## AI concierge tool-calling audit (text + voice)
+- [x] Scope concierge tool inventories across lovable-concierge, voice session config, and executors.
+- [x] Compare declared tools vs implemented tools and identify parity gaps between text and voice paths.
+- [x] Document trigger prompts, semantic-routing behavior, rich-card support, and latency simplification opportunities.
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`).
+- [x] Commit audit deliverable + open PR.
+
+## AI concierge tool parity implementation (text + voice)
+- [x] Restore shared `functionExecutor` coverage so all declared text concierge tools execute server-side.
+- [x] Align `gemini-voice-session` tool declarations to match text concierge tools one-for-one.
+- [x] Route newly-added parity tools through `useVoiceToolHandler` bridge to `execute-concierge-tool`.
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`).
+- [x] Commit implementation + verify branch tracking/push + open PR.
