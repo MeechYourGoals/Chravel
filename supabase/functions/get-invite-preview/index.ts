@@ -1,6 +1,12 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import {
+  checkRateLimit,
+  getClientIp,
+  readJsonBody,
+  redactSensitiveToken,
+} from '../_shared/security.ts';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -21,6 +27,11 @@ type InvitePreviewErrorCode =
   | 'TRIP_ARCHIVED'
   | 'NETWORK_ERROR'
   | 'UNKNOWN_ERROR';
+
+const INVITE_PREVIEW_RATE_LIMIT_MAX_REQUESTS = 60;
+const INVITE_PREVIEW_RATE_LIMIT_WINDOW_SECONDS = 60;
+const MAX_INVITE_CODE_LENGTH = 128;
+const MAX_REQUEST_CONTENT_LENGTH_BYTES = 4 * 1024;
 
 interface InvitePreviewResponse {
   success: boolean;
@@ -52,8 +63,17 @@ serve(async (req): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return new Response(JSON.stringify({ success: false, error: 'Method not allowed.' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     logStep('Function started');
+
+    const clientIp = getClientIp(req);
 
     // Create Supabase client with service role for elevated permissions
     const supabaseClient = createClient(
@@ -62,18 +82,56 @@ serve(async (req): Promise<Response> => {
       { auth: { persistSession: false } },
     );
 
+    const rateLimit = await checkRateLimit(
+      supabaseClient,
+      `invite-preview:${clientIp}`,
+      INVITE_PREVIEW_RATE_LIMIT_MAX_REQUESTS,
+      INVITE_PREVIEW_RATE_LIMIT_WINDOW_SECONDS,
+    );
+
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Too many invite preview requests. Please try again in a minute.',
+        }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
     // Get invite code from request body or query params
     let inviteCode: string | null = null;
 
     if (req.method === 'POST') {
-      const body = await req.json();
-      inviteCode = body.code;
+      const requestBody = await readJsonBody<{ code?: string }>(
+        req,
+        MAX_REQUEST_CONTENT_LENGTH_BYTES,
+      );
+
+      if (requestBody.error) {
+        const response: InvitePreviewResponse = {
+          success: false,
+          error: requestBody.error,
+          error_code: 'INVALID_LINK',
+        };
+        return new Response(JSON.stringify(response), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      inviteCode = requestBody.data?.code ?? null;
     } else if (req.method === 'GET') {
       const url = new URL(req.url);
       inviteCode = url.searchParams.get('code');
     }
 
-    if (!inviteCode) {
+    const normalizedInviteCode = typeof inviteCode === 'string' ? inviteCode.trim() : '';
+
+    if (!normalizedInviteCode || normalizedInviteCode.length > MAX_INVITE_CODE_LENGTH) {
       logStep('ERROR: No invite code provided');
       const response: InvitePreviewResponse = {
         success: false,
@@ -86,13 +144,13 @@ serve(async (req): Promise<Response> => {
       });
     }
 
-    logStep('Looking up invite', { code: inviteCode.substring(0, 8) + '...' });
+    logStep('Looking up invite', { code: redactSensitiveToken(normalizedInviteCode), clientIp });
 
     // Fetch invite data
     const { data: invite, error: inviteError } = await supabaseClient
       .from('trip_invites')
       .select('*')
-      .eq('code', inviteCode)
+      .eq('code', normalizedInviteCode)
       .single();
 
     if (inviteError || !invite) {

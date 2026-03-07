@@ -1,5 +1,18 @@
 # TODO
 
+## Security hardening follow-up (invite edge functions)
+- [x] Consolidate duplicated invite-security helpers into shared Edge function utilities.
+- [x] Harden invite body parsing and method validation to return deterministic client-safe errors.
+- [x] Re-run required gates (`npm run lint && npm run typecheck && npm run build`).
+- [x] Commit, verify branch status, and publish PR update.
+
+## Security + scale readiness hardening (invite surfaces)
+- [x] Scope architecture and trust boundaries for auth/invite/AI/uploads/payments/realtime paths.
+- [x] Audit externally reachable invite endpoints for abuse risks and choose lowest-regression controls.
+- [x] Implement safe hardening for invite preview/join abuse resistance (rate limit + request validation + safer logs).
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`) and targeted checks.
+- [x] Commit changes, verify branch tracking, and open PR.
+
 ## Settings profile persistence fix (real name + display name)
 - [x] Scope bug by tracing consumer settings save path and auth rehydration path.
 - [x] Implement targeted persistence hardening for name fields.
