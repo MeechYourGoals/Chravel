@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plane, Hotel, Car, Ticket, Loader2 } from 'lucide-react';
+import { Plane, Hotel, Car, Ticket, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 export interface ReviewCandidatesProps {
@@ -23,7 +23,22 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   onAccept,
   onCancel,
 }) => {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(candidates.map(c => c.id)));
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
+    // Pre-select only candidates that are likely relevant and not cancelled
+    return new Set(
+      candidates
+        .filter(c => {
+          const data = c.reservation_data;
+          if (!data) return false;
+          if (data.is_cancellation === true) return false;
+          const score = data._relevance_score as number | undefined;
+          // Auto-deselect items with low trip relevance (below 0.4)
+          if (score !== undefined && score < 0.4) return false;
+          return true;
+        })
+        .map(c => c.id),
+    );
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toggleSelection = (id: string) => {
@@ -105,13 +120,17 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           }
 
           const isSelected = selectedIds.has(candidate.id);
+          const relevanceScore = data?._relevance_score as number | undefined;
+          const relevanceReason = data?._relevance_reason as string | undefined;
+          const isCancellation = data?.is_cancellation === true;
+          const isModification = data?.is_modification === true;
 
           return (
             <Card
               key={candidate.id}
               className={`cursor-pointer transition-colors ${
                 isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
-              }`}
+              } ${isCancellation ? 'opacity-60' : ''}`}
               onClick={() => toggleSelection(candidate.id)}
             >
               <CardContent className="p-4 flex items-start gap-4">
@@ -130,11 +149,23 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-sm font-medium truncate">{title}</h4>
                     <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                       {config.label}
                     </span>
+                    {isCancellation && (
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                        <AlertTriangle className="h-2.5 w-2.5" />
+                        Cancelled
+                      </span>
+                    )}
+                    {isModification && (
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                        <RefreshCw className="h-2.5 w-2.5" />
+                        Updated
+                      </span>
+                    )}
                   </div>
                   {subtitle && (
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
@@ -143,6 +174,30 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                     <p className="text-xs font-mono mt-1 text-muted-foreground/80">
                       Ref: {data.confirmation_code}
                     </p>
+                  )}
+                  {relevanceScore !== undefined && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden max-w-[80px]">
+                        <div
+                          className={`h-full rounded-full ${
+                            relevanceScore >= 0.7
+                              ? 'bg-green-500'
+                              : relevanceScore >= 0.4
+                                ? 'bg-amber-500'
+                                : 'bg-red-400'
+                          }`}
+                          style={{ width: `${Math.round(relevanceScore * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">
+                        {Math.round(relevanceScore * 100)}% match
+                      </span>
+                      {relevanceReason && (
+                        <span className="text-[10px] text-muted-foreground/70 truncate max-w-[150px]">
+                          {relevanceReason}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </CardContent>
