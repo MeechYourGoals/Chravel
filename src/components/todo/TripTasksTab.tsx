@@ -9,7 +9,6 @@ import { ActionPill } from '../ui/ActionPill';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { useIsMobile } from '@/hooks/use-mobile';
 import {
   TRIP_PARITY_COL_START,
   TRIP_PARITY_HEADER_SPAN_CLASS,
@@ -43,7 +42,6 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
     clearFilters,
   } = useTripTasks(tripId);
   const { isDemoMode } = useDemoMode();
-  const isMobile = useIsMobile();
 
   // Mock task items for demo
   const mockTasks = [
@@ -93,7 +91,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
 
   // Determine if we're in the mobile empty state
   const isEmptyState = displayTasks.length === 0;
-  const showInlineCreate = isMobile && isEmptyState;
+  const showInlineCreate = isEmptyState;
 
   // Apply filters
   const filteredTasks = applyFilters(displayTasks);
