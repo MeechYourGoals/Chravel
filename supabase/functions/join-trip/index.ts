@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -94,6 +95,19 @@ serve(async req => {
 
     const user = userData.user;
     logStep('User authenticated', { userId: user.id, email: user.email });
+
+    // Rate limit: max 10 join attempts per user per minute (prevents invite brute-forcing)
+    const rl = await applyRateLimit({
+      identifier: `join-trip:${user.id}`,
+      maxRequests: 10,
+      windowSeconds: 60,
+      corsHeaders,
+      supabaseClient: supabaseClient,
+    });
+    if (!rl.allowed) {
+      logStep('Rate limit exceeded', { userId: user.id });
+      return rl.response!;
+    }
 
     // Get invite code from request
     const { inviteCode } = await req.json();

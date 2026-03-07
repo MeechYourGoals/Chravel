@@ -122,6 +122,34 @@ serve(async req => {
       return createErrorResponse('Invalid signature', 400);
     }
 
+    // Idempotency: skip already-processed events to prevent duplicate processing
+    // during webhook retries or storm scenarios
+    const { data: existingEvent, error: idempotencyError } = await supabaseClient
+      .from('webhook_events')
+      .select('id')
+      .eq('event_id', event.id)
+      .maybeSingle();
+
+    if (idempotencyError) {
+      // Log but don't block — DB might not have the table yet
+      console.warn('[STRIPE-WEBHOOK] Idempotency check failed:', idempotencyError.message);
+    } else if (existingEvent) {
+      logStep('Duplicate event skipped (idempotency)', { eventId: event.id });
+      return createSecureResponse({ received: true, duplicate: true, eventType: event.type });
+    }
+
+    // Record event as processed (best-effort — table may not exist yet)
+    await supabaseClient
+      .from('webhook_events')
+      .insert({
+        event_id: event.id,
+        event_type: event.type,
+        processed_at: new Date().toISOString(),
+      })
+      .then(({ error: insertErr }) => {
+        if (insertErr) console.warn('[STRIPE-WEBHOOK] Failed to record event:', insertErr.message);
+      });
+
     // Handle different event types
     switch (event.type) {
       case 'checkout.session.completed':
