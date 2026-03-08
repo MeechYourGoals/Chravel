@@ -689,6 +689,14 @@
     stroke: url(#gold-metallic-gradient) !important;
   }
 
+  /* Metallic gold gradient for text — same stops as #gold-metallic-gradient SVG */
+  .gold-gradient-text {
+    background: linear-gradient(135deg, #533517 0%, #c49746 40%, #feeaa5 70%, #c49746 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
 
   .accent-ring-idle {
     background: rgba(255, 255, 255, 0.06);

@@ -311,7 +311,7 @@ export const ProTripCard = ({
             </div>
 
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <Calendar size={14} className="text-white/60 shrink-0" />
+              <CalendarDays size={14} className="text-white/60 shrink-0" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
