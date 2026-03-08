@@ -244,11 +244,11 @@ export const EventCard = ({
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end">
             <h3 className="text-2xl font-bold text-white mb-2 line-clamp-2">{event.title}</h3>
             <div className="flex items-center gap-2 text-white/80 mb-2">
-              <MapPin size={16} className={`text-${accentColors.primary}`} />
+              <MapPin size={16} className="gold-gradient-icon" />
               <span className="font-medium">{event.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80">
-              <Calendar size={16} className={`text-${accentColors.primary}`} />
+              <CalendarDays size={16} className="gold-gradient-icon" />
               <span className="font-medium">{event.dateRange}</span>
             </div>
           </div>
