@@ -7,11 +7,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { AddToCalendarData } from '@/types/calendar';
 import { format } from 'date-fns';
+import { CalendarEventFormFields } from './CalendarEventFormFields';
+import type { EventFormValues } from './CalendarEventFormFields';
 
 interface AddEventModalProps {
   open: boolean;
@@ -39,6 +38,24 @@ export function AddEventModal({
     // Don't close here - let the parent handle it after successful save
   };
 
+  const formValues: EventFormValues = {
+    title: newEvent.title,
+    time: newEvent.time,
+    endTime: newEvent.endTime || '',
+    location: newEvent.location || '',
+    description: newEvent.description || '',
+  };
+
+  const handleFieldChange = <K extends keyof EventFormValues>(
+    field: K,
+    value: EventFormValues[K],
+  ) => {
+    onUpdateField(
+      field as keyof AddToCalendarData,
+      value as AddToCalendarData[keyof AddToCalendarData],
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-6 max-w-md mx-auto shadow-enterprise-lg">
@@ -51,77 +68,11 @@ export function AddEventModal({
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
-          <div>
-            <Label htmlFor="modal-title" className="text-gray-300 text-sm">
-              Title
-            </Label>
-            <Input
-              id="modal-title"
-              className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
-              value={newEvent.title}
-              onChange={e => onUpdateField('title', e.target.value)}
-              placeholder="Event title"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="modal-start-time" className="text-gray-300 text-sm">
-                Start Time
-              </Label>
-              <Input
-                id="modal-start-time"
-                type="time"
-                className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
-                value={newEvent.time}
-                onChange={e => onUpdateField('time', e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-            <div>
-              <Label htmlFor="modal-end-time" className="text-gray-300 text-sm">
-                End Time
-              </Label>
-              <Input
-                id="modal-end-time"
-                type="time"
-                className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
-                value={newEvent.endTime || ''}
-                onChange={e => onUpdateField('endTime', e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="modal-location" className="text-gray-300 text-sm">
-              Location
-            </Label>
-            <Input
-              id="modal-location"
-              className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
-              value={newEvent.location}
-              onChange={e => onUpdateField('location', e.target.value)}
-              placeholder="e.g., Central Park, NYC"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="modal-description" className="text-gray-300 text-sm">
-              Description
-            </Label>
-            <Textarea
-              id="modal-description"
-              className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500 resize-none"
-              rows={3}
-              value={newEvent.description}
-              onChange={e => onUpdateField('description', e.target.value)}
-              placeholder="Event details (optional)"
-              disabled={isSubmitting}
-            />
-          </div>
+          <CalendarEventFormFields
+            values={formValues}
+            onFieldChange={handleFieldChange}
+            disabled={isSubmitting}
+          />
         </div>
 
         <DialogFooter className="mt-6 flex justify-end gap-2">

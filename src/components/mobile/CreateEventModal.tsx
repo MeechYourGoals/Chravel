@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { calendarService, TripEvent } from '@/services/calendarService';
 import { toast } from 'sonner';
+import { CalendarEventFormFields } from '@/features/calendar/components/CalendarEventFormFields';
+import type { EventFormValues } from '@/features/calendar/components/CalendarEventFormFields';
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -25,34 +29,47 @@ export const CreateEventModal = ({
   editEvent,
   onEventUpdated,
 }: CreateEventModalProps) => {
-  const [title, setTitle] = useState('');
+  const [formValues, setFormValues] = useState<EventFormValues>({
+    title: '',
+    time: '12:00',
+    endTime: '',
+    location: '',
+    description: '',
+  });
   const [eventDate, setEventDate] = useState(selectedDate);
-  const [time, setTime] = useState('12:00');
-  const [endTime, setEndTime] = useState('');
-  const [location, setLocation] = useState('');
-  const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditMode = !!editEvent;
 
+  const handleFieldChange = useCallback(
+    <K extends keyof EventFormValues>(field: K, value: EventFormValues[K]) => {
+      setFormValues(prev => ({ ...prev, [field]: value }));
+    },
+    [],
+  );
+
   // Populate form when editing
   useEffect(() => {
     if (editEvent) {
-      setTitle(editEvent.title || '');
       const startDate = new Date(editEvent.start_time);
       setEventDate(startDate);
-      setTime(format(startDate, 'HH:mm'));
-      setEndTime(editEvent.end_time ? format(new Date(editEvent.end_time), 'HH:mm') : '');
-      setLocation(editEvent.location || '');
-      setDescription(editEvent.description || '');
+      setFormValues({
+        title: editEvent.title || '',
+        time: format(startDate, 'HH:mm'),
+        endTime: editEvent.end_time ? format(new Date(editEvent.end_time), 'HH:mm') : '',
+        location: editEvent.location || '',
+        description: editEvent.description || '',
+      });
     } else {
       // Reset form for new event
-      setTitle('');
       setEventDate(selectedDate);
-      setTime('12:00');
-      setEndTime('');
-      setLocation('');
-      setDescription('');
+      setFormValues({
+        title: '',
+        time: '12:00',
+        endTime: '',
+        location: '',
+        description: '',
+      });
     }
   }, [editEvent, selectedDate, isOpen]);
 
@@ -70,6 +87,8 @@ export const CreateEventModal = ({
     setIsSubmitting(true);
 
     try {
+      const { title, time, endTime, location, description } = formValues;
+
       // Validate title
       if (!title.trim()) {
         toast.error('Event title is required');
@@ -198,11 +217,13 @@ export const CreateEventModal = ({
           onEventCreated?.(result.event);
 
           // Reset form
-          setTitle('');
-          setTime('12:00');
-          setEndTime('');
-          setLocation('');
-          setDescription('');
+          setFormValues({
+            title: '',
+            time: '12:00',
+            endTime: '',
+            location: '',
+            description: '',
+          });
           onClose();
         } else {
           throw new Error('Failed to create event');
@@ -256,85 +277,33 @@ export const CreateEventModal = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Date field (mobile-specific, not in shared fields) */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Event Title</label>
-            <input
-              type="text"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="e.g., Dinner at Italian Restaurant"
-              className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Date</label>
-            <input
+            <Label htmlFor="event-date" className="text-gray-300 text-sm">
+              Date
+            </Label>
+            <Input
+              id="event-date"
               type="date"
+              className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
               value={format(eventDate, 'yyyy-MM-dd')}
               onChange={e => {
-                // Parse date parts to create a date in local timezone
-                // new Date("YYYY-MM-DD") parses as UTC midnight which causes timezone bugs
                 const value = e.target.value;
                 if (value) {
                   const [year, month, day] = value.split('-').map(Number);
-                  // Month is 0-indexed in Date constructor
                   setEventDate(new Date(year, month - 1, day));
                 }
               }}
-              className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Start Time</label>
-              <input
-                type="time"
-                value={time}
-                onChange={e => setTime(e.target.value)}
-                className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                End Time (Optional)
-              </label>
-              <input
-                type="time"
-                value={endTime}
-                onChange={e => setEndTime(e.target.value)}
-                className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Location</label>
-            <input
-              type="text"
-              value={location}
-              onChange={e => setLocation(e.target.value)}
-              placeholder="e.g., Central Park"
-              className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description (Optional)
-            </label>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Add any additional details..."
-              rows={3}
-              className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-            />
-          </div>
+          {/* Shared form fields */}
+          <CalendarEventFormFields
+            values={formValues}
+            onFieldChange={handleFieldChange}
+            disabled={isSubmitting}
+          />
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
