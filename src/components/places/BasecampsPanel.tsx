@@ -322,7 +322,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                   <button
                     onClick={() => setShowTripSelector(true)}
-                    className="bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 px-2 py-1 rounded-lg transition-colors text-xs border border-sky-500/30"
+                    className="bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 px-3 py-2 rounded-lg transition-colors text-sm border border-sky-500/30 min-h-[44px] flex items-center"
                   >
                     Edit
                   </button>
@@ -388,7 +388,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                   <button
                     onClick={() => setShowPersonalSelector(true)}
-                    className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-2 py-1 rounded-lg transition-colors text-xs border border-emerald-500/30"
+                    className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-3 py-2 rounded-lg transition-colors text-sm border border-emerald-500/30 min-h-[44px] flex items-center"
                   >
                     Edit
                   </button>

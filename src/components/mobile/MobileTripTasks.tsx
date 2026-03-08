@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { format } from 'date-fns';
 import { Plus, Check } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
@@ -114,9 +115,13 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                   <div className="flex items-start gap-3">
                     <button
                       onClick={() => handleToggleTask(task.id)}
-                      className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-400 flex items-center justify-center active:scale-95 transition-transform"
+                      className="flex-shrink-0 flex items-center justify-center w-11 h-11 -ml-2 active:scale-95 transition-transform"
                     >
-                      {isTaskCompleted(task) && <Check size={14} className="text-white" />}
+                      <span
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isTaskCompleted(task) ? 'bg-green-500 border-green-500' : 'border-gray-400'}`}
+                      >
+                        {isTaskCompleted(task) && <Check size={14} className="text-white" />}
+                      </span>
                     </button>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-white font-medium truncate">{task.title}</h4>
@@ -128,7 +133,7 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                         )}
                         {task.due_at && (
                           <span className="text-xs text-orange-400 flex-shrink-0">
-                            {new Date(task.due_at).toLocaleDateString()}
+                            {format(new Date(task.due_at), 'MMM d, yyyy')}
                           </span>
                         )}
                       </div>
@@ -163,9 +168,11 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                     <div className="flex items-start gap-3">
                       <button
                         onClick={() => handleToggleTask(task.id)}
-                        className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center active:scale-95 transition-transform"
+                        className="flex-shrink-0 flex items-center justify-center w-11 h-11 -ml-2 active:scale-95 transition-transform"
                       >
-                        <Check size={14} className="text-white" />
+                        <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                          <Check size={14} className="text-white" />
+                        </span>
                       </button>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-gray-300 line-through break-words">{task.title}</h4>
