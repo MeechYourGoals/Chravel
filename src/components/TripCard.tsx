@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
+  CalendarDays,
   MapPin,
   User,
   MoreHorizontal,
@@ -401,7 +401,7 @@ export const TripCard = ({
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-gold-mid transition-colors line-clamp-2">
+                <h3 className="text-lg md:text-xl font-bold text-white group-hover:gold-gradient-text transition-all duration-300 line-clamp-2">
                   {trip.title}
                 </h3>
                 {/* Trip Status Badges - Hidden on mobile to save space */}
@@ -443,8 +443,8 @@ export const TripCard = ({
               <span className="font-medium truncate">{trip.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <Calendar size={14} className="md:hidden gold-gradient-icon" />
-              <Calendar size={18} className="hidden md:block gold-gradient-icon" />
+              <CalendarDays size={14} className="md:hidden gold-gradient-icon" />
+              <CalendarDays size={18} className="hidden md:block gold-gradient-icon" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
