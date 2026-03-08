@@ -445,8 +445,8 @@ export const TripCard = ({
               <span className="font-medium truncate">{trip.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <CalendarDays size={14} className="md:hidden gold-gradient-icon" />
-              <CalendarDays size={18} className="hidden md:block gold-gradient-icon" />
+              <CalendarRange size={14} className="md:hidden gold-gradient-icon" />
+              <CalendarRange size={18} className="hidden md:block gold-gradient-icon" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
