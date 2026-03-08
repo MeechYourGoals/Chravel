@@ -434,7 +434,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
 
             {loadingMembers || loadingAdmins ? (
               <div className="flex items-center gap-2 py-4">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gold-primary" />
                 <span className="text-sm text-muted-foreground">Loading...</span>
               </div>
             ) : tripMembers.length === 0 ? (
