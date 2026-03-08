@@ -381,7 +381,7 @@ export const TripCard = ({
 
   return (
     <div
-      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
+      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-gold-primary/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
     >
