@@ -29,11 +29,6 @@ import { VirtualizedRosterGrid } from './VirtualizedRosterGrid';
 import { TripRole } from '../../../types/roleChannels';
 import { useRoleAssignments } from '../../../hooks/useRoleAssignments';
 import { useTripAdmins } from '../../../hooks/useTripAdmins';
-import {
-  PARITY_ACTION_BUTTON_SIZE_CLASS,
-  PRO_PARITY_COL_START,
-  PRO_PARITY_ROW_CLASS,
-} from '@/lib/tabParity';
 
 interface RolesViewProps {
   roster: ProParticipant[];
@@ -189,7 +184,7 @@ export const RolesView = ({
         {/* Row 1: Team Label + Stats + Admin Badge */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Users className="text-red-400" size={20} />
+            <Users className="text-amber-400" size={20} />
             <h2 className="text-lg font-bold text-white">{teamLabel}</h2>
             <span className="text-gray-400 text-sm">{roster.length} members</span>
           </div>
@@ -200,33 +195,27 @@ export const RolesView = ({
 
         {/* Row 2: Consolidated Admin Action Buttons (3 buttons) - Mobile optimized */}
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
-          <div className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}>
+          <div
+            className={`${isMobile ? 'grid grid-cols-2 gap-3' : 'flex justify-evenly gap-3'} mb-3`}
+          >
             <Button
               onClick={onCreateRole}
               disabled={adminLoading || isLoadingRoles}
               variant="outline"
               size="sm"
-              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                isMobile
-                  ? 'min-h-[44px] justify-center text-xs'
-                  : `${PRO_PARITY_COL_START.media} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
-              }`}
+              className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
             >
-              <UserPlus className="w-4 h-4 mr-1" />
+              <UserPlus className="w-4 h-4 mr-1.5 shrink-0" />
               Create Role
             </Button>
             <Button
               onClick={() => setShowRoleManagerDialog(true)}
               variant="outline"
               size="sm"
-              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                isMobile
-                  ? 'min-h-[44px] justify-center text-xs'
-                  : `${PRO_PARITY_COL_START.payments} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2 font-medium text-xs lg:text-sm`
-              }`}
+              className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
               title="Manage roles, assignments, and admins"
             >
-              <Cog className="w-4 h-4 shrink-0 mr-0.5" />
+              <Cog className="w-4 h-4 mr-1.5 shrink-0" />
               Manage Roles
             </Button>
             {onAssignRole && (
@@ -234,14 +223,10 @@ export const RolesView = ({
                 onClick={onAssignRole}
                 variant="outline"
                 size="sm"
-                className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                  isMobile
-                    ? 'min-h-[44px] justify-center text-xs'
-                    : `${PRO_PARITY_COL_START.places} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
-                }`}
+                className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
                 title="Assign role to members"
               >
-                <UserCheck className="w-4 h-4 mr-1" />
+                <UserCheck className="w-4 h-4 mr-1.5 shrink-0" />
                 Assign Role
               </Button>
             )}
@@ -249,22 +234,20 @@ export const RolesView = ({
               onClick={() => setShowRequestsDialog(true)}
               variant="outline"
               size="sm"
-              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                isMobile
-                  ? 'min-h-[44px] justify-center text-xs'
-                  : `${PRO_PARITY_COL_START.places} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
-              }`}
+              className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
               title="View join requests"
             >
-              <Clock className="w-4 h-4 mr-1" />
+              <Clock className="w-4 h-4 mr-1.5 shrink-0" />
               Requests
             </Button>
           </div>
         )}
 
-        {/* Row 3: View mode toggle (Grid vs Org Chart) + Role Filter Pills */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2">
+        {/* Row 3: View mode toggle + Role Filter Pills on the same row */}
+        <div
+          className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between gap-4'} mb-3`}
+        >
+          <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs text-gray-500">View:</span>
             <div className="flex rounded-lg bg-white/5 border border-gray-600 p-0.5">
               <button
@@ -291,14 +274,10 @@ export const RolesView = ({
               </button>
             </div>
           </div>
-        </div>
 
-        {(availableRoles.length > 0 || existingRoles.length > 0) && (
-          <div
-            className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide -mx-3 px-3' : 'justify-center'}`}
-          >
+          {(availableRoles.length > 0 || existingRoles.length > 0) && (
             <div
-              className={`flex ${isMobile ? 'gap-2 min-w-max' : 'flex-wrap gap-2 justify-center items-center max-w-5xl'}`}
+              className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide' : 'flex-wrap justify-end'} gap-2 items-center`}
             >
               {roles.map(role => {
                 // Count members assigned to this role from actual role assignments (memberRolesMap)
@@ -341,8 +320,8 @@ export const RolesView = ({
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Manual Role Input Notice for Corporate & Business */}
         {availableRoles.length === 0 && (
@@ -453,7 +432,7 @@ export const RolesView = ({
                             key={`${pill.name}-${index}`}
                             className={`${
                               pill.isAdmin
-                                ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
+                                ? 'bg-red-600/30 text-red-300 border border-red-500/30'
                                 : getRoleColorClass(pill.name, category)
                             } px-1.5 py-0.5 rounded text-xs font-medium`}
                           >
