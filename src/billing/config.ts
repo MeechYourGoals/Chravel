@@ -142,9 +142,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 
   'pro-enterprise': {
     name: 'Pro Enterprise',
-    stripeProductId: 'prod_Tc0cJshKNpvxV0',
-    stripePriceIdMonthly: 'price_1RXK58AedhHV8iZ8GJHNqvld',
-    stripePriceIdAnnual: 'price_1RXK58AedhHV8iZ8mcfvfYUy',
+    stripeProductId: 'prod_U73Vd6QW4pEY9x',
+    stripePriceIdMonthly: 'price_1T8pOg47wCAQ57MmcEPnjd3s',
+    stripePriceIdAnnual: 'price_1T8pOg47wCAQ57MmcEPnjd3s', // Pro plans monthly only
     requiresIAPOnIOS: false,
     priceMonthly: 199,
     priceAnnual: 1990,
