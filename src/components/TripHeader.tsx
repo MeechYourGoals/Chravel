@@ -607,7 +607,7 @@ export const TripHeader = ({
             {/* Header: Trip Members | count | Show all - consolidated layout */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Users size={20} className={`text-${accentColors.primary}`} />
+                <Users size={20} className="text-gold-primary" />
                 <h3 className="text-white font-semibold text-sm">
                   {isEvent ? 'Event Team' : 'Trip Members'}
                 </h3>
