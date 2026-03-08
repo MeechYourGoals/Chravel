@@ -93,9 +93,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 
   'pro-starter': {
     name: 'Starter Pro',
-    stripeProductId: 'prod_Tc0YVR1N0fmtDG',
-    stripePriceIdMonthly: 'price_1RXK1sAedhHV8iZ8S74oKAqG',
-    stripePriceIdAnnual: 'price_1RXK1sAedhHV8iZ80l3YE1kv',
+    stripeProductId: 'prod_U73Vlcl4lqgsb4',
+    stripePriceIdMonthly: 'price_1T8pOe47wCAQ57MmkShIK75i',
+    stripePriceIdAnnual: 'price_1T8pOe47wCAQ57MmkShIK75i', // Pro plans monthly only
     requiresIAPOnIOS: false, // B2B exception
     priceMonthly: 49,
     priceAnnual: 490,
