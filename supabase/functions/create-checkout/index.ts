@@ -24,19 +24,19 @@ const logStep = (step: string, details?: unknown) => {
 // ============================================================
 const PRICE_IDS: Record<string, string> = {
   // Consumer Plans - ChravelApp Plus
-  'explorer-monthly': 'price_1SemRq3EeswiMlDC9yP0Dh5G',
-  'explorer-annual': 'price_1SemRq3EeswiMlDCi0syvI3f',
-  'frequent-chraveler-monthly': 'price_1SemV13EeswiMlDC2ykNdrif',
-  'frequent-chraveler-annual': 'price_1SemV13EeswiMlDC2P2126NY',
+  'explorer-monthly': 'price_1T8pOc47wCAQ57MmWsPX3Jku',
+  'explorer-annual': 'price_1T8pOl47wCAQ57MmDT7uefS7',
+  'frequent-chraveler-monthly': 'price_1T8pOd47wCAQ57MmIrACPNpc',
+  'frequent-chraveler-annual': 'price_1T8pOl47wCAQ57MmrhqSZM2j',
 
   // Pro Plans - ChravelApp Pro
-  'pro-starter': 'price_1SemXF3EeswiMlDCL1Unj0Er',
-  'pro-growth': 'price_1SemYw3EeswiMlDCv27XvDMY',
-  'pro-enterprise': 'price_1Semar3EeswiMlDCmEPBAvIt',
+  'pro-starter': 'price_1T8pOe47wCAQ57MmkShIK75i',
+  'pro-growth': 'price_1T8pOf47wCAQ57Mm5k8uVQrW',
+  'pro-enterprise': 'price_1T8pOg47wCAQ57MmcEPnjd3s',
 
   // Trip Passes (one-time)
-  'pass-explorer-45': 'price_1T7P2i3EeswiMlDCwWK11oDt',
-  'pass-frequent-90': 'price_1Sz6A63EeswiMlDCGFASMBft',
+  'pass-explorer-45': 'price_1T8pP047wCAQ57Mm6sfNTg2w',
+  'pass-frequent-90': 'price_1T8pP047wCAQ57Mm2DOch99F',
 };
 
 // Duration mapping for Trip Passes
