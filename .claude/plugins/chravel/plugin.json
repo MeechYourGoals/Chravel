@@ -1,0 +1,12 @@
+{
+  "name": "chravel",
+  "description": "Chravel engineering skills: autonomous development, PRD generation, loop orchestration, and AI API integration",
+  "version": "1.0.0",
+  "author": {
+    "name": "Chravel Engineering",
+    "email": "engineering@chravel.com"
+  },
+  "license": "UNLICENSED",
+  "keywords": ["chravel", "loop", "ralph", "prd", "orchestration", "monitoring", "automation"],
+  "skills": ["loop", "ralph", "prd", "gemini-api-dev"]
+}

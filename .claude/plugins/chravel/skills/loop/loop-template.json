@@ -1,0 +1,106 @@
+{
+  "$schema": "Canonical loop definition schema for Chravel /loop skill",
+  "template": {
+    "objective": "REQUIRED — What the loop is trying to achieve",
+    "interval": "REQUIRED — How often to check (e.g., '5m', '1h', '1d')",
+    "max_runtime": "REQUIRED — When the loop auto-expires (e.g., '30m', '8h', '3d')",
+    "success_condition": "REQUIRED — What means 'done, stop looping'",
+    "failure_condition": "REQUIRED — What means 'this is broken, report and stop'",
+    "escalation_condition": "REQUIRED — What means 'I need a human'",
+    "allowed_actions": [
+      "REQUIRED — List of actions the loop is permitted to take",
+      "Examples: 'read PR status via gh', 'spawn worktree subagent', 'run tests'"
+    ],
+    "approval_required_for": [
+      "REQUIRED — Actions that need human sign-off before executing",
+      "Examples: 'schema changes', 'auth modifications', 'production mutations'"
+    ],
+    "artifacts_to_read": [
+      "REQUIRED — Files, commands, or endpoints to check each iteration",
+      "Examples: 'gh pr view 247 --json state', 'scripts/ralph/prd.json'"
+    ],
+    "artifacts_to_write": [
+      "REQUIRED — Where to persist status between iterations",
+      "Always include: 'tmp/loop-status/{task}.md'",
+      "Optionally: 'tmp/loop-history/{date}-{task}.jsonl'"
+    ],
+    "notify_when_done": "REQUIRED — How to alert the user (inline, Slack MCP, OS notification)"
+  },
+  "examples": {
+    "minimal": {
+      "objective": "Check if Vercel deploy finished",
+      "interval": "3m",
+      "max_runtime": "30m",
+      "success_condition": "Deployment state = READY",
+      "failure_condition": "Deployment state = ERROR",
+      "escalation_condition": "Stuck in BUILDING > 15 min",
+      "allowed_actions": ["read deploy status", "read build logs on failure"],
+      "approval_required_for": ["triggering new deploy"],
+      "artifacts_to_read": ["Vercel deployment status"],
+      "artifacts_to_write": ["tmp/loop-status/deploy-watch.md"],
+      "notify_when_done": "Inline summary with URL"
+    },
+    "complex": {
+      "objective": "Babysit PR #247 with auto-fix capability",
+      "interval": "10m",
+      "max_runtime": "8h",
+      "success_condition": "CI green AND 0 unresolved threads AND reviewDecision=APPROVED",
+      "failure_condition": "Same test failing 3 consecutive checks",
+      "escalation_condition": "Reviewer requests architectural change",
+      "allowed_actions": [
+        "read PR status via gh",
+        "spawn worktree subagent to fix lint/type/test failures",
+        "push fix commits to PR branch",
+        "respond to simple review comments"
+      ],
+      "approval_required_for": [
+        "changes outside PR file scope",
+        "schema/migration changes",
+        "auth/RLS modifications",
+        "force pushes"
+      ],
+      "artifacts_to_read": [
+        "gh pr view 247 --json state,reviewDecision,statusCheckRollup,reviewThreads",
+        "gh pr checks 247"
+      ],
+      "artifacts_to_write": [
+        "tmp/loop-status/pr-247.md",
+        "tmp/loop-history/2026-03-08-pr-247.jsonl"
+      ],
+      "notify_when_done": "Inline summary with merge readiness + commit list"
+    }
+  },
+  "status_file_template": {
+    "format": "markdown",
+    "sections": [
+      "# Loop: {objective}",
+      "## Last Check: {ISO timestamp}",
+      "## Status: WATCHING | SUCCESS | FAILING | ESCALATED | EXPIRED",
+      "## Iteration: {n}",
+      "",
+      "### Current State",
+      "{1-3 line summary}",
+      "",
+      "### Delta Since Last Check",
+      "{what changed — 'No change' if nothing}",
+      "",
+      "### Blockers",
+      "{none | list}",
+      "",
+      "### Confidence: HIGH | MEDIUM | LOW",
+      "### Next Action: {what happens next}",
+      "### Escalation: NONE | PENDING | REQUIRED"
+    ]
+  },
+  "history_line_template": {
+    "format": "jsonl (one JSON object per line)",
+    "fields": {
+      "ts": "ISO 8601 timestamp",
+      "iter": "iteration number",
+      "status": "WATCHING | SUCCESS | FAILING | ESCALATED | EXPIRED",
+      "delta": "short description of what changed",
+      "confidence": "HIGH | MEDIUM | LOW",
+      "action": "what the loop did or will do next"
+    }
+  }
+}

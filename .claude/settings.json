@@ -50,6 +50,10 @@
       "name": "agent-browser",
       "marketplace": "agent-browser-marketplace",
       "version": "latest"
+    },
+    {
+      "name": "chravel",
+      "version": "1.0.0"
     }
   ]
 }
