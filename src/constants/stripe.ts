@@ -84,8 +84,8 @@ export const PRO_PLANS = {
   growth: {
     name: 'Growth Pro',
     tier: 'pro-growth',
-    product_id: 'prod_Tc0afc0pIUt87D',
-    price_id: 'price_1SemYw3EeswiMlDCv27XvDMY',
+    product_id: 'prod_U73VPX6TlClQ7J',
+    price_id: 'price_1T8pOf47wCAQ57Mm5k8uVQrW',
     amount: 9900, // $99/mo in cents
     memberLimit: 100,
   },
