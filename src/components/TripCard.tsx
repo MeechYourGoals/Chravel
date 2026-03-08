@@ -386,7 +386,7 @@ export const TripCard = ({
       onFocus={handlePrefetch}
     >
       {/* Trip Image/Header - Responsive with lazy loading */}
-      <div className="relative h-32 md:h-48 bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent p-4 md:p-6">
+      <div className="relative h-32 md:h-48 bg-gradient-to-br from-gold-dark/20 via-gold-primary/10 to-transparent p-4 md:p-6">
         {trip.coverPhoto && (
           <OptimizedImage
             src={trip.coverPhoto}
