@@ -206,7 +206,7 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
       {/* Header */}
       <div className={EVENT_PARITY_ROW_CLASS}>
         <div className={`flex items-center gap-3 ${EVENT_PARITY_HEADER_SPAN_CLASS}`}>
-          <ClipboardList size={24} className="text-yellow-500" />
+          <ClipboardList size={24} className="gold-gradient-icon" />
           <div>
             <h2 className="text-xl font-semibold text-white">Event Tasks</h2>
             <p className="text-gray-400 text-sm">
