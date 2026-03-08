@@ -307,12 +307,12 @@ export const ProTripCard = ({
             </h3>
 
             <div className="flex items-center gap-2 text-white/80 mb-1 md:mb-2 text-sm md:text-base">
-              <MapPin size={14} className="text-white/60 shrink-0" />
+              <MapPin size={14} className="gold-gradient-icon shrink-0" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
 
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <CalendarDays size={14} className="text-white/60 shrink-0" />
+              <CalendarDays size={14} className="gold-gradient-icon shrink-0" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>

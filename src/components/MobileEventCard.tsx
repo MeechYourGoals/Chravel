@@ -292,7 +292,7 @@ export const MobileEventCard = ({
         <div className="mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users size={14} className={`text-${accentColors.primary}`} />
+              <Users size={14} className="gold-gradient-icon" />
               <span className="text-sm text-gray-300 font-medium">Organizer</span>
             </div>
             <span className="text-xs text-gray-300 font-medium truncate max-w-[55%] text-right">

@@ -4,6 +4,7 @@ import {
   CalendarDays,
   MapPin,
   User,
+  Users,
   MoreHorizontal,
   Archive,
   Flame,
@@ -12,6 +13,7 @@ import {
   FileDown,
   Trash2,
 } from 'lucide-react';
+import { CardStatItem } from './ui/CardStatItem';
 import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';

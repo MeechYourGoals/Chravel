@@ -302,7 +302,7 @@ export const EventCard = ({
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users size={18} className={`text-${accentColors.primary}`} />
+              <Users size={16} className="gold-gradient-icon" />
               <span className="text-white font-medium">Organizer</span>
             </div>
             <span className="text-gray-300 text-sm font-medium truncate max-w-[60%] text-right">
