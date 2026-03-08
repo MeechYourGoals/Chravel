@@ -500,6 +500,17 @@ const App = () => {
 
   return (
     <ErrorBoundary>
+      {/* Global SVG gradient definition for metallic gold icons */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+        <defs>
+          <linearGradient id="gold-metallic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#533517" />
+            <stop offset="40%" stopColor="#c49746" />
+            <stop offset="70%" stopColor="#feeaa5" />
+            <stop offset="100%" stopColor="#c49746" />
+          </linearGradient>
+        </defs>
+      </svg>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ConsumerSubscriptionProvider>

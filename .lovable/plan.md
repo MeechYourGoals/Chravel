@@ -1,83 +1,32 @@
 
 
-## Gold Gradient Icons & Final Color Consistency
+## Problem
 
-### Why It Keeps Not Working
+The Team tab's admin action buttons (Create Role, Manage Roles, Assign Role, Requests) overlap because "Assign Role" and "Requests" are both mapped to the same grid column (`PRO_PARITY_COL_START.places`). The 9-column parity grid is also too tight for these buttons, causing text to bleed outside pills.
 
-The HSL token update changed `--gold-primary` to `#c49746`, but **CSS `color` can only ever be a single flat color**. The metallic shimmer on the Concierge tab comes from a `linear-gradient(135deg, #533517 → #c49746 → #feeaa5 → #c49746)` — that's 4 color stops. No single CSS color token can replicate that on SVG icon strokes. A completely different technique is needed: an **SVG gradient paint server**.
+## Changes
 
-### Solution
+### `src/components/pro/team/RolesView.tsx` (lines 202-262)
 
-#### 1. Global SVG Gradient Definition — `src/App.tsx`
+Replace the `PRO_PARITY_ROW_CLASS` (9-col grid) with a simple **4-column grid** layout with adequate gap for these 4 action buttons:
 
-Add a hidden zero-size SVG at the app root containing a `<linearGradient>` with the exact metallic palette. This allows any SVG icon to reference it via `stroke: url(#gold-metallic-gradient)`.
+**Desktop container:**
+```tsx
+// Before
+className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}
 
-```html
-<svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
-  <defs>
-    <linearGradient id="gold-metallic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stopColor="#533517" />
-      <stop offset="40%" stopColor="#c49746" />
-      <stop offset="70%" stopColor="#feeaa5" />
-      <stop offset="100%" stopColor="#c49746" />
-    </linearGradient>
-  </defs>
-</svg>
+// After
+className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3'} mb-3`}
 ```
 
-#### 2. CSS Utility Class — `src/index.css`
-
-```css
-.gold-gradient-icon {
-  color: #c49746; /* fallback */
-}
-.gold-gradient-icon svg,
-.gold-gradient-icon.lucide {
-  stroke: url(#gold-metallic-gradient) !important;
-  color: url(#gold-metallic-gradient);
-}
+**Each button:** Remove the `PRO_PARITY_COL_START.*` and `PARITY_ACTION_BUTTON_SIZE_CLASS` classes. Use consistent sizing:
+```tsx
+className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 
+  hover:border-amber-400/50 text-white border-white/20 transition-colors 
+  min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap"
 ```
 
-Since Lucide icons use `stroke="currentColor"`, overriding `stroke` with `url()` applies the gradient directly to icon paths.
+**Mobile:** Switch from single-column flex to a **2x2 grid** (`grid grid-cols-2 gap-2`) so all 4 buttons are visible without excessive scrolling, with `min-h-[44px]` for tap targets.
 
-#### 3. Icon Replacements (~10 files)
-
-Every flat gold/yellow icon the user flagged, plus all remaining ones:
-
-| File | Icon(s) | Current Class | New Class |
-|------|---------|---------------|-----------|
-| `TripCard.tsx` | MapPin, Calendar | `text-gold-primary` | `gold-gradient-icon` |
-| `TripHeader.tsx` | Users (Trip Members / Event Team) | `text-gold-primary` | `gold-gradient-icon` |
-| `EventTasksTab.tsx` | ClipboardList | `text-yellow-500` | `gold-gradient-icon` |
-| `LineupTab.tsx` | Users | `text-yellow-500` | `gold-gradient-icon` |
-| `TripPreview.tsx` | MapPin, Calendar, Users, Loader2 | `text-gold-primary` | `gold-gradient-icon` |
-| `PendingTripCard.tsx` (both files) | MapPin, Calendar, AlertCircle, Clock | `text-gold-primary` | `gold-gradient-icon` |
-| `PremiumBadge.tsx` | Sparkles | `text-gold-primary` | `gold-gradient-icon` |
-| `NativeTabBar.tsx` | active tab icons | `text-gold-primary` | `gold-gradient-icon` |
-| `VoiceButton.tsx` | Lock | `text-gold-primary/90` | `gold-gradient-icon` |
-| `NativeTripTypeSwitcher.tsx` | selected icon | `text-gold-primary` | `gold-gradient-icon` |
-| `BulkRoleAssignmentDialog.tsx` | Loader2 | `text-gold-primary` | `gold-gradient-icon` |
-
-#### 4. Spinner Brightness Fix — `src/index.css`
-
-The current `.gold-gradient-spinner` starts with dark bronze which makes it look dull. Shift stops brighter:
-
-```css
-.gold-gradient-spinner {
-  background:
-    conic-gradient(from 180deg, transparent 0%, #c49746 25%, #feeaa5 50%, #c49746 75%, transparent 100%) border-box;
-}
-```
-
-### What This Does NOT Touch (And Why)
-
-- `border-gold-primary` on card containers/badges — these are subtle hover borders at low opacity (e.g., `border-gold-primary/30`). At 30% opacity the flat gold is visually close enough to the gradient midpoint. Replacing every container border with `::before` pseudo-elements would be a massive refactor with diminishing returns. The user's complaints are specifically about **icons and spinners**, not container borders.
-- `bg-gold-primary` fills (calendar selected dates, switches) — a filled background using the midpoint gold (#c49746) is correct behavior for selected states.
-- `text-gold-primary` on **text** (not icons) like "ChravelApp" brand text — gradient text requires `-webkit-background-clip: text` which is a separate treatment if desired.
-
-### Files Touched
-
-- `src/App.tsx` — SVG gradient definition
-- `src/index.css` — `.gold-gradient-icon` utility + spinner fix
-- ~10 component files — icon class replacements
+**Button labels stay the same:** Create Role, Manage Roles, Assign Role, Requests — all 4 fit cleanly in equal-width columns with `whitespace-nowrap` and proper padding.
 

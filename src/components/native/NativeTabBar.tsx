@@ -151,7 +151,7 @@ export const NativeTabBar = ({
                   className={cn(
                     'transition-all duration-150',
                     isActive
-                      ? 'text-gold-primary drop-shadow-[0_0_6px_rgba(232,175,72,0.3)]'
+                      ? 'gold-gradient-icon drop-shadow-[0_0_6px_rgba(232,175,72,0.3)]'
                       : 'text-white/60',
                     isActive && 'animate-bounce-select',
                   )}
@@ -180,7 +180,7 @@ export const NativeTabBar = ({
               <span
                 className={cn(
                   'text-[10px] mt-0.5 font-medium',
-                  isActive ? 'text-gold-primary' : 'text-white/60',
+                  isActive ? 'gold-gradient-icon' : 'text-white/60',
                 )}
               >
                 {tab.id === 'trips' && tripTypeLabel ? tripTypeLabel : tab.label}

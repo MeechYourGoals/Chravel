@@ -73,13 +73,13 @@ export const PendingTripCard = ({ trip }: PendingTripCardProps) => {
               </div>
             </div>
             <div className="flex items-center gap-2 text-white/60 mb-1 md:mb-3 text-sm md:text-base">
-              <MapPin size={14} className="md:hidden text-gold-primary/60" />
-              <MapPin size={18} className="hidden md:block text-gold-primary/60" />
+              <MapPin size={14} className="md:hidden gold-gradient-icon opacity-60" />
+              <MapPin size={18} className="hidden md:block gold-gradient-icon opacity-60" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/60 text-sm md:text-base">
-              <Calendar size={14} className="md:hidden text-gold-primary/60" />
-              <Calendar size={18} className="hidden md:block text-gold-primary/60" />
+              <Calendar size={14} className="md:hidden gold-gradient-icon opacity-60" />
+              <Calendar size={18} className="hidden md:block gold-gradient-icon opacity-60" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
