@@ -508,9 +508,9 @@ export const MobileGroupCalendar = ({
                           ${isCurrentMonth ? 'text-gray-300' : 'text-gray-600'}
                           ${
                             isSelected
-                              ? 'bg-primary text-primary-foreground font-medium'
+                              ? 'bg-gold-primary text-black font-medium'
                               : isToday
-                                ? 'bg-primary/20 text-primary'
+                                ? 'bg-gold-primary/20 text-gold-light'
                                 : 'hover:bg-white/10'
                           }
                         `}
