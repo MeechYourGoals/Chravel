@@ -76,8 +76,8 @@ export const PRO_PLANS = {
   starter: {
     name: 'Starter Pro',
     tier: 'pro-starter',
-    product_id: 'prod_Tc0YVR1N0fmtDG',
-    price_id: 'price_1SemXF3EeswiMlDCL1Unj0Er',
+    product_id: 'prod_U73Vlcl4lqgsb4',
+    price_id: 'price_1T8pOe47wCAQ57MmkShIK75i',
     amount: 4900, // $49/mo in cents
     memberLimit: 50,
   },
