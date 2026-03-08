@@ -153,7 +153,7 @@ export const CreatePaymentModal = ({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-glass-slate-card border border-glass-slate-border rounded-t-3xl sm:rounded-3xl shadow-enterprise-2xl flex flex-col max-h-[calc(100vh-80px)] animate-slide-up">
+      <div className="relative w-full max-w-md bg-glass-slate-card border border-glass-slate-border rounded-t-3xl sm:rounded-3xl shadow-enterprise-lg flex flex-col max-h-[calc(100vh-80px)] animate-slide-up">
         {/* Fixed Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
