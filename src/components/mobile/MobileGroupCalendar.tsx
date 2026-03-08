@@ -508,16 +508,16 @@ export const MobileGroupCalendar = ({
                           ${isCurrentMonth ? 'text-gray-300' : 'text-gray-600'}
                           ${
                             isSelected
-                              ? 'bg-primary text-primary-foreground font-medium'
+                              ? 'bg-gold-primary text-black font-medium'
                               : isToday
-                                ? 'bg-primary/20 text-primary'
+                                ? 'bg-gold-primary/20 text-gold-light'
                                 : 'hover:bg-white/10'
                           }
                         `}
                       >
                         {format(date, 'd')}
                         {hasEvents && !isSelected && (
-                          <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-primary" />
+                          <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-gold-primary" />
                         )}
                       </button>
                     );
@@ -599,7 +599,7 @@ export const MobileGroupCalendar = ({
                         <div
                           className={`
                           text-xs font-medium mb-1 px-1
-                          ${isToday ? 'text-primary' : isCurrentMonth ? 'text-white' : 'text-gray-600'}
+                          ${isToday ? 'text-gold-primary' : isCurrentMonth ? 'text-white' : 'text-gray-600'}
                         `}
                         >
                           {format(date, 'd')}
