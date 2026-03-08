@@ -90,7 +90,9 @@ const SESSION_TIMEOUT_MS = 90_000;
 const WEBSOCKET_SETUP_TIMEOUT_MS = 12_000; // Gate 2: reduced from 25s to 12s
 const THINKING_DELAY_MS = 1_500;
 const BARGE_IN_RMS_THRESHOLD = 0.035;
-const EPHEMERAL_TOKEN_WARN_MS = 25 * 60 * 1000;
+// Session token is valid for 1 hour (Vertex OAuth2). goAway handling replaces
+// the old static 25-minute timer.
+const OAUTH_TOKEN_LIFETIME_MS = 55 * 60 * 1000; // Warn at 55 min (5 min before 1h expiry)
 const WS_KEEPALIVE_INTERVAL_MS = 15_000;
 const AUTO_RECONNECT_DELAY_MS = 2_000;
 const MAX_AUTO_RECONNECT_RETRIES = 2; // Cap retries
@@ -852,38 +854,29 @@ export function useGeminiLive({
 
       // ── Gate 2: Open WebSocket ──
       patchDiagnostics({ substep: 'Opening audio channel…' });
-      const CONSTRAINED_WS_URL =
-        'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
-      const websocketUrl =
-        typeof sessionData?.websocketUrl === 'string' && sessionData.websocketUrl.length > 0
-          ? sessionData.websocketUrl
-          : CONSTRAINED_WS_URL;
+      const websocketUrl = sessionData?.websocketUrl as string;
+      if (!websocketUrl || typeof websocketUrl !== 'string') {
+        throw new Error('Server did not provide a WebSocket URL.');
+      }
 
-      // Vertex uses Bearer token in header via URL param; AI Studio uses access_token param
-      const provider = (sessionData as { provider?: string })?.provider || 'ai_studio';
-      const isVertex = provider === 'vertex';
-      const wsUrl = isVertex
-        ? `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`
-        : `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
+      // Vertex AI: pass OAuth2 token as URL param
+      const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
       const wsHost = new URL(websocketUrl).host;
       console.warn('[VOICE:G2] ws_connecting', {
         sessionAttemptId,
         host: wsHost,
-        provider,
         msFromStart: Math.round(performance.now() - t0),
       });
       voiceLog('ws:connecting', {
         sessionId,
-        provider,
         endpoint: websocketUrl.split('/').pop(),
         audioContextState: audioCtxRef.current?.state,
         audioContextSampleRate: audioCtxRef.current?.sampleRate,
       });
       const ws = new WebSocket(wsUrl);
-      // Vertex requires setup message sent as first message after WS opens
-      const vertexSetupMessage = isVertex
-        ? (sessionData as { setupMessage?: Record<string, unknown> })?.setupMessage
-        : null;
+      // BidiGenerateContentSetup must be the first message after WS opens
+      const setupMessage = (sessionData as { setupMessage?: Record<string, unknown> })
+        ?.setupMessage;
       wsRef.current = ws;
 
       // Track first N inbound WS messages for Gate 2 diagnostics
@@ -902,17 +895,22 @@ export function useGeminiLive({
         console.warn('[VOICE:G2] ws_opened', {
           sessionAttemptId,
           readyState: ws.readyState,
-          provider,
           msFromStart: Math.round(performance.now() - t0),
         });
         debugLog('ws_open', {});
-        voiceLog('ws:opened', { readyState: ws.readyState, provider });
+        voiceLog('ws:opened', { readyState: ws.readyState });
         voiceLog('timing:wsOpen', { ms: Math.round(performance.now() - sessionStartedAt) });
 
-        // Vertex requires BidiGenerateContentSetup as first message
-        if (vertexSetupMessage && ws.readyState === WebSocket.OPEN) {
-          console.warn('[VOICE:G2] sending_vertex_setup', { sessionAttemptId });
-          ws.send(JSON.stringify(vertexSetupMessage));
+        // BidiGenerateContentSetup MUST be the first message — no other messages before setupComplete
+        if (setupMessage && ws.readyState === WebSocket.OPEN) {
+          console.warn('[VOICE:G2] sending_setup', { sessionAttemptId });
+          ws.send(JSON.stringify(setupMessage));
+        } else if (!setupMessage) {
+          console.error('[VOICE:G2] no_setup_message', { sessionAttemptId });
+          setError('Voice setup failed: no setup message from server.');
+          transition('error', 'missing_setup_message');
+          void cleanup();
+          return;
         }
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
@@ -993,6 +991,37 @@ export function useGeminiLive({
             return;
           }
 
+          // Handle goAway — server signals session is ending soon.
+          // Store resumption token if provided for future reconnection.
+          const goAwayData = data.goAway || data.go_away;
+          if (goAwayData) {
+            const timeLeft = goAwayData.timeLeft || goAwayData.time_left;
+            voiceLog('server:goAway', { timeLeft });
+            console.warn('[VOICE:G2] go_away_received', {
+              sessionAttemptId,
+              timeLeft,
+            });
+            // Store session resumption token if provided (for future reconnect support)
+            const resumptionToken =
+              goAwayData.sessionResumptionToken || goAwayData.session_resumption_token;
+            if (resumptionToken) {
+              // TODO: Store resumptionToken for session resumption on reconnect
+              voiceLog('server:resumptionToken', { hasToken: true });
+            }
+            onErrorRef.current?.('Voice session ending soon. You may need to restart.');
+            patchDiagnostics({ lastError: 'Session ending (goAway received)' });
+          }
+
+          // Handle session resumption updates
+          const resumptionUpdate = data.sessionResumptionUpdate || data.session_resumption_update;
+          if (resumptionUpdate) {
+            const token = resumptionUpdate.newHandle || resumptionUpdate.new_handle;
+            if (token) {
+              // TODO: Store updated resumption token for reconnect
+              voiceLog('server:resumptionUpdate', { hasToken: true });
+            }
+          }
+
           // Vertex AI may use snake_case field names; handle both conventions
           const sc_content = data.serverContent || data.server_content;
           const setupComplete =
@@ -1018,11 +1047,11 @@ export function useGeminiLive({
             clearSetupTimeout();
             isStartingRef.current = false;
 
-            // Start session expiry countdown
+            // Warn before OAuth2 token expires (1 hour lifetime, warn at 55 min)
             sessionExpiryTimerRef.current = setTimeout(() => {
               onErrorRef.current?.('Voice session expiring soon. Please restart to continue.');
               patchDiagnostics({ lastError: 'Session nearing expiry' });
-            }, EPHEMERAL_TOKEN_WARN_MS);
+            }, OAUTH_TOKEN_LIFETIME_MS);
 
             // Start keepalive ping — sends an empty audio chunk periodically to keep
             // the WebSocket alive and detect dead connections before the browser's

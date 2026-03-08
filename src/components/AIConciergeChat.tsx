@@ -58,7 +58,7 @@ const UPLOAD_ENABLED = true;
  *
  * See docs/GEMINI_LIVE_ARCHITECTURE_REPORT.md for setup instructions.
  */
-const DUPLEX_VOICE_ENABLED = false;
+const DUPLEX_VOICE_ENABLED = true;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Map GeminiLiveState → VoiceState for VoiceButton visuals */
