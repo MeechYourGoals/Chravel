@@ -16,12 +16,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', cla
 
   return (
     <div className={cn('flex flex-col items-center justify-center space-y-2', className)}>
-      <div
-        className={cn(
-          'animate-spin gold-gradient-spinner',
-          sizeClasses[size],
-        )}
-      />
+      <div className={cn('animate-spin gold-gradient-spinner', sizeClasses[size])} />
       {text && <p className="text-sm text-muted-foreground animate-pulse">{text}</p>}
     </div>
   );
