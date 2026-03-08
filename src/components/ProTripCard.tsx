@@ -12,6 +12,7 @@ import {
   FileDown,
   Share2,
 } from 'lucide-react';
+import { CardStatItem } from './ui/CardStatItem';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from './ui/button';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
@@ -306,12 +307,12 @@ export const ProTripCard = ({
             </h3>
 
             <div className="flex items-center gap-2 text-white/80 mb-1 md:mb-2 text-sm md:text-base">
-              <MapPin size={14} className="text-white/60 shrink-0" />
+              <MapPin size={14} className="gold-gradient-icon shrink-0" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
 
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <CalendarDays size={14} className="text-white/60 shrink-0" />
+              <CalendarDays size={14} className="gold-gradient-icon shrink-0" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
@@ -356,39 +357,11 @@ export const ProTripCard = ({
 
       {/* Content Section */}
       <div className="p-4 md:p-6">
-        {/* Stats Row - Matches TripCard exactly */}
+        {/* Stats Row - icon above → number → label */}
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <Users size={12} className="text-white/50" />
-            </div>
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {formatPeopleCount(totalPeopleCount)}
-            </div>
-            <div className="text-xs md:text-sm text-white/60">People</div>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <CalendarDays size={12} className="text-white/50" />
-            </div>
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {calculateDaysCount(trip.dateRange)}
-            </div>
-            <div className="text-xs md:text-sm text-white/60">Days</div>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <MapPin size={12} className="text-white/50" />
-            </div>
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {trip.placesCount != null
-                ? trip.placesCount > 0
-                  ? trip.placesCount.toString()
-                  : '—'
-                : calculateProTripPlacesCount(trip)}
-            </div>
-            <div className="text-xs md:text-sm text-white/60">Places</div>
-          </div>
+          <CardStatItem icon={Users} value={formatPeopleCount(totalPeopleCount)} label="People" />
+          <CardStatItem icon={CalendarDays} value={calculateDaysCount(trip.dateRange)} label="Days" />
+          <CardStatItem icon={MapPin} value={trip.placesCount != null ? (trip.placesCount > 0 ? trip.placesCount.toString() : '—') : calculateProTripPlacesCount(trip)} label="Places" />
         </div>
 
         {/* CTA Grid 2x2 - Matches TripCard order: Recap/Invite top, View/Share bottom */}
