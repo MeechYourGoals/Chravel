@@ -17,6 +17,7 @@ import type { EntitlementId, SubscriptionTier } from './types';
 export interface ProductConfig {
   name: string;
   stripeProductId: string;
+  stripeProductIdAnnual?: string;
   stripePriceIdMonthly: string;
   stripePriceIdAnnual?: string;
   appleProductIdMonthly?: string;
