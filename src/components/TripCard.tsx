@@ -381,12 +381,12 @@ export const TripCard = ({
 
   return (
     <div
-      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
+      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-gold-primary/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
     >
       {/* Trip Image/Header - Responsive with lazy loading */}
-      <div className="relative h-32 md:h-48 bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent p-4 md:p-6">
+      <div className="relative h-32 md:h-48 bg-gradient-to-br from-gold-dark/20 via-gold-primary/10 to-transparent p-4 md:p-6">
         {trip.coverPhoto && (
           <OptimizedImage
             src={trip.coverPhoto}
@@ -401,7 +401,7 @@ export const TripCard = ({
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-yellow-300 transition-colors line-clamp-2">
+                <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-gold-light transition-colors line-clamp-2">
                   {trip.title}
                 </h3>
                 {/* Trip Status Badges - Hidden on mobile to save space */}
@@ -428,7 +428,7 @@ export const TripCard = ({
                     {daysUntil > 0 && daysUntil <= 7 && (
                       <Badge
                         variant="secondary"
-                        className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 animate-pulse"
+                        className="bg-gold-primary/20 text-gold-light border-gold-primary/30 animate-pulse"
                       >
                         {daysUntil} {daysUntil === 1 ? 'day' : 'days'} left
                       </Badge>
@@ -438,13 +438,13 @@ export const TripCard = ({
               </div>
             </div>
             <div className="flex items-center gap-2 text-white/80 mb-1 md:mb-3 text-sm md:text-base">
-              <MapPin size={14} className="md:hidden text-yellow-400" />
-              <MapPin size={18} className="hidden md:block text-yellow-400" />
+              <MapPin size={14} className="md:hidden text-gold-primary" />
+              <MapPin size={18} className="hidden md:block text-gold-primary" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <Calendar size={14} className="md:hidden text-yellow-400" />
-              <Calendar size={18} className="hidden md:block text-yellow-400" />
+              <Calendar size={14} className="md:hidden text-gold-primary" />
+              <Calendar size={18} className="hidden md:block text-gold-primary" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>

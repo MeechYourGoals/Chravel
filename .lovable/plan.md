@@ -1,52 +1,67 @@
 
 
-## Diagnosis: What Claude Code Missed
+## Root Cause Analysis
 
-Claude Code's accent migration was **incomplete**. It updated tokens/CSS variables and a handful of components, but missed the **most visible surfaces**:
+The card order inconsistency has **one core bug** with two contributing factors:
 
-### Missed Components (still using old yellow/gold fills)
+### Bug: Race condition — remote order arrives too late, never re-applied
 
-1. **`TripViewToggle.tsx`** — The "My Trips / Pro / Events" top nav. Uses hardcoded `from-yellow-500 to-yellow-600` and `shadow-yellow-500/30`. This is the most visible offender. Should use `accent-ring-active` (ring treatment for authenticated app UI).
+Here's what happens on login:
 
-2. **`TripCard.tsx`** — Trip cards use hardcoded `text-yellow-400` for MapPin/Calendar icons, `text-yellow-300` for hover title, `border-yellow-500/30` for hover, `from-yellow-600/20` for gradient, `bg-yellow-500/20 text-yellow-300` for badges. All should use the new gold-primary palette.
+```text
+Timeline:
+  t0  Component mounts → useEffect kicks off fetchRemoteOrder (async)
+  t1  Items arrive from React Query → applyOrder runs
+      → remoteOrderRef.current is still null
+      → Falls back to localStorage (stale, device-specific)
+      → Cards render in WRONG order
+  t2  fetchRemoteOrder resolves → sets remoteOrderRef.current
+      → But remoteOrderRef is a React ref — NO re-render triggered
+      → Cards stay in wrong order until next navigation
+```
 
-3. **`SettingsMenu.tsx`** — Settings tabs (My Trips / Pro / Events) use `bg-primary text-primary-foreground` (filled gold). Should use ring treatment for authenticated UI.
+Because `remoteOrderRef` is a ref (not state), the component never re-renders when the correct remote order arrives. The cards are stuck in whatever order localStorage had — which is device-specific and often stale.
 
-4. **`ActionPill.tsx`** — The `aiOutline` variant uses `border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10`. Should use `border-gold-primary/50 text-gold-primary hover:bg-gold-primary/10`. This affects Import buttons across Calendar, Agenda, Lineup.
+### Contributing factor: Module-level debounce timer
 
-5. **`MobileGroupCalendar.tsx`** — Calendar selected day uses `bg-primary text-primary-foreground` (filled gold circle). Should remain filled but use the new gold palette (it already uses `primary` which maps to the new gold — this may actually be fine if the CSS variable is correct).
+There's a single `upsertTimer` variable shared across all hook instances. If a user switches between My Trips → Pro → Events quickly, the debounce timers clobber each other, potentially dropping saves.
 
-6. **`LoadingSpinner.tsx`** — Uses `border-t-primary` which already maps to new gold via CSS variable. This should be fine.
+### Contributing factor: Silent upsert failures
 
-### Build Errors (separate issue, pre-existing)
-
-The 11 build errors are all in **Supabase Edge Functions** (`gmail-import-worker/index.ts` and `join-trip/index.ts`), not in the main React app. These are pre-existing type mismatches and a missing `applyRateLimit` function — unrelated to the accent migration.
+The `catch {}` block in `debouncedUpsert` swallows all errors. If the upsert fails (network, RLS, etc.), the user has no idea their reorder didn't persist.
 
 ---
 
-## Implementation Plan
+## Fix Plan
 
-### 1. Update `TripViewToggle.tsx` — Ring treatment for My Trips/Pro/Events
+### 1. Convert `remoteOrderRef` to state so remote fetch triggers re-render
 
-Replace all `data-[state=on]:bg-gradient-to-r data-[state=on]:from-yellow-500 data-[state=on]:to-yellow-600 data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-yellow-500/30` with ring treatment: `data-[state=on]:accent-ring-active data-[state=on]:text-white data-[state=on]:shadow-ring-glow`. Since `accent-ring-active` is a CSS class (not a Tailwind utility), we need to apply it conditionally via className or use the equivalent Tailwind classes inline.
+Replace `remoteOrderRef` with a `useState<string[] | null>` so that when the remote order arrives, `applyOrder` re-runs via its dependency and the grid re-renders with the correct order.
 
-### 2. Update `TripCard.tsx` — Premium gold icons and accents
+### 2. Make `applyOrder` depend on remote order state
 
-- `text-yellow-400` → `text-gold-primary` (MapPin, Calendar icons)
-- `text-yellow-300` → `text-gold-light` (hover title)
-- `border-yellow-500/30` → `border-gold-primary/30` (hover border)
-- `from-yellow-600/20 via-yellow-500/10` → `from-gold-dark/20 via-gold-primary/10` (gradient)
-- `bg-yellow-500/20 text-yellow-300 border-yellow-500/30` → `bg-gold-primary/20 text-gold-light border-gold-primary/30` (badges)
+Update the `applyOrder` callback to include `remoteOrder` in its closure/deps, so it uses the freshest data.
 
-### 3. Update `SettingsMenu.tsx` — Ring treatment for settings tabs
+### 3. In `SortableTripGrid`, re-apply order when `applyOrder` identity changes
 
-Replace `bg-primary text-primary-foreground shadow-lg` with `accent-ring-active text-white shadow-ring-glow` for active settings tabs.
+The existing `useEffect` already depends on `applyOrder`, so once `applyOrder` gets a new identity from the state change, the grid will re-sort automatically.
 
-### 4. Update `ActionPill.tsx` — Gold palette for AI variant
+### 4. Scope debounce timer per hook instance
 
-Replace `border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10` with `border-gold-primary/50 text-gold-primary hover:bg-gold-primary/10`.
+Move `upsertTimer` into a `useRef` so each dashboard type gets its own independent debounce.
 
-### 5. Fix `TripViewToggle` accent-ring-active compatibility
+### 5. Add error logging for failed upserts
 
-Since Tailwind's `data-[state=on]:` prefix can't apply CSS custom classes like `accent-ring-active`, we'll need to restructure the ToggleGroupItem styling to use a wrapper approach or apply equivalent inline Tailwind classes that replicate the ring treatment.
+Log upsert failures so we can diagnose persistence issues.
+
+---
+
+## Files Changed
+
+- `src/hooks/useDashboardCardOrder.ts` — All changes are in this single file
+
+## Risk
+
+- **Low**: Single-file change, no schema changes, no RLS changes.
+- The fix makes the existing Supabase fetch actually take effect in the UI.
 
