@@ -32,12 +32,13 @@ export const CONSUMER_PLANS = {
     name: 'Explorer',
     tier: 'explorer',
     product_id: 'prod_U73VxEnvEHbBrx',
+    product_id_annual: 'prod_U73VrTc4sE8AIv', // Separate annual product in Stripe
     monthly: {
       price_id: 'price_1T8pOc47wCAQ57MmWsPX3Jku',
       amount: 999, // $9.99 in cents
     },
     annual: {
-      price_id: 'price_1T8pOl47wCAQ57MmDT7uefS7',
+      price_id: 'price_1T8pOl47wCAQ57MmDT7uefS7', // Belongs to prod_U73VrTc4sE8AIv
       amount: 9900, // $99.00 in cents
     },
     features: {
@@ -50,12 +51,13 @@ export const CONSUMER_PLANS = {
     name: 'Frequent Chraveler',
     tier: 'frequent-chraveler',
     product_id: 'prod_U73VfiKf3VrJKf',
+    product_id_annual: 'prod_U73VqblRTSr2XZ', // Separate annual product in Stripe
     monthly: {
       price_id: 'price_1T8pOd47wCAQ57MmIrACPNpc',
       amount: 1999, // $19.99 in cents
     },
     annual: {
-      price_id: 'price_1T8pOl47wCAQ57MmrhqSZM2j',
+      price_id: 'price_1T8pOl47wCAQ57MmrhqSZM2j', // Belongs to prod_U73VqblRTSr2XZ
       amount: 19900, // $199.00 in cents
     },
     features: {
@@ -94,8 +96,31 @@ export const PRO_PLANS = {
     tier: 'pro-enterprise',
     product_id: 'prod_U73Vd6QW4pEY9x',
     price_id: 'price_1T8pOg47wCAQ57MmcEPnjd3s',
-    amount: 19900, // $199/mo in cents
+    amount: 0, // Custom Pricing - Contact Sales (billing@chravelapp.com)
     memberLimit: 250,
+  },
+} as const;
+
+// ============================================================
+// TRIP PASS PRODUCTS (One-Time Purchases)
+// ============================================================
+
+export const TRIP_PASS_PLANS = {
+  'pass-explorer-45': {
+    name: 'Explorer Trip Pass (45 days)',
+    tier: 'explorer',
+    product_id: 'prod_U73WaALe9yjrAR',
+    price_id: 'price_1T8pP047wCAQ57Mm6sfNTg2w',
+    amount: 3999, // $39.99
+    durationDays: 45,
+  },
+  'pass-frequent-90': {
+    name: 'Frequent Chraveler Trip Pass (90 days)',
+    tier: 'frequent-chraveler',
+    product_id: 'prod_U73W99ebeJvbLB',
+    price_id: 'price_1T8pP047wCAQ57Mm2DOch99F',
+    amount: 7499, // $74.99
+    durationDays: 90,
   },
 } as const;
 
@@ -132,9 +157,15 @@ export function getPriceId(
 // ============================================================
 
 export function getTierFromProductId(productId: string): string {
-  // Consumer plans
+  // Consumer plans (monthly + annual are separate products in Stripe)
   if (productId === CONSUMER_PLANS.explorer.product_id) return 'explorer';
+  if (productId === CONSUMER_PLANS.explorer.product_id_annual) return 'explorer';
   if (productId === CONSUMER_PLANS['frequent-chraveler'].product_id) return 'frequent-chraveler';
+  if (productId === CONSUMER_PLANS['frequent-chraveler'].product_id_annual) return 'frequent-chraveler';
+
+  // Trip Pass products
+  if (productId === TRIP_PASS_PLANS['pass-explorer-45'].product_id) return 'explorer';
+  if (productId === TRIP_PASS_PLANS['pass-frequent-90'].product_id) return 'frequent-chraveler';
 
   // Pro plans
   if (productId === PRO_PLANS.starter.product_id) return 'pro-starter';

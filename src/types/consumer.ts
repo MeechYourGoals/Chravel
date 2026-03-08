@@ -175,11 +175,18 @@ export const LIFESTYLE_OPTIONS = [
   "Farmer's Markets",
 ];
 
-// Consumer subscription pricing - NEW 3-TIER STRUCTURE
+/**
+ * Consumer subscription pricing
+ *
+ * PRIMARY consumer offering: Trip Passes ($39.99/45d, $74.99/90d)
+ * Subscriptions exist for recurring travelers ($9.99/mo, $19.99/mo)
+ */
 export const CONSUMER_PRICING = {
   explorer: {
     monthly: 9.99,
     annual: 99,
+    tripPass: 39.99,
+    tripPassDays: 45,
     trips: Infinity,
     aiQueries: 10, // 10 queries per trip
     savings: 20,
@@ -188,10 +195,12 @@ export const CONSUMER_PRICING = {
   'frequent-chraveler': {
     monthly: 19.99,
     annual: 199,
+    tripPass: 74.99,
+    tripPassDays: 90,
     trips: Infinity,
     aiQueries: Infinity, // Unlimited AI
-    proTripsPerMonth: 1, // Can create 1 Chravel Pro trip/month
-    proTripSeats: 50, // 50-seat allotment for Pro trip
+    proTripsPerMonth: 1,
+    proTripSeats: 50,
     savings: 40,
     savingsPercent: 17,
   },

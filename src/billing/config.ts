@@ -17,6 +17,7 @@ import type { EntitlementId, SubscriptionTier } from './types';
 export interface ProductConfig {
   name: string;
   stripeProductId: string;
+  stripeProductIdAnnual?: string;
   stripePriceIdMonthly: string;
   stripePriceIdAnnual?: string;
   appleProductIdMonthly?: string;
@@ -40,9 +41,10 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
   'consumer-explorer': {
     name: 'Explorer',
     stripeProductId: 'prod_U73VxEnvEHbBrx',
+    stripeProductIdAnnual: 'prod_U73VrTc4sE8AIv', // Separate annual product in Stripe
     stripePriceIdMonthly: 'price_1T8pOc47wCAQ57MmWsPX3Jku',
-    stripePriceIdAnnual: 'price_1T8pOl47wCAQ57MmDT7uefS7',
-    appleProductIdMonthly: 'com.chravel.explorer.monthly', // TODO: Create in App Store Connect
+    stripePriceIdAnnual: 'price_1T8pOl47wCAQ57MmDT7uefS7', // Belongs to prod_U73VrTc4sE8AIv
+    appleProductIdMonthly: 'com.chravel.explorer.monthly',
     appleProductIdAnnual: 'com.chravel.explorer.annual',
     googleProductIdMonthly: 'com.chravel.explorer.monthly',
     googleProductIdAnnual: 'com.chravel.explorer.annual',
@@ -62,8 +64,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
   'consumer-frequent-chraveler': {
     name: 'Frequent Chraveler',
     stripeProductId: 'prod_U73VfiKf3VrJKf',
+    stripeProductIdAnnual: 'prod_U73VqblRTSr2XZ', // Separate annual product in Stripe
     stripePriceIdMonthly: 'price_1T8pOd47wCAQ57MmIrACPNpc',
-    stripePriceIdAnnual: 'price_1T8pOl47wCAQ57MmrhqSZM2j',
+    stripePriceIdAnnual: 'price_1T8pOl47wCAQ57MmrhqSZM2j', // Belongs to prod_U73VqblRTSr2XZ
     appleProductIdMonthly: 'com.chravel.frequentchraveler.monthly',
     appleProductIdAnnual: 'com.chravel.frequentchraveler.annual',
     googleProductIdMonthly: 'com.chravel.frequentchraveler.monthly',
@@ -141,13 +144,13 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
   },
 
   'pro-enterprise': {
-    name: 'Pro Enterprise',
+    name: 'Enterprise',
     stripeProductId: 'prod_U73Vd6QW4pEY9x',
     stripePriceIdMonthly: 'price_1T8pOg47wCAQ57MmcEPnjd3s',
     stripePriceIdAnnual: 'price_1T8pOg47wCAQ57MmcEPnjd3s', // Pro plans monthly only
     requiresIAPOnIOS: false,
-    priceMonthly: 199,
-    priceAnnual: 1990,
+    priceMonthly: 0, // Custom Pricing - Contact Sales
+    priceAnnual: 0, // Custom Pricing - Contact Sales
     entitlements: [
       'ai_queries_unlimited',
       'trips_unlimited',

@@ -269,9 +269,9 @@ export const ForTeams = () => {
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Enterprise</h3>
                 <div className="text-4xl font-bold text-foreground mb-2">
-                  $199<span className="text-xl text-muted-foreground">/mo</span>
+                  Custom Pricing
                 </div>
-                <p className="text-foreground">Up to 250 team members</p>
+                <p className="text-foreground">Unlimited team members</p>
               </div>
               <Button
                 className="w-full mb-6"
