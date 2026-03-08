@@ -225,11 +225,11 @@ export const MobileEventCard = ({
             </div>
             <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{event.title}</h3>
             <div className="flex items-center gap-2 text-white/80 text-sm mb-1">
-              <MapPin size={14} className={`text-${accentColors.primary}`} />
+              <MapPin size={14} className="gold-gradient-icon" />
               <span className="font-medium truncate">{event.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80 text-sm">
-              <Calendar size={14} className={`text-${accentColors.primary}`} />
+              <CalendarDays size={14} className="gold-gradient-icon" />
               <span className="font-medium">{event.dateRange}</span>
             </div>
           </div>
