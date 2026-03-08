@@ -373,7 +373,7 @@ const TripPreview = () => {
           <div className="space-y-3 mb-6">
             {tripData.destination && (
               <div className="flex items-center gap-3 text-white/80">
-                <MapPin className="h-5 w-5 text-gold-primary flex-shrink-0" />
+                <MapPin className="h-5 w-5 gold-gradient-icon flex-shrink-0" />
                 <span>{tripData.destination}</span>
               </div>
             )}
