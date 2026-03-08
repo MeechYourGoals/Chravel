@@ -158,7 +158,7 @@ const proTiers: PricingTier[] = [
   {
     id: 'enterprise',
     name: SUBSCRIPTION_TIERS.enterprise.name,
-    price: `$${SUBSCRIPTION_TIERS.enterprise.price}`,
+    price: 'Custom Pricing',
     description: 'For professional leagues, major tours, Fortune 500',
     icon: <Shield size={24} />,
     features: SUBSCRIPTION_TIERS.enterprise.features.map(f =>
@@ -168,7 +168,7 @@ const proTiers: PricingTier[] = [
     category: 'pro',
     enterprise: true,
     ctaAction: () =>
-      (window.location.href = 'mailto:support@chravelapp.com?subject=Enterprise%20Inquiry'),
+      (window.location.href = 'mailto:billing@chravelapp.com?subject=Enterprise%20Inquiry'),
   },
 ];
 
