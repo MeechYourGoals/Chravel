@@ -420,8 +420,6 @@ export const AIConciergeChat = ({
   // Speech API dictation. Transcribed text fills the input field so the user
   // can review/edit before sending. All Gemini Live hooks remain initialised
   // (hooks rules) but are not invoked.
-  // Voice active state is derived from liveState — no separate overlay toggle needed.
-  const isVoiceActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle';
 
   // ── Dictation (Web Speech API) ──────────────────────────────────────────
   // Dictation callback: fill the text input with the transcribed speech
@@ -569,6 +567,9 @@ export const AIConciergeChat = ({
   const convoVoiceState: VoiceState = DUPLEX_VOICE_ENABLED
     ? mapLiveStateToVoiceState(liveState)
     : dictationState;
+
+  // Voice active state is derived from liveState — no separate overlay toggle needed.
+  const isVoiceActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle';
 
   // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
   const handleConvoToggle = useCallback(async () => {
