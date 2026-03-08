@@ -161,7 +161,7 @@ export const ArchivedTripCard = ({
         )}
 
         <div className="flex items-center gap-2 text-white/70 text-sm mb-4">
-          <Calendar size={14} className="text-amber-400" />
+          <CalendarCheck2 size={14} className="gold-gradient-icon" />
           <span>{formatDateRange()}</span>
         </div>
 
