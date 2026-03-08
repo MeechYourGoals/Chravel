@@ -259,10 +259,10 @@
     --accent-fill-gold-text-contrast: #000000;
 
     /* Legacy gold tokens (mapped to metallic palette — #533517 → #c49746 → #feeaa5) */
-    --gold-primary: 38 52% 52%;     /* #c49746 warm metallic gold */
-    --gold-light: 46 98% 82%;       /* #feeaa5 champagne gold */
-    --gold-dark: 28 54% 15%;        /* #533517 dark bronze */
-    --gold-glow: 36 78% 56%;        /* #e8af48 warm glow gold */
+    --gold-primary: 38 52% 52%; /* #c49746 warm metallic gold */
+    --gold-light: 46 98% 82%; /* #feeaa5 champagne gold */
+    --gold-dark: 28 54% 15%; /* #533517 dark bronze */
+    --gold-glow: 36 78% 56%; /* #e8af48 warm glow gold */
 
     /* Payment system colors */
     --payment-primary: 155 80% 25%; /* Forest green */
@@ -656,8 +656,15 @@
   .gold-gradient-spinner {
     border: 2.5px solid transparent;
     border-radius: 9999px;
-    background:
-      conic-gradient(from 180deg, transparent 0%, #533517 20%, #c49746 50%, #feeaa5 75%, transparent 100%) border-box;
+    background: conic-gradient(
+        from 180deg,
+        transparent 0%,
+        #533517 20%,
+        #c49746 50%,
+        #feeaa5 75%,
+        transparent 100%
+      )
+      border-box;
     mask:
       linear-gradient(#fff 0 0) padding-box,
       linear-gradient(#fff 0 0);
@@ -667,7 +674,6 @@
       linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
   }
-
 
   .accent-ring-idle {
     background: rgba(255, 255, 255, 0.06);

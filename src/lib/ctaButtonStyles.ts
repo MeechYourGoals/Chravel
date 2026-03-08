@@ -10,8 +10,7 @@
  */
 
 /** Primary ring treatment for idle CTA buttons (Mode A — charcoal + gold border) */
-export const CTA_GRADIENT =
-  'bg-gray-800/80 text-white cta-gold-ring';
+export const CTA_GRADIENT = 'bg-gray-800/80 text-white cta-gold-ring';
 
 /** Hover / active / focus-visible states for CTA buttons */
 export const CTA_INTERACTIVE =
