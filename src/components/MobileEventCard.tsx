@@ -229,7 +229,7 @@ export const MobileEventCard = ({
               <span className="font-medium truncate">{event.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80 text-sm">
-              <CalendarRange size={14} className="gold-gradient-icon" />
+              <CalendarDays size={14} className="gold-gradient-icon" />
               <span className="font-medium">{event.dateRange}</span>
             </div>
           </div>
