@@ -151,7 +151,7 @@ export const NativeTabBar = ({
                   className={cn(
                     'transition-all duration-150',
                     isActive
-                      ? 'text-gold-primary drop-shadow-[0_0_6px_rgba(232,175,72,0.3)]'
+                      ? 'gold-gradient-icon drop-shadow-[0_0_6px_rgba(232,175,72,0.3)]'
                       : 'text-white/60',
                     isActive && 'animate-bounce-select',
                   )}
