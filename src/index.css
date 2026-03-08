@@ -258,11 +258,11 @@
     --accent-fill-gold-shadow: rgba(232, 175, 72, 0.35);
     --accent-fill-gold-text-contrast: #000000;
 
-    /* Legacy gold tokens (mapped to new palette) */
-    --gold-primary: 37 55% 52%;
-    --gold-light: 37 55% 52%;
-    --gold-dark: 30 55% 21%;
-    --gold-glow: 38 80% 55%;
+    /* Legacy gold tokens (mapped to metallic palette — #533517 → #c49746 → #feeaa5) */
+    --gold-primary: 38 52% 52%;     /* #c49746 warm metallic gold */
+    --gold-light: 46 98% 82%;       /* #feeaa5 champagne gold */
+    --gold-dark: 28 54% 15%;        /* #533517 dark bronze */
+    --gold-glow: 36 78% 56%;        /* #e8af48 warm glow gold */
 
     /* Payment system colors */
     --payment-primary: 155 80% 25%; /* Forest green */
