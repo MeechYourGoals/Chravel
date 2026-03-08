@@ -126,7 +126,7 @@ export const OrganizationDashboard = () => {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 gold-gradient-spinner animate-spin mx-auto mb-4"></div>
           <p className="text-gray-400">Loading organization...</p>
         </div>
       </div>
