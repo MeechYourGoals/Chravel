@@ -39,9 +39,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 
   'consumer-explorer': {
     name: 'Explorer',
-    stripeProductId: 'prod_Tc0SWNhLkoCDIi',
-    stripePriceIdMonthly: 'price_1RXJvGAedhHV8iZ8ZiZdMQGP',
-    stripePriceIdAnnual: 'price_1RXJvGAedhHV8iZ8wILOZyb0',
+    stripeProductId: 'prod_U73VxEnvEHbBrx',
+    stripePriceIdMonthly: 'price_1T8pOc47wCAQ57MmWsPX3Jku',
+    stripePriceIdAnnual: 'price_1T8pOl47wCAQ57MmDT7uefS7',
     appleProductIdMonthly: 'com.chravel.explorer.monthly', // TODO: Create in App Store Connect
     appleProductIdAnnual: 'com.chravel.explorer.annual',
     googleProductIdMonthly: 'com.chravel.explorer.monthly',
