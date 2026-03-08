@@ -512,7 +512,7 @@ export const TripCard = ({
           {/* Top Row */}
           <button
             onClick={() => setShowExportModal(true)}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm flex items-center justify-center gap-1.5"
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm flex items-center justify-center gap-1.5"
           >
             <FileDown size={14} className="md:hidden" />
             <FileDown size={16} className="hidden md:block" />
@@ -521,7 +521,7 @@ export const TripCard = ({
 
           <button
             onClick={() => setShowInviteModal(true)}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm flex items-center justify-center gap-1.5"
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm flex items-center justify-center gap-1.5"
           >
             <User size={14} className="md:hidden" />
             <User size={16} className="hidden md:block" />
@@ -533,14 +533,14 @@ export const TripCard = ({
             onClick={handleViewTrip}
             onMouseEnter={handlePrefetch}
             onFocus={handlePrefetch}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm"
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm"
           >
             View
           </button>
 
           <button
             onClick={() => setShowShareModal(true)}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm"
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm"
           >
             Share
           </button>
