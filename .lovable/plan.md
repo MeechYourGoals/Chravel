@@ -1,22 +1,67 @@
 
 
-## What's Wrong
+## Root Cause Analysis
 
-1. **Action buttons (Recap, Invite, View, Share)** — use `border-gray-700 hover:border-gray-600` with no gold accent. User wants the same gold border treatment as the card itself (`border-gold-primary/30`).
+The card order inconsistency has **one core bug** with two contributing factors:
 
-2. **Title hover color** — uses `group-hover:text-gold-light` which resolves to `#feeaa5` (pale champagne yellow). Should use `group-hover:text-gold-mid` (`#e8af48`, warm glow gold) or `group-hover:text-gold-primary` (`#c49746`) for a richer gold.
+### Bug: Race condition — remote order arrives too late, never re-applied
 
-3. **MapPin/Calendar icons** — already use `text-gold-primary` (`#c49746`). This is actually the correct new palette color. However, looking at the screenshot, they still appear yellowish — this may be because the CSS variable `--primary` is still resolving to the old gold. Need to verify `index.css` has the updated `--primary` value.
+Here's what happens on login:
 
-## Changes
+```text
+Timeline:
+  t0  Component mounts → useEffect kicks off fetchRemoteOrder (async)
+  t1  Items arrive from React Query → applyOrder runs
+      → remoteOrderRef.current is still null
+      → Falls back to localStorage (stale, device-specific)
+      → Cards render in WRONG order
+  t2  fetchRemoteOrder resolves → sets remoteOrderRef.current
+      → But remoteOrderRef is a React ref — NO re-render triggered
+      → Cards stay in wrong order until next navigation
+```
 
-### 1. `src/components/TripCard.tsx`
+Because `remoteOrderRef` is a ref (not state), the component never re-renders when the correct remote order arrives. The cards are stuck in whatever order localStorage had — which is device-specific and often stale.
 
-**Action buttons (lines 513-546):** Change `border-gray-700 hover:border-gray-600` to `border-gold-primary/30 hover:border-gold-primary/50` on all four buttons (Recap, Invite, View, Share).
+### Contributing factor: Module-level debounce timer
 
-**Title hover (line 404):** Change `group-hover:text-gold-light` to `group-hover:text-gold-mid` for a warmer, richer gold hover instead of pale champagne.
+There's a single `upsertTimer` variable shared across all hook instances. If a user switches between My Trips → Pro → Events quickly, the debounce timers clobber each other, potentially dropping saves.
 
-### 2. Verify `src/index.css`
+### Contributing factor: Silent upsert failures
 
-Confirm the `--primary` HSL value maps to the new `#c49746` (approximately `hsl(35, 50%, 52%)`). If it still has the old yellow gold value, update it.
+The `catch {}` block in `debouncedUpsert` swallows all errors. If the upsert fails (network, RLS, etc.), the user has no idea their reorder didn't persist.
+
+---
+
+## Fix Plan
+
+### 1. Convert `remoteOrderRef` to state so remote fetch triggers re-render
+
+Replace `remoteOrderRef` with a `useState<string[] | null>` so that when the remote order arrives, `applyOrder` re-runs via its dependency and the grid re-renders with the correct order.
+
+### 2. Make `applyOrder` depend on remote order state
+
+Update the `applyOrder` callback to include `remoteOrder` in its closure/deps, so it uses the freshest data.
+
+### 3. In `SortableTripGrid`, re-apply order when `applyOrder` identity changes
+
+The existing `useEffect` already depends on `applyOrder`, so once `applyOrder` gets a new identity from the state change, the grid will re-sort automatically.
+
+### 4. Scope debounce timer per hook instance
+
+Move `upsertTimer` into a `useRef` so each dashboard type gets its own independent debounce.
+
+### 5. Add error logging for failed upserts
+
+Log upsert failures so we can diagnose persistence issues.
+
+---
+
+## Files Changed
+
+- `src/hooks/useDashboardCardOrder.ts` — All changes are in this single file
+
+## Risk
+
+- **Low**: Single-file change, no schema changes, no RLS changes.
+- The fix makes the existing Supabase fetch actually take effect in the UI.
 
