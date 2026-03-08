@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
+  CalendarDays,
   MapPin,
   Users,
   Settings,
@@ -13,6 +13,7 @@ import {
   FileDown,
   Share2,
 } from 'lucide-react';
+import { CardStatItem } from './ui/CardStatItem';
 import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
