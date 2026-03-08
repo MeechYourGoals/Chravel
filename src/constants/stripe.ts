@@ -31,9 +31,9 @@ export const CONSUMER_PLANS = {
   explorer: {
     name: 'Explorer',
     tier: 'explorer',
-    product_id: 'prod_Tc0SWNhLkoCDIi',
+    product_id: 'prod_U73VxEnvEHbBrx',
     monthly: {
-      price_id: 'price_1SemRq3EeswiMlDC9yP0Dh5G',
+      price_id: 'price_1T8pOc47wCAQ57MmWsPX3Jku',
       amount: 999, // $9.99 in cents
     },
     annual: {
