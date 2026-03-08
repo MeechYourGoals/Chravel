@@ -517,7 +517,7 @@ export const MobileGroupCalendar = ({
                       >
                         {format(date, 'd')}
                         {hasEvents && !isSelected && (
-                          <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-primary" />
+                          <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-gold-primary" />
                         )}
                       </button>
                     );
