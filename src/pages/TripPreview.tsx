@@ -309,7 +309,7 @@ const TripPreview = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-gold-primary mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 animate-spin gold-gradient-icon mx-auto mb-4" />
           <p className="text-white/60">Loading trip details...</p>
         </div>
       </div>
@@ -373,20 +373,20 @@ const TripPreview = () => {
           <div className="space-y-3 mb-6">
             {tripData.destination && (
               <div className="flex items-center gap-3 text-white/80">
-                <MapPin className="h-5 w-5 text-gold-primary flex-shrink-0" />
+                <MapPin className="h-5 w-5 gold-gradient-icon flex-shrink-0" />
                 <span>{tripData.destination}</span>
               </div>
             )}
 
             <div className="flex items-center gap-3 text-white/80">
-              <Calendar className="h-5 w-5 text-gold-primary flex-shrink-0" />
+              <Calendar className="h-5 w-5 gold-gradient-icon flex-shrink-0" />
               <span>
                 {formatDateRange(tripData.start_date, tripData.end_date, tripData.dateRange)}
               </span>
             </div>
 
             <div className="flex items-center gap-3 text-white/80">
-              <Users className="h-5 w-5 text-gold-primary flex-shrink-0" />
+              <Users className="h-5 w-5 gold-gradient-icon flex-shrink-0" />
               <span>
                 {tripData.member_count} {tripData.member_count === 1 ? 'Chraveler' : 'Chravelers'}
               </span>

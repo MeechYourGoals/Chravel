@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
+  CalendarCheck2,
   MapPin,
   User,
+  Users,
   MoreHorizontal,
   Archive,
   Flame,
@@ -12,6 +13,7 @@ import {
   FileDown,
   Trash2,
 } from 'lucide-react';
+import { CardStatItem } from './ui/CardStatItem';
 import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
@@ -401,7 +403,7 @@ export const TripCard = ({
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-gold-mid transition-colors line-clamp-2">
+                <h3 className="text-lg md:text-xl font-bold text-white group-hover:gold-gradient-text transition-all duration-300 line-clamp-2">
                   {trip.title}
                 </h3>
                 {/* Trip Status Badges - Hidden on mobile to save space */}
@@ -438,13 +440,13 @@ export const TripCard = ({
               </div>
             </div>
             <div className="flex items-center gap-2 text-white/80 mb-1 md:mb-3 text-sm md:text-base">
-              <MapPin size={14} className="md:hidden text-gold-primary" />
-              <MapPin size={18} className="hidden md:block text-gold-primary" />
+              <MapPin size={14} className="md:hidden gold-gradient-icon" />
+              <MapPin size={18} className="hidden md:block gold-gradient-icon" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <Calendar size={14} className="md:hidden text-gold-primary" />
-              <Calendar size={18} className="hidden md:block text-gold-primary" />
+              <CalendarCheck2 size={14} className="md:hidden gold-gradient-icon" />
+              <CalendarCheck2 size={18} className="hidden md:block gold-gradient-icon" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
@@ -487,24 +489,11 @@ export const TripCard = ({
 
       {/* Trip Content - Responsive padding */}
       <div className="p-4 md:p-6">
-        {/* Quick Stats - Responsive sizing */}
+        {/* Quick Stats - icon above → number → label */}
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
-          <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {trip.peopleCount ?? participantsWithAvatars.length}
-            </div>
-            <div className="text-xs md:text-sm text-gray-400">People</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {calculateDaysCount(trip.dateRange)}
-            </div>
-            <div className="text-xs md:text-sm text-gray-400">Days</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">{trip.placesCount ?? 0}</div>
-            <div className="text-xs md:text-sm text-gray-400">Places</div>
-          </div>
+          <CardStatItem icon={Users} value={trip.peopleCount ?? participantsWithAvatars.length} label="People" />
+          <CardStatItem icon={CalendarCheck2} value={calculateDaysCount(trip.dateRange)} label="Days" />
+          <CardStatItem icon={MapPin} value={trip.placesCount ?? 0} label="Places" />
         </div>
 
         {/* Action Buttons - 2x2 grid: Export/Invite top, View/Share bottom */}

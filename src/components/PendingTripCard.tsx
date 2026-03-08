@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Clock, AlertCircle } from 'lucide-react';
+import { CalendarCheck2, MapPin, Clock, AlertCircle } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 interface Participant {
@@ -73,13 +73,13 @@ export const PendingTripCard = ({ trip }: PendingTripCardProps) => {
               </div>
             </div>
             <div className="flex items-center gap-2 text-white/60 mb-1 md:mb-3 text-sm md:text-base">
-              <MapPin size={14} className="md:hidden text-gold-primary/60" />
-              <MapPin size={18} className="hidden md:block text-gold-primary/60" />
+              <MapPin size={14} className="md:hidden gold-gradient-icon opacity-60" />
+              <MapPin size={18} className="hidden md:block gold-gradient-icon opacity-60" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/60 text-sm md:text-base">
-              <Calendar size={14} className="md:hidden text-gold-primary/60" />
-              <Calendar size={18} className="hidden md:block text-gold-primary/60" />
+              <CalendarCheck2 size={14} className="md:hidden gold-gradient-icon opacity-60" />
+              <CalendarCheck2 size={18} className="hidden md:block gold-gradient-icon opacity-60" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>

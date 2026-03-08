@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
+  CalendarCheck2,
   MapPin,
   Users,
   Settings,
@@ -13,6 +13,7 @@ import {
   FileDown,
   Share2,
 } from 'lucide-react';
+import { CardStatItem } from './ui/CardStatItem';
 import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -224,11 +225,11 @@ export const MobileEventCard = ({
             </div>
             <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{event.title}</h3>
             <div className="flex items-center gap-2 text-white/80 text-sm mb-1">
-              <MapPin size={14} className={`text-${accentColors.primary}`} />
+              <MapPin size={14} className="gold-gradient-icon" />
               <span className="font-medium truncate">{event.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80 text-sm">
-              <Calendar size={14} className={`text-${accentColors.primary}`} />
+              <CalendarCheck2 size={14} className="gold-gradient-icon" />
               <span className="font-medium">{event.dateRange}</span>
             </div>
           </div>
@@ -263,37 +264,11 @@ export const MobileEventCard = ({
 
       {/* Mobile Content */}
       <div className="p-4">
-        {/* Stats Grid - People, Days, Places */}
+        {/* Stats Grid - icon above → number → label (bordered container for Events) */}
         <div className="grid grid-cols-3 gap-3 mb-4 bg-black/20 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Users size={12} className={`text-${accentColors.primary}`} />
-              <span className="text-xs text-white/60 uppercase tracking-wide">People</span>
-            </div>
-            <div className="text-sm font-bold text-white">{calculatePeopleCount(event)}</div>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Calendar size={12} className={`text-${accentColors.primary}`} />
-              <span className="text-xs text-white/60 uppercase tracking-wide">Days</span>
-            </div>
-            <div className="text-sm font-bold text-white">
-              {calculateDaysCount(event.dateRange)}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <MapPin size={12} className={`text-${accentColors.primary}`} />
-              <span className="text-xs text-white/60 uppercase tracking-wide">Places</span>
-            </div>
-            <div className="text-sm font-bold text-white">
-              {event.placesCount != null
-                ? event.placesCount > 0
-                  ? event.placesCount.toString()
-                  : '—'
-                : calculateEventPlacesCount(event)}
-            </div>
-          </div>
+          <CardStatItem icon={Users} value={calculatePeopleCount(event)} label="People" size="sm" />
+          <CardStatItem icon={CalendarCheck2} value={calculateDaysCount(event.dateRange)} label="Days" size="sm" />
+          <CardStatItem icon={MapPin} value={event.placesCount != null ? (event.placesCount > 0 ? event.placesCount.toString() : '—') : calculateEventPlacesCount(event)} label="Places" size="sm" />
         </div>
 
         {/* Tags */}
@@ -317,7 +292,7 @@ export const MobileEventCard = ({
         <div className="mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users size={14} className={`text-${accentColors.primary}`} />
+              <Users size={14} className="gold-gradient-icon" />
               <span className="text-sm text-gray-300 font-medium">Organizer</span>
             </div>
             <span className="text-xs text-gray-300 font-medium truncate max-w-[55%] text-right">

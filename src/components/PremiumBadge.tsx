@@ -11,7 +11,7 @@ export const PremiumBadge = ({ className = '', variant = 'default' }: PremiumBad
   return (
     <Badge
       variant="secondary"
-      className={`bg-gold-primary/15 text-gold-primary border-gold-primary/30 hover:bg-gold-primary/25 transition-colors flex items-center gap-1.5 font-medium ${className}`}
+      className={`bg-gold-primary/15 gold-gradient-icon border-gold-primary/30 hover:bg-gold-primary/25 transition-colors flex items-center gap-1.5 font-medium ${className}`}
     >
       <Sparkles size={12} />
       Premium Feature

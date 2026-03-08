@@ -254,7 +254,7 @@ export const NativeTripTypeSwitcher = ({
                     className={cn(
                       'w-12 h-12 rounded-full flex items-center justify-center shrink-0',
                       isSelected
-                        ? 'bg-gold-primary/15 text-gold-primary border border-gold-primary/40'
+                        ? 'bg-gold-primary/15 gold-gradient-icon border border-gold-primary/40'
                         : 'bg-white/10 text-white/70',
                     )}
                   >
@@ -289,7 +289,7 @@ export const NativeTripTypeSwitcher = ({
                   {/* Checkmark */}
                   {isSelected && !isRecsDisabled && (
                     <div className="w-6 h-6 rounded-full bg-gold-primary/15 border border-gold-primary/50 flex items-center justify-center shrink-0">
-                      <Check size={14} className="text-gold-primary" strokeWidth={3} />
+                      <Check size={14} className="gold-gradient-icon" strokeWidth={3} />
                     </div>
                   )}
                 </button>
