@@ -627,6 +627,31 @@
     pointer-events: none;
   }
 
+  /* CTA button gold gradient ring (matches accent-ring-active gradient) */
+  .cta-gold-ring {
+    position: relative;
+    border: 1.5px solid transparent;
+    background-clip: padding-box;
+    box-shadow: 0 0 8px rgba(196, 151, 70, 0.15);
+  }
+  .cta-gold-ring::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: linear-gradient(135deg, #533517 0%, #c49746 40%, #feeaa5 70%, #c49746 100%);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+  }
+
   /* Idle/unselected control for ring system */
   .accent-ring-idle {
     background: rgba(255, 255, 255, 0.06);

@@ -599,7 +599,7 @@ export const MobileGroupCalendar = ({
                         <div
                           className={`
                           text-xs font-medium mb-1 px-1
-                          ${isToday ? 'text-primary' : isCurrentMonth ? 'text-white' : 'text-gray-600'}
+                          ${isToday ? 'text-gold-primary' : isCurrentMonth ? 'text-white' : 'text-gray-600'}
                         `}
                         >
                           {format(date, 'd')}

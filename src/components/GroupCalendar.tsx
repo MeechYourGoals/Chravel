@@ -319,8 +319,8 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
               }}
               modifiersStyles={{
                 hasEvents: {
-                  backgroundColor: 'hsl(var(--primary) / 0.3)',
-                  color: 'hsl(var(--primary-foreground))',
+                  backgroundColor: 'rgba(196, 151, 70, 0.3)',
+                  color: '#feeaa5',
                   fontWeight: 'bold',
                 },
               }}
