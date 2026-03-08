@@ -274,6 +274,9 @@ export function useGeminiLive({
   const isCleaningUpRef = useRef(false);
   // Track whether we've ever had a successful session (for enabling auto-reconnect)
   const hasHadSuccessfulSessionRef = useRef(false);
+  // Session resumption token — stored when goAway or sessionResumptionUpdate arrives.
+  // Sent on reconnect to resume the conversation without losing context.
+  const resumptionTokenRef = useRef<string | null>(null);
 
   const userTranscriptAccRef = useRef('');
   const assistantTranscriptAccRef = useRef('');
@@ -646,7 +649,12 @@ export function useGeminiLive({
       patchDiagnostics({ substep: 'Setting up voice & microphone…' });
 
       const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
-        body: { tripId, voice, sessionAttemptId },
+        body: {
+          tripId,
+          voice,
+          sessionAttemptId,
+          ...(resumptionTokenRef.current ? { resumptionToken: resumptionTokenRef.current } : {}),
+        },
       });
       let sessionTimeoutId: ReturnType<typeof setTimeout>;
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -1005,7 +1013,7 @@ export function useGeminiLive({
             const resumptionToken =
               goAwayData.sessionResumptionToken || goAwayData.session_resumption_token;
             if (resumptionToken) {
-              // TODO: Store resumptionToken for session resumption on reconnect
+              resumptionTokenRef.current = resumptionToken;
               voiceLog('server:resumptionToken', { hasToken: true });
             }
             onErrorRef.current?.('Voice session ending soon. You may need to restart.');
@@ -1017,7 +1025,7 @@ export function useGeminiLive({
           if (resumptionUpdate) {
             const token = resumptionUpdate.newHandle || resumptionUpdate.new_handle;
             if (token) {
-              // TODO: Store updated resumption token for reconnect
+              resumptionTokenRef.current = token;
               voiceLog('server:resumptionUpdate', { hasToken: true });
             }
           }
@@ -1047,8 +1055,22 @@ export function useGeminiLive({
             clearSetupTimeout();
             isStartingRef.current = false;
 
-            // Warn before OAuth2 token expires (1 hour lifetime, warn at 55 min)
+            // Warn before OAuth2 token expires (1 hour lifetime, warn at 55 min).
+            // If auto-reconnect is allowed, seamlessly restart the session with
+            // the resumption token so the user doesn't lose context.
             sessionExpiryTimerRef.current = setTimeout(() => {
+              if (
+                autoReconnectAllowedRef.current &&
+                resumptionTokenRef.current &&
+                !isCircuitBreakerOpen()
+              ) {
+                voiceLog('session:token_expiry_reconnect', {});
+                patchDiagnostics({ substep: 'Refreshing session…' });
+                void cleanup().then(() => {
+                  void startSessionRef.current();
+                });
+                return;
+              }
               onErrorRef.current?.('Voice session expiring soon. Please restart to continue.');
               patchDiagnostics({ lastError: 'Session nearing expiry' });
             }, OAUTH_TOKEN_LIFETIME_MS);
@@ -1200,12 +1222,16 @@ export function useGeminiLive({
             for (const part of parts) {
               const inlineData = part.inlineData || part.inline_data;
               if (inlineData?.data) {
+                // Proactive audio: model may speak first without user input.
+                // Resume AudioContext (required on iOS after user gesture) and
+                // transition to playing regardless of prior state.
                 transition('playing', 'model_audio_received');
                 void audioCtxRef.current?.resume().catch(() => {});
                 if (!modelRespondingRef.current) {
                   voiceLog('server:firstAudioChunk', {
                     mimeType: inlineData.mimeType || inlineData.mime_type,
                     dataLen: inlineData.data.length,
+                    proactive: !userHasSpokenRef.current,
                   });
                 }
                 setState('playing');
@@ -1235,7 +1261,11 @@ export function useGeminiLive({
               }
             }
 
-            // Handle output transcript (AI speech-to-text)
+            // Handle output transcript (AI speech-to-text).
+            // outputTranscript is the authoritative server-side transcription of
+            // the model's audio. It replaces (not appends to) any text accumulated
+            // from modelTurn parts, which may be partial or absent for audio-only
+            // responses. This prevents duplicate text in the UI.
             const outputTranscript = sc.outputTranscript || sc.output_transcript;
             if (outputTranscript) {
               const transcript =
@@ -1243,8 +1273,8 @@ export function useGeminiLive({
                   ? outputTranscript
                   : outputTranscript?.text || '';
               if (transcript) {
-                assistantTranscriptAccRef.current += transcript;
-                setAssistantTranscript(assistantTranscriptAccRef.current);
+                assistantTranscriptAccRef.current = transcript;
+                setAssistantTranscript(transcript);
               }
             }
 
@@ -1446,6 +1476,7 @@ export function useGeminiLive({
     emitTurnComplete(pendingUser, pendingAssistant);
 
     resetTurnAccumulators();
+    resumptionTokenRef.current = null;
     setError(null);
     transition('idle', 'user_end_session');
     await cleanup();

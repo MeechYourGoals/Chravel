@@ -656,8 +656,15 @@
   .gold-gradient-spinner {
     border: 2.5px solid transparent;
     border-radius: 9999px;
-    background:
-      conic-gradient(from 180deg, transparent 0%, #c49746 25%, #feeaa5 50%, #c49746 75%, transparent 100%) border-box;
+    background: conic-gradient(
+        from 180deg,
+        transparent 0%,
+        #c49746 25%,
+        #feeaa5 50%,
+        #c49746 75%,
+        transparent 100%
+      )
+      border-box;
     mask:
       linear-gradient(#fff 0 0) padding-box,
       linear-gradient(#fff 0 0);
@@ -697,7 +704,6 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-
 
   .accent-ring-idle {
     background: rgba(255, 255, 255, 0.06);
