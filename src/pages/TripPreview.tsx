@@ -309,7 +309,7 @@ const TripPreview = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-yellow-400 mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 animate-spin text-gold-primary mx-auto mb-4" />
           <p className="text-white/60">Loading trip details...</p>
         </div>
       </div>
@@ -327,10 +327,7 @@ const TripPreview = () => {
           <p className="text-white/60 mb-6">
             {error || 'This trip may have been deleted or is no longer available.'}
           </p>
-          <Button
-            onClick={() => navigate('/')}
-            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold"
-          >
+          <Button onClick={() => navigate('/')} className="accent-fill-gold font-semibold">
             Go to Dashboard
           </Button>
         </div>
@@ -353,7 +350,7 @@ const TripPreview = () => {
         {/* Chravel Logo/Branding */}
         <div className="absolute top-4 left-4 z-10">
           <div className="bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full">
-            <span className="text-yellow-400 font-bold text-lg">ChravelApp</span>
+            <span className="text-gold-primary font-bold text-lg">ChravelApp</span>
           </div>
         </div>
 
@@ -376,20 +373,20 @@ const TripPreview = () => {
           <div className="space-y-3 mb-6">
             {tripData.destination && (
               <div className="flex items-center gap-3 text-white/80">
-                <MapPin className="h-5 w-5 text-yellow-400 flex-shrink-0" />
+                <MapPin className="h-5 w-5 text-gold-primary flex-shrink-0" />
                 <span>{tripData.destination}</span>
               </div>
             )}
 
             <div className="flex items-center gap-3 text-white/80">
-              <Calendar className="h-5 w-5 text-yellow-400 flex-shrink-0" />
+              <Calendar className="h-5 w-5 text-gold-primary flex-shrink-0" />
               <span>
                 {formatDateRange(tripData.start_date, tripData.end_date, tripData.dateRange)}
               </span>
             </div>
 
             <div className="flex items-center gap-3 text-white/80">
-              <Users className="h-5 w-5 text-yellow-400 flex-shrink-0" />
+              <Users className="h-5 w-5 text-gold-primary flex-shrink-0" />
               <span>
                 {tripData.member_count} {tripData.member_count === 1 ? 'Chraveler' : 'Chravelers'}
               </span>
@@ -405,7 +402,7 @@ const TripPreview = () => {
           <div className="space-y-3">
             <Button
               onClick={handleViewTrip}
-              className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold py-3 text-base"
+              className="w-full accent-fill-gold font-semibold py-3 text-base"
             >
               {(() => {
                 const numericId = tripId ? parseInt(tripId, 10) : NaN;
@@ -431,7 +428,7 @@ const TripPreview = () => {
           {/* App Promo */}
           <div className="mt-6 pt-6 border-t border-white/10 text-center">
             <p className="text-white/40 text-sm mb-2">Plan group trips together</p>
-            <p className="text-yellow-400 font-medium">chravel.app</p>
+            <p className="text-gold-primary font-medium">chravel.app</p>
           </div>
         </div>
       </div>

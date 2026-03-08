@@ -268,7 +268,7 @@ export const NativeSubscriptionPaywall = ({
                 'w-full p-4 rounded-2xl text-left transition-all relative overflow-hidden',
                 'border-2',
                 selectedPlan === plan.id
-                  ? 'border-primary bg-primary/10'
+                  ? 'accent-ring-active border-transparent'
                   : 'border-white/10 bg-white/5 active:bg-white/10',
               )}
             >
@@ -284,7 +284,9 @@ export const NativeSubscriptionPaywall = ({
                 <div
                   className={cn(
                     'w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1',
-                    selectedPlan === plan.id ? 'border-primary bg-primary' : 'border-white/30',
+                    selectedPlan === plan.id
+                      ? 'border-gold-primary bg-gold-primary/15 shadow-ring-glow'
+                      : 'border-white/30',
                   )}
                 >
                   {selectedPlan === plan.id && (

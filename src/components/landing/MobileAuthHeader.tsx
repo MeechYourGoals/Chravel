@@ -58,7 +58,7 @@ export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) 
           <div className="flex-shrink-0">
             <button
               onClick={handleAuthClick}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium min-h-[36px] border border-primary/30"
+              className="flex items-center gap-1.5 px-3 py-1.5 accent-fill-gold rounded-lg transition-colors text-sm font-semibold min-h-[36px]"
             >
               <LogIn size={16} />
               <span>Sign up / Log in</span>

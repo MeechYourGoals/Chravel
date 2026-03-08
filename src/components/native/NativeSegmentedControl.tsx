@@ -81,9 +81,9 @@ export const NativeSegmentedControl = ({
         className,
       )}
     >
-      {/* Animated selection indicator */}
+      {/* Animated selection indicator — premium gold ring */}
       <div
-        className="absolute top-[2px] bottom-[2px] bg-white/20 rounded-md shadow-sm transition-transform duration-200 ease-out"
+        className="absolute top-[2px] bottom-[2px] accent-ring-active rounded-md shadow-sm transition-transform duration-200 ease-out"
         style={indicatorStyle}
       />
 
@@ -140,8 +140,8 @@ export const NativePillSegment = ({
             'transition-all duration-200',
             'active:scale-95',
             segment.id === selectedId
-              ? 'bg-primary text-white shadow-lg'
-              : 'bg-white/10 text-white/70',
+              ? 'accent-ring-active text-white shadow-ring-glow'
+              : 'accent-ring-idle text-white/70',
           )}
         >
           {segment.icon && <span className="flex-shrink-0">{segment.icon}</span>}

@@ -202,8 +202,8 @@
     --popover: 0 0% 4%; /* Even darker for depth */
     --popover-foreground: 0 0% 100%;
 
-    /* Gold Primary - darkest gold for consistency (#C4912F) */
-    --primary: 38 61% 48%; /* Dark amber-gold #C4912F */
+    /* Gold Primary — warm metallic gold #c49746 */
+    --primary: 37 55% 52%; /* #c49746 warm metallic gold */
     --primary-foreground: 0 0% 0%; /* Black text on gold */
 
     --secondary: 0 0% 10%; /* Dark gray secondary */
@@ -212,7 +212,7 @@
     --muted: 0 0% 15%; /* Muted elements */
     --muted-foreground: 0 0% 60%; /* Gray text */
 
-    --accent: 38 61% 48%; /* Same darkest gold for consistency */
+    --accent: 37 55% 52%; /* #c49746 warm metallic gold */
     --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84.2% 60.2%;
@@ -220,13 +220,49 @@
 
     --border: 42 30% 20%; /* Gold-tinted borders */
     --input: 0 0% 8%; /* Dark inputs */
-    --ring: 38 61% 48%; /* Gold focus rings - matches primary */
+    --ring: 37 55% 52%; /* Gold focus rings */
 
-    /* Gold design tokens for landing page */
-    --gold-primary: 38 61% 48%;
-    --gold-light: 38 61% 48%;
-    --gold-dark: 38 61% 48%;
-    --gold-glow: 42 92% 56%;
+    /* ═══════════════════════════════════════════════
+       PREMIUM GOLD DESIGN TOKEN SYSTEM
+       ═══════════════════════════════════════════════ */
+
+    /* ── Shared base gold tones ── */
+    --accent-gold-bronze: #533517; /* dark bronze */
+    --accent-gold-mid: #c49746; /* warm metallic gold */
+    --accent-gold-light: #feeaa5; /* light champagne gold */
+    --accent-gold-glow: #e8af48; /* warm glow gold */
+
+    /* ── Static highlight accents ── */
+    --accent-iridescent-silver: #c0c8d4; /* metallic silver */
+    --accent-iridescent-blue: #7ba4d9; /* cool blue */
+
+    /* ── App ring tokens (authenticated product UI) ── */
+    --accent-ring-gradient: linear-gradient(
+      135deg,
+      #533517 0%,
+      #c49746 40%,
+      #feeaa5 70%,
+      #c49746 100%
+    );
+    --accent-ring-border: #c49746;
+    --accent-ring-glow: rgba(232, 175, 72, 0.25);
+    --accent-ring-highlight: rgba(254, 234, 165, 0.4);
+    --accent-surface-active: rgba(196, 151, 70, 0.12);
+    --accent-surface-idle: rgba(255, 255, 255, 0.06);
+
+    /* ── Marketing fill tokens (public-facing UI) ── */
+    --accent-fill-gold-base: #c49746;
+    --accent-fill-gold-gradient: linear-gradient(135deg, #e8af48 0%, #c49746 50%, #a07a32 100%);
+    --accent-fill-gold-hover: #d4a74f;
+    --accent-fill-gold-active: #b08a3e;
+    --accent-fill-gold-shadow: rgba(232, 175, 72, 0.35);
+    --accent-fill-gold-text-contrast: #000000;
+
+    /* Legacy gold tokens (mapped to new palette) */
+    --gold-primary: 37 55% 52%;
+    --gold-light: 37 55% 52%;
+    --gold-dark: 30 55% 21%;
+    --gold-glow: 38 80% 55%;
 
     /* Payment system colors */
     --payment-primary: 155 80% 25%; /* Forest green */
@@ -240,12 +276,12 @@
 
     --sidebar-background: 0 0% 8%;
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 38 61% 48%;
+    --sidebar-primary: 37 55% 52%;
     --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 0 0% 12%;
     --sidebar-accent-foreground: 0 0% 90%;
     --sidebar-border: 42 20% 20%;
-    --sidebar-ring: 38 61% 48%;
+    --sidebar-ring: 37 55% 52%;
 
     /* On-image text tokens for guaranteed contrast */
     --on-image-title: 42 60% 25%;
@@ -555,6 +591,74 @@
 
 .animate-scale-in {
   animation: scale-in 0.2s ease-out;
+}
+
+/* ═══════════════════════════════════════════════
+   PREMIUM ACCENT COMPONENT UTILITIES
+   ═══════════════════════════════════════════════ */
+
+/* ── App Ring Treatment (authenticated product UI) ── */
+@layer components {
+  /* Active/selected control with premium metallic gold ring */
+  .accent-ring-active {
+    position: relative;
+    background: rgba(196, 151, 70, 0.1);
+    border: 1.5px solid transparent;
+    background-clip: padding-box;
+    box-shadow:
+      0 0 12px rgba(232, 175, 72, 0.2),
+      0 0 4px rgba(196, 151, 70, 0.12);
+  }
+  .accent-ring-active::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: linear-gradient(135deg, #533517 0%, #c49746 40%, #feeaa5 70%, #c49746 100%);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+  }
+
+  /* Idle/unselected control for ring system */
+  .accent-ring-idle {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .accent-ring-idle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(196, 151, 70, 0.25);
+  }
+
+  /* ── Marketing Gold Fill (public-facing UI) ── */
+  .accent-fill-gold {
+    background: linear-gradient(135deg, #e8af48 0%, #c49746 50%, #a07a32 100%);
+    color: #000;
+    border: 1px solid rgba(254, 234, 165, 0.25);
+    box-shadow:
+      0 4px 16px rgba(232, 175, 72, 0.3),
+      0 2px 6px rgba(196, 151, 70, 0.2);
+  }
+  .accent-fill-gold:hover {
+    background: linear-gradient(135deg, #ebb855 0%, #d4a74f 50%, #b08a3e 100%);
+    box-shadow:
+      0 6px 24px rgba(232, 175, 72, 0.4),
+      0 3px 10px rgba(196, 151, 70, 0.25);
+  }
+
+  /* ── App Switch/Toggle (checked state) ── */
+  .accent-switch-checked {
+    background: linear-gradient(135deg, #533517 0%, #c49746 60%, #e8af48 100%);
+    border: 1px solid rgba(196, 151, 70, 0.5);
+    box-shadow: 0 0 8px rgba(232, 175, 72, 0.2);
+  }
 }
 
 /* Enterprise component utilities */
