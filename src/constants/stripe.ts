@@ -32,12 +32,13 @@ export const CONSUMER_PLANS = {
     name: 'Explorer',
     tier: 'explorer',
     product_id: 'prod_U73VxEnvEHbBrx',
+    product_id_annual: 'prod_U73VrTc4sE8AIv', // Separate annual product in Stripe
     monthly: {
       price_id: 'price_1T8pOc47wCAQ57MmWsPX3Jku',
       amount: 999, // $9.99 in cents
     },
     annual: {
-      price_id: 'price_1T8pOl47wCAQ57MmDT7uefS7',
+      price_id: 'price_1T8pOl47wCAQ57MmDT7uefS7', // Belongs to prod_U73VrTc4sE8AIv
       amount: 9900, // $99.00 in cents
     },
     features: {
@@ -50,12 +51,13 @@ export const CONSUMER_PLANS = {
     name: 'Frequent Chraveler',
     tier: 'frequent-chraveler',
     product_id: 'prod_U73VfiKf3VrJKf',
+    product_id_annual: 'prod_U73VqblRTSr2XZ', // Separate annual product in Stripe
     monthly: {
       price_id: 'price_1T8pOd47wCAQ57MmIrACPNpc',
       amount: 1999, // $19.99 in cents
     },
     annual: {
-      price_id: 'price_1T8pOl47wCAQ57MmrhqSZM2j',
+      price_id: 'price_1T8pOl47wCAQ57MmrhqSZM2j', // Belongs to prod_U73VqblRTSr2XZ
       amount: 19900, // $199.00 in cents
     },
     features: {
