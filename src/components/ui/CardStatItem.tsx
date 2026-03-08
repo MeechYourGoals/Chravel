@@ -32,12 +32,9 @@ export const CardStatItem: React.FC<CardStatItemProps> = ({
   label,
   size = 'md',
 }) => {
-  const numberClass = size === 'sm'
-    ? 'text-sm font-bold text-white'
-    : 'text-xl md:text-2xl font-bold text-white';
-  const labelClass = size === 'sm'
-    ? 'text-xs text-white/60'
-    : 'text-xs md:text-sm text-white/60';
+  const numberClass =
+    size === 'sm' ? 'text-sm font-bold text-white' : 'text-xl md:text-2xl font-bold text-white';
+  const labelClass = size === 'sm' ? 'text-xs text-white/60' : 'text-xs md:text-sm text-white/60';
 
   return (
     <div className="text-center">

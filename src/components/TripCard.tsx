@@ -491,8 +491,16 @@ export const TripCard = ({
       <div className="p-4 md:p-6">
         {/* Quick Stats - icon above → number → label */}
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
-          <CardStatItem icon={Users} value={trip.peopleCount ?? participantsWithAvatars.length} label="People" />
-          <CardStatItem icon={CalendarCheck2} value={calculateDaysCount(trip.dateRange)} label="Days" />
+          <CardStatItem
+            icon={Users}
+            value={trip.peopleCount ?? participantsWithAvatars.length}
+            label="People"
+          />
+          <CardStatItem
+            icon={CalendarCheck2}
+            value={calculateDaysCount(trip.dateRange)}
+            label="Days"
+          />
           <CardStatItem icon={MapPin} value={trip.placesCount ?? 0} label="Places" />
         </div>
 

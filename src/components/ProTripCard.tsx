@@ -360,8 +360,22 @@ export const ProTripCard = ({
         {/* Stats Row - icon above → number → label */}
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
           <CardStatItem icon={Users} value={formatPeopleCount(totalPeopleCount)} label="People" />
-          <CardStatItem icon={CalendarCheck2} value={calculateDaysCount(trip.dateRange)} label="Days" />
-          <CardStatItem icon={MapPin} value={trip.placesCount != null ? (trip.placesCount > 0 ? trip.placesCount.toString() : '—') : calculateProTripPlacesCount(trip)} label="Places" />
+          <CardStatItem
+            icon={CalendarCheck2}
+            value={calculateDaysCount(trip.dateRange)}
+            label="Days"
+          />
+          <CardStatItem
+            icon={MapPin}
+            value={
+              trip.placesCount != null
+                ? trip.placesCount > 0
+                  ? trip.placesCount.toString()
+                  : '—'
+                : calculateProTripPlacesCount(trip)
+            }
+            label="Places"
+          />
         </div>
 
         {/* CTA Grid 2x2 - Matches TripCard order: Recap/Invite top, View/Share bottom */}
