@@ -235,9 +235,9 @@ export const broadcastService = {
   // Get read receipt count for a broadcast
   async getBroadcastReadCount(broadcastId: string): Promise<number> {
     try {
-      // @ts-ignore - Edge function not in generated types yet
+      // @ts-ignore - RPC not in generated types yet
       const { data, error } = await supabase.rpc('get_broadcast_read_count', {
-        broadcast_uuid: broadcastId,
+        p_broadcast_id: broadcastId,
       });
 
       if (error) throw error;
