@@ -94,7 +94,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
             {!isEligible && (
               <Lock
                 size={10}
-                className="absolute -top-0.5 -right-0.5 text-amber-400/90 drop-shadow-md z-10"
+                className="absolute -top-0.5 -right-0.5 text-gold-primary/90 drop-shadow-md z-10"
               />
             )}
           </button>
