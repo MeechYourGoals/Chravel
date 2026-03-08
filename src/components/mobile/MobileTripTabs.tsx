@@ -332,7 +332,7 @@ export const MobileTripTabs = ({
   const DefaultTabSkeleton = () => (
     <div className="flex items-center justify-center h-full min-h-[300px]">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-3 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+        <div className="w-10 h-10 gold-gradient-spinner animate-spin" />
         <p className="text-sm text-gray-400">Loading...</p>
       </div>
     </div>
@@ -528,11 +528,11 @@ export const MobileTripTabs = ({
                   ${enabled ? 'active:scale-95' : variant === 'event' ? '' : 'cursor-not-allowed'}
                   ${
                     isActive && enabled
-                      ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-lg`
+                      ? 'accent-ring-active text-white shadow-lg'
                       : enabled
-                        ? 'bg-white/10 text-gray-300'
+                        ? 'accent-ring-idle text-gray-300'
                         : variant === 'event'
-                          ? 'bg-white/10 text-gray-300'
+                          ? 'accent-ring-idle text-gray-300'
                           : 'bg-white/5 text-gray-500 opacity-40 grayscale cursor-not-allowed'
                   }
                 `}

@@ -18,7 +18,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', cla
     <div className={cn('flex flex-col items-center justify-center space-y-2', className)}>
       <div
         className={cn(
-          'animate-spin rounded-full border-2 border-gold-primary/30 border-t-gold-primary',
+          'animate-spin gold-gradient-spinner',
           sizeClasses[size],
         )}
       />

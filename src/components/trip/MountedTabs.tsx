@@ -13,7 +13,7 @@ import React, { useState, useCallback, lazy, Suspense, memo } from 'react';
 const TabSkeleton = memo(() => (
   <div className="flex items-center justify-center h-full min-h-[400px]">
     <div className="flex flex-col items-center gap-3">
-      <div className="w-12 h-12 border-4 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
+      <div className="w-12 h-12 gold-gradient-spinner animate-spin" />
       <p className="text-sm text-muted-foreground">Loading...</p>
     </div>
   </div>
