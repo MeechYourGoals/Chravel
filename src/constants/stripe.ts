@@ -49,9 +49,9 @@ export const CONSUMER_PLANS = {
   'frequent-chraveler': {
     name: 'Frequent Chraveler',
     tier: 'frequent-chraveler',
-    product_id: 'prod_Tc0WEzRDTCkfPM',
+    product_id: 'prod_U73VfiKf3VrJKf',
     monthly: {
-      price_id: 'price_1SemV13EeswiMlDC2ykNdrif',
+      price_id: 'price_1T8pOd47wCAQ57MmIrACPNpc',
       amount: 1999, // $19.99 in cents
     },
     annual: {
