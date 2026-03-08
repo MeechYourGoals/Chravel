@@ -294,7 +294,7 @@ export const EventCard = ({
         {/* Stats Grid - icon above → number → label (bordered container for Events) */}
         <div className="grid grid-cols-3 gap-4 mb-6 bg-black/20 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
           <CardStatItem icon={Users} value={totalPeopleCount} label="People" />
-          <CardStatItem icon={CalendarDays} value={calculateDaysCount(event.dateRange)} label="Days" />
+          <CardStatItem icon={CalendarRange} value={calculateDaysCount(event.dateRange)} label="Days" />
           <CardStatItem icon={MapPin} value={event.placesCount != null ? (event.placesCount > 0 ? event.placesCount.toString() : '—') : calculateEventPlacesCount(event)} label="Places" />
         </div>
 

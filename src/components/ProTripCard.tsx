@@ -360,7 +360,7 @@ export const ProTripCard = ({
         {/* Stats Row - icon above → number → label */}
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
           <CardStatItem icon={Users} value={formatPeopleCount(totalPeopleCount)} label="People" />
-          <CardStatItem icon={CalendarDays} value={calculateDaysCount(trip.dateRange)} label="Days" />
+          <CardStatItem icon={CalendarRange} value={calculateDaysCount(trip.dateRange)} label="Days" />
           <CardStatItem icon={MapPin} value={trip.placesCount != null ? (trip.placesCount > 0 ? trip.placesCount.toString() : '—') : calculateProTripPlacesCount(trip)} label="Places" />
         </div>
 
