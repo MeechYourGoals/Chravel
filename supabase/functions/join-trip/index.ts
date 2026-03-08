@@ -7,6 +7,7 @@ import {
   readJsonBody,
   redactSensitiveToken,
 } from '../_shared/security.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
