@@ -47,14 +47,14 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
 
         {destination && (
           <div className="flex items-center gap-2 text-muted-foreground/70 text-sm mb-1">
-            <MapPin className="w-4 h-4" />
+            <MapPin className="w-4 h-4 gold-gradient-icon" />
             <span>{destination}</span>
           </div>
         )}
 
         {startDate && (
           <div className="flex items-center gap-2 text-muted-foreground/70 text-sm mb-3">
-            <Calendar className="w-4 h-4" />
+            <Calendar className="w-4 h-4 gold-gradient-icon" />
             <span>{format(new Date(startDate), 'MMM d, yyyy')}</span>
           </div>
         )}

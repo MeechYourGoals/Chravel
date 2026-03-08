@@ -652,19 +652,12 @@
     pointer-events: none;
   }
 
-  /* Gold gradient spinner — replaces flat border-gold-primary spinners */
+  /* Gold gradient spinner — brighter metallic gold */
   .gold-gradient-spinner {
     border: 2.5px solid transparent;
     border-radius: 9999px;
-    background: conic-gradient(
-        from 180deg,
-        transparent 0%,
-        #533517 20%,
-        #c49746 50%,
-        #feeaa5 75%,
-        transparent 100%
-      )
-      border-box;
+    background:
+      conic-gradient(from 180deg, transparent 0%, #c49746 25%, #feeaa5 50%, #c49746 75%, transparent 100%) border-box;
     mask:
       linear-gradient(#fff 0 0) padding-box,
       linear-gradient(#fff 0 0);
@@ -674,6 +667,28 @@
       linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
   }
+
+  /* Metallic gold gradient for SVG icons (Lucide) — references #gold-metallic-gradient in App.tsx */
+  .gold-gradient-icon {
+    color: #c49746; /* fallback for non-SVG contexts */
+  }
+  .gold-gradient-icon svg,
+  .gold-gradient-icon.lucide {
+    stroke: url(#gold-metallic-gradient) !important;
+  }
+  .gold-gradient-icon svg path,
+  .gold-gradient-icon svg line,
+  .gold-gradient-icon svg circle,
+  .gold-gradient-icon svg polyline,
+  .gold-gradient-icon svg rect,
+  .gold-gradient-icon.lucide path,
+  .gold-gradient-icon.lucide line,
+  .gold-gradient-icon.lucide circle,
+  .gold-gradient-icon.lucide polyline,
+  .gold-gradient-icon.lucide rect {
+    stroke: url(#gold-metallic-gradient) !important;
+  }
+
 
   .accent-ring-idle {
     background: rgba(255, 255, 255, 0.06);

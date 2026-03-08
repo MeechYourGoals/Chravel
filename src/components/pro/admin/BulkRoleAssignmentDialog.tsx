@@ -140,7 +140,7 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-gold-primary" />
+            <Loader2 className="w-8 h-8 animate-spin gold-gradient-icon" />
           </div>
         ) : (
           <>
