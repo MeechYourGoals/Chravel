@@ -28,7 +28,7 @@ import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
-import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
+import { VoiceActiveBar } from '@/features/chat/components/VoiceActiveBar';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
@@ -50,13 +50,10 @@ const EMPTY_SESSION: ConciergeSession = {
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
 /**
- * DUPLEX_VOICE_ENABLED — Set to true to re-enable Gemini Live bidirectional
- * voice (Vertex AI). When false, the waveform button uses basic Web Speech API
- * dictation instead. All backend wiring (gemini-voice-session edge function,
- * useGeminiLive hook, VoiceLiveOverlay) is preserved — flip this to true and
- * fix the Vertex handshake to restore conversation mode.
- *
- * See docs/GEMINI_LIVE_ARCHITECTURE_REPORT.md for setup instructions.
+ * DUPLEX_VOICE_ENABLED — When true, the waveform button starts Gemini Live
+ * bidirectional voice (Vertex AI). When false, it uses basic Web Speech API
+ * dictation instead. Voice state is shown inline via VoiceActiveBar (compact
+ * bar at top of chat) and transcripts appear as normal chat bubbles.
  */
 const DUPLEX_VOICE_ENABLED = true;
 // ─────────────────────────────────────────────────────────────────────────────
@@ -423,7 +420,8 @@ export const AIConciergeChat = ({
   // Speech API dictation. Transcribed text fills the input field so the user
   // can review/edit before sending. All Gemini Live hooks remain initialised
   // (hooks rules) but are not invoked.
-  const [liveOverlayOpen, setLiveOverlayOpen] = useState(false);
+  // Voice active state is derived from liveState — no separate overlay toggle needed.
+  const isVoiceActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle';
 
   // ── Dictation (Web Speech API) ──────────────────────────────────────────
   // Dictation callback: fill the text input with the transcribed speech
@@ -572,14 +570,6 @@ export const AIConciergeChat = ({
     ? mapLiveStateToVoiceState(liveState)
     : dictationState;
 
-  // Close overlay when live session ends (only relevant when duplex enabled)
-  useEffect(() => {
-    if (DUPLEX_VOICE_ENABLED && liveState === 'idle' && liveOverlayOpen) {
-      const timer = setTimeout(() => setLiveOverlayOpen(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [liveState, liveOverlayOpen]);
-
   // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
   const handleConvoToggle = useCallback(async () => {
     if (!DUPLEX_VOICE_ENABLED) {
@@ -608,7 +598,6 @@ export const AIConciergeChat = ({
       }
     }
 
-    setLiveOverlayOpen(true);
     await startLiveSession();
   }, [
     toggleDictation,
@@ -622,7 +611,6 @@ export const AIConciergeChat = ({
 
   const handleEndLiveSession = useCallback(() => {
     void endLiveSession();
-    setLiveOverlayOpen(false);
   }, [endLiveSession]);
 
   // Fix 2: Keep the streaming voice bubble in sync with liveAssistantTranscript.
@@ -1858,6 +1846,19 @@ export const AIConciergeChat = ({
           </div>
         )}
 
+        {/* Inline voice status bar — shown when voice session is active */}
+        {isVoiceActive && (
+          <VoiceActiveBar
+            state={liveState}
+            error={liveError}
+            circuitBreakerOpen={liveCircuitBreakerOpen}
+            onEnd={handleEndLiveSession}
+            onResetCircuitBreaker={resetLiveCircuitBreaker}
+            onReconnect={handleConvoToggle}
+            diagnostics={liveDiagnostics}
+          />
+        )}
+
         {/* Chat Messages */}
         <div
           ref={chatScrollRef}
@@ -1957,21 +1958,8 @@ export const AIConciergeChat = ({
         </div>
       </div>
 
-      {/* Full-screen immersive voice overlay — only when duplex is enabled */}
-      {DUPLEX_VOICE_ENABLED && liveOverlayOpen && (
-        <VoiceLiveOverlay
-          state={liveState}
-          userTranscript={liveUserTranscript}
-          assistantTranscript={liveAssistantTranscript}
-          conversationHistory={liveConversationHistory}
-          error={liveError}
-          circuitBreakerOpen={liveCircuitBreakerOpen}
-          onEnd={handleEndLiveSession}
-          onResetCircuitBreaker={resetLiveCircuitBreaker}
-          onReconnect={handleConvoToggle}
-          diagnostics={liveDiagnostics}
-        />
-      )}
+      {/* Inline voice bar — compact status indicator at top of chat */}
+      {/* (positioned absolutely so it overlays the top of chat scroll area) */}
     </div>
   );
 };

@@ -18,11 +18,11 @@ const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
 const VOICE_TOOLS_ENABLED =
   (Deno.env.get('VOICE_TOOLS_ENABLED') || 'true').toLowerCase() === 'true';
 
-// Feature flags for preview capabilities (not part of GA handshake)
+// Feature flags for preview capabilities — default ON for richer voice experience
 const VOICE_AFFECTIVE_DIALOG =
-  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'false').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'true').toLowerCase() === 'true';
 const VOICE_PROACTIVE_AUDIO =
-  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'false').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'true').toLowerCase() === 'true';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -917,7 +917,12 @@ serve(async req => {
     // Include tools only when VOICE_TOOLS_ENABLED is true.
     // This allows verifying the minimal handshake works before adding tool complexity.
     if (VOICE_TOOLS_ENABLED) {
-      setupConfig.tools = [{ function_declarations: VOICE_FUNCTION_DECLARATIONS }];
+      setupConfig.tools = [
+        { function_declarations: VOICE_FUNCTION_DECLARATIONS },
+        // Google Search grounding — gives voice the same real-time web access as text mode.
+        // Gemini decides when to use it (e.g. "what's the weather in Paris?" or "is that museum open?").
+        { google_search: {} },
+      ];
     }
 
     // Session resumption — include token if reconnecting to resume prior conversation
