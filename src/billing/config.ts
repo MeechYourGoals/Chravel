@@ -186,8 +186,8 @@ export interface TripPassConfig {
 export const TRIP_PASS_PRODUCTS: Record<string, TripPassConfig> = {
   'pass-explorer-45': {
     name: 'Explorer Trip Pass (45 days)',
-    stripeProductId: 'prod_Tx0AZIWAubAWD3',
-    stripePriceId: 'price_1T7P2i3EeswiMlDCwWK11oDt',
+    stripeProductId: 'prod_U73WaALe9yjrAR',
+    stripePriceId: 'price_1T8pP047wCAQ57Mm6sfNTg2w',
     durationDays: 45,
     tier: 'explorer',
     price: 39.99,
