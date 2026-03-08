@@ -1,3 +1,5 @@
+import { withCircuitBreaker } from './circuitBreaker.ts';
+
 const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 const GOOGLE_CUSTOM_SEARCH_CX = Deno.env.get('GOOGLE_CUSTOM_SEARCH_CX');
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
@@ -189,26 +191,28 @@ async function _executeImpl(
 
       // New Google Places API (Places Text Search)
       const url = `https://places.googleapis.com/v1/places:searchText`;
-      const placesResponse = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask':
-            'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.googleMapsUri,places.photos',
-        },
-        body: JSON.stringify({
-          textQuery: query,
-          locationBias:
-            lat !== null && lng !== null
-              ? {
-                  circle: { center: { latitude: lat, longitude: lng }, radius: 5000 },
-                }
-              : undefined,
-          maxResultCount: 3,
+      const placesResponse = await withCircuitBreaker('google-maps', () =>
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+            'X-Goog-FieldMask':
+              'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.googleMapsUri,places.photos',
+          },
+          body: JSON.stringify({
+            textQuery: query,
+            locationBias:
+              lat !== null && lng !== null
+                ? {
+                    circle: { center: { latitude: lat, longitude: lng }, radius: 5000 },
+                  }
+                : undefined,
+            maxResultCount: 3,
+          }),
+          signal: AbortSignal.timeout(8_000),
         }),
-        signal: AbortSignal.timeout(8_000),
-      });
+      );
 
       if (!placesResponse.ok) {
         const errorText = await placesResponse.text().catch(() => 'Unknown error');
@@ -254,16 +258,18 @@ async function _executeImpl(
         body.departureTime = new Date(departureTime).toISOString();
       }
 
-      const routesResponse = await fetch(routesUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.description',
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(10_000),
-      });
+      const routesResponse = await withCircuitBreaker('google-maps', () =>
+        fetch(routesUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.description',
+          },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(10_000),
+        }),
+      );
 
       if (!routesResponse.ok) {
         const errBody = await routesResponse.text();
@@ -302,7 +308,9 @@ async function _executeImpl(
       const timestamp = Math.floor(Date.now() / 1000);
       const tzUrl = `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${timestamp}&key=${GOOGLE_MAPS_API_KEY}`;
 
-      const tzResponse = await fetch(tzUrl, { signal: AbortSignal.timeout(8_000) });
+      const tzResponse = await withCircuitBreaker('google-maps', () =>
+        fetch(tzUrl, { signal: AbortSignal.timeout(8_000) }),
+      );
       if (!tzResponse.ok) {
         return { error: `Time Zone API failed (${tzResponse.status})` };
       }
@@ -333,14 +341,16 @@ async function _executeImpl(
 
       // New Google Places API (Place Details)
       const detailsUrl = `https://places.googleapis.com/v1/places/${placeId}`;
-      const detailsResponse = await fetch(detailsUrl, {
-        headers: {
-          'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask':
-            'id,displayName,formattedAddress,internationalPhoneNumber,websiteUri,googleMapsUri,rating,userRatingCount,priceLevel,currentOpeningHours,editorialSummary,photos',
-        },
-        signal: AbortSignal.timeout(8_000),
-      });
+      const detailsResponse = await withCircuitBreaker('google-maps', () =>
+        fetch(detailsUrl, {
+          headers: {
+            'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+            'X-Goog-FieldMask':
+              'id,displayName,formattedAddress,internationalPhoneNumber,websiteUri,googleMapsUri,rating,userRatingCount,priceLevel,currentOpeningHours,editorialSummary,photos',
+          },
+          signal: AbortSignal.timeout(8_000),
+        }),
+      );
 
       if (!detailsResponse.ok) {
         const errorText = await detailsResponse.text().catch(() => 'Unknown error');
@@ -389,7 +399,9 @@ async function _executeImpl(
       const num = Math.min(count || 5, 10);
       const csUrl = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&searchType=image&num=${num}&cx=${GOOGLE_CUSTOM_SEARCH_CX}&key=${GOOGLE_MAPS_API_KEY}`;
 
-      const csResponse = await fetch(csUrl, { signal: AbortSignal.timeout(8_000) });
+      const csResponse = await withCircuitBreaker('google-search', () =>
+        fetch(csUrl, { signal: AbortSignal.timeout(8_000) }),
+      );
       if (!csResponse.ok) {
         return { error: `Custom Search failed (${csResponse.status})` };
       }
@@ -469,7 +481,9 @@ async function _executeImpl(
       csUrl.searchParams.set('cx', GOOGLE_CUSTOM_SEARCH_CX);
       csUrl.searchParams.set('key', GOOGLE_MAPS_API_KEY);
 
-      const csResponse = await fetch(csUrl.toString(), { signal: AbortSignal.timeout(8_000) });
+      const csResponse = await withCircuitBreaker('google-search', () =>
+        fetch(csUrl.toString(), { signal: AbortSignal.timeout(8_000) }),
+      );
       if (!csResponse.ok) {
         const errText = await csResponse.text().catch(() => '');
         return {
@@ -516,7 +530,9 @@ async function _executeImpl(
       params.set('key', GOOGLE_MAPS_API_KEY);
 
       const dmUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?${params.toString()}`;
-      const dmResponse = await fetch(dmUrl, { signal: AbortSignal.timeout(10_000) });
+      const dmResponse = await withCircuitBreaker('google-maps', () =>
+        fetch(dmUrl, { signal: AbortSignal.timeout(10_000) }),
+      );
 
       if (!dmResponse.ok) {
         return { error: `Distance Matrix API failed (${dmResponse.status})` };
@@ -559,9 +575,8 @@ async function _executeImpl(
         return { error: 'Google API key not configured' };
       }
 
-      const avResponse = await fetch(
-        'https://addressvalidation.googleapis.com/v1:validateAddress',
-        {
+      const avResponse = await withCircuitBreaker('google-maps', () =>
+        fetch('https://addressvalidation.googleapis.com/v1:validateAddress', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -571,7 +586,7 @@ async function _executeImpl(
             address: { addressLines: [String(address)] },
           }),
           signal: AbortSignal.timeout(8_000),
-        },
+        }),
       );
 
       if (!avResponse.ok) {
@@ -1336,7 +1351,9 @@ async function _executeImpl(
 
       // Use the free exchangerate API
       const rateUrl = `https://open.er-api.com/v6/latest/${encodeURIComponent(String(from).toUpperCase())}`;
-      const rateResponse = await fetch(rateUrl, { signal: AbortSignal.timeout(8_000) });
+      const rateResponse = await withCircuitBreaker('exchange-rate', () =>
+        fetch(rateUrl, { signal: AbortSignal.timeout(8_000) }),
+      );
 
       if (!rateResponse.ok) {
         return { error: `Currency API failed (${rateResponse.status})` };
@@ -1382,19 +1399,21 @@ async function _executeImpl(
 
       // Use Gemini's image generation via Imagen
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${GEMINI_API_KEY}`;
-      const geminiResponse = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          instances: [{ prompt: imagePrompt }],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: '16:9',
-            safetyFilterLevel: 'block_medium_and_above',
-          },
+      const geminiResponse = await withCircuitBreaker('gemini', () =>
+        fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instances: [{ prompt: imagePrompt }],
+            parameters: {
+              sampleCount: 1,
+              aspectRatio: '16:9',
+              safetyFilterLevel: 'block_medium_and_above',
+            },
+          }),
+          signal: AbortSignal.timeout(30_000),
         }),
-        signal: AbortSignal.timeout(30_000),
-      });
+      );
 
       if (!geminiResponse.ok) {
         const errText = await geminiResponse.text().catch(() => '');
@@ -1480,15 +1499,17 @@ async function _executeImpl(
       }
 
       // Fetch the page content
-      const pageResponse = await fetch(targetUrl, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        },
-        signal: AbortSignal.timeout(15_000),
-        redirect: 'follow',
-      });
+      const pageResponse = await withCircuitBreaker('google-search', () =>
+        fetch(targetUrl, {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          },
+          signal: AbortSignal.timeout(15_000),
+          redirect: 'follow',
+        }),
+      );
 
       if (!pageResponse.ok) {
         return {
@@ -1532,23 +1553,25 @@ async function _executeImpl(
 
       // Use Gemini to analyze the page content
       const analysisUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-      const analysisResponse = await fetch(analysisUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `You are a travel agent assistant. Analyze this webpage content and ${taskInstruction}.\n\nPage URL: ${targetUrl}\n\nPage content:\n${textContent}`,
-                },
-              ],
-            },
-          ],
-          generationConfig: { maxOutputTokens: 2000, temperature: 0.2 },
+      const analysisResponse = await withCircuitBreaker('gemini', () =>
+        fetch(analysisUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `You are a travel agent assistant. Analyze this webpage content and ${taskInstruction}.\n\nPage URL: ${targetUrl}\n\nPage content:\n${textContent}`,
+                  },
+                ],
+              },
+            ],
+            generationConfig: { maxOutputTokens: 2000, temperature: 0.2 },
+          }),
+          signal: AbortSignal.timeout(20_000),
         }),
-        signal: AbortSignal.timeout(20_000),
-      });
+      );
 
       let analysis = '';
       if (analysisResponse.ok) {
