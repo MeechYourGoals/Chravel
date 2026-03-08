@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, MapPin, Clock, AlertCircle } from 'lucide-react';
+import { CalendarRange, MapPin, Clock, AlertCircle } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 interface Participant {
