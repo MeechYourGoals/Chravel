@@ -1,26 +1,67 @@
 
 
-## What Needs to Change
+## Root Cause Analysis
 
-Three issues visible in the screenshot:
+The card order inconsistency has **one core bug** with two contributing factors:
 
-### 1. Calendar selected day (Mar 8) — old yellowish gold fill
-The `calendar.tsx` component uses `bg-primary text-primary-foreground` for `day_selected`. While `--primary` is set to `hsl(37 55% 52%)` which IS `#c49746`, I'll switch to the explicit `bg-gold-primary` token for guaranteed consistency, and also update `day_today` to use the gold palette.
+### Bug: Race condition — remote order arrives too late, never re-applied
 
-**File:** `src/components/ui/calendar.tsx` (line 37-39)
-- `bg-primary text-primary-foreground` → `bg-gold-primary text-black`
-- Also update hover/focus states on the same line
+Here's what happens on login:
 
-### 2. CTA buttons (Search, Upload, Send, Waveform) — border too thin
-User loves the gold border treatment but wants it **thicker** so the gradient is more visible. Currently using `border` (1px). Change to `border-2` (2px).
+```text
+Timeline:
+  t0  Component mounts → useEffect kicks off fetchRemoteOrder (async)
+  t1  Items arrive from React Query → applyOrder runs
+      → remoteOrderRef.current is still null
+      → Falls back to localStorage (stale, device-specific)
+      → Cards render in WRONG order
+  t2  fetchRemoteOrder resolves → sets remoteOrderRef.current
+      → But remoteOrderRef is a React ref — NO re-render triggered
+      → Cards stay in wrong order until next navigation
+```
 
-**File:** `src/lib/ctaButtonStyles.ts` (line 13-14)
-- Change `border border-gold-primary/60` → `border-2 border-gold-primary/60`
+Because `remoteOrderRef` is a ref (not state), the component never re-renders when the correct remote order arrives. The cards are stuck in whatever order localStorage had — which is device-specific and often stale.
 
-### 3. Trip Members icon — dynamic class not picked up by Tailwind JIT
-`TripHeader.tsx` line 610 uses `` text-${accentColors.primary} `` which produces `text-gold-primary` at runtime, but Tailwind's JIT compiler can't detect dynamic class strings. The icon appears with no gold styling. Fix by using the static class directly.
+### Contributing factor: Module-level debounce timer
 
-**File:** `src/components/TripHeader.tsx` (line 610)
-- `` className={`text-${accentColors.primary}`} `` → `className="text-gold-primary"`
-- Same fix on line 634 for the manage users button hover color
+There's a single `upsertTimer` variable shared across all hook instances. If a user switches between My Trips → Pro → Events quickly, the debounce timers clobber each other, potentially dropping saves.
+
+### Contributing factor: Silent upsert failures
+
+The `catch {}` block in `debouncedUpsert` swallows all errors. If the upsert fails (network, RLS, etc.), the user has no idea their reorder didn't persist.
+
+---
+
+## Fix Plan
+
+### 1. Convert `remoteOrderRef` to state so remote fetch triggers re-render
+
+Replace `remoteOrderRef` with a `useState<string[] | null>` so that when the remote order arrives, `applyOrder` re-runs via its dependency and the grid re-renders with the correct order.
+
+### 2. Make `applyOrder` depend on remote order state
+
+Update the `applyOrder` callback to include `remoteOrder` in its closure/deps, so it uses the freshest data.
+
+### 3. In `SortableTripGrid`, re-apply order when `applyOrder` identity changes
+
+The existing `useEffect` already depends on `applyOrder`, so once `applyOrder` gets a new identity from the state change, the grid will re-sort automatically.
+
+### 4. Scope debounce timer per hook instance
+
+Move `upsertTimer` into a `useRef` so each dashboard type gets its own independent debounce.
+
+### 5. Add error logging for failed upserts
+
+Log upsert failures so we can diagnose persistence issues.
+
+---
+
+## Files Changed
+
+- `src/hooks/useDashboardCardOrder.ts` — All changes are in this single file
+
+## Risk
+
+- **Low**: Single-file change, no schema changes, no RLS changes.
+- The fix makes the existing Supabase fetch actually take effect in the UI.
 
