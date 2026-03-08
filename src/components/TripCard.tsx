@@ -401,7 +401,7 @@ export const TripCard = ({
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-gold-mid transition-colors line-clamp-2">
+                <h3 className="text-lg md:text-xl font-bold text-white group-hover:gold-gradient-text transition-colors line-clamp-2">
                   {trip.title}
                 </h3>
                 {/* Trip Status Badges - Hidden on mobile to save space */}
