@@ -200,30 +200,22 @@ export const RolesView = ({
 
         {/* Row 2: Consolidated Admin Action Buttons (3 buttons) - Mobile optimized */}
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
-          <div className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}>
+          <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3'} mb-3`}>
             <Button
               onClick={onCreateRole}
               disabled={adminLoading || isLoadingRoles}
               variant="outline"
               size="sm"
-              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                isMobile
-                  ? 'min-h-[44px] justify-center text-xs'
-                  : `${PRO_PARITY_COL_START.media} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
-              }`}
+              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap ${isMobile ? 'min-h-[44px]' : ''}`}
             >
-              <UserPlus className="w-4 h-4 mr-1" />
+              <UserPlus className="w-4 h-4 mr-1 shrink-0" />
               Create Role
             </Button>
             <Button
               onClick={() => setShowRoleManagerDialog(true)}
               variant="outline"
               size="sm"
-              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                isMobile
-                  ? 'min-h-[44px] justify-center text-xs'
-                  : `${PRO_PARITY_COL_START.payments} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2 font-medium text-xs lg:text-sm`
-              }`}
+              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap ${isMobile ? 'min-h-[44px]' : ''}`}
               title="Manage roles, assignments, and admins"
             >
               <Cog className="w-4 h-4 shrink-0 mr-0.5" />
@@ -234,14 +226,10 @@ export const RolesView = ({
                 onClick={onAssignRole}
                 variant="outline"
                 size="sm"
-                className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                  isMobile
-                    ? 'min-h-[44px] justify-center text-xs'
-                    : `${PRO_PARITY_COL_START.places} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
-                }`}
+                className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap ${isMobile ? 'min-h-[44px]' : ''}`}
                 title="Assign role to members"
               >
-                <UserCheck className="w-4 h-4 mr-1" />
+                <UserCheck className="w-4 h-4 mr-1 shrink-0" />
                 Assign Role
               </Button>
             )}
@@ -249,14 +237,10 @@ export const RolesView = ({
               onClick={() => setShowRequestsDialog(true)}
               variant="outline"
               size="sm"
-              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors ${
-                isMobile
-                  ? 'min-h-[44px] justify-center text-xs'
-                  : `${PRO_PARITY_COL_START.places} ${PARITY_ACTION_BUTTON_SIZE_CLASS} rounded-full px-2.5 font-medium text-xs lg:text-sm`
-              }`}
+              className={`rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap ${isMobile ? 'min-h-[44px]' : ''}`}
               title="View join requests"
             >
-              <Clock className="w-4 h-4 mr-1" />
+              <Clock className="w-4 h-4 mr-1 shrink-0" />
               Requests
             </Button>
           </div>
