@@ -12,6 +12,7 @@ import {
   FileDown,
   Share2,
 } from 'lucide-react';
+import { CardStatItem } from './ui/CardStatItem';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from './ui/button';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
