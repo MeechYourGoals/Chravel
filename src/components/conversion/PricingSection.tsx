@@ -75,7 +75,7 @@ const consumerTiers: PricingTier[] = [
     price: '$9.99',
     annualPrice: '$99',
     originalPrice: '$119.88',
-    description: 'For people who travel regularly and want smarter planning',
+    description: 'For people who travel regularly and want smarter planning. Or grab a Trip Pass for $39.99 (45 days).',
     icon: <Globe size={24} />,
     features: [
       'Everything in Free',
@@ -99,7 +99,7 @@ const consumerTiers: PricingTier[] = [
     price: '$19.99',
     annualPrice: '$199',
     originalPrice: '$239.88',
-    description: 'For Frequent Flyers, Teams, and Tours',
+    description: 'For Frequent Flyers, Teams, and Tours. Or grab a Trip Pass for $74.99 (90 days).',
     icon: <Sparkles size={24} />,
     features: [
       'Everything in Explorer',
