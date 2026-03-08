@@ -254,7 +254,7 @@ export const NativeTripTypeSwitcher = ({
                     className={cn(
                       'w-12 h-12 rounded-full flex items-center justify-center shrink-0',
                       isSelected
-                        ? 'bg-gold-primary/15 text-gold-primary border border-gold-primary/40'
+                        ? 'bg-gold-primary/15 gold-gradient-icon border border-gold-primary/40'
                         : 'bg-white/10 text-white/70',
                     )}
                   >
