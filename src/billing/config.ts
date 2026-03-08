@@ -195,8 +195,8 @@ export const TRIP_PASS_PRODUCTS: Record<string, TripPassConfig> = {
   },
   'pass-frequent-90': {
     name: 'Frequent Chraveler Trip Pass (90 days)',
-    stripeProductId: 'prod_Tx0Ap1aT22IGl2',
-    stripePriceId: 'price_1Sz6A63EeswiMlDCGFASMBft',
+    stripeProductId: 'prod_U73W99ebeJvbLB',
+    stripePriceId: 'price_1T8pP047wCAQ57Mm2DOch99F',
     durationDays: 90,
     tier: 'frequent-chraveler',
     price: 74.99,

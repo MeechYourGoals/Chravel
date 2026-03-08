@@ -92,8 +92,8 @@ export const PRO_PLANS = {
   enterprise: {
     name: 'Enterprise',
     tier: 'pro-enterprise',
-    product_id: 'prod_Tc0cJshKNpvxV0',
-    price_id: 'price_1Semar3EeswiMlDCmEPBAvIt',
+    product_id: 'prod_U73Vd6QW4pEY9x',
+    price_id: 'price_1T8pOg47wCAQ57MmcEPnjd3s',
     amount: 19900, // $199/mo in cents
     memberLimit: 250,
   },
