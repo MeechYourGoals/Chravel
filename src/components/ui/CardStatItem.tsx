@@ -13,7 +13,7 @@ export const CARD_ICON_SIZE = {
   heroMobile: 14,
   heroDesktop: 18,
   /** Icons in the stats row (People, Days, Places) */
-  stat: 14,
+  stat: 21,
   /** Icons in metadata rows (Organizer, etc.) */
   meta: 16,
 } as const;

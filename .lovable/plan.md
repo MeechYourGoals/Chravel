@@ -1,39 +1,32 @@
 
 
-## Fix Calendar Icon Recognizability + Increase Stats Icon Size
+## Problem
 
-### Problem
-The current `CalendarDays` icon renders as a near-featureless rounded rectangle at 14–18px, especially under the gold gradient stroke. Additionally, `ArchivedTripCard` still uses a different icon (`Calendar`) with flat amber color instead of the gold gradient.
+The Team tab's admin action buttons (Create Role, Manage Roles, Assign Role, Requests) overlap because "Assign Role" and "Requests" are both mapped to the same grid column (`PRO_PARITY_COL_START.places`). The 9-column parity grid is also too tight for these buttons, causing text to bleed outside pills.
 
-### Solution
+## Changes
 
-**1. Swap `CalendarDays` → `CalendarCheck2` everywhere**
+### `src/components/pro/team/RolesView.tsx` (lines 202-262)
 
-`CalendarCheck2` has a bold checkmark inside the calendar frame, giving it a distinctive non-square silhouette that reads clearly at small sizes even with the gradient applied.
+Replace the `PRO_PARITY_ROW_CLASS` (9-col grid) with a simple **4-column grid** layout with adequate gap for these 4 action buttons:
 
-**Files to update (7 total):**
+**Desktop container:**
+```tsx
+// Before
+className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}
 
-| File | Current Icon | Change |
-|------|-------------|--------|
-| `src/components/TripCard.tsx` | `CalendarDays` | → `CalendarCheck2` |
-| `src/components/ProTripCard.tsx` | `CalendarDays` | → `CalendarCheck2` |
-| `src/components/EventCard.tsx` | `CalendarDays` | → `CalendarCheck2` |
-| `src/components/MobileEventCard.tsx` | `CalendarDays` | → `CalendarCheck2` |
-| `src/components/PendingTripCard.tsx` | `CalendarDays` | → `CalendarCheck2` |
-| `src/components/trip/PendingTripCard.tsx` | `CalendarDays` | → `CalendarCheck2` |
-| `src/components/home/ArchivedTripCard.tsx` | `Calendar` + flat `text-amber-400` | → `CalendarCheck2` + `gold-gradient-icon` |
+// After
+className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3'} mb-3`}
+```
 
-Each file: update the import statement and all JSX references. No other changes.
+**Each button:** Remove the `PRO_PARITY_COL_START.*` and `PARITY_ACTION_BUTTON_SIZE_CLASS` classes. Use consistent sizing:
+```tsx
+className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 
+  hover:border-amber-400/50 text-white border-white/20 transition-colors 
+  min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap"
+```
 
-**2. Increase stats-row icon size by 1.5x**
+**Mobile:** Switch from single-column flex to a **2x2 grid** (`grid grid-cols-2 gap-2`) so all 4 buttons are visible without excessive scrolling, with `min-h-[44px]` for tap targets.
 
-In `src/components/ui/CardStatItem.tsx`, change `CARD_ICON_SIZE.stat` from `14` to `21` (14 × 1.5). This automatically scales People, Days, and Places icons across all card variants that use `CardStatItem`.
-
-**3. No CSS changes needed** — the existing `.gold-gradient-icon` selectors already target `.lucide path`, `.lucide line`, `.lucide circle`, `.lucide polyline`, `.lucide rect` which covers all internal SVG elements of `CalendarCheck2`.
-
-### Summary of changes
-- 7 component files: icon import swap
-- 1 shared token file (`CardStatItem.tsx`): stat icon size 14→21
-- 1 archived card: also fix color from flat amber to gold-gradient-icon
-- 0 CSS changes
+**Button labels stay the same:** Create Role, Manage Roles, Assign Role, Requests — all 4 fit cleanly in equal-width columns with `whitespace-nowrap` and proper padding.
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Clock, MapPin, CalendarDays } from 'lucide-react';
+import { Clock, MapPin, CalendarCheck2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PendingTripCardProps {
@@ -54,7 +54,7 @@ export const PendingTripCard: React.FC<PendingTripCardProps> = ({
 
         {startDate && (
           <div className="flex items-center gap-2 text-muted-foreground/70 text-sm mb-3">
-            <CalendarDays className="w-4 h-4 gold-gradient-icon" />
+            <CalendarCheck2 className="w-4 h-4 gold-gradient-icon" />
             <span>{format(new Date(startDate), 'MMM d, yyyy')}</span>
           </div>
         )}

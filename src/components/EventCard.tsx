@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CalendarDays,
+  CalendarCheck2,
   MapPin,
   Users,
   MoreHorizontal,
@@ -248,7 +248,7 @@ export const EventCard = ({
               <span className="font-medium">{event.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80">
-              <CalendarDays size={16} className="gold-gradient-icon" />
+              <CalendarCheck2 size={16} className="gold-gradient-icon" />
               <span className="font-medium">{event.dateRange}</span>
             </div>
           </div>
@@ -294,7 +294,7 @@ export const EventCard = ({
         {/* Stats Grid - icon above → number → label (bordered container for Events) */}
         <div className="grid grid-cols-3 gap-4 mb-6 bg-black/20 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
           <CardStatItem icon={Users} value={totalPeopleCount} label="People" />
-          <CardStatItem icon={CalendarDays} value={calculateDaysCount(event.dateRange)} label="Days" />
+          <CardStatItem icon={CalendarCheck2} value={calculateDaysCount(event.dateRange)} label="Days" />
           <CardStatItem icon={MapPin} value={event.placesCount != null ? (event.placesCount > 0 ? event.placesCount.toString() : '—') : calculateEventPlacesCount(event)} label="Places" />
         </div>
 
