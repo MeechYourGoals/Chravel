@@ -379,7 +379,7 @@ const TripPreview = () => {
             )}
 
             <div className="flex items-center gap-3 text-white/80">
-              <Calendar className="h-5 w-5 text-gold-primary flex-shrink-0" />
+              <Calendar className="h-5 w-5 gold-gradient-icon flex-shrink-0" />
               <span>
                 {formatDateRange(tripData.start_date, tripData.end_date, tripData.dateRange)}
               </span>
