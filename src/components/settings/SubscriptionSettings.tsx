@@ -255,7 +255,7 @@ export function SubscriptionSettings({ className }: { className?: string }) {
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold">Explorer</h3>
-                      <Badge className="bg-blue-500">$4.99/mo</Badge>
+                      <Badge className="bg-blue-500">$9.99/mo</Badge>
                     </div>
                     <Button
                       className="w-full"
@@ -270,7 +270,7 @@ export function SubscriptionSettings({ className }: { className?: string }) {
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold">Frequent Chraveler</h3>
-                      <Badge className="bg-purple-500">$9.99/mo</Badge>
+                      <Badge className="bg-purple-500">$19.99/mo</Badge>
                     </div>
                     <Button
                       className="w-full bg-purple-500 hover:bg-purple-600"

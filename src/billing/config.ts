@@ -143,13 +143,13 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
   },
 
   'pro-enterprise': {
-    name: 'Pro Enterprise',
+    name: 'Enterprise',
     stripeProductId: 'prod_U73Vd6QW4pEY9x',
     stripePriceIdMonthly: 'price_1T8pOg47wCAQ57MmcEPnjd3s',
     stripePriceIdAnnual: 'price_1T8pOg47wCAQ57MmcEPnjd3s', // Pro plans monthly only
     requiresIAPOnIOS: false,
-    priceMonthly: 199,
-    priceAnnual: 1990,
+    priceMonthly: 0, // Custom Pricing - Contact Sales
+    priceAnnual: 0, // Custom Pricing - Contact Sales
     entitlements: [
       'ai_queries_unlimited',
       'trips_unlimited',
