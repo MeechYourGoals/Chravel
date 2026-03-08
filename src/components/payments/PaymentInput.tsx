@@ -279,7 +279,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                     type="button"
                     onClick={() => toggleParticipant(member.id)}
                     className={`
-                      inline-flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-all w-auto shrink-0
+                      inline-flex items-center gap-2 rounded-lg px-3 py-3 min-h-[44px] cursor-pointer transition-all w-auto shrink-0
                       ${
                         isSelected
                           ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30'

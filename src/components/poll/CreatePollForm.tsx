@@ -115,7 +115,7 @@ export const CreatePollForm = ({
         {!isInlineEmptyState && (
           <button
             onClick={handleCancel}
-            className="w-8 h-8 rounded-full bg-glass-slate-bg hover:bg-glass-slate-border flex items-center justify-center transition-colors"
+            className="w-11 h-11 rounded-full bg-glass-slate-bg hover:bg-glass-slate-border flex items-center justify-center transition-colors"
           >
             <X size={16} className="text-gray-400" />
           </button>
@@ -151,7 +151,7 @@ export const CreatePollForm = ({
                 {options.length > 2 && (
                   <button
                     onClick={() => handleRemoveOption(index)}
-                    className="w-8 h-8 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-400 transition-colors"
+                    className="w-11 h-11 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-400 transition-colors"
                   >
                     <X size={14} />
                   </button>
@@ -161,7 +161,7 @@ export const CreatePollForm = ({
             {options.length < 10 && (
               <button
                 onClick={handleAddOption}
-                className="w-full h-10 border-2 border-dashed border-glass-slate-border rounded-lg text-gray-400 hover:border-glass-enterprise-blue hover:text-glass-enterprise-blue transition-colors flex items-center justify-center gap-2"
+                className="w-full h-11 border-2 border-dashed border-glass-slate-border rounded-lg text-gray-400 hover:border-glass-enterprise-blue hover:text-glass-enterprise-blue transition-colors flex items-center justify-center gap-2 active:scale-[0.98]"
               >
                 <Plus size={16} />
                 Add Option
@@ -260,14 +260,14 @@ export const CreatePollForm = ({
                 value={deadlineDate}
                 onChange={e => setDeadlineDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
-                className="flex-1 bg-glass-slate-bg border-glass-slate-border text-white text-sm h-9"
+                className="flex-1 bg-glass-slate-bg border-glass-slate-border text-white text-sm h-11"
               />
               <Input
                 type="time"
                 value={deadlineTime}
                 onChange={e => setDeadlineTime(e.target.value)}
                 disabled={!deadlineDate}
-                className="w-28 bg-glass-slate-bg border-glass-slate-border text-white text-sm h-9"
+                className="w-32 bg-glass-slate-bg border-glass-slate-border text-white text-sm h-11"
               />
             </div>
             {deadlineDate && (
