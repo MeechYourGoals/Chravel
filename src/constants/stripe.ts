@@ -96,8 +96,31 @@ export const PRO_PLANS = {
     tier: 'pro-enterprise',
     product_id: 'prod_U73Vd6QW4pEY9x',
     price_id: 'price_1T8pOg47wCAQ57MmcEPnjd3s',
-    amount: 19900, // $199/mo in cents
+    amount: 0, // Custom Pricing - Contact Sales (billing@chravelapp.com)
     memberLimit: 250,
+  },
+} as const;
+
+// ============================================================
+// TRIP PASS PRODUCTS (One-Time Purchases)
+// ============================================================
+
+export const TRIP_PASS_PLANS = {
+  'pass-explorer-45': {
+    name: 'Explorer Trip Pass (45 days)',
+    tier: 'explorer',
+    product_id: 'prod_U73WaALe9yjrAR',
+    price_id: 'price_1T8pP047wCAQ57Mm6sfNTg2w',
+    amount: 3999, // $39.99
+    durationDays: 45,
+  },
+  'pass-frequent-90': {
+    name: 'Frequent Chraveler Trip Pass (90 days)',
+    tier: 'frequent-chraveler',
+    product_id: 'prod_U73W99ebeJvbLB',
+    price_id: 'price_1T8pP047wCAQ57Mm2DOch99F',
+    amount: 7499, // $74.99
+    durationDays: 90,
   },
 } as const;
 
