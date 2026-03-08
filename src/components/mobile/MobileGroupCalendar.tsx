@@ -377,7 +377,7 @@ export const MobileGroupCalendar = ({
                   </h3>
                   <button
                     onClick={handleAddEvent}
-                    className="p-2 bg-blue-600 rounded-lg active:scale-95 transition-transform"
+                    className="p-2 bg-primary rounded-lg active:scale-95 transition-transform"
                   >
                     <Plus size={18} className="text-white" />
                   </button>
@@ -508,16 +508,16 @@ export const MobileGroupCalendar = ({
                           ${isCurrentMonth ? 'text-gray-300' : 'text-gray-600'}
                           ${
                             isSelected
-                              ? 'bg-blue-500 text-white font-medium'
+                              ? 'bg-primary text-primary-foreground font-medium'
                               : isToday
-                                ? 'bg-blue-500/20 text-blue-400'
+                                ? 'bg-primary/20 text-primary'
                                 : 'hover:bg-white/10'
                           }
                         `}
                       >
                         {format(date, 'd')}
                         {hasEvents && !isSelected && (
-                          <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-blue-400" />
+                          <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-primary" />
                         )}
                       </button>
                     );
@@ -599,7 +599,7 @@ export const MobileGroupCalendar = ({
                         <div
                           className={`
                           text-xs font-medium mb-1 px-1
-                          ${isToday ? 'text-blue-400' : isCurrentMonth ? 'text-white' : 'text-gray-600'}
+                          ${isToday ? 'text-primary' : isCurrentMonth ? 'text-white' : 'text-gray-600'}
                         `}
                         >
                           {format(date, 'd')}
@@ -672,7 +672,7 @@ export const MobileGroupCalendar = ({
           />
 
           {/* Drawer */}
-          <div className="relative w-full max-w-md bg-gray-900 border-t border-white/10 rounded-t-3xl shadow-2xl animate-slide-up max-h-[70vh] overflow-y-auto">
+          <div className="relative w-full max-w-md bg-glass-slate-card border-t border-glass-slate-border rounded-t-3xl shadow-enterprise-lg animate-slide-up max-h-[70vh] overflow-y-auto">
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
@@ -698,8 +698,8 @@ export const MobileGroupCalendar = ({
             <div className="px-6 pb-6 space-y-4">
               {/* Time */}
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-blue-400" />
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Time</p>

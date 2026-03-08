@@ -231,12 +231,12 @@ export const CreateEventModal = ({
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div
-              className={`w-10 h-10 rounded-xl ${isEditMode ? 'bg-amber-500/20' : 'bg-blue-500/20'} flex items-center justify-center`}
+              className={`w-10 h-10 rounded-xl ${isEditMode ? 'bg-amber-500/20' : 'bg-primary/20'} flex items-center justify-center`}
             >
               {isEditMode ? (
                 <Pencil className="w-5 h-5 text-amber-400" />
               ) : (
-                <CalendarIcon className="w-5 h-5 text-blue-400" />
+                <CalendarIcon className="w-5 h-5 text-primary" />
               )}
             </div>
             <div>
@@ -263,7 +263,7 @@ export const CreateEventModal = ({
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g., Dinner at Italian Restaurant"
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
               required
             />
           </div>
@@ -283,7 +283,7 @@ export const CreateEventModal = ({
                   setEventDate(new Date(year, month - 1, day));
                 }
               }}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
               required
             />
           </div>
@@ -295,7 +295,7 @@ export const CreateEventModal = ({
                 type="time"
                 value={time}
                 onChange={e => setTime(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                 required
               />
             </div>
@@ -307,7 +307,7 @@ export const CreateEventModal = ({
                 type="time"
                 value={endTime}
                 onChange={e => setEndTime(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
           </div>
@@ -319,7 +319,7 @@ export const CreateEventModal = ({
               value={location}
               onChange={e => setLocation(e.target.value)}
               placeholder="e.g., Central Park"
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
@@ -332,7 +332,7 @@ export const CreateEventModal = ({
               onChange={e => setDescription(e.target.value)}
               placeholder="Add any additional details..."
               rows={3}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+              className="w-full px-4 py-3 bg-glass-slate-bg border border-glass-slate-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
             />
           </div>
 
@@ -352,7 +352,7 @@ export const CreateEventModal = ({
               className={`flex-1 ${
                 isEditMode
                   ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+                  : 'bg-primary hover:bg-primary/90'
               } text-white`}
             >
               {isSubmitting

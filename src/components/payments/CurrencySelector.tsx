@@ -54,7 +54,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            'w-full justify-between h-12 rounded-xl bg-gray-900/40 border-white/10 text-white hover:bg-gray-800/60',
+            'w-full justify-between h-12 rounded-xl bg-glass-slate-bg border-glass-slate-border text-white hover:bg-white/10',
             className,
           )}
         >
@@ -70,8 +70,11 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
           <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0 bg-gray-900 border-white/10" align="start">
-        <Command className="bg-gray-900">
+      <PopoverContent
+        className="w-[400px] p-0 bg-glass-slate-card border-glass-slate-border"
+        align="start"
+      >
+        <Command className="bg-glass-slate-card">
           <CommandInput
             placeholder="Search currencies..."
             value={searchQuery}
@@ -98,7 +101,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
                           onChange(code);
                           setOpen(false);
                         }}
-                        className="cursor-pointer hover:bg-gray-800 text-white"
+                        className="cursor-pointer hover:bg-glass-slate-bg text-white"
                       >
                         <Check
                           className={cn(
@@ -145,7 +148,7 @@ export const CurrencySelector: React.FC<CurrencySelectorProps> = ({
                             onChange(currency.code);
                             setOpen(false);
                           }}
-                          className="cursor-pointer hover:bg-gray-800 text-white"
+                          className="cursor-pointer hover:bg-glass-slate-bg text-white"
                         >
                           <Check
                             className={cn(
