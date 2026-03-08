@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CalendarRange,
+  CalendarDays,
   MapPin,
   User,
   Users,
@@ -445,8 +445,8 @@ export const TripCard = ({
               <span className="font-medium truncate">{trip.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <CalendarRange size={14} className="md:hidden gold-gradient-icon" />
-              <CalendarRange size={18} className="hidden md:block gold-gradient-icon" />
+              <CalendarDays size={14} className="md:hidden gold-gradient-icon" />
+              <CalendarDays size={18} className="hidden md:block gold-gradient-icon" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
@@ -492,7 +492,7 @@ export const TripCard = ({
         {/* Quick Stats - icon above → number → label */}
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
           <CardStatItem icon={Users} value={trip.peopleCount ?? participantsWithAvatars.length} label="People" />
-          <CardStatItem icon={CalendarRange} value={calculateDaysCount(trip.dateRange)} label="Days" />
+          <CardStatItem icon={CalendarDays} value={calculateDaysCount(trip.dateRange)} label="Days" />
           <CardStatItem icon={MapPin} value={trip.placesCount ?? 0} label="Places" />
         </div>
 
